@@ -734,7 +734,7 @@ function AutomlLeaderboard({
                 screenReaderText="Actions"
                 isStickyColumn
                 hasLeftBorder
-                stickyMinWidth="50px"
+                stickyMinWidth="80px"
                 stickyRightOffset="0"
               />
             </Tr>
@@ -747,7 +747,7 @@ function AutomlLeaderboard({
                   data-testid={`rank-${entry.rank}`}
                   className="automl-leaderboard__rank-cell"
                   isStickyColumn
-                  stickyMinWidth="120px"
+                  stickyMinWidth="140px"
                   stickyLeftOffset="0"
                 >
                   {entry.rank === 1 ? (

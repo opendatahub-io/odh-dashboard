@@ -879,7 +879,7 @@ function AutoragLeaderboard({
                 screenReaderText="Actions"
                 isStickyColumn
                 hasLeftBorder
-                stickyMinWidth="50px"
+                stickyMinWidth="80px"
                 stickyRightOffset="0"
               />
             </Tr>
@@ -892,7 +892,7 @@ function AutoragLeaderboard({
                   data-testid={`rank-${entry.rank}`}
                   className="autorag-leaderboard__rank-cell"
                   isStickyColumn
-                  stickyMinWidth="80px"
+                  stickyMinWidth="140px"
                   stickyLeftOffset="0"
                 >
                   {entry.rank === 1 ? (
