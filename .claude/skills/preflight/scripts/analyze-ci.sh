@@ -81,9 +81,9 @@ if [ -d "$workflow_dir" ]; then
         cmd=$0; gsub(/^[[:space:]]*run:[[:space:]]*/,"",cmd); gsub(/\|$/,"",cmd)
         if (length(cmd) > 0 && cmd !~ /^\|/) print job ": " cmd
       }
-    ' "$f" | head -20)
+    ' "$f" 2>/dev/null | head -20 || echo "")
 
-    triggers=$(awk '/^on:/{found=1; next} found && /^[^ ]/{found=0} found{print}' "$f" | grep -oE '(push|pull_request|workflow_dispatch|issue_comment|schedule)' | sort -u | tr '\n' ',' | sed 's/,$//')
+    triggers=$(awk '/^on:/{found=1; next} found && /^[^ ]/{found=0} found{print}' "$f" | grep -oE '(push|pull_request|workflow_dispatch|issue_comment|schedule)' 2>/dev/null | sort -u | tr '\n' ',' | sed 's/,$//' || echo "")
 
     local_workflows=$(echo "$local_workflows" | jq -c \
       --arg file "$filename" --arg name "$wf_name" --arg jobs "$jobs" --arg triggers "$triggers" \
