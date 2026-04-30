@@ -80,7 +80,7 @@ describe('MCP Deployments', () => {
     initIntercepts();
     visitDeployments();
     mcpDeploymentsPage.findTable().should('be.visible');
-    mcpDeploymentsPage.findTableRows().should('have.length', 3);
+    mcpDeploymentsPage.findTableRows().should('have.length', 6);
 
     const runningRow = mcpDeploymentsPage.getRow('kubernetes-mcp');
     runningRow.findServer().should('contain.text', 'Kubernetes');
@@ -98,6 +98,21 @@ describe('MCP Deployments', () => {
     failedRow.findStatusLabel().should('contain.text', 'Unavailable');
     failedRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
     failedRow.findServiceViewButton().should('not.exist');
+
+    const initRow = mcpDeploymentsPage.getRow('init-mcp');
+    initRow.findStatusLabel().should('contain.text', 'Initializing');
+    initRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    initRow.findServiceViewButton().should('not.exist');
+
+    const invalidRow = mcpDeploymentsPage.getRow('invalid-mcp');
+    invalidRow.findStatusLabel().should('contain.text', 'Configuration invalid');
+    invalidRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    invalidRow.findServiceViewButton().should('not.exist');
+
+    const scaledRow = mcpDeploymentsPage.getRow('scaled-mcp');
+    scaledRow.findStatusLabel().should('contain.text', 'Scaled to zero');
+    scaledRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    scaledRow.findServiceViewButton().should('not.exist');
   });
 
   it('should default-sort rows by Created with newest first', () => {

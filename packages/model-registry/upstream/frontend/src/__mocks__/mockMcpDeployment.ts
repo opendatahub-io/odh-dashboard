@@ -2,9 +2,39 @@
 import {
   McpDeployment,
   McpDeploymentList,
-  McpDeploymentPhase,
+  McpDeploymentCondition,
+  McpConditionType,
+  McpConditionStatus,
+  McpAcceptedReason,
+  McpReadyReason,
   MCPServerCR,
 } from '../app/mcpDeploymentTypes';
+
+export const mockMcpCondition = (
+  overrides?: Partial<McpDeploymentCondition>,
+): McpDeploymentCondition => ({
+  type: McpConditionType.READY,
+  status: McpConditionStatus.TRUE,
+  lastTransitionTime: '2026-03-10T14:31:00Z',
+  reason: McpReadyReason.AVAILABLE,
+  message: 'The MCP server is ready and serving requests.',
+  ...overrides,
+});
+
+export const mockReadyConditions = (): McpDeploymentCondition[] => [
+  mockMcpCondition({
+    type: McpConditionType.ACCEPTED,
+    status: McpConditionStatus.TRUE,
+    reason: McpAcceptedReason.VALID,
+    message: 'Configuration is valid.',
+  }),
+  mockMcpCondition({
+    type: McpConditionType.READY,
+    status: McpConditionStatus.TRUE,
+    reason: McpReadyReason.AVAILABLE,
+    message: 'The MCP server is ready and serving requests.',
+  }),
+];
 
 export const mockMcpDeployment = (overrides?: Partial<McpDeployment>): McpDeployment => ({
   name: 'kubernetes-mcp',
@@ -14,7 +44,7 @@ export const mockMcpDeployment = (overrides?: Partial<McpDeployment>): McpDeploy
   uid: 'test-uid-1234',
   creationTimestamp: '2026-03-10T14:30:00Z',
   image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-  phase: McpDeploymentPhase.RUNNING,
+  conditions: mockReadyConditions(),
   address: { url: 'http://kubernetes-mcp.test-project.svc:8080/sse' },
   ...overrides,
 });

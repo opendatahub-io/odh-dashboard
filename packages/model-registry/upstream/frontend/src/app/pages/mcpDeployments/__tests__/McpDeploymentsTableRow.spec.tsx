@@ -3,9 +3,14 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Table as PfTable, Tbody } from '@patternfly/react-table';
-import { McpDeployment, McpDeploymentPhase } from '~/app/mcpDeploymentTypes';
+import { McpDeployment } from '~/app/mcpDeploymentTypes';
 import McpDeploymentsTableRow from '~/app/pages/mcpDeployments/McpDeploymentsTableRow';
-import { createMockDeployment } from './mcpDeploymentTestUtils';
+import {
+  createMockDeployment,
+  createReadyConditions,
+  createInitializingConditions,
+  createFailedConditions,
+} from './mcpDeploymentTestUtils';
 
 const renderRow = (deployment: McpDeployment, onDeleteClick = jest.fn(), onEditClick = jest.fn()) =>
   render(
@@ -49,16 +54,26 @@ describe('McpDeploymentsTableRow', () => {
     );
   });
 
-  it('should render status label that maps phase to display label', () => {
-    renderRow(createMockDeployment({ phase: McpDeploymentPhase.RUNNING }));
+  it('should render Available status label when Ready condition is True', () => {
+    renderRow(createMockDeployment({ conditions: createReadyConditions() }));
     expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Available');
   });
 
-  it('should render View link for Running deployment and show connection URL in popover', async () => {
+  it('should render Initializing status label when Ready is False with Initializing reason', () => {
+    renderRow(createMockDeployment({ conditions: createInitializingConditions() }));
+    expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Initializing');
+  });
+
+  it('should render Unavailable status label when Ready is False with DeploymentUnavailable reason', () => {
+    renderRow(createMockDeployment({ conditions: createFailedConditions() }));
+    expect(screen.getByTestId('mcp-deployment-status-label')).toHaveTextContent('Unavailable');
+  });
+
+  it('should render View link for Ready deployment and show connection URL in popover', async () => {
     const user = userEvent.setup();
     renderRow(
       createMockDeployment({
-        phase: McpDeploymentPhase.RUNNING,
+        conditions: createReadyConditions(),
         address: { url: 'kubernetes-test:8080' },
       }),
     );
@@ -71,11 +86,8 @@ describe('McpDeploymentsTableRow', () => {
     expect(popover).toHaveTextContent('kubernetes-test:8080');
   });
 
-  it.each([McpDeploymentPhase.FAILED, McpDeploymentPhase.PENDING])(
-    'should render dash for %s deployment without address',
-    (phase) => {
-      renderRow(createMockDeployment({ phase }));
-      expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
-    },
-  );
+  it('should render dash when deployment is not ready', () => {
+    renderRow(createMockDeployment({ conditions: createFailedConditions() }));
+    expect(screen.getByTestId('mcp-deployment-service-unavailable')).toBeInTheDocument();
+  });
 });

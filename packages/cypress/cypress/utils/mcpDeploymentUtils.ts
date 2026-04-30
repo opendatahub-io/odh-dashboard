@@ -1,8 +1,29 @@
 import {
   type McpDeployment,
+  type McpDeploymentCondition,
   type MCPServerCR,
-  McpDeploymentPhase,
+  McpConditionType,
+  McpConditionStatus,
+  McpAcceptedReason,
+  McpReadyReason,
 } from '@odh-dashboard/model-registry/types/mcpDeploymentTypes';
+
+const acceptedValid = (): McpDeploymentCondition => ({
+  type: McpConditionType.ACCEPTED,
+  status: McpConditionStatus.TRUE,
+  reason: McpAcceptedReason.VALID,
+});
+
+const readyCondition = (
+  status: McpConditionStatus,
+  reason: string,
+  message?: string,
+): McpDeploymentCondition => ({
+  type: McpConditionType.READY,
+  status,
+  reason,
+  message,
+});
 
 export const mockMcpDeployment = (overrides?: Partial<McpDeployment>): McpDeployment => ({
   name: 'kubernetes-mcp',
@@ -12,7 +33,7 @@ export const mockMcpDeployment = (overrides?: Partial<McpDeployment>): McpDeploy
   uid: 'test-uid-1234',
   creationTimestamp: '2026-03-10T14:30:00Z',
   image: 'quay.io/mcp-servers/kubernetes:1.0.0',
-  phase: McpDeploymentPhase.RUNNING,
+  conditions: [acceptedValid(), readyCondition(McpConditionStatus.TRUE, McpReadyReason.AVAILABLE)],
   address: { url: 'http://kubernetes-mcp.test-project.svc:8080/sse' },
   ...overrides,
 });
@@ -35,7 +56,7 @@ export const mockPendingDeployment = (overrides?: Partial<McpDeployment>): McpDe
     uid: 'uid-2',
     creationTimestamp: '2026-03-11T10:00:00Z',
     image: 'quay.io/mcp-servers/github:2.1.0',
-    phase: McpDeploymentPhase.PENDING,
+    conditions: [],
     address: undefined,
     ...overrides,
   });
@@ -48,7 +69,62 @@ export const mockFailedDeployment = (overrides?: Partial<McpDeployment>): McpDep
     uid: 'uid-3',
     creationTimestamp: '2026-03-12T08:00:00Z',
     image: 'quay.io/mcp-servers/slack:1.0.0',
-    phase: McpDeploymentPhase.FAILED,
+    conditions: [
+      acceptedValid(),
+      readyCondition(McpConditionStatus.FALSE, McpReadyReason.DEPLOYMENT_UNAVAILABLE),
+    ],
+    address: undefined,
+    ...overrides,
+  });
+
+export const mockInitializingDeployment = (overrides?: Partial<McpDeployment>): McpDeployment =>
+  mockMcpDeployment({
+    name: 'init-mcp',
+    displayName: 'Init MCP',
+    serverName: 'Init',
+    uid: 'uid-4',
+    creationTimestamp: '2026-03-13T09:00:00Z',
+    image: 'quay.io/mcp-servers/init:1.0.0',
+    conditions: [
+      acceptedValid(),
+      readyCondition(McpConditionStatus.FALSE, McpReadyReason.INITIALIZING),
+    ],
+    address: undefined,
+    ...overrides,
+  });
+
+export const mockConfigInvalidDeployment = (overrides?: Partial<McpDeployment>): McpDeployment =>
+  mockMcpDeployment({
+    name: 'invalid-mcp',
+    displayName: 'Invalid MCP',
+    serverName: 'Invalid',
+    uid: 'uid-5',
+    creationTimestamp: '2026-03-14T09:00:00Z',
+    image: 'quay.io/mcp-servers/invalid:1.0.0',
+    conditions: [
+      {
+        type: McpConditionType.ACCEPTED,
+        status: McpConditionStatus.FALSE,
+        reason: McpAcceptedReason.INVALID,
+        message: 'Invalid port configuration.',
+      },
+    ],
+    address: undefined,
+    ...overrides,
+  });
+
+export const mockScaledToZeroDeployment = (overrides?: Partial<McpDeployment>): McpDeployment =>
+  mockMcpDeployment({
+    name: 'scaled-mcp',
+    displayName: 'Scaled MCP',
+    serverName: 'Scaled',
+    uid: 'uid-6',
+    creationTimestamp: '2026-03-15T09:00:00Z',
+    image: 'quay.io/mcp-servers/scaled:1.0.0',
+    conditions: [
+      acceptedValid(),
+      readyCondition(McpConditionStatus.FALSE, McpReadyReason.SCALED_TO_ZERO),
+    ],
     address: undefined,
     ...overrides,
   });
@@ -57,6 +133,9 @@ export const mockAllDeployments = (): McpDeployment[] => [
   mockRunningDeployment(),
   mockPendingDeployment(),
   mockFailedDeployment(),
+  mockInitializingDeployment(),
+  mockConfigInvalidDeployment(),
+  mockScaledToZeroDeployment(),
 ];
 
 export const mockDeploymentListResponse = (
