@@ -9,9 +9,9 @@ import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
 import {
-  NIM_SECRET_GENERATE_NAME,
+  NIM_ACCOUNT_SECRET_GENERATE_NAME,
   NIM_ACCOUNT_NAME,
-  NGC_API_KEY_DATA_KEY,
+  NIM_ACCOUNT_API_KEY_DATA_KEY,
   NIM_FORCE_VALIDATION_ANNOTATION,
 } from './nimConstants';
 
@@ -20,7 +20,7 @@ export const assembleNIMSecret = (namespace: string, apiKey: string): SecretKind
   kind: 'Secret',
   metadata: {
     name: '',
-    generateName: NIM_SECRET_GENERATE_NAME,
+    generateName: NIM_ACCOUNT_SECRET_GENERATE_NAME,
     namespace,
     labels: {
       'opendatahub.io/managed': 'true',
@@ -28,7 +28,7 @@ export const assembleNIMSecret = (namespace: string, apiKey: string): SecretKind
   },
   type: 'Opaque',
   stringData: {
-    [NGC_API_KEY_DATA_KEY]: apiKey,
+    [NIM_ACCOUNT_API_KEY_DATA_KEY]: apiKey,
   },
 });
 
@@ -107,7 +107,7 @@ export const updateNIMSecretAndRevalidate = async (
     },
     type: 'Opaque',
     stringData: {
-      [NGC_API_KEY_DATA_KEY]: apiKey,
+      [NIM_ACCOUNT_API_KEY_DATA_KEY]: apiKey,
     },
   });
 
