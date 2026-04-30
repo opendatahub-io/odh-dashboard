@@ -861,6 +861,7 @@ function AutoragConfigure(): React.JSX.Element {
                                         !inputDataKeyValue ||
                                         form.formState.isSubmitting ||
                                         isModelsLoading ||
+                                        isModelsError ||
                                         !allModelsData?.models.length
                                       }
                                     >

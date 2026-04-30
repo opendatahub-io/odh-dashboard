@@ -842,6 +842,27 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
+    it('should disable "Edit" button when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      // Select a valid secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Browse and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Edit button should be disabled due to model error
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
+    });
+
     it('should enable "Edit" button when a file/folder is selected', () => {
       mockUseLlamaStackModelsQuery.mockReturnValue({
         data: {
