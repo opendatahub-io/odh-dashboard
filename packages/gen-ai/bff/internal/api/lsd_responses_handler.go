@@ -337,32 +337,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
-	if createRequest.InputShieldID != "" {
-		modResult, err := app.checkModeration(ctx, createRequest.Input, createRequest.InputShieldID)
-		if err != nil {
-			app.logger.Error("Input moderation failed", "error", err, "shield_id", createRequest.InputShieldID)
-			app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
-			return
-		}
-		if modResult.Flagged {
-			app.logger.Info("Input blocked by guardrails",
-				"shield_id", createRequest.InputShieldID,
-				"reason", modResult.ViolationReason)
-
-			// Use streaming format if stream=true, otherwise return JSON
-			if createRequest.Stream {
-				app.sendInputGuardrailViolationStreaming(w, createRequest.Model)
-			} else {
-				responseData := createGuardrailViolationResponse("", createRequest.Model, true)
-				apiResponse := llamastack.APIResponse{Data: responseData}
-				if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
-					app.serverErrorResponse(w, r, err)
-				}
-			}
-			return
-		}
-	}
+	// TODO: Input moderation will be wired here once the guardrail_config request field
+	// is implemented (replaces the deprecated InputShieldID path).
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
 	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
@@ -532,25 +508,8 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
 
-	// OUTPUT MODERATION: If OutputShieldID is set, moderate the response content
-	if params.OutputShieldID != "" {
-		outputText := extractResponseText(&responseData)
-		if outputText != "" {
-			modResult, err := app.checkModeration(ctx, outputText, params.OutputShieldID)
-			if err != nil {
-				app.logger.Error("Output moderation failed", "error", err, "shield_id", params.OutputShieldID)
-				app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
-				return
-			}
-			if modResult.Flagged {
-				app.logger.Info("Output blocked by guardrails",
-					"shield_id", params.OutputShieldID,
-					"reason", modResult.ViolationReason)
-				// Replace response with guardrail violation message
-				responseData = createGuardrailViolationResponse(responseData.ID, responseData.Model, false)
-			}
-		}
-	}
+	// TODO: Output moderation will be wired here once the guardrail_config request field
+	// is implemented (replaces the deprecated OutputShieldID path).
 
 	// Add previous response ID to response data if provided
 	if params.PreviousResponseID != "" {
@@ -576,6 +535,9 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 // sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
 // using the OpenAI standard refusal content type and streaming events.
 // This is used when input moderation flags content and the client requested streaming.
+// Will be wired in the follow-up PR once guardrail_config request field is implemented.
+//
+//nolint:unused
 func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string) {
 	// Check if ResponseWriter supports streaming
 	flusher, ok := w.(http.Flusher)
@@ -674,7 +636,10 @@ func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, mode
 	}
 }
 
-// getCurrentTimestamp returns the current Unix timestamp
+// getCurrentTimestamp returns the current Unix timestamp.
+// Will be wired in the follow-up PR once guardrail_config request field is implemented.
+//
+//nolint:unused
 func getCurrentTimestamp() int64 {
 	return int64(0) // Use 0 for consistency with other guardrail responses
 }

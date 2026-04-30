@@ -5,6 +5,7 @@ import {
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
+  isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
@@ -82,6 +83,33 @@ describe('isRunRetryable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunRetryable(undefined)).toBe(false);
     expect(isRunRetryable('')).toBe(false);
+  });
+});
+
+describe('isRunDeletable', () => {
+  it('should return true for terminal states', () => {
+    expect(isRunDeletable('SUCCEEDED')).toBe(true);
+    expect(isRunDeletable('FAILED')).toBe(true);
+    expect(isRunDeletable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunDeletable('succeeded')).toBe(true);
+    expect(isRunDeletable('Succeeded')).toBe(true);
+    expect(isRunDeletable('failed')).toBe(true);
+    expect(isRunDeletable('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunDeletable('RUNNING')).toBe(false);
+    expect(isRunDeletable('PENDING')).toBe(false);
+    expect(isRunDeletable('PAUSED')).toBe(false);
+    expect(isRunDeletable('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunDeletable(undefined)).toBe(false);
+    expect(isRunDeletable('')).toBe(false);
   });
 });
 
