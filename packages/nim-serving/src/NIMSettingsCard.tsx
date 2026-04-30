@@ -79,9 +79,11 @@ const NIMSettingsCard: React.FC = () => {
       case NIMAccountStatus.READY:
         return (
           <Stack hasGutter>
-            <StackItem>
-              <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
-            </StackItem>
+            {!(isModalOpen && status === NIMAccountStatus.PENDING) && (
+              <StackItem>
+                <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
+              </StackItem>
+            )}
             {(status === NIMAccountStatus.ERROR || status === NIMAccountStatus.READY) && (
               <StackItem>
                 <Flex>
