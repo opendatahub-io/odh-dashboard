@@ -3,12 +3,10 @@ version: "2"
 distro_name: rh
 apis:
 - responses
-- datasetio
+- file_processors
 - files
 - inference
 - safety
-- scoring
-- telemetry
 - tool_runtime
 - vector_io
 providers:
@@ -46,7 +44,7 @@ providers:
   safety:
   - provider_id: trustyai_fms
     provider_type: remote::trustyai_fms
-    module: llama_stack_provider_trustyai_fms==0.2.2
+    module: llama_stack_provider_trustyai_fms==0.3.2
     config:
       orchestrator_url: ${env.FMS_ORCHESTRATOR_URL:=http://localhost}
       ssl_cert_path: ${env.FMS_SSL_CERT_PATH:=}
@@ -65,40 +63,20 @@ providers:
           max_write_queue_size: 10000
           num_writers: 4
   eval: []
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+    config: {}
   files:
-  - provider_id: meta-reference-files
+  - provider_id: localfs-files
     provider_type: inline::localfs
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        namespace: datasetio::huggingface
-        backend: kv_default
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  - provider_id: braintrust
-    provider_type: inline::braintrust
-    config:
-      openai_api_key: ${env.OPENAI_API_KEY:=}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
+  datasetio: []
+  scoring: []
   tool_runtime:
   - provider_id: file-search
     provider_type: inline::file-search

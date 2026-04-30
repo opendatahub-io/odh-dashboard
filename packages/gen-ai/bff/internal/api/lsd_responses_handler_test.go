@@ -649,13 +649,15 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
 
-	// Moderation tests use NewMockLlamaStackClient() directly (instead of the factory)
+	// Moderation tests use NewMockLlamaStackClient() directly because in production,
+	// moderation is served by Guardrails Orchestrator / NeMo Guardrails (not LLS).
+	// The safety API was removed from LLS defaults in 1.0.0 (RHAISTRAT-1362).
 	It("should pass input moderation with clean input and InputShieldID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
 			Input:         "Hello, how are you?",
 			Model:         testutil.GetTestLlamaStackModel(),
-			InputShieldID: testutil.GetTestLlamaStackShieldModel(),
+			InputShieldID: "test-shield",
 		}
 
 		req, err := createJSONRequest(payload)
@@ -695,7 +697,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		payload := CreateResponseRequest{
 			Input:         "How to hack a system",
 			Model:         testutil.GetTestLlamaStackModel(),
-			InputShieldID: testutil.GetTestLlamaStackShieldModel(),
+			InputShieldID: "test-shield",
 		}
 
 		req, err := createJSONRequest(payload)
@@ -738,7 +740,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		payload := CreateResponseRequest{
 			Input:         "How to hack a system",
 			Model:         testutil.GetTestLlamaStackModel(),
-			InputShieldID: testutil.GetTestLlamaStackShieldModel(),
+			InputShieldID: "test-shield",
 			Stream:        true,
 		}
 
@@ -810,7 +812,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		payload := CreateResponseRequest{
 			Input:          "Tell me about AI",
 			Model:          testutil.GetTestLlamaStackModel(),
-			OutputShieldID: testutil.GetTestLlamaStackShieldModel(),
+			OutputShieldID: "test-shield",
 		}
 
 		req, err := createJSONRequest(payload)

@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.32.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Well hello there, MaaS! Great",
+                "content": "Hello there! Great to hear from the world of MaaS \u2013 Mobility as a Service!\n\nThat's an incredibly exciting and relevant",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 8,
+            "completion_tokens": 27,
             "prompt_tokens": 5,
-            "total_tokens": 717,
+            "total_tokens": 1005,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": " to hear from the world of Mobility as a Service.\n\nThat's a fascinating and increasingly vital field, integrating various transport options to make urban living more efficient and sustainable.\n\nWhat's on your mind today, or is there anything",
+                "content": " field, revolutionizing how we think about transportation by integrating various modes into a single, accessible platform.\n\nWhat's on your mind today, or what would you like to discuss about MaaS? Are you looking into its benefits, challenges",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 56,
+            "completion_tokens": 75,
             "prompt_tokens": 5,
-            "total_tokens": 765,
+            "total_tokens": 1053,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -96,7 +96,7 @@
           "choices": [
             {
               "delta": {
-                "content": " specific about MaaS you'd like to discuss?",
+                "content": ", implementation, or something else? I'm ready to dive in!",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -113,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 67,
+            "completion_tokens": 90,
             "prompt_tokens": 5,
-            "total_tokens": 776,
+            "total_tokens": 1068,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

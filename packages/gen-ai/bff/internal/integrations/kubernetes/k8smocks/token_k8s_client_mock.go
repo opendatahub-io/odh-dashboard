@@ -496,6 +496,23 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		shieldsSection = `  shields:` + shieldsList
 	}
 
+	// Build APIs list -- safety is only included when guardrails are enabled
+	apisSection := `- file_processors
+- files
+- inference
+- responses
+- tool_runtime
+- vector_io`
+	if actuallyEnableGuardrails {
+		apisSection = `- file_processors
+- files
+- inference
+- responses
+- safety
+- tool_runtime
+- vector_io`
+	}
+
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -507,15 +524,7 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 version: "2"
 distro_name: rh
 apis:
-- datasetio
-- files
-- inference
-- responses
-- safety
-- scoring
-- telemetry
-- tool_runtime
-- vector_io
+` + apisSection + `
 providers:
   inference:
   - provider_id: vllm-inference-1
@@ -538,6 +547,10 @@ providers:
         backend: kv_default
 ` + safetySection + `
   eval: []
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+    config: {}
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
@@ -552,35 +565,15 @@ providers:
           max_write_queue_size: 10000
           num_writers: 4
   files:
-  - provider_id: meta-reference-files
+  - provider_id: localfs-files
     provider_type: inline::localfs
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        namespace: datasetio::huggingface
-        backend: kv_default
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
+  datasetio: []
+  scoring: []
   tool_runtime:
   - provider_id: file-search
     provider_type: inline::file-search

@@ -16,7 +16,7 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-16621901991937499978",
+              "id": "function-call-11858820744251561694",
               "type": "function",
               "function": {
                 "name": "file_search",
@@ -27,7 +27,7 @@
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-16621901991937499978",
+          "tool_call_id": "function-call-11858820744251561694",
           "content": [
             {
               "type": "text",
@@ -75,7 +75,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.32.0"
     }
   },
   "response": {
@@ -83,11 +83,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-5e784a861a6f",
+          "id": "rec-9484212516e2",
           "choices": [
             {
               "delta": {
-                "content": "Machine",
+                "content": "I",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -115,11 +115,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-5e784a861a6f",
+          "id": "rec-9484212516e2",
           "choices": [
             {
               "delta": {
-                "content": " learning is a subset of artificial intelligence (AI) that allows systems to learn from",
+                "content": " don't have enough information to define machine learning based on my current knowledge. Would",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -136,9 +136,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 17,
+            "completion_tokens": 18,
             "prompt_tokens": 139,
-            "total_tokens": 156,
+            "total_tokens": 157,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -147,11 +147,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-5e784a861a6f",
+          "id": "rec-9484212516e2",
           "choices": [
             {
               "delta": {
-                "content": " data without being explicitly programmed. It involves developing algorithms that can analyze data, identify patterns, and make predictions or decisions.",
+                "content": " you like me to try and find some resources for you?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -168,9 +168,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 41,
+            "completion_tokens": 30,
             "prompt_tokens": 139,
-            "total_tokens": 180,
+            "total_tokens": 169,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
