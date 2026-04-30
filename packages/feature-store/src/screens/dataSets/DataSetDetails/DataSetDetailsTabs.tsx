@@ -56,7 +56,11 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
           <Title headingLevel="h3" data-testid="data-set-features">
             Features
           </Title>
-          <Table aria-label="Features table" data-testid="features-table" variant="compact">
+          <Table
+            aria-label="Dataset features table"
+            data-testid="data-set-features-table"
+            variant="compact"
+          >
             <Thead>
               <Tr>
                 <Th>Feature</Th>

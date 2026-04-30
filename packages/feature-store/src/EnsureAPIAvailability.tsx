@@ -27,7 +27,7 @@ const EnsureFeatureStoreAPIAvailability: React.FC<EnsureFeatureStoreAPIAvailabil
         headingLevel="h1"
         titleText="Loading"
         variant={EmptyStateVariant.lg}
-        data-id="loading-empty-state"
+        data-testid="loading-empty-state"
       >
         <Spinner size="xl" />
       </EmptyState>

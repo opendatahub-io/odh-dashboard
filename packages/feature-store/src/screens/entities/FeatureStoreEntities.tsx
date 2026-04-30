@@ -6,7 +6,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
+import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEntities';
 import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
@@ -32,7 +32,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a entity in a workbench.
+        Select a different feature store or create an entity in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

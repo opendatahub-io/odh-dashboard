@@ -41,8 +41,8 @@ const FeatureViewsTabContent: React.FC<{
 }> = ({ featureViewsWithServices, currentProject }) => {
   return (
     <Table
-      aria-label="Data sources table"
-      data-testid="feature-view-data-sources-table"
+      aria-label="Data source feature views table"
+      data-testid="data-source-feature-views-table"
       variant="compact"
     >
       <Thead>
@@ -85,8 +85,8 @@ const SchemaTabContent: React.FC<{
 }> = ({ dataSource }) => {
   return (
     <Table
-      aria-label="Data sources table"
-      data-testid="feature-view-data-sources-table"
+      aria-label="Data source schema table"
+      data-testid="data-source-schema-table"
       variant="compact"
     >
       <Thead>

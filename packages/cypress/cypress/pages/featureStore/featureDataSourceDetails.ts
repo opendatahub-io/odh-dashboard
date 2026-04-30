@@ -74,7 +74,7 @@ class FeatureDataSourceDetails extends Contextual<HTMLElement> {
   }
 
   findFeatureViewsTable() {
-    return cy.findByTestId('feature-view-data-sources-table');
+    return cy.findByTestId('data-source-feature-views-table');
   }
 
   findFeatureViewLineage() {

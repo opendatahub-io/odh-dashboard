@@ -18,6 +18,7 @@ import {
   featureDataSourceRoute,
   featureEntityRoute,
   featureServiceRoute,
+  featureStoreFeaturesListRoute,
   featureViewRoute,
 } from '../../../routes.ts';
 import { useFeatureStoreProject } from '../../../FeatureStoreContext.tsx';
@@ -75,7 +76,7 @@ const FeatureStoreLineageNodePopover: React.FC<FeatureStoreLineageNodePopoverPro
   const detailsRoute = goToDetailsPage(node, currentProject);
   const allFeaturesSearchParams = new URLSearchParams();
   allFeaturesSearchParams.set('featureView', node.name);
-  const allFeaturesHref = `/develop-train/feature-store/features/${currentProject}?${allFeaturesSearchParams.toString()}`;
+  const allFeaturesHref = featureStoreFeaturesListRoute(currentProject, allFeaturesSearchParams);
 
   if (!triggerElement) {
     return null;

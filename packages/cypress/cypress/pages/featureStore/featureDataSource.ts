@@ -137,7 +137,7 @@ class FeatureDataSourceTableRow extends TableRow {
 
 class DataSourceDetailsPage extends Contextual<HTMLElement> {
   findFeatureViewsTable() {
-    return cy.findByTestId('feature-view-data-sources-table');
+    return cy.findByTestId('data-source-feature-views-table');
   }
 
   findSchemaTable() {
