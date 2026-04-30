@@ -10,8 +10,9 @@ on:
       - '.github/**'
       - '!.github/workflows/pr-build-validation.yml'
 
+# Concurrency control: Cancel in-progress runs when new commits are pushed
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
