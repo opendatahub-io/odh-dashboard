@@ -3,9 +3,9 @@ import {
   k8sDeleteResource,
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
-import { createSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
-import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
+import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import {
   assembleNIMSecret,
@@ -32,6 +32,7 @@ jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
 
 jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   createSecret: jest.fn(),
+  getSecret: jest.fn(),
   replaceSecret: jest.fn(),
 }));
 
@@ -40,6 +41,7 @@ jest.mock('@odh-dashboard/internal/api/k8s/nimAccounts', () => ({
 }));
 
 const mockCreateSecret = jest.mocked(createSecret);
+const mockGetSecret = jest.mocked(getSecret);
 const mockReplaceSecret = jest.mocked(replaceSecret);
 const mockK8sCreateResource = jest.mocked(k8sCreateResource);
 const mockK8sDeleteResource = jest.mocked(k8sDeleteResource);
@@ -146,27 +148,42 @@ describe('updateNIMSecretAndRevalidate', () => {
     jest.clearAllMocks();
   });
 
-  it('should replace the secret and patch the account with force-validation annotation', async () => {
+  it('should fetch existing secret, replace it with new key, and trigger revalidation', async () => {
+    const existingSecret: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: {
+        name: 'nvidia-nim-access-abc',
+        namespace: 'test-ns',
+        resourceVersion: '12345',
+      },
+      type: 'Opaque',
+      data: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: btoa('old-key') },
+    };
+    const account = mockNimAccount({ namespace: 'test-ns' });
+    mockGetSecret.mockResolvedValue(existingSecret);
     mockReplaceSecret.mockResolvedValue({} as SecretKind);
-    mockK8sPatchResource.mockResolvedValue({} as NIMAccountKind);
+    mockListNIMAccounts.mockResolvedValue([account]);
+    mockK8sPatchResource.mockResolvedValue({} as SecretKind);
 
-    await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-secrets-abc', 'nvapi-new-key');
+    await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'nvapi-new-key');
 
+    expect(mockGetSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
     expect(mockReplaceSecret).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: { name: 'nvidia-nim-secrets-abc', namespace: 'test-ns' },
+        metadata: expect.objectContaining({ resourceVersion: '12345' }),
         stringData: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: 'nvapi-new-key' },
       }),
     );
     expect(mockK8sPatchResource).toHaveBeenCalledWith(
       expect.objectContaining({
         queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
-        patches: [
+        patches: expect.arrayContaining([
           expect.objectContaining({
             op: 'add',
             path: expect.stringContaining('nim-force-validation'),
           }),
-        ],
+        ]),
       }),
     );
   });
