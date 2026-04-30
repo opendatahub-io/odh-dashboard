@@ -1,5 +1,7 @@
 import React from 'react';
 import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
+import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/utilities/useFetch';
+import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
 import { isAccountReady, getAccountErrors } from './nimK8sUtils';
 
@@ -10,18 +12,15 @@ export enum NIMAccountStatus {
   READY = 'READY',
 }
 
-const FAST_POLL_MS = 3000;
-const SLOW_POLL_MS = 30000;
-
 type NIMAccountStatusResult = {
   status: NIMAccountStatus;
   nimAccount: NIMAccountKind | undefined;
   errorMessages: string[];
   loaded: boolean;
-  refresh: () => void;
+  refresh: () => Promise<NIMAccountKind | undefined>;
 };
 
-const deriveStatus = (
+export const deriveStatus = (
   account: NIMAccountKind | undefined,
 ): { status: NIMAccountStatus; errorMessages: string[] } => {
   if (!account) {
@@ -38,58 +37,37 @@ const deriveStatus = (
 };
 
 const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
-  const [nimAccount, setNimAccount] = React.useState<NIMAccountKind | undefined>();
-  const [loaded, setLoaded] = React.useState(false);
-  const [pollCounter, setPollCounter] = React.useState(0);
-  const timerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const fetchCallback = React.useCallback<
+    FetchStateCallbackPromise<NIMAccountKind | undefined>
+  >(async () => {
+    const accounts = await listNIMAccounts(namespace);
+    return accounts[0];
+  }, [namespace]);
 
-  const refresh = React.useCallback(() => {
-    setPollCounter((c) => c + 1);
-  }, []);
+  const { status, errorMessages } = deriveStatus(undefined);
+  const [pollRate, setPollRate] = React.useState(POLL_INTERVAL);
 
-  React.useEffect(() => {
-    let cancelled = false;
+  const {
+    data: nimAccount,
+    loaded,
+    refresh,
+  } = useFetch(fetchCallback, undefined, {
+    refreshRate: pollRate,
+  });
 
-    const fetchAccount = async () => {
-      try {
-        const accounts = await listNIMAccounts(namespace);
-        if (!cancelled) {
-          setNimAccount(accounts[0]);
-          setLoaded(true);
-        }
-      } catch {
-        if (!cancelled) {
-          setNimAccount(undefined);
-          setLoaded(true);
-        }
-      }
-    };
-
-    fetchAccount();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [namespace, pollCounter]);
-
-  const { status, errorMessages } = deriveStatus(nimAccount);
+  const derived = loaded ? deriveStatus(nimAccount) : { status, errorMessages };
 
   React.useEffect(() => {
-    if (!loaded) {
-      return undefined;
-    }
-    const interval = status === NIMAccountStatus.PENDING ? FAST_POLL_MS : SLOW_POLL_MS;
-    timerRef.current = setTimeout(() => {
-      setPollCounter((c) => c + 1);
-    }, interval);
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-    };
-  }, [loaded, status, pollCounter]);
+    setPollRate(derived.status === NIMAccountStatus.PENDING ? FAST_POLL_INTERVAL : POLL_INTERVAL);
+  }, [derived.status]);
 
-  return { status, nimAccount, errorMessages, loaded, refresh };
+  return {
+    status: derived.status,
+    nimAccount,
+    errorMessages: derived.errorMessages,
+    loaded,
+    refresh,
+  };
 };
 
 export default useNIMAccountStatus;
