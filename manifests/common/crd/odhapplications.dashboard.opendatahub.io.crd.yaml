@@ -102,6 +102,9 @@ spec:
                           type: string
                       type: object
                   type: object
+                enableCustom:
+                  description: Identifier for a custom enable modal component to use instead of the default EnableModal.
+                  type: string
                 enableCR:
                   properties:
                     field:

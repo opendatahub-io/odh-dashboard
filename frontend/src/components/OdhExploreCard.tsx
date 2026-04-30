@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import { Card, CardBody, CardHeader, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { OdhApplication } from '#~/types';
 import { makeCardVisible } from '#~/utilities/utils';
-import EnableModal from '#~/pages/exploreApplication/EnableModal';
+import useOdhAppEnableModal from '#~/pages/exploreApplication/useOdhAppEnableModal';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import { useAppContext } from '#~/app/AppContext';
 import BrandImage from './BrandImage';
@@ -30,6 +30,7 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
   onEnableClose,
 }) => {
   const { dashboardConfig } = useAppContext();
+  const OdhAppEnableModal = useOdhAppEnableModal(odhApp);
   React.useEffect(() => {
     if (isSelected) {
       makeCardVisible(odhApp.metadata.name);
@@ -102,7 +103,9 @@ const OdhExploreCard: React.FC<OdhExploreCardProps> = ({
       </CardHeader>
       <SupportedAppTitle odhApp={odhApp} showProvider />
       <CardBody data-testid="cardbody">{odhApp.spec.description}</CardBody>
-      {enableOpen && <EnableModal onClose={onEnableClose} selectedApp={odhApp} />}
+      {enableOpen && OdhAppEnableModal && (
+        <OdhAppEnableModal onClose={onEnableClose} selectedApp={odhApp} />
+      )}
     </Card>
   );
 };

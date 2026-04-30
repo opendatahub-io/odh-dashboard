@@ -29,6 +29,7 @@ export const assembleServingRuntime = (
   servingRuntime: ServingRuntimeKind,
   isCustomServingRuntimesEnabled: boolean,
   isEditing?: boolean,
+  imagePullSecret?: string,
 ): ServingRuntimeKind => {
   const {
     name: displayName,
@@ -143,6 +144,11 @@ export const assembleServingRuntime = (
 
   updatedServingRuntime.spec.volumes = volumes;
 
+  // Add imagePullSecrets for air-gapped deployments with custom registries
+  if (imagePullSecret && !isEditing) {
+    updatedServingRuntime.spec.imagePullSecrets = [{ name: imagePullSecret }];
+  }
+
   return updatedServingRuntime;
 };
 
@@ -237,14 +243,17 @@ export const createServingRuntime = (options: {
   servingRuntime: ServingRuntimeKind;
   isCustomServingRuntimesEnabled: boolean;
   opts?: K8sAPIOptions;
+  imagePullSecret?: string;
 }): Promise<ServingRuntimeKind> => {
-  const { data, namespace, servingRuntime, isCustomServingRuntimesEnabled, opts } = options;
+  const { data, namespace, servingRuntime, isCustomServingRuntimesEnabled, opts, imagePullSecret } =
+    options;
   const assembledServingRuntime = assembleServingRuntime(
     data,
     namespace,
     servingRuntime,
     isCustomServingRuntimesEnabled,
     false,
+    imagePullSecret,
   );
 
   return k8sCreateResource<ServingRuntimeKind>(

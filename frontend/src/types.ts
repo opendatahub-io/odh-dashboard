@@ -183,6 +183,7 @@ export type OdhApplication = {
         message: string;
       };
     };
+    enableCustom?: string;
     featureFlag?: string;
     internalRoute?: string;
     error?: string;

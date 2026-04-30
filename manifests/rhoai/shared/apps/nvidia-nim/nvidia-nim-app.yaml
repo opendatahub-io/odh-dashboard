@@ -19,6 +19,7 @@ spec:
   quickStart: ''
   getStartedLink: 'https://developer.nvidia.com/nim'
   internalRoute: '/api/integrations/nim'
+  enableCustom: 'nim/NIMEnableModal'
   enable:
     title: Enter NVIDIA personal API key
     actionLabel: Submit
