@@ -106,6 +106,8 @@ type SettingsField =
  *   When present, the header displays the acronym while the tooltip continues to show the
  *   full `name`. Useful for metric columns where the full name is too long for a header cell.
  * @property description - Optional supplementary text shown below `name` in the tooltip.
+ * @property minWidth - Optional CSS min-width value applied to the column header (e.g., `"9rem"`).
+ *   Prevents narrow metric columns from collapsing when the table has many columns.
  * @property priority - Sort order for non-sticky columns (ascending). Default: MAX_SAFE_INTEGER.
  * @property field - LeaderboardEntry key for togglable settings columns.
  * @property testId - data-testid prefix for settings column headers and cells.
