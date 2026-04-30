@@ -996,9 +996,18 @@ describe('AutomlResultsPage', () => {
       });
 
       const failedModels = ['BrokenModel_L1'];
-      mockUseAutomlResults.mockReturnValue({
+      mockUseAutomlResults.mockReturnValueOnce({
         models: mockModels,
         failedModels,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      mockUseAutomlResults.mockReturnValueOnce({
+        models: { ...mockModels },
+        failedModels: ['BrokenModel_L1'],
         isLoading: false,
         isError: false,
         error: undefined,
@@ -1050,7 +1059,7 @@ describe('AutomlResultsPage', () => {
         modelsLoadError: expect.objectContaining({
           message: 'Failed to list model directories',
         }),
-        onRetryModels: expect.any(Function),
+        onRetryModels: mockRefetch,
       });
     });
   });

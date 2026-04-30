@@ -899,8 +899,17 @@ describe('AutoragResultsPage', () => {
         error: null,
       });
 
-      mockUseAutoragResults.mockReturnValue({
+      mockUseAutoragResults.mockReturnValueOnce({
         patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      mockUseAutoragResults.mockReturnValueOnce({
+        patterns: { ...mockPatterns },
         failedPatterns: ['BrokenPattern1'],
         isLoading: false,
         isError: false,
@@ -953,7 +962,7 @@ describe('AutoragResultsPage', () => {
         patternsLoadError: expect.objectContaining({
           message: 'Failed to list RAG patterns directory',
         }),
-        onRetryPatterns: expect.any(Function),
+        onRetryPatterns: mockRefetch,
       });
     });
   });
