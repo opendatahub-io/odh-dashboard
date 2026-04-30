@@ -10,8 +10,8 @@ jest.mock('@odh-dashboard/internal/api/k8s/nimAccounts', () => ({
 const mockListNIMAccounts = jest.mocked(listNIMAccounts);
 
 describe('deriveStatus', () => {
-  it('should return NOT_FOUND when account is undefined', () => {
-    const result = deriveStatus(undefined);
+  it('should return NOT_FOUND when account is null', () => {
+    const result = deriveStatus(null);
     expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
     expect(result.errorMessages).toEqual([]);
   });
@@ -47,6 +47,18 @@ describe('deriveStatus', () => {
 describe('useNIMAccountStatus', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should return NOT_FOUND when no account exists', async () => {
+    mockListNIMAccounts.mockResolvedValue([]);
+
+    const renderResult = testHook(useNIMAccountStatus)('test-ns');
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.status).toBe(NIMAccountStatus.NOT_FOUND);
+    expect(renderResult.result.current.nimAccount).toBeNull();
+    expect(renderResult.result.current.errorMessages).toEqual([]);
+    expect(renderResult.result.current.loaded).toBe(true);
   });
 
   it('should return READY when account has AccountStatus True', async () => {

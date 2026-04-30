@@ -14,14 +14,14 @@ export enum NIMAccountStatus {
 
 type NIMAccountStatusResult = {
   status: NIMAccountStatus;
-  nimAccount: NIMAccountKind | undefined;
+  nimAccount: NIMAccountKind | null;
   errorMessages: string[];
   loaded: boolean;
-  refresh: () => Promise<NIMAccountKind | undefined>;
+  refresh: () => Promise<NIMAccountKind | null | undefined>;
 };
 
 export const deriveStatus = (
-  account: NIMAccountKind | undefined,
+  account: NIMAccountKind | null,
 ): { status: NIMAccountStatus; errorMessages: string[] } => {
   if (!account) {
     return { status: NIMAccountStatus.NOT_FOUND, errorMessages: [] };
@@ -38,20 +38,20 @@ export const deriveStatus = (
 
 const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
   const fetchCallback = React.useCallback<
-    FetchStateCallbackPromise<NIMAccountKind | undefined>
+    FetchStateCallbackPromise<NIMAccountKind | null>
   >(async () => {
     const accounts = await listNIMAccounts(namespace);
-    return accounts[0];
+    return accounts[0] ?? null;
   }, [namespace]);
 
-  const { status, errorMessages } = deriveStatus(undefined);
+  const { status, errorMessages } = deriveStatus(null);
   const [pollRate, setPollRate] = React.useState(POLL_INTERVAL);
 
   const {
     data: nimAccount,
     loaded,
     refresh,
-  } = useFetch(fetchCallback, undefined, {
+  } = useFetch(fetchCallback, null, {
     refreshRate: pollRate,
   });
 
