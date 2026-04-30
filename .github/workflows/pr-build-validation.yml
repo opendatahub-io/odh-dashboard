@@ -337,7 +337,8 @@ jobs:
 
           # Download and verify websocat binary
           WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl"
-          WEBSOCAT_SHA256="481c0f38dd9847bb6e8f1fb301c00d113ca4a5426de5d4e32a59ddc61a7a5e77"
+          # SHA256 from official release: https://github.com/vi/websocat/releases/tag/v1.12.0
+          WEBSOCAT_SHA256="e4da4f6c00402e893f3e3120c62e16b61a84aaa78f772b3e155f319f5210d2c6"
 
           curl -sL "$WEBSOCAT_URL" -o /tmp/websocat
           echo "$WEBSOCAT_SHA256  /tmp/websocat" | sha256sum -c - || {
