@@ -20,8 +20,9 @@ import {
 } from '../nimK8sUtils';
 import {
   NIM_ACCOUNT_NAME,
-  NIM_ACCOUNT_API_KEY_DATA_KEY,
-  NIM_ACCOUNT_SECRET_GENERATE_NAME,
+  NIM_API_KEY_DATA_KEY,
+  NGC_API_KEY_DATA_KEY,
+  NIM_SECRET_GENERATE_NAME,
 } from '../nimConstants';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
@@ -52,10 +53,11 @@ describe('assembleNIMSecret', () => {
   it('should build a secret with generateName and the API key', () => {
     const secret = assembleNIMSecret('test-ns', 'nvapi-test-key');
 
-    expect(secret.metadata.generateName).toBe(NIM_ACCOUNT_SECRET_GENERATE_NAME);
+    expect(secret.metadata.generateName).toBe(NIM_SECRET_GENERATE_NAME);
     expect(secret.metadata.namespace).toBe('test-ns');
     expect(secret.type).toBe('Opaque');
-    expect(secret.stringData?.[NIM_ACCOUNT_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
+    expect(secret.stringData?.[NIM_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
+    expect(secret.stringData?.[NGC_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
     expect(secret.metadata.labels).toEqual({ 'opendatahub.io/managed': 'true' });
   });
 });
@@ -158,7 +160,7 @@ describe('updateNIMSecretAndRevalidate', () => {
         resourceVersion: '12345',
       },
       type: 'Opaque',
-      data: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: btoa('old-key') },
+      data: { [NIM_API_KEY_DATA_KEY]: btoa('old-key'), [NGC_API_KEY_DATA_KEY]: btoa('old-key') },
     };
     mockGetSecret.mockResolvedValue(existingSecret);
     mockReplaceSecret.mockResolvedValue({} as SecretKind);
@@ -174,7 +176,10 @@ describe('updateNIMSecretAndRevalidate', () => {
             'runtimes.opendatahub.io/nim-force-validation': expect.any(String),
           }),
         }),
-        stringData: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: 'nvapi-new-key' },
+        stringData: {
+          [NIM_API_KEY_DATA_KEY]: 'nvapi-new-key',
+          [NGC_API_KEY_DATA_KEY]: 'nvapi-new-key',
+        },
       }),
     );
   });
