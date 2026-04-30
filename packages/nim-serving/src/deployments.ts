@@ -1,6 +1,5 @@
 import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
-import { NIM_ID } from '../extensions';
 import { type NIMDeployment, type NIMServiceKind } from './types';
 import {
   useWatchNIMServices,
@@ -9,6 +8,7 @@ import {
 } from './api/watch';
 import { getNIMDeploymentStatus } from './deploymentStatus';
 import { getNIMDeploymentEndpoints } from './deploymentEndpoints';
+import { NIM_ID } from '../extensions';
 
 export type { NIMDeployment };
 
