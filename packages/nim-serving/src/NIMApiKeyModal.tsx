@@ -11,7 +11,7 @@ import {
 import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
-import useNIMAccountStatus, { NIMAccountStatus } from './useNIMAccountStatus';
+import { NIMAccountStatus } from './useNIMAccountStatus';
 import { createNIMResources, updateNIMSecretAndRevalidate } from './nimK8sUtils';
 
 enum ModalState {
@@ -27,6 +27,9 @@ type NIMApiKeyModalProps = {
   isReplacing: boolean;
   existingSecretName?: string;
   onActionComplete: () => void;
+  startRevalidation: () => void;
+  accountStatus: NIMAccountStatus;
+  accountErrors: string[];
 };
 
 const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
@@ -35,17 +38,14 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   isReplacing,
   existingSecretName,
   onActionComplete,
+  startRevalidation,
+  accountStatus,
+  accountErrors,
 }) => {
   const [apiKey, setApiKey] = React.useState('');
   const [showKey, setShowKey] = React.useState(false);
   const [modalState, setModalState] = React.useState<ModalState>(ModalState.IDLE);
   const [createError, setCreateError] = React.useState<string>();
-
-  const {
-    status: accountStatus,
-    errorMessages: accountErrors,
-    refresh,
-  } = useNIMAccountStatus(namespace);
 
   React.useEffect(() => {
     if (modalState !== ModalState.VALIDATING) {
@@ -66,11 +66,12 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     try {
       if (isReplacing && existingSecretName) {
         await updateNIMSecretAndRevalidate(namespace, existingSecretName, apiKey);
+        startRevalidation();
       } else {
         await createNIMResources(namespace, apiKey);
       }
       setModalState(ModalState.VALIDATING);
-      refresh();
+      onActionComplete();
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
       setModalState(ModalState.IDLE);

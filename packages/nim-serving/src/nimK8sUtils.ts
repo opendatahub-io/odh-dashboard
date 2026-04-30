@@ -102,27 +102,16 @@ export const updateNIMSecretAndRevalidate = async (
   await replaceSecret({
     ...existingSecret,
     data: undefined,
+    metadata: {
+      ...existingSecret.metadata,
+      annotations: {
+        ...existingSecret.metadata.annotations,
+        [NIM_FORCE_VALIDATION_ANNOTATION]: new Date().toISOString(),
+      },
+    },
     stringData: {
       [NIM_ACCOUNT_API_KEY_DATA_KEY]: apiKey,
     },
-  });
-
-  const account = await getNIMAccount(namespace);
-  const hasAnnotations = !!account?.metadata.annotations;
-
-  await k8sPatchResource<NIMAccountKind>({
-    model: NIMAccountModel,
-    queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
-    patches: [
-      ...(!hasAnnotations
-        ? [{ op: 'add' as const, path: '/metadata/annotations', value: {} }]
-        : []),
-      {
-        op: 'add',
-        path: `/metadata/annotations/${NIM_FORCE_VALIDATION_ANNOTATION.replace(/\//g, '~1')}`,
-        value: new Date().toISOString(),
-      },
-    ],
   });
 };
 

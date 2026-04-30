@@ -148,7 +148,7 @@ describe('updateNIMSecretAndRevalidate', () => {
     jest.clearAllMocks();
   });
 
-  it('should fetch existing secret, replace it with new key, and trigger revalidation', async () => {
+  it('should fetch existing secret, replace with new key and force-validation annotation', async () => {
     const existingSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
@@ -160,30 +160,21 @@ describe('updateNIMSecretAndRevalidate', () => {
       type: 'Opaque',
       data: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: btoa('old-key') },
     };
-    const account = mockNimAccount({ namespace: 'test-ns' });
     mockGetSecret.mockResolvedValue(existingSecret);
     mockReplaceSecret.mockResolvedValue({} as SecretKind);
-    mockListNIMAccounts.mockResolvedValue([account]);
-    mockK8sPatchResource.mockResolvedValue({} as SecretKind);
 
     await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'nvapi-new-key');
 
     expect(mockGetSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
     expect(mockReplaceSecret).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: expect.objectContaining({ resourceVersion: '12345' }),
-        stringData: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: 'nvapi-new-key' },
-      }),
-    );
-    expect(mockK8sPatchResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
-        patches: expect.arrayContaining([
-          expect.objectContaining({
-            op: 'add',
-            path: expect.stringContaining('nim-force-validation'),
+        metadata: expect.objectContaining({
+          resourceVersion: '12345',
+          annotations: expect.objectContaining({
+            'runtimes.opendatahub.io/nim-force-validation': expect.any(String),
           }),
-        ]),
+        }),
+        stringData: { [NIM_ACCOUNT_API_KEY_DATA_KEY]: 'nvapi-new-key' },
       }),
     );
   });
