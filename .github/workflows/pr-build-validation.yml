@@ -47,8 +47,9 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Verifying all dependencies have resolved URLs"
-          # Check that all dependencies have resolved field (skip root package "")
-          MISSING_RESOLVED=$(jq -r '.packages | to_entries[] | select(.key != "") | select(.value.resolved == null or .value.resolved == "") | .key' package-lock.json || true)
+          # Check that all node_modules dependencies have resolved field
+          # Skip root package ("") and workspace packages (don't start with "node_modules/")
+          MISSING_RESOLVED=$(jq -r '.packages | to_entries[] | select(.key | startswith("node_modules/")) | select(.value.resolved == null or .value.resolved == "") | .key' package-lock.json || true)
           if [ -n "$MISSING_RESOLVED" ]; then
             echo "❌ FAIL: Found dependencies without resolved URLs"
             echo "$MISSING_RESOLVED"
