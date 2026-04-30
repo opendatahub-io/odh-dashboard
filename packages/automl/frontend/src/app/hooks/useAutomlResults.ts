@@ -312,7 +312,10 @@ export function useAutomlResults(
     models,
     failedModels: modelQueries.failedModels,
     isLoading:
-      isS3Loading || isS3Fetching || modelArtifactQueries.isPending || modelQueries.isPending,
+      isS3Loading ||
+      (!s3Files && isS3Fetching) ||
+      modelArtifactQueries.isPending ||
+      modelQueries.isPending,
     isError: hasError,
     error,
     refetch,
