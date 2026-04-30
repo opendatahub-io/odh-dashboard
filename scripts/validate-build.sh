@@ -80,7 +80,8 @@ phase0_hermetic_preflight() {
     if ! command -v jq &> /dev/null; then
         log_warning "jq not installed, skipping detailed lockfile validation"
     else
-        MISSING_RESOLVED=$(jq -r '.. | objects | select(has("dependencies") or has("devDependencies")) | select(.resolved == null or .resolved == "")' package-lock.json || true)
+        # Check packages (skip root package with key "")
+        MISSING_RESOLVED=$(jq -r '.packages | to_entries[] | select(.key != "") | select(.value.resolved == null or .value.resolved == "") | .key' package-lock.json || true)
         if [ -n "$MISSING_RESOLVED" ]; then
             log_error "Found dependencies without resolved URLs"
             return 1
