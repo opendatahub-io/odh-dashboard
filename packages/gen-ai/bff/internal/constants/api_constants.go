@@ -70,5 +70,6 @@ const (
 	LSDSafetyPath = ApiPathPrefix + "/lsd/safety"
 
 	// NemoGuardrails endpoints
-	NemoGuardrailsInitPath = ApiPathPrefix + "/nemo-guardrails/init"
+	NemoGuardrailsInitPath   = ApiPathPrefix + "/nemo-guardrails/init"
+	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
 )

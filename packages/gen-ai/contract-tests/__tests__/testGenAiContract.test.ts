@@ -95,4 +95,14 @@ describe('Gen AI API Contract Tests', () => {
       });
     });
   });
+
+  describe('NemoGuardrails Status Endpoint', () => {
+    it('should return NemoGuardrails CR status', async () => {
+      const result = await apiClient.get('/gen-ai/api/v1/nemo-guardrails/status?namespace=default');
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/NemoGuardrailsStatusResponse/content/application/json/schema',
+        status: 200,
+      });
+    });
+  });
 });
