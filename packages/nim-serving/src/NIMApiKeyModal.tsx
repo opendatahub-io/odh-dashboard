@@ -2,6 +2,9 @@ import React from 'react';
 import {
   Button,
   FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
   TextInput,
   InputGroup,
   InputGroupItem,
@@ -26,7 +29,7 @@ type NIMApiKeyModalProps = {
   namespace: string;
   isReplacing: boolean;
   existingSecretName?: string;
-  onActionComplete: () => void;
+  refresh: () => void;
   startRevalidation: () => void;
   accountStatus: NIMAccountStatus;
   accountErrors: string[];
@@ -37,7 +40,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   namespace,
   isReplacing,
   existingSecretName,
-  onActionComplete,
+  refresh,
   startRevalidation,
   accountStatus,
   accountErrors,
@@ -53,13 +56,13 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     }
     if (accountStatus === NIMAccountStatus.READY) {
       onClose();
-      onActionComplete();
+      refresh();
     } else if (accountStatus === NIMAccountStatus.ERROR) {
       setModalState(ModalState.ERROR);
     } else if (accountStatus === NIMAccountStatus.PENDING && modalState === ModalState.ERROR) {
       setModalState(ModalState.VALIDATING);
     }
-  }, [modalState, accountStatus, onClose, onActionComplete]);
+  }, [modalState, accountStatus, onClose, refresh]);
 
   const handleSubmit = async () => {
     setModalState(ModalState.CREATING);
@@ -73,7 +76,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
         await createNIMResources(namespace, apiKey);
       }
       setModalState(ModalState.VALIDATING);
-      onActionComplete();
+      refresh();
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
       setModalState(ModalState.IDLE);
@@ -87,7 +90,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     setCreateError(undefined);
     onClose();
     if (modalState === ModalState.VALIDATING) {
-      onActionComplete();
+      refresh();
     }
   };
 
@@ -166,7 +169,11 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
                   </Button>
                 </InputGroupItem>
               </InputGroup>
-              <div className="pf-v6-c-form__helper-text">This key is given to you by NVIDIA</div>
+              <FormHelperText>
+                <HelperText>
+                  <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
+                </HelperText>
+              </FormHelperText>
             </FormGroup>
           </StackItem>
         </Stack>
