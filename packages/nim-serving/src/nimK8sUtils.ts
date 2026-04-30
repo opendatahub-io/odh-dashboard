@@ -146,8 +146,12 @@ export const isApiKeyValidationFailed = (account: NIMAccountKind): boolean => {
 
 export const getAccountErrors = (account: NIMAccountKind): string[] => {
   const conditions = account.status?.conditions ?? [];
-  return conditions
-    .filter((c: K8sCondition) => c.status === 'False')
-    .map((c: K8sCondition) => c.message)
-    .filter((msg): msg is string => !!msg);
+  return [
+    ...new Set(
+      conditions
+        .filter((c: K8sCondition) => c.status === 'False')
+        .map((c: K8sCondition) => c.message)
+        .filter((msg): msg is string => !!msg),
+    ),
+  ];
 };
