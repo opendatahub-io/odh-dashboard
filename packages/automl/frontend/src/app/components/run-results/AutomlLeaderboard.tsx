@@ -734,7 +734,7 @@ function AutomlLeaderboard({
                 screenReaderText="Actions"
                 isStickyColumn
                 hasLeftBorder
-                stickyMinWidth="80px"
+                stickyMinWidth="50px"
                 stickyRightOffset="0"
               />
             </Tr>
@@ -797,7 +797,7 @@ function AutomlLeaderboard({
                   isActionCell
                   isStickyColumn
                   hasLeftBorder
-                  stickyMinWidth="80px"
+                  stickyMinWidth="50px"
                   stickyRightOffset="0"
                 >
                   <ActionsColumn

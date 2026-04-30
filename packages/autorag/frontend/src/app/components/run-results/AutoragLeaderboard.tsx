@@ -879,7 +879,7 @@ function AutoragLeaderboard({
                 screenReaderText="Actions"
                 isStickyColumn
                 hasLeftBorder
-                stickyMinWidth="80px"
+                stickyMinWidth="50px"
                 stickyRightOffset="0"
               />
             </Tr>
@@ -970,7 +970,7 @@ function AutoragLeaderboard({
                   isActionCell
                   isStickyColumn
                   hasLeftBorder
-                  stickyMinWidth="80px"
+                  stickyMinWidth="50px"
                   stickyRightOffset="0"
                 >
                   <ActionsColumn
