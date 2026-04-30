@@ -421,7 +421,6 @@ describe('useChatbotMessages - Error Handling', () => {
         expect(mockClassifyError).toHaveBeenCalledWith(
           expect.objectContaining({
             error: mockError.error,
-            status: expect.any(Number),
           }),
           expect.objectContaining({
             wasResponseGenerated: false,
@@ -771,7 +770,6 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test');
 
       await waitFor(() => {
-        // normalizeToApiError adds status to the error
         expect(mockClassifyError).toHaveBeenCalledWith(
           expect.objectContaining({
             error: mockError.error,

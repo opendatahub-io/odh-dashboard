@@ -114,7 +114,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
     description,
     details: {
       component: componentLabel,
-      errorCode: code || String(error.status ?? 'UNKNOWN'),
+      errorCode: code || 'UNKNOWN',
       rawMessage,
     },
     isRetriable,

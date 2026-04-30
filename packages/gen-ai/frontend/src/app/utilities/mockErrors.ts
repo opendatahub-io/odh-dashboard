@@ -18,7 +18,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'max_tokens',
     apiError: {
-      status: 400,
       error: {
         component: 'model',
         code: 'max_tokens',
@@ -31,7 +30,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'chat_template',
     apiError: {
-      status: 400,
       error: {
         component: 'model',
         code: 'chat_template',
@@ -43,7 +41,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'no_tools',
     apiError: {
-      status: 400,
       error: {
         component: 'model',
         code: 'no_tools',
@@ -55,7 +52,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'no_images',
     apiError: {
-      status: 400,
       error: {
         component: 'model',
         code: 'no_images',
@@ -67,7 +63,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'timeout',
     apiError: {
-      status: 504,
       error: {
         component: 'llama_stack',
         code: 'timeout',
@@ -79,7 +74,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'server_error',
     apiError: {
-      status: 500,
       error: {
         component: 'llama_stack',
         code: 'server_error',
@@ -91,7 +85,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'rate_limit',
     apiError: {
-      status: 429,
       error: {
         component: 'bff',
         code: 'rate_limit',
@@ -103,7 +96,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'network_error',
     apiError: {
-      status: 502,
       error: {
         component: 'bff',
         code: 'network_error',
@@ -115,7 +107,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
   {
     trigger: 'unreachable',
     apiError: {
-      status: 0,
       error: {
         component: 'bff',
         code: 'unreachable',
