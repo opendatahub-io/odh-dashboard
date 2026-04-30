@@ -1,3 +1,4 @@
+import { pollUntilSuccess } from './baseCommands';
 import type { CommandLineResult, DashboardConfig } from '../../types';
 import { handleOCCommandResult } from '../errorHandling';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -98,6 +99,29 @@ export const addUserToProject = (
     return result;
   });
 };
+
+/**
+ * Wait until a user can actually see a project after being granted access.
+ *
+ * @param project OpenShift Project name
+ * @param user User whose access to verify
+ * @param attempts Maximum polling attempts (default: 15)
+ * @param interval Interval between attempts in ms (default: 2000)
+ */
+export const waitForUserProjectAccess = (
+  project: string,
+  user: string,
+  attempts = 15,
+  interval = 2000,
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get project ${project} --as=${user} -o name`,
+    `${user} access to ${project}`,
+    {
+      maxAttempts: attempts,
+      pollIntervalMs: interval,
+    },
+  );
 
 /**
  * Get OpenShift Project

@@ -1,7 +1,11 @@
 import yaml from 'js-yaml';
 import { RayJobState } from '@odh-dashboard/model-training/types';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
-import { addUserToProject, deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
+import {
+  addUserToProject,
+  deleteOpenShiftProject,
+  waitForUserProjectAccess,
+} from '../../../../utils/oc_commands/project';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { createTrainingKueueResources } from '../../../../utils/oc_commands/trainingJobs';
 import { createBasicRayJob, deleteRayJob } from '../../../../utils/oc_commands/rayJobs';
@@ -156,6 +160,9 @@ describe('Verify project access for user types in Ray Jobs', () => {
 
       cy.step('Grant edit role to regular user via oc command');
       addUserToProject(projectName, LDAP_CONTRIBUTOR_USER.USERNAME, 'edit');
+
+      cy.step('Wait for RBAC to propagate before re-login');
+      waitForUserProjectAccess(projectName, LDAP_CONTRIBUTOR_USER.USERNAME);
 
       cy.step('Re-login as regular user to pick up new permissions');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
