@@ -36,7 +36,7 @@ const (
 )
 
 // CategorizeByErrorCode categorizes errors based on structured error codes from OpenAI-compatible APIs
-// This is the preferred method as it relies on semantic error codes rather than message pattern matching
+// Categorization is based solely on error codes, types, and status codes - not message content
 func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int) ResponseErrorCategory {
 	// Normalize error code for comparison (lowercase, replace hyphens/underscores)
 	normalizedCode := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(errorCode, "-", "_"), " ", "_"))
@@ -47,19 +47,8 @@ func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int)
 	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
 		return CategoryModelOverloaded
 
-	// Invalid request errors
+	// Invalid request errors - all default to invalid parameter
 	case "invalid_request_error", "invalid_model", "invalid_parameter", "missing_required_field":
-		// Need to check message for more specific categorization
-		if strings.Contains(strings.ToLower(message), "max_tokens") ||
-			strings.Contains(strings.ToLower(message), "context length") ||
-			strings.Contains(strings.ToLower(message), "prompt too long") {
-			return CategoryInvalidModelConfig
-		}
-		if strings.Contains(strings.ToLower(message), "tool") ||
-			strings.Contains(strings.ToLower(message), "image") ||
-			strings.Contains(strings.ToLower(message), "streaming") {
-			return CategoryUnsupportedFeature
-		}
 		return CategoryInvalidParameter
 
 	// Timeout errors
@@ -70,11 +59,8 @@ func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int)
 	case "model_not_found", "model_unavailable", "model_error":
 		return CategoryModelInvocationError
 
-	// Resource not found errors
+	// Resource not found errors - all map to generic error (llama_stack/server_error)
 	case "resource_not_found", "vector_store_not_found":
-		if strings.Contains(strings.ToLower(message), "vector") {
-			return CategoryRAGVectorStoreNotFound
-		}
 		return CategoryGenericError
 
 	// Tool/MCP errors
@@ -85,14 +71,8 @@ func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int)
 	case "content_policy_violation", "content_blocked", "guardrail_violation":
 		return CategoryGuardrailsViolation
 
-	// Server errors
+	// Server errors - all map to generic error (llama_stack/server_error)
 	case "server_error", "internal_error", "service_unavailable":
-		// Check message for CUDA OOM or other runtime errors
-		msgLower := strings.ToLower(message)
-		if strings.Contains(msgLower, "cuda") && strings.Contains(msgLower, "memory") ||
-			strings.Contains(msgLower, "oom") {
-			return CategoryModelOverloaded
-		}
 		return CategoryGenericError
 	}
 
@@ -113,9 +93,6 @@ func CategorizeByErrorCode(errorCode, errorType, message string, statusCode int)
 	case 400: // Bad Request
 		return CategoryInvalidParameter
 	case 404: // Not Found
-		if strings.Contains(strings.ToLower(message), "vector") {
-			return CategoryRAGVectorStoreNotFound
-		}
 		return CategoryGenericError
 	case 503, 504: // Service Unavailable, Gateway Timeout
 		return CategoryModelTimeout

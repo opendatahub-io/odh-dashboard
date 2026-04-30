@@ -33,22 +33,22 @@ func TestCategorizeByErrorCode(t *testing.T) {
 			expectedCategory: CategoryModelOverloaded,
 		},
 
-		// Invalid requests
+		// Invalid requests - all map to CategoryInvalidParameter (message content no longer affects categorization)
 		{
-			name:             "invalid request with max_tokens",
+			name:             "invalid request with max_tokens in message",
 			errorCode:        "invalid_request_error",
 			errorType:        "invalid_request_error",
 			message:          "max_tokens value exceeds limit",
 			statusCode:       400,
-			expectedCategory: CategoryInvalidModelConfig,
+			expectedCategory: CategoryInvalidParameter,
 		},
 		{
-			name:             "invalid request with tools",
+			name:             "invalid request with tools in message",
 			errorCode:        "invalid_request_error",
 			errorType:        "invalid_request_error",
 			message:          "Model does not support tool calling",
 			statusCode:       400,
-			expectedCategory: CategoryUnsupportedFeature,
+			expectedCategory: CategoryInvalidParameter,
 		},
 		{
 			name:             "invalid parameter generic",
@@ -87,14 +87,14 @@ func TestCategorizeByErrorCode(t *testing.T) {
 			expectedCategory: CategoryModelInvocationError,
 		},
 
-		// Vector store errors
+		// Vector store errors - all map to CategoryGenericError (message content no longer affects categorization)
 		{
 			name:             "vector store not found by code",
 			errorCode:        "vector_store_not_found",
 			errorType:        "resource_not_found",
 			message:          "Vector store not found",
 			statusCode:       404,
-			expectedCategory: CategoryRAGVectorStoreNotFound,
+			expectedCategory: CategoryGenericError,
 		},
 		{
 			name:             "resource not found with vector in message",
@@ -102,7 +102,7 @@ func TestCategorizeByErrorCode(t *testing.T) {
 			errorType:        "not_found_error",
 			message:          "vector store 'vs_123' not found",
 			statusCode:       404,
-			expectedCategory: CategoryRAGVectorStoreNotFound,
+			expectedCategory: CategoryGenericError,
 		},
 
 		// Content policy
@@ -115,22 +115,22 @@ func TestCategorizeByErrorCode(t *testing.T) {
 			expectedCategory: CategoryGuardrailsViolation,
 		},
 
-		// Server errors with CUDA OOM
+		// Server errors - all map to CategoryGenericError (message content no longer affects categorization)
 		{
-			name:             "CUDA out of memory",
+			name:             "server error with CUDA in message",
 			errorCode:        "server_error",
 			errorType:        "server_error",
 			message:          "CUDA out of memory: failed to allocate 2.5 GB",
 			statusCode:       500,
-			expectedCategory: CategoryModelOverloaded,
+			expectedCategory: CategoryGenericError,
 		},
 		{
-			name:             "OOM error",
+			name:             "internal error with OOM in message",
 			errorCode:        "internal_error",
 			errorType:        "server_error",
 			message:          "OOM: insufficient memory",
 			statusCode:       500,
-			expectedCategory: CategoryModelOverloaded,
+			expectedCategory: CategoryGenericError,
 		},
 
 		// Fallback to status code
