@@ -6,7 +6,7 @@ import {
 import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import { NIMAccountModel } from '@odh-dashboard/internal/api/models/odh';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
-import { createSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
 import {
   NIM_ACCOUNT_SECRET_GENERATE_NAME,
@@ -98,23 +98,25 @@ export const updateNIMSecretAndRevalidate = async (
   secretName: string,
   apiKey: string,
 ): Promise<void> => {
+  const existingSecret = await getSecret(namespace, secretName);
   await replaceSecret({
-    apiVersion: 'v1',
-    kind: 'Secret',
-    metadata: {
-      name: secretName,
-      namespace,
-    },
-    type: 'Opaque',
+    ...existingSecret,
+    data: undefined,
     stringData: {
       [NIM_ACCOUNT_API_KEY_DATA_KEY]: apiKey,
     },
   });
 
+  const account = await getNIMAccount(namespace);
+  const hasAnnotations = !!account?.metadata.annotations;
+
   await k8sPatchResource<NIMAccountKind>({
     model: NIMAccountModel,
     queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
     patches: [
+      ...(!hasAnnotations
+        ? [{ op: 'add' as const, path: '/metadata/annotations', value: {} }]
+        : []),
       {
         op: 'add',
         path: `/metadata/annotations/${NIM_FORCE_VALIDATION_ANNOTATION.replace(/\//g, '~1')}`,
