@@ -522,6 +522,10 @@ describe('Pipelines', () => {
   });
 
   describe('Pipeline server actions visibility', () => {
+    afterEach(() => {
+      Cypress.env('USER_CONFIG', undefined);
+    });
+
     it('should show pipeline server actions for product admin users', () => {
       asProductAdminUser();
       initIntercepts({});
@@ -666,7 +670,7 @@ describe('Pipelines', () => {
     });
 
     it('should show delete option when server has error', () => {
-      initIntercepts({ initializing: true, errorMessage: 'Failed to connect to storage' });
+      initIntercepts({ initializing: false, errorMessage: 'Failed to connect to storage' });
       pipelinesGlobal.visit(projectName);
 
       pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');

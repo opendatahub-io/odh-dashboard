@@ -851,6 +851,7 @@ describe('Pipeline topology', () => {
 
       cy.wait('@logsFailed');
       pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
     it('should handle log retrieval errors - 500 server error', () => {
@@ -881,6 +882,7 @@ describe('Pipeline topology', () => {
 
       cy.wait('@logsFailed');
       pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
     it('should handle empty logs', () => {
@@ -911,6 +913,8 @@ describe('Pipeline topology', () => {
 
       cy.wait('@emptyLogs');
       pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogs().contains('No logs available');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
     it('should handle malformed log data', () => {
@@ -941,6 +945,7 @@ describe('Pipeline topology', () => {
 
       cy.wait('@malformedLogs');
       pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
     it('should retrieve logs for different containers', () => {
