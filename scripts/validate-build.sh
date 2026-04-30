@@ -267,38 +267,45 @@ phase3_module_federation() {
     rm -rf /tmp/dist-check
     docker cp odh-dashboard-test:/usr/src/app/frontend/public /tmp/dist-check
 
-    # Check for remoteEntry.js
-    if [ ! -f "/tmp/dist-check/remoteEntry.js" ]; then
-        log_error "remoteEntry.js not found"
+    # Check for main app bundle (always required)
+    if [ ! -f "/tmp/dist-check/app.bundle.js" ]; then
+        log_error "app.bundle.js not found - build did not complete"
         return 1
     fi
 
-    SIZE=$(stat -f%z /tmp/dist-check/remoteEntry.js 2>/dev/null || stat -c%s /tmp/dist-check/remoteEntry.js)
-    if [ "$SIZE" -lt 100 ]; then
-        log_error "remoteEntry.js is suspiciously small ($SIZE bytes)"
-        return 1
-    fi
+    log_success "Main app bundle present"
 
-    log_success "remoteEntry.js present and valid ($SIZE bytes)"
-
-    # Check for missing webpack chunks
-    log_info "Checking for webpack chunks..."
-    CHUNK_REFS=$(grep -o 'chunk[0-9]\+' /tmp/dist-check/remoteEntry.js || true)
-    MISSING_CHUNKS=0
-
-    for chunk in $CHUNK_REFS; do
-        if ! ls /tmp/dist-check/*.bundle.js 2>/dev/null | grep -q "$chunk"; then
-            log_warning "Referenced $chunk not found in dist"
-            MISSING_CHUNKS=$((MISSING_CHUNKS + 1))
+    # Check for remoteEntry.js (optional - only generated if federated modules exist)
+    if [ -f "/tmp/dist-check/remoteEntry.js" ]; then
+        SIZE=$(stat -f%z /tmp/dist-check/remoteEntry.js 2>/dev/null || stat -c%s /tmp/dist-check/remoteEntry.js)
+        if [ "$SIZE" -lt 100 ]; then
+            log_error "remoteEntry.js is suspiciously small ($SIZE bytes)"
+            return 1
         fi
-    done
 
-    if [ $MISSING_CHUNKS -gt 0 ]; then
-        log_error "$MISSING_CHUNKS missing chunks (causes ChunkLoadError)"
-        return 1
+        log_success "remoteEntry.js present and valid ($SIZE bytes)"
+
+        # Check for missing webpack chunks referenced in remoteEntry
+        log_info "Checking for webpack chunks..."
+        CHUNK_REFS=$(grep -o 'chunk[0-9]\+' /tmp/dist-check/remoteEntry.js || true)
+        MISSING_CHUNKS=0
+
+        for chunk in $CHUNK_REFS; do
+            if ! ls /tmp/dist-check/*.bundle.js 2>/dev/null | grep -q "$chunk"; then
+                log_warning "Referenced $chunk not found in dist"
+                MISSING_CHUNKS=$((MISSING_CHUNKS + 1))
+            fi
+        done
+
+        if [ $MISSING_CHUNKS -gt 0 ]; then
+            log_error "$MISSING_CHUNKS missing chunks (causes ChunkLoadError)"
+            return 1
+        fi
+
+        log_success "All webpack chunks present"
+    else
+        log_info "No remoteEntry.js found (no federated modules configured)"
     fi
-
-    log_success "All webpack chunks present"
 
     # Check for large chunks
     LARGE_CHUNKS=$(find /tmp/dist-check -name "*.bundle.js" -size +1M 2>/dev/null || true)
