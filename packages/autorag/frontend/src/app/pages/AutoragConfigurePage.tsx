@@ -13,7 +13,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
@@ -22,6 +21,7 @@ import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -39,9 +39,8 @@ function AutoragConfigurePage(): React.JSX.Element {
   const notification = useNotification();
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
