@@ -95,9 +95,8 @@ class DeleteModelModal {
     return this.find().findByRole('heading', { name: /remove asset/i });
   }
 
-  // PF6 inline Alert does not have role="alert" — uses CSS class selector
   findDangerAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('.pf-v6-c-alert.pf-m-danger');
+    return this.find().findByTestId('delete-model-error-alert');
   }
 }
 

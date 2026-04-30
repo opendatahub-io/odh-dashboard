@@ -276,7 +276,9 @@ describe('AI Assets - Model Tab - Multiple Custom Endpoint Models', () => {
 
       deleteModelModal.findRemoveButton().click();
 
-      cy.wait('@deleteModel1');
+      cy.wait('@deleteModel1').then((interception) => {
+        expect(interception.request.url).to.include('model_id=custom-model-1');
+      });
       cy.wait('@refreshModels');
 
       cy.step('Verify Custom Model 1 is removed');

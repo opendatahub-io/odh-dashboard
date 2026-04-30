@@ -245,6 +245,7 @@ describe('Pipeline Graph Edge Cases', () => {
       );
 
       pipelineDetails.findTaskNodes().should('have.length', 25);
+      pipelineDetails.findEdges().should('have.length', 24);
     });
   });
 

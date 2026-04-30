@@ -290,6 +290,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 variant="danger"
                 isInline
                 title="Error"
+                data-testid="delete-model-error-alert"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
                 {deleteError}
