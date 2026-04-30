@@ -32,7 +32,12 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
 
   const lsdReady = lsdStatus?.phase === 'Ready';
   const lsdFailed = lsdStatus?.phase === 'Failed';
-  const nemoReady = !guardrailsEnabled || nemoStatus?.isReady === true;
+  // NemoGuardrails is considered done when it has left the progressing state
+  // (either Ready or any other terminal phase). A non-Ready terminal phase is
+  // treated as "done enough" for now — proper failure handling is a follow-up.
+  // Don't want it to be blocking
+  const nemoTerminal = nemoStatus !== null && nemoStatus.phase !== 'Progressing';
+  const nemoReady = !guardrailsEnabled || nemoStatus?.isReady === true || nemoTerminal;
   const playgroundReady = lsdReady && nemoReady;
 
   React.useEffect(() => {
@@ -42,10 +47,10 @@ const ChatbotConfigurationState: React.FC<ChatbotConfigurationStateProps> = ({
   }, [lsdStatus?.phase]);
 
   React.useEffect(() => {
-    if (nemoStatus?.isReady) {
+    if (nemoReady) {
       setNemoRefreshing(false);
     }
-  }, [nemoStatus?.isReady]);
+  }, [nemoReady]);
 
   // Auto-close modal after 5 seconds when playground is fully ready
   React.useEffect(() => {
