@@ -23,22 +23,10 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   onSelectionChange,
   className,
 }) => {
-  // Recompute only when `nodes` reference changes; downstream memos key on the signature string
-  // so ranksep stays stable when a new array carries the same numeric widths.
-  const nodeWidthSignature = React.useMemo(
-    () => nodes.map((n) => (typeof n.width === 'number' ? n.width : 0)).join(','),
+  const maxWidth = React.useMemo(
+    () => nodes.reduce((max, n) => (typeof n.width === 'number' ? Math.max(max, n.width) : max), 0),
     [nodes],
   );
-
-  const maxWidth = React.useMemo(() => {
-    if (nodeWidthSignature.length === 0) {
-      return 0;
-    }
-    return nodeWidthSignature
-      .split(',')
-      .map(Number)
-      .reduce((max, w) => Math.max(max, w), 0);
-  }, [nodeWidthSignature]);
 
   const horizontalRankSep = React.useMemo(() => computePipelineRankSep(maxWidth), [maxWidth]);
 
