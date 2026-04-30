@@ -16,6 +16,10 @@ export const mockVectorStoreProvider = ({
 
 export const mockVectorStoreProvidersResponse = (
   providers?: LlamaStackVectorStoreProvider[],
-): LlamaStackVectorStoreProvidersResponse => ({
-  vector_store_providers: providers ?? [mockVectorStoreProvider()],
-});
+): LlamaStackVectorStoreProvidersResponse & { totalProviderCount: number } => {
+  const list = providers ?? [mockVectorStoreProvider()];
+  return {
+    vector_store_providers: list,
+    totalProviderCount: list.length,
+  };
+};
