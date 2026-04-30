@@ -57,11 +57,11 @@ describe('Subscriptions Page', () => {
       .findDescription()
       .should(
         'contain.text',
-        'Subscriptions control access and entitlements to AI model endpoints that are available as a service.',
+        'Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model.',
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
@@ -96,11 +96,45 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     premiumRow.findKebabAction('View details').should('exist');
-    premiumRow.findKebabAction('Edit subscription').should('exist');
-    premiumRow.findKebabAction('Delete subscription').should('exist');
+    premiumRow.findKebabAction('Edit').should('exist');
+    premiumRow.findKebabAction('Delete').should('exist');
+  });
+
+  it('should filter subscriptions by display name and description', () => {
+    subscriptionsPage.findFilterInput().type('Team Subscription');
+    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+
+    subscriptionsPage.findFilterInput().type('enterprise');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+
+    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+  });
+
+  it('should disable the action buttons for a deleting subscription in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: 'deleting-sub' } },
+      { data: mockSubscriptionInfo('deleting-sub') },
+    );
+    subscriptionsPage.visit();
+    subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
+    cy.visit(`/maas/subscriptions/view/deleting-sub`);
+    viewSubscriptionPage.findActionsToggle().click();
+    viewSubscriptionPage.findDeleteActionButton().should('be.disabled');
+    viewSubscriptionPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete a subscription', () => {
@@ -110,10 +144,7 @@ describe('Subscriptions Page', () => {
       { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
-    subscriptionsPage
-      .getRow('Premium Team Subscription')
-      .findKebabAction('Delete subscription')
-      .click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
@@ -126,7 +157,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 4);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -157,8 +188,6 @@ describe('View Subscription Page', () => {
       .and('contain.text', 'Active')
       .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Resource name')
-      .and('contain.text', 'premium-team-sub')
       .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
@@ -388,7 +417,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findPolicyChangeWarning().should('exist');
     editSubscriptionPage
       .findPolicyChangeWarning()
-      .should('contain.text', 'Authorization policy may need updating');
+      .should('contain.text', 'Policies are not automatically updated');
   });
 
   it('should navigate to subscriptions list on cancel', () => {

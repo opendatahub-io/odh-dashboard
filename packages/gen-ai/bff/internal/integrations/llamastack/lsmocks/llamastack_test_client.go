@@ -135,7 +135,3 @@ func (c *TestLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 func (c *TestLlamaStackClient) GetResponse(ctx context.Context, responseID string) (*responses.Response, error) {
 	return c.inner.GetResponse(ctx, responseID)
 }
-
-func (c *TestLlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
-	return c.inner.CreateModeration(ctx, input, model)
-}

@@ -60,7 +60,7 @@ export const mockAPIKeys = (): APIKey[] => [
 
 export const mockCreateAPIKeyResponse = (): CreateAPIKeyResponse => {
   return {
-    key: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtYWFzLWFwaSIsInN1YiI6InRlc3QtdXNlciIsImF1ZCI6WyJtYWFzLWFwaSJdLCJleHAiOjE2NzI1NDU2MDAsIm5iZiI6MTY3MjUzMTIwMCwiaWF0IjoxNjcyNTMxMjAwfQ.mock-signature',
+    key: 'sk-oai-1JO088RHrhLvlwNqT_LDEQgy7IbnbyoSYQCjuMqLpzRI8xns9gBFo0bZsaSat',
     keyPrefix: 'sk-oai-abc',
     id: 'key-prod-backend-001',
     expiresAt: '2026-01-20T11:54:34.521671447-05:00',
@@ -117,10 +117,31 @@ export const mockPendingSubscription = (): MaaSSubscription => ({
   creationTimestamp: '2025-04-05T09:00:00Z',
 });
 
+export const mockDeletingSubscription = (): MaaSSubscription => ({
+  name: 'deleting-sub',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  priority: 55,
+  owner: {
+    groups: [{ name: 'premium-users' }],
+  },
+  modelRefs: [
+    {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      tokenRateLimits: [{ limit: 50000, window: '24h' }],
+    },
+  ],
+  creationTimestamp: '2025-04-06T12:00:00Z',
+  deletionTimestamp: '2025-04-07T12:00:00Z',
+});
+
 export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'premium-team-sub',
     displayName: 'Premium Team Subscription',
+    description: 'Access to premium AI models for enterprise teams',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -149,6 +170,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   {
     name: 'basic-team-sub',
     displayName: 'Basic Team Subscription',
+    description: 'Standard access for general users',
     namespace: 'maas-system',
     phase: 'Active',
     statusMessage: 'successfully reconciled',
@@ -185,6 +207,7 @@ export const mockSubscriptions = (): MaaSSubscription[] => [
   },
   mockFailedSubscription(),
   mockPendingSubscription(),
+  mockDeletingSubscription(),
 ];
 
 export const mockSubscriptionListItems = (): UserSubscription[] => [
@@ -386,6 +409,16 @@ export const mockPendingAuthPolicy = (): MaaSAuthPolicy => ({
   subjects: { groups: [{ name: 'beta-testers' }] },
 });
 
+export const mockDeletingAuthPolicy = (): MaaSAuthPolicy => ({
+  name: 'deleting-policy',
+  namespace: 'maas-system',
+  phase: 'Active',
+  statusMessage: 'successfully reconciled',
+  modelRefs: [{ name: 'granite-3-8b-instruct', namespace: 'maas-models' }],
+  subjects: { groups: [{ name: 'premium-users' }] },
+  deletionTimestamp: '2025-04-07T12:00:00Z',
+});
+
 export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   {
     name: 'test-subscription-policy',
@@ -417,6 +450,7 @@ export const mockAuthPolicies = (): MaaSAuthPolicy[] => [
   },
   mockFailedAuthPolicy(),
   mockPendingAuthPolicy(),
+  mockDeletingAuthPolicy(),
 ];
 
 export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse => {

@@ -74,7 +74,7 @@ import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
-import './AutomlConfigure.css';
+import './AutomlConfigure.scss';
 
 const PREDICTION_TYPES: {
   value: ConfigureSchema['task_type'];
@@ -342,7 +342,15 @@ function AutomlConfigure(): React.JSX.Element {
         setValue('train_data_file_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === trainingDataUploadSeqRef.current) {
@@ -452,7 +460,7 @@ function AutomlConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add training data"
-                          className="automlConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="automl-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file from bucket"

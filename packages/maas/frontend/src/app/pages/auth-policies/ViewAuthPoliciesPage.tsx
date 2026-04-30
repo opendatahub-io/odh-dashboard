@@ -33,15 +33,17 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
         dropdownItems={[
           {
             key: 'edit',
-            label: 'Edit policy',
+            label: 'Edit',
             onClick: () =>
               navigate(`${URL_PREFIX}/auth-policies/edit/${encodeURIComponent(policy.name)}`),
+            isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
-            label: 'Delete policy',
+            label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
+            isDisabled: !!policy.deletionTimestamp,
           },
         ]}
       />
@@ -69,7 +71,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
     <Breadcrumb>
       <BreadcrumbItem>
         <Link to={`${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
-          Policies
+          Authorization policies
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{policyInfo?.policy.displayName ?? authPolicyName}</BreadcrumbItem>

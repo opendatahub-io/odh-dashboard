@@ -268,6 +268,8 @@ describe('AutoragConfigure', () => {
     mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -443,6 +445,30 @@ describe('AutoragConfigure', () => {
       expect(mockNotificationError).not.toHaveBeenCalled();
     });
 
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
+    });
+
     it('should show the newly selected secret name when switching secrets', () => {
       renderComponent();
 
@@ -530,7 +556,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should display all metric options when dropdown is opened', async () => {
+    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -540,8 +566,24 @@ describe('AutoragConfigure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+    });
+
+    it('should offer exactly two optimization metrics', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      selectSecretAndFile();
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+      });
+
+      const selectList = screen.getByTestId('optimization-metric-select-list');
+      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
+      expect(options).toHaveLength(2);
     });
 
     it('should render with a non-default metric when configured', () => {

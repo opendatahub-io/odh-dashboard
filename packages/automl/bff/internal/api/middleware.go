@@ -233,48 +233,6 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(mockBaseURL, "", false, app.rootCAs)
 			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
 			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, mockBaseURL)
-		} else if app.config.PipelineServerURL != "" {
-			// Override URL is set - skip Kubernetes client and DSPA discovery for local/dev mode
-			baseURL := app.config.PipelineServerURL
-			ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, baseURL)
-			logger.Debug("Using override Pipeline Server URL from config - skipping DSPA discovery",
-				"namespace", namespace)
-
-			// Extract auth token from request identity to forward to Pipeline Server
-			authToken := ""
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil && identity.Token != "" {
-				authToken = identity.Token
-				logger.Debug("Using auth token from request identity", "tokenLength", len(authToken))
-			} else {
-				// Fallback: try reading Authorization header directly (for local testing)
-				authHeader := r.Header.Get("Authorization")
-				if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-					authToken = strings.TrimPrefix(authHeader, "Bearer ")
-					logger.Debug("Using auth token from Authorization header (fallback for local testing)", "tokenLength", len(authToken))
-				} else {
-					logger.Debug("No auth token available from identity or Authorization header")
-				}
-			}
-
-			insecureSkipVerify := app.config.InsecureSkipVerify
-
-			logger.Debug("Creating Pipeline Server client with override URL",
-				"namespace", namespace,
-				"hasToken", authToken != "")
-
-			pipelineServerClient := app.pipelineServerClientFactory.CreateClient(
-				baseURL,
-				authToken,
-				insecureSkipVerify,
-				app.rootCAs,
-			)
-			ctx = context.WithValue(ctx, constants.PipelineServerClientKey, pipelineServerClient)
-
-			// Best-effort DSPA discovery so the S3 handlers can resolve credentials
-			// from the DSPA spec even when a Pipeline Server override URL is set
-			// (e.g. port-forwarding during local development). Failure is non-fatal:
-			// the S3 handler falls back to requiring an explicit secretName.
-			ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
 		} else {
 			// Get Kubernetes client
 			client, err := app.kubernetesClientFactory.GetClient(ctx)
@@ -343,11 +301,33 @@ func (app *App) AttachPipelineServerClient(next func(http.ResponseWriter, *http.
 					"pipelineServerId", dspa.Metadata.Name)
 			}
 
+			// Dev-only: rewrite in-cluster URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for pipeline server, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			// Extract the full object storage configuration from the DSPA spec and store in
 			// context. This allows downstream handlers to connect to S3 (or compatible stores
 			// like managed MinIO) without an additional Kubernetes API call.
 			dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 			if dspaObjectStorage != nil {
+				// Dev-only: rewrite S3 endpoint to localhost via dynamic port-forward.
+				// portForwardManager is nil in production (requires DevMode=true).
+				if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+					if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+						logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+							"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+					} else {
+						dspaObjectStorage.EndpointURL = rewritten
+					}
+				}
+
 				ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 				// Log appropriate message based on storage type
@@ -478,6 +458,16 @@ func (app *App) injectDSPAObjectStorageIfAvailable(ctx context.Context, namespac
 	// Resolve and inject DSPA object storage config
 	dspaObjectStorage, storageType := resolveDSPAObjectStorage(dspa, namespace, logger)
 	if dspaObjectStorage != nil {
+		// Rewrite S3 endpoint URL if dynamic port-forwarding is enabled
+		if app.portForwardManager != nil && dspaObjectStorage.EndpointURL != "" {
+			if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, dspaObjectStorage.EndpointURL); pfErr != nil {
+				logger.Warn("dynamic port-forward failed for S3 endpoint, using original URL",
+					"error", pfErr, "url", dspaObjectStorage.EndpointURL)
+			} else {
+				dspaObjectStorage.EndpointURL = rewritten
+			}
+		}
+
 		ctx = context.WithValue(ctx, constants.DSPAObjectStorageKey, dspaObjectStorage)
 
 		// Log appropriate message based on storage type
@@ -1177,4 +1167,21 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		next(w, r, psParams)
 	}
+}
+
+// preserveRawPath wraps an http.Handler so that percent-encoded path segments
+// (e.g. %2F inside an S3 key) survive exactly one level of decoding in the
+// handler. For S3 file endpoints it replaces Path with EscapedPath(), which
+// re-encodes any percent-literal characters that Go's url.Parse already
+// decoded (e.g. %252F → Path has %2F → EscapedPath re-encodes to %252F).
+// The handler then calls url.PathUnescape once to recover the real key.
+func preserveRawPath(next http.Handler) http.Handler {
+	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if escaped := r.URL.EscapedPath(); strings.HasPrefix(escaped, s3FilesPrefix) {
+			r.URL.Path = escaped
+		}
+		next.ServeHTTP(w, r)
+	})
 }

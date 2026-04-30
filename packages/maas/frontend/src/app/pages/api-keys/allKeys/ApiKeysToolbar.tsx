@@ -14,7 +14,7 @@ import {
   SearchInput,
   Tooltip,
 } from '@patternfly/react-core';
-import { FilterIcon, PlusIcon } from '@patternfly/react-icons';
+import { FilterIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
 import ApiKeysActions from '~/app/pages/api-keys/ApiKeysActions';
 
@@ -149,7 +149,6 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
             <>
               <Button
                 variant="primary"
-                icon={<PlusIcon />}
                 onClick={() => setIsModalOpen(true)}
                 data-testid="create-api-key-button"
               >

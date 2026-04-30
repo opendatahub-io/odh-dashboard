@@ -402,8 +402,8 @@ class APIKeysPage {
     return cy.findByTestId('revoke-all-api-keys-action');
   }
 
-  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('empty-state-title');
+  findEmptyTableState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -469,11 +469,11 @@ class APIKeyTableRow extends TableRow {
   }
 
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Creation date"]');
+    return this.find().find('[data-label="Created"]');
   }
 
   findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-label="Expiration date"]');
+    return this.find().find('[data-label="Expires"]');
   }
 }
 
@@ -614,7 +614,7 @@ class CopyApiKeyModal extends Modal {
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
     // Find the dialog that contains the API key token copy (unique to this modal)
-    return cy.findByTestId('api-key-token-copy').closest('[role="dialog"]');
+    return cy.findByTestId('api-key-token-copy-section').closest('[role="dialog"]');
   }
 
   shouldBeOpen(open = true): void {
@@ -626,24 +626,28 @@ class CopyApiKeyModal extends Modal {
   }
 
   findApiKeyTokenCopy(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-token-copy');
+    return this.find().findByTestId('api-key-token-copy-section');
   }
 
   findApiKeyTokenCopyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findApiKeyTokenCopy().findByRole('button', { name: 'Copy' });
+    return this.find().findByTestId('api-key-token-copy-button');
   }
 
-  findApiKeyTokenInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
-    // Find the read-only input field inside the ClipboardCopy component
-    return this.findApiKeyTokenCopy().find('input[type="text"]');
+  findApiKeyTokenInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    // input/textarea holds the value; PF wraps TextInput in a span, value on the span is undefined).
+    return this.find().find('input[aria-label="API key"], textarea[aria-label="API key"]');
+  }
+
+  findApiKeyTokenVisibilityToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-visibility-toggle');
   }
 
   findApiKeyName(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-display-name');
+    return this.find().findByTestId('api-key-display-name');
   }
 
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('api-key-display-expiration');
+    return this.find().findByTestId('api-key-display-expiration');
   }
 }
 
@@ -738,6 +742,14 @@ class SubscriptionsPage {
 class SubscriptionTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Name"]');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
+    return this.find().findByTestId('table-row-title').find('a');
   }
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -908,7 +920,7 @@ class EditSubscriptionPage {
 
 class AddModelsToSubscriptionModal extends Modal {
   constructor() {
-    super('Add models to subscription');
+    super('Add models');
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -934,11 +946,11 @@ class AddModelsToSubscriptionModal extends Modal {
 
 class EditRateLimitsModal extends Modal {
   constructor() {
-    super(/Edit token limits/);
+    super(/Edit subscription token limits/);
   }
 
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('dialog', { name: /Edit token limits/ });
+    return cy.findByRole('dialog', { name: /Edit subscription token limits/ });
   }
 
   findCountInput(index: number): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1029,6 +1041,18 @@ class ViewSubscriptionPage {
 
   findDetailsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('subscription-details-tab');
+  }
+
+  findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-actions-toggle');
+  }
+
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
+  }
+
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 }
 
@@ -1137,6 +1161,14 @@ class AuthPoliciesPage {
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state-title');
   }
+
+  findKeywordFilterInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('auth-policies-filter-name-input');
+  }
+
+  clearAllFilters(): void {
+    cy.findByRole('button', { name: 'Clear all filters' }).click();
+  }
 }
 
 class AuthPolicyTableRow extends TableRow {
@@ -1165,7 +1197,11 @@ class AuthPolicyTableRow extends TableRow {
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().find('[data-testid="auth-policy-actions"]');
+    return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
+    return this.find().findByTestId('table-row-title').find('a');
   }
 }
 
@@ -1228,6 +1264,14 @@ class ViewAuthPolicyPage {
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-actions-toggle');
+  }
+
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Delete' });
+  }
+
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: 'Edit' });
   }
 
   findPageError(): Cypress.Chainable<JQuery<HTMLElement>> {

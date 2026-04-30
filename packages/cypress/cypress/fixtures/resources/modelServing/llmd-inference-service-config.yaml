@@ -1,0 +1,15 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceServiceConfig
+metadata:
+  annotations:
+    description: vLLM CPU LLMInferenceServiceConfig for LLMInferenceService.
+    opendatahub.io/runtime-version: v0.1
+    openshift.io/display-name: vLLM CPU LLMInferenceServiceConfig
+  name: kserve-config-llm-template-cpu
+  labels:
+    opendatahub.io/config-type: accelerator
+spec:
+  template:
+    containers:
+      - image: quay.io/pierdipi/vllm-cpu:latest
+        name: main
