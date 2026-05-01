@@ -298,6 +298,10 @@ export type DataScienceProjectData = {
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
 };
 
 export type NotebookImageData = {

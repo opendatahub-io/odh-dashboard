@@ -516,8 +516,9 @@ describe('API Keys Page', () => {
   });
 
   it('should create an API key with a custom expiration and show the correct label in the success view', () => {
+    const created = mockCreateAPIKeyResponse();
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
-      data: mockCreateAPIKeyResponse(),
+      data: created,
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
@@ -537,6 +538,7 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'my-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
   });
 

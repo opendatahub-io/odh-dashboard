@@ -649,6 +649,10 @@ class CopyApiKeyModal extends Modal {
   findApiKeyExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-display-expiration');
   }
+
+  findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('close-api-key-button');
+  }
 }
 
 class AdminBulkRevokeAPIKeyModal extends Modal {
@@ -688,6 +692,11 @@ class AdminBulkRevokeAPIKeyModal extends Modal {
 class SubscriptionsPage {
   visit(): void {
     cy.visitWithLogin('/maas/subscriptions');
+    this.wait();
+  }
+
+  reload(): void {
+    cy.reload();
     this.wait();
   }
 
@@ -854,6 +863,10 @@ class CreateSubscriptionPage {
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('cancel-subscription-button');
   }
+
+  addTokenRateLimit(index: number): void {
+    this.findModelsTable().findByTestId(`add-token-limit-${index}`).click();
+  }
 }
 
 class EditSubscriptionPage {
@@ -903,6 +916,12 @@ class EditSubscriptionPage {
 
   findPolicyChangeWarning(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('policy-change-warning');
+  }
+
+  typeCustomGroup(name: string): void {
+    this.findGroupsSelect().find('input').type(name);
+    cy.findByRole('option', { name: `Add group "${name}"` }).click();
+    this.findGroupsSelect().click();
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
