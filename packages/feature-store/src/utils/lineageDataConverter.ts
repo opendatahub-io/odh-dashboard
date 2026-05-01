@@ -11,6 +11,7 @@ import { DataSource } from '../types/dataSources';
 import { FeatureService } from '../types/featureServices';
 import { FeatureStoreRelationship } from '../types/global';
 import { FeatureView } from '../types/featureView';
+import { FeatureColumns } from '../types/features';
 
 const getLineageFeatureViewInfo = (lineageFeatureView: LineageFeatureView) => {
   if ('featureView' in lineageFeatureView) {
@@ -258,10 +259,49 @@ export const convertFeatureStoreLineageToVisualizationData = (
   return { nodes, edges };
 };
 
+const FEATURE_VIEW_TYPES = new Set(['featureView', 'onDemandFeatureView', 'streamFeatureView']);
+const isFeatureViewType = (type: string): boolean => FEATURE_VIEW_TYPES.has(type);
+
+/**
+ * Builds a map of feature view name → feature entries derived from feature-type relationships.
+ * Relationships only carry feature names; valueType is left empty because the
+ * relationship data does not include it. The empty string is intentional — the
+ * popover renderer uses `feature.valueType &&` to conditionally display the type,
+ * so an empty string correctly suppresses the "(type)" display for these entries.
+ */
+const collectFeaturesByView = (
+  relationships: FeatureStoreRelationship[],
+): Map<string, FeatureColumns[]> => {
+  const featuresByView = new Map<string, FeatureColumns[]>();
+  const seen = new Set<string>();
+
+  const addFeature = (viewName: string, featureName: string) => {
+    const key = `${viewName}::${featureName}`;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    const existing = featuresByView.get(viewName) ?? [];
+    existing.push({ name: featureName, valueType: '' });
+    featuresByView.set(viewName, existing);
+  };
+
+  relationships.forEach((rel) => {
+    if (rel.source.type === 'feature' && isFeatureViewType(rel.target.type)) {
+      addFeature(rel.target.name, rel.source.name);
+    } else if (rel.target.type === 'feature' && isFeatureViewType(rel.source.type)) {
+      addFeature(rel.source.name, rel.target.name);
+    }
+  });
+
+  return featuresByView;
+};
+
 export const convertFeatureViewLineageToVisualizationData = (
   featureViewLineage: FeatureViewLineage,
   featureViewName: string,
   featureViewType?: FeatureView['type'],
+  currentFeatureViewFeatures?: FeatureColumns[],
 ): LineageData => {
   const nodes: LineageNode[] = [];
   const edges: LineageEdge[] = [];
@@ -281,15 +321,25 @@ export const convertFeatureViewLineageToVisualizationData = (
     }
   });
 
+  const featuresByView = collectFeaturesByView(featureViewLineage.relationships);
+
   // Create nodes for each unique object
   uniqueObjects.forEach((obj, key) => {
     if (obj.type === 'feature') {
       return;
     }
-    const isCurrentFeatureView = obj.type.includes('featureView') && obj.name === featureViewName;
+    const isCurrentFeatureView = isFeatureViewType(obj.type) && obj.name === featureViewName;
+    const isFeatureViewNode = isFeatureViewType(obj.type);
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
     const objectTypeForLabel = isCurrentFeatureView && featureViewType ? featureViewType : obj.type;
+
+    let nodeFeatures: FeatureColumns[] | undefined;
+    if (isCurrentFeatureView && currentFeatureViewFeatures) {
+      nodeFeatures = currentFeatureViewFeatures;
+    } else if (isFeatureViewNode) {
+      nodeFeatures = featuresByView.get(obj.name);
+    }
 
     nodes.push({
       id: mapObjectToNodeId(obj) || key,
@@ -302,8 +352,11 @@ export const convertFeatureViewLineageToVisualizationData = (
       name: obj.name,
       truncateLength: 30,
       layer,
-      // Highlight the current feature view
-      ...(isCurrentFeatureView && { highlighted: true }),
+      ...(nodeFeatures && { features: nodeFeatures }),
+      ...(isCurrentFeatureView && {
+        highlighted: true,
+        description: 'Currently viewing this feature view',
+      }),
     });
   });
 
