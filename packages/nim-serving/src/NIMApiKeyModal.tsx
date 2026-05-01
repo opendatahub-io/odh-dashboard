@@ -8,12 +8,15 @@ import {
   TextInput,
   InputGroup,
   InputGroupItem,
-  Stack,
-  StackItem,
+  ValidatedOptions,
 } from '@patternfly/react-core';
-import { EyeIcon, EyeSlashIcon } from '@patternfly/react-icons';
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ExclamationCircleIcon,
+  CheckCircleIcon,
+} from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import { NIMAccountStatus } from './useNIMAccountStatus';
 import { createNIMResources, updateNIMSecretAndRevalidate } from './nimK8sUtils';
 
@@ -21,6 +24,7 @@ enum ModalState {
   IDLE = 'IDLE',
   CREATING = 'CREATING',
   VALIDATING = 'VALIDATING',
+  SUCCESS = 'SUCCESS',
   ERROR = 'ERROR',
 }
 
@@ -55,14 +59,14 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       return;
     }
     if (accountStatus === NIMAccountStatus.READY) {
-      onClose();
+      setModalState(ModalState.SUCCESS);
       refresh();
     } else if (accountStatus === NIMAccountStatus.ERROR) {
       setModalState(ModalState.ERROR);
     } else if (accountStatus === NIMAccountStatus.PENDING && modalState === ModalState.ERROR) {
       setModalState(ModalState.VALIDATING);
     }
-  }, [modalState, accountStatus, onClose, refresh]);
+  }, [modalState, accountStatus, refresh]);
 
   const handleSubmit = async () => {
     setModalState(ModalState.CREATING);
@@ -89,16 +93,46 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     setModalState(ModalState.IDLE);
     setCreateError(undefined);
     onClose();
-    if (modalState === ModalState.VALIDATING) {
-      refresh();
-    }
+    refresh();
   };
 
   const isInputDisabled =
-    modalState === ModalState.CREATING || modalState === ModalState.VALIDATING;
+    modalState === ModalState.CREATING ||
+    modalState === ModalState.VALIDATING ||
+    modalState === ModalState.SUCCESS;
   const isSubmitDisabled = !apiKey.trim() || isInputDisabled;
-  const isSubmitLoading = modalState === ModalState.CREATING;
-  const cancelLabel = modalState === ModalState.VALIDATING ? 'Close' : 'Cancel';
+  const isValidating = modalState === ModalState.VALIDATING;
+  const isCreating = modalState === ModalState.CREATING;
+  const hasError = modalState === ModalState.ERROR || !!createError;
+  const errorMessage =
+    createError ||
+    (accountErrors.length > 0 ? accountErrors.join('; ') : 'API key failed validation.');
+
+  if (modalState === ModalState.SUCCESS) {
+    return (
+      <ContentModal
+        title="API key validated"
+        onClose={handleClose}
+        variant="medium"
+        dataTestId="nim-api-key-modal"
+        buttonActions={[
+          {
+            label: 'Close',
+            onClick: handleClose,
+            variant: 'primary',
+            dataTestId: 'nim-api-key-close',
+          },
+        ]}
+        contents={
+          <HelperText>
+            <HelperTextItem icon={<CheckCircleIcon />} variant="success">
+              Your NVIDIA personal API key has been validated and saved.
+            </HelperTextItem>
+          </HelperText>
+        }
+      />
+    );
+  }
 
   return (
     <ContentModal
@@ -108,75 +142,57 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       dataTestId="nim-api-key-modal"
       buttonActions={[
         {
-          label: 'Submit',
+          label: isValidating ? 'Validating' : 'Submit',
           onClick: handleSubmit,
           variant: 'primary',
           isDisabled: isSubmitDisabled,
-          isLoading: isSubmitLoading,
+          isLoading: isCreating || isValidating,
           dataTestId: 'nim-api-key-submit',
         },
         {
-          label: cancelLabel,
+          label: 'Cancel',
           onClick: handleClose,
           variant: 'link',
           dataTestId: 'nim-api-key-cancel',
         },
       ]}
       contents={
-        <Stack hasGutter>
-          {createError && (
-            <StackItem>
-              <NIMAccountStatusAlerts
-                status={NIMAccountStatus.ERROR}
-                errorMessages={[createError]}
+        <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
+          <InputGroup>
+            <InputGroupItem isFill>
+              <TextInput
+                id="nim-api-key"
+                type={showKey ? 'text' : 'password'}
+                value={apiKey}
+                onChange={(_e, value) => setApiKey(value)}
+                isDisabled={isInputDisabled}
+                validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
+                data-testid="nim-api-key-input"
               />
-            </StackItem>
-          )}
-          {modalState === ModalState.VALIDATING && (
-            <StackItem>
-              <NIMAccountStatusAlerts status={accountStatus} errorMessages={[]} />
-            </StackItem>
-          )}
-          {modalState === ModalState.ERROR && (
-            <StackItem>
-              <NIMAccountStatusAlerts
-                status={NIMAccountStatus.ERROR}
-                errorMessages={accountErrors}
-              />
-            </StackItem>
-          )}
-          <StackItem>
-            <FormGroup label="NVIDIA personal API key" fieldId="nim-api-key">
-              <InputGroup>
-                <InputGroupItem isFill>
-                  <TextInput
-                    id="nim-api-key"
-                    type={showKey ? 'text' : 'password'}
-                    value={apiKey}
-                    onChange={(_e, value) => setApiKey(value)}
-                    isDisabled={isInputDisabled}
-                    data-testid="nim-api-key-input"
-                  />
-                </InputGroupItem>
-                <InputGroupItem>
-                  <Button
-                    variant="control"
-                    onClick={() => setShowKey((prev) => !prev)}
-                    aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                    data-testid="nim-api-key-toggle"
-                  >
-                    {showKey ? <EyeSlashIcon /> : <EyeIcon />}
-                  </Button>
-                </InputGroupItem>
-              </InputGroup>
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            </FormGroup>
-          </StackItem>
-        </Stack>
+            </InputGroupItem>
+            <InputGroupItem>
+              <Button
+                variant="control"
+                onClick={() => setShowKey((prev) => !prev)}
+                aria-label={showKey ? 'Hide API key' : 'Show API key'}
+                data-testid="nim-api-key-toggle"
+              >
+                {showKey ? <EyeSlashIcon /> : <EyeIcon />}
+              </Button>
+            </InputGroupItem>
+          </InputGroup>
+          <FormHelperText>
+            <HelperText>
+              {hasError ? (
+                <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
+                  {errorMessage}
+                </HelperTextItem>
+              ) : (
+                <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
+              )}
+            </HelperText>
+          </FormHelperText>
+        </FormGroup>
       }
     />
   );
