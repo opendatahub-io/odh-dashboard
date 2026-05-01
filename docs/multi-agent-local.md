@@ -40,6 +40,8 @@ Adjust the number of panes based on the workload. Two panes suffice for most tas
 
 ## Session Startup
 
+For an alternative to manually managing terminal panes, consider [Agent Teams](multi-agent-workflows.md#built-in-multi-agent-features) — Claude Code's built-in experimental feature that coordinates multiple sessions with a shared task list and inter-agent messaging.
+
 ### Quick Start (Automatic Worktrees)
 
 ```bash
@@ -63,9 +65,8 @@ claude -w -n "docs-update"
 git worktree add .claude/worktrees/gen-ai-feature -b gen-ai-feature upstream/main
 git worktree add .claude/worktrees/mr-refactor -b mr-refactor upstream/main
 
-# Step 2: Install dependencies in each worktree
-cd .claude/worktrees/gen-ai-feature && npm install
-cd .claude/worktrees/mr-refactor && npm install
+# Step 2: Install dependencies (from the main repo root, not from worktrees)
+npm install
 
 # Step 3: Start sessions
 # Pane 1:

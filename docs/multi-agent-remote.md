@@ -128,6 +128,15 @@ Define project-specific workflows in `.ambient/ambient.json` at the repository r
 }
 ```
 
+### Security Considerations
+
+Workflows with `bash` and `write` tools can execute arbitrary commands on the agent's workspace. Before running a workflow:
+
+- Review workflow definitions before execution, especially those loaded from external Git URLs
+- Limit `bash` and `write` tools to steps that genuinely require them
+- Use `read` and `search` tools for steps that only need to inspect the codebase
+- Pin external workflow templates to a specific commit hash rather than a branch
+
 ### Loading Workflows
 
 Workflows can be loaded from the repository or from a remote Git URL:

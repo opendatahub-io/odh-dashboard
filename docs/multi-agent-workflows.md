@@ -66,12 +66,74 @@ Use descriptive names that indicate the task scope:
 | Task type | `review-pr-7421` |
 | Package scoped | `model-registry-refactor` |
 
-## Shared Specs Directory
+## Built-in Multi-Agent Features
 
-Use `.claude/local-specs/` to share planning documents across worktrees without committing them to the repository:
+Claude Code provides two built-in mechanisms for multi-agent work in addition to manual worktree sessions.
+
+### Agent Teams (Experimental)
+
+Agent Teams coordinate multiple Claude Code sessions as a team — one lead and several teammates — with a shared task list and direct inter-agent messaging.
+
+Enable with:
 
 ```bash
-# From the main repo or any worktree, write a spec
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 claude
+```
+
+| Concept | Description |
+|---------|-------------|
+| **Lead** | The session you interact with. Delegates work via a shared task list |
+| **Teammates** | Autonomous sessions that pick up tasks, work in their own worktrees, and report back |
+| **Task list** | Shared `TodoWrite`/`TodoRead` board visible to all agents |
+| **Messaging** | Teammates communicate with the lead and each other via `SendMessage` |
+
+Display modes:
+- **In-process** — all teammates run in one terminal. Cycle with `Shift+Down`
+- **Split-panes** — each teammate gets its own tmux or iTerm2 pane for parallel visibility
+
+Guidelines:
+- Start with 3-5 teammates. More teammates increase coordination overhead
+- Assign 5-6 tasks per teammate for optimal throughput
+- Use subagent definitions from `.claude/agents/` as teammate roles for specialization
+- Add hooks (`TeammateIdle`, `TaskCreated`, `TaskCompleted`) for quality gates
+
+### Subagents
+
+Subagents delegate a focused task to a single child session that runs in its own context window and reports results back to the caller.
+
+Define reusable subagent roles in `.claude/agents/<name>.md`:
+
+```markdown
+---
+name: reviewer
+description: Reviews code for style and correctness
+tools:
+  - Read
+  - Bash(git diff:*)
+model: sonnet
+---
+
+Review the provided code for correctness, style, and test coverage.
+```
+
+Invoke with the `Agent` tool or via `claude agents` CLI commands. Each subagent gets its own context window, tool allowlist, and optional `--worktree` isolation.
+
+Use subagents for focused tasks where only the result matters (e.g., linting a file, researching an API). Use Agent Teams when multiple agents need to coordinate and communicate.
+
+### Choosing a Multi-Agent Approach
+
+| Approach | Best for | Coordination | Cost |
+|----------|----------|--------------|------|
+| **Agent Teams** | Large features requiring parallel work with coordination | Shared task list + messaging | Higher (multiple full sessions) |
+| **Subagents** | Focused tasks where only the result matters | Caller manages delegation | Lower (scoped context windows) |
+| **Manual worktrees** | Full control over session lifecycle and prompts | Developer manages via terminal panes | Variable |
+
+## Shared Specs Directory
+
+Use `.claude/local-specs/` in the main repo root to share planning documents across worktrees without committing them to the repository:
+
+```bash
+# From the main repo root, write a spec
 cat > .claude/local-specs/feature-plan.md << 'EOF'
 # Feature: MCP Server Configuration
 ## Goal
@@ -80,9 +142,15 @@ Add a configuration page for MCP servers in the gen-ai package.
 - Use PatternFly v6 table for the server list
 - Store config in a ConfigMap per namespace
 EOF
+```
 
-# Any worktree can read shared specs (path resolves to repo root)
-cat .claude/local-specs/feature-plan.md
+Worktrees at `.claude/worktrees/<name>/` have their own directory tree and do not automatically resolve `.claude/local-specs/` to the main repo root. To read shared specs from inside a worktree, use the repo root path:
+
+```bash
+# Find the main repo root from any worktree
+REPO_ROOT=$(git rev-parse --show-toplevel)/..
+# Read a shared spec
+cat "$REPO_ROOT/.claude/local-specs/feature-plan.md"
 ```
 
 This directory is gitignored. Use it for design specs, task breakdowns, and context that implementation sessions need to reference.
@@ -131,7 +199,7 @@ Run 3–4 concurrent sessions maximum. Each session consumes memory and CPU for 
 
 ### Notifications
 
-Configure terminal notifications to alert when a session completes or needs input:
+Configure terminal notifications to alert when a session completes or requires input:
 
 ```bash
 # macOS — notify when a long-running session finishes
