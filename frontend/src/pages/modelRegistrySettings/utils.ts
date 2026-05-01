@@ -101,6 +101,12 @@ export const isOpenshiftCAbundleEnabled = (existingCertConfigMaps: ConfigSecretI
 };
 
 /**
+ * Returns true when the database name contains characters that would
+ * break the DSN the backend builds (currently just `?`).
+ */
+export const hasDatabaseInvalidChars = (value: string): boolean => /\?/.test(value);
+
+/**
  * Validates that the port is a numeric integer between 1 and 65535.
  * @param value - The port value to validate
  * @returns true if the port is valid, false otherwise
