@@ -1279,6 +1279,62 @@ class ViewAuthPolicyPage {
   }
 }
 
+class EndpointsPage {
+  visit(): void {
+    cy.visitWithLogin('/ai-hub/models/maas-endpoints');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  findCreateEndpointButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-endpoint-button');
+  }
+
+  findEditEndpointButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('edit-endpoint-button');
+  }
+}
+
+class CreateEndpointsPage {
+  visit(): void {
+    cy.visitWithLogin('/ai-hub/models/maas-endpoints/create');
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+}
+
+class EditEndpointsPage {
+  visit(endpointName: string): void {
+    cy.visitWithLogin(`/ai-hub/models/maas-endpoints/edit/${encodeURIComponent(endpointName)}`);
+    this.wait();
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+}
+
 export const tiersPage = new TiersPage();
 export const createTierPage = new CreateTierPage();
 export const deleteTierModal = new DeleteTierModal();
@@ -1301,3 +1357,6 @@ export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
+export const endpointsPage = new EndpointsPage();
+export const createEndpointsPage = new CreateEndpointsPage();
+export const editEndpointsPage = new EditEndpointsPage();

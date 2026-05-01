@@ -32,6 +32,10 @@ class ModelServingGlobal {
     this.wait();
   }
 
+  findTab(name: string) {
+    return cy.findByTestId(`tab-${name}`);
+  }
+
   private wait() {
     cy.findByTestId('app-tab-page-title').should('have.text', 'Models');
     cy.testA11y();
