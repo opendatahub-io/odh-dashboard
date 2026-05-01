@@ -9,6 +9,8 @@ type ModelPropertiesTableRowProps = {
     showDeleteModal?: boolean;
     setIsSavingEdits: (isSaving: boolean) => void;
     saveEditedProperty: (oldKey: string, newPair: KeyValuePair) => Promise<unknown>;
+    onKeyValidationChange?: (hasError: boolean) => void;
+    showInlineAlerts?: boolean;
 } & EitherNotBoth<{
     isAddRow: true;
 }, {

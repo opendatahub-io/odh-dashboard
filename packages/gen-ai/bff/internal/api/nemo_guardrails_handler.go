@@ -35,7 +35,7 @@ func (app *App) NemoGuardrailsInitHandler(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		var alreadyInit *models.ErrNemoGuardrailsAlreadyInitialised
 		if errors.As(err, &alreadyInit) {
-			app.badRequestResponse(w, r, err)
+			app.conflictResponse(w, r, err)
 		} else {
 			app.serverErrorResponse(w, r, err)
 		}

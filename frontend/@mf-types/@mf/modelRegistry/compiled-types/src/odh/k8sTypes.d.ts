@@ -11,3 +11,12 @@ export declare enum KnownLabels {
     MODEL_REGISTRY_NAME = "modelregistry.opendatahub.io/name",
     KUEUE_MANAGED = "kueue.openshift.io/managed"
 }
+/** Deployment list entry from MR deployments context (e.g. KServe InferenceService wrappers). */
+export type ModelRegistryDeploymentListItem = {
+    model?: {
+        kind?: string;
+        metadata?: {
+            labels?: Partial<Record<string, string>>;
+        };
+    };
+};

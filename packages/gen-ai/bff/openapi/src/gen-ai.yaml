@@ -320,10 +320,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/NemoGuardrailsInitResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: initNemoGuardrails
@@ -331,6 +331,38 @@ paths:
       description: >-
         Creates a placeholder ConfigMap and NemoGuardrails CR. One-time setup —
         returns 400 if NemoGuardrails is already initialised in the namespace.
+
+  /gen-ai/api/v1/nemo-guardrails/status:
+    summary: Get NemoGuardrails status
+    description: >-
+      Returns the phase and readiness of the NemoGuardrails CR in the specified namespace.
+    get:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for the NemoGuardrails CR
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNemoGuardrailsStatus
+      summary: Get NemoGuardrails Status
+      description: Returns the phase and readiness of the NemoGuardrails CR in the namespace.
 
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
@@ -4748,6 +4780,40 @@ components:
             data:
               name: nemoguardrails
 
+    NemoGuardrailsStatusResponse:
+      description: NemoGuardrails CR status
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                  - phase
+                  - isReady
+                properties:
+                  name:
+                    type: string
+                    description: Name of the NemoGuardrails CR
+                    example: nemoguardrails
+                  phase:
+                    type: string
+                    description: Current phase of the NemoGuardrails CR
+                    example: Ready
+                  isReady:
+                    type: boolean
+                    description: Whether the NemoGuardrails CR is in the Ready phase
+                    example: true
+          example:
+            data:
+              name: nemoguardrails
+              phase: Ready
+              isReady: true
+
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL
       content:
@@ -5051,6 +5117,13 @@ components:
 
     NotFound:
       description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Conflict:
+      description: Conflict - Resource already exists
       content:
         application/json:
           schema:

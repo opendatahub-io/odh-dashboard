@@ -6,5 +6,6 @@ export declare enum SubmitLabel {
 export declare enum RegistrationErrorType {
     REGISTERED_MODEL = "registeredModel",
     MODEL_VERSION = "modelVersion",
-    MODEL_ARTIFACT = "modelArtifact"
+    MODEL_ARTIFACT = "modelArtifact",
+    TRANSFER_JOB = "transferJob"
 }
