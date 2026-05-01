@@ -287,6 +287,7 @@ function AutomlConfigure({
       setValue('timestamp_column', '', { shouldValidate: true });
       setValue('id_column', '', { shouldValidate: true });
       setValue('known_covariates_names', [], { shouldValidate: true });
+      setValue('prediction_length', undefined, { shouldValidate: true });
     }
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
