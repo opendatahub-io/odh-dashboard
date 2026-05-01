@@ -10,7 +10,6 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -539,9 +538,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           title="Configure playground"
           description={
             <>
-              Choose the models you want to make available in this playground from your AI assets.
-              You can add additional models by making them available from the{' '}
-              <Link to={`/modelServing/${namespace?.name}`}>Model Deployments page</Link>.
+              Select the endpoints of deployed models to try in the {namespace?.name} project
+              playground.
               {error && (
                 <Alert
                   variant="danger"
