@@ -296,10 +296,9 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Output moderation is enabled only when an inline guardrail config is present.
-	// The OutputShieldID field is deprecated; moderation will be re-enabled once the
-	// guardrail_config request field is wired into CreateResponseParams.
-	moderationEnabled := false
+	// Output moderation is enabled when the request included an inline guardrail config
+	// with output rails configured.
+	moderationEnabled := hasOutputModeration(params.GuardrailOpts)
 
 	// If moderation is disabled, use the simple streaming path
 	if !moderationEnabled {
@@ -479,7 +478,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			if ShouldTriggerModeration(currentChunk.Text, wordCount) {
 				// Register and fire async moderation
 				modState.RegisterChunk(currentChunk)
-				modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+				modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 
 				// Reset for next chunk
 				currentChunk = nil
@@ -492,7 +491,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		// First, finalize any pending chunk
 		if currentChunk != nil && len(currentChunk.Events) > 0 {
 			modState.RegisterChunk(currentChunk)
-			modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+			modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 			currentChunk = nil
 			wordCount = 0
 		}
@@ -525,7 +524,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Flush any remaining chunk
 	if currentChunk != nil && len(currentChunk.Events) > 0 {
 		modState.RegisterChunk(currentChunk)
-		modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+		modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 	}
 
 	// Wait for all pending moderation to complete

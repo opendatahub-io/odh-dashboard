@@ -151,9 +151,6 @@ func EndsWithSentenceBoundary(text string) bool {
 }
 
 // extractResponseText extracts the text content from a response for moderation.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
 func extractResponseText(response *ResponseData) string {
 	var textParts []string
 	for _, output := range response.Output {
@@ -169,9 +166,6 @@ func extractResponseText(response *ResponseData) string {
 }
 
 // createGuardrailViolationResponse builds a non-streaming guardrail refusal ResponseData.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
 func createGuardrailViolationResponse(responseID string, model string, isInput bool) ResponseData {
 	message := constants.OutputGuardrailViolationMessage
 	if isInput {
