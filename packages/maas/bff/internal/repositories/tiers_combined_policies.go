@@ -94,7 +94,7 @@ func tierCountersWhen() []interface{} {
 }
 
 // buildManagedTokenLimitEntry builds one spec.limits entry for token limits for a single tier.
-func buildManagedTokenLimitEntry(tierName, gatewayName string, rateLimits []models.RateLimit) map[string]interface{} {
+func buildManagedTokenLimitEntry(tierName string, rateLimits []models.RateLimit) map[string]interface{} {
 	return map[string]interface{}{
 		"rates":    convertRateLimitToKubernetesFormat(rateLimits),
 		"when":     tierPredicateWhen(tierName),
@@ -103,7 +103,7 @@ func buildManagedTokenLimitEntry(tierName, gatewayName string, rateLimits []mode
 }
 
 // buildManagedRequestLimitEntry builds one spec.limits entry for request limits for a single tier.
-func buildManagedRequestLimitEntry(tierName, gatewayName string, rateLimits []models.RateLimit) map[string]interface{} {
+func buildManagedRequestLimitEntry(tierName string, rateLimits []models.RateLimit) map[string]interface{} {
 	return map[string]interface{}{
 		"rates":    convertRateLimitToKubernetesFormat(rateLimits),
 		"when":     tierPredicateWhen(tierName),
@@ -126,18 +126,13 @@ func cloneLimitsShallowTopLevel(src map[string]interface{}) map[string]interface
 
 // mergeManagedTokenKeysOnly updates only "<tier>-tokens" keys on the TokenRateLimitPolicy limits map.
 // Request keys must never be written onto a TRLP; that is a separate CR (RateLimitPolicy).
-func mergeManagedTokenKeysOnly(
-	existingLimits map[string]interface{},
-	tierNames []string,
-	limitsByTier map[string]models.TierLimits,
-	gatewayName string,
-) map[string]interface{} {
+func mergeManagedTokenKeysOnly(existingLimits map[string]interface{}, tierNames []string, limitsByTier map[string]models.TierLimits) map[string]interface{} {
 	merged := cloneLimitsShallowTopLevel(existingLimits)
 	for _, tierName := range tierNames {
 		lim := limitsByTier[tierName]
 		key := managedTokenLimitKey(tierName)
 		if len(lim.TokensPerUnit) > 0 {
-			merged[key] = buildManagedTokenLimitEntry(tierName, gatewayName, lim.TokensPerUnit)
+			merged[key] = buildManagedTokenLimitEntry(tierName, lim.TokensPerUnit)
 		} else {
 			delete(merged, key)
 		}
@@ -146,18 +141,13 @@ func mergeManagedTokenKeysOnly(
 }
 
 // mergeManagedRequestKeysOnly updates only "<tier>-requests" keys on the RateLimitPolicy limits map.
-func mergeManagedRequestKeysOnly(
-	existingLimits map[string]interface{},
-	tierNames []string,
-	limitsByTier map[string]models.TierLimits,
-	gatewayName string,
-) map[string]interface{} {
+func mergeManagedRequestKeysOnly(existingLimits map[string]interface{}, tierNames []string, limitsByTier map[string]models.TierLimits) map[string]interface{} {
 	merged := cloneLimitsShallowTopLevel(existingLimits)
 	for _, tierName := range tierNames {
 		lim := limitsByTier[tierName]
 		key := managedRequestLimitKey(tierName)
 		if len(lim.RequestsPerUnit) > 0 {
-			merged[key] = buildManagedRequestLimitEntry(tierName, gatewayName, lim.RequestsPerUnit)
+			merged[key] = buildManagedRequestLimitEntry(tierName, lim.RequestsPerUnit)
 		} else {
 			delete(merged, key)
 		}
@@ -298,18 +288,8 @@ func (t *TiersRepository) syncCombinedPolicies(ctx context.Context, parsedTiers 
 		return err
 	}
 
-	tokenLimitsMap := mergeManagedTokenKeysOnly(
-		extractLimitsMap(existingToken),
-		tierNames,
-		limitsByTier,
-		t.gatewayName,
-	)
-	rateLimitsMap := mergeManagedRequestKeysOnly(
-		extractLimitsMap(existingRate),
-		tierNames,
-		limitsByTier,
-		t.gatewayName,
-	)
+	tokenLimitsMap := mergeManagedTokenKeysOnly(extractLimitsMap(existingToken), tierNames, limitsByTier)
+	rateLimitsMap := mergeManagedRequestKeysOnly(extractLimitsMap(existingRate), tierNames, limitsByTier)
 
 	// Tiers removed from the ConfigMap are no longer in tierNames — merge would not delete their keys, so strip explicitly.
 	for _, gone := range tiersRemoved {
@@ -433,9 +413,6 @@ func mergeGatewayPolicySpec(existing *unstructured.Unstructured, gatewayName str
 		"group": "gateway.networking.k8s.io",
 		"kind":  "Gateway",
 		"name":  gatewayName,
-	}
-	if defaults, ok := spec["defaults"].(map[string]interface{}); ok && defaults != nil {
-		delete(defaults, "strategy")
 	}
 	return unstructured.SetNestedMap(existing.Object, spec, "spec")
 }

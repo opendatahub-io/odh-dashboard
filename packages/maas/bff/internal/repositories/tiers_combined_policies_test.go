@@ -18,7 +18,7 @@ func TestMergeManagedTokenKeysOnly_preservesCLIKeys(t *testing.T) {
 	limits := map[string]models.TierLimits{
 		"tier0": {TokensPerUnit: []models.RateLimit{{Count: 42, Time: 2, Unit: models.GEP_2257_HOUR}}},
 	}
-	out := mergeManagedTokenKeysOnly(existing, []string{"tier0"}, limits, "maas-default-gateway")
+	out := mergeManagedTokenKeysOnly(existing, []string{"tier0"}, limits)
 	if _, ok := out["operator-custom-limit"]; !ok {
 		t.Fatal("expected CLI / operator limit key to be preserved")
 	}
@@ -39,9 +39,7 @@ func TestBuildManagedTokenLimitEntry_unstructuredSetDoesNotPanic(t *testing.T) {
 	t.Parallel()
 	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	limits := map[string]interface{}{
-		"tier-x-tokens": buildManagedTokenLimitEntry("tier-x", "gw", []models.RateLimit{
-			{Count: 10, Time: 1, Unit: models.GEP_2257_HOUR},
-		}),
+		"tier-x-tokens": buildManagedTokenLimitEntry("tier-x", []models.RateLimit{{Count: 10, Time: 1, Unit: models.GEP_2257_HOUR}}),
 	}
 	spec := map[string]interface{}{
 		"limits": limits,
@@ -59,7 +57,7 @@ func TestMergeManagedRequestKeysOnly_removesEmptyRequestTier(t *testing.T) {
 	limits := map[string]models.TierLimits{
 		"tier0": {RequestsPerUnit: nil},
 	}
-	out := mergeManagedRequestKeysOnly(existing, []string{"tier0"}, limits, "gw")
+	out := mergeManagedRequestKeysOnly(existing, []string{"tier0"}, limits)
 	if _, ok := out["tier0-requests"]; ok {
 		t.Fatal("expected tier0-requests to be removed when RequestsPerUnit is empty")
 	}
