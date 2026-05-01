@@ -143,7 +143,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       dataTestId="nim-api-key-modal"
       buttonActions={[
         {
-          label: isValidating ? 'Validating' : 'Submit',
+          label: isCreating || isValidating ? 'Validating' : 'Submit',
           onClick: handleSubmit,
           variant: 'primary',
           isDisabled: isSubmitDisabled,
@@ -154,6 +154,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
           label: 'Cancel',
           onClick: handleClose,
           variant: 'link',
+          isDisabled: isCreating || isValidating,
           dataTestId: 'nim-api-key-cancel',
         },
       ]}
