@@ -74,7 +74,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 
   const isValidating = submitted && accountStatus === NIMAccountStatus.PENDING;
   const isSuccess = submitted && accountStatus === NIMAccountStatus.READY;
-  const hasError = !!createError || (submitted && accountStatus === NIMAccountStatus.ERROR);
+  const hasValidationError = submitted && accountStatus === NIMAccountStatus.ERROR;
   const isInputDisabled = isCreating || isValidating || isSuccess;
   const isSubmitDisabled = !apiKey.trim() || isInputDisabled;
 
@@ -114,6 +114,8 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       onClose={handleClose}
       variant="medium"
       dataTestId="nim-api-key-modal"
+      error={createError}
+      alertTitle="Error adding personal API key"
       buttonActions={[
         {
           label: isCreating || isValidating ? 'Validating' : 'Submit',
@@ -141,7 +143,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
                 value={apiKey}
                 onChange={(_e, value) => setApiKey(value)}
                 isDisabled={isInputDisabled}
-                validated={hasError ? ValidatedOptions.error : ValidatedOptions.default}
+                validated={hasValidationError ? ValidatedOptions.error : ValidatedOptions.default}
                 data-testid="nim-api-key-input"
               />
             </InputGroupItem>
@@ -158,7 +160,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
           </InputGroup>
           <FormHelperText>
             <HelperText>
-              {hasError ? (
+              {hasValidationError ? (
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
                   Invalid API key. Verify your key and try again.
                 </HelperTextItem>
