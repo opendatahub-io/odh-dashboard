@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-crewai-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a Web Search Agent with CrewAI'
+  description: >-
+    Build a ReAct-style web search agent using the CrewAI framework.
+    Uses a web search tool to query the internet and answer user
+    questions with any OpenAI-compatible API.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/crewai/websearch_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

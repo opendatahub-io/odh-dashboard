@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-google-adk-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build an Agent with Google ADK 2.0'
+  description: >-
+    General-purpose agent using Google Agent Development Kit (ADK) 2.0 with
+    web search. Uses LiteLLM to route inference through a Llama Stack
+    server's OpenAI-compatible API endpoint.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/google/adk'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

@@ -1,0 +1,16 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhDocument
+metadata:
+  name: agentic-starter-kits-langflow-tutorial
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started'
+spec:
+  type: tutorial
+  displayName: 'Build a Tool-Calling Agent with Langflow'
+  description: >-
+    Build an outdoor activity planning agent with Langflow that reasons
+    across weather forecasts, air quality, and National Park Service data
+    using a visual flow-based interface.
+  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/main/agents/langflow/simple_tool_calling_agent'
+  provider: Open Data Hub
+  appName: agentic-starter-kits

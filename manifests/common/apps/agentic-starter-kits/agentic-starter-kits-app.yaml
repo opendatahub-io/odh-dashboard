@@ -1,0 +1,80 @@
+apiVersion: dashboard.opendatahub.io/v1
+kind: OdhApplication
+metadata:
+  name: agentic-starter-kits
+  annotations:
+    opendatahub.io/categories: 'AI agents,Getting started,Model development'
+spec:
+  img: >-
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36" width="36" height="36">
+      <rect x="2" y="2" width="32" height="32" rx="4" fill="#0066CC"/>
+      <circle cx="12" cy="14" r="4" fill="white" opacity="0.9"/>
+      <circle cx="24" cy="14" r="4" fill="white" opacity="0.9"/>
+      <circle cx="18" cy="26" r="4" fill="white" opacity="0.9"/>
+      <line x1="12" y1="14" x2="24" y2="14" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <line x1="12" y1="14" x2="18" y2="26" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <line x1="24" y1="14" x2="18" y2="26" stroke="white" stroke-width="1.5" opacity="0.6"/>
+      <circle cx="12" cy="14" r="2" fill="#EE0000"/>
+      <circle cx="24" cy="14" r="2" fill="#EE0000"/>
+      <circle cx="18" cy="26" r="2" fill="#EE0000"/>
+    </svg>
+  displayName: Agentic Starter Kits
+  support: community
+  provider: Open Data Hub
+  docsLink: 'https://github.com/red-hat-data-services/agentic-starter-kits'
+  getStartedLink: 'https://github.com/red-hat-data-services/agentic-starter-kits#readme'
+  getStartedMarkDown: >-
+    # Agentic Starter Kits
+
+    Reference implementations for building AI agents on OpenShift AI using
+    Llama Stack. Ready-to-deploy agent patterns covering common agentic
+    architectures across multiple frameworks.
+
+    ## Available Agents
+
+    - **LangGraph ReAct Agent** -- General-purpose agent using a ReAct
+    loop with tool calling
+
+    - **LangGraph Agentic RAG** -- RAG agent with Milvus vector store
+    for knowledge-grounded answers
+
+    - **LangGraph ReAct + DB Memory** -- ReAct agent with PostgreSQL-backed
+    conversation memory and FIFO sliding window
+
+    - **LangGraph Human-in-the-Loop** -- Agent that pauses for human
+    approval before running sensitive tools
+
+    - **LlamaIndex WebSearch Agent** -- Event-driven agent with web search
+    tool integration
+
+    - **CrewAI WebSearch Agent** -- CrewAI-based agent with web search
+
+    - **Vanilla Python OpenAI Responses** -- Minimal agent using only the
+    OpenAI Python client with no framework dependencies
+
+    - **AutoGen MCP Agent** -- AutoGen AssistantAgent with MCP tools over SSE
+
+    - **Langflow Tool-Calling Agent** -- Visual flow-based agent with
+    weather, air quality, and NPS tools
+
+    - **Google ADK 2.0 Agent** -- Agent using Google Agent Development Kit
+    with LiteLLM routing to Llama Stack
+
+    - **A2A LangGraph + CrewAI** -- Agent-to-Agent example with CrewAI
+    specialist and LangGraph orchestrator
+
+    ## Getting Started
+
+    1. Clone the repository from GitHub.
+
+    2. Choose an agent pattern organized by framework.
+
+    3. Follow the agent-specific README to configure environment variables
+    and deploy locally with Ollama or on OpenShift.
+
+    Each agent exposes a FastAPI server with `/chat` and `/health` endpoints.
+  description: >-
+    Production-ready agent templates for OpenShift AI featuring LangGraph,
+    LlamaIndex, CrewAI, AutoGen, Langflow, Google ADK, A2A, and vanilla
+    Python patterns.
+  category: AI agents
