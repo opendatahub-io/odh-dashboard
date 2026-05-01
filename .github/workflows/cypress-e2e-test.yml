@@ -881,12 +881,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Install standalone module dependencies
-        run: npm run install:modules
-
       - name: Restore OpenShift CLI tarball cache
         uses: actions/cache/restore@v4
         id: oc-cache

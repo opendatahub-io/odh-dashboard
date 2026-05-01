@@ -47,10 +47,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-
 
-      - name: Install root level dependencies
-        run: npm install
-
-      - name: Install dependencies
+      - name: Install model-registry dependencies
         working-directory: packages/model-registry/upstream/frontend
         run: npm install
 

@@ -27,10 +27,6 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        run: npm install
-      - name: Install standalone module dependencies
-        run: npm run install:modules
 
       - name: Validate module federation ports
         run: npm run validate:ports
@@ -269,12 +265,6 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm install
-      - name: Install standalone module dependencies
-        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        run: npm run install:modules
       - name: Build for cypress
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run cypress:server:build:coverage -- --concurrency=4

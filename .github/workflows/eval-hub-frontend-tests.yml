@@ -47,10 +47,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-eval-hub-
 
-      - name: Install root level dependencies
-        run: npm install
-
-      - name: Install dependencies
+      - name: Install eval-hub dependencies
         working-directory: packages/eval-hub/frontend
         run: npm install
 
