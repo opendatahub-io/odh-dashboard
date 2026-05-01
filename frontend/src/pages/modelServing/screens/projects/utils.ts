@@ -728,3 +728,21 @@ export const getModelPathFromUri = (uri: string): string => {
     return '';
   }
 };
+
+const K8S_SERVING_RESOURCE_PATTERN = /(?:servingruntimes|inferenceservices)\.serving\.kserve\.io/gi;
+
+export const translateModelServingError = (message: string): string => {
+  if (/already exists/i.test(message)) {
+    if (K8S_SERVING_RESOURCE_PATTERN.test(message)) {
+      K8S_SERVING_RESOURCE_PATTERN.lastIndex = 0;
+      const nameMatch = message.match(/"([^"]+)"/);
+      const name = nameMatch?.[1];
+      return name
+        ? `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`
+        : 'A model deployment with this name already exists. Please choose a different Model deployment name.';
+    }
+    return message;
+  }
+  K8S_SERVING_RESOURCE_PATTERN.lastIndex = 0;
+  return message.replace(K8S_SERVING_RESOURCE_PATTERN, 'model deployment');
+};
