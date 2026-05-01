@@ -149,8 +149,8 @@ class AutoragConfigurePage {
   }
 
   // Uploaded file table
-  findUploadedFileCell(pattern: RegExp) {
-    return cy.contains('td', pattern);
+  findUploadedFileCell() {
+    return cy.findByTestId('uploaded-file-cell');
   }
 
   // Submit
@@ -218,7 +218,7 @@ class AutoragConfigurePage {
 
     cy.step('Wait for upload to complete');
     this.findUploadSpinner().should('not.exist');
-    this.findUploadedFileCell(new RegExp(uploadFileName)).should('be.visible');
+    this.findUploadedFileCell().should('be.visible');
 
     cy.step('Verify uploaded file is browsable in file explorer and select it');
     this.findSelectFileToggle().click();
