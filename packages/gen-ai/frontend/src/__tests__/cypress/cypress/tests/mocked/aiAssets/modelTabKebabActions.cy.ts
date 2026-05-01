@@ -96,10 +96,8 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
   });
 
   it(
-    'should open delete modal, verify contents, and close on Cancel',
-    {
-      tags: ['@GenAI', '@ModelsTab'],
-    },
+    'should open delete modal, allow cancel, and remove asset when confirmed',
+    { tags: ['@GenAI', '@ModelsTab'] },
     () => {
       cy.step('Open kebab menu and click Remove asset');
       modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
@@ -115,35 +113,22 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
       cy.step('Click Cancel and verify modal closes');
       deleteModelModal.findCancelButton().click();
       deleteModelModal.shouldNotExist();
-
-      cy.step('Verify model is still in table');
       modelsTabPage.getRow('Custom GPT Endpoint').find().should('exist');
+
+      cy.step('Reopen and confirm removal');
+      cy.interceptGenAi('DELETE /api/v1/models/external', { success: true }).as('deleteModel');
+      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
+      kebabMenu.findRemoveAssetItem().click();
+
+      cy.interceptGenAi('GET /api/v1/aaa/models', { data: [NAMESPACE_MODEL] }).as('refreshModels');
+      deleteModelModal.findRemoveButton().click();
+
+      cy.wait('@deleteModel');
+      cy.wait('@refreshModels');
+      modelsTabPage.findTable().should('not.contain.text', 'Custom GPT Endpoint');
+      modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
     },
   );
-
-  it('should successfully remove asset when confirmed', { tags: ['@GenAI', '@ModelsTab'] }, () => {
-    cy.step('Intercept delete request');
-    cy.interceptGenAi('DELETE /api/v1/models/external', { success: true }).as('deleteModel');
-
-    cy.step('Open delete modal and confirm');
-    modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
-    kebabMenu.findRemoveAssetItem().click();
-
-    cy.step('Set up refresh intercept after modal is open but before confirming delete');
-    cy.interceptGenAi('GET /api/v1/aaa/models', { data: [NAMESPACE_MODEL] }).as('refreshModels');
-
-    deleteModelModal.findRemoveButton().click();
-
-    cy.step('Verify delete request was made');
-    cy.wait('@deleteModel');
-
-    cy.step('Verify model is removed from table');
-    cy.wait('@refreshModels');
-    modelsTabPage.findTable().should('not.contain.text', 'Custom GPT Endpoint');
-
-    cy.step('Verify remaining model is still present');
-    modelsTabPage.getRow('Llama 3B Internal').find().should('exist');
-  });
 
   it('should display loading state while deleting', { tags: ['@GenAI', '@ModelsTab'] }, () => {
     cy.step('Intercept delete request with delay');

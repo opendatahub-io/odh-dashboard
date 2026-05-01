@@ -823,125 +823,97 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findLogsKebabToggle().click();
     });
 
-    it('should handle log retrieval errors - 404 pod not found', () => {
-      cy.interceptK8s(
-        PodModel,
-        mockPipelinePodK8sResource({
-          namespace: projectId,
-          name: 'iris-training-pipeline-v4zp7-2757091352',
-          isPending: false,
-        }),
-      );
+    it('should handle log retrieval errors (404, 500)', () => {
+      const mockPod = () =>
+        cy.interceptK8s(
+          PodModel,
+          mockPipelinePodK8sResource({
+            namespace: projectId,
+            name: 'iris-training-pipeline-v4zp7-2757091352',
+            isPending: false,
+          }),
+        );
 
+      // 404 pod not found
+      mockPod();
       cy.interceptK8s(
         {
           model: PodModel,
           path: 'log',
           name: 'iris-training-pipeline-v4zp7-2757091352',
           ns: projectId,
-          queryParams: {
-            container: 'step-main',
-            tailLines: '500',
-          },
+          queryParams: { container: 'step-main', tailLines: '500' },
         },
         mock404Error({}),
-      ).as('logsFailed');
+      ).as('logs404');
 
       navigateToLogsTab();
-
-      cy.wait('@logsFailed');
+      cy.wait('@logs404');
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
-    });
 
-    it('should handle log retrieval errors - 500 server error', () => {
-      cy.interceptK8s(
-        PodModel,
-        mockPipelinePodK8sResource({
-          namespace: projectId,
-          name: 'iris-training-pipeline-v4zp7-2757091352',
-          isPending: false,
-        }),
-      );
-
+      // 500 server error
+      mockPod();
       cy.interceptK8s(
         {
           model: PodModel,
           path: 'log',
           name: 'iris-training-pipeline-v4zp7-2757091352',
           ns: projectId,
-          queryParams: {
-            container: 'step-main',
-            tailLines: '500',
-          },
+          queryParams: { container: 'step-main', tailLines: '500' },
         },
         mock500Error({}),
-      ).as('logsFailed');
+      ).as('logs500');
 
       navigateToLogsTab();
-
-      cy.wait('@logsFailed');
+      cy.wait('@logs500');
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
     });
 
-    it('should handle empty logs', () => {
-      cy.interceptK8s(
-        PodModel,
-        mockPipelinePodK8sResource({
-          namespace: projectId,
-          name: 'iris-training-pipeline-v4zp7-2757091352',
-          isPending: false,
-        }),
-      );
+    it('should handle empty and malformed log data', () => {
+      const mockPod = () =>
+        cy.interceptK8s(
+          PodModel,
+          mockPipelinePodK8sResource({
+            namespace: projectId,
+            name: 'iris-training-pipeline-v4zp7-2757091352',
+            isPending: false,
+          }),
+        );
 
+      // Empty logs
+      mockPod();
       cy.interceptK8s(
         {
           model: PodModel,
           path: 'log',
           name: 'iris-training-pipeline-v4zp7-2757091352',
           ns: projectId,
-          queryParams: {
-            container: 'step-main',
-            tailLines: '500',
-          },
+          queryParams: { container: 'step-main', tailLines: '500' },
         },
         '',
       ).as('emptyLogs');
 
       navigateToLogsTab();
-
       cy.wait('@emptyLogs');
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogs().contains('No logs available');
-    });
 
-    it('should handle malformed log data', () => {
-      cy.interceptK8s(
-        PodModel,
-        mockPipelinePodK8sResource({
-          namespace: projectId,
-          name: 'iris-training-pipeline-v4zp7-2757091352',
-          isPending: false,
-        }),
-      );
-
+      // Malformed log data
+      mockPod();
       cy.interceptK8s(
         {
           model: PodModel,
           path: 'log',
           name: 'iris-training-pipeline-v4zp7-2757091352',
           ns: projectId,
-          queryParams: {
-            container: 'step-main',
-            tailLines: '500',
-          },
+          queryParams: { container: 'step-main', tailLines: '500' },
         },
         '\x00\x01\x02malformed\nlog\ndata',
       ).as('malformedLogs');
 
       navigateToLogsTab();
-
       cy.wait('@malformedLogs');
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
