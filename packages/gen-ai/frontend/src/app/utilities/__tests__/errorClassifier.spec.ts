@@ -151,11 +151,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Token limit exceeds model capacity');
       });
 
-      it('should generate title for chat_template error', () => {
+      it('should generate title for invalid_model_config error', () => {
         const error = {
           error: {
-            component: 'model' as const,
-            code: 'chat_template',
+            component: 'llama_stack' as const,
+            code: 'invalid_model_config',
             message: 'Invalid template',
             retriable: false,
           },
@@ -165,11 +165,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Model configuration error');
       });
 
-      it('should generate title for no_tools error', () => {
+      it('should generate title for unsupported_feature error', () => {
         const error = {
           error: {
-            component: 'model' as const,
-            code: 'no_tools',
+            component: 'llama_stack' as const,
+            code: 'unsupported_feature',
             message: 'Tools not supported',
             retriable: false,
           },
@@ -193,11 +193,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe("This model doesn't support image input");
       });
 
-      it('should generate title for timeout error', () => {
+      it('should generate title for model_timeout error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: 'timeout',
+            code: 'model_timeout',
             message: 'Request timed out',
             retriable: false,
           },
@@ -207,11 +207,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Model inference failed');
       });
 
-      it('should generate title for server_error', () => {
+      it('should generate title for generic_error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: 'server_error',
+            code: 'generic_error',
             message: 'Internal error',
             retriable: false,
           },
@@ -258,7 +258,7 @@ describe('errorClassifier', () => {
 
       it('should generate title for guardrails errors', () => {
         const errors = [
-          { code: 'content_flagged', expected: 'Content was flagged by guardrails' },
+          { code: 'guardrails_violation', expected: 'Content was flagged by guardrails' },
           { code: 'service_down', expected: 'Guardrail check was not applied' },
         ];
 
@@ -396,11 +396,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('Token limit exceeded');
       });
 
-      it('should generate description for chat_template error', () => {
+      it('should generate description for invalid_model_config error', () => {
         const error = {
           error: {
-            component: 'model' as const,
-            code: 'chat_template',
+            component: 'llama_stack' as const,
+            code: 'invalid_model_config',
             message: 'Invalid template',
             retriable: false,
           },
@@ -410,11 +410,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('Invalid template');
       });
 
-      it('should generate description for no_tools error', () => {
+      it('should generate description for unsupported_feature error', () => {
         const error = {
           error: {
-            component: 'model' as const,
-            code: 'no_tools',
+            component: 'llama_stack' as const,
+            code: 'unsupported_feature',
             message: 'Tools not supported',
             retriable: false,
           },
@@ -438,11 +438,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('Images not supported');
       });
 
-      it('should generate description for timeout error', () => {
+      it('should generate description for model_timeout error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: 'timeout',
+            code: 'model_timeout',
             message: 'Request timed out',
             retriable: false,
           },
@@ -452,11 +452,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('Request timed out');
       });
 
-      it('should generate description for server_error', () => {
+      it('should generate description for generic_error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: 'server_error',
+            code: 'generic_error',
             message: 'Server error',
             retriable: false,
           },
@@ -539,11 +539,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('This response may be incomplete: No results');
       });
 
-      it('should generate description for guardrail_flagged error', () => {
+      it('should generate description for guardrails_violation error', () => {
         const error = {
           error: {
             component: 'guardrails' as const,
-            code: 'content_flagged',
+            code: 'guardrails_violation',
             message: 'Content flagged',
             retriable: false,
           },
@@ -581,11 +581,11 @@ describe('errorClassifier', () => {
         expect(result.description).toBe('This response may be incomplete: MCP server down');
       });
 
-      it('should generate description for mcp_auth error', () => {
+      it('should generate description for mcp_auth_error', () => {
         const error = {
           error: {
             component: 'mcp' as const,
-            code: 'auth_failure',
+            code: 'mcp_auth_error',
             message: 'Auth failed',
             retriable: false,
           },
@@ -682,9 +682,9 @@ describe('errorClassifier', () => {
       it('should recognize ERROR_CATEGORIES constants', () => {
         // ERROR_CATEGORIES constants map to their respective components
         const categoryTests = [
-          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, component: 'model' as const },
-          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, component: 'model' as const },
-          { code: ERROR_CATEGORIES.INVALID_PARAMETER, component: 'bff' as const },
+          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, component: 'llama_stack' as const },
+          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, component: 'llama_stack' as const },
+          { code: ERROR_CATEGORIES.INVALID_PARAMETER, component: 'llama_stack' as const },
           { code: ERROR_CATEGORIES.RAG_ERROR, component: 'rag' as const },
           { code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND, component: 'rag' as const },
           { code: ERROR_CATEGORIES.GUARDRAILS_ERROR, component: 'guardrails' as const },
@@ -694,7 +694,7 @@ describe('errorClassifier', () => {
           { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, component: 'mcp' as const },
           { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, component: 'model' as const },
           { code: ERROR_CATEGORIES.MODEL_TIMEOUT, component: 'llama_stack' as const },
-          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, component: 'model' as const },
+          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, component: 'llama_stack' as const },
         ];
 
         categoryTests.forEach(({ code, component }) => {
@@ -744,7 +744,7 @@ describe('errorClassifier', () => {
       it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
         const error = {
           error: {
-            component: 'bff' as const,
+            component: 'llama_stack' as const,
             code: ERROR_CATEGORIES.INVALID_PARAMETER,
             message: 'Invalid param',
             retriable: false,
@@ -752,8 +752,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // BFF validation error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('Invalid parameter');
         expect(result.isRetriable).toBe(false);
       });
 
@@ -768,8 +767,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // RAG component error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('No matching knowledge found');
       });
 
       it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
@@ -783,8 +781,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // MCP component error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('A tool tool call failed');
       });
 
       it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
@@ -798,8 +795,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // MCP component auth error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('A tool tool call failed');
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
@@ -813,14 +809,13 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Model component error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('Model server error');
       });
 
       it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
         const error = {
           error: {
-            component: 'model' as const,
+            component: 'llama_stack' as const,
             code: ERROR_CATEGORIES.MODEL_OVERLOADED,
             message: 'Model overloaded',
             retriable: true,
@@ -828,8 +823,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Model overloaded error - no specific template, uses fallback
-        expect(result.title).toBeTruthy();
+        expect(result.title).toBe('Request was rate limited');
         expect(result.isRetriable).toBe(true);
       });
     });
