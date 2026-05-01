@@ -66,5 +66,6 @@ const (
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
 
 	// NemoGuardrails endpoints
-	NemoGuardrailsInitPath = ApiPathPrefix + "/nemo-guardrails/init"
+	NemoGuardrailsInitPath   = ApiPathPrefix + "/nemo-guardrails/init"
+	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
 )
