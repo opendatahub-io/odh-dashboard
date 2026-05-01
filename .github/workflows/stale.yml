@@ -28,3 +28,5 @@ jobs:
           stale-pr-message: 'This PR is stale because it has been open 21 days with no activity. Remove stale label or comment or this will be closed in 7 days.'
           close-pr-message: 'This PR was closed because it has been stale for 21+7 days with no activity.'
           stale-pr-label: 'Stale'
+          # Must match the label Dependabot applies in .github/dependabot.yml
+          exempt-pr-labels: 'dependencies'

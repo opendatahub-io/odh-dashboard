@@ -1,0 +1,160 @@
+name: Dependabot Auto-merge
+
+on:
+  # Trigger after the Dependency Validation workflow completes on Dependabot PRs.
+  workflow_run:
+    workflows: ["Dependency Validation"]
+    types:
+      - completed
+
+  # Safety-net for edge cases (dropped events, races, Prow status delays).
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: Find Dependabot PR from workflow run
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [[ ! "$HEAD_BRANCH" =~ ^dependabot/ ]]; then
+            echo "Not a Dependabot branch, skipping"
+            exit 0
+          fi
+
+          PR_NUMBER=$(gh pr list \
+            --head "$HEAD_BRANCH" \
+            --json number,author --jq '.[] | select(.author.login == "dependabot[bot]") | .number' \
+            --repo "$REPO" | head -1)
+
+          if [ -z "$PR_NUMBER" ]; then
+            echo "No Dependabot PR found for branch $HEAD_BRANCH"
+            exit 0
+          fi
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+
+      - name: Verify combined commit status
+        id: checks
+        if: steps.pr.outputs.number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
+            --jq '.state')
+
+          echo "Combined commit status: $COMBINED"
+
+          if [ "$COMBINED" != "success" ]; then
+            echo "Not all checks/statuses have passed (state=$COMBINED), skipping"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.checks.outputs.ready == 'true'
+
+      - name: Fetch Dependabot metadata
+        if: steps.checks.outputs.ready == 'true'
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply lgtm and approved labels for patch updates
+        if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" \
+            --add-label "lgtm,approved"
+
+  # Safety-net sweep: catches any Dependabot PRs that slipped through
+  # the event-driven paths (dropped events, races, etc.).
+  auto-merge-sweep:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Find open Dependabot PRs missing labels
+        id: prs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          NUMBERS=$(gh pr list \
+            --state open \
+            --label dependencies \
+            --json number,author,labels \
+            --jq '[.[] | select(
+              .author.login == "dependabot[bot]" and
+              (([.labels[].name] | index("lgtm")) == null or
+               ([.labels[].name] | index("approved")) == null)
+            )] | .[].number' \
+            --repo "$REPO" | tr '\n' ' ')
+          echo "numbers=$NUMBERS" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.prs.outputs.numbers != ''
+
+      - name: Label ready patch PRs
+        if: steps.prs.outputs.numbers != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBERS: ${{ steps.prs.outputs.numbers }}
+        run: |
+          for PR_NUMBER in $PR_NUMBERS; do
+            echo "--- Checking PR #$PR_NUMBER ---"
+
+            HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+              --json headRefOid --jq '.headRefOid')
+
+            COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
+              --jq '.state' 2>/dev/null || echo "unknown")
+
+            if [ "$COMBINED" != "success" ]; then
+              echo "Combined status: $COMBINED — not ready"
+              continue
+            fi
+
+            PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+              --json title --jq '.title')
+
+            if echo "$PR_TITLE" | grep -qP '\bfrom\b.*\bto\b'; then
+              FROM_VER=$(echo "$PR_TITLE" | grep -oP 'from \K[0-9]+\.[0-9]+' | head -1)
+              TO_VER=$(echo "$PR_TITLE" | grep -oP 'to \K[0-9]+\.[0-9]+' | head -1)
+
+              if [ -n "$FROM_VER" ] && [ -n "$TO_VER" ] && [ "$FROM_VER" != "$TO_VER" ]; then
+                echo "Not a patch update ($FROM_VER -> $TO_VER), skipping"
+                continue
+              fi
+            else
+              echo "Title doesn't match single-package pattern (likely a grouped PR), skipping"
+              echo "Grouped PRs are handled by the event-driven path with fetch-metadata"
+              continue
+            fi
+
+            echo "All checks passed — labelling PR #$PR_NUMBER"
+            gh pr edit "$PR_NUMBER" --repo "$REPO" \
+              --add-label "lgtm,approved"
+          done

@@ -1,0 +1,267 @@
+name: Dependency Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - "package-lock.json"
+      - "packages/*/frontend/package-lock.json"
+      - "packages/*/upstream/frontend/package-lock.json"
+      - "packages/*/upstream/workspaces/frontend/package-lock.json"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.x
+
+jobs:
+  detect-dirs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed package directories
+        id: dirs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          CHANGED=$(git diff --name-only "$BASE_SHA"..HEAD -- \
+            'package-lock.json' \
+            'packages/*/frontend/package-lock.json' \
+            'packages/*/upstream/frontend/package-lock.json' \
+            'packages/*/upstream/workspaces/frontend/package-lock.json')
+
+          DIRS="[]"
+          if echo "$CHANGED" | grep -qE '^package-lock\.json$'; then
+            DIRS=$(echo "$DIRS" | jq '. + ["."]')
+          fi
+
+          for dir in $(echo "$CHANGED" | grep -oE '^packages/[^/]+(/upstream)?(/workspaces)?/frontend' | sort -u); do
+            DIRS=$(echo "$DIRS" | jq --arg d "$dir" '. + [$d]')
+          done
+
+          echo "dirs=$DIRS" >> "$GITHUB_OUTPUT"
+          echo "Directories to audit: $DIRS"
+
+  audit:
+    needs: detect-dirs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    if: ${{ needs.detect-dirs.outputs.dirs != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect-dirs.outputs.dirs) }}
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ matrix.dir }}
+
+      - name: Run npm audit on head
+        id: audit
+        working-directory: ${{ matrix.dir }}
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high --json > audit-head.json 2>/dev/null
+          set -e
+
+          if jq empty audit-head.json 2>/dev/null; then
+            jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-head.json | sort > head-ids.txt
+          else
+            echo "::warning::npm audit produced invalid JSON; treating as zero advisories"
+            touch head-ids.txt
+          fi
+
+          echo "Advisory IDs on head:"
+          cat head-ids.txt
+
+      - name: Checkout base for comparison
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Run npm audit on base
+        id: audit-base
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          cd "base/${AUDIT_DIR}"
+          npm ci
+          set +e
+          npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
+          set -e
+
+          if jq empty audit-base.json 2>/dev/null; then
+            jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
+          else
+            echo "::warning::npm audit produced invalid JSON on base; treating as zero advisories"
+            touch base-ids.txt
+          fi
+
+          echo "Advisory IDs on base:"
+          cat base-ids.txt
+
+      - name: Evaluate new advisories
+        id: evaluate
+        working-directory: ${{ matrix.dir }}
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          NEW_ADVISORIES=$(comm -23 head-ids.txt "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt")
+
+          if [ -n "$NEW_ADVISORIES" ]; then
+            COUNT=$(echo "$NEW_ADVISORIES" | wc -l | tr -d ' ')
+            echo "has_new=true" >> "$GITHUB_OUTPUT"
+            echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+            {
+              echo 'advisories<<ADVISORY_EOF'
+              echo "$NEW_ADVISORIES"
+              echo 'ADVISORY_EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT new advisory ID(s) in ${AUDIT_DIR}"
+          else
+            echo "has_new=false" >> "$GITHUB_OUTPUT"
+            echo "No new advisories introduced in ${AUDIT_DIR}."
+          fi
+
+      - name: Post bypass comment when ok-to-skip-audit is set
+        if: steps.evaluate.outputs.has_new == 'true' && contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- audit-bypass-notice -->';
+            const dir = '${{ matrix.dir }}';
+            const count = '${{ steps.evaluate.outputs.count }}';
+            const advisories = `${{ steps.evaluate.outputs.advisories }}`;
+            const advisoryList = advisories.trim().split('\n').map(a => `- ${a}`).join('\n');
+
+            const body = [
+              marker,
+              `### Audit bypassed via \`ok-to-skip-audit\` label`,
+              '',
+              `**${count}** new production advisor${count === '1' ? 'y' : 'ies'} in \`${dir}\` not present on the base branch:`,
+              '',
+              advisoryList,
+              '',
+              '> This check passed because `ok-to-skip-audit` was applied.',
+              '> Remove the label to re-enforce the audit gate.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c =>
+              c.user?.type === 'Bot' && c.body?.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail if new advisories and no bypass label
+        if: steps.evaluate.outputs.has_new == 'true' && !contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+          NEW_COUNT: ${{ steps.evaluate.outputs.count }}
+          NEW_ADVISORIES: ${{ steps.evaluate.outputs.advisories }}
+        run: |
+          echo "::error::PR introduces ${NEW_COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
+          echo "$NEW_ADVISORIES"
+          echo ""
+          echo "If this is acceptable (e.g. not reachable, already tracked),"
+          echo "add the 'ok-to-skip-audit' label to bypass this check."
+          exit 1
+
+  override-consistency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check override consistency
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          const { execSync } = require('child_process');
+
+          const found = execSync(
+            'find . -name package.json -not -path \"*/node_modules/*\" -not -path \"*/base/*\"',
+            { encoding: 'utf8' }
+          ).trim().split('\n').filter(Boolean).map(p => p.replace(/^\.\//, ''));
+
+          const overrides = {};
+          let hasError = false;
+
+          function collectOverrides(obj, prefix, filePath) {
+            for (const [key, value] of Object.entries(obj)) {
+              const keyPath = prefix ? prefix + '.' + key : key;
+              if (typeof value === 'string') {
+                if (!overrides[keyPath]) overrides[keyPath] = {};
+                overrides[keyPath][filePath] = value;
+              } else if (typeof value === 'object' && value !== null) {
+                collectOverrides(value, keyPath, filePath);
+              }
+            }
+          }
+
+          for (const p of found) {
+            const pkg = JSON.parse(fs.readFileSync(p, 'utf8'));
+            if (!pkg.overrides) continue;
+            collectOverrides(pkg.overrides, '', p);
+          }
+
+          for (const [dep, locations] of Object.entries(overrides)) {
+            const values = Object.values(locations);
+            if (new Set(values).size > 1) {
+              console.error('Override mismatch for ' + dep + ':');
+              for (const [file, ver] of Object.entries(locations)) {
+                console.error('  ' + file + ': ' + ver);
+              }
+              hasError = true;
+            }
+          }
+
+          if (hasError) {
+            console.error('Override ranges diverge across package.json files.');
+            process.exit(1);
+          } else {
+            console.log('All shared overrides are consistent (' + found.length + ' files checked).');
+          }
+          "
