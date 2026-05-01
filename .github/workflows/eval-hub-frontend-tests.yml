@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'packages/eval-hub/**'
+      - '.github/workflows/eval-hub-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - 'packages/eval-hub/**'
+      - '.github/workflows/eval-hub-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
