@@ -4,6 +4,7 @@ ARG BUILD_MODE=ODH
 
 # Use ubi9/nodejs-22 as default base image
 ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
+ARG MINIMAL_IMAGE="registry.access.redhat.com/ubi9/nodejs-22-minimal:latest"
 
 FROM ${BASE_IMAGE} as builder
 
@@ -53,7 +54,7 @@ RUN node scripts/prepare-production-manifest.js \
 # These Go binaries are NOT needed at runtime and are NOT FIPS compliant
 RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 
-FROM ${BASE_IMAGE} as runtime
+FROM ${MINIMAL_IMAGE} as runtime
 
 WORKDIR /usr/src/app
 
@@ -61,18 +62,18 @@ RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
 
 USER 1001:0
 
-COPY --chown=default:root --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
-COPY --chown=default:root --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
-COPY --chown=default:root --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
-COPY --chown=default:root --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
-COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/package.json /usr/src/app/packages/app-config/package.json
-COPY --chown=default:root --from=builder /usr/src/app/packages/app-config/dist /usr/src/app/packages/app-config/dist
-COPY --chown=default:root --from=builder /usr/src/app/package.json /usr/src/app/package.json
-COPY --chown=default:root --from=builder /usr/src/app/package-lock.json /usr/src/app/package-lock.json
-COPY --chown=default:root --from=builder /usr/src/app/node_modules /usr/src/app/node_modules
-COPY --chown=default:root --from=builder /usr/src/app/.npmrc /usr/src/app/.npmrc
-COPY --chown=default:root --from=builder /usr/src/app/.env /usr/src/app/.env
-COPY --chown=default:root --from=builder /usr/src/app/data /usr/src/app/data
+COPY --chown=1001:0 --from=builder /usr/src/app/frontend/public /usr/src/app/frontend/public
+COPY --chown=1001:0 --from=builder /usr/src/app/backend/package.json /usr/src/app/backend/package.json
+COPY --chown=1001:0 --from=builder /usr/src/app/backend/node_modules /usr/src/app/backend/node_modules
+COPY --chown=1001:0 --from=builder /usr/src/app/backend/dist /usr/src/app/backend/dist
+COPY --chown=1001:0 --from=builder /usr/src/app/packages/app-config/package.json /usr/src/app/packages/app-config/package.json
+COPY --chown=1001:0 --from=builder /usr/src/app/packages/app-config/dist /usr/src/app/packages/app-config/dist
+COPY --chown=1001:0 --from=builder /usr/src/app/package.json /usr/src/app/package.json
+COPY --chown=1001:0 --from=builder /usr/src/app/package-lock.json /usr/src/app/package-lock.json
+COPY --chown=1001:0 --from=builder /usr/src/app/node_modules /usr/src/app/node_modules
+COPY --chown=1001:0 --from=builder /usr/src/app/.npmrc /usr/src/app/.npmrc
+COPY --chown=1001:0 --from=builder /usr/src/app/.env /usr/src/app/.env
+COPY --chown=1001:0 --from=builder /usr/src/app/data /usr/src/app/data
 
 WORKDIR /usr/src/app/backend
 
