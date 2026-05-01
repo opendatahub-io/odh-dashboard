@@ -6,6 +6,8 @@ import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManageme
 import { UseFileManagementReturn } from '~/app/Chatbot/hooks/useFileManagement';
 import KnowledgeTabContent from '~/app/Chatbot/components/settingsPanelTabs/KnowledgeTabContent';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
+import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
   __esModule: true,
@@ -15,6 +17,11 @@ jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
   __esModule: true,
   default: jest.fn(() => false),
+}));
+
+jest.mock('~/app/hooks/useFetchVectorStores', () => ({
+  __esModule: true,
+  default: jest.fn(() => [[], true]),
 }));
 
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
@@ -56,6 +63,8 @@ jest.mock('../../UploadedFilesList', () => ({
 }));
 
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockUseAiAssetVectorStoresEnabled = jest.mocked(useAiAssetVectorStoresEnabled);
+const mockUseFetchVectorStores = jest.mocked(useFetchVectorStores);
 
 describe('KnowledgeTabContent', () => {
   const createMockSourceManagement = (
@@ -152,6 +161,9 @@ describe('KnowledgeTabContent', () => {
     );
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
       isRag: true,
+      knowledgeSource: 'upload',
+      compareMode: false,
+      configID: 'default',
     });
   });
 
@@ -171,6 +183,9 @@ describe('KnowledgeTabContent', () => {
     );
     expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
       isRag: false,
+      knowledgeSource: 'upload',
+      compareMode: false,
+      configID: 'default',
     });
   });
 
@@ -246,5 +261,132 @@ describe('KnowledgeTabContent', () => {
 
     // The error alert is passed to ChatbotSourceUploadPanel, which is mocked
     expect(screen.getByTestId('chatbot-source-upload-panel')).toBeInTheDocument();
+  });
+
+  describe('Feature flag ON — Playground RAG Toggle Selected with knowledgeSource', () => {
+    beforeEach(() => {
+      mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
+      mockUseFetchVectorStores.mockReturnValue([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ id: 'vs-1', name: 'Store', object: 'vector_store', metadata: {} }] as any,
+        true,
+        undefined,
+        jest.fn(),
+      ]);
+    });
+
+    it('fires tracking event with knowledgeSource upload when knowledgeMode is inline', async () => {
+      const user = userEvent.setup();
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('rag-toggle-switch'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
+        isRag: true,
+        knowledgeSource: 'upload',
+        compareMode: false,
+        configID: 'default',
+      });
+    });
+
+    it('fires tracking event with knowledgeSource vectorstore when knowledgeMode is external', async () => {
+      const user = userEvent.setup();
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('rag-toggle-switch'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith('Playground RAG Toggle Selected', {
+        isRag: true,
+        knowledgeSource: 'vectorstore',
+        compareMode: false,
+        configID: 'default',
+      });
+    });
+  });
+
+  describe('Playground Knowledge Source Switched tracking', () => {
+    beforeEach(() => {
+      mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
+      mockUseFetchVectorStores.mockReturnValue([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [{ id: 'vs-1', name: 'Store', object: 'vector_store', metadata: {} }] as any,
+        true,
+        undefined,
+        jest.fn(),
+      ]);
+    });
+
+    it('fires tracking event when switching to external vector store mode', async () => {
+      const user = userEvent.setup();
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('knowledge-mode-external-radio'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Knowledge Source Switched',
+        {
+          selectedSource: 'vectorstore',
+          previousSource: 'upload',
+          compareMode: false,
+          configID: 'default',
+        },
+      );
+    });
+
+    it('fires tracking event when switching back to upload mode', async () => {
+      const user = userEvent.setup();
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      await user.click(screen.getByTestId('knowledge-mode-upload-radio'));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Knowledge Source Switched',
+        {
+          selectedSource: 'upload',
+          previousSource: 'vectorstore',
+          compareMode: false,
+          configID: 'default',
+        },
+      );
+    });
+  });
+
+  describe('Playground Collection Dropdown Selected tracking', () => {
+    const mockStores = [
+      { id: 'vs-1', name: 'My Store', object: 'vector_store' as const, metadata: {} },
+      { id: 'vs-2', name: 'Other Store', object: 'vector_store' as const, metadata: {} },
+    ];
+
+    beforeEach(() => {
+      mockUseAiAssetVectorStoresEnabled.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      mockUseFetchVectorStores.mockReturnValue([mockStores as any, true, undefined, jest.fn()]);
+      useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+    });
+
+    it('fires tracking event when a vector store is selected from the dropdown', async () => {
+      const user = userEvent.setup();
+      render(<KnowledgeTabContent {...defaultProps} />);
+
+      // Open the select
+      await user.click(screen.getByTestId('external-vector-store-toggle'));
+
+      // Click on an option
+      await user.click(screen.getByRole('option', { name: 'My Store' }));
+
+      expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
+        'Playground Collection Dropdown Selected',
+        {
+          collectionName: 'My Store',
+          collectionId: 'vs-1',
+          compareMode: false,
+          configID: 'default',
+        },
+      );
+    });
   });
 });

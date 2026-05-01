@@ -19,6 +19,7 @@ import {
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalVectorStoreSummary } from '~/app/types';
 import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { splitLlamaModelId } from '~/app/utilities/utils';
@@ -138,7 +139,18 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
                 <CheckboxTd
                   id={collection.vector_store_id}
                   isChecked={isSelected(collection)}
-                  onToggle={() => toggleSelection(collection)}
+                  onToggle={() => {
+                    const wasSelected = isSelected(collection);
+                    toggleSelection(collection);
+                    fireMiscTrackingEvent('Playground Collection Selected', {
+                      collectionName: collection.vector_store_name,
+                      isSelected: !wasSelected,
+                      providerType: collection.provider_type,
+                      countSelectedCollections: wasSelected
+                        ? selectedCollections.length - 1
+                        : selectedCollections.length + 1,
+                    });
+                  }}
                   data-testid={`${sanitizedId}-checkbox`}
                 />
                 <Td dataLabel="Collection name">

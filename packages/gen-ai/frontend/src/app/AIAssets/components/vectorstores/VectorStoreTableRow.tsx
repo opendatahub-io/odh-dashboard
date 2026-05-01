@@ -9,6 +9,7 @@ import {
 import { Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TruncatedText } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -100,7 +101,16 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
             )}
             {isDisabled && (
               <Tooltip content="Add this embedding model as an AI asset endpoint to use this vector store.">
-                <Icon status="warning">
+                <Icon
+                  status="warning"
+                  data-testid="missing-model-tooltip-trigger"
+                  onMouseEnter={() =>
+                    fireMiscTrackingEvent('Available Endpoints Missing Model Alert Viewed', {
+                      collectionName: store.vector_store_name,
+                      missingModelId: store.embedding_model,
+                    })
+                  }
+                >
                   <OutlinedQuestionCircleIcon />
                 </Icon>
               </Tooltip>
@@ -114,11 +124,15 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
           {isInPlayground ? (
             <Button
               variant={ButtonVariant.secondary}
-              onClick={() =>
+              onClick={() => {
+                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                  assetType: 'vector_store',
+                  assetId: store.vector_store_id,
+                });
                 navigate(genAiChatPlaygroundRoute(namespace?.name), {
                   state: { vectorStoreId: store.vector_store_id },
-                })
-              }
+                });
+              }}
             >
               Try in playground
             </Button>
@@ -127,7 +141,13 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
               variant={ButtonVariant.link}
               icon={<PlusCircleIcon />}
               isDisabled={isDisabled}
-              onClick={() => setIsConfigurationModalOpen(true)}
+              onClick={() => {
+                setIsConfigurationModalOpen(true);
+                fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                  assetType: 'vector_store',
+                  assetId: store.vector_store_id,
+                });
+              }}
             >
               Add to playground
             </Button>

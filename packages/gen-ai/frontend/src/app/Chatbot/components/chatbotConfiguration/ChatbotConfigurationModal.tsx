@@ -472,6 +472,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               success: true,
               namespace: namespace?.name,
               countModelsSelected: selectedModels.length,
+              countCollectionsSelected: selectedCollections.length,
+              countEmbeddingModels: selectedModels.filter((model) => {
+                const resolvedType =
+                  modelTypeMap.get(model.model_name) ??
+                  (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+                return resolvedType === 'Embedding';
+              }).length,
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
             },
           );

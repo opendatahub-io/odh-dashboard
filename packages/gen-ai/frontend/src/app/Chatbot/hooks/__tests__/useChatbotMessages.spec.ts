@@ -67,10 +67,11 @@ const createDefaultHookProps = (overrides?: {
   configId?: string;
   modelId?: string;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
   subscription?: string;
 }) => ({
@@ -78,10 +79,11 @@ const createDefaultHookProps = (overrides?: {
   configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
   currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });
@@ -213,7 +215,7 @@ describe('useChatbotMessages', () => {
       const { result } = renderHook(() =>
         useChatbotMessages(
           createDefaultHookProps({
-            isRawUploaded: false,
+            isRagEnabled: false,
           }),
         ),
       );

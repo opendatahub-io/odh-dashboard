@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -18,10 +19,15 @@ import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEna
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireFormTrackingEvent: jest.fn(),
+}));
+
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
 
+const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockInstallLSD = jest.fn();
 const mockInitNemoGuardrails = jest.fn();
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
@@ -582,5 +588,144 @@ describe('ChatbotConfigurationModal collections pre-selection', () => {
     expect(getSelectedCollectionIds()).toEqual([]);
     // Only the valid collection should appear in the table
     expect(getAllCollectionIds()).toEqual(['vs-1']);
+  });
+});
+
+describe('ChatbotConfigurationModal form tracking', () => {
+  const allModels = [createAIModel({ model_name: 'test-model' })];
+
+  describe('Playground Setup (create mode)', () => {
+    it('fires success tracking event with correct properties after successful install', async () => {
+      const user = userEvent.setup();
+      renderModalWithContext({ allModels });
+
+      await user.click(screen.getByRole('button', { name: /create/i }));
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
+          outcome: 'submit',
+          success: true,
+          namespace: 'test-namespace',
+          countModelsSelected: 1,
+          countCollectionsSelected: 0,
+          countEmbeddingModels: 0,
+        });
+      });
+    });
+
+    it('fires cancel tracking event when modal is closed', async () => {
+      const user = userEvent.setup();
+      renderModalWithContext({ allModels });
+
+      await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
+        outcome: 'cancel',
+        namespace: 'test-namespace',
+      });
+    });
+
+    it('fires failure tracking event when install API call fails', async () => {
+      const user = userEvent.setup();
+      const error = new Error('install failed');
+      mockInstallLSD.mockRejectedValueOnce(error);
+
+      renderModalWithContext({ allModels });
+
+      await user.click(screen.getByRole('button', { name: /create/i }));
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
+          outcome: 'submit',
+          success: false,
+          error: 'install failed',
+          namespace: 'test-namespace',
+        });
+      });
+    });
+
+    it('fires success tracking with countEmbeddingModels=1 when an embedding model is selected', async () => {
+      const user = userEvent.setup();
+      const embeddingModel = createAIModel({
+        model_name: 'embed-model',
+        model_type: 'embedding',
+      });
+      renderModalWithContext({ allModels: [embeddingModel] });
+
+      await user.click(screen.getByRole('button', { name: /create/i }));
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Setup', {
+          outcome: 'submit',
+          success: true,
+          namespace: 'test-namespace',
+          countModelsSelected: 1,
+          countCollectionsSelected: 0,
+          countEmbeddingModels: 1,
+        });
+      });
+    });
+  });
+
+  describe('Playground Config Update (update mode)', () => {
+    const lsdStatus: LlamaStackDistributionModel = {
+      name: 'lsd-playground',
+      phase: 'Ready',
+      version: '0.1.0',
+      distributionConfig: {
+        activeDistribution: 'rh',
+        providers: [],
+        availableDistributions: {},
+      },
+    };
+
+    it('fires Playground Config Update event (not Setup) in update mode on success', async () => {
+      const user = userEvent.setup();
+      const mockDeleteLSD = jest.fn().mockResolvedValue({ data: null });
+      mockUseGenAiAPI.mockReturnValue({
+        apiAvailable: true,
+        api: { installLSD: mockInstallLSD, deleteLSD: mockDeleteLSD },
+      });
+
+      renderModalWithContext({
+        allModels,
+        lsdStatus,
+        existingModels: [
+          {
+            id: 'p/test-model',
+            object: 'model',
+            created: Date.now(),
+            owned_by: 'x',
+            modelId: 'test-model',
+          },
+        ],
+      });
+
+      await user.click(screen.getByRole('button', { name: /configure/i }));
+
+      await waitFor(() => {
+        expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Config Update', {
+          outcome: 'submit',
+          success: true,
+          namespace: 'test-namespace',
+          countModelsSelected: 1,
+          countCollectionsSelected: 0,
+          countEmbeddingModels: 0,
+          countPreviousModelsSelected: 1,
+        });
+      });
+    });
+
+    it('fires Playground Config Update cancel event in update mode', async () => {
+      const user = userEvent.setup();
+      renderModalWithContext({ allModels, lsdStatus });
+
+      await user.click(screen.getByRole('button', { name: /cancel/i }));
+
+      expect(mockFireFormTrackingEvent).toHaveBeenCalledWith('Playground Config Update', {
+        outcome: 'cancel',
+        namespace: 'test-namespace',
+      });
+    });
   });
 });
