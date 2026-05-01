@@ -11,10 +11,13 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./types": "./src/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/kserve": "*",
+    "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
