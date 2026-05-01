@@ -544,12 +544,16 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 
 	t.Run("nil LLMInferenceService returns empty endpoints", func(t *testing.T) {
 		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
 	t.Run("empty status returns empty endpoints", func(t *testing.T) {
+		// Simulates a stopped llm-d deployment where the address is removed from the CR.
+		// Must return [] (not nil) so the JSON response contains [] instead of null.
 		llmSvc := &kservev1alpha1.LLMInferenceService{}
 		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
