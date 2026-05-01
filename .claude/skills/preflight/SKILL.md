@@ -70,6 +70,29 @@ Optional tools (check but don't block):
 - `coderabbit` — needed only if user selects CodeRabbit review
 - `npm` / `npx` — needed only for local lint/type-check/test runs
 
+## Step 0.5: Early exit — nothing to check
+
+After prerequisites pass, before doing any work, check if there's actually something to preflight:
+
+```bash
+branch=$(git branch --show-current)
+base_branch="main"
+diff_count=$(git diff --name-only origin/$base_branch 2>/dev/null | wc -l | tr -d ' ')
+uncommitted=$(git status --porcelain | grep -v '^??' | wc -l | tr -d ' ')
+```
+
+If ALL of these are true:
+- Branch is the default branch (`main` or `master`)
+- No diff vs `origin/$base_branch` (`diff_count == 0`)
+- No uncommitted tracked changes (`uncommitted == 0`)
+- No PR number was explicitly passed as an argument
+
+Then **stop immediately** and tell the user:
+
+> Nothing to preflight. You're on `$branch` with no changes vs `origin/$branch`. Preflight checks a branch or PR that has work to review.
+
+Do not run the full check ceremony. Do not produce a table of ➖s. That's noise.
+
 ## Step 1: Gather context
 
 Try to find a PR (unless `--local`):
