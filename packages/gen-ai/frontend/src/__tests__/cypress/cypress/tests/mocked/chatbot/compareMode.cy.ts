@@ -324,6 +324,72 @@ describe('Chatbot - Compare Mode (Mocked)', () => {
     );
   });
 
+  describe('Vector Store Preservation (RHOAIENG-58426)', () => {
+    it(
+      'should preserve the selected external vector store when entering compare mode',
+      { tags: ['@GenAI', '@Chatbot', '@CompareMode', '@RAG'] },
+      () => {
+        const storeId = 'vs-test-123';
+        const storeName = 'My Knowledge Base';
+        const namespace = config.defaultNamespace;
+
+        cy.step('Mock vector stores API with one external store');
+        cy.interceptGenAi(
+          'GET /api/v1/lsd/vectorstores',
+          { query: { namespace } },
+          {
+            data: [
+              {
+                id: storeId,
+                name: storeName,
+                object: 'vector_store',
+                status: 'completed',
+                created_at: 1700000000,
+                last_active_at: 1700000000,
+                usage_bytes: 0,
+                file_counts: { in_progress: 0, completed: 1, failed: 0, cancelled: 0, total: 1 },
+                metadata: { provider_id: 'chromadb', created_by: 'user' },
+              },
+            ],
+          },
+        );
+
+        cy.step('Visit with externalVectorStores feature flag enabled');
+        appChrome.visit(['genAiStudio', 'externalVectorStores']);
+        chatbotPage.visit(namespace);
+        chatbotPage.verifyOnChatbotPage(namespace);
+        cy.wait('@bffConfig');
+        cy.wait('@aaModels');
+
+        cy.step('Open settings panel and navigate to Knowledge tab');
+        chatbotPage.findSettingsButton().click();
+        chatbotPage.findRAGSection();
+
+        cy.step('Enable RAG and switch to external mode');
+        chatbotPage.findRAGToggle().click();
+        chatbotPage.findExternalModeRadio().click();
+
+        cy.step('Select the external vector store');
+        chatbotPage.findVectorStoreSelectToggle().click();
+        chatbotPage.findVectorStoreOption(storeId).click();
+
+        cy.step('Verify store is selected');
+        chatbotPage.findVectorStoreSelectToggle().should('contain.text', storeName);
+
+        cy.step('Enter compare mode');
+        chatbotPage.clickCompareChatButton();
+        const compareChatModal = new CompareChatModal();
+        compareChatModal.findConfirmButton().click();
+        chatbotPage.verifyInCompareMode();
+
+        cy.step('Open Chat 1 settings and verify vector store is still selected');
+        chatbotPage.openPaneSettings(1);
+        chatbotPage.findKnowledgeTab().click();
+        chatbotPage.findVectorStoreSelectToggle().should('contain.text', storeName);
+      },
+    );
+  });
+
   describe('View Code in Compare Mode', () => {
     beforeEach(() => {
       // Enter compare mode

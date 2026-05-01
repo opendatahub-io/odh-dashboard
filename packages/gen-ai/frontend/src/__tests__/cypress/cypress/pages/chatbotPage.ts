@@ -232,6 +232,18 @@ class ChatbotPage {
     return cy.findByTestId('rag-toggle-switch');
   }
 
+  findExternalModeRadio(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('knowledge-mode-external-radio');
+  }
+
+  findVectorStoreSelectToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('external-vector-store-toggle');
+  }
+
+  findVectorStoreOption(storeId: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`vector-store-option-${storeId}`);
+  }
+
   // MCP Servers Section (inside MCP tab)
   findMCPServersSection(): Cypress.Chainable<JQuery<HTMLElement>> {
     // Click MCP tab first to show MCP servers section
