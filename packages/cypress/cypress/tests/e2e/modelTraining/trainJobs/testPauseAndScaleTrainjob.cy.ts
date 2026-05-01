@@ -117,7 +117,7 @@ describe('Verify Pause, Scale Node Count, and Resume Training Job', () => {
   it(
     'Should pause running job, update node count, resume, and complete training',
     {
-      tags: ['@Sanity', '@SanitySet1', '@ModelTraining'],
+      tags: ['@Tier', '@Tier1', '@ModelTraining'],
     },
     () => {
       if (skipTest) {
