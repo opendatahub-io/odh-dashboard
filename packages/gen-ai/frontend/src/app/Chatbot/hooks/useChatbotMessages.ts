@@ -273,7 +273,12 @@ const useChatbotMessages = ({
       timestamp: new Date().toLocaleString(),
     };
 
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    // On the first user message, drop the placeholder bot message so it doesn't
+    // appear alongside real conversation history.
+    setMessages((prevMessages) => {
+      const hasUserMessage = prevMessages.some((m) => m.role === 'user');
+      return hasUserMessage ? [...prevMessages, userMessage] : [userMessage];
+    });
     setIsMessageSendButtonDisabled(true);
     setIsLoading(true);
 
