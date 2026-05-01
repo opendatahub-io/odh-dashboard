@@ -22,6 +22,8 @@
 //	Step 3 — mergeManagedTokenKeysOnly / mergeManagedRequestKeysOnly copy existing spec.limits and
 //	         upsert or delete only the managed keys for tiers still in the ConfigMap (CLI-only keys stay).
 //	Step 4 — upsert combined CRs; Update uses mergeGatewayPolicySpec so unknown spec fields survive.
+//	         If merged spec.limits would be empty (e.g. last tier deleted), the combined TRLP/RLP is deleted
+//	         instead — Kuadrant rejects empty limits; CreateTier recreates the CR when limits return.
 //	Step 5 — delete legacy per-tier policy objects for tiers we touched + tiers just removed.
 //	Step 6 — delete any other gateway-scoped TRLP/RLP (non-canonical names) so limits live in one object.
 //
@@ -264,7 +266,7 @@ func (t *TiersRepository) buildLimitsByTierForSync(
 // syncCombinedPolicies writes the two combined policies from limitsByTier for every tier name in tierNames.
 // Step 1: GET each combined policy (if exists) to recover spec.limits for merge.
 // Step 2: merge token keys and request keys into their respective CRs (never cross-contaminate).
-// Step 3: Create or Update; on Update we merge into existing spec so unknown Kuadrant fields are preserved.
+// Step 3: Create, Update, or Delete when limits map is empty (see upsertCombined*Policy).
 // tiersRemoved lists tier names just deleted from the ConfigMap so we strip their managed limit keys
 // from the combined policies (mergeManaged* only touches tiers still present in parsedTiers).
 func (t *TiersRepository) syncCombinedPolicies(ctx context.Context, parsedTiers []tierConfigMapData, limitsByTier map[string]models.TierLimits, tiersRemoved []string) error {
@@ -344,6 +346,16 @@ func (t *TiersRepository) syncCombinedPoliciesFromDirtyTier(
 }
 
 func (t *TiersRepository) upsertCombinedTokenPolicy(ctx context.Context, dyn dynamic.Interface, existing *unstructured.Unstructured, limits map[string]interface{}) error {
+	if len(limits) == 0 {
+		if existing == nil {
+			return nil
+		}
+		if err := dyn.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, t.combinedTokenPolicyName, metav1.DeleteOptions{}); err != nil && !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+
 	if existing == nil {
 		// Unstructured.Object must be non-nil before SetNestedMap; a zero Unstructured has Object == nil and would panic.
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
@@ -369,6 +381,16 @@ func (t *TiersRepository) upsertCombinedTokenPolicy(ctx context.Context, dyn dyn
 }
 
 func (t *TiersRepository) upsertCombinedRatePolicy(ctx context.Context, dyn dynamic.Interface, existing *unstructured.Unstructured, limits map[string]interface{}) error {
+	if len(limits) == 0 {
+		if existing == nil {
+			return nil
+		}
+		if err := dyn.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, t.combinedRatePolicyName, metav1.DeleteOptions{}); err != nil && !k8sErrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+
 	if existing == nil {
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 		obj.SetAPIVersion("kuadrant.io/v1")
