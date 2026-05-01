@@ -392,11 +392,6 @@ func (t *TiersRepository) upsertCombinedRatePolicy(ctx context.Context, dyn dyna
 
 // mergeGatewayPolicySpec writes limits + targetRef onto unstructured.Object["spec"],
 // keeping any other sibling keys already present under spec.
-//
-// Important: Kuadrant TokenRateLimitPolicy and RateLimitPolicy CRDs do NOT allow spec.strategy
-// alongside top-level spec.limits (strategy exists only under spec.defaults / spec.overrides).
-// A root-level strategy causes strict CRD validation to reject Create/Update — seen as HTTP 500
-// from the BFF while the ConfigMap write had already succeeded.
 func mergeGatewayPolicySpec(existing *unstructured.Unstructured, gatewayName string, limits map[string]interface{}) error {
 	if existing.Object == nil {
 		existing.Object = map[string]interface{}{}
