@@ -8,7 +8,7 @@ import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
-import { automlResultsPathname } from '~/app/utilities/routes';
+import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
 import {
   getTaskType,
   isRunTerminatable,
@@ -77,8 +77,12 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const runDeletable = isRunDeletable(run.state);
 
   const handleStop = React.useCallback(async () => {
-    await handleConfirmStop();
-    setIsStopModalOpen(false);
+    try {
+      await handleConfirmStop();
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
   }, [handleConfirmStop]);
 
   const handleConfirmDelete = React.useCallback(async () => {
@@ -103,10 +107,16 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
     if (runRetryable) {
       items.push({
         title: <span data-testid="retry-run-action">Retry</span>,
-        onClick: () => void handleRetry(),
+        onClick: () => void handleRetry().catch(() => undefined),
         isDisabled: isRetrying,
       });
     }
+
+    items.push({
+      title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
+      component: Link,
+      to: `${automlReconfigurePathname}/${namespace}/${run.run_id}`,
+    });
 
     if (runDeletable) {
       if (runTerminatable || runRetryable) {
@@ -120,7 +130,16 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
     }
 
     return items;
-  }, [runTerminatable, runRetryable, runDeletable, handleRetry, isRetrying, isDeleting]);
+  }, [
+    runTerminatable,
+    runRetryable,
+    runDeletable,
+    handleRetry,
+    isRetrying,
+    isDeleting,
+    namespace,
+    run.run_id,
+  ]);
 
   return (
     <>

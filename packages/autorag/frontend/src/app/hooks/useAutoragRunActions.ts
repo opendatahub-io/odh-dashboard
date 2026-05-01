@@ -46,7 +46,7 @@ export const useAutoragRunActions = (
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      return;
+      throw error;
     }
     try {
       await onActionComplete?.();
@@ -70,7 +70,7 @@ export const useAutoragRunActions = (
         'Failed to stop run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      return;
+      throw error;
     }
     try {
       await onActionComplete?.();

@@ -56,3 +56,8 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   [TASK_TYPE_REGRESSION]: 'Regression',
   [TASK_TYPE_TIMESERIES]: 'Time series forecasting',
 };
+
+export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, readonly string[]>>> =
+  {
+    s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
+  };

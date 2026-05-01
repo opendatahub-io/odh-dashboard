@@ -45,7 +45,7 @@ type SecretSelectorProps = Omit<
    * @example
    * additionalRequiredKeys={{ s3: ['AWS_S3_BUCKET'] }}
    */
-  additionalRequiredKeys?: { [type: string]: string[] };
+  additionalRequiredKeys?: Readonly<Partial<Record<string, readonly string[]>>>;
   /**
    * Called with the refresh function so the parent can trigger a secrets list refresh
    * (e.g. after creating a new connection). Refresh returns the updated list.

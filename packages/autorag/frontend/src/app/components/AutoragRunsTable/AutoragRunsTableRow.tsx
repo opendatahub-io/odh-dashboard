@@ -7,7 +7,7 @@ import type { PipelineRun } from '~/app/types';
 import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
-import { autoragResultsPathname } from '~/app/utilities/routes';
+import { autoragReconfigurePathname, autoragResultsPathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, isRunDeletable } from '~/app/utilities/utils';
 import { autoragRunsColumns } from './columns';
 
@@ -64,8 +64,12 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
   const runDeletable = isRunDeletable(run.state);
 
   const handleStop = React.useCallback(async () => {
-    await handleConfirmStop();
-    setIsStopModalOpen(false);
+    try {
+      await handleConfirmStop();
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
   }, [handleConfirmStop]);
 
   const handleConfirmDelete = React.useCallback(async () => {
@@ -90,10 +94,16 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     if (runRetryable) {
       items.push({
         title: <span data-testid="retry-run-action">Retry</span>,
-        onClick: () => void handleRetry(),
+        onClick: () => void handleRetry().catch(() => undefined),
         isDisabled: isRetrying,
       });
     }
+
+    items.push({
+      title: <span data-testid="reconfigure-run-action">Reconfigure</span>,
+      component: Link,
+      to: `${autoragReconfigurePathname}/${namespace}/${run.run_id}`,
+    });
 
     if (runDeletable) {
       if (runTerminatable || runRetryable) {
@@ -107,7 +117,16 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     }
 
     return items;
-  }, [runTerminatable, runRetryable, runDeletable, handleRetry, isRetrying, isDeleting]);
+  }, [
+    runTerminatable,
+    runRetryable,
+    runDeletable,
+    handleRetry,
+    isRetrying,
+    isDeleting,
+    namespace,
+    run.run_id,
+  ]);
 
   return (
     <>

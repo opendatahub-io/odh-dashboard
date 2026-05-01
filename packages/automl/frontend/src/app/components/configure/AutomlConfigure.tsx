@@ -52,6 +52,7 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import type { File as S3ExplorerFile } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -69,6 +70,7 @@ import {
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
   TASK_TYPE_TIMESERIES,
+  REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -107,10 +109,6 @@ const PREDICTION_TYPES: {
   },
 ];
 
-const AUTOML_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
-
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
   'text/csv': ['.csv'],
@@ -137,7 +135,15 @@ function isAllowedTrainingDataUploadFile(file: File): boolean {
   return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
 }
 
-function AutomlConfigure(): React.JSX.Element {
+type AutomlConfigureProps = {
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: SecretSelection;
+};
+
+function AutomlConfigure({
+  initialValues,
+  initialInputDataSecret,
+}: AutomlConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const queryClient = useQueryClient();
   const [allConnectionTypes] = useWatchConnectionTypes();
@@ -155,19 +161,33 @@ function AutomlConfigure(): React.JSX.Element {
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const initialFileKey = initialValues?.train_data_file_key;
+
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
+    initialInputDataSecret,
+  );
   const [trainingDataSourceMode, setTrainingDataSourceMode] = useState<'select' | 'upload'>(
     'select',
   );
   const [selectedTrainingDataFile, setSelectedTrainingDataFile] = useState<
     S3ExplorerFile | undefined
-  >();
+  >(() => {
+    if (!initialFileKey) {
+      return undefined;
+    }
+    const lastSegment = initialFileKey.split('/').pop();
+    const fileName = lastSegment || initialFileKey;
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+    return { name: fileName, path: `/${initialFileKey}`, type: ext };
+  });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
   const [isTrainingDataUploadDropdownOpen, setIsTrainingDataUploadDropdownOpen] = useState(false);
   const trainingDataUploadSeqRef = useRef(0);
   const trainingDataNativeInputRef = useRef<HTMLInputElement>(null);
   const secretsRefreshRef = useRef<(() => Promise<SecretListItem[] | undefined>) | null>(null);
-  const previousFileKeyRef = useRef<string | undefined>();
+  // Initialized from initialFileKey so the file-change effect treats the pre-populated
+  // value as the baseline in reconfigure flows, preventing an unnecessary reset on mount.
+  const previousFileKeyRef = useRef<string | undefined>(initialFileKey);
 
   const notification = useNotification();
 
@@ -219,9 +239,9 @@ function AutomlConfigure(): React.JSX.Element {
     trainDataFileKey,
   );
 
-  // set bucket from selected secret
-  useEffect(() => {
-    // reset bucket if secret is removed
+  // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
+  useReconfigureSafeEffect(() => {
+    // Clear bucket when the secret object is deselected
     if (!selectedSecret || !selectedSecret.data) {
       setValue('train_data_bucket_name', '', { shouldValidate: true });
       return;
@@ -233,16 +253,16 @@ function AutomlConfigure(): React.JSX.Element {
     });
   }, [selectedSecret, setValue]);
 
-  // reset selected file values if secret or bucket changes
-  useEffect(() => {
+  // reset selected file values if secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
     setSelectedTrainingDataFile(undefined);
   }, [trainDataSecretName, trainDataBucketName, setValue]);
 
-  // reset training data key when select vs upload mode changes
-  useEffect(() => {
+  // reset training data key when select vs upload mode changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     trainingDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
     setValue('train_data_file_key', '', { shouldValidate: true });
@@ -267,6 +287,7 @@ function AutomlConfigure(): React.JSX.Element {
       setValue('timestamp_column', '', { shouldValidate: true });
       setValue('id_column', '', { shouldValidate: true });
       setValue('known_covariates_names', [], { shouldValidate: true });
+      setValue('prediction_length', undefined, { shouldValidate: true });
     }
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
@@ -400,7 +421,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
-                                  additionalRequiredKeys={AUTOML_REQUIRED_KEYS}
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={formIsSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
@@ -411,11 +432,13 @@ function AutomlConfigure(): React.JSX.Element {
                                     }
 
                                     const requiredKeys =
-                                      AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data ?? {});
-                                    const invalid =
-                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
-                                      0;
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                                    const invalid = requiredKeys
+                                      ? getMissingRequiredKeys(
+                                          requiredKeys,
+                                          Object.keys(secret.data ?? {}),
+                                        ).length > 0
+                                      : true;
                                     setNewConnectionNotLoaded(false);
                                     setSelectedSecret({ ...secret, invalid });
                                     onChange(invalid ? '' : secret.name);
@@ -840,10 +863,11 @@ function AutomlConfigure(): React.JSX.Element {
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
               setNewConnectionNotLoaded(false);
-              const requiredKeys = AUTOML_REQUIRED_KEYS[secret.type ?? ''] ?? [];
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
               const secretData = secret.data ?? connection.stringData ?? {};
-              const availableKeys = Object.keys(secretData);
-              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              const invalid = requiredKeys
+                ? getMissingRequiredKeys(requiredKeys, Object.keys(secretData)).length > 0
+                : true;
               setSelectedSecret({
                 ...secret,
                 data: secretData,

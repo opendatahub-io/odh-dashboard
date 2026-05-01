@@ -71,6 +71,7 @@ jest.mock('~/app/hooks/mutations', () => ({
 // We use setTimeout(0) so the setValue runs after AutoragConfigure's clear effects
 // (parent effects fire after child effects, so without the defer the clear effect
 // would overwrite the value we set here).
+// When a value is already present (reconfigure flow), it is preserved.
 jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactMock = require('react');
@@ -81,9 +82,14 @@ jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
     const { setValue, watch } = useFormContext();
     const testDataSecretName = watch('test_data_secret_name');
     const testDataBucketName = watch('test_data_bucket_name');
+    const testDataKey = watch('test_data_key');
 
     ReactMock.useEffect(() => {
       if (!testDataSecretName || !testDataBucketName) {
+        return undefined;
+      }
+      // Skip if a value is already present (e.g. reconfigure flow).
+      if (testDataKey) {
         return undefined;
       }
       // Defer so AutoragConfigure's clear effect (which also reacts to
@@ -92,15 +98,20 @@ jest.mock('~/app/components/configure/AutoragEvaluationSelect', () => {
         setValue('test_data_key', 'evaluation-dataset.json', { shouldValidate: true });
       }, 0);
       return () => clearTimeout(timeout);
-    }, [testDataSecretName, testDataBucketName, setValue]);
+    }, [testDataSecretName, testDataBucketName, testDataKey, setValue]);
 
-    return ReactMock.createElement('div', { 'data-testid': 'evaluation-select' }, 'Mocked eval');
+    return ReactMock.createElement(
+      'div',
+      { 'data-testid': 'evaluation-select' },
+      testDataKey || 'Mocked eval',
+    );
   };
   return { __esModule: true, default: MockEvaluationSelect };
 });
 
 // Mock the VectorStoreSelector to auto-set the form value since PF6 Select
 // doesn't work in JSDOM (Floating UI portal limitation).
+// When a value is already present (reconfigure flow), it is preserved.
 jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const ReactMock = require('react');
@@ -108,14 +119,18 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
   const { useFormContext } = require('react-hook-form');
 
   const MockVectorStoreSelector = () => {
-    const { setValue } = useFormContext();
+    const { setValue, watch } = useFormContext();
+    const currentValue = watch('llama_stack_vector_io_provider_id');
     ReactMock.useEffect(() => {
-      setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
-    }, [setValue]);
+      // Only set a default when the field is empty (new configure flow).
+      if (!currentValue) {
+        setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
+      }
+    }, [setValue, currentValue]);
     return ReactMock.createElement(
       'div',
       { 'data-testid': 'vector-store-select-toggle' },
-      'milvus (remote Milvus)',
+      currentValue || 'milvus (remote Milvus)',
     );
   };
   return { __esModule: true, default: MockVectorStoreSelector };
@@ -134,7 +149,12 @@ jest.mock('~/app/hooks/queries', () => ({
     error: null,
   })),
   useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
-    data: { vector_store_providers: [{ provider_id: 'milvus', provider_type: 'remote::milvus' }] }, // eslint-disable-line camelcase
+    data: {
+      vector_store_providers: [
+        { provider_id: 'milvus', provider_type: 'remote::milvus' },
+        { provider_id: 'chromadb', provider_type: 'remote::chromadb' },
+      ],
+    }, // eslint-disable-line camelcase
     isLoading: false,
   })),
   useSecretsQuery: jest.fn(() => ({
@@ -410,14 +430,12 @@ describe('AutoragConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link with correct href', async () => {
+    it('should navigate back when Cancel is clicked', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute(
-        'href',
-        '/gen-ai-studio/autorag/experiments/test-namespace',
-      );
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
   });
 
@@ -829,6 +847,344 @@ describe('AutoragConfigurePage', () => {
       renderWithProviders(<AutoragConfigurePage />);
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(screen.queryByTestId('invalid-project')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Reconfigure mode (with initialValues and sourceRunId)', () => {
+    it('should display reconfigure title when sourceRunId and sourceRunName are provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const heading = await screen.findByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent('Reconfigure "Original Run"');
+      expect(screen.queryByText('Create AutoRAG optimization run')).not.toBeInTheDocument();
+    });
+
+    it('should display reconfigure description when sourceRunId is provided', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(
+        await screen.findByText(/Settings from the previous run have been automatically populated/),
+      ).toBeInTheDocument();
+    });
+
+    it('should navigate back when Cancel is clicked with sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should display breadcrumb with source run link on create step when reconfiguring', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      const sourceRunBreadcrumb = await screen.findByTestId('configure-breadcrumb-source-run');
+      expect(sourceRunBreadcrumb).toBeInTheDocument();
+      expect(sourceRunBreadcrumb).toHaveTextContent('Original Run');
+
+      const sourceRunLink = sourceRunBreadcrumb.querySelector('a');
+      expect(sourceRunLink).toHaveAttribute(
+        'href',
+        '/gen-ai-studio/autorag/results/test-namespace/prev-run-456',
+      );
+
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should navigate back when Cancel is clicked without sourceRunId', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+    });
+
+    it('should render "Create new run" button text when sourceRunId is provided', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Reconfigured Run',
+            llama_stack_secret_name: 'Test LLS Secret',
+          }}
+          initialLlamaStackSecret={{
+            uuid: 'lls-secret-1',
+            name: 'Test LLS Secret',
+            data: { llama_stack_url: 'https://example.com' },
+            type: 'lls',
+            invalid: false,
+          }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      // Verify the prefilled Llama Stack secret is shown
+      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+        'lls-secret-1',
+      );
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create new run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create run' })).not.toBeInTheDocument();
+    });
+
+    it('should render "Create run" button text when sourceRunId is absent', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'New Run');
+
+      // Select llama stack secret
+      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      await user.click(selectSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      expect(await screen.findByRole('button', { name: 'Create run' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Create new run' })).not.toBeInTheDocument();
+    });
+
+    it('should pre-fill display_name from initialValues', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage initialValues={{ display_name: 'My Previous Run - 1' }} />,
+      );
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      expect(nameInput).toHaveValue('My Previous Run - 1');
+    });
+
+    it('should pre-fill description from initialValues', async () => {
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Reconfigured',
+            description: 'A reconfigured experiment',
+          }}
+        />,
+      );
+
+      const descInput = await screen.findByLabelText(/Description/i);
+      expect(descInput).toHaveValue('A reconfigured experiment');
+    });
+
+    it('should show the pre-filled name in breadcrumb after navigating to configure step', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(
+        <AutoragConfigurePage
+          initialValues={{
+            display_name: 'Pre-filled Name',
+            llama_stack_secret_name: 'Test LLS Secret',
+          }}
+          initialLlamaStackSecret={{
+            uuid: 'lls-secret-1',
+            name: 'Test LLS Secret',
+            data: { llama_stack_url: 'https://example.com' },
+            type: 'lls',
+            invalid: false,
+          }}
+          sourceRunId="run-xyz"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      // Verify the prefilled Llama Stack secret is shown
+      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+        'lls-secret-1',
+      );
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const breadcrumbName = await screen.findByTestId('configure-breadcrumb-name');
+      expect(breadcrumbName).toHaveTextContent('Reconfigure');
+    });
+
+    describe('configure step with pre-filled values', () => {
+      const reconfigureInitialValues = {
+        display_name: 'Reconfigured Run',
+        description: 'A reconfigured experiment',
+        llama_stack_secret_name: 'Test LLS Secret',
+        llama_stack_vector_io_provider_id: 'chromadb',
+        input_data_secret_name: 'Test AWS Secret',
+        input_data_bucket_name: 'test-bucket',
+        input_data_key: 'my-data/input.pdf',
+        test_data_secret_name: 'Test AWS Secret',
+        test_data_bucket_name: 'test-bucket',
+        test_data_key: 'eval.json',
+        optimization_metric: 'faithfulness' as const,
+        optimization_max_rag_patterns: 10,
+      };
+      const reconfigureInitialLlamaStackSecret = {
+        uuid: 'lls-secret-1',
+        name: 'Test LLS Secret',
+        data: { llama_stack_url: 'https://example.com' },
+        type: 'lls',
+        invalid: false,
+      };
+      const reconfigureInitialSecret = {
+        uuid: 'aws-secret-1',
+        name: 'Test AWS Secret',
+        displayName: 'Test AWS Secret',
+        data: { AWS_S3_BUCKET: 'test-bucket', AWS_DEFAULT_REGION: 'us-east-1' },
+        type: 's3',
+        invalid: false,
+      };
+
+      const navigateToConfigure = async () => {
+        const user = userEvent.setup();
+
+        // Verify the prefilled Llama Stack secret is shown
+        expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
+          'lls-secret-1',
+        );
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        // Verify we're on the configure step
+        expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+
+        return user;
+      };
+
+      it('should show the pre-filled secret value in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+      });
+
+      it('should show the pre-filled input data file in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const table = screen.getByRole('grid', { name: 'Selected input data file' });
+        expect(table).toBeInTheDocument();
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      });
+
+      it('should show the pre-filled Vector I/O provider in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('vector-store-select-toggle')).toHaveTextContent('chromadb');
+      });
+
+      it('should show the pre-filled evaluation dataset in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('evaluation-select')).toHaveTextContent('eval.json');
+      });
+
+      it('should show the pre-filled optimization metric in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+          'Answer faithfulness',
+        );
+      });
+
+      it('should show the pre-filled max RAG patterns value in the configure step', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        await navigateToConfigure();
+
+        const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+        expect(input).toHaveValue(10);
+      });
     });
   });
 
