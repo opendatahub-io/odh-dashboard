@@ -10,6 +10,16 @@ export type ModelRegistryAndCredentials = {
 };
 export declare const getListModelRegistries: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<ModelRegistry[]>;
 export declare const getUser: (hostPath: string) => (opts: APIOptions) => Promise<UserSettings>;
+export type CheckNamespaceRegistryAccessRequest = {
+    namespace: string;
+    registryName: string;
+    registryNamespace: string;
+};
+export type CheckNamespaceRegistryAccessResponse = {
+    hasAccess: boolean;
+    cannotCheck: boolean;
+};
+export declare const checkNamespaceRegistryAccess: (hostPath: string) => (opts: APIOptions, body: CheckNamespaceRegistryAccessRequest) => Promise<CheckNamespaceRegistryAccessResponse>;
 export declare const getNamespaces: (hostPath: string) => (opts: APIOptions) => Promise<NamespaceKind[]>;
 export declare const getNamespacesForSettings: (hostPath: string) => (opts: APIOptions) => Promise<NamespaceKind[]>;
 export declare const getGroups: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions) => Promise<GroupKind[]>;

@@ -39,6 +39,7 @@ type KubernetesClientInterface interface {
 
 	// NemoGuardrails operations
 	CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error)
+	GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)

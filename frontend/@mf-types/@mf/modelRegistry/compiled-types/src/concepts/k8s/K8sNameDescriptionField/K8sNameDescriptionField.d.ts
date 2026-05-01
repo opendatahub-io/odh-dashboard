@@ -1,12 +1,10 @@
 import * as React from 'react';
+import { UseK8sNameDescriptionDataConfiguration, UseK8sNameDescriptionFieldData } from './types';
 /** Companion data hook */
-type NameDescType = {
-    name: string;
-    description: string;
-};
+export declare const useK8sNameDescriptionFieldData: (configuration?: UseK8sNameDescriptionDataConfiguration) => UseK8sNameDescriptionFieldData;
 type K8sNameDescriptionFieldProps = {
-    data: NameDescType;
-    onDataChange: (data: NameDescType) => void;
+    data: UseK8sNameDescriptionFieldData['data'];
+    onDataChange?: UseK8sNameDescriptionFieldData['onDataChange'];
     dataTestId: string;
     descriptionLabel?: string;
     nameLabel?: string;

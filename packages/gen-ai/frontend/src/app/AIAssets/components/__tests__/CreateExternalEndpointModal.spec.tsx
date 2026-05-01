@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import {
@@ -59,6 +59,11 @@ describe('CreateExternalEndpointModal', () => {
     });
   });
 
+  // Helper to fill a text input quickly via fireEvent.change
+  const fillInput = (input: HTMLElement, value: string) => {
+    fireEvent.change(input, { target: { value } });
+  };
+
   describe('Rendering', () => {
     it('should render modal with title and form fields', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
@@ -107,18 +112,16 @@ describe('CreateExternalEndpointModal', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should enable submit button when all required fields are filled', async () => {
-      const user = userEvent.setup();
+    it('should enable submit button when all required fields are filled', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      // Fill required fields
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      fillInput(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      fillInput(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+      fillInput(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
       const submitButton = screen.getByRole('button', { name: /^Create$/i });
       expect(submitButton).toBeEnabled();
@@ -130,15 +133,14 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      // Fill all fields
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
-      await user.type(
+      fillInput(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      fillInput(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
+      fillInput(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
-      await user.type(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
+      fillInput(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
+      fillInput(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -158,13 +160,13 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      fillInput(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      fillInput(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+      fillInput(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -182,13 +184,13 @@ describe('CreateExternalEndpointModal', () => {
 
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
+      fillInput(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      fillInput(
         screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
+      fillInput(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 

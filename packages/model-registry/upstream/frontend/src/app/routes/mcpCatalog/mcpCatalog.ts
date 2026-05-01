@@ -5,5 +5,5 @@ export const mcpServerDetailsUrl = (serverId: string | number): string =>
 
 export const mcpDeploymentsUrl = (namespace?: string): string =>
   namespace
-    ? `/ai-hub/mcp-deployments?namespace=${encodeURIComponent(namespace)}`
-    : '/ai-hub/mcp-deployments';
+    ? `/ai-hub/mcp-servers/deployments/${encodeURIComponent(namespace)}`
+    : '/ai-hub/mcp-servers/deployments';
