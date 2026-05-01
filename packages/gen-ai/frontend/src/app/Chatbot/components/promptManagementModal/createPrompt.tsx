@@ -148,7 +148,7 @@ export default function CreatePrompt({
   }
 
   return (
-    <Modal isOpen variant="large" onClose={onClose}>
+    <Modal isOpen variant="large" onClose={onClose} data-testid="prompt-create-modal">
       <ModalHeader title={displayText.title} description={displayText.description} />
       <ModalBody>
         <Flex direction={{ default: 'column' }}>
@@ -165,6 +165,7 @@ export default function CreatePrompt({
                   </span>
                 </Title>
                 <TextInput
+                  data-testid="prompt-name-input"
                   aria-label="Prompt name"
                   value={dirtyPrompt?.name}
                   readOnlyVariant={isEditMode ? 'default' : undefined}
@@ -172,7 +173,7 @@ export default function CreatePrompt({
                   validated={nameError ? 'error' : 'default'}
                 />
                 {nameError && (
-                  <FormHelperText>
+                  <FormHelperText data-testid="prompt-name-error">
                     <HelperText>
                       <HelperTextItem variant="error" icon={<ExclamationCircleIcon />}>
                         {nameError}
@@ -190,6 +191,7 @@ export default function CreatePrompt({
                     Version
                   </Title>
                   <TextInput
+                    data-testid="prompt-version-field"
                     readOnlyVariant="default"
                     value={isLoadingVersion ? '...' : (nextVersion?.toString() ?? '—')}
                     style={{ width: '80px' }}
@@ -209,6 +211,7 @@ export default function CreatePrompt({
               System
             </MenuToggle>
             <TextArea
+              data-testid="prompt-template-input"
               aria-label="Prompt instructions"
               value={dirtyPrompt?.template}
               resizeOrientation="none"
@@ -221,6 +224,7 @@ export default function CreatePrompt({
               Commit message
             </Title>
             <TextInput
+              data-testid="prompt-commit-message-input"
               aria-label="Commit message"
               value={dirtyPrompt?.commit_message}
               onChange={(_event, value) => handleChange('commit_message', value)}
@@ -229,7 +233,12 @@ export default function CreatePrompt({
           </FlexItem>
           {saveError && (
             <FlexItem>
-              <Alert variant="danger" isInline title="Failed to save prompt">
+              <Alert
+                data-testid="prompt-save-error-alert"
+                variant="danger"
+                isInline
+                title="Failed to save prompt"
+              >
                 {saveError}
               </Alert>
             </FlexItem>
@@ -237,10 +246,20 @@ export default function CreatePrompt({
         </Flex>
       </ModalBody>
       <ModalFooter>
-        <Button variant="primary" onClick={handleSave} isLoading={isCreating}>
+        <Button
+          data-testid="prompt-save-button"
+          variant="primary"
+          onClick={handleSave}
+          isLoading={isCreating}
+        >
           {isEditMode ? 'Save' : 'Create'}
         </Button>
-        <Button variant="link" onClick={onClose} isDisabled={isCreating}>
+        <Button
+          data-testid="prompt-create-cancel-button"
+          variant="link"
+          onClick={onClose}
+          isDisabled={isCreating}
+        >
           Cancel
         </Button>
       </ModalFooter>
