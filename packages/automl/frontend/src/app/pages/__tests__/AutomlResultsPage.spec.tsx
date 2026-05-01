@@ -807,6 +807,8 @@ describe('AutomlResultsPage', () => {
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
       });
+
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
     });
 
     it('should close StopRunModal after stop completes', async () => {
