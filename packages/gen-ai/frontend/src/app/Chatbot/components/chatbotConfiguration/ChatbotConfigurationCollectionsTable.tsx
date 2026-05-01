@@ -104,7 +104,7 @@ const ChatbotConfigurationCollectionsTable: React.FC<ChatbotConfigurationCollect
     <Stack hasGutter>
       <StackItem>
         <Title headingLevel="h2" size="md">
-          Add collections
+          Select vector stores
         </Title>
       </StackItem>
       <StackItem>

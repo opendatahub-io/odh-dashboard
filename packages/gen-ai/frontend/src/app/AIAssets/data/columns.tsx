@@ -1,15 +1,12 @@
 import * as React from 'react';
 import { SortableData } from 'mod-arch-shared';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
 import { AIModel } from '~/app/types';
 
 const modelColumnPopover = (
   <div>
-    <strong>Display name</strong> — friendly name shown across the UI. For endpoints you created,
-    this is the name you provided.
-    <br />
-    <br />
-    <strong>Model ID</strong> — exact identifier used in API calls. For endpoints you created, this
-    must match the provider&apos;s model ID.
+    The model&apos;s {ODH_PRODUCT_NAME} display name, followed by the model ID, which is the exact
+    identifier used in API calls.
   </div>
 );
 

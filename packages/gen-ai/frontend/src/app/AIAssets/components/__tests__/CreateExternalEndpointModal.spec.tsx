@@ -65,20 +65,18 @@ describe('CreateExternalEndpointModal', () => {
 
       expect(screen.getByText('Create endpoint')).toBeInTheDocument();
       expect(screen.getByText('Model type')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/e\.g\. gpt-4o/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i)).toBeInTheDocument();
-      expect(
-        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
-      ).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Your API key or token/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/e\.g\. General chat/i)).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-id-input')).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-display-name-input')).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-url-input')).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-token-input')).toBeInTheDocument();
+      expect(screen.getByTestId('create-external-model-use-cases-input')).toBeInTheDocument();
     });
 
-    it('should render warning and info alerts', () => {
+    it('should render info alerts', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
       expect(
-        screen.getByText('Keys and tokens you add are shared at the project level.'),
+        screen.getByText('Keys and tokens are visible to users who have access to the project.'),
       ).toBeInTheDocument();
       expect(
         screen.getByText('This model must expose an OpenAI-compatible chat/completions API.'),
@@ -112,13 +110,13 @@ describe('CreateExternalEndpointModal', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
       // Fill required fields
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
       await user.type(
-        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
       const submitButton = screen.getByRole('button', { name: /^Create$/i });
       expect(submitButton).toBeEnabled();
@@ -131,14 +129,20 @@ describe('CreateExternalEndpointModal', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
       // Fill all fields
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My Custom GPT-4o');
+      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
       await user.type(
-        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        screen.getByTestId('create-external-model-display-name-input'),
+        'My Custom GPT-4o',
+      );
+      await user.type(
+        screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token-123');
-      await user.type(screen.getByPlaceholderText(/e\.g\. General chat/i), 'Chat and completion');
+      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token-123');
+      await user.type(
+        screen.getByTestId('create-external-model-use-cases-input'),
+        'Chat and completion',
+      );
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -158,13 +162,13 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
       await user.type(
-        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-test-token');
+      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -182,13 +186,13 @@ describe('CreateExternalEndpointModal', () => {
 
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByPlaceholderText(/e\.g\. gpt-4o/i), 'gpt-4o');
-      await user.type(screen.getByPlaceholderText(/e\.g\. Our GPT-4o/i), 'My GPT-4o');
+      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
       await user.type(
-        screen.getByPlaceholderText(/e\.g\. https:\/\/api\.openai\.com\/v1/i),
+        screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByPlaceholderText(/Your API key or token/i), 'sk-bad-token');
+      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-bad-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
