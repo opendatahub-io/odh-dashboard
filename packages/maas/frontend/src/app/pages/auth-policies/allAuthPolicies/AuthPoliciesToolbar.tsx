@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import {
@@ -46,7 +45,6 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
         <ToolbarItem>
           <Button
             variant="primary"
-            icon={<PlusIcon />}
             onClick={() => navigate(`${URL_PREFIX}/auth-policies/create`)}
             data-testid="create-auth-policy-button"
           >
