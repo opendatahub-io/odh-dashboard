@@ -59,7 +59,17 @@ const AutoragVectorStoreSelector: React.FC = () => {
     SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
   );
 
+  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
+  // Inject the default in-memory provider at the beginning of the list.
+  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
+  const apiProviders = providersData?.vector_store_providers ?? [];
+  const providers = apiProviders;
+  const totalProviderCount = providersData?.totalProviderCount ?? 0;
+
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
     if (isError) {
       notification.error(
         'Failed to load vector I/O providers.',
@@ -68,14 +78,16 @@ const AutoragVectorStoreSelector: React.FC = () => {
           not expired.
         </>,
       );
+    } else if (totalProviderCount > 0 && providers.length === 0) {
+      notification.warning(
+        'No compatible vector I/O providers found.',
+        <>
+          Vector I/O providers were found on the Llama Stack server, but none are compatible with
+          AutoRAG. Ensure a remote Milvus provider is configured on your Llama Stack server.
+        </>,
+      );
     }
-  }, [isError, notification]);
-
-  // TODO: Re-enable in 3.5 when DEFAULT_IN_MEMORY_PROVIDER is available.
-  // Inject the default in-memory provider at the beginning of the list.
-  // const providers = [DEFAULT_IN_MEMORY_PROVIDER, ...apiProviders];
-  const apiProviders = providersData?.vector_store_providers ?? [];
-  const providers = apiProviders;
+  }, [isLoading, isError, totalProviderCount, providers.length, notification]);
   const selectedProvider = providers.find((p) => p.provider_id === field.value);
 
   // Clear stale selection when the provider list changes and no longer includes
