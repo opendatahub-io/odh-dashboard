@@ -66,15 +66,21 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
   const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
-    key,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+  const response = await fetch(
+    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+    { signal },
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -127,13 +133,14 @@ export function useS3GetFileSchemaQuery(
       const params = new URLSearchParams({
         namespace,
         secretName,
-        key,
         ...(bucket && { bucket }),
       });
+      params.set('view', 'schema');
 
-      const response = await fetch(`${URL_PREFIX}/api/v1/s3/file/schema?${params.toString()}`, {
-        signal,
-      });
+      const response = await fetch(
+        `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+        { signal },
+      );
 
       if (!response.ok) {
         let errorMessage = response.statusText;
@@ -288,46 +295,73 @@ export async function fetchS3Json<T>(
 
 /**
  * Zod schemas to validate AutomlModel shape from model.json files.
- * Tabular and timeseries models have different location structures:
- *   - Tabular:     location.notebook  (singular, full path to notebook file)
- *   - Timeseries:  location.notebooks (plural, directory containing notebooks)
+ *
+ * Three schemas cover the evolution of the model.json format:
+ *   - 3.4 Tabular:     location.notebook (singular, file path), no location.metrics
+ *   - 3.4 Timeseries:  location.notebooks (plural, directory), location.metrics, base_model
+ *   - 3.5 Unified:     location.notebook (file path), location.metrics, no base_model
+ *
  * model_directory is optional in the raw file since it gets rewritten after parsing.
  */
 /* eslint-disable camelcase */
-const AutomlTabularModelSchema = z.object({
+
+const AutomlModelBaseSchema = z.strictObject({
   name: z.string(),
-  location: z.object({
+  location: z.strictObject({
     model_directory: z.string().optional(),
     predictor: z.string(),
-    notebook: z.string(),
   }),
-  metrics: z.object({
+  metrics: z.strictObject({
     test_data: z.record(z.string(), z.number()),
   }),
 });
 
-const AutomlTimeseriesModelSchema = z.object({
-  name: z.string(),
+// Legacy tabular schema (pre-3.5): notebook singular, no metrics in location
+const AutomlTabularModelSchemaV34 = AutomlModelBaseSchema.extend({
+  location: AutomlModelBaseSchema.shape.location.extend({
+    notebook: z.string(),
+  }),
+}).strict();
+
+// Legacy timeseries schema (pre-3.5): notebooks plural (directory), base_model, metrics in location
+const AutomlTimeseriesModelSchemaV34 = AutomlModelBaseSchema.extend({
   base_model: z.string(),
-  location: z.object({
-    model_directory: z.string().optional(),
-    predictor: z.string(),
+  location: AutomlModelBaseSchema.shape.location.extend({
     notebooks: z.string(),
     metrics: z.string(),
   }),
-  metrics: z.object({
-    test_data: z.record(z.string(), z.number()),
+}).strict();
+
+// Unified schema (3.5+): notebook singular (file path), metrics in location, no base_model
+const AutomlModelSchemaV35 = AutomlModelBaseSchema.extend({
+  location: AutomlModelBaseSchema.shape.location.extend({
+    notebook: z.string(),
+    metrics: z.string(),
   }),
-});
+}).strict();
 
-export const AutomlModelSchema = z.union([AutomlTabularModelSchema, AutomlTimeseriesModelSchema]);
+// Try 3.5 first, then fall back to legacy schemas for backwards compatibility.
+// strict() on each schema is what disambiguates V35 from V34 tabular (both have `notebook`).
+export const AutomlModelSchema = z.union([
+  AutomlModelSchemaV35,
+  AutomlTimeseriesModelSchemaV34,
+  AutomlTabularModelSchemaV34,
+]);
 
-export type AutomlRawTabularModel = z.infer<typeof AutomlTabularModelSchema>;
-export type AutomlRawTimeseriesModel = z.infer<typeof AutomlTimeseriesModelSchema>;
-export type AutomlRawModel = AutomlRawTabularModel | AutomlRawTimeseriesModel;
+export type AutomlRawTabularModelV34 = z.infer<typeof AutomlTabularModelSchemaV34>;
+export type AutomlRawTimeseriesModelV34 = z.infer<typeof AutomlTimeseriesModelSchemaV34>;
+export type AutomlRawModelV35 = z.infer<typeof AutomlModelSchemaV35>;
+export type AutomlRawModel =
+  | AutomlRawModelV35
+  | AutomlRawTabularModelV34
+  | AutomlRawTimeseriesModelV34;
 
-export const isRawTimeseriesModel = (model: AutomlRawModel): model is AutomlRawTimeseriesModel =>
-  'base_model' in model;
+export const isRawTimeseriesModelV34 = (
+  model: AutomlRawModel,
+): model is AutomlRawTimeseriesModelV34 => 'notebooks' in model.location;
+
+export const isRawModelV35 = (model: AutomlRawModel): model is AutomlRawModelV35 =>
+  'notebook' in model.location && 'metrics' in model.location && !('base_model' in model);
 /* eslint-enable camelcase */
 
 export function useModelEvaluationArtifactsQuery(

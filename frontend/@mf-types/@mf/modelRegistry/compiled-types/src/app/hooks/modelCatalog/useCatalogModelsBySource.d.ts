@@ -1,4 +1,4 @@
-import { CatalogModel } from '~/app/modelCatalogTypes';
+import { CatalogFilterOptionsList, CatalogModel, ModelCatalogFilterStates } from '~/app/modelCatalogTypes';
 type PaginatedCatalogModelList = {
     items: CatalogModel[];
     size: number;
@@ -15,5 +15,9 @@ type ModelList = {
     catalogModelsLoadError: Error | undefined;
     refresh: () => void;
 };
-export declare const useCatalogModelsBySources: (sourceId: string, pageSize?: number, searchQuery?: string) => ModelList;
+export declare const useCatalogModelsBySources: (sourceId?: string, sourceLabel?: string, pageSize?: number, searchQuery?: string, filterData?: ModelCatalogFilterStates, filterOptions?: CatalogFilterOptionsList | null, filterQuery?: string, sortBy?: string | null, sortOrder?: string, performanceParams?: {
+    targetRPS?: number;
+    latencyProperty?: string;
+    recommendations?: boolean;
+}) => ModelList;
 export {};

@@ -5,6 +5,7 @@ import { setImpersonateAccessToken } from '../../../devFlags';
 import { KubeFastifyInstance } from '../../../types';
 import {
   DEV_IMPERSONATE_PASSWORD,
+  DEV_IMPERSONATE_TOKEN,
   DEV_IMPERSONATE_USER,
   DEV_OAUTH_PREFIX,
 } from '../../../utils/constants';
@@ -18,6 +19,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       return new Promise<{ code: number; response: string }>((resolve, reject) => {
         const doImpersonate = request.body.impersonate;
         if (doImpersonate) {
+          // If a pre-obtained token is provided, use it directly without the OAuth flow
+          if (DEV_IMPERSONATE_TOKEN) {
+            setImpersonateAccessToken(DEV_IMPERSONATE_TOKEN);
+            resolve({ code: 200, response: DEV_IMPERSONATE_TOKEN });
+            return;
+          }
           const apiPath = fastify.kube.config.getCurrentCluster().server;
           const namedHost = apiPath.slice('https://api.'.length).split(':')[0];
           const url = `https://${DEV_OAUTH_PREFIX}.${namedHost}/oauth/authorize?response_type=token&client_id=openshift-challenging-client`;

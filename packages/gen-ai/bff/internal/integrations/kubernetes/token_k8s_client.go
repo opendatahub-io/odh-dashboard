@@ -77,11 +77,6 @@ const (
 	authAnnotationKey = "security.opendatahub.io/enable-auth"
 )
 
-type modelProviderInfoEntry struct {
-	providerID  string
-	tokenEnvVar string
-}
-
 type modelDetailsResult struct {
 	modelID     string
 	modelType   string
@@ -473,6 +468,39 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 		return nil, err
 	}
 	return lsdList, nil
+}
+
+// GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
+// in the namespace and derives the in-cluster service URL from the first CR found.
+// The TrustyAI operator creates a Service with the same name as the CR on port 443.
+// Returns ("", nil) if no NemoGuardrails CR exists in the namespace.
+func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "trustyai.opendatahub.io",
+		Version: "v1alpha1",
+		Kind:    "NemoGuardrailsList",
+	})
+
+	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
+		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
+	}
+
+	if len(list.Items) == 0 {
+		return "", nil
+	}
+
+	crName := list.Items[0].GetName()
+	serviceURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:443", crName, namespace)
+	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR",
+		"namespace", namespace,
+		"crName", crName,
+		"serviceURL", serviceURL)
+	return serviceURL, nil
 }
 
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
@@ -1279,42 +1307,7 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
 // This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) findGuardrailsServiceAccountTokenSecret(ctx context.Context, namespace string) (string, error) {
-	// Look for the guardrails service account
-	saName := constants.DefaultGuardrailsServiceAccountName
-
-	// Check if the service account exists
-	var sa corev1.ServiceAccount
-	err := kc.Client.Get(ctx, types.NamespacedName{Name: saName, Namespace: namespace}, &sa)
-	if err != nil {
-		kc.Logger.Debug("guardrails service account not found", "name", saName, "namespace", namespace, "error", err)
-		return "", fmt.Errorf("guardrails service account '%s' not found in namespace '%s': %w", saName, namespace, err)
-	}
-
-	// Find the token secret for this service account (same pattern as findSecretForServiceAccount)
-	secretName := kc.findSecretForServiceAccount(ctx, namespace, saName)
-	if secretName == "" {
-		// Fallback: Search for any secret starting with "guardrails-service" that is a service account token
-		var secretList corev1.SecretList
-		err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
-		if err == nil {
-			for _, secret := range secretList.Items {
-				if secret.Type == corev1.SecretTypeServiceAccountToken &&
-					strings.HasPrefix(secret.Name, "guardrails-service") {
-					kc.Logger.Debug("found guardrails token secret by prefix matching", "secretName", secret.Name)
-					return secret.Name, nil
-				}
-			}
-		}
-		kc.Logger.Debug("no token secret found for guardrails service account", "serviceAccount", saName)
-		return "", fmt.Errorf("no token secret found for guardrails service account '%s'", saName)
-	}
-
-	kc.Logger.Debug("found guardrails service account token secret", "serviceAccount", saName, "secretName", secretName)
-	return secretName, nil
-}
-
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, guardrailsFeatureEnabled bool, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -1380,12 +1373,24 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			Value: "~/.llama/milvus.db",
 		},
 		{
-			Name:  "FMS_ORCHESTRATOR_URL",
-			Value: "http://localhost",
-		},
-		{
 			Name:  "VLLM_MAX_TOKENS",
 			Value: "4096",
+		},
+		{
+			Name:  "SENTENCE_TRANSFORMERS_HOME",
+			Value: "/opt/app-root/src/.cache/huggingface/hub",
+		},
+		{
+			Name:  "HF_HUB_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "TRANSFORMERS_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "HF_DATASETS_OFFLINE",
+			Value: "1",
 		},
 	}
 
@@ -1427,39 +1432,6 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				Value: "fake",
 			})
 			kc.Logger.Debug("no token found for model, using default", "model", model.ModelName, "envVar", envVarName)
-		}
-	}
-
-	// Step 3: If the guardrails feature is enabled, find the guardrails service account token secret
-	// This follows the same pattern as VLLM token discovery
-	// Fail fast if the guardrails feature is enabled but the token is missing - this is a security feature
-	// and users should not have a false sense of protection from a non-functional guardrail setup
-	// The guardrailsReady variable tracks whether guardrails were successfully configured
-	// with a valid token. If guardrailsFeatureEnabled is true and the orchestrator is ready but the token
-	// cannot be found, we return an error instead of silently setting guardrailsReady to false.
-	guardrailsReady := false
-
-	// Only auto-detect infrastructure if feature flag is enabled
-	if guardrailsFeatureEnabled {
-		guardrailStatus, err := kc.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
-		if err == nil && guardrailStatus.Phase == constants.GuardrailsPhaseReady {
-			guardrailsTokenSecret, tokenErr := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
-			if tokenErr != nil {
-				return nil, fmt.Errorf("guardrails are enabled but token secret could not be found: %w", tokenErr)
-			}
-			envVars = append(envVars, corev1.EnvVar{
-				Name: constants.GuardrailAuthTokenEnvName,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: guardrailsTokenSecret,
-						},
-						Key: "token",
-					},
-				},
-			})
-			guardrailsReady = true
-			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
 		}
 	}
 
@@ -1521,7 +1493,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			break
 		}
 	}
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, guardrailsReady, validatedVectorStores, maasClient, userAuthToken)
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, maasClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
@@ -1691,7 +1663,7 @@ func buildEmbeddingModelLookup(ms []Model) map[string]string {
 }
 
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
@@ -1754,9 +1726,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 	}
 
-	// Track provider IDs and token env vars for guardrails configuration
-	modelProviderInfo := make(map[string]modelProviderInfoEntry, len(installModels))
-
 	for i, model := range installModels {
 		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
 		if model.ModelSourceType == models.ModelSourceTypeMaaS {
@@ -1775,7 +1744,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Create provider and model for MaaS model
 			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
-			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
 			resolvedMaaSType := model.ModelType
 			if resolvedMaaSType == "" {
@@ -1783,9 +1751,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
-
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
 			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1802,10 +1767,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
 			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
-
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: extDetails.providerID, tokenEnvVar: ""}
-
 		} else {
 			// Handle regular cluster models (InferenceService/LLMInferenceService)
 			kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1816,7 +1777,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 
 			resolvedClusterType := model.ModelType
 			if resolvedClusterType == "" {
@@ -1824,9 +1784,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
-
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 		}
 	}
 
@@ -1919,40 +1876,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		kc.Logger.Debug("Enabled RBAC auth with Kubernetes provider for LlamaStack config")
 	} else {
 		kc.Logger.Debug("RBAC auth is disabled for LlamaStack config (set ENABLE_LLAMASTACK_RBAC=true to enable)")
-	}
-
-	// Add guardrails configuration if enabled
-	// When enableGuardrails is true, automatically add safety shields for all selected models
-	if enableGuardrails && len(installModels) > 0 {
-		guardrailConfigs := make([]models.GuardrailInput, len(installModels))
-
-		// Default policies for guardrails (input includes jailbreak, output does not)
-		defaultInputPolicies := models.DefaultInputGuardrailPolicies()
-		defaultOutputPolicies := models.DefaultOutputGuardrailPolicies()
-		lsdServiceURL := fmt.Sprintf("http://%s-service.%s.svc.cluster.local:8321/v1/chat/completions", lsdName, namespace)
-		kc.Logger.Debug("Using Llama Stack service URL for guardrails", "url", lsdServiceURL)
-
-		for i, model := range installModels {
-			// Get provider info from the tracking map
-			providerInfo, exists := modelProviderInfo[model.ModelName]
-			if !exists {
-				kc.Logger.Error("Provider info not found for model in guardrails config", "model", model.ModelName)
-				return "", fmt.Errorf("provider info not found for model '%s' when configuring guardrails", model.ModelName)
-			}
-
-			guardrailConfigs[i] = models.GuardrailInput{
-				ModelName:      model.ModelName,
-				ProviderID:     providerInfo.providerID,
-				TokenEnvVar:    providerInfo.tokenEnvVar,
-				ModelURL:       lsdServiceURL,
-				DetectorURL:    constants.DefaultDetectorURL, // Always use constant default
-				InputPolicies:  defaultInputPolicies,
-				OutputPolicies: defaultOutputPolicies,
-			}
-		}
-
-		config.AddGuardrailsToConfig(guardrailConfigs)
-		kc.Logger.Debug("Added guardrails to configuration for all models", "count", len(installModels))
 	}
 
 	// Convert the config to YAML
@@ -2487,107 +2410,6 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 }
 
 // GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
-func (kc *TokenKubernetesClient) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
-	// Load the llama stack config from ConfigMap
-	config, err := kc.loadLlamaStackConfig(ctx, identity, namespace)
-	if err != nil {
-		// If no LSD found, return empty array
-		kc.Logger.Debug("no llama stack config found", "namespace", namespace, "error", err)
-		return &models.SafetyConfigResponse{
-			GuardrailModels: []models.GuardrailModelConfig{},
-		}, nil
-	}
-
-	// Check if safety providers exist
-	if len(config.Providers.Safety) == 0 {
-		return &models.SafetyConfigResponse{
-			GuardrailModels: []models.GuardrailModelConfig{},
-		}, nil
-	}
-
-	// Extract shields from safety provider config (only trustyai_fms provider)
-	guardrailModels := kc.extractGuardrailModelsFromSafetyProviders(config, namespace)
-
-	return &models.SafetyConfigResponse{
-		GuardrailModels: guardrailModels,
-	}, nil
-}
-
-// extractGuardrailModelsFromSafetyProviders extracts guardrail models from safety provider config
-func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(config *LlamaStackConfig, namespace string) []models.GuardrailModelConfig {
-	var guardrailModels []models.GuardrailModelConfig
-
-	for _, provider := range config.Providers.Safety {
-		// Only process trustyai_fms provider
-		if provider.ProviderID != "trustyai_fms" {
-			continue
-		}
-
-		// Extract shields from provider config
-		shields, ok := provider.Config["shields"].(map[interface{}]interface{})
-		if !ok {
-			kc.Logger.Debug("No shields found in provider config", "provider_id", provider.ProviderID)
-			continue
-		}
-
-		// Map to group shields by model name
-		modelShields := make(map[string]*models.GuardrailModelConfig)
-
-		for shieldID, shieldConfig := range shields {
-			shieldIDStr, ok := shieldID.(string)
-			if !ok {
-				continue
-			}
-
-			shieldMap, ok := shieldConfig.(map[interface{}]interface{})
-			if !ok {
-				continue
-			}
-
-			// Extract model name from detector_params
-			if detectorParams, ok := shieldMap["detector_params"].(map[interface{}]interface{}); ok {
-				if custom, ok := detectorParams["custom"].(map[interface{}]interface{}); ok {
-					for guardrailKey, guardrailConfig := range custom {
-						guardrailKeyStr, _ := guardrailKey.(string)
-						gc, ok := guardrailConfig.(map[interface{}]interface{})
-						if !ok {
-							continue
-						}
-
-						modelName, ok := gc["guardrail_model"].(string)
-						if !ok || modelName == "" {
-							continue
-						}
-
-						// Get or create the config for this model
-						if _, exists := modelShields[modelName]; !exists {
-							modelShields[modelName] = &models.GuardrailModelConfig{
-								ModelName: modelName,
-							}
-						}
-
-						// Determine if this is input or output shield
-						if strings.Contains(guardrailKeyStr, "input") {
-							modelShields[modelName].InputShieldID = shieldIDStr
-						} else if strings.Contains(guardrailKeyStr, "output") {
-							modelShields[modelName].OutputShieldID = shieldIDStr
-						}
-					}
-				}
-			}
-		}
-
-		// Add all discovered model configs
-		for _, config := range modelShields {
-			if config.InputShieldID != "" || config.OutputShieldID != "" {
-				guardrailModels = append(guardrailModels, *config)
-			}
-		}
-	}
-
-	return guardrailModels
-}
-
 // GenerateProviderID generates a unique provider ID for external models
 func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
 	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)

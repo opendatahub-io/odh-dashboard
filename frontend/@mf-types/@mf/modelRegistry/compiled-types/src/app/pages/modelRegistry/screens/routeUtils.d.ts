@@ -1,5 +1,4 @@
 export declare const modelRegistryUrl: (preferredModelRegistry?: string) => string;
-export declare const registeredModelsUrl: (preferredModelRegistry?: string) => string;
 export declare const registeredModelUrl: (rmId?: string, preferredModelRegistry?: string) => string;
 export declare const registeredModelArchiveUrl: (preferredModelRegistry?: string) => string;
 export declare const registeredModelArchiveDetailsUrl: (rmId?: string, preferredModelRegistry?: string) => string;
@@ -12,4 +11,8 @@ export declare const modelVersionArchiveDetailsUrl: (mvId: string, rmId?: string
 export declare const registerModelUrl: (preferredModelRegistry?: string) => string;
 export declare const registerVersionUrl: (preferredModelRegistry?: string) => string;
 export declare const registerVersionForModelUrl: (rmId?: string, preferredModelRegistry?: string) => string;
+export declare const registeredModelDeploymentsUrl: (registeredModel: {
+    id: string;
+}, preferredModelRegistry?: string) => string;
 export declare const modelVersionDeploymentsUrl: (mvId: string, rmId?: string, preferredModelRegistry?: string) => string;
+export declare const modelTransferJobsUrl: (preferredModelRegistry?: string) => string;

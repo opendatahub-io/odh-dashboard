@@ -36,8 +36,7 @@ const (
 	UserPath                = ApiPathPrefix + "/user"
 	NamespacePath           = ApiPathPrefix + "/namespaces"
 	SecretsPath             = ApiPathPrefix + "/secrets"
-	S3FilePath              = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath        = ApiPathPrefix + "/s3/file/schema"
+	S3FilePath              = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath             = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
@@ -256,14 +255,14 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
 	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
-	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
-	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;
+	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
@@ -276,9 +275,12 @@ func (app *App) Routes() http.Handler {
 	// App Router
 	appMux := http.NewServeMux()
 
-	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
+	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
+	// so :key matches the full encoded segment rather than splitting on /.
+	rawPathRouter := preserveRawPath(apiRouter)
+	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

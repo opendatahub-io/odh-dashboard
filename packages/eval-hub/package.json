@@ -40,7 +40,9 @@
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9106 PROXY_PORT=4002 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9106",
     "lint": "cd frontend && npm run lint",
-    "lint:fix": "cd frontend && npm run lint:fix"
+    "lint:fix": "cd frontend && npm run lint:fix",
+    "test-unit": "cd frontend && npm run test:unit",
+    "type-check": "cd frontend && npm run test:type-check"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

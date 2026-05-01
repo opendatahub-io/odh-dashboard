@@ -358,6 +358,13 @@ export type SafetyConfigResponse = {
   guardrail_models: GuardrailModelConfig[];
 };
 
+/** Status of the NemoGuardrails CR */
+export type NemoGuardrailsStatus = {
+  name: string;
+  phase: string;
+  isReady: boolean;
+};
+
 export interface AAModelResponse {
   model_name: string;
   model_id: string;
@@ -557,6 +564,8 @@ export type GenAiAPIs = {
   getBFFConfig: GetBFFConfig;
   getGuardrailsStatus: GetGuardrailsStatus;
   getSafetyConfig: GetSafetyConfig;
+  getNemoGuardrailsStatus: GetNemoGuardrailsStatus;
+  initNemoGuardrails: InitNemoGuardrails;
   listMLflowPrompts: ListMLflowPrompts;
   registerMLflowPrompt: RegisterMLflowPrompt;
   getMLflowPrompt: GetMLflowPrompt;
@@ -641,6 +650,11 @@ type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
 type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
 type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
+type GetNemoGuardrailsStatus = ModArchRestGET<NemoGuardrailsStatus>;
+type InitNemoGuardrails = (
+  _data: Record<string, never>,
+  opts?: APIOptions,
+) => Promise<{ name: string }>;
 type ListMLflowPrompts = ModArchRestGET<MLflowPromptsResponse>;
 type RegisterMLflowPrompt = ModArchRestCREATE<MLflowPromptVersion, MLflowRegisterPromptRequest>;
 type GetMLflowPrompt = ModArchRestGET<MLflowPromptVersion>;

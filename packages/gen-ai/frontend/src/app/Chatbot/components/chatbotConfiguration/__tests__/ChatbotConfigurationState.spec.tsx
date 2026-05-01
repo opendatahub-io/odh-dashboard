@@ -4,11 +4,23 @@ import { MemoryRouter } from 'react-router-dom';
 import ChatbotConfigurationState from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationState';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchLSDStatus from '~/app/hooks/useFetchLSDStatus';
+import useFetchNemoGuardrailsStatus from '~/app/hooks/useFetchNemoGuardrailsStatus';
+import useGuardrailsEnabled from '~/app/Chatbot/hooks/useGuardrailsEnabled';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 
 jest.mock('~/app/hooks/useFetchLSDStatus');
+jest.mock('~/app/hooks/useFetchNemoGuardrailsStatus');
+jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
 
 const mockUseFetchLSDStatus = jest.mocked(useFetchLSDStatus);
+const mockUseFetchNemoGuardrailsStatus = jest.mocked(useFetchNemoGuardrailsStatus);
+
+const nemoReadyValue = {
+  data: { name: 'nemoguardrails', phase: 'Ready', isReady: true },
+  loaded: true,
+  error: undefined,
+  refresh: jest.fn(),
+};
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
@@ -19,6 +31,9 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 describe('ChatbotConfigurationState', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Guardrails disabled by default so NemoGuardrails status doesn't affect readiness
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(false);
+    mockUseFetchNemoGuardrailsStatus.mockReturnValue(nemoReadyValue);
   });
 
   it('renders initializing state with spinner', () => {

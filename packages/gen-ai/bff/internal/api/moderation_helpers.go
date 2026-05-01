@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // ModerationResult contains the result of a moderation check
@@ -16,51 +16,111 @@ type ModerationResult struct {
 	ViolationReason string
 }
 
-func (app *App) checkModeration(ctx context.Context, input string, shieldID string) (*ModerationResult, error) {
-	app.logger.Debug("Moderation check started", "shield_id", shieldID, "input_length", len(input))
+// checkModeration sends content to the NeMo Guardrails API for safety evaluation.
+//
+// opts identifies the guardrail configuration — either a pre-created config_id (ConfigMap on
+// the cluster) or a fully inline config with model, rails, and prompts per-request.
+//
+// role controls which rails fire: nemo.RoleUser ("user") for input moderation,
+// nemo.RoleAssistant ("assistant") for output moderation.
+func (app *App) checkModeration(ctx context.Context, input string, opts nemo.GuardrailsOptions, role string) (*ModerationResult, error) {
+	app.logger.Debug("Moderation check started", "inline", opts.Config != nil, "role", role, "input_length", len(input))
 
-	client, err := helper.GetContextLlamaStackClient(ctx)
+	nemoClient, err := helper.GetContextNemoClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get LlamaStack client: %w", err)
+		return nil, fmt.Errorf("failed to get NeMo Guardrails client: %w", err)
 	}
 
-	response, err := client.CreateModeration(ctx, input, shieldID)
+	response, err := nemoClient.CheckGuardrails(ctx, input, opts, role)
 	if err != nil {
-		app.logger.Debug("Moderation API call error", "error", err)
-		return nil, fmt.Errorf("moderation API call failed: %w", err)
+		app.logger.Debug("NeMo guardrail check error", "error", err)
+		return nil, fmt.Errorf("guardrail check failed: %w", err)
 	}
 
-	// No results means content is not flagged
-	if len(response.Results) == 0 {
-		app.logger.Debug("Moderation returned no results", "shield_id", shieldID)
-		return &ModerationResult{Flagged: false}, nil
-	}
-
-	modResult := response.Results[0]
-	app.logger.Debug("Moderation result", "flagged", modResult.Flagged, "raw_json", modResult.RawJSON())
-	return &ModerationResult{
-		Flagged:         modResult.Flagged,
-		ViolationReason: extractDetectionType(modResult.RawJSON()),
-	}, nil
+	return interpretNemoResponse(response), nil
 }
 
-// extractDetectionType extracts the detection_type from TrustyAI's moderation response
-func extractDetectionType(rawJSON string) string {
-	if rawJSON == "" {
-		return ""
+// buildInlineGuardrailOptions constructs a GuardrailsOptions with a fully inline config,
+// allowing per-request model, rails, and prompt customisation without a cluster ConfigMap.
+//
+// endpointURL is the raw base URL of the guardrail model (e.g. vLLM InferenceService URL,
+// external model URL, or MaaS API URL).  The BFF resolves this via GetModelProviderInfo so
+// the frontend never needs to send credentials or URLs.
+func buildInlineGuardrailOptions(
+	endpointURL string,
+	modelID string,
+	apiKey string,
+	inputEnabled bool,
+	outputEnabled bool,
+	inputPrompt string,
+	outputPrompt string,
+) nemo.GuardrailsOptions {
+	config := &nemo.InlineGuardrailConfig{
+		Models: []nemo.InlineGuardrailModel{
+			{
+				Type:   "main",
+				Engine: "openai",
+				Parameters: map[string]interface{}{
+					"openai_api_base": endpointURL,
+					"model_name":      modelID,
+					"api_key":         apiKey,
+				},
+			},
+		},
 	}
 
-	var result struct {
-		Metadata struct {
-			DetectionType string `json:"detection_type"`
-		} `json:"metadata"`
+	if inputEnabled {
+		config.Rails.Input = &nemo.InlineGuardrailRailFlows{
+			Flows: []string{nemo.FlowSelfCheckInput},
+		}
+	}
+	if outputEnabled {
+		config.Rails.Output = &nemo.InlineGuardrailRailFlows{
+			Flows: []string{nemo.FlowSelfCheckOutput},
+		}
 	}
 
-	if err := json.Unmarshal([]byte(rawJSON), &result); err != nil {
-		return ""
+	if inputEnabled && inputPrompt != "" {
+		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
+			Task:    nemo.TaskSelfCheckInput,
+			Content: inputPrompt,
+		})
+	}
+	if outputEnabled && outputPrompt != "" {
+		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
+			Task:    nemo.TaskSelfCheckOutput,
+			Content: outputPrompt,
+		})
 	}
 
-	return result.Metadata.DetectionType
+	return nemo.GuardrailsOptions{Config: config}
+}
+
+// interpretNemoResponse converts a NeMo GuardrailCheckResponse into a ModerationResult.
+func interpretNemoResponse(resp *nemo.GuardrailCheckResponse) *ModerationResult {
+	if resp == nil {
+		return &ModerationResult{Flagged: false}
+	}
+
+	switch resp.Status {
+	case nemo.StatusBlocked:
+		reason := extractBlockedRailName(resp.RailsStatus)
+		return &ModerationResult{Flagged: true, ViolationReason: reason}
+	case nemo.StatusError:
+		return &ModerationResult{Flagged: false}
+	default:
+		return &ModerationResult{Flagged: false}
+	}
+}
+
+// extractBlockedRailName finds the first rail that has a "blocked" status.
+func extractBlockedRailName(railsStatus map[string]nemo.RailStatus) string {
+	for name, rail := range railsStatus {
+		if rail.Status == nemo.StatusBlocked {
+			return name
+		}
+	}
+	return "guardrail_violation"
 }
 
 func ShouldTriggerModeration(accumulatedText string, wordCount int) bool {
@@ -90,7 +150,10 @@ func EndsWithSentenceBoundary(text string) bool {
 	return lastChar == '.' || lastChar == '!' || lastChar == '?' || lastChar == '\n'
 }
 
-// extractResponseText extracts the text content from a response for moderation
+// extractResponseText extracts the text content from a response for moderation.
+// Will be wired in the follow-up PR once guardrail_config request field is implemented.
+//
+//nolint:unused
 func extractResponseText(response *ResponseData) string {
 	var textParts []string
 	for _, output := range response.Output {
@@ -105,6 +168,10 @@ func extractResponseText(response *ResponseData) string {
 	return strings.Join(textParts, " ")
 }
 
+// createGuardrailViolationResponse builds a non-streaming guardrail refusal ResponseData.
+// Will be wired in the follow-up PR once guardrail_config request field is implemented.
+//
+//nolint:unused
 func createGuardrailViolationResponse(responseID string, model string, isInput bool) ResponseData {
 	message := constants.OutputGuardrailViolationMessage
 	if isInput {
