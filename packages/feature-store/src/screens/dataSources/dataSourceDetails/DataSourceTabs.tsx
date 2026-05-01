@@ -2,6 +2,8 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   PageSection,
   Spinner,
   Tab,
@@ -144,11 +146,14 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
   }, [featureViews, dataSource.project, currentProject]);
 
   const emptyState = (
-    <EmptyState>
-      <EmptyState icon={SearchIcon} />
-      <Title headingLevel="h5" size="lg" data-testid="data-source-feature-views-empty-state-title">
-        No feature views found
-      </Title>
+    <EmptyState
+      headingLevel="h5"
+      icon={SearchIcon}
+      titleText="No feature views found"
+      variant={EmptyStateVariant.lg}
+      data-testid="data-source-feature-views-empty-state-title"
+    >
+      <EmptyStateBody>No feature views use this data source.</EmptyStateBody>
     </EmptyState>
   );
 
@@ -193,8 +198,12 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
               projectName={dataSource.project || currentProject || ''}
             />
           ) : !featureViewsLoaded ? (
-            <Bullseye>
-              <Spinner size="xl" data-testid="loading-spinner" />
+            <Bullseye aria-live="polite" aria-busy>
+              <Spinner
+                size="xl"
+                aria-label="Loading feature views for this data source"
+                data-testid="loading-spinner"
+              />
             </Bullseye>
           ) : featureViewsWithServices.length > 0 ? (
             <>

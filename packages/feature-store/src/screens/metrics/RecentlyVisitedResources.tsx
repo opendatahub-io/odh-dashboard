@@ -3,7 +3,6 @@ import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import {
   Bullseye,
   capitalize,
-  Content,
   EmptyState,
   EmptyStateBody,
   EmptyStateVariant,
@@ -11,7 +10,7 @@ import {
   Spinner,
   Title,
 } from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
+import { PathMissingIcon, PlusIcon } from '@patternfly/react-icons';
 import { Td, Tr } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -71,14 +70,27 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
   const renderContent = () => {
     if (!loaded) {
       return (
-        <Bullseye>
-          <Spinner />
+        <Bullseye aria-live="polite" aria-busy>
+          <Spinner aria-label="Loading recently viewed resources" />
         </Bullseye>
       );
     }
 
     if (error) {
-      return <Content>Error loading recently visited resources</Content>;
+      return (
+        <EmptyState
+          role="alert"
+          headingLevel="h4"
+          icon={PathMissingIcon}
+          titleText="Error loading recently visited resources"
+          variant={EmptyStateVariant.lg}
+          data-testid="recently-visited-resources-error-state"
+        >
+          <EmptyStateBody>
+            Unable to load recently viewed resources. Try again later.
+          </EmptyStateBody>
+        </EmptyState>
+      );
     }
 
     if (data.visits.length === 0) {

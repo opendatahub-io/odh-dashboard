@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
@@ -82,51 +83,52 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
         padding={{ default: 'noPadding' }}
         isFilled={false}
       >
-        <Tabs
-          activeKey={activeTabKey}
-          onSelect={(e, tabIndex) => {
-            setActiveTabKey(tabIndex);
-          }}
-          aria-label="Overview page"
-          role="region"
-          data-testid="feature-store-page"
-          isFilled={false}
-        >
-          <Tab
-            eventKey={FeatureStoreTabs.METRICS}
-            title={<TabTitleText>Metrics</TabTitleText>}
-            aria-label="Metrics tab"
-            data-testid="metrics-tab"
-            tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
+        <>
+          <Tabs
+            activeKey={activeTabKey}
+            onSelect={(e, tabIndex) => {
+              setActiveTabKey(tabIndex);
+            }}
+            aria-label="Overview page"
+            role="region"
+            data-testid="feature-store-page"
+            isFilled={false}
           >
-            <TabContent
-              id={`tabContent-${FeatureStoreTabs.METRICS}`}
+            <Tab
               eventKey={FeatureStoreTabs.METRICS}
-              activeKey={activeTabKey}
-              hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-              style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <Metrics />
-            </TabContent>
-          </Tab>
-          <Tab
+              title={<TabTitleText>Metrics</TabTitleText>}
+              aria-label="Metrics tab"
+              data-testid="metrics-tab"
+              tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
+            />
+            <Tab
+              eventKey={FeatureStoreTabs.LINEAGE}
+              title={<TabTitleText>Lineage</TabTitleText>}
+              aria-label="Lineage tab"
+              data-testid="lineage-tab"
+              tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
+            />
+          </Tabs>
+          <TabContent
+            id={`tabContent-${FeatureStoreTabs.METRICS}`}
+            eventKey={FeatureStoreTabs.METRICS}
+            activeKey={activeTabKey}
+            hidden={FeatureStoreTabs.METRICS !== activeTabKey}
+            style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
+          >
+            <Metrics />
+          </TabContent>
+          <TabContent
+            ref={lineageTabRef}
+            id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
             eventKey={FeatureStoreTabs.LINEAGE}
-            title={<TabTitleText>Lineage</TabTitleText>}
-            aria-label="Lineage tab"
-            data-testid="lineage-tab"
-            tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-          />
-        </Tabs>
-        <TabContent
-          ref={lineageTabRef}
-          id={`tabContent-${FeatureStoreTabs.LINEAGE}`}
-          eventKey={FeatureStoreTabs.LINEAGE}
-          activeKey={activeTabKey}
-          hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
-          style={{ height: '100%' }}
-        >
-          <FeatureStoreLineage />
-        </TabContent>
+            activeKey={activeTabKey}
+            hidden={FeatureStoreTabs.LINEAGE !== activeTabKey}
+            style={{ height: '100%' }}
+          >
+            <FeatureStoreLineage />
+          </TabContent>
+        </>
       </PageSection>
     </ApplicationsPage>
   );

@@ -1,5 +1,15 @@
 import * as React from 'react';
+import {
+  Bullseye,
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateVariant,
+} from '@patternfly/react-core';
 import { Td, Tr } from '@patternfly/react-table';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router';
 import Table from '@odh-dashboard/internal/components/table/Table';
 import { FeatureView } from '../../../types/featureView';
@@ -88,6 +98,9 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
     [schemaData, filterData],
   );
 
+  const isFilteredEmpty = schemaData.length > 0 && filteredSchemaData.length === 0;
+  const isTrulyEmpty = schemaData.length === 0;
+
   return (
     <Table
       data-testid="feature-view-schema-table"
@@ -95,7 +108,30 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
       enablePagination
       data={filteredSchemaData}
       columns={schemaColumns}
-      emptyTableView={<div>No schema data available</div>}
+      emptyTableView={
+        <Bullseye>
+          <EmptyState
+            headingLevel="h6"
+            icon={SearchIcon}
+            titleText={isTrulyEmpty ? 'No schema data available' : 'No results match your filters'}
+            variant={EmptyStateVariant.lg}
+            data-testid="feature-view-schema-empty-state"
+          >
+            {isFilteredEmpty && (
+              <>
+                <EmptyStateBody>Adjust or clear your filters to see schema rows.</EmptyStateBody>
+                <EmptyStateFooter>
+                  <EmptyStateActions>
+                    <Button variant="link" onClick={onClearFilters}>
+                      Clear filters
+                    </Button>
+                  </EmptyStateActions>
+                </EmptyStateFooter>
+              </>
+            )}
+          </EmptyState>
+        </Bullseye>
+      }
       rowRenderer={(item, index) => (
         <SchemaTableRow key={`${item.column}-${index}`} item={item} featureView={featureView} />
       )}

@@ -1,12 +1,14 @@
 import React from 'react';
-import { Bullseye } from '@patternfly/react-core';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 import { CogIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { conditionalArea } from '@odh-dashboard/internal/concepts/areas/AreaComponent';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import WhosMyAdministrator from '@odh-dashboard/internal/components/WhosMyAdministrator';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import RedirectErrorState from '@odh-dashboard/internal/pages/external/RedirectErrorState';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -69,7 +71,11 @@ const FeatureStoreContent: React.FC<{
   }
 
   if (!featureStoreCRLoaded || !isAdminLoaded) {
-    return <Bullseye>Loading feature store...</Bullseye>;
+    return (
+      <Bullseye aria-live="polite" aria-busy>
+        <Spinner size="xl" aria-label="Loading feature store" />
+      </Bullseye>
+    );
   }
 
   if (!featureStoreCR) {
@@ -80,7 +86,12 @@ const FeatureStoreContent: React.FC<{
         OpenShift. <br />
         <br />
         {osConsoleAction && (
-          <Link target="_blank" to={osConsoleAction.href || ''} style={{ textDecoration: 'none' }}>
+          <Link
+            target="_blank"
+            rel="noopener noreferrer"
+            to={osConsoleAction.href || ''}
+            style={{ textDecoration: 'none' }}
+          >
             Go to <b>OpenShift Platform</b> {'   '}
             <ExternalLinkAltIcon />
           </Link>
