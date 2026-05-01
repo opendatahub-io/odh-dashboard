@@ -96,7 +96,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/*',
     { websocket: true },
     (
-      connection,
+      socket,
       req: OauthFastifyRequest<{
         Querystring: Record<string, string>;
         Params: { '*': string; [key: string]: string };
@@ -104,7 +104,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }>,
     ) =>
       getDirectCallOptions(fastify, req, '').then((requestOptions) => {
-        const source = connection.socket;
+        const source = socket;
         const kubeUri = req.params['*'];
         const connectionId = `${req.id}-${kubeUri}`;
 
