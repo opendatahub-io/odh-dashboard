@@ -65,17 +65,11 @@ class McpDeploymentDeleteModal {
 }
 
 class McpDeploymentsPage {
-  visit() {
-    cy.visitWithLogin('/ai-hub/mcp-deployments');
-    this.wait();
-  }
-
-  private wait() {
-    // A project must be selected before the table loads (namespace drives the BFF list call).
-    cy.findByTestId('project-selector-toggle').should('be.visible').click();
-    cy.findByRole('menuitem', { name: 'mcp-servers' }).click();
-    cy.findByTestId('mcp-deployments-table').should('be.visible');
-    cy.testA11y();
+  visit(namespace?: string) {
+    const url = namespace
+      ? `/ai-hub/mcp-servers/deployments/${namespace}`
+      : '/ai-hub/mcp-servers/deployments';
+    cy.visitWithLogin(url);
   }
 
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {

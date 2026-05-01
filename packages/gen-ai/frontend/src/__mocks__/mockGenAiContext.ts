@@ -29,6 +29,10 @@ export const mockGenAiContextValue: React.ContextType<typeof GenAiContext> = {
       getBFFConfig: jest.fn().mockResolvedValue({ isCustomLSD: false }),
       getGuardrailsStatus: jest.fn().mockResolvedValue({ data: null }),
       getSafetyConfig: jest.fn().mockResolvedValue({ data: null }),
+      getNemoGuardrailsStatus: jest
+        .fn()
+        .mockResolvedValue({ name: 'nemoguardrails', phase: 'Ready', isReady: true }),
+      initNemoGuardrails: jest.fn().mockResolvedValue({ name: 'nemoguardrails' }),
       listMLflowPrompts: jest.fn().mockResolvedValue([]),
       registerMLflowPrompt: jest.fn().mockResolvedValue({ data: null }),
       getMLflowPrompt: jest.fn().mockResolvedValue({ data: null }),
