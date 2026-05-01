@@ -6,11 +6,14 @@ import {
   CardHeader,
   CardTitle,
   Button,
+  HelperText,
+  HelperTextItem,
   Stack,
   StackItem,
   Flex,
   FlexItem,
 } from '@patternfly/react-core';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- project settings card needs project context
 import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
@@ -42,7 +45,7 @@ const NIMSettingsCard: React.FC = () => {
 
   const existingSecretName = nimAccount?.spec.apiKeySecret.name;
 
-  const handleEnableClick = () => {
+  const handleAddClick = () => {
     setIsReplacing(false);
     setIsModalOpen(true);
   };
@@ -52,7 +55,7 @@ const NIMSettingsCard: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDisableConfirm = async () => {
+  const handleRemoveConfirm = async () => {
     setIsDeleting(true);
     setDeleteError(undefined);
     try {
@@ -60,7 +63,7 @@ const NIMSettingsCard: React.FC = () => {
       setIsDeleteModalOpen(false);
       refresh();
     } catch (e) {
-      setDeleteError(e instanceof Error ? e : new Error('Failed to disable NIM.'));
+      setDeleteError(e instanceof Error ? e : new Error('Failed to remove NIM.'));
     } finally {
       setIsDeleting(false);
     }
@@ -70,8 +73,8 @@ const NIMSettingsCard: React.FC = () => {
     switch (status) {
       case NIMAccountStatus.NOT_FOUND:
         return (
-          <Button variant="secondary" onClick={handleEnableClick} data-testid="nim-enable-button">
-            Enable with personal API key
+          <Button variant="secondary" onClick={handleAddClick} data-testid="nim-enable-button">
+            Add personal API key
           </Button>
         );
       case NIMAccountStatus.PENDING:
@@ -79,11 +82,21 @@ const NIMSettingsCard: React.FC = () => {
       case NIMAccountStatus.READY:
         return (
           <Stack hasGutter>
-            {!(isModalOpen && status === NIMAccountStatus.PENDING) && (
+            {status === NIMAccountStatus.READY && (
               <StackItem>
-                <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
+                <HelperText>
+                  <HelperTextItem icon={<CheckCircleIcon />} variant="success">
+                    Your personal API key has been saved.
+                  </HelperTextItem>
+                </HelperText>
               </StackItem>
             )}
+            {!(isModalOpen && status === NIMAccountStatus.PENDING) &&
+              (status === NIMAccountStatus.PENDING || status === NIMAccountStatus.ERROR) && (
+                <StackItem>
+                  <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
+                </StackItem>
+              )}
             {(status === NIMAccountStatus.ERROR || status === NIMAccountStatus.READY) && (
               <StackItem>
                 <Flex>
@@ -91,9 +104,9 @@ const NIMSettingsCard: React.FC = () => {
                     <Button
                       variant="secondary"
                       onClick={() => setIsDeleteModalOpen(true)}
-                      data-testid="nim-disable-button"
+                      data-testid="nim-remove-button"
                     >
-                      Disable
+                      Remove
                     </Button>
                   </FlexItem>
                   <FlexItem>
@@ -140,10 +153,10 @@ const NIMSettingsCard: React.FC = () => {
 
       {isDeleteModalOpen && (
         <DeleteModal
-          title="Disable NVIDIA NIM"
+          title="Remove NVIDIA NIM"
           onClose={() => setIsDeleteModalOpen(false)}
-          onDelete={handleDisableConfirm}
-          submitButtonLabel="Disable"
+          onDelete={handleRemoveConfirm}
+          submitButtonLabel="Remove"
           deleteName="NVIDIA NIM"
           deleting={isDeleting}
           error={deleteError}
