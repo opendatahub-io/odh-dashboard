@@ -474,3 +474,26 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
     })),
   };
 };
+
+export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
+  const policy: MaaSAuthPolicy = {
+    name: 'missing-model-summary-policy',
+    displayName: "Policy with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+      },
+    ],
+    subjects: { groups: [{ name: 'premium-users' }] },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    policy,
+    modelRefs: [],
+  };
+};

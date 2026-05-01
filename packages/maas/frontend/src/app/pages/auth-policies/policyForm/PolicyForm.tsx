@@ -171,7 +171,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             data-testid="policy-no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model and create a
-            MaaSModelRef before creating a policy.
+            MaaSModelRef before creating an authorization policy.
           </Alert>
         ) : (
           <>
@@ -183,7 +183,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               onRemoveModel={handleRemoveModelAt}
               helperText={
                 <Content>
-                  Add models that subjects of this policy will be granted access to.
+                  Add models that subjects of this authorization policy will be granted access to.
                 </Content>
               }
               formGroupFieldId="policy-models"
@@ -191,7 +191,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               tableTestId="policy-models-table"
               tableAriaLabel="Policy models"
               addModelsButtonTestId="policy-add-models-button"
-              addModelsButtonAriaLabel="Add models to policy"
+              addModelsButtonAriaLabel="Add models to authorization policy"
+              resourceType="authorization policy"
             />
             {isAddModelsModalOpen && (
               <AddModelsModal
@@ -203,16 +204,16 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
                 onAdd={handleAddModels}
                 onRemove={handleRemoveModelsByRef}
                 onClose={() => setIsAddModelsModalOpen(false)}
-                ariaLabel="Add models to policy"
-                title="Add models to policy"
-                description="Select model endpoints to grant access to through this policy."
+                ariaLabel="Add models to authorization policy"
+                title="Add models to authorization policy"
+                description="Select model endpoints to grant access to through this authorization policy."
               />
             )}
           </>
         )}
 
         {submitError && (
-          <Alert variant="danger" isInline title="Failed to save policy">
+          <Alert variant="danger" isInline title="Failed to save authorization policy">
             {submitError}
           </Alert>
         )}
