@@ -1,16 +1,16 @@
 import { Button, Flex, FlexItem } from '@patternfly/react-core';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
+import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import AutomlExperiments, {
   type AutomlExperimentsListStatus,
 } from '~/app/components/experiments/AutomlExperiments';
-import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
-import ProjectSelectorNavigator from '~/app/components/common/ProjectSelectorNavigator';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import NoProjects from '~/app/components/empty-states/NoProjects';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
+import { usePreferredNamespaceRedirect } from '~/app/hooks/usePreferredNamespaceRedirect';
 import { automlConfigurePathname, automlExperimentsPathname } from '~/app/utilities/routes';
 
 function AutomlExperimentsPage(): React.JSX.Element {
@@ -18,9 +18,8 @@ function AutomlExperimentsPage(): React.JSX.Element {
 
   const navigate = useNavigate();
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =

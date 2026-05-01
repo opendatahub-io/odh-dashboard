@@ -7,6 +7,7 @@ type ModelPropertiesExpandableSectionProps = {
     isExpandedByDefault?: boolean;
     onEditingChange?: (isEditing: boolean) => void;
     modelName?: string;
+    showInlineAlerts?: boolean;
 };
 declare const ModelPropertiesExpandableSection: React.FC<ModelPropertiesExpandableSectionProps>;
 export default ModelPropertiesExpandableSection;

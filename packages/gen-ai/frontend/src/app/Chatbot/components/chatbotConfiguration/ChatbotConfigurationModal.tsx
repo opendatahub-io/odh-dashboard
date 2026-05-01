@@ -400,6 +400,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     });
   };
 
+  const isNemoGuardrailsConflict = (e: unknown): boolean =>
+    e instanceof Error && 'code' in e && e.code === '409';
+
   const onSubmit = () => {
     if (submitting) {
       return;
@@ -421,30 +424,46 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setSubmitting(true);
 
     const install = () => {
-      api
-        .installLSD({
-          models: selectedModels.map((model) => {
-            const isMaaS = model.model_source_type === 'maas';
-            const resolvedType =
-              modelTypeMap.get(model.model_name) ??
-              (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
-            const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
-            const maxTokens = maxTokensMap.get(model.model_name);
-            const embeddingDimension = embeddingDimensionMap.get(model.model_name);
-            return {
-              model_name: isMaaS ? model.model_id : model.model_name,
-              model_source_type: model.model_source_type,
-              model_type: apiModelType,
-              ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
-              ...(apiModelType === 'embedding' &&
-                embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
-            };
-          }),
-          enable_guardrails: guardrailsEnabled,
-          ...(selectedCollections.length > 0 && {
-            vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
-          }),
-        })
+      const installLSDPromise = api.installLSD({
+        models: selectedModels.map((model) => {
+          const isMaaS = model.model_source_type === 'maas';
+          const resolvedType =
+            modelTypeMap.get(model.model_name) ??
+            (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+          const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
+          const maxTokens = maxTokensMap.get(model.model_name);
+          const embeddingDimension = embeddingDimensionMap.get(model.model_name);
+          return {
+            model_name: isMaaS ? model.model_id : model.model_name,
+            model_source_type: model.model_source_type,
+            model_type: apiModelType,
+            ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
+            ...(apiModelType === 'embedding' &&
+              embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
+          };
+        }),
+        enable_guardrails: guardrailsEnabled,
+        ...(selectedCollections.length > 0 && {
+          vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
+        }),
+      });
+
+      // If guardrails are enabled, init NemoGuardrails. A 409 (already initialised) is swallowed —
+      // the status poller in ChatbotConfigurationState handles waiting for ready.
+      // Any other error (network fault, server error) is rethrown to surface in the wizard.
+      const nemoPromise: Promise<void> = guardrailsEnabled
+        ? api
+            .initNemoGuardrails({})
+            .then(() => undefined)
+            .catch((e: unknown) => {
+              if (isNemoGuardrailsConflict(e)) {
+                return undefined;
+              }
+              throw e;
+            })
+        : Promise.resolve();
+
+      Promise.all([installLSDPromise, nemoPromise])
         .then(() => {
           fireFormTrackingEvent(
             isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,

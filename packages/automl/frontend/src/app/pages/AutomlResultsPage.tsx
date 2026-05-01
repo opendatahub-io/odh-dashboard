@@ -11,7 +11,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useParams } from 'react-router';
@@ -24,15 +23,15 @@ import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);

@@ -82,25 +82,30 @@ const waitForGenAiStudioFeatureFlag = (): Cypress.Chainable<Cypress.Exec> => {
 };
 
 /**
- * Check if the Gen AI Studio section exists in the sidebar.
- *
- * @returns A Cypress chainable resolving to true if the section exists, false otherwise.
- */
-/**
  * Retry-aware check for an element inside the sidebar.
  * See `findNavItemInSidebar` in mlflow.ts for rationale.
+ *
+ * After `dashboard-page-main` appears, extension nav items can render asynchronously.
+ * Poll the live `#page-sidebar` DOM (not only the initial command subject) until the
+ * selector matches or the settle window elapses.
+ *
+ * The inner poll can run up to `NAV_ITEM_SETTLE_MS`; `.then()` must use a longer timeout
+ * than `defaultCommandTimeout` (10s) or Cypress aborts while the Promise is still pending.
  */
 const SIDEBAR_SETTLE_TIMEOUT = 30000;
 const NAV_ITEM_SETTLE_MS = 15000;
 const NAV_ITEM_POLL_MS = 500;
+const NAV_ITEM_FIND_TIMEOUT_MS = NAV_ITEM_SETTLE_MS + 5000;
 
 const findInSidebar = (selector: string): Cypress.Chainable<boolean> =>
   appChrome.findSideBar().then(
-    ($sidebar) =>
+    { timeout: NAV_ITEM_FIND_TIMEOUT_MS },
+    () =>
       new Cypress.Promise<boolean>((resolve) => {
         const deadline = Date.now() + NAV_ITEM_SETTLE_MS;
         const poll = () => {
-          if ($sidebar.find(selector).length > 0) {
+          const $sidebar = Cypress.$('#page-sidebar');
+          if ($sidebar.length > 0 && $sidebar.find(selector).length > 0) {
             resolve(true);
           } else if (Date.now() >= deadline) {
             resolve(false);

@@ -1,4 +1,5 @@
-import { ModelRegistryCustomProperties, ModelVersion, RegisteredModel } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelVersion, ModelTransferJob, ModelTransferJobSourceType, ModelTransferJobDestinationType, RegisteredModel } from '~/app/types';
+export type StorageType = ModelTransferJobSourceType | ModelTransferJobDestinationType;
 export type ObjectStorageFields = {
     endpoint: string;
     bucket: string;
@@ -22,3 +23,9 @@ export declare const filterLiveModels: (registeredModels: RegisteredModel[]) => 
 export declare const getStringValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => string;
 export declare const getIntValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => number;
 export declare const getDoubleValue: <T extends ModelRegistryCustomProperties>(customProperties: T | undefined, key: keyof T) => number;
+export declare const getStorageTypeLabel: (type: StorageType) => string;
+export declare const getModelUriPopoverContent: (destType: ModelTransferJobDestinationType) => string;
+export declare const getModelUriLabel: (destType: ModelTransferJobDestinationType) => string;
+export declare const getSourceLabel: (sourceType: ModelTransferJobSourceType) => string;
+export declare const getDestinationUri: (job: ModelTransferJob) => string;
+export declare const getSourcePath: (job: ModelTransferJob) => string;

@@ -21,6 +21,7 @@ type Repositories struct {
 	LlamaStackDistribution *LlamaStackDistributionRepository
 	MCPClient              *MCPClientRepository
 	Guardrails             *GuardrailsRepository
+	NemoGuardrails         *NemoGuardrailsRepository
 	MLflowPrompts          *MLflowPromptsRepository
 	ExternalModels         *ExternalModelsRepository
 }
@@ -41,6 +42,7 @@ func NewRepositories() *Repositories {
 		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
 		MCPClient:              nil, // Will be initialized separately with MCP client factory
 		Guardrails:             NewGuardrailsRepository(),
+		NemoGuardrails:         NewNemoGuardrailsRepository(),
 		MLflowPrompts:          NewMLflowPromptsRepository(),
 		ExternalModels:         NewExternalModelsRepository(),
 	}

@@ -36,6 +36,10 @@ type EnvConfig struct {
 	// Llama Stack Configuration
 	LlamaStackURL string
 
+	// NeMo Guardrails Configuration
+	NemoGuardrailsURL string
+	MockNemoClient    bool
+
 	// MaaS (Model as a Service) Configuration
 	MaaSURL string
 

@@ -13,7 +13,6 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
@@ -22,6 +21,7 @@ import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
@@ -37,9 +37,8 @@ function AutomlConfigurePage(): React.JSX.Element {
   const notification = useNotification();
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
