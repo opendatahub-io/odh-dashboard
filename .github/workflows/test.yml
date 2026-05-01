@@ -101,6 +101,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -268,6 +269,9 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        if: steps.cypress-build-cache.outputs.cache-hit != 'true'
+        run: npm install
       - name: Install standalone module dependencies
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         run: npm run install:modules
