@@ -23,6 +23,12 @@ import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from './useNIMAccountStatus';
 import { deleteNIMResources } from './nimK8sUtils';
 
+enum ApiKeyModalState {
+  CLOSED = 'CLOSED',
+  ADDING = 'ADDING',
+  REPLACING = 'REPLACING',
+}
+
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
   'for secure, reliable deployment of high-performance AI model inferencing across the cloud, ' +
@@ -37,23 +43,13 @@ const NIMSettingsCard: React.FC = () => {
   const { status, nimAccount, errorMessages, refresh, startRevalidation } =
     useNIMAccountStatus(namespace);
 
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [isReplacing, setIsReplacing] = React.useState(false);
+  const [apiKeyModalState, setApiKeyModalState] = React.useState(ApiKeyModalState.CLOSED);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
 
   const existingSecretName = nimAccount?.spec.apiKeySecret.name;
-
-  const handleAddClick = () => {
-    setIsReplacing(false);
-    setIsModalOpen(true);
-  };
-
-  const handleReplaceKeyClick = () => {
-    setIsReplacing(true);
-    setIsModalOpen(true);
-  };
+  const isApiKeyModalOpen = apiKeyModalState !== ApiKeyModalState.CLOSED;
 
   const handleRemoveConfirm = async () => {
     setIsDeleting(true);
@@ -83,7 +79,11 @@ const NIMSettingsCard: React.FC = () => {
     switch (status) {
       case NIMAccountStatus.NOT_FOUND:
         return (
-          <Button variant="secondary" onClick={handleAddClick} data-testid="nim-enable-button">
+          <Button
+            variant="secondary"
+            onClick={() => setApiKeyModalState(ApiKeyModalState.ADDING)}
+            data-testid="nim-enable-button"
+          >
             Add personal API key
           </Button>
         );
@@ -105,7 +105,7 @@ const NIMSettingsCard: React.FC = () => {
             <FlexItem>
               <Button
                 variant="link"
-                onClick={handleReplaceKeyClick}
+                onClick={() => setApiKeyModalState(ApiKeyModalState.REPLACING)}
                 data-testid="nim-replace-key-button"
               >
                 Replace key
@@ -131,7 +131,7 @@ const NIMSettingsCard: React.FC = () => {
 
         return (
           <Stack hasGutter>
-            {!(isModalOpen && status === NIMAccountStatus.PENDING) && (
+            {!(isApiKeyModalOpen && status === NIMAccountStatus.PENDING) && (
               <StackItem>
                 <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
               </StackItem>
@@ -155,11 +155,11 @@ const NIMSettingsCard: React.FC = () => {
         <CardFooter>{renderFooterContent()}</CardFooter>
       </Card>
 
-      {isModalOpen && (
+      {isApiKeyModalOpen && (
         <NIMApiKeyModal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => setApiKeyModalState(ApiKeyModalState.CLOSED)}
           namespace={namespace}
-          isReplacing={isReplacing}
+          isReplacing={apiKeyModalState === ApiKeyModalState.REPLACING}
           existingSecretName={existingSecretName}
           refresh={refresh}
           startRevalidation={startRevalidation}
