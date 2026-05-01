@@ -62,11 +62,11 @@ describe('AutomlModelDetailsModalHeader', () => {
   });
 
   it('should display negated error metric values as-is', () => {
-    const errorModel = buildModel('Model', { mase: -0.082 });
+    const errorModel = buildModel('Model', { mean_absolute_scaled_error: -0.082 });
     render(
       <AutomlModelDetailsModalHeader
         {...defaultProps}
-        evalMetric="mase"
+        evalMetric="mean_absolute_scaled_error"
         models={[errorModel]}
         currentModelName="Model"
       />,

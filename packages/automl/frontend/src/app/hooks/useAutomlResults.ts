@@ -11,6 +11,34 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { isTabularRun } from '~/app/utilities/utils';
 
+/* eslint-disable camelcase */
+const METRIC_ALIASES: Record<string, string> = {
+  MAE: 'mean_absolute_error',
+  MSE: 'mean_squared_error',
+  RMSE: 'root_mean_squared_error',
+  RMSLE: 'root_mean_squared_logarithmic_error',
+  MAPE: 'mean_absolute_percentage_error',
+  SMAPE: 'symmetric_mean_absolute_percentage_error',
+  MASE: 'mean_absolute_scaled_error',
+  RMSSE: 'root_mean_squared_scaled_error',
+  WAPE: 'weighted_absolute_percentage_error',
+  WQL: 'weighted_quantile_loss',
+  SQL: 'scaled_quantile_loss',
+};
+/* eslint-enable camelcase */
+
+// Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
+// return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
+// is used to normalize keys so downstream code only handles one form. See RHOAIENG-59989.
+function normalizeMetricsToSnakeCase(testData: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(testData)) {
+    const normalized = METRIC_ALIASES[key.toUpperCase()] ?? key;
+    result[normalized] = value;
+  }
+  return result;
+}
+
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
   isLoading: boolean;
@@ -199,7 +227,10 @@ export function useAutomlResults(
               notebook,
               ...(locationMetrics != null && { metrics: locationMetrics }),
             },
-            metrics: validated.metrics,
+            metrics: {
+              // eslint-disable-next-line camelcase
+              test_data: normalizeMetricsToSnakeCase(validated.metrics.test_data),
+            },
           };
 
           return { name, model };

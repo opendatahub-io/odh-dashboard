@@ -119,17 +119,22 @@ describe('formatMetricName', () => {
     expect(formatMetricName('mcc')).toBe('MCC');
     expect(formatMetricName('f1')).toBe('F₁');
     expect(formatMetricName('r2')).toBe('R²');
-    expect(formatMetricName('mae')).toBe('MAE');
-    expect(formatMetricName('mse')).toBe('MSE');
-    expect(formatMetricName('rmse')).toBe('RMSE');
-    expect(formatMetricName('mape')).toBe('MAPE');
-    expect(formatMetricName('mase')).toBe('MASE');
-    expect(formatMetricName('smape')).toBe('SMAPE');
+    expect(formatMetricName('mean_absolute_error')).toBe('MAE');
+    expect(formatMetricName('mean_squared_error')).toBe('MSE');
+    expect(formatMetricName('root_mean_squared_error')).toBe('RMSE');
+    expect(formatMetricName('mean_absolute_percentage_error')).toBe('MAPE');
+    expect(formatMetricName('mean_absolute_scaled_error')).toBe('MASE');
+    expect(formatMetricName('symmetric_mean_absolute_percentage_error')).toBe('SMAPE');
+    expect(formatMetricName('root_mean_squared_logarithmic_error')).toBe('RMSLE');
+    expect(formatMetricName('root_mean_squared_scaled_error')).toBe('RMSSE');
+    expect(formatMetricName('weighted_absolute_percentage_error')).toBe('WAPE');
+    expect(formatMetricName('weighted_quantile_loss')).toBe('WQL');
+    expect(formatMetricName('scaled_quantile_loss')).toBe('SQL');
   });
 
   it('should convert snake_case to Title Case', () => {
     expect(formatMetricName('balanced_accuracy')).toBe('Balanced Accuracy');
-    expect(formatMetricName('root_mean_squared_error')).toBe('Root Mean Squared Error');
+    expect(formatMetricName('some_unknown_metric')).toBe('Some Unknown Metric');
   });
 
   it('should title-case a single-word key not in the display names map', () => {
@@ -212,8 +217,8 @@ describe('getOptimizedMetricForTask', () => {
     expect(getOptimizedMetricForTask('regression')).toBe('r2');
   });
 
-  it('should return mase for timeseries', () => {
-    expect(getOptimizedMetricForTask('timeseries')).toBe('mase');
+  it('should return mean_absolute_scaled_error for timeseries', () => {
+    expect(getOptimizedMetricForTask('timeseries')).toBe('mean_absolute_scaled_error');
   });
 
   it('should return Unknown metric for unknown task types', () => {
@@ -260,11 +265,11 @@ describe('computeRankMap', () => {
     });
   });
 
-  it('should rank models by negated mase descending for timeseries (higher is better)', () => {
+  it('should rank models by negated mean_absolute_scaled_error descending for timeseries (higher is better)', () => {
     const models = {
-      ModelA: buildModel(-0.15, 'mase'),
-      ModelB: buildModel(-0.05, 'mase'),
-      ModelC: buildModel(-0.1, 'mase'),
+      ModelA: buildModel(-0.15, 'mean_absolute_scaled_error'),
+      ModelB: buildModel(-0.05, 'mean_absolute_scaled_error'),
+      ModelC: buildModel(-0.1, 'mean_absolute_scaled_error'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');
@@ -325,9 +330,9 @@ describe('computeRankMap', () => {
 
   it('should rank models with missing metrics last for negated error metrics', () => {
     const models = {
-      ModelA: buildModel(-0.15, 'mase'),
-      ModelB: { metrics: { test_data: {} } }, // missing mase
-      ModelC: buildModel(-0.05, 'mase'),
+      ModelA: buildModel(-0.15, 'mean_absolute_scaled_error'),
+      ModelB: { metrics: { test_data: {} } }, // missing mean_absolute_scaled_error
+      ModelC: buildModel(-0.05, 'mean_absolute_scaled_error'),
     };
 
     const rankMap = computeRankMap(models, 'timeseries');

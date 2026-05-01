@@ -56,7 +56,7 @@ describe('ModelInformationTab', () => {
     render(<ModelInformationTab {...defaultProps} />);
 
     expect(screen.getByText('Evaluation metric')).toBeInTheDocument();
-    expect(screen.getByText('accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Accuracy')).toBeInTheDocument();
   });
 
   it('should render formatted creation date when provided', () => {
