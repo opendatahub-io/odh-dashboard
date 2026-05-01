@@ -4,7 +4,7 @@ import {
   useS3ListFilesQuery,
   fetchS3Json,
   AutomlModelSchema,
-  isRawTimeseriesModel,
+  isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
@@ -183,34 +183,28 @@ export function useAutomlResults(
           });
 
           // Rewrite relative location paths to absolute S3 paths.
-          // Timeseries has `notebooks` (directory) + `metrics`; tabular has `notebook` (file path).
-          let model: AutomlModel;
-          if (isRawTimeseriesModel(validated)) {
-            model = {
-              name: validated.name,
+          // Timeseries (3.4) uses `notebooks` (plural, directory); all others use `notebook` (file).
+          // V35 and timeseries have `location.metrics`; legacy tabular does not.
+          const notebook = isRawTimeseriesModelV34(validated)
+            ? `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`
+            : `${artifactDirectory}${validated.location.notebook}`;
+
+          const locationMetrics =
+            'metrics' in validated.location
+              ? `${artifactDirectory}${validated.location.metrics}`
+              : undefined;
+
+          const model: AutomlModel = {
+            name: validated.name,
+            location: {
               // eslint-disable-next-line camelcase
-              base_model: validated.base_model,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`,
-                metrics: `${artifactDirectory}${validated.location.metrics}`,
-              },
-              metrics: validated.metrics,
-            };
-          } else {
-            model = {
-              name: validated.name,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebook}`,
-              },
-              metrics: validated.metrics,
-            };
-          }
+              model_directory: directory,
+              predictor: `${artifactDirectory}${validated.location.predictor}`,
+              notebook,
+              ...(locationMetrics != null && { metrics: locationMetrics }),
+            },
+            metrics: validated.metrics,
+          };
 
           return { name, model };
         },

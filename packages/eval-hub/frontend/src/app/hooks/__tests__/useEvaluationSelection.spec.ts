@@ -1,6 +1,4 @@
 /* eslint-disable camelcase */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import * as React from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
@@ -23,8 +21,10 @@ const setupSearchParams = (params: Record<string, string>) => {
   jest.mocked(useSearchParams).mockReturnValue([sp, jest.fn()]);
 };
 
+const mockUseLocation = useLocation as jest.Mock;
+
 const setupLocationState = (state: Record<string, unknown> | null) => {
-  jest.mocked(useLocation).mockReturnValue({
+  mockUseLocation.mockReturnValue({
     pathname: '/test-ns/create/start',
     search: '',
     hash: '',
