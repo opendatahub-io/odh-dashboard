@@ -60,8 +60,18 @@ const NIMSettingsCard: React.FC = () => {
     setDeleteError(undefined);
     try {
       await deleteNIMResources(namespace);
+      const pollUntilGone = async (retries = 10): Promise<void> => {
+        const result = await refresh();
+        if (result && retries > 0) {
+          await new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          });
+          return pollUntilGone(retries - 1);
+        }
+        return undefined;
+      };
+      await pollUntilGone();
       setIsDeleteModalOpen(false);
-      refresh();
     } catch (e) {
       setDeleteError(e instanceof Error ? e : new Error('Failed to remove NIM.'));
     } finally {
@@ -79,10 +89,34 @@ const NIMSettingsCard: React.FC = () => {
         );
       case NIMAccountStatus.PENDING:
       case NIMAccountStatus.ERROR:
-      case NIMAccountStatus.READY:
-        return (
-          <Stack hasGutter>
-            {status === NIMAccountStatus.READY && (
+      case NIMAccountStatus.READY: {
+        const actionButtons = (status === NIMAccountStatus.ERROR ||
+          status === NIMAccountStatus.READY) && (
+          <Flex>
+            <FlexItem>
+              <Button
+                variant="secondary"
+                onClick={() => setIsDeleteModalOpen(true)}
+                data-testid="nim-remove-button"
+              >
+                Remove
+              </Button>
+            </FlexItem>
+            <FlexItem>
+              <Button
+                variant="link"
+                onClick={handleReplaceKeyClick}
+                data-testid="nim-replace-key-button"
+              >
+                Replace key
+              </Button>
+            </FlexItem>
+          </Flex>
+        );
+
+        if (status === NIMAccountStatus.READY) {
+          return (
+            <Stack hasGutter>
               <StackItem>
                 <HelperText>
                   <HelperTextItem icon={<CheckCircleIcon />} variant="success">
@@ -90,39 +124,22 @@ const NIMSettingsCard: React.FC = () => {
                   </HelperTextItem>
                 </HelperText>
               </StackItem>
-            )}
-            {!(isModalOpen && status === NIMAccountStatus.PENDING) &&
-              (status === NIMAccountStatus.PENDING || status === NIMAccountStatus.ERROR) && (
-                <StackItem>
-                  <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
-                </StackItem>
-              )}
-            {(status === NIMAccountStatus.ERROR || status === NIMAccountStatus.READY) && (
+              <StackItem>{actionButtons}</StackItem>
+            </Stack>
+          );
+        }
+
+        return (
+          <Stack hasGutter>
+            {!(isModalOpen && status === NIMAccountStatus.PENDING) && (
               <StackItem>
-                <Flex>
-                  <FlexItem>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsDeleteModalOpen(true)}
-                      data-testid="nim-remove-button"
-                    >
-                      Remove
-                    </Button>
-                  </FlexItem>
-                  <FlexItem>
-                    <Button
-                      variant="link"
-                      onClick={handleReplaceKeyClick}
-                      data-testid="nim-replace-key-button"
-                    >
-                      Replace key
-                    </Button>
-                  </FlexItem>
-                </Flex>
+                <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
               </StackItem>
             )}
+            {actionButtons && <StackItem>{actionButtons}</StackItem>}
           </Stack>
         );
+      }
       default:
         return null;
     }
@@ -147,7 +164,6 @@ const NIMSettingsCard: React.FC = () => {
           refresh={refresh}
           startRevalidation={startRevalidation}
           accountStatus={status}
-          accountErrors={errorMessages}
         />
       )}
 
