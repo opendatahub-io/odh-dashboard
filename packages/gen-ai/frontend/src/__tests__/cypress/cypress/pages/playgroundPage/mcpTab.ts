@@ -32,18 +32,20 @@ class MCPTab {
   }
 
   // The table inside the MCP tab (testId unchanged in component)
-  findMCPServersTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('mcp-servers-panel-table');
+  findMCPServersTable(
+    options?: Partial<Cypress.Loggable & Cypress.Timeoutable>,
+  ): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('mcp-servers-panel-table', options);
   }
 
   openMCPTab(): void {
     // Click the MCP tab to show the servers table
     this.clickMCPTab();
-    this.findMCPServersTable().should('exist', { timeout: 30000 }).and('be.visible');
+    this.verifyMCPTabVisible();
   }
 
   verifyMCPTabVisible(): void {
-    this.findMCPServersTable().should('be.visible', { timeout: 30000 });
+    this.findMCPServersTable({ timeout: 30000 }).should('exist').and('be.visible');
   }
 
   private findCheckedCheckboxes(): Cypress.Chainable<JQuery<HTMLElement>> {

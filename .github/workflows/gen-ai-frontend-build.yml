@@ -75,3 +75,11 @@ jobs:
               git diff
               exit 1
           fi
+
+      - name: Upload Cypress results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gen-ai-cypress-results
+          path: packages/gen-ai/frontend/src/__tests__/cypress/results/
+          retention-days: 7
