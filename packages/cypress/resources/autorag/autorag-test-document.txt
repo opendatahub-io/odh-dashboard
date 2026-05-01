@@ -1,0 +1,17 @@
+Red Hat OpenShift AI Platform Overview
+
+Red Hat OpenShift AI is a flexible, scalable MLOps platform built on Red Hat OpenShift that provides data scientists and developers with an integrated environment for building, training, deploying, and monitoring machine learning models. The platform supports the full AI/ML lifecycle from experimentation to production.
+
+Key Components
+
+Data Science Pipelines enable users to automate multi-step ML workflows using Kubeflow Pipelines. These pipelines support parameterized execution, artifact tracking, and experiment management. Pipeline runs can be scheduled, monitored, and compared through the dashboard.
+
+Model Serving provides scalable inference endpoints using KServe and ModelMesh frameworks. Models can be deployed from object storage, OCI registries, or model registries with configurable hardware profiles, autoscaling policies, and token-based authentication.
+
+Model Registry offers a centralized catalog for registering, versioning, and managing trained models across teams. It supports custom properties, artifact lineage tracking, and integration with model serving for streamlined deployment workflows.
+
+Workbenches provide containerized development environments with pre-configured notebook images including JupyterLab, VS Code, and RStudio. Each workbench supports persistent storage, environment variables, data connections, and hardware acceleration through GPU and accelerator profiles.
+
+Retrieval-Augmented Generation
+
+AutoRAG automates the optimization of RAG pipelines by evaluating combinations of chunking strategies, embedding models, retrieval methods, and generation models. The system uses configurable evaluation metrics including faithfulness, answer correctness, and context correctness to rank pipeline configurations and identify optimal patterns for production deployment.

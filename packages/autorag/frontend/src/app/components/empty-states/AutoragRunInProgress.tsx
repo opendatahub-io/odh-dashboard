@@ -20,6 +20,7 @@ function AutoragRunInProgress({ namespace }: AutoragRunInProgressProps): React.J
 
   return (
     <EmptyState
+      data-testid="autorag-run-in-progress"
       titleText="Your AutoRAG run is currently in progress"
       headingLevel="h4"
       icon={EmptyStateImageIcon}

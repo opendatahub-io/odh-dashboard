@@ -246,6 +246,8 @@ export type TestConfig = {
   NGC_API_KEY: string;
   OCI_SECRET_VALUE: string;
   OCI_MODEL_URI: string;
+  LLAMA_STACK_URL?: string;
+  LLAMA_STACK_API_KEY?: string;
   // BYOIDC cluster authentication settings
   CLUSTER_AUTH?: string;
   CLUSTER_OIDC_ISSUER?: string;
@@ -732,4 +734,18 @@ export type MlflowExperimentsTestData = {
   experiments: MlflowExperimentData[];
   runs: MlflowExperimentRunData[];
   nonExistentExperiment: string;
+};
+
+export type AutoragTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  s3SecretName: string;
+  llamaStackSecretName: string;
+  runName: string;
+  runDescription: string;
+  documentFile: string;
+  evaluationFile: string;
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  maxRagPatterns: number;
+  optimizationMetric?: string;
 };
