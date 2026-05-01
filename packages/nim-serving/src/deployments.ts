@@ -1,5 +1,10 @@
 import React from 'react';
-import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type {
+  K8sAPIOptions,
+  ProjectKind,
+  InferenceServiceKind,
+} from '@odh-dashboard/internal/k8sTypes';
+import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
 import { type NIMDeployment, type NIMServiceKind } from './types';
 import {
   useWatchNIMServices,
@@ -7,7 +12,6 @@ import {
   useWatchNIMDeploymentPods,
 } from './api/watch';
 import { getNIMDeploymentStatus } from './deploymentStatus';
-import { getNIMDeploymentEndpoints } from './deploymentEndpoints';
 import { NIM_ID } from '../extensions';
 
 export type { NIMDeployment };
@@ -37,28 +41,33 @@ export const useWatchDeployments = (
     [nimServices, filterFn],
   );
 
+  const inferenceServiceByNIMName = React.useMemo(() => {
+    const byName = new Map<string, InferenceServiceKind>();
+    inferenceServices.forEach((is) => {
+      is.metadata.ownerReferences?.forEach((ref) => {
+        if (ref.kind === 'NIMService' && ref.apiVersion.startsWith('apps.nvidia.com/')) {
+          byName.set(ref.name, is);
+        }
+      });
+    });
+    return byName;
+  }, [inferenceServices]);
+
   const deployments: NIMDeployment[] = React.useMemo(
     () =>
       filteredNIMServices.map((nimService) => {
-        const associatedIS = inferenceServices.find((is) =>
-          is.metadata.ownerReferences?.some(
-            (ref) =>
-              ref.kind === 'NIMService' &&
-              ref.apiVersion.startsWith('apps.nvidia.com/') &&
-              ref.name === nimService.metadata.name,
-          ),
-        );
+        const associatedIS = inferenceServiceByNIMName.get(nimService.metadata.name);
 
         return {
           modelServingPlatformId: NIM_ID,
           model: nimService,
           server: associatedIS,
           status: getNIMDeploymentStatus(associatedIS, deploymentPods),
-          endpoints: getNIMDeploymentEndpoints(associatedIS),
+          endpoints: associatedIS ? getKServeDeploymentEndpoints(associatedIS) : [],
           apiProtocol: 'REST',
         };
       }),
-    [filteredNIMServices, inferenceServices, deploymentPods],
+    [filteredNIMServices, inferenceServiceByNIMName, deploymentPods],
   );
 
   const effectivelyLoaded = Boolean(
