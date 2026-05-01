@@ -873,6 +873,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0

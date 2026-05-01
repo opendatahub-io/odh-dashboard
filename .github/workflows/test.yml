@@ -21,6 +21,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
@@ -257,6 +258,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
@@ -286,6 +288,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
       - name: Restore Cypress build cache
         id: cypress-build-cache
         uses: actions/cache/restore@v4
