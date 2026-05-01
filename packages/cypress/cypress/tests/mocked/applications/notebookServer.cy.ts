@@ -240,7 +240,7 @@ describe('NotebookServer', () => {
     notebookServer
       .findHardwareProfileSelect()
       .findSelectOption(
-        'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+        'Large Profile CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       )
       .click();
     notebookServer.findHardwareProfileSelect().should('contain', 'Large');

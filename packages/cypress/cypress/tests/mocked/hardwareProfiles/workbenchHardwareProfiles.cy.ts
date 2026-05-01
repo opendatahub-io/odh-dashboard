@@ -131,10 +131,10 @@ describe('Workbench Hardware Profiles', () => {
 
     // Verify available profiles
     hardwareProfileSection.selectProfile(
-      'Small Profile CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 2 GiB; Limit = 2 GiB',
+      'Small Profile CPU: Default = 1 Cores, Max = 2 Cores; Memory: Default = 2 GiB, Max = 4 GiB',
     );
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
   });
 
@@ -215,7 +215,7 @@ describe('Workbench Hardware Profiles', () => {
     projectScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'Small Profile CPU: Default = 1 Cores, Max = 2 Cores; Memory: Default = 2 GiB, Max = 4 GiB',
         hidden: true,
       })
       .click();
@@ -227,7 +227,7 @@ describe('Workbench Hardware Profiles', () => {
     globalScopedHardwareProfile
       .find()
       .findByRole('menuitem', {
-        name: 'Small Profile CPU: Request = 1; Limit = 1; Memory: Request = 2Gi; Limit = 2Gi',
+        name: 'Small Profile CPU: Default = 1 Cores, Max = 2 Cores; Memory: Default = 2 GiB, Max = 4 GiB',
         hidden: true,
       })
       .click();
@@ -285,7 +285,7 @@ describe('Workbench Hardware Profiles', () => {
 
     // Select profile and open customization
     hardwareProfileSection.selectProfile(
-      'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
     hardwareProfileSection.findCustomizeButton().click();
 

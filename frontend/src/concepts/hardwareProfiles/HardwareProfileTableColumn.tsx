@@ -1,11 +1,10 @@
-import { Spinner, Flex, FlexItem, Popover } from '@patternfly/react-core';
+import { Button, Spinner, Flex, FlexItem, Popover, Tooltip } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import React from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import type { ModelResourceType } from '@odh-dashboard/model-serving/extension-points';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { NotebookKind } from '#~/k8sTypes';
-import { ContainerResources } from '#~/types';
 import ScopedLabel from '#~/components/ScopedLabel';
 import { ScopedType } from '#~/pages/modelServing/screens/const';
 import { getHardwareProfileDisplayName } from '#~/pages/hardwareProfiles/utils';
@@ -19,7 +18,6 @@ import { HardwareProfileBindingStateInfo } from './types';
 type HardwareProfileTableColumnProps = {
   namespace: string;
   resource: NotebookKind | ModelResourceType;
-  containerResources: ContainerResources | undefined;
   isActive?: boolean;
   bindingState: {
     bindingStateInfo: HardwareProfileBindingStateInfo | null;
@@ -31,7 +29,6 @@ type HardwareProfileTableColumnProps = {
 const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
   namespace,
   resource,
-  containerResources,
   isActive = false,
   bindingState,
 }) => {
@@ -71,15 +68,25 @@ const HardwareProfileTableColumn: React.FC<HardwareProfileTableColumnProps> = ({
       >
         {bindingStateInfo?.state !== HardwareProfileBindingState.DELETED && (
           <FlexItem>
-            <HardwareProfileDetailsPopover
-              hardwareProfile={hardwareProfile}
-              resources={containerResources}
-              tolerations={hardwareProfile?.spec.scheduling?.node?.tolerations}
-              nodeSelector={hardwareProfile?.spec.scheduling?.node?.nodeSelector}
-              localQueueName={hardwareProfile?.spec.scheduling?.kueue?.localQueueName}
-              priorityClass={hardwareProfile?.spec.scheduling?.kueue?.priorityClass}
-              tableView
-            />
+            {hardwareProfile ? (
+              <HardwareProfileDetailsPopover
+                hardwareProfile={hardwareProfile}
+                tolerations={hardwareProfile.spec.scheduling?.node?.tolerations}
+                nodeSelector={hardwareProfile.spec.scheduling?.node?.nodeSelector}
+                localQueueName={hardwareProfile.spec.scheduling?.kueue?.localQueueName}
+                priorityClass={hardwareProfile.spec.scheduling?.kueue?.priorityClass}
+                tableView
+              />
+            ) : (
+              <Tooltip
+                content="No matching hardware profile found, using existing settings. Default, min, and max values are not available. Expand the row to view the current resource settings."
+                data-testid="hardware-profile-custom-tooltip"
+              >
+                <Button isInline variant="plain" aria-label="Custom hardware profile">
+                  <i>Custom</i>
+                </Button>
+              </Tooltip>
+            )}
           </FlexItem>
         )}
         {isProjectScoped && hardwareProfile?.metadata.namespace === namespace && (
