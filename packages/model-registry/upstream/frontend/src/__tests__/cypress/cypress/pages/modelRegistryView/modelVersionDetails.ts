@@ -1,3 +1,4 @@
+import { modelVersionUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -20,9 +21,7 @@ class ModelVersionDetails {
     const preferredModelRegistry = 'modelregistry-sample';
     const rmId = '1';
     const mvId = '1';
-    cy.visit(
-      `/model-registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
-    );
+    cy.visit(modelVersionUrl(mvId, rmId, preferredModelRegistry));
     this.wait();
   }
 

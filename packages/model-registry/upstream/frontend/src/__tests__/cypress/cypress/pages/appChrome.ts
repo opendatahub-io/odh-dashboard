@@ -5,7 +5,7 @@ class AppChrome {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('model-registry-page-description').should('exist');
     cy.testA11y();
   }
 

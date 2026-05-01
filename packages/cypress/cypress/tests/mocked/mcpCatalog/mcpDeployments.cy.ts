@@ -427,6 +427,30 @@ describe('MCP Deploy from Catalog', () => {
       mcpServerDetailsPage.findDeployButton().should('be.visible');
       mcpServerDetailsPage.findDeployButtonSpinner().should('exist');
     });
+
+    it('should not show deploy button when server is not found', () => {
+      initDeployIntercepts();
+      cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/invalid-server*`, {
+        statusCode: 404,
+        body: {
+          error: { code: '404', message: 'the requested resource could not be found' },
+        },
+      });
+
+      cy.visitWithLogin('/ai-hub/mcp-servers/catalog/invalid-server');
+
+      cy.contains('MCP server not found').should('be.visible');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
+
+    it('should not show deploy button when artifacts contain only empty URIs', () => {
+      initDeployIntercepts({ artifacts: [{ uri: '' }] });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      mcpServerDetailsPage.findBreadcrumbServerName().should('contain.text', 'Kubernetes MCP');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
   });
 
   it('should open deploy modal with pre-filled data from server details', () => {

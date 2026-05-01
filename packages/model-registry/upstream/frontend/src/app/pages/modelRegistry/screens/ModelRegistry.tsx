@@ -37,7 +37,7 @@ const ModelRegistry: React.FC<ModelRegistryProps> = ({ ...pageProps }) => {
       title={<TitleWithIcon title="Registry" objectType={ProjectObjectType.registeredModels} />}
       description={
         <Stack hasGutter>
-          <StackItem>
+          <StackItem data-testid="model-registry-page-description">
             Select a model registry to view and manage your registered models. Model registries
             provide a structured and organized way to store, share, version, deploy, and track
             models.

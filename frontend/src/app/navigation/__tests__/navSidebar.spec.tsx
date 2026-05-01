@@ -52,7 +52,6 @@ describe('Navigation Sidebar Models Section', () => {
       disableModelCatalog?: boolean;
       disableModelRegistry?: boolean;
       disableModelServing?: boolean;
-      disableFineTuning?: boolean;
     } = {},
   ): LoadedExtension<NavExtension>[] => {
     const extensions: LoadedExtension<NavExtension>[] = [
@@ -124,24 +123,6 @@ describe('Navigation Sidebar Models Section', () => {
       } satisfies LoadedExtension<HrefNavItemExtension>);
     }
 
-    if (!options.disableFineTuning) {
-      extensions.push({
-        type: 'app.navigation/href',
-        uid: 'model-customization',
-        pluginName: 'test-plugin',
-        properties: {
-          id: 'modelCustomization',
-          title: 'Model customization',
-          href: '/modelCustomization',
-          section: 'models',
-          path: '/modelCustomization/*',
-        },
-        flags: {
-          required: ['FINE_TUNING'],
-        },
-      } satisfies LoadedExtension<HrefNavItemExtension>);
-    }
-
     return extensions;
   };
 
@@ -172,7 +153,6 @@ describe('Navigation Sidebar Models Section', () => {
         disableModelCatalog: false,
         disableModelRegistry: false,
         disableModelServing: true,
-        disableFineTuning: true,
       }).filter((ext) => {
         return 'section' in ext.properties && ext.properties.section === 'models';
       });
@@ -192,7 +172,6 @@ describe('Navigation Sidebar Models Section', () => {
         disableModelCatalog: false,
         disableModelRegistry: true,
         disableModelServing: true,
-        disableFineTuning: true,
       }).filter((ext) => {
         return 'section' in ext.properties && ext.properties.section === 'models';
       });

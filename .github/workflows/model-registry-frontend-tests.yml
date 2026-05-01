@@ -56,6 +56,22 @@ jobs:
         working-directory: packages/model-registry/upstream/frontend
         run: npm run test:type-check
 
+      - name: Unit tests (Jest)
+        working-directory: packages/model-registry/upstream/frontend
+        run: npm run test:unit
+
+      - name: Cypress mock tests
+        working-directory: packages/model-registry/upstream/frontend
+        run: npm run test:cypress-ci
+
+      - name: Run clean
+        working-directory: packages/model-registry/upstream/frontend
+        run: npm run build:clean
+
+      - name: Run build
+        working-directory: packages/model-registry/upstream/frontend
+        run: npm run build
+
       - name: Check if there are uncommitted file changes
         working-directory: packages/model-registry/upstream/frontend
         run: |

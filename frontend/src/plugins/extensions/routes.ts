@@ -227,29 +227,6 @@ const extensions: RouteExtension[] = [
   },
   {
     type: 'app.route',
-    flags: {
-      required: [SupportedArea.FINE_TUNING],
-    },
-    properties: {
-      path: '/ai-hub/model-customization/*',
-      component: () => import('#~/pages/pipelines/GlobalModelCustomizationRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.FINE_TUNING],
-    },
-    properties: {
-      path: '/modelCustomization/*',
-      component: createRedirectComponent({
-        from: '/modelCustomization/*',
-        to: '/ai-hub/model-customization/*',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
     properties: {
       path: '/observe-monitor/workload-metrics/*',
       component: () => import('#~/pages/distributedWorkloads/GlobalDistributedWorkloadsRoutes'),

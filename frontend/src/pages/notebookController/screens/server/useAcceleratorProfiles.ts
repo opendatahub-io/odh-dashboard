@@ -4,9 +4,8 @@ import { AcceleratorProfileKind } from '#~/k8sTypes';
 import { listAcceleratorProfiles } from '#~/api';
 
 /**
- *  @deprecated -- only in deprecation paths (modelmesh and finetuning (in both of them))
- * modelmesh: RHOAIENG-34917, finetuning: RHOAIENG-19185
- * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
+ * @deprecated -- only in deprecation paths (modelmesh)
+ * modelmesh: RHOAIENG-34917, RHOAIENG-19185
  */
 const useAcceleratorProfiles = (namespace: string): FetchState<AcceleratorProfileKind[]> => {
   const getAcceleratorProfiles = React.useCallback(

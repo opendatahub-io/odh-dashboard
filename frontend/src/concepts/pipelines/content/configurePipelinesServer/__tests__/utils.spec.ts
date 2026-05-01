@@ -28,7 +28,6 @@ describe('configure pipeline server utils', () => {
         objectStorage: {
           newValue: [{ key: 'AWS_S3_ENDPOINT', value: '' }],
         },
-        enableInstructLab: false,
         storeYamlInKubernetes: false,
         enableCaching,
       } as PipelineServerConfigType);
@@ -64,11 +63,6 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
-            },
-          },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
@@ -98,11 +92,6 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: false,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
-            },
-          },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });
@@ -206,11 +195,6 @@ describe('configure pipeline server utils', () => {
         apiServer: {
           enableSamplePipeline: false,
           cacheEnabled: true,
-          managedPipelines: {
-            instructLab: {
-              state: 'Removed',
-            },
-          },
           pipelineStore: DSPipelineAPIServerStore.DATABASE,
         },
       });

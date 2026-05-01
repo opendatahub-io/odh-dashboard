@@ -1,3 +1,4 @@
+import { modelTransferJobsUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 
 class ModelTransferJobsTableRow extends TableRow {
@@ -20,7 +21,7 @@ class ModelTransferJobsTableRow extends TableRow {
 
 class ModelTransferJobsPage {
   visit(modelRegistryName = 'modelregistry-sample') {
-    cy.visit(`/model-registry/${modelRegistryName}/model-transfer-jobs`);
+    cy.visit(modelTransferJobsUrl(modelRegistryName));
     this.wait();
   }
 

@@ -5,15 +5,11 @@ import { AcceleratorProfileModel } from '#~/api/models';
 /**
  * @deprecated
  * only in deprecation paths
- * used by *both* modelmesh and finetuning:
- * fine-tuning: useIlabPodSpecOptionsState
- * modelmesh: useServingAcceleratorProfileFormState
+ * used by modelmesh: useServingAcceleratorProfileFormState
  *
- * remove this when they are *both* gone
+ * remove this when modelmesh is gone
  *
- * modelmesh: RHOAIENG-34917, finetuning: RHOAIENG-19185
- * fine-tuning: RHOAIENG-36276, RHOAIENG-34285
- *
+ * modelmesh: RHOAIENG-34917
  */
 export const listAcceleratorProfiles = async (
   namespace: string,

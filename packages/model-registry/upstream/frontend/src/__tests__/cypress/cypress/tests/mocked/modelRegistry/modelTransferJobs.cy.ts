@@ -4,6 +4,7 @@ import { mockModelTransferJob, mockModelTransferJobList } from '~/__mocks__/mock
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { modelTransferJobsPage } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelTransferJobs';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { modelVersionUrl, registeredModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 const modelRegistryName = 'modelregistry-sample';
 
@@ -165,7 +166,7 @@ describe('Model transfer jobs', () => {
     completedWithIdsRow.find().findByRole('button', { name: 'Completed model' }).click();
     cy.location('pathname').should(
       'eq',
-      `/model-registry/${modelRegistryName}/registered-models/rm-1/overview`,
+      `${registeredModelUrl('rm-1', modelRegistryName)}/overview`,
     );
 
     cy.go('back');
@@ -177,7 +178,7 @@ describe('Model transfer jobs', () => {
       .click();
     cy.location('pathname').should(
       'eq',
-      `/model-registry/${modelRegistryName}/registered-models/rm-1/versions/mv-1/details`,
+      `${modelVersionUrl('mv-1', 'rm-1', modelRegistryName)}/details`,
     );
 
     cy.go('back');
