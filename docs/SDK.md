@@ -46,9 +46,20 @@ See the [k8s pass through API] here.
 
 ### Pass Through Impersonate User Dev Mode
 
-In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add the `DEV_IMPERSONATE_USER` and `DEV_IMPERSONATE_PASSWORD` environment variables to your local setup with valid k8s username and password in your cluster. This will bypass the regular pass-through flow and will add that specific headers to the calls. The steps to impersonate another user are listed as follows:
+In order to check regular user permissions without disabling the rest of the backend functionality in `dev mode`, you can add impersonation environment variables to your `.env.local` file. This will bypass the regular pass-through flow and will add that specific headers to the calls.
 
-1. Create a new env variable in your `.env.local` file with this format `DEV_IMPERSONATE_USER=<username>` and `DEV_IMPERSONATE_PASSWORD=<password>`. If you're on ROSA make sure you set `DEV_OAUTH_PREFIX=oauth`.
+Set `DEV_IMPERSONATE_USER` to the username you want to impersonate, along with **either** a password or a token:
+
+- **Password** (`DEV_IMPERSONATE_PASSWORD`): For users with local cluster credentials (htpasswd, etc.). Uses HTTP Basic Auth against the cluster's OAuth endpoint.
+- **Token** (`DEV_IMPERSONATE_TOKEN`): For OAuth/IDP users (Google, LDAP, etc.) who don't have a cluster password. Provide a pre-obtained bearer token directly, bypassing the OAuth flow entirely.
+
+The steps to impersonate another user are listed as follows:
+
+1. Add the following to your `.env.local` file:
+   - `DEV_IMPERSONATE_USER=<username>`
+   - **Option A** (password): `DEV_IMPERSONATE_PASSWORD=<password>`
+   - **Option B** (token): `DEV_IMPERSONATE_TOKEN=<token>` — obtain via `oc login --web && oc whoami -t`. Note: tokens expire (typically 24h) and must be refreshed.
+   - If you're on ROSA, also set `DEV_OAUTH_PREFIX=oauth`.
 2. Run the dev server for ODH dashboard. If you don't know how to run a local dev server, please refer to [CONTRIBUTING]
 3. Click on the username on the top right corner to open the dropdown menu, and choose `Start impersonate`, then the page will refresh and you will be impersonating as the user you set up in step 1
 4. To stop impersonating, click on the `Stop impersonate` button in the header toolbar
