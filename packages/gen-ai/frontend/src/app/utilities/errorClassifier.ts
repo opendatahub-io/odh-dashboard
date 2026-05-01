@@ -32,8 +32,7 @@ const STREAMING_ERROR_MAP: Record<string, string> = {
 };
 
 function resolveTemplateKey(error: ApiError): string {
-  const { component } = error.error;
-  const { code } = error.error;
+  const { code, component } = error.error;
 
   // Check for streaming errors first (they can have component + code)
   if (Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
@@ -65,8 +64,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
     };
   }
 
-  const { component } = error.error;
-  const { code } = error.error;
+  const { code, component } = error.error;
   const rawMessage = error.error.message || '';
 
   const isPartial = PARTIAL_COMPONENTS.has(component);

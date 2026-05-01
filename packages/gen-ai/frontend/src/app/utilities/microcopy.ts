@@ -24,12 +24,12 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
       '{modelName} supports a maximum of {maxTokens} tokens. Reduce the token limit in the Build panel.',
     actionSuggestion: 'Open Build panel',
   },
-  'model:chat_template': {
+  'llama_stack:invalid_model_config': {
     title: 'Model configuration error',
     description:
       "{modelName} doesn't support the current chat template. Check the model's documentation for supported templates.",
   },
-  'model:no_tools': {
+  'llama_stack:unsupported_feature': {
     title: "This model doesn't support tool calling",
     description:
       "{modelName} doesn't support the tools feature you've enabled. Try selecting a model that supports tool calling, or disable tools in the Build panel.",
@@ -40,13 +40,46 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     description:
       "{modelName} can't process images. Try selecting a multimodal model, or remove the image from your message.",
   },
-  'llama_stack:timeout': {
+  'llama_stack:invalid_parameter': {
+    title: 'Invalid parameter',
+    description:
+      'One or more parameters are invalid. Check temperature, top_p, and other settings.',
+  },
+  'llama_stack:model_timeout': {
     title: 'Model inference failed',
     description: "The model server didn't respond in time. This may be a temporary issue.",
   },
-  'llama_stack:server_error': {
+  'llama_stack:model_overloaded': {
+    title: 'Request was rate limited',
+    description: 'Too many requests to the model server. Wait a moment before trying again.',
+  },
+  'model:model_invocation_error': {
     title: 'Model server error',
     description: "The model server encountered an internal error and couldn't generate a response.",
+  },
+  'llama_stack:generic_error': {
+    title: 'Model server error',
+    description: "The model server encountered an internal error and couldn't generate a response.",
+  },
+  'bff:bad_request': {
+    title: 'Invalid request',
+    description: 'The request is invalid. Check your input and try again.',
+  },
+  'bff:unauthorized': {
+    title: 'Authentication required',
+    description: 'Your session is invalid. Please sign in again.',
+  },
+  'bff:forbidden': {
+    title: 'Access denied',
+    description: "You don't have permission to perform this action.",
+  },
+  'bff:not_found': {
+    title: 'Resource not found',
+    description: 'The requested resource could not be found.',
+  },
+  'bff:internal_error': {
+    title: 'Server error',
+    description: 'The server encountered a problem. Please try again.',
   },
   'bff:rate_limit': {
     title: 'Request was rate limited',
@@ -63,22 +96,36 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
 };
 
 const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
-  'rag:unreachable': {
+  'rag:rag_error': {
     title: 'Knowledge source retrieval failed',
     description:
       'This response was generated without context from your knowledge sources. Results may be less accurate.',
+  },
+  'rag:rag_vector_store_not_found': {
+    title: 'No matching knowledge found',
+    description:
+      "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
   },
   'rag:embedding_failure': {
     title: 'Knowledge source retrieval failed',
     description:
       "The embedding model couldn't process your query for retrieval. The response doesn't include knowledge source context.",
   },
+  'rag:unreachable': {
+    title: 'Knowledge source retrieval failed',
+    description:
+      'This response was generated without context from your knowledge sources. Results may be less accurate.',
+  },
   'rag:no_results': {
     title: 'No matching knowledge found',
     description:
       "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
   },
-  'guardrails:content_flagged': {
+  'guardrails:guardrails_error': {
+    title: 'Guardrail check was not applied',
+    description: "The safety filter couldn't process this response. Review the output carefully.",
+  },
+  'guardrails:guardrails_violation': {
     title: 'Content was flagged by guardrails',
     description: 'A guardrail flagged this response. Review the output carefully.',
   },
@@ -86,12 +133,17 @@ const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: 'Guardrail check was not applied',
     description: "The safety filter couldn't process this response. Review the output carefully.",
   },
-  'mcp:unreachable': {
+  'mcp:mcp_error': {
     title: '{toolName} tool call failed',
     description:
       "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
   },
-  'mcp:auth_failure': {
+  'mcp:mcp_tool_not_found': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
+  },
+  'mcp:mcp_auth_error': {
     title: '{toolName} tool call failed',
     description:
       "The {toolName} tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
@@ -101,6 +153,11 @@ const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: '{toolName} tool returned an error',
     description:
       'The {toolName} tool encountered an error during execution. The response may be incomplete.',
+  },
+  'mcp:unreachable': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
   },
 };
 
