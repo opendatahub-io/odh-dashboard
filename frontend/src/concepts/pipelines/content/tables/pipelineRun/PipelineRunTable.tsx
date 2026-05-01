@@ -26,6 +26,11 @@ import { ArchiveRunModal } from '#~/pages/pipelines/global/runs/ArchiveRunModal'
 import { RestoreRunModal } from '#~/pages/pipelines/global/runs/RestoreRunModal';
 import { compareRunsRoute, createRunRoute } from '#~/routes/pipelines/runs';
 import {
+  getMlflowExperimentId,
+  getMlflowRunId,
+  mlflowCompareRunsRoute,
+} from '#~/routes/pipelines/mlflow';
+import {
   ExperimentContext,
   useContextExperimentArchivedOrDeleted,
 } from '#~/pages/pipelines/global/experiments/ExperimentContext';
@@ -134,7 +139,15 @@ const PipelineRunTable: React.FC<PipelineRunTableProps> = ({
   const { isExperimentArchived: isContextExperimentArchived } =
     useContextExperimentArchivedOrDeleted();
   const createRunHref = createRunRoute(namespace, experiment?.experiment_id);
-  const compareRunsHref = compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
+  const mlflowRunIds = selectedRuns.map((run) => getMlflowRunId(run));
+  const mlflowExpIds = selectedRuns.map((run) => getMlflowExperimentId(run));
+  const allSelectedRunsHaveMlflow =
+    isMlflowAvailable &&
+    mlflowRunIds.every((id): id is string => !!id) &&
+    mlflowExpIds.every((id): id is string => !!id);
+  const compareRunsHref = allSelectedRunsHaveMlflow
+    ? mlflowCompareRunsRoute(namespace, mlflowRunIds, [...new Set(mlflowExpIds)])
+    : compareRunsRoute(namespace, selectedIds, experiment?.experiment_id);
   const isCompareDisabled = selectedIds.length === 0 || selectedIds.length > 10;
   const primaryToolbarAction = React.useMemo(() => {
     if (runType === PipelineRunType.ARCHIVED) {

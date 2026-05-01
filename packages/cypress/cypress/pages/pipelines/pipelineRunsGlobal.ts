@@ -63,6 +63,10 @@ class PipelineRunsGlobal {
     return cy.findByTestId('restore-button');
   }
 
+  findCompareRunsButton() {
+    return cy.findByTestId('compare-runs-button');
+  }
+
   findActiveRunsToolbar() {
     return cy.findByTestId('active-runs-table-toolbar');
   }
