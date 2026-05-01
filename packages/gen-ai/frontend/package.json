@@ -137,5 +137,5 @@
     "serve": "^14.2.5",
     "ts-jest": "^29.2.5"
   },
-  "packageManager": "npm@10.9.2"
+  "packageManager": "npm@10.9.8"
 }
