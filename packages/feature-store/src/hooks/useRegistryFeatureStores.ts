@@ -20,38 +20,48 @@ export type RegistryFeatureStore = {
 
 type RegistryFeatureStoresResponse = {
   featureStores: RegistryFeatureStore[];
+  enabledCRDCount?: number;
 };
 
 type UseRegistryFeatureStoresReturn = {
   featureStores: RegistryFeatureStore[];
+  enabledCRDCount: number;
   loaded: boolean;
   error: Error | undefined;
   refresh: () => Promise<void>;
 };
 
+type FeatureStoresData = {
+  featureStores: RegistryFeatureStore[];
+  enabledCRDCount: number;
+};
+
 export const useRegistryFeatureStores = (): UseRegistryFeatureStoresReturn => {
-  const callback = React.useCallback<
-    FetchStateCallbackPromise<RegistryFeatureStore[]>
-  >(async () => {
+  const callback = React.useCallback<FetchStateCallbackPromise<FeatureStoresData>>(async () => {
     const data: RegistryFeatureStoresResponse = await proxyGET('', `/api/featurestores`);
-    return data.featureStores;
+    return { featureStores: data.featureStores, enabledCRDCount: data.enabledCRDCount ?? 0 };
   }, []);
 
   const {
-    data: featureStores,
+    data,
     loaded,
     error,
     refresh: refreshData,
-  } = useFetch(callback, [], {
-    initialPromisePurity: true,
-  });
+  } = useFetch(
+    callback,
+    { featureStores: [], enabledCRDCount: 0 },
+    {
+      initialPromisePurity: true,
+    },
+  );
 
   const refresh = React.useCallback(async () => {
     await refreshData();
   }, [refreshData]);
 
   return {
-    featureStores,
+    featureStores: data.featureStores,
+    enabledCRDCount: data.enabledCRDCount,
     loaded,
     error,
     refresh,
