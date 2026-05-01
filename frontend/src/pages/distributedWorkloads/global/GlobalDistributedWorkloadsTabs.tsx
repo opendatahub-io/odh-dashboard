@@ -17,10 +17,17 @@ import { DistributedWorkloadsContext } from '#~/concepts/distributedWorkloads/Di
 import EmptyStateErrorMessage from '#~/components/EmptyStateErrorMessage';
 import { LoadingState } from '#~/pages/distributedWorkloads/components/LoadingState';
 import WhosMyAdministrator from '#~/components/WhosMyAdministrator';
+import ExternalLink from '#~/components/ExternalLink';
+import { useAccessReview } from '#~/api';
 import {
   DistributedWorkloadsTabId,
   useDistributedWorkloadsTabs,
 } from './useDistributedWorkloadsTabs';
+
+const CLUSTER_QUEUE_DOCS_LINK =
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.14/html/managing_openshift_ai/managing_distributed_workloads#overview-of-kueue-resources_managing-rhoai';
+const PROJECT_QUEUE_DOCS_LINK =
+  'https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.14/html/managing_openshift_ai/managing_distributed_workloads#configuring-distributed-workloads_managing-rhoai';
 
 type GlobalDistributedWorkloadsTabsProps = {
   activeTabId: DistributedWorkloadsTabId;
@@ -34,6 +41,11 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   const activeTab = tabs.find(({ id }) => id === activeTabId);
   const { namespace } = useParams<{ namespace: string }>();
   const { clusterQueues, localQueues, cqExists } = React.useContext(DistributedWorkloadsContext);
+  const [isAdmin] = useAccessReview({
+    group: 'kueue.x-k8s.io',
+    resource: 'clusterqueues',
+    verb: 'create',
+  });
   const requiredFetches = [clusterQueues, localQueues];
   const error = requiredFetches.find((f) => !!f.error)?.error;
   const loaded = requiredFetches.every((f) => f.loaded);
@@ -49,16 +61,33 @@ const GlobalDistributedWorkloadsTabs: React.FC<GlobalDistributedWorkloadsTabsPro
   }
 
   if (clusterQueues.data.length === 0 || localQueues.data.length === 0) {
-    const nonAdmin = !cqExists;
-    const title = `Configure the ${!cqExists ? 'cluster queue' : 'project queue'}`;
-    const message = nonAdmin
-      ? 'Ask your cluster admin to configure the cluster queue.'
-      : 'Configure the queue for this project, or select a different project.';
+    const noClusterQueue = !cqExists;
+    const title = `Configure the ${noClusterQueue ? 'cluster queue' : 'project queue'}`;
 
     return (
       <EmptyState headingLevel="h4" icon={WrenchIcon} titleText={title}>
-        <EmptyStateBody>{message}</EmptyStateBody>
-        {nonAdmin ? (
+        <EmptyStateBody>
+          {noClusterQueue && isAdmin && (
+            <>
+              Configure the cluster queue to enable distributed workload metrics.{' '}
+              <ExternalLink
+                text="Learn how to configure cluster queues"
+                to={CLUSTER_QUEUE_DOCS_LINK}
+              />
+            </>
+          )}
+          {noClusterQueue && !isAdmin && 'Ask your cluster admin to configure the cluster queue.'}
+          {!noClusterQueue && (
+            <>
+              Configure the queue for this project, or select a different project.{' '}
+              <ExternalLink
+                text="Learn how to configure project queues"
+                to={PROJECT_QUEUE_DOCS_LINK}
+              />
+            </>
+          )}
+        </EmptyStateBody>
+        {noClusterQueue && !isAdmin ? (
           <EmptyStateFooter>
             <WhosMyAdministrator />
           </EmptyStateFooter>
