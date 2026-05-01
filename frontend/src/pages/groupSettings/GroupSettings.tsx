@@ -16,6 +16,7 @@ import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { GroupsConfigField, GroupStatus } from '#~/concepts/userConfigs/groupTypes';
+import { validateGroupName } from '#~/api';
 
 const newGroupMessage = (value: string): string => `Define new group: "${value}"`;
 
@@ -25,11 +26,14 @@ const GroupSettings: React.FC = () => {
     loaded,
     isLoading,
     isGroupSettingsChanged,
+    isGroupsTruncated,
     loadError,
     updateGroups,
     setGroupSettings,
     setIsGroupSettingsChanged,
   } = useWatchGroups();
+  const [invalidGroups, setInvalidGroups] = React.useState<Set<string>>(new Set());
+  const [validatingGroups, setValidatingGroups] = React.useState<Set<string>>(new Set());
 
   const adminDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} administrators.`;
   const userDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} users.`;
@@ -41,6 +45,28 @@ const GroupSettings: React.FC = () => {
     updateGroups(groupSettings);
   };
 
+  const validateCustomGroup = React.useCallback(
+    async (groupName: string) => {
+      setValidatingGroups((prev) => new Set(prev).add(groupName));
+      const exists = await validateGroupName(groupName);
+      setValidatingGroups((prev) => {
+        const next = new Set(prev);
+        next.delete(groupName);
+        return next;
+      });
+      if (!exists) {
+        setInvalidGroups((prev) => new Set(prev).add(groupName));
+      } else {
+        setInvalidGroups((prev) => {
+          const next = new Set(prev);
+          next.delete(groupName);
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
   const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
     const processGroup = (opt: SelectionOptions): GroupStatus => ({
       id: String(opt.id),
@@ -48,22 +74,50 @@ const GroupSettings: React.FC = () => {
       enabled: opt.selected || false,
     });
 
+    const processedGroups = newState.map(processGroup);
+
+    // Find newly created groups (name starts with CREATE_PREFIX indicates a new selection)
+    const currentGroups =
+      field === GroupsConfigField.ADMIN ? groupSettings.adminGroups : groupSettings.allowedGroups;
+    const currentIds = new Set(currentGroups.map((g) => g.id));
+    const newlyAdded = processedGroups.filter((g) => g.enabled && !currentIds.has(g.id));
+
+    // Validate newly created custom groups
+    newlyAdded.forEach((g) => {
+      validateCustomGroup(g.name);
+    });
+
     switch (field) {
       case GroupsConfigField.ADMIN:
         setGroupSettings({
           ...groupSettings,
-          adminGroups: newState.map(processGroup),
+          adminGroups: processedGroups,
         });
         break;
       case GroupsConfigField.USER:
         setGroupSettings({
           ...groupSettings,
-          allowedGroups: newState.map(processGroup),
+          allowedGroups: processedGroups,
         });
         break;
     }
     setIsGroupSettingsChanged(true);
   };
+
+  const invalidGroupWarning =
+    invalidGroups.size > 0 ? (
+      <Alert
+        variant="warning"
+        isInline
+        isPlain
+        title={`The following groups were not found on the cluster: ${[...invalidGroups].join(', ')}. They will still be saved.`}
+        data-testid="invalid-group-warning"
+      />
+    ) : null;
+
+  const helperTextContent = isGroupsTruncated
+    ? 'Only the first 250 groups are listed. Type a group name to add groups not shown.'
+    : 'Select from existing groups, or specify a new group name.';
 
   return (
     <ApplicationsPage
@@ -81,7 +135,23 @@ const GroupSettings: React.FC = () => {
           <SettingSection
             title={`${ODH_PRODUCT_NAME} administrator groups`}
             testId="data-science-administrator-groups"
-            description={adminDesc}
+            description={
+              isGroupsTruncated ? (
+                <>
+                  {adminDesc}
+                  <Alert
+                    variant="info"
+                    isInline
+                    isPlain
+                    title="Only the first 250 groups are shown. Type a group name to add a group that is not listed."
+                    data-testid="admin-groups-truncation-alert"
+                    className="pf-v6-u-mt-sm"
+                  />
+                </>
+              ) : (
+                adminDesc
+              )
+            }
             footer={
               <Alert
                 data-testid="data-science-administrator-info"
@@ -109,16 +179,30 @@ const GroupSettings: React.FC = () => {
               isCreateOptionOnTop
             />
             <HelperText>
-              <HelperTextItem>
-                Select from existing groups, or specify a new group name.
-              </HelperTextItem>
+              <HelperTextItem>{helperTextContent}</HelperTextItem>
             </HelperText>
           </SettingSection>
         </StackItem>
         <StackItem>
           <SettingSection
             title={`${ODH_PRODUCT_NAME} user groups`}
-            description={userDesc}
+            description={
+              isGroupsTruncated ? (
+                <>
+                  {userDesc}
+                  <Alert
+                    variant="info"
+                    isInline
+                    isPlain
+                    title="Only the first 250 groups are shown. Type a group name to add a group that is not listed."
+                    data-testid="user-groups-truncation-alert"
+                    className="pf-v6-u-mt-sm"
+                  />
+                </>
+              ) : (
+                userDesc
+              )
+            }
             testId="data-science-user-groups"
           >
             <MultiSelection
@@ -138,12 +222,11 @@ const GroupSettings: React.FC = () => {
               isCreateOptionOnTop
             />
             <HelperText>
-              <HelperTextItem>
-                Select from existing groups, or specify a new group name.
-              </HelperTextItem>
+              <HelperTextItem>{helperTextContent}</HelperTextItem>
             </HelperText>
           </SettingSection>
         </StackItem>
+        {invalidGroupWarning && <StackItem>{invalidGroupWarning}</StackItem>}
         <StackItem>
           <Button
             data-id="save-button"
@@ -151,6 +234,7 @@ const GroupSettings: React.FC = () => {
             isDisabled={
               isLoading ||
               !isGroupSettingsChanged ||
+              validatingGroups.size > 0 ||
               isGroupEmpty(groupSettings.adminGroups) ||
               isGroupEmpty(groupSettings.allowedGroups)
             }
