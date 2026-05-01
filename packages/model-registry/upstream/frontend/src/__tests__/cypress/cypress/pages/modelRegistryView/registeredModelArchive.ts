@@ -1,3 +1,10 @@
+import {
+  archiveModelVersionListUrl,
+  modelRegistryUrl,
+  registeredModelArchiveDetailsUrl,
+  registeredModelArchiveUrl,
+  registeredModelUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -53,41 +60,44 @@ class ArchiveModelModal extends Modal {
 }
 
 class ModelArchive {
-  private wait() {
+  private waitSubPage() {
     cy.findByTestId('app-page-title').should('exist');
+    cy.testA11y();
+  }
+
+  private waitRegistryPage() {
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
     cy.testA11y();
   }
 
   visit() {
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/registered-models/archive`);
-    this.wait();
+    cy.visit(registeredModelArchiveUrl(preferredModelRegistry));
+    this.waitSubPage();
   }
 
   visitArchiveModelDetail() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/registered-models/archive/${rmId}`);
+    cy.visit(registeredModelArchiveDetailsUrl(rmId, preferredModelRegistry));
   }
 
   visitArchiveModelVersionList() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(
-      `/model-registry/${preferredModelRegistry}/registered-models/archive/${rmId}/versions`,
-    );
+    cy.visit(archiveModelVersionListUrl(rmId, preferredModelRegistry));
   }
 
   visitModelList() {
-    cy.visit('/model-registry/modelregistry-sample');
-    this.wait();
+    cy.visit(modelRegistryUrl('modelregistry-sample'));
+    this.waitRegistryPage();
   }
 
   visitModelDetails() {
     const rmId = '2';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/registered-models/${rmId}`);
-    this.wait();
+    cy.visit(registeredModelUrl(rmId, preferredModelRegistry));
+    this.waitSubPage();
   }
 
   findTableKebabMenu() {

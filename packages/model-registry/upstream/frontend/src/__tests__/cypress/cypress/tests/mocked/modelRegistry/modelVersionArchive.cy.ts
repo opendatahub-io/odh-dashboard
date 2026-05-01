@@ -15,6 +15,11 @@ import {
   restoreVersionModal,
 } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelVersionArchive';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import {
+  modelVersionArchiveDetailsUrl,
+  modelVersionArchiveUrl,
+  modelVersionListUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ToastNotification } from '~/__tests__/cypress/cypress/pages/components/Notification';
 import { mockModelArtifactList } from '~/__mocks__/mockModelArtifactList';
 
@@ -166,7 +171,7 @@ describe('Model version archive list', () => {
   it('No archive versions in the selected registered model', () => {
     initIntercepts({ modelVersions: [mockModelVersion({ id: '3', name: 'model version 2' })] });
     modelVersionArchive.visitModelVersionList();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions');
+    verifyRelativeURL(modelVersionListUrl('1', 'modelregistry-sample'));
     modelVersionArchive
       .findModelVersionsTableKebab()
       .findDropdownItem('View archived versions')
@@ -177,15 +182,13 @@ describe('Model version archive list', () => {
   it('Archived version details browser back button should lead to archived versions table', () => {
     initIntercepts({});
     modelVersionArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions/archive');
+    verifyRelativeURL(modelVersionArchiveUrl('1', 'modelregistry-sample'));
     modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
     const archiveVersionRow = modelVersionArchive.getRow('model version 2');
     archiveVersionRow.findName().contains('model version 2').click();
-    verifyRelativeURL(
-      '/model-registry/modelregistry-sample/registered-models/1/versions/archive/2/details',
-    );
+    verifyRelativeURL(`${modelVersionArchiveDetailsUrl('2', '1', 'modelregistry-sample')}/details`);
     cy.go('back');
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions/archive');
+    verifyRelativeURL(modelVersionArchiveUrl('1', 'modelregistry-sample'));
     modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
     archiveVersionRow.findName().contains('model version 2').should('exist');
   });
@@ -193,7 +196,7 @@ describe('Model version archive list', () => {
   it('Archive version list', () => {
     initIntercepts({});
     modelVersionArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions/archive');
+    verifyRelativeURL(modelVersionArchiveUrl('1', 'modelregistry-sample'));
 
     //breadcrumb
     modelVersionArchive.findArchiveVersionBreadcrumbItem().contains('Archived version');
@@ -230,7 +233,7 @@ describe('Model version archive list', () => {
   it('Archived model versions table', () => {
     initIntercepts({});
     modelVersionArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/1/versions/archive');
+    verifyRelativeURL(modelVersionArchiveUrl('1', 'modelregistry-sample'));
 
     // filtering by keyword then both
     modelVersionArchive.findArchiveVersionTableSearch().type('model version 1');

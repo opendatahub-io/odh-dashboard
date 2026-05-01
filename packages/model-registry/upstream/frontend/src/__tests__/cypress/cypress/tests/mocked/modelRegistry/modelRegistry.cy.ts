@@ -14,6 +14,14 @@ import {
 import { be } from '~/__tests__/cypress/cypress/utils/should';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { verifyRelativeURL } from '~/__tests__/cypress/cypress/utils/url';
+import {
+  modelRegistryUrl,
+  registeredModelUrl,
+  modelVersionListUrl,
+  modelVersionUrl,
+  modelTransferJobsUrl,
+  registerModelUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type HandlersProps = {
   modelRegistries?: ModelRegistry[];
@@ -186,7 +194,7 @@ describe('Model Registry core', () => {
     modelRegistry.visit();
     modelRegistry.navigate();
     // Navigate to the unavailable registry (app would redirect to first registry; we go there directly)
-    cy.visit(`/model-registry/${unavailableRegistryName}`);
+    cy.visit(modelRegistryUrl(unavailableRegistryName));
 
     modelRegistry.findUnavailableModelRegistryState().should('exist');
     cy.contains('Model registry unavailable').should('be.visible');
@@ -240,7 +248,7 @@ describe('Model Registry core', () => {
     modelRegistry.shouldregisteredModelsEmpty();
     modelRegistry.findEmptyStateTransferJobsButton().should('exist');
     modelRegistry.findEmptyStateTransferJobsButton().click();
-    verifyRelativeURL('/model-registry/modelregistry-sample/model-transfer-jobs');
+    verifyRelativeURL(modelTransferJobsUrl('modelregistry-sample'));
   });
 
   describe('Registered model table', () => {
@@ -272,18 +280,16 @@ describe('Model Registry core', () => {
       const registeredModelRow = modelRegistry.getRow('Fraud detection model');
       registeredModelRow.findLatestVersion().contains('new model version');
       registeredModelRow.findLatestVersion().click();
-      verifyRelativeURL(
-        `/model-registry/modelregistry-sample/registered-models/1/versions/1/details`,
-      );
+      verifyRelativeURL(`${modelVersionUrl('1', '1', 'modelregistry-sample')}/details`);
     });
 
     it('table kebab actions', () => {
       const registeredModelRow = modelRegistry.getRow('Fraud detection model');
       registeredModelRow.findKebabAction('Versions').click();
-      verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/1/versions`);
+      verifyRelativeURL(modelVersionListUrl('1', 'modelregistry-sample'));
       cy.go('back');
       registeredModelRow.findKebabAction('Overview').click();
-      verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/1/overview`);
+      verifyRelativeURL(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
     });
 
     it('Renders labels in modal', () => {
@@ -356,13 +362,13 @@ describe('Model Registry selector persistence', () => {
     modelRegistry.shouldModelRegistrySelectorExist();
 
     modelRegistry.findModelRegistry().findSelectOption('modelregistry-sample-2').click();
-    verifyRelativeURL('/model-registry/modelregistry-sample-2');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
 
     // Re-visit the base route to trigger redirect from sessionStorage
     modelRegistry.visit();
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
-    verifyRelativeURL('/model-registry/modelregistry-sample-2');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
   });
 
   it('restores selected registry after page refresh', () => {
@@ -370,11 +376,10 @@ describe('Model Registry selector persistence', () => {
     modelRegistry.visit();
 
     modelRegistry.findModelRegistry().findSelectOption('modelregistry-sample-2').click();
-    verifyRelativeURL('/model-registry/modelregistry-sample-2');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
 
     cy.reload();
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
   });
@@ -382,35 +387,33 @@ describe('Model Registry selector persistence', () => {
   it('falls back to first favorited registry when no session selection exists', () => {
     initIntercepts({ registeredModels: [] });
 
-    cy.visit('/model-registry', {
+    cy.visit(modelRegistryUrl(), {
       onBeforeLoad(win) {
         win.sessionStorage.removeItem(SELECTED_STORAGE_KEY);
         win.localStorage.setItem(FAVORITE_STORAGE_KEY, JSON.stringify(['modelregistry-sample-2']));
       },
     });
 
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'modelregistry-sample-2');
-    verifyRelativeURL('/model-registry/modelregistry-sample-2');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample-2'));
   });
 
   it('falls back to first available registry in a fresh session with no favorites', () => {
     initIntercepts({ registeredModels: [] });
 
-    cy.visit('/model-registry', {
+    cy.visit(modelRegistryUrl(), {
       onBeforeLoad(win) {
         win.sessionStorage.removeItem(SELECTED_STORAGE_KEY);
         win.localStorage.removeItem(FAVORITE_STORAGE_KEY);
       },
     });
 
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Model Registry');
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
 
     modelRegistry.findModelRegistry().should('contain.text', 'Model Registry Sample');
-    verifyRelativeURL('/model-registry/modelregistry-sample');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));
   });
 });
 
@@ -476,9 +479,12 @@ describe('Register Model button', () => {
     modelRegistry.visit();
     modelRegistry.findRegisterModelButton().click();
     cy.findByTestId('app-page-title').should('contain', 'Register model');
-    const expectedUrlPattern =
-      '/model-registry/modelregistry-sample/registered-models/test-model-id/versions/test-version-id';
-    cy.url().should('include', '/model-registry/modelregistry-sample/register/model');
+    const expectedUrlPattern = modelVersionUrl(
+      'test-version-id',
+      'test-model-id',
+      'modelregistry-sample',
+    );
+    cy.url().should('include', registerModelUrl('modelregistry-sample'));
     cy.log(`Expected redirect URL: ${expectedUrlPattern}`);
   });
 });

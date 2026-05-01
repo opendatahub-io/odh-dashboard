@@ -16,6 +16,13 @@ import {
   registeredModelArchive,
   restoreModelModal,
 } from '~/__tests__/cypress/cypress/pages/modelRegistryView/registeredModelArchive';
+import {
+  archiveModelVersionDetailsUrl,
+  archiveModelVersionListUrl,
+  modelRegistryUrl,
+  registeredModelArchiveDetailsUrl,
+  registeredModelArchiveUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 import { ToastNotification } from '~/__tests__/cypress/cypress/pages/components/Notification';
 
 type HandlersProps = {
@@ -140,6 +147,18 @@ const initIntercepts = ({
   );
 
   cy.interceptApi(
+    `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
+    {
+      path: {
+        modelRegistryName: 'modelregistry-sample',
+        apiVersion: MODEL_REGISTRY_API_VERSION,
+        registeredModelId: 3,
+      },
+    },
+    mockModelVersionList({ items: [] }),
+  );
+
+  cy.interceptApi(
     `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId`,
     {
       path: {
@@ -170,28 +189,28 @@ describe('Model archive list', () => {
       registeredModels: [],
     });
     registeredModelArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive');
+    verifyRelativeURL(registeredModelArchiveUrl('modelregistry-sample'));
     registeredModelArchive.shouldArchiveVersionsEmpty();
   });
 
   it('Archived model details browser back button should lead to archived models table', () => {
     initIntercepts({});
     registeredModelArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive');
+    verifyRelativeURL(registeredModelArchiveUrl('modelregistry-sample'));
     registeredModelArchive.findArchiveModelBreadcrumbItem().contains('Archived models');
     const archiveModelRow = registeredModelArchive.getRow('model 2');
     archiveModelRow.findName().contains('model 2').click();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive/2/overview');
+    verifyRelativeURL(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
     cy.findByTestId('app-page-title').should('have.text', 'model 2Archived');
     cy.go('back');
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive');
+    verifyRelativeURL(registeredModelArchiveUrl('modelregistry-sample'));
     registeredModelArchive.findArchiveModelTable().should('be.visible');
   });
 
   it('Archived model with no versions', () => {
     initIntercepts({ modelVersions: [] });
     registeredModelArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive');
+    verifyRelativeURL(registeredModelArchiveUrl('modelregistry-sample'));
     registeredModelArchive.findArchiveModelBreadcrumbItem().contains('Archived models');
     const archiveModelRow = registeredModelArchive.getRow('model 2');
     archiveModelRow.findName().contains('model 2').click();
@@ -201,23 +220,21 @@ describe('Model archive list', () => {
   it('Archived model flow', () => {
     initIntercepts({});
     registeredModelArchive.visitArchiveModelVersionList();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive/2/versions');
+    verifyRelativeURL(archiveModelVersionListUrl('2', 'modelregistry-sample'));
 
     modelRegistry.findModelVersionsTable().should('be.visible');
     modelRegistry.findModelVersionsTableRows().should('have.length', 2);
     const version = modelRegistry.getModelVersionRow('model version');
     version.findModelVersionName().contains('model version').click();
-    verifyRelativeURL(
-      '/model-registry/modelregistry-sample/registered-models/archive/2/versions/1/details',
-    );
+    verifyRelativeURL(`${archiveModelVersionDetailsUrl('1', '2', 'modelregistry-sample')}/details`);
     cy.go('back');
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive/2/versions');
+    verifyRelativeURL(archiveModelVersionListUrl('2', 'modelregistry-sample'));
   });
 
   it('Archive models list', () => {
     initIntercepts({});
     registeredModelArchive.visit();
-    verifyRelativeURL('/model-registry/modelregistry-sample/registered-models/archive');
+    verifyRelativeURL(registeredModelArchiveUrl('modelregistry-sample'));
 
     //breadcrumb
     registeredModelArchive.findArchiveModelBreadcrumbItem().contains('Archived models');
@@ -302,9 +319,7 @@ describe('Model archive list', () => {
     const archiveModelRow = registeredModelArchive.getRow('model 2');
     archiveModelRow.findLatestVersion().contains('new model version');
     archiveModelRow.findLatestVersion().click();
-    verifyRelativeURL(
-      `/model-registry/modelregistry-sample/registered-models/archive/2/versions/1/details`,
-    );
+    verifyRelativeURL(`${archiveModelVersionDetailsUrl('1', '2', 'modelregistry-sample')}/details`);
   });
 
   it('Opens the detail page when we select "Overview" from action menu and verison list when we select "Versions', () => {
@@ -314,11 +329,11 @@ describe('Model archive list', () => {
     archiveModelRow.findKebabAction('Overview').click();
     cy.location('pathname').should(
       'be.equals',
-      '/model-registry/modelregistry-sample/registered-models/archive/2/overview',
+      `${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`,
     );
     cy.go('back');
     archiveModelRow.findKebabAction('Versions').click();
-    verifyRelativeURL(`/model-registry/modelregistry-sample/registered-models/archive/2/versions`);
+    verifyRelativeURL(archiveModelVersionListUrl('2', 'modelregistry-sample'));
   });
 });
 
@@ -444,7 +459,7 @@ describe('Archiving model', () => {
     cy.wait('@modelArchived').then((interception) => {
       expect(interception.request.body).to.eql(mockModArchResponse({ state: 'ARCHIVED' }));
     });
-    verifyRelativeURL('/model-registry/modelregistry-sample');
-    cy.findByTestId('app-page-title').should('contain.text', 'Model Registry');
+    verifyRelativeURL(modelRegistryUrl('modelregistry-sample'));
+    cy.findByTestId('model-registry-selector-dropdown').should('exist');
   });
 });

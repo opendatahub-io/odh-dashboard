@@ -1,3 +1,4 @@
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
@@ -63,7 +64,7 @@ class ModelRegistry {
   }
 
   visit() {
-    cy.visit(`/model-registry`);
+    cy.visit(modelRegistryUrl());
     this.wait();
   }
 
@@ -73,8 +74,6 @@ class ModelRegistry {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Registry');
     cy.testA11y();
   }
 
