@@ -12,3 +12,16 @@ export type ProjectDetailsTab = Extension<
 >;
 export const isProjectDetailsTab = (extension: Extension): extension is ProjectDetailsTab =>
   extension.type === 'app.project-details/tab';
+
+export type ProjectDetailsSettingsCardExtension = Extension<
+  'app.project-details/settings-card',
+  {
+    id: string;
+    title: string;
+    component: ComponentCodeRef;
+  }
+>;
+export const isProjectDetailsSettingsCardExtension = (
+  extension: Extension,
+): extension is ProjectDetailsSettingsCardExtension =>
+  extension.type === 'app.project-details/settings-card';

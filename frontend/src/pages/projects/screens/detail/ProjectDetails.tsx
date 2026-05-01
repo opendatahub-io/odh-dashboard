@@ -14,6 +14,8 @@ import {
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useExtensions } from '@odh-dashboard/plugin-core';
+import { isProjectDetailsSettingsCardExtension } from '@odh-dashboard/plugin-core/extension-points';
 import { useDeploymentsTab } from '#~/concepts/projects/projectDetails/useDeploymentsTab';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
@@ -51,6 +53,8 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
+  const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
+  const hasSettingsCards = settingsCardExtensions.length > 0;
   const deploymentsTab = useDeploymentsTab();
   const [searchParams, setSearchParams] = useSearchParams();
   const state = searchParams.get('section');
@@ -192,7 +196,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...(biasMetricsAreaAvailable && allowCreate
+            ...((biasMetricsAreaAvailable && allowCreate) || hasSettingsCards
               ? [
                   {
                     id: ProjectSectionID.SETTINGS,
@@ -211,6 +215,7 @@ const ProjectDetails: React.FC = () => {
             projectRBACEnabled,
             currentProject.metadata.name,
             biasMetricsAreaAvailable,
+            hasSettingsCards,
           ],
         )}
       />
