@@ -163,111 +163,35 @@ describe('Workbench Data Connection Warnings', () => {
     asProductAdminUser();
   });
 
-  describe('Connection Attachment', () => {
-    it('should show attached connections without warnings in edit form', () => {
+  describe('Environment Variable Validation (RHOAIENG-15228)', () => {
+    it('should NOT show warnings when data connections are annotation-based only', () => {
+      // Data connections attached via annotations (not envFrom) should never trigger
+      // environment variable warnings — this is the key RHOAIENG-15228 scenario.
       initIntercepts({
         connectionNames: ['data-connection-1', 'data-connection-2'],
         hasValidConnections: true,
+        envFrom: [],
       });
 
       editSpawnerPage.visit('test-notebook');
-
-      // Verify page loads without errors and no warning messages
-      editSpawnerPage.findAlertMessage().should('not.exist');
-    });
-  });
-
-  describe('Environment Variable Validation (RHOAIENG-15228)', () => {
-    it('should NOT show warning for attached data connections that are NOT environment variables', () => {
-      // This is the key test for RHOAIENG-15228
-      // Data connections are attached via annotations, NOT envFrom
-      // Therefore, NO warning should be shown in the environment variables section
-
-      initIntercepts({
-        connectionNames: ['my-data-connection'],
-        hasValidConnections: true,
-        envFrom: [], // No envFrom - connection is annotation-based only
-      });
-
-      editSpawnerPage.visit('test-notebook');
-
-      // Verify NO warning is shown in environment variables section
       editSpawnerPage.findAlertMessage().should('not.exist');
     });
 
-    it('should show warning for missing environment variable secrets (not data connections)', () => {
-      // When a secret is referenced in envFrom but doesn't exist, show warning
-      // This is different from data connections which are annotation-based
-
-      initIntercepts({
-        connectionNames: [],
-        envFrom: [
-          {
-            secretRef: {
-              name: 'missing-env-secret',
-            },
-          },
-        ],
-      });
-
-      // Mock 404 for the environment variable secret
-      cy.interceptK8s(
-        { model: SecretModel, ns: 'test-project', name: 'missing-env-secret' },
-        {
-          statusCode: 404,
-          body: mock404Error({}),
-        },
-      );
-
-      editSpawnerPage.visit('test-notebook');
-
-      // Should show warning for missing env var secret
-      editSpawnerPage.findAlertMessage().should('exist');
-      editSpawnerPage.findAlertMessage().should('contain.text', 'missing-env-secret');
-    });
-
-    it('should NOT show warning when only data connections are attached', () => {
-      // Data connections alone (no envFrom) should not trigger warnings
-      initIntercepts({
-        connectionNames: ['valid-data-connection'],
-        hasValidConnections: true,
-        envFrom: [], // No envFrom - only data connections
-      });
-
-      editSpawnerPage.visit('test-notebook');
-
-      // No warnings should be shown for data connections
-      editSpawnerPage.findAlertMessage().should('not.exist');
-    });
-
-    it('should distinguish between missing data connections and missing env vars', () => {
-      // Data connection missing (annotation-based) - should NOT show env var warning
-      // Env var secret missing (envFrom-based) - should show warning
-
+    it('should show warnings only for missing envFrom references, not data connections', () => {
+      // Missing envFrom secret → warning; missing data connection → no warning
       initIntercepts({
         connectionNames: ['missing-data-connection'],
-        hasValidConnections: false, // Connection doesn't exist
-        envFrom: [
-          {
-            secretRef: {
-              name: 'missing-env-var',
-            },
-          },
-        ],
+        hasValidConnections: false,
+        envFrom: [{ secretRef: { name: 'missing-env-var' } }],
       });
 
-      // Mock 404 for env var secret
       cy.interceptK8s(
         { model: SecretModel, ns: 'test-project', name: 'missing-env-var' },
-        {
-          statusCode: 404,
-          body: mock404Error({}),
-        },
+        { statusCode: 404, body: mock404Error({}) },
       );
 
       editSpawnerPage.visit('test-notebook');
 
-      // Should only show warning for missing env var, NOT for missing data connection
       editSpawnerPage.findAlertMessage().should('exist');
       editSpawnerPage.findAlertMessage().should('contain.text', 'missing-env-var');
       editSpawnerPage.findAlertMessage().should('not.contain.text', 'missing-data-connection');
@@ -276,53 +200,38 @@ describe('Workbench Data Connection Warnings', () => {
     it('should show warning for missing ConfigMap environment variables', () => {
       initIntercepts({
         connectionNames: [],
-        envFrom: [
-          {
-            configMapRef: {
-              name: 'missing-configmap',
-            },
-          },
-        ],
+        envFrom: [{ configMapRef: { name: 'missing-configmap' } }],
       });
 
-      // Mock 404 for ConfigMap
       cy.interceptK8s(
         { model: ConfigMapModel, ns: 'test-project', name: 'missing-configmap' },
-        {
-          statusCode: 404,
-          body: mock404Error({}),
-        },
+        { statusCode: 404, body: mock404Error({}) },
       );
 
       editSpawnerPage.visit('test-notebook');
 
-      // Should show warning for missing ConfigMap
       editSpawnerPage.findAlertMessage().should('exist');
       editSpawnerPage.findAlertMessage().should('contain.text', 'missing-configmap');
     });
   });
 
   describe('Connection Error States', () => {
-    it('should handle deleted data connections gracefully', () => {
-      // Data connection is in annotation but secret was deleted
+    it('should handle deleted connections and multiple types without env var warnings', () => {
+      // Deleted data connections should not trigger warnings
       initIntercepts({
         connectionNames: ['deleted-connection'],
         hasValidConnections: false,
       });
 
       editSpawnerPage.visit('test-notebook');
-
-      // Should NOT show environment variable warning (data connections are not env vars)
       editSpawnerPage.findAlertMessage().should('not.exist');
-    });
 
-    it('should handle multiple connection types correctly', () => {
+      // Multiple connection types (s3, postgres, mysql) should also not trigger warnings
       initIntercepts({
         connectionNames: ['s3-connection', 'postgres-connection', 'mysql-connection'],
         hasValidConnections: true,
       });
 
-      // Mock different connection types
       cy.interceptK8sList(
         { model: SecretModel, ns: 'test-project' },
         mockK8sResourceList([
@@ -348,56 +257,36 @@ describe('Workbench Data Connection Warnings', () => {
       );
 
       editSpawnerPage.visit('test-notebook');
-
-      // No environment variable warnings should be shown
       editSpawnerPage.findAlertMessage().should('not.exist');
     });
 
-    it('should handle workbench with mixed valid and invalid references', () => {
-      // Mix of valid data connection, missing env var secret, and valid config map
+    it('should warn only for missing envFrom references among mixed references', () => {
       initIntercepts({
         connectionNames: ['valid-data-connection'],
         hasValidConnections: true,
         envFrom: [
-          {
-            secretRef: {
-              name: 'missing-secret',
-            },
-          },
-          {
-            configMapRef: {
-              name: 'valid-configmap',
-            },
-          },
+          { secretRef: { name: 'missing-secret' } },
+          { configMapRef: { name: 'valid-configmap' } },
         ],
       });
 
-      // Mock 404 for missing secret
       cy.interceptK8s(
         { model: SecretModel, ns: 'test-project', name: 'missing-secret' },
-        {
-          statusCode: 404,
-          body: mock404Error({}),
-        },
+        { statusCode: 404, body: mock404Error({}) },
       );
 
-      // Mock valid ConfigMap
       cy.interceptK8s(
         { model: ConfigMapModel, ns: 'test-project', name: 'valid-configmap' },
         {
           apiVersion: 'v1',
           kind: 'ConfigMap',
-          metadata: {
-            name: 'valid-configmap',
-            namespace: 'test-project',
-          },
+          metadata: { name: 'valid-configmap', namespace: 'test-project' },
           data: {},
         },
       );
 
       editSpawnerPage.visit('test-notebook');
 
-      // Should show warning only for missing env var secret
       editSpawnerPage.findAlertMessage().should('exist');
       editSpawnerPage.findAlertMessage().should('contain.text', 'missing-secret');
       editSpawnerPage.findAlertMessage().should('not.contain.text', 'valid-data-connection');

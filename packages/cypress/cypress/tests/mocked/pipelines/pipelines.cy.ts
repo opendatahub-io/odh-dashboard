@@ -521,65 +521,49 @@ describe('Pipelines', () => {
     managePipelineServerModal.findCloseButton().click();
   });
 
-  describe('Pipeline server actions visibility', () => {
-    afterEach(() => {
-      Cypress.env('USER_CONFIG', undefined);
-    });
+  it('should show pipeline server actions per role and disable when unconfigured', () => {
+    // Product admin: button exists and is enabled
+    asProductAdminUser();
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
 
-    it('should show pipeline server actions for product admin users', () => {
-      asProductAdminUser();
-      initIntercepts({});
-      pipelinesGlobal.visit(projectName);
+    // Project admin: button exists
+    Cypress.env('USER_CONFIG', undefined);
+    asProjectAdminUser();
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findPipelineServerActionButton().should('exist');
 
-      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
-    });
+    // Product admin with no server configured: button is disabled
+    Cypress.env('USER_CONFIG', undefined);
+    asProductAdminUser();
+    initIntercepts({ isEmpty: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.findEmptyState().should('exist');
+    pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
 
-    it('should show pipeline server actions for project admin users', () => {
-      asProjectAdminUser();
-      initIntercepts({});
-      pipelinesGlobal.visit(projectName);
-
-      pipelinesGlobal.findPipelineServerActionButton().should('exist');
-    });
-
-    it('should disable pipeline server actions when server is not configured', () => {
-      asProductAdminUser();
-      initIntercepts({ isEmpty: true });
-      pipelinesGlobal.visit(projectName);
-
-      pipelinesGlobal.findEmptyState().should('exist');
-      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
-    });
+    Cypress.env('USER_CONFIG', undefined);
   });
 
-  describe('Delete confirmation modal', () => {
-    it('should require confirmation text to enable submit button', () => {
-      initIntercepts({});
-      pipelinesGlobal.visit(projectName);
+  it('should validate delete confirmation text and allow cancel', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
 
-      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
-      deleteModal.shouldBeOpen();
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
 
-      deleteModal.findSubmitButton().should('be.disabled');
+    deleteModal.findSubmitButton().should('be.disabled');
 
-      deleteModal.findInput().type('wrong text');
-      deleteModal.findSubmitButton().should('be.disabled');
+    deleteModal.findInput().type('wrong text');
+    deleteModal.findSubmitButton().should('be.disabled');
 
-      deleteModal.findInput().clear();
-      deleteModal.findInput().type('Test Project pipeline server');
-      deleteModal.findSubmitButton().should('be.enabled');
-    });
+    deleteModal.findInput().clear();
+    deleteModal.findInput().type('Test Project pipeline server');
+    deleteModal.findSubmitButton().should('be.enabled');
 
-    it('should close modal when cancel is clicked', () => {
-      initIntercepts({});
-      pipelinesGlobal.visit(projectName);
-
-      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
-      deleteModal.shouldBeOpen();
-
-      deleteModal.findCancelButton().click();
-      deleteModal.shouldBeOpen(false);
-    });
+    deleteModal.findCancelButton().click();
+    deleteModal.shouldBeOpen(false);
   });
 
   describe('Pipeline server deletion flow', () => {
@@ -660,22 +644,17 @@ describe('Pipelines', () => {
     });
   });
 
-  describe('Delete button state with different server states', () => {
-    it('should show delete option when server is initializing', () => {
-      initIntercepts({ initializing: true });
-      pipelinesGlobal.visit(projectName);
+  it('should show delete option when server is initializing or has error', () => {
+    initIntercepts({ initializing: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+    deleteModal.findCancelButton().click();
 
-      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
-      deleteModal.shouldBeOpen();
-    });
-
-    it('should show delete option when server has error', () => {
-      initIntercepts({ initializing: false, errorMessage: 'Failed to connect to storage' });
-      pipelinesGlobal.visit(projectName);
-
-      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
-      deleteModal.shouldBeOpen();
-    });
+    initIntercepts({ initializing: false, errorMessage: 'Failed to connect to storage' });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
   });
 
   it('renders the page with pipelines table data', () => {

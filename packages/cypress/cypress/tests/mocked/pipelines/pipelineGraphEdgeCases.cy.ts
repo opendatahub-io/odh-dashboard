@@ -249,14 +249,14 @@ describe('Pipeline Graph Edge Cases', () => {
   });
 
   describe('Error Cases', () => {
-    it('should handle incomplete pipeline specs gracefully', () => {
+    it('should handle incomplete and empty pipeline specs gracefully', () => {
+      // Incomplete: task references a non-existent component
       const mockIncompletePipeline = buildMockPipelineVersion({
         pipeline_id: mockPipeline.pipeline_id,
         pipeline_version_id: 'incomplete-version',
         display_name: 'Incomplete Pipeline',
       });
 
-      // Create a minimal pipeline spec with missing components
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const incompletePipelineSpec = mockIncompletePipeline.pipeline_spec.pipeline_spec!;
       incompletePipelineSpec.components = {};
@@ -300,9 +300,8 @@ describe('Pipeline Graph Edge Cases', () => {
       pipelineDetails.findPageTitle().should('exist');
       pipelineDetails.findVisualizationSurface().should('be.visible');
       pipelineDetails.findTaskNodes().should('have.length', 1);
-    });
 
-    it('should handle empty pipeline spec', () => {
+      // Empty: no tasks at all
       const mockEmptyPipeline = buildMockPipelineVersion({
         pipeline_id: mockPipeline.pipeline_id,
         pipeline_version_id: 'empty-version',
@@ -512,7 +511,7 @@ describe('Pipeline Graph Edge Cases', () => {
       );
     });
 
-    it('should show toolbar controls and toggle collapse/expand with correct state', () => {
+    it('should toggle collapse/expand, preserve selection, and allow node interactions', () => {
       pipelineDetails.findZoomInButton().should('be.visible');
       pipelineDetails.findZoomOutButton().should('be.visible');
       pipelineDetails.findFitToScreenButton().should('be.visible');
@@ -544,9 +543,10 @@ describe('Pipeline Graph Edge Cases', () => {
       pipelineDetails.findCollapseAllButton().click();
       pipelineDetails.findVisualizationSurface().should('be.visible');
       pipelineDetails.findNodes().should('have.length.greaterThan', 0);
-    });
 
-    it('should preserve node selection across collapse/expand and allow interactions', () => {
+      pipelineDetails.findExpandAllButton().click();
+
+      // Verify node selection persists across collapse/expand
       pipelineDetails.findTaskNode('create-dataset').click();
       const taskDrawer = pipelineDetails.getTaskDrawer();
       taskDrawer.shouldHaveTaskName('create-dataset');
