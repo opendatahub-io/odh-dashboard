@@ -232,7 +232,7 @@ describe('AutomlReconfigureLoader', () => {
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
     });
 
-    it('should render InvalidPipelineRun for non-404 pipeline run errors', () => {
+    it('should render load error for non-404 pipeline run errors', () => {
       mockUsePipelineRunQuery.mockReturnValue({
         data: undefined,
         isPending: false,
@@ -242,9 +242,10 @@ describe('AutomlReconfigureLoader', () => {
 
       renderPage();
 
-      expect(screen.getByTestId('invalid-run')).toBeInTheDocument();
+      expect(screen.queryByTestId('invalid-run')).not.toBeInTheDocument();
       expect(screen.queryByTestId('configure-page')).not.toBeInTheDocument();
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('applications-page')).toBeInTheDocument();
     });
 
     it('should render InvalidProject when namespace is invalid', () => {

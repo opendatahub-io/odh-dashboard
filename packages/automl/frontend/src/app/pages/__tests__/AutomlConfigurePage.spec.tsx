@@ -300,14 +300,12 @@ describe('AutomlConfigurePage', () => {
   });
 
   describe('Create step - Cancel button', () => {
-    it('should render Cancel link with correct href', async () => {
+    it('should navigate back when Cancel is clicked', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AutomlConfigurePage />);
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toBeInTheDocument();
-      expect(cancelLink).toHaveAttribute(
-        'href',
-        '/develop-train/automl/experiments/test-namespace',
-      );
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
   });
 
@@ -739,7 +737,8 @@ describe('AutomlConfigurePage', () => {
       ).toBeInTheDocument();
     });
 
-    it('should render Cancel link pointing to results page when sourceRunId is provided', async () => {
+    it('should navigate back when Cancel is clicked with sourceRunId', async () => {
+      const user = userEvent.setup();
       renderWithProviders(
         <AutomlConfigurePage
           initialValues={{ display_name: 'Original Run - 1' }}
@@ -748,11 +747,9 @@ describe('AutomlConfigurePage', () => {
         />,
       );
 
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute(
-        'href',
-        '/develop-train/automl/results/test-namespace/prev-run-456',
-      );
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
     it('should display breadcrumb with source run link on create step when reconfiguring', async () => {
@@ -778,14 +775,13 @@ describe('AutomlConfigurePage', () => {
       expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
     });
 
-    it('should render Cancel link pointing to experiments page when sourceRunId is absent', async () => {
+    it('should navigate back when Cancel is clicked without sourceRunId', async () => {
+      const user = userEvent.setup();
       renderWithProviders(<AutomlConfigurePage />);
 
-      const cancelLink = await screen.findByRole('link', { name: 'Cancel' });
-      expect(cancelLink).toHaveAttribute(
-        'href',
-        '/develop-train/automl/experiments/test-namespace',
-      );
+      const cancelButton = await screen.findByRole('button', { name: 'Cancel' });
+      await user.click(cancelButton);
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
     it('should render "Create new run" button text when sourceRunId is provided', async () => {

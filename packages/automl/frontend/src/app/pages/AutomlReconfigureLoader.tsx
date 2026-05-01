@@ -15,7 +15,7 @@ import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/confi
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
-import { generateReconfigureName, getTaskType } from '~/app/utilities/utils';
+import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -119,19 +119,35 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.train_data_secret_name, secrets]);
 
-  if (noNamespaces || invalidNamespace || pipelineRunError) {
+  const invalidPipelineRunId =
+    pipelineRunError &&
+    pipelineRunLoadError instanceof Error &&
+    parseErrorStatus(pipelineRunLoadError) === 404;
+
+  if (noNamespaces || invalidNamespace || invalidPipelineRunId) {
     return (
       <ApplicationsPage
         title={<AutomlHeader />}
         empty
         emptyStatePage={
-          pipelineRunError ? (
+          invalidPipelineRunId ? (
             <InvalidPipelineRun />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
           )
         }
-        loadError={pipelineRunLoadError ?? namespacesLoadError}
+        loadError={namespacesLoadError}
+        loaded={namespacesLoaded}
+      />
+    );
+  }
+
+  if (pipelineRunError) {
+    return (
+      <ApplicationsPage
+        title={<AutomlHeader />}
+        empty={false}
+        loadError={pipelineRunLoadError}
         loaded={namespacesLoaded}
       />
     );

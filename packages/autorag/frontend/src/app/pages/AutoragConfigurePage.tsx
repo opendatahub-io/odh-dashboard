@@ -82,14 +82,7 @@ function AutoragConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
-  const cancelPath = sourceRunId
-    ? `${autoragResultsPathname}/${namespace}/${sourceRunId}`
-    : `${autoragExperimentsPathname}/${namespace}`;
-
-  const CancelLink = useCallback(
-    (props: React.ComponentProps<typeof Link>) => <Link {...props} to={cancelPath} />,
-    [cancelPath],
-  );
+  const onCancel = useCallback(() => navigate(-1), [navigate]);
 
   const createActions = (
     <>
@@ -107,7 +100,7 @@ function AutoragConfigurePage({
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button component={CancelLink} variant="link">
+        <Button variant="link" onClick={onCancel}>
           Cancel
         </Button>
       </ActionListItem>

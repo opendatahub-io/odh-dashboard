@@ -15,7 +15,7 @@ import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/confi
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
-import { generateReconfigureName } from '~/app/utilities/utils';
+import { parseErrorStatus, generateReconfigureName } from '~/app/utilities/utils';
 import AutoragConfigurePage from './AutoragConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -149,19 +149,35 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params?.llama_stack_secret_name, llsSecrets]);
 
-  if (noNamespaces || invalidNamespace || pipelineRunError) {
+  const invalidPipelineRunId =
+    pipelineRunError &&
+    pipelineRunLoadError instanceof Error &&
+    parseErrorStatus(pipelineRunLoadError) === 404;
+
+  if (noNamespaces || invalidNamespace || invalidPipelineRunId) {
     return (
       <ApplicationsPage
         title={<AutoragHeader />}
         empty
         emptyStatePage={
-          pipelineRunError ? (
+          invalidPipelineRunId ? (
             <InvalidPipelineRun />
           ) : (
             <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
           )
         }
-        loadError={pipelineRunLoadError ?? namespacesLoadError}
+        loadError={namespacesLoadError}
+        loaded={namespacesLoaded}
+      />
+    );
+  }
+
+  if (pipelineRunError) {
+    return (
+      <ApplicationsPage
+        title={<AutoragHeader />}
+        empty={false}
+        loadError={pipelineRunLoadError}
         loaded={namespacesLoaded}
       />
     );

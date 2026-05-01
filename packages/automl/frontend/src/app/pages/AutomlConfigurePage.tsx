@@ -77,14 +77,7 @@ function AutomlConfigurePage({
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
-  const cancelPath = sourceRunId
-    ? `${automlResultsPathname}/${namespace}/${sourceRunId}`
-    : `${automlExperimentsPathname}/${namespace}`;
-
-  const CancelLink = useCallback(
-    (props: React.ComponentProps<typeof Link>) => <Link {...props} to={cancelPath} />,
-    [cancelPath],
-  );
+  const onCancel = useCallback(() => navigate(-1), [navigate]);
 
   const createActions = (
     <>
@@ -98,7 +91,7 @@ function AutomlConfigurePage({
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button component={CancelLink} variant="link">
+        <Button variant="link" onClick={onCancel}>
           Cancel
         </Button>
       </ActionListItem>
