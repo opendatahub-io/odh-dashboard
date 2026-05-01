@@ -11,9 +11,10 @@ import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
-import McpDeploymentsRoutes from '~/app/pages/mcpDeployments/McpDeploymentsRoutes';
+import McpDeploymentsRoutes from '~/odh/pages/mcpDeployments/McpDeploymentsRoutes';
 import NotificationListener from '~/odh/components/NotificationListener';
 import OdhDevFeatureFlagOverridesProvider from '~/odh/components/OdhDevFeatureFlagOverridesProvider';
+import ProjectsBridgeProviderWrapper from '~/odh/components/ProjectsBridgeProviderWrapper';
 
 const McpDeploymentsWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
@@ -34,7 +35,9 @@ const McpDeploymentsWrapperContent: React.FC = () => {
           <OdhDevFeatureFlagOverridesProvider crdOverrides={{}}>
             <NotificationContextProvider>
               <NotificationListener>
-                <McpDeploymentsRoutes />
+                <ProjectsBridgeProviderWrapper>
+                  <McpDeploymentsRoutes />
+                </ProjectsBridgeProviderWrapper>
               </NotificationListener>
             </NotificationContextProvider>
           </OdhDevFeatureFlagOverridesProvider>
