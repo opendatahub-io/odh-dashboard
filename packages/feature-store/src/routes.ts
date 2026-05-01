@@ -25,6 +25,19 @@ export const featureServiceRoute = (
 export const featureRoute = (featureName: string, featureStoreProject: string): string =>
   `${featureStoreRootRoute()}/features/${featureStoreProject}/${featureName}`;
 
+/** Features list for a project, with optional query */
+export const featureStoreFeaturesListRoute = (
+  featureStoreProject: string,
+  searchParams?: URLSearchParams,
+): string => {
+  const path = `${featureStoreRootRoute()}/features/${featureStoreProject}`;
+  const query = searchParams?.toString();
+  if (query) {
+    return `${path}?${query}`;
+  }
+  return path;
+};
+
 export const featureDataSourceRoute = (
   dataSourceName: string,
   featureStoreProject: string,

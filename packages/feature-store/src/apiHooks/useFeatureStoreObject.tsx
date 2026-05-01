@@ -10,7 +10,7 @@ export function getFeatureStoreObjectFromPath(pathname: string): FeatureStoreObj
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return featureStoreObject as FeatureStoreObject;
   }
-  return FeatureStoreObject.ENTITIES; // TODO: change default to overview page once we have it
+  return FeatureStoreObject.OVERVIEW;
 }
 
 export function useFeatureStoreObject(): FeatureStoreObject {

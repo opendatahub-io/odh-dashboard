@@ -21,9 +21,9 @@ const FeatureServiceDetailsTabs: React.FC<FeatureServiceDetailsTabsProps> = ({
   return (
     <Tabs
       activeKey={activeTabKey}
-      aria-label="Feature details page"
+      aria-label="Feature service details page"
       role="region"
-      data-testid="feature-details-page"
+      data-testid="feature-service-details-tabs"
       onSelect={(e, tabIndex) => {
         setActiveTabKey(tabIndex);
       }}

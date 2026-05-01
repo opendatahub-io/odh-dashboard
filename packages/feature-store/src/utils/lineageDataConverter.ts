@@ -237,24 +237,6 @@ export const convertFeatureStoreLineageToVisualizationData = (
     }
   });
 
-  // TODO: Hiding the indirect relationships for now
-  // featureStoreLineage.indirectRelationships.forEach((relationship, index) => {
-  //   const edgeId = `indirect-edge-${index}`;
-
-  //   const sourceId = mapObjectToNodeId(relationship.source);
-  //   const targetId = mapObjectToNodeId(relationship.target);
-
-  //   if (sourceId && targetId) {
-  //     edges.push({
-  //       id: edgeId,
-  //       source: sourceId,
-  //       target: targetId,
-  //       edgeStyle: EdgeStyle.dashed, // Use dashed style for indirect relationships
-  //       type: 'curved-edge',
-  //     });
-  //   }
-  // });
-
   return { nodes, edges };
 };
 

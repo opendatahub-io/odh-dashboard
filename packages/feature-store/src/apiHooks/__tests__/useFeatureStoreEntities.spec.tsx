@@ -3,7 +3,7 @@ import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockEntity, mockEntities } from '../../__mocks__/mockEntities';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import { EntityList } from '../../types/entities';
-import useFeatureStoreEntities from '../useFeatureStoreEnitites';
+import useFeatureStoreEntities from '../useFeatureStoreEntities';
 
 jest.mock('../../FeatureStoreContext', () => ({
   useFeatureStoreAPI: jest.fn(),
