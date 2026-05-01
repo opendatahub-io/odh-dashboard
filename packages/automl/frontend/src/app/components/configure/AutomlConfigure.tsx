@@ -612,7 +612,7 @@ function AutomlConfigure(): React.JSX.Element {
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isTrainingDataFileUploading && (
                                           <SplitItem>
