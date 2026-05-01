@@ -27,6 +27,7 @@ export type AutomlResultsContextProps = {
   models: Record<string, AutomlModel>;
   modelsLoading?: boolean;
   parameters?: Partial<ConfigureSchema>;
+  modelsBasePath?: string;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -46,11 +47,13 @@ export function getAutomlContext({
   models = {},
   pipelineRunLoading,
   modelsLoading,
+  modelsBasePath,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsBasePath?: string;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -77,5 +80,6 @@ export function getAutomlContext({
     models,
     modelsLoading,
     parameters,
+    modelsBasePath,
   };
 }

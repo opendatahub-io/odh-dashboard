@@ -5,7 +5,31 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { Drawer, DrawerContent, DrawerContentBody } from '@patternfly/react-core';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
+import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import type { PipelineRun } from '~/app/types';
+
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useParams: () => ({ namespace: 'test-ns' }),
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: {
+    to: string;
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
+}));
+
+jest.mock('~/app/hooks/queries', () => ({
+  isTerminalState: (state: string) => ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(state),
+}));
 
 const defaultParameters: Partial<ConfigureSchema> = {
   display_name: 'My Run',
@@ -17,20 +41,41 @@ const defaultParameters: Partial<ConfigureSchema> = {
   label_column: 'target_col',
 };
 
+const createMockPipelineRun = (overrides?: Partial<PipelineRun>): PipelineRun => ({
+  run_id: 'run-123',
+  display_name: 'Test Run',
+  state: 'SUCCEEDED',
+  created_at: '2025-01-17T00:00:00Z',
+  ...overrides,
+});
+
 const renderPanel = (
   props: Partial<React.ComponentProps<typeof AutomlInputParametersPanel>> = {},
+  contextOverrides: Partial<Parameters<typeof getAutomlContext>[0]> = {},
 ) => {
   const onClose = jest.fn();
+  const contextValue = getAutomlContext({
+    pipelineRun: createMockPipelineRun(),
+    models: {},
+    modelsLoading: false,
+    ...contextOverrides,
+  });
   const result = render(
-    <Drawer isExpanded>
-      <DrawerContent
-        panelContent={
-          <AutomlInputParametersPanel onClose={onClose} parameters={defaultParameters} {...props} />
-        }
-      >
-        <DrawerContentBody>content</DrawerContentBody>
-      </DrawerContent>
-    </Drawer>,
+    <AutomlResultsContext.Provider value={contextValue}>
+      <Drawer isExpanded>
+        <DrawerContent
+          panelContent={
+            <AutomlInputParametersPanel
+              onClose={onClose}
+              parameters={defaultParameters}
+              {...props}
+            />
+          }
+        >
+          <DrawerContentBody>content</DrawerContentBody>
+        </DrawerContent>
+      </Drawer>
+    </AutomlResultsContext.Provider>,
   );
   return { ...result, onClose };
 };
@@ -137,7 +182,13 @@ describe('AutomlInputParametersPanel', () => {
       } as Partial<ConfigureSchema>,
     });
     const terms = screen.getAllByRole('term');
-    const labels = terms.map((el) => el.textContent);
+    // Filter out pipeline-level terms (Pipeline run ID, Pipeline Server output directory)
+    const parameterTerms = terms.filter(
+      (el) =>
+        el.textContent !== 'Pipeline run ID' &&
+        el.textContent !== 'Pipeline Server output directory',
+    );
+    const labels = parameterTerms.map((el) => el.textContent);
     expect(labels).toEqual(['Description', 'S3 connection', 'Top models to consider']);
   });
 
@@ -223,5 +274,130 @@ describe('AutomlInputParametersPanel', () => {
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('Known covariates')).toBeInTheDocument();
     expect(screen.getByText('holiday, promo')).toBeInTheDocument();
+  });
+
+  describe('pipeline links and run details', () => {
+    it('should render pipeline definition link when pipeline_version_reference is present', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({
+            pipeline_version_reference: {
+              pipeline_id: 'p1',
+              pipeline_version_id: 'v1',
+            },
+          }),
+        },
+      );
+      const link = screen.getByTestId('parameter-pipeline-definition');
+      expect(link).toBeInTheDocument();
+      expect(screen.getByText('Pipeline definition')).toBeInTheDocument();
+      expect(link.closest('a')).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/definitions/test-ns/p1/v1/view',
+      );
+    });
+
+    it('should not render pipeline definition link when pipeline_version_reference is absent', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({
+            pipeline_version_reference: undefined,
+          }),
+        },
+      );
+      expect(screen.queryByTestId('parameter-pipeline-definition')).not.toBeInTheDocument();
+    });
+
+    it('should render pipeline run link when run_id is present', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ run_id: 'run-456' }),
+        },
+      );
+      const link = screen.getByTestId('parameter-pipeline-run');
+      expect(link).toBeInTheDocument();
+      expect(screen.getByText('Pipeline run')).toBeInTheDocument();
+      expect(link.closest('a')).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-ns/runs/run-456',
+      );
+    });
+
+    it('should render pipeline run ID with clipboard copy', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ run_id: 'run-789' }),
+        },
+      );
+      const runIdGroup = screen.getByTestId('parameter-run-id');
+      expect(runIdGroup).toBeInTheDocument();
+      expect(screen.getByText('Pipeline run ID')).toBeInTheDocument();
+      // ClipboardCopy renders as an input, so check the input value
+      const input = runIdGroup.querySelector('input');
+      expect(input).toHaveValue('run-789');
+    });
+
+    it('should render output directory with modelsBasePath', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
+          modelsBasePath: 's3://bucket/models/path',
+          modelsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toBeInTheDocument();
+      expect(screen.getByText('Pipeline Server output directory')).toBeInTheDocument();
+      const input = outputDir.querySelector('input');
+      expect(input).toHaveValue('s3://bucket/models/path');
+    });
+
+    it('should show skeleton for output directory when models are loading', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
+          modelsLoading: true,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+    });
+
+    it('should show skeleton for output directory when run is not in terminal state', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'RUNNING' }),
+          modelsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+    });
+
+    it('should show "Not available" when modelsBasePath is undefined and run is terminal', () => {
+      renderPanel(
+        {},
+        {
+          pipelineRun: createMockPipelineRun({ state: 'SUCCEEDED' }),
+          modelsBasePath: undefined,
+          modelsLoading: false,
+        },
+      );
+      const outputDir = screen.getByTestId('parameter-output-directory');
+      expect(outputDir).toHaveTextContent('Pipeline Server output directory');
+      expect(outputDir).toHaveTextContent('Not available');
+    });
+
+    it('should render "Input parameters" heading', () => {
+      renderPanel();
+      expect(screen.getByText('Input parameters')).toBeInTheDocument();
+    });
   });
 });

@@ -16,6 +16,7 @@ type UseAutomlResultsReturn = {
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  modelsBasePath?: string;
 };
 
 /**
@@ -71,7 +72,7 @@ export function useAutomlResults(
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
     : 'autogluon-timeseries-models-full-refit';
-  const generatedModelsPath = shouldFetchS3Files
+  const modelsBasePath = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
 
@@ -79,7 +80,7 @@ export function useAutomlResults(
     data: s3Files,
     isLoading: isS3Loading,
     isError: isS3Error,
-  } = useS3ListFilesQuery(namespace, generatedModelsPath);
+  } = useS3ListFilesQuery(namespace, modelsBasePath);
 
   // Step 2: Fetch model artifact directories from each common prefix
   const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
@@ -296,5 +297,6 @@ export function useAutomlResults(
     isLoading: isS3Loading || modelArtifactQueries.isPending || modelQueries.isPending,
     isError: hasError,
     error,
+    modelsBasePath,
   };
 }

@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Button,
+  ClipboardCopy,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -16,7 +18,11 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkSquareAltIcon } from '@patternfly/react-icons';
+import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
+import { isTerminalState } from '~/app/hooks/queries';
 import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import './AutomlInputParametersPanel.scss';
 
@@ -110,6 +116,10 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
   parameters,
   isLoading,
 }) => {
+  const { namespace } = useParams();
+  const { pipelineRun, modelsLoading, modelsBasePath } = useAutomlResultsContext();
+  const pipelineRef = pipelineRun?.pipeline_version_reference;
+
   const entries: [string, unknown][] = React.useMemo(() => {
     if (!parameters) {
       return [];
@@ -140,6 +150,38 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
       <DrawerHead className="odh-automl-input-parameters-panel__head">
         <Title headingLevel="h2">Run details</Title>
         <DrawerActions>
+          {pipelineRef && (
+            <Button
+              variant="link"
+              icon={<ExternalLinkSquareAltIcon />}
+              iconPosition="end"
+              data-testid="parameter-pipeline-definition"
+              component={(props) => (
+                <Link
+                  {...props}
+                  to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
+                />
+              )}
+            >
+              Pipeline definition
+            </Button>
+          )}
+          {pipelineRun?.run_id && (
+            <Button
+              variant="link"
+              icon={<ExternalLinkSquareAltIcon />}
+              iconPosition="end"
+              data-testid="parameter-pipeline-run"
+              component={(props) => (
+                <Link
+                  {...props}
+                  to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
+                />
+              )}
+            >
+              Pipeline run
+            </Button>
+          )}
           <DrawerCloseButton onClick={onClose} data-testid="run-details-drawer-close" />
         </DrawerActions>
       </DrawerHead>
@@ -155,6 +197,36 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
           </Stack>
         ) : (
           <DescriptionList>
+            {pipelineRun?.run_id && (
+              <>
+                <DescriptionListGroup data-testid="parameter-run-id">
+                  <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                      {pipelineRun.run_id}
+                    </ClipboardCopy>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
+                <Divider />
+              </>
+            )}
+            <DescriptionListGroup data-testid="parameter-output-directory">
+              <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+              <DescriptionListDescription>
+                {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                  <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                ) : modelsBasePath ? (
+                  <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                    {modelsBasePath}
+                  </ClipboardCopy>
+                ) : (
+                  'Not available'
+                )}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg">
+              Input parameters
+            </Title>
             {entries.map(([key, value], index) => (
               <React.Fragment key={key}>
                 {index > 0 && <Divider />}

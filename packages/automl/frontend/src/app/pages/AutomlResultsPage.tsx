@@ -64,6 +64,7 @@ function AutomlResultsPage(): React.JSX.Element {
     isLoading: modelsLoading,
     isError: modelsError,
     error: modelsLoadError,
+    modelsBasePath,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
@@ -81,12 +82,13 @@ function AutomlResultsPage(): React.JSX.Element {
         models,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         modelsLoading,
+        modelsBasePath,
       }),
-    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading],
+    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading, modelsBasePath],
   );
 
   return (
-    <>
+    <AutomlResultsContext.Provider value={contextValue}>
       <Drawer isExpanded={isDrawerOpen}>
         <DrawerContent
           panelContent={
@@ -174,11 +176,7 @@ function AutomlResultsPage(): React.JSX.Element {
               loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              {!modelsError && (
-                <AutomlResultsContext.Provider value={contextValue}>
-                  <AutomlResults />
-                </AutomlResultsContext.Provider>
-              )}
+              {!modelsError && <AutomlResults />}
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
@@ -190,7 +188,7 @@ function AutomlResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
       />
-    </>
+    </AutomlResultsContext.Provider>
   );
 }
 
