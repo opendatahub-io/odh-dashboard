@@ -1,0 +1,142 @@
+name: Test / ESLint Disable Audit
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [RHOAIENG-56189/eslint-disable-audit]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22.x
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run unit tests
+        run: node --test scripts/eslint-disable-audit.test.mjs
+
+  Audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run audit
+        run: |
+          node scripts/eslint-disable-audit.mjs \
+            --baseline scripts/eslint-disable-baseline.json \
+            --fail-on-increase \
+            --json --output-file audit-results.json \
+            --github-summary "$GITHUB_STEP_SUMMARY" \
+            --github-annotations
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-disable-audit
+          path: audit-results.json
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('audit-results.json', 'utf-8'));
+            } catch {
+              return;
+            }
+
+            const { summary, byType, comparison } = report;
+            const total = summary.totalDirectives.toLocaleString();
+            const files = summary.totalFiles.toLocaleString();
+            const descPct = summary.totalDirectives > 0
+              ? ((summary.withDescription / summary.totalDirectives) * 100).toFixed(1)
+              : '0.0';
+
+            let status = '✅ **No regressions**';
+            let deltaRows = '';
+            if (comparison?.hasRegression) {
+              status = '❌ **Regressions detected**';
+              deltaRows = comparison.deltas
+                .filter(d => d.status === 'REGRESSION')
+                .map(d => `| \`${d.category}\` | ${d.baseline} | ${d.current} | +${d.delta} |`)
+                .join('\n');
+            } else if (comparison?.deltas?.length > 0) {
+              status = '🎉 **Improvements detected** — consider running `npm run lint:audit:save`';
+            }
+
+            let body = [
+              '### ESLint Disable Audit',
+              '',
+              `${status}`,
+              '',
+              `| Metric | Value |`,
+              `|:-------|------:|`,
+              `| Directives | **${total}** |`,
+              `| Files | **${files}** |`,
+              `| Documented | ${summary.withDescription} (${descPct}%) |`,
+            ].join('\n');
+
+            if (deltaRows) {
+              body += '\n\n<details>\n<summary>Regression details</summary>\n\n';
+              body += '| Category | Baseline | Current | Delta |\n';
+              body += '|:---------|:--------:|:-------:|------:|\n';
+              body += deltaRows;
+              body += '\n\n</details>';
+            }
+
+            body += `\n\n<sub>🤖 from [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})</sub>`;
+
+            const marker = '<!-- eslint-disable-audit -->';
+            body = `${marker}\n${body}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            const existing = comments.find(c => c.body?.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

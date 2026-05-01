@@ -1,0 +1,3494 @@
+{
+  "timestamp": "2026-04-02T15:16:10.836Z",
+  "commit": "660aec16c",
+  "summary": {
+    "totalDirectives": 1439,
+    "totalFiles": 785,
+    "withDescription": 82,
+    "withoutDescription": 1357
+  },
+  "byType": {
+    "eslint-disable-next-line-scoped": 847,
+    "eslint-disable-next-line-bare": 2,
+    "eslint-disable-block-scoped": 409,
+    "eslint-disable-block-bare": 1,
+    "eslint-disable-line-scoped": 133,
+    "eslint-disable-line-bare": 1,
+    "ts-ignore": 32,
+    "ts-expect-error": 9,
+    "ts-nocheck": 5
+  },
+  "byRule": [
+    {
+      "rule": "camelcase",
+      "count": 651
+    },
+    {
+      "rule": "no-console",
+      "count": 153
+    },
+    {
+      "rule": "@typescript-eslint/consistent-type-assertions",
+      "count": 79
+    },
+    {
+      "rule": "@typescript-eslint/no-explicit-any",
+      "count": 57
+    },
+    {
+      "rule": "react-hooks/exhaustive-deps",
+      "count": 56
+    },
+    {
+      "rule": "@typescript-eslint/no-unnecessary-condition",
+      "count": 55
+    },
+    {
+      "rule": "@typescript-eslint/ban-ts-comment",
+      "count": 39
+    },
+    {
+      "rule": "@typescript-eslint/no-namespace",
+      "count": 37
+    },
+    {
+      "rule": "@odh-dashboard/no-restricted-imports",
+      "count": 31
+    },
+    {
+      "rule": "no-restricted-syntax",
+      "count": 28
+    },
+    {
+      "rule": "@typescript-eslint/no-unused-vars",
+      "count": 24
+    },
+    {
+      "rule": "cypress/no-unnecessary-waiting",
+      "count": 22
+    },
+    {
+      "rule": "@typescript-eslint/naming-convention",
+      "count": 19
+    },
+    {
+      "rule": "no-barrel-files/no-barrel-files",
+      "count": 18
+    },
+    {
+      "rule": "@typescript-eslint/no-unsafe-function-type",
+      "count": 16
+    },
+    {
+      "rule": "@typescript-eslint/method-signature-style",
+      "count": 14
+    },
+    {
+      "rule": "no-param-reassign",
+      "count": 10
+    },
+    {
+      "rule": "no-restricted-properties",
+      "count": 10
+    },
+    {
+      "rule": "no-restricted-imports",
+      "count": 9
+    },
+    {
+      "rule": "@typescript-eslint/explicit-module-boundary-types",
+      "count": 8
+    },
+    {
+      "rule": "@cspell/spellchecker",
+      "count": 7
+    },
+    {
+      "rule": "@typescript-eslint/no-empty-function",
+      "count": 7
+    },
+    {
+      "rule": "@typescript-eslint/restrict-template-expressions",
+      "count": 7
+    },
+    {
+      "rule": "@typescript-eslint/no-require-imports",
+      "count": 6
+    },
+    {
+      "rule": "no-relative-import-paths/no-relative-import-paths",
+      "count": 5
+    },
+    {
+      "rule": "react-hooks/rules-of-hooks",
+      "count": 5
+    },
+    {
+      "rule": "@typescript-eslint/ban-types",
+      "count": 4
+    },
+    {
+      "rule": "import/first",
+      "count": 4
+    },
+    {
+      "rule": "@typescript-eslint/prefer-nullish-coalescing",
+      "count": 3
+    },
+    {
+      "rule": "import/no-extraneous-dependencies",
+      "count": 3
+    },
+    {
+      "rule": "no-control-regex",
+      "count": 3
+    },
+    {
+      "rule": "@typescript-eslint/consistent-type-imports",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/no-base-to-string",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/no-shadow",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/no-unsafe-declaration-merging",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/no-unused-expressions",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/no-var-requires",
+      "count": 2
+    },
+    {
+      "rule": "prefer-destructuring",
+      "count": 2
+    },
+    {
+      "rule": "prettier/prettier",
+      "count": 2
+    },
+    {
+      "rule": "@typescript-eslint/default-param-last",
+      "count": 1
+    },
+    {
+      "rule": "@typescript-eslint/no-non-null-assertion",
+      "count": 1
+    },
+    {
+      "rule": "arrow-body-style",
+      "count": 1
+    },
+    {
+      "rule": "import/no-named-as-default",
+      "count": 1
+    },
+    {
+      "rule": "jsx-a11y/aria-role",
+      "count": 1
+    },
+    {
+      "rule": "jsx-a11y/click-events-have-key-events",
+      "count": 1
+    },
+    {
+      "rule": "jsx-a11y/no-static-element-interactions",
+      "count": 1
+    },
+    {
+      "rule": "local-rules/no-raw-react-router-hook",
+      "count": 1
+    },
+    {
+      "rule": "no-var",
+      "count": 1
+    },
+    {
+      "rule": "react/display-name",
+      "count": 1
+    }
+  ],
+  "byFile": [
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
+      "count": 39
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
+      "count": 35
+    },
+    {
+      "file": "frontend/src/api/prometheus/__tests__/distributedWorkloads.spec.ts",
+      "count": 32
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragConfigure.spec.tsx",
+      "count": 24
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/api/__tests__/updateTimestamps.test.ts",
+      "count": 16
+    },
+    {
+      "file": "frontend/src/api/pipelines/custom.ts",
+      "count": 13
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/nimUtils.ts",
+      "count": 13
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/useAutoragResults.ts",
+      "count": 12
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/AutoragLeaderboard.tsx",
+      "count": 11
+    },
+    {
+      "file": "packages/autorag/frontend/src/__mocks__/mockSecretListItem.ts",
+      "count": 10
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/__tests__/AIAssetsModelsTab.spec.tsx",
+      "count": 9
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/automl/frontend/src/__mocks__/mockSecretListItem.ts",
+      "count": 8
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragEvaluationSelect.spec.tsx",
+      "count": 8
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/hooks/__tests__/useServerTools.spec.ts",
+      "count": 8
+    },
+    {
+      "file": "packages/jest-config/config/jest.setup.ts",
+      "count": 8
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/useAutomlResults.ts",
+      "count": 7
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 7
+    },
+    {
+      "file": "frontend/src/app/__tests__/AboutDialog.spec.tsx",
+      "count": 6
+    },
+    {
+      "file": "frontend/src/concepts/modelRegistry/apiHooks/__tests__/updateTimestamps.test.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlLeaderboard.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/PatternDetailsModal.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragConfigurePage.spec.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/modelCatalog.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utilities/__tests__/evaluationUtils.spec.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreCR.spec.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/feature-store/src/components/FeatureStoreGlobalSearch/utils/__tests__/searchUtils.spec.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/utils/logger.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/useFileManagement.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/tests/mocked/workspaces/secretsAttach.cy.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/shared/api/__tests__/apiUtils.spec.ts",
+      "count": 6
+    },
+    {
+      "file": "frontend/src/components/browserStorage/BrowserStorageContext.tsx",
+      "count": 5
+    },
+    {
+      "file": "packages/automl/frontend/src/app/topology/PipelineVisualizationSurface.tsx",
+      "count": 5
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/queries.ts",
+      "count": 5
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/topology/PipelineVisualizationSurface.tsx",
+      "count": 5
+    },
+    {
+      "file": "packages/cypress/cypress.config.ts",
+      "count": 5
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelTraining/modelTraining.cy.ts",
+      "count": 5
+    },
+    {
+      "file": "packages/cypress/cypress/utils/modelTestSetup.ts",
+      "count": 5
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useSyncPreferredNamespace.spec.ts",
+      "count": 5
+    },
+    {
+      "file": "frontend/src/concepts/analyticsTracking/segmentIOUtils.tsx",
+      "count": 4
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/__tests__/utils.spec.ts",
+      "count": 4
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/context/PipelinesContext.tsx",
+      "count": 4
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/__tests__/queries.spec.tsx",
+      "count": 4
+    },
+    {
+      "file": "packages/cypress/cypress/pages/modelServing.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/cypress/cypress/support/e2e.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/cypress/cypress/utils/manifestUrlValidator.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/modelRegistry.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/feature-store/src/__tests__/EnsureAPIAvailability.test.tsx",
+      "count": 4
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreProjectsAPI.spec.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/mcp.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/jest-config/src/hooks.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/tensorTypeComparisonCard.cy.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/useFilterState.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/utils.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/plugin-core/src/core/internal/coderefs.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/plugin-core/src/testing/__tests__/utils.spec.ts",
+      "count": 4
+    },
+    {
+      "file": "frontend/src/__mocks__/mockRegisteredModelsList.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/components/TypeaheadSelect.tsx",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/createRun/submitUtils.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/__tests__/usePipelineFilter.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/usePipelineFilter.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/plugins/useAppExtensions.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/types.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/utilities/__tests__/imageStreamUtils.spec.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/utilities/imageStreamUtils.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/utilities/utils.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/configure/__tests__/AutomlConfigure.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/configure/__tests__/ConfigureTimeseriesForm.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlResults.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/RegisterModelModal.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/context/AutomlResultsContext.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/queries.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlResultsPage.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/automl/frontend/src/app/schemas/configure.schema.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragVectorStoreSelector.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragResultsPage.spec.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/schemas/configure.schema.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/contract-tests/src/reporting/generate-html-report.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/cypress/cypress/pages/pipelines/createRunPage.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/cypress/cypress/pages/pipelines/experiments.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/cypress/cypress/utils/logger.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/llamaStackDistribution.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useCollections.spec.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockDataSets.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockDataSources.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/helpers/mcpServers/mcpServersTestHelpers.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/usePromptQueries.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/kserve/extensions.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/mlflow-embedded/extensions.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/mlflow-embedded/shared/WorkspaceRouteLoader.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/config/webpack.dev.js",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockRegisteredModelsList.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/RegisterCatalogModelForm.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/model-serving-backport/extensions.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/config/webpack.dev.js",
+      "count": 3
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/unit/testUtils/hooks.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/shared/mock/mockNotebookApis.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/plugin-core/src/core/helpers/HookNotify.tsx",
+      "count": 3
+    },
+    {
+      "file": "backend/src/routes/wss/k8s/index.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/__mocks__/mockPipelinesProxy.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/__mocks__/mockPipelineVersionsProxy.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/app/navigation/__tests__/NavSection.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/app/navigation/__tests__/navSidebar.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/app/navigation/__tests__/TabRoutePage.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/app/useApplicationSettings.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/InlineTruncatedClipboardCopy.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/lineage/anchors/customAnchors.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/lineage/node/LineageTaskPill.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/markdown/MarkdownComponent.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/NumberInputWrapper.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/SimpleSelect.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/components/table/useTableColumnSort.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/notificationWatcher/NotificationWatcherContext.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/useAllPipelineVersions.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineQuery.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRecurringRunById.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRecurringRuns.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/DeletePipelineRunsModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/import/utils.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/__tests__/RunStartTimestamp.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/pipelineRecurringRun/PipelineRecurringRunTable.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/BYONImages/BYONImageModal/ManageBYONImageModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/ConnectionTypeDataFieldModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/notebookController/screens/server/SpawnerPage.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/modelCustomization/useIlabPodSpecOptionsState.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/modelCustomization/utils.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/redux/store/store.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/SDKInitialize.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/utilities/notebookControllerUtils.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/utilities/useAccessReviewExtensions.ts",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/utilities/useFetch.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/topology/__tests__/parseUtils.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/topology/__tests__/useAutoMLTaskTopology.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/utilities/__tests__/utils.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/S3FileExplorer/webpack.playground.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/AutoragConfigure.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/AutoragEvaluationSelect.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/topology/__tests__/parseUtils.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/topology/__tests__/useAutoRAGTaskTopology.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/utils.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/support/websockets.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/nim/testEnableNIM.cy.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/projects/tabs/connections.cy.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/utils/models.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/utils/moduleFederationMock.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/genAi.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/cypress/cypress/utils/skipUtils.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/api/k8s.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/components/__tests__/EvaluationsTableRow.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useEvaluationSelection.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/feature-store/src/api/custom.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/feature-store/src/screens/lineage/FeatureStoreLineageComponent.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/config/webpack.dev.js",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/commands/genai.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/helpers/modelsTab/modelsTabTestHelpers.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/websockets.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/PromptAssistantFormGroup.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/createPrompt.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/useSourceManagement.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/hooks/useServerTools.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/sourceUpload/ChatbotSourceSettingsModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchGuardrailModels.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchMaaSModels.spec.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/utils.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/maas/frontend/src/app/hooks/useFetchApiKeys.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/maas/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/mlflow-embedded/experiments/MlflowExperimentsPage.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/mlflow/frontend/src/bootstrap.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/modelCatalogAllModelsView.cy.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/api/updateTimestamps.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalogSettings/useSourcePreview.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/settings/ModelRegistrySettings.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/settings/roleBindingUtils.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/shared/markdown/MarkdownComponent.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/model-serving/modelRegistry/useExtractFormDataFromRegistry.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/model-serving/src/ServeModelsSection.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/plugin-core/src/core/helpers/LazyCodeRefComponent.tsx",
+      "count": 2
+    },
+    {
+      "file": "backend/src/__tests__/jwtUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "backend/src/routes/api/dev-impersonate/index.ts",
+      "count": 1
+    },
+    {
+      "file": "backend/src/routes/api/modelRegistries/modelRegistryUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "backend/src/server.ts",
+      "count": 1
+    },
+    {
+      "file": "backend/src/utils/resourceUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/config/mockServiceWorker.js",
+      "count": 1
+    },
+    {
+      "file": "frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetArtifacts.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetContextByTypeAndName.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetContextsByExecution.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetContextsByType.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetExecutions.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetExecutionsByContext.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mlmd/mockGetExecutionsByID.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockArtifactStorage.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockByon.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockDWUsageByOwnerPrometheusResponse.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockExperimentKF.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockModelArtifactList.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockModelVersionList.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockNimResource.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockNotebookImageInfo.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockPipelineKF.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockPrometheusBias.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockRecurringRunKF.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/__mocks__/mockRunKF.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/errorUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/k8s/notebooks.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/modelRegistry/errorUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/models/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/pipelines/__tests__/custom.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/pipelines/__tests__/errorUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/pipelines/callTypes.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/pipelines/errorUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/prometheus/serving.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/prometheus/usePrometheusQueryRange.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/useAccessReview.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/api/useRulesReview.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/AboutDialog.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/appUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/featureFlags/useDevFeatureFlags.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/HeaderTools.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/navigation/NavItemHref.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/status-provider/StatusReportLoader.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/ThemeContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/app/useTimeBasedRefresh.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/bootstrap.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/components/error/ErrorBoundary.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/components/FilterToolbar.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/components/lineage/edge/edgeStateUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/components/MultiSelection.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/components/table/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/analyticsTracking/trackingProperties.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/analyticsTracking/useTrackUser.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/areas/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/connectionTypes/fields/ConnectionTypeDataFormField.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/connectionTypes/fields/DropdownFormField.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/connectionTypes/fields/NumericFormField.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/connectionTypes/fields/UriFormField.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/connectionTypes/types.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/docResources/docUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/hardwareProfiles/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/hardwareProfiles/HardwareProfileDetailsPopover.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/hardwareProfiles/HardwareProfileTableColumn.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/hardwareProfiles/useHardwareProfileBindingState.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/metrics/kserve/content/KservePerformanceGraphs.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/metrics/kserve/content/NimPerformanceGraphs.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/mlflow/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/modelRegistry/utils/updateTimestamps.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/notebooks/StartNotebookModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/__tests__/useArtifactStorage.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/__tests__/usePipelineRecurringRunById.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/__tests__/usePipelineRecurringRuns.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/mlmd/__tests__/useGetArtifactsByRuns.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/useExperiments.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRuns.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/__tests__/ManagePipelineServerModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/__tests__/utils.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/compareRuns/metricsSection/__tests__/useMlmdPackagesForPipelineRuns.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/compareRuns/metricsSection/PipelineRunArtifactSelect.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/configurePipelinesServer/PipelineDropdown.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/createRun/contentSections/__tests__/PipelineVersionRadioGroup.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/DeletePipelinesModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/experiment/CreateExperimentModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/import/PipelineImportModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/import/PipelineVersionImportModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/modelCustomizationForm/modelCustomizationFormSchema/validationUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/pipelinesDetails/pipelineRun/__tests__/PipelineRunDrawerRightContent.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/__tests__/ArtifactNodeDrawerContent.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/pipelinesDetails/pipelineRun/artifacts/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/pipelineSelector/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/pipelineRun/PipelineRunTableToolbarBase.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/usePipelineLoadMore.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/context/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/context/MlmdListContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/context/useRecurringRunRelatedInformation.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/topology/__tests__/mockPipelineSpec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/topology/__tests__/parseUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/topology/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/topology/parseUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/proxy/useAPIState.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/topology/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/topology/PipelineVisualizationSurface.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/trustyai/content/useTrustyInstallModalData.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/trustyai/context/TrustyAIContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/userSSAR/accessAllowedRouteHoC.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/userSSAR/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/images/icons/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/BYONImages/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/BooleanAdvancedPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/DataFieldAdvancedPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/DropdownAdvancedPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/FileUploadAdvancedPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/FileUploadExtensionRow.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/advanced/NumericAdvancedPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/DataFieldPropertiesForm.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/connectionTypes/manage/ManageConnectionTypePage.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/dependencies/DependencyMissingPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/exploreApplication/EnableModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/exploreApplication/ExploreApplications.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/exploreApplication/useIntegratedAppStatus.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/hardwareProfiles/manage/__tests__/ManageResourceAllocationSection.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/hardwareProfiles/manage/ManageNodeResourceSection.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/learningCenter/LearningCenter.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelRegistrySettings/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/metrics/bias/useBiasChartSelections.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/InferenceServiceModal/ConnectionSection.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/InferenceServiceModal/PVCFields.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/kServeModal/ManageKServeModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/NIMServiceModal/__tests__/ManageNIMServingModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/useInferenceServiceStatus.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/useServingPlatformStatuses.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/useServingRuntimes.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/notebookController/NotebookLogoutRedirect.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/notebookController/screens/admin/UserTableCellTransform.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/notebookController/screens/server/EnvironmentVariablesField.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/notebookController/screens/server/useSpawnerNotebookModalState.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactDetails.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/experiments/artifacts/__tests__/ArtifactsTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/experiments/useDefaultExperiment.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/modelCustomization/FineTunePageFooter.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/pipelines/global/modelCustomization/trainingHardwareSection/TrainingStorageClassSelect.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/notebook/useRefreshNotebookUntilStartOrStop.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/components/RoleDetailsLink.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/manageRoles/confirmModal/DiscardChangesModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/manageRoles/ManageRolesTable.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/ProjectPermissions.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/ProjectPermissionsAssignRoles.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/roleDetails/RoleDetailsModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/SubjectRolesTable.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/projectPermissions/SubjectRolesTableRow.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/screens/projects/ProjectsToolbar.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/screens/spawner/service.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/screens/spawner/spawnerUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/screens/spawner/storage/CreateNewStorageSection.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/projects/screens/spawner/storage/useDefaultStorageClass.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/plugins/extensions/navigation.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/plugins/extensions/routes.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/redux/context.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/redux/reducers/appReducer.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/redux/selectors/index.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/services/notebookService.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/allSettledPromises.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/axios.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/const.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/useDebounceCallback.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/useFederatedNotificationListener.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/useK8sWatchResourceList.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/utilities/useWatchBuildStatus.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/contract-tests/__tests__/testAutomlContract.test.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/__mocks__/mockS3ListObjectsResponse.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/api/__tests__/modelRegistry.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/api/__tests__/pipelines.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/api/modelRegistry.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/api/pipelines.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/api/s3.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/AutomlRunsTable/__tests__/AutomlRunsTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/AutomlRunsTable/__tests__/AutomlRunsTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/common/S3FileExplorer/__tests__/S3FileExplorer.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/common/SecretSelector.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/experiments/__tests__/AutomlExperiments.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/__tests__/AutomlLeaderboard.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/__tests__/AutomlResults.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/__tests__/RegisterModelModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/__tests__/AutomlModelDetailsModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/__tests__/AutomlModelDetailsModalHeader.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/tabs/__tests__/ConfusionMatrixTab.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/tabs/__tests__/FeatureSummaryTab.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/tabs/__tests__/ModelEvaluationTab.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/tabs/__tests__/ModelInformationTab.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/context/__tests__/AutomlResultsContext.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/__tests__/usePipelineRuns.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/mutations.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/usePipelineDefinitions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/usePipelineRuns.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/mocks/mockAutomlResultsContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlConfigurePage.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/types.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/utilities/schema.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/utilities/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/contract-tests/__tests__/testAutoRagContract.test.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__mocks__/mockS3ListObjectsResponse.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__mocks__/mockVectorStore.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__mocks__/mod-arch-shared.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/api/pipelines.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/api/s3.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/AutoragRunsTable/__tests__/AutoragRunsTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/FileExplorer/FileExplorer.playground.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/S3FileExplorer/__tests__/S3FileExplorer.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/SecretSelector.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragExperimentSettingsModelSelection.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/experiments/__tests__/AutoragExperiments.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/AutoragLeaderboard.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/AutoragResults.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/PatternDetailsModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/AutoragResults.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/context/__tests__/AutoragResultsContext.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/context/AutoragResultsContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/__tests__/usePipelineDefinitions.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/__tests__/usePipelineRuns.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/mutations.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/usePatternEvaluationResults.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/hooks/usePipelineRuns.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/mocks/mockAutoRAGPatterns.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/schemas/__tests__/configure.schema.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/schema.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/contract-tests/src/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/contract-tests/src/matchers/toMatchContract.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/contract-tests/src/mocks/ansi-regex.js",
+      "count": 1
+    },
+    {
+      "file": "packages/contract-tests/src/openapi-validator.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/pages/components/DashboardCodeEditor.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/pages/pipelines/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/pages/pipelines/pipelineRunTable.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/pages/pipelines/pipelinesTable.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/intercept-snapshots.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/k8s.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/odh.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/applications/testAboutDialog.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/dataScienceProjects/clusterStorage/testClusterStorageCreation.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/dataScienceProjects/workbenches/testWorkbenchVariables.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/gen-ai/testGenAi.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/settings/clusterSettings/testAdminClusterSettings.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/e2e/storageClasses/storageClasses.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureDataSet.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureDataSources.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureEntities.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureMetrics.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/features.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureServiceDetails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureServices.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/featureStore/featureViews.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelCatalogSettings/modelCatalogSettings.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelsAsAService/maasApiKeys.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelServing/modelServingLlmd.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelTraining/modelTrainingPauseResume.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/modelTraining/modelTrainingRayJobs.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/artifacts.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/executions.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/experiments.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/pipelines.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/pipelinesList.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/runs/compareRuns.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/runs/manageRuns.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/runs/pipelineCreateRuns.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/runs/pipelineDeleteRuns.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/runs/pipelineRuns.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/topology/pipelinesTopology.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/projects/projectDetails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/tests/mocked/projects/tabs/workbench.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/clusterSettingsUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/maasUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/mixin.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/baseCommands.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/imageStreams.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/modelServing.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/nimCommands.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/storageClass.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/projectChecker.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/storageClass.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/testConfig.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/urlExtractor.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/urlValidator.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__mocks__/mockBenchmark.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__mocks__/mockCollection.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__mocks__/mockEvaluationJob.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__mocks__/mockProvider.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/evaluationResults/evaluationResults.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/evaluations/evaluationsPage.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/unit/testUtils/mockEvaluationData.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/unit/testUtils/mocks.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/api/__tests__/k8s.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/components/EvalHubProjectSelector.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useEvaluationJobs.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useFetchEvalHubStatus.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useProviders.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/useEvaluationJobs.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utils/__tests__/buildEvaluationRequest.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockEntities.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockFeatures.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockFeatureServices.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockFeatureViews.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockGlobalSearch.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/__mocks__/mockMetrics.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/api/__tests__/errorUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/api/errorUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureByName.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatures.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureServices.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreDataSourceByName.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreDataSources.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreEntities.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreEntityByName.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureStoreProjects.test.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useFeatureViews.test.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/__tests__/useMetricsResourceCount.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatures.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreDataSetByName.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreDataSets.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreDataSourceByName.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreDataSources.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreEnitites.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreEntityByName.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreLineage.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreObject.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreProjects.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreProjectsAPI.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureStoreSearch.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureViewLineage.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useFeatureViews.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/apiHooks/useMetricsPopularTags.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/components/FeatureStoreFilterToolbar.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/components/FeatureStoreGlobalSearch/GlobalSearchInput.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/const.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/FeatureStoreContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/dataSets/DataSetDetails/DataSetDetailsView.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/dataSets/FeatureStoreDataSets.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/dataSources/dataSourceDetails/DataSourceTabs.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/dataSources/DataSources.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/entities/FeatureStoreEntities.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/features/Features.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureServices/FeatureServices.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureViews/const.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureViews/featureViewDetails/FeatureViewConsumingTab.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureViews/featureViewDetails/FeatureViewDetailsTab.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureViews/FeatureViews.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/featureViews/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/lineage/node/FeatureStoreLineageNodePopover.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/screens/metrics/const.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/feature-store/src/utils/featureStoreObjects.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__mocks__/mockGenAiContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__mocks__/mockLlamaStackModels.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__mocks__/mockVectorStores.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockAAModels.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockGuardrails.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockMaaSModels.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockMCPResponses.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockMCPServers.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockNamespaces.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/commands/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/e2e.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/endpointModal.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/mcpServers.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/modelsTab.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/compareMode.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/guardrails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/newChatFeature.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/stopButton.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/webpack.config.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/AIAssetsModelsTab.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/AIModelsTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/AIModelsTableRowInfo.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/AIModelTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/CreateExternalEndpointModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/CreateExternalEndpointModal.test.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/__tests__/EndpointDetailModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/CreateExternalEndpointModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/components/vectorstores/__tests__/computeEmbeddingModelStatus.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/AIAssets/hooks/__tests__/useAIModelsFilter.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/__tests__/ChatbotMessagesMetrics.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMain.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMessagesList.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ChatbotPaneHeader.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ChatbotSettingsPanel.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/DeleteFileModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ModelDetailsDropdown.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/SubscriptionDropdown.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/UploadedFilesList.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ViewCodeModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/chatbotConfiguration/__tests__/ChatbotConfigurationModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/chatbotConfiguration/__tests__/ChatbotConfigurationTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/chatbotConfiguration/__tests__/ChatbotConfigurationTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/ChatbotMessageInput.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/__tests__/promptDrawer.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/__tests__/promptTable.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/__tests__/usePromptQueries.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/promptTable.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/ViewCodeModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/consts/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/testUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessages.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useChatbotMessagesControls.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useFileManagement.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useSourceManagement.rag-auto-enable.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useSourceManagement.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useSourceManagement.test-utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/useChatbotMessages.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/useFileUploadWithPolling.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/__tests__/MCPServerToolsModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/__tests__/mockData.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/hooks/useTokenValidation.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/MCPServerConfigModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/store/usePlaygroundStore.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/context/GenAiContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchLlamaModels.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchLSDStatus.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchVectorStores.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useGenerateMaaSToken.tracking.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useMergedModels.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/useFetchLlamaModels.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/useFetchMCPServers.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/useMCPServerStatuses.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/useMCPServerTools.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/hooks/useSafeBrowserUnloadBlocker.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/__tests__/fileCitationHandling.fixtures.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/__tests__/fileCitationHandling.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/__tests__/llamaStackService.fixtures.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/__tests__/llamaStackService.guardrails.tracking.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/__tests__/llamaStackService.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/services/llamaStackService.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/__tests__/mcp.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/utilities/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/bootstrap.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/odh/hooks/useNotificationListener.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/jest-config/types.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/jest-config/typings.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/llmd-serving/extensions/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/app/api/__tests__/subscriptions.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/app/api/api-keys.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/maas/frontend/src/app/hooks/__tests__/useUserSubscriptions.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow-embedded/experiments/GlobalMLflowExperimentsRoutes.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow-embedded/prompts/MlflowPromptManagementPage.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/config/webpack.common.js",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/config/webpack.dev.js",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/config/webpack.prod.js",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/mlflow/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockCatalogFilterOptionsList.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockCatalogModelArtifactList.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockCatalogModelList.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockMcpCatalogTestData.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockModelArtifactList.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockModelVersionList.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/support/interceptHelpers/modelCatalog.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/kubeflowStandalone/navBar.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/mcpCatalog/mcpCatalogTestUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/mcpCatalog/mcpServerDetails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/modelCatalog.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/modelCatalogDetails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/modelCatalogTabs.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalogSettings/modelCatalogPerformanceFiltersApi.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelDetailsCard.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelRegistry.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelVersionArchive.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelVersionDetails.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelVersions.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/modelVersionsCard.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/registerAndStoreFields.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelRegistry/registeredModelArchive.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/context/AppContext.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/context/mcpCatalog/McpCatalogContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/context/modelCatalog/ModelCatalogContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/context/modelCatalogSettings/ModelCatalogSettingsContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/context/ModelRegistryContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/hooks/__tests__/useModelArtifactsByVersionId.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/hooks/__tests__/useModelTransferJobs.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/mcpCatalog/hooks/useMcpUrlSync.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/mcpCatalog/screens/__tests__/McpCatalogGalleryView.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/components/ModelCatalogActiveFilters.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/components/ModelCatalogCardBody.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/mocks/accuracyMetricsMock.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/mocks/hardwareConfigurationMock.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/PerformanceInsightsView.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/__tests__/modelCatalogUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/__tests__/performanceMetricsUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/__tests__/validatedModelUtils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/modelCatalogUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/utils/validatedModelUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/__tests__/utils.test.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/ModelTransferJobs/RetryJobModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistrySettings/__tests__/useModelRegistryRoleBindings.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/shared/components/FilterToolbar.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/standalone/__tests__/NavBar.test.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/concepts/modelCatalog/const.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/concepts/modelRegistry/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/odh/hooks/__tests__/useNotificationListener.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/extension-points/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/extensions/model-catalog.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/extensions/model-registry.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/extensions/odh.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/modelRegistry/PreWizardDeployModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/modelRegistry/utils/deployUtils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/deploying/useModelDeploymentSubmit.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/modelLocationFields/PVCInputField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/modelLocationFields/URIConnectionField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationInputFields.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationSelectField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelServerTemplateSelectField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelTypeSelectField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/concepts/ModelDeploymentsContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/__mocks__/mockTrainJobK8sResource.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/api/__tests__/rayJobLifecycle.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/api/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/global/ModelTraining.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/global/trainingJobDetailsDrawer/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-training/src/global/trainingJobList/DeleteJobModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/pages/workspaces/workspaceForm.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/support/commands/url.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/tests/mocked/workspaceKinds/createWorkspaceKind.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/unit/jest.d.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/unit/jest.setup.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/context/NotebookContext.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/error/ErrorBoundary.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/pages/WorkspaceKinds/Form/EditableLabels.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/pages/WorkspaceKinds/Form/helpers.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/routerHelper.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/observability/src/perses/perses-client/index.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/plugin-core/src/core/plugin-store.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/plugin-core/src/core/useResolvedExtensions.ts",
+      "count": 1
+    }
+  ],
+  "byPackage": [
+    {
+      "package": "frontend",
+      "count": 351
+    },
+    {
+      "package": "packages/autorag",
+      "count": 200
+    },
+    {
+      "package": "packages/gen-ai",
+      "count": 166
+    },
+    {
+      "package": "packages/automl",
+      "count": 154
+    },
+    {
+      "package": "packages/cypress",
+      "count": 119
+    },
+    {
+      "package": "packages/model-registry",
+      "count": 117
+    },
+    {
+      "package": "packages/feature-store",
+      "count": 84
+    },
+    {
+      "package": "packages/eval-hub",
+      "count": 62
+    },
+    {
+      "package": "packages/notebooks",
+      "count": 43
+    },
+    {
+      "package": "packages/maas",
+      "count": 31
+    },
+    {
+      "package": "packages/mlflow",
+      "count": 26
+    },
+    {
+      "package": "packages/model-serving",
+      "count": 18
+    },
+    {
+      "package": "packages/plugin-core",
+      "count": 15
+    },
+    {
+      "package": "packages/jest-config",
+      "count": 14
+    },
+    {
+      "package": "packages/mlflow-embedded",
+      "count": 10
+    },
+    {
+      "package": "backend",
+      "count": 7
+    },
+    {
+      "package": "packages/contract-tests",
+      "count": 7
+    },
+    {
+      "package": "packages/model-training",
+      "count": 7
+    },
+    {
+      "package": "packages/kserve",
+      "count": 3
+    },
+    {
+      "package": "packages/model-serving-backport",
+      "count": 3
+    },
+    {
+      "package": "packages/llmd-serving",
+      "count": 1
+    },
+    {
+      "package": "packages/observability",
+      "count": 1
+    }
+  ],
+  "critical": {
+    "bareDisables": [
+      {
+        "file": "backend/src/server.ts",
+        "line": 58,
+        "type": "eslint-disable-line-bare"
+      },
+      {
+        "file": "frontend/config/mockServiceWorker.js",
+        "line": 1,
+        "type": "eslint-disable-block-bare"
+      },
+      {
+        "file": "frontend/src/api/pipelines/callTypes.ts",
+        "line": 34,
+        "type": "eslint-disable-next-line-bare"
+      },
+      {
+        "file": "frontend/src/pages/modelServing/screens/metrics/bias/useBiasChartSelections.ts",
+        "line": 60,
+        "type": "eslint-disable-next-line-bare"
+      }
+    ],
+    "generatedFiles": [
+      "frontend/src/__mocks__/third_party/mlmd/generated/google/protobuf/any.ts",
+      "frontend/src/__mocks__/third_party/mlmd/generated/google/protobuf/descriptor.ts",
+      "frontend/src/__mocks__/third_party/mlmd/generated/google/protobuf/field_mask.ts",
+      "frontend/src/__mocks__/third_party/mlmd/generated/google/protobuf/struct.ts",
+      "frontend/src/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store.ts",
+      "frontend/src/__mocks__/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service.ts",
+      "frontend/src/__mocks__/third_party/mlmd/index.ts",
+      "frontend/src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb.js",
+      "frontend/src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_grpc_web_pb.js",
+      "frontend/src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb.js",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Healthcheck.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Namespaces.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Secrets.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Workspacekinds.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Workspaces.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/data-contracts.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/http-client.ts"
+    ]
+  }
+}
