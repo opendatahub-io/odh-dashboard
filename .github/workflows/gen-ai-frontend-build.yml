@@ -34,20 +34,11 @@ jobs:
           go-version-file: 'packages/gen-ai/bff/go.mod'
           cache-dependency-path: 'packages/gen-ai/bff/go.sum'
 
-      - name: Root node_modules cache
-        uses: actions/cache@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
-      - name: Cypress binary cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/Cypress
-          key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-cypress-bin-
+          node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
       - name: gen-ai node_modules cache
         uses: actions/cache@v4
         with:
