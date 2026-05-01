@@ -8,7 +8,7 @@ const webpack = require('webpack');
 const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const GenerateExtensionsPlugin = require('./generateExtensionsPlugin');
 const { moduleFederationPlugins, moduleFederationConfig } = require('./moduleFederation');
-const { getPluginPackageDetails } = require('./discoverPluginPackages');
+const { getPluginPackageDetails, getPluginPackageVersions } = require('./discoverPluginPackages');
 const { getExtensionChunksFilter, getPluginChunkName } = require('./pluginChunking');
 
 const RELATIVE_DIRNAME = process.env._ODH_RELATIVE_DIRNAME;
@@ -298,6 +298,7 @@ module.exports = (env) => ({
     }),
     new webpack.DefinePlugin({
       __COMMIT_HASH__: JSON.stringify(COMMIT_HASH_DIRECT),
+      __PACKAGE_VERSIONS__: JSON.stringify(env === 'development' ? getPluginPackageVersions() : []),
     }),
     env === 'development' || MF_DEV
       ? new webpack.EnvironmentPlugin({

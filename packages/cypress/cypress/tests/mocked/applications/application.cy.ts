@@ -205,6 +205,32 @@ describe('Application', () => {
     aboutDialog.findProductName().should('contain.text', 'OpenShift AI');
   });
 
+  it('should show package versions table expanded by default under Dashboard', () => {
+    appChrome.visit();
+    aboutDialog.show();
+
+    aboutDialog.findPackageVersionsTable().should('exist');
+    aboutDialog
+      .findPackageVersionsTable()
+      .findAllByTestId('package-table-row-data')
+      .should('have.length.greaterThan', 0);
+
+    aboutDialog
+      .findPackageVersionsTable()
+      .findByTestId('package-table-row-title')
+      .should('contain.text', 'Package')
+      .and('contain.text', 'Version')
+      .and('contain.text', 'Support level');
+
+    const row = aboutDialog.getPackageRow('model-serving');
+    row.find().findByTestId('package-version').should('contain.text', '0.0.0');
+    row.find().findByTestId('package-support-level').should('contain.text', 'Generally Available');
+
+    aboutDialog.expandDashboardRow();
+    aboutDialog.findPackageVersionsTable().should('not.exist');
+    cy.findByTestId('dashboard-packages-hint').should('contain.text', 'packages');
+  });
+
   it('should show the login modal when receiving a 403 status code', () => {
     // Mock the intercept to return a 403 status code
     cy.interceptOdh('GET /api/config', {

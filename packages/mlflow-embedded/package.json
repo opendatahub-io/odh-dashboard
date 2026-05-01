@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/mlflow-embedded",
   "description": "Embeds selected pages from the external MLflow frontend into the dashboard.",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -80,6 +80,23 @@ export class AboutDialog {
     });
   }
 
+  expandDashboardRow(): void {
+    cy.findByTestId('dashboard-component-row').find('button').click();
+  }
+
+  findPackageVersionsTable(): Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('package-versions-table');
+  }
+
+  getPackageRow(name: string): TableRow {
+    return new TableRow(() =>
+      this.findPackageVersionsTable()
+        .findAllByTestId('package-table-row-data')
+        .contains(name)
+        .parents('tr'),
+    );
+  }
+
   isAdminAccessLevel(): Chainable<JQuery<HTMLElement>> {
     return this.findAccessLevel().should('contain.text', 'Administrator');
   }

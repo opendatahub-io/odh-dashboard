@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/gen-ai",
   "description": "Gen AI plugin.",
   "version": "0.0.0",
+  "supportLevel": "GA",
   "module-federation": {
     "name": "genAi",
     "remoteEntry": "/remoteEntry.js",

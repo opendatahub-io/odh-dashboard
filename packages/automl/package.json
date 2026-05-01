@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/automl",
   "description": "AutoML plugin.",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "module-federation": {
     "name": "automl",
     "remoteEntry": "/remoteEntry.js",

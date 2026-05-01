@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/autorag",
   "description": "AutoRAG plugin.",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "module-federation": {
     "name": "autorag",
     "remoteEntry": "/remoteEntry.js",

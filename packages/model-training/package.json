@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/model-training",
   "description": "Model training plugin for managing training jobs and experiments.",
   "version": "0.0.0",
+  "supportLevel": "TP",
   "scripts": {
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

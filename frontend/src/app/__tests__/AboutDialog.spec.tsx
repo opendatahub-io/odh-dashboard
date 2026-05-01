@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { ClusterState, UserState } from '#~/redux/selectors/types';
@@ -53,6 +53,8 @@ const useFetchDsciStatusMock = jest.mocked(useFetchDsciStatus);
 const useFetchDscStatusMock = jest.mocked(useFetchDscStatus);
 const useWatchOperatorSubscriptionStatusMock = jest.mocked(useWatchOperatorSubscriptionStatus);
 
+const originalPackageVersions = globalThis.__PACKAGE_VERSIONS__;
+
 describe('AboutDialog', () => {
   const lastUpdated = new Date('2024-06-25T00:00:00Z');
   let dashboardConfig: DashboardConfigKind;
@@ -72,7 +74,12 @@ describe('AboutDialog', () => {
   let operatorSubscriptionStatus: SubscriptionStatusData;
   let operatorSubscriptionFetchStatus: FetchState<SubscriptionStatusData>;
 
+  afterEach(() => {
+    globalThis.__PACKAGE_VERSIONS__ = originalPackageVersions;
+  });
+
   beforeEach(() => {
+    globalThis.__PACKAGE_VERSIONS__ = [];
     dashboardConfig = mockDashboardConfig({});
     if (dashboardConfig.metadata) {
       dashboardConfig.metadata.namespace = 'odh-dashboard';
@@ -213,5 +220,99 @@ describe('AboutDialog', () => {
       (row) => row.textContent.includes('KServe') && row.textContent.includes('1.12.0'),
     );
     expect(hasComponentReleasesMetadata).toBe(true);
+  });
+
+  it('should not show packages table when __PACKAGE_VERSIONS__ is empty', async () => {
+    globalThis.__PACKAGE_VERSIONS__ = [];
+    useAppContextMock.mockReturnValue(appContext);
+    useUserMock.mockReturnValue(userInfo);
+    useClusterInfoMock.mockReturnValue(clusterInfo);
+    useFetchDsciStatusMock.mockReturnValue(dsciFetchStatus);
+    useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+    useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
+
+    // eslint-disable-next-line no-restricted-syntax
+    render(<AboutDialog onClose={jest.fn()} />);
+
+    expect(screen.queryByTestId('package-versions-table')).not.toBeInTheDocument();
+  });
+
+  it('should show packages table with versions and support levels when Dashboard row is expanded', async () => {
+    globalThis.__PACKAGE_VERSIONS__ = [
+      { name: '@odh-dashboard/model-serving', version: '0.0.0', supportLevel: 'GA' },
+      { name: '@odh-dashboard/feature-store', version: '0.0.0', supportLevel: 'DP' },
+      { name: '@odh-dashboard/model-training', version: '0.0.0', supportLevel: 'TP' },
+    ];
+    if (dscStatus.components) {
+      dscStatus.components[DataScienceStackComponent.DASHBOARD] = {};
+    }
+    useAppContextMock.mockReturnValue(appContext);
+    useUserMock.mockReturnValue(userInfo);
+    useClusterInfoMock.mockReturnValue(clusterInfo);
+    useFetchDsciStatusMock.mockReturnValue(dsciFetchStatus);
+    useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+    useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
+
+    // eslint-disable-next-line no-restricted-syntax
+    render(<AboutDialog onClose={jest.fn()} />);
+
+    const packageTable = await screen.findByTestId('package-versions-table');
+    expect(packageTable).toBeInTheDocument();
+
+    const packageRows = await screen.findAllByTestId('package-table-row-data');
+    expect(packageRows).toHaveLength(3);
+
+    const packageNames = screen.getAllByTestId('package-name').map((el) => el.textContent);
+    expect(packageNames).toEqual(['feature-store', 'model-serving', 'model-training']);
+
+    const versions = screen.getAllByTestId('package-version').map((el) => el.textContent);
+    expect(versions).toEqual(['0.0.0', '0.0.0', '0.0.0']);
+
+    const supportLevels = screen
+      .getAllByTestId('package-support-level')
+      .map((el) => el.textContent);
+    expect(supportLevels).toEqual([
+      'Developer Preview',
+      'Generally Available',
+      'Technology Preview',
+    ]);
+
+    expect(screen.queryByTestId('dashboard-packages-hint')).not.toBeInTheDocument();
+
+    const dashboardRow = screen.getByTestId('dashboard-component-row');
+    const expandToggle = within(dashboardRow).getByRole('button');
+    fireEvent.click(expandToggle);
+
+    expect(screen.queryByTestId('package-versions-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-packages-hint')).toHaveTextContent(
+      'Includes 3 packages. Expand for more details.',
+    );
+  });
+
+  it('should show -- for packages without a support level', async () => {
+    globalThis.__PACKAGE_VERSIONS__ = [
+      { name: '@odh-dashboard/model-serving-backport', version: '0.0.0' },
+    ];
+    if (dscStatus.components) {
+      dscStatus.components[DataScienceStackComponent.DASHBOARD] = {};
+    }
+    useAppContextMock.mockReturnValue(appContext);
+    useUserMock.mockReturnValue(userInfo);
+    useClusterInfoMock.mockReturnValue(clusterInfo);
+    useFetchDsciStatusMock.mockReturnValue(dsciFetchStatus);
+    useFetchDscStatusMock.mockReturnValue(dscFetchStatus);
+    useWatchOperatorSubscriptionStatusMock.mockReturnValue(operatorSubscriptionFetchStatus);
+
+    // eslint-disable-next-line no-restricted-syntax
+    render(<AboutDialog onClose={jest.fn()} />);
+
+    const packageTable = await screen.findByTestId('package-versions-table');
+    expect(packageTable).toBeInTheDocument();
+
+    const supportLevel = screen.getByTestId('package-support-level');
+    expect(supportLevel.textContent).toBe('--');
+
+    const packageName = screen.getByTestId('package-name');
+    expect(packageName.textContent).toBe('model-serving-backport');
   });
 });

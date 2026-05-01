@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/maas",
   "description": "Models-as-a-Service plugin",
   "version": "0.0.1",
+  "supportLevel": "GA",
   "module-federation": {
     "name": "maas",
     "remoteEntry": "/remoteEntry.js",

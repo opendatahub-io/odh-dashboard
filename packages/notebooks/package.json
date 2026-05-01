@@ -3,6 +3,7 @@
   "name": "@odh-dashboard/notebooks",
   "description": "Notebooks plugin.",
   "version": "0.0.0",
+  "supportLevel": "GA",
   "scripts": {
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
