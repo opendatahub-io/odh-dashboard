@@ -6,7 +6,7 @@ import { isHardwareProfileEnabled } from '#~/pages/hardwareProfiles/utils';
 import { useDashboardNamespace } from '#~/redux/selectors';
 import { HardwareProfileBindingStateInfo } from '#~/concepts/hardwareProfiles/types';
 import { useHardwareProfilesByFeatureVisibility } from '#~/pages/hardwareProfiles/useHardwareProfilesByFeatureVisibility';
-import { HardwareProfileBindingState } from './const';
+import { HardwareProfileBindingState, getHardwareProfileName } from './const';
 
 /**
  * Hook to get hardware profile binding state for a resource.
@@ -19,8 +19,7 @@ export const useHardwareProfileBindingState = (
   visibility?: HardwareProfileFeatureVisibility[],
 ): [HardwareProfileBindingStateInfo | null, boolean, Error | undefined] => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const hardwareProfileName =
-    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-name'];
+  const hardwareProfileName = getHardwareProfileName(resource);
   const hardwareProfileNamespace =
     resource?.metadata.annotations?.['opendatahub.io/hardware-profile-namespace'] ||
     dashboardNamespace;
@@ -81,7 +80,7 @@ export const useHardwareProfileBindingState = (
 
   const isDisabled = !isHardwareProfileEnabled(profile);
   const storedResourceVersion =
-    resource.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
+    resource?.metadata.annotations?.['opendatahub.io/hardware-profile-resource-version'];
   const isUpdated =
     storedResourceVersion && profile.metadata.resourceVersion
       ? storedResourceVersion !== profile.metadata.resourceVersion

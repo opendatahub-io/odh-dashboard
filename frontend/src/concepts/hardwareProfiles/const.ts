@@ -1,6 +1,23 @@
-import { Patch } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sResourceCommon, Patch } from '@openshift/dynamic-plugin-sdk-utils';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes.ts';
 import { HardwareProfileBindingConfig, CrPathConfig } from './types';
+
+/**
+ * Legacy annotation key used in RHOAI 2.5 when hardware profiles were behind a feature flag.
+ * In 3.0, this was replaced with 'opendatahub.io/hardware-profile-name'.
+ * We check both annotations to support workbenches upgraded from 2.5 to 3.0.
+ */
+export const LEGACY_HARDWARE_PROFILE_ANNOTATION = 'opendatahub.io/legacy-hardware-profile-name';
+
+/**
+ * Returns the hardware profile name from a resource's annotations,
+ * checking the current annotation first, then falling back to the legacy annotation.
+ */
+export const getHardwareProfileName = <T extends K8sResourceCommon>(
+  resource?: T | null,
+): string | undefined =>
+  resource?.metadata?.annotations?.['opendatahub.io/hardware-profile-name'] ??
+  resource?.metadata?.annotations?.[LEGACY_HARDWARE_PROFILE_ANNOTATION];
 
 export const HARDWARE_PROFILES_MISSING_CPU_MEMORY_MESSAGE =
   'Omitting CPU or Memory resources is not recommended.';
@@ -74,6 +91,10 @@ export const REMOVE_HARDWARE_PROFILE_ANNOTATIONS_PATCH: Patch[] = [
   {
     op: 'remove',
     path: '/metadata/annotations/opendatahub.io~1hardware-profile-namespace',
+  },
+  {
+    op: 'remove',
+    path: '/metadata/annotations/opendatahub.io~1legacy-hardware-profile-name',
   },
 ];
 
