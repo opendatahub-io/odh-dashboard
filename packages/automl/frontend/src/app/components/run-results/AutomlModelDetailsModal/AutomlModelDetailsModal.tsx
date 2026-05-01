@@ -117,7 +117,7 @@ const AutomlModelDetailsModal: React.FC<AutomlModelDetailsModalProps> = ({
         data-testid="automl-model-details-modal"
         className="automl-model-details-modal"
       >
-        <ModalHeader labelId="automl-model-details-title" />
+        <ModalHeader title="Model details" labelId="automl-model-details-title" />
         <ModalBody>
           <AutomlModelDetailsModalHeader
             models={models}

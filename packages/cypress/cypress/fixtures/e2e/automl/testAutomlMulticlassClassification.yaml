@@ -1,0 +1,10 @@
+projectNamePrefix: 'cy-e2e-automl-multiclass'
+dspaSecretName: dashboard-dspa-secret
+secretName: ods-ci-ds-pipelines
+runName: automl-multiclass-run
+runDescription: 'E2E test multiclass classification run'
+trainingDataFile: automl-multiclass-test-data.csv
+taskType: multiclass
+topN: 1
+labelColumn: species
+awsBucket: BUCKET_2

@@ -1156,6 +1156,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 <SearchInput
                   searchInputId={`${rootId}-FileExplorer-search-input`}
                   data-testid="file-explorer-search"
+                  inputProps={{ 'data-testid': 'file-explorer-search-input' }}
                   aria-label={defaults.labels.searchAriaLabel}
                   placeholder={defaults.labels.searchPlaceholder(
                     folders && folders.length > 0

@@ -90,6 +90,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
                 onChange={(_e, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
                 data-testid="feature-search"
+                inputProps={{ 'data-testid': 'feature-search-input' }}
               />
             </ToolbarItem>
           </ToolbarContent>

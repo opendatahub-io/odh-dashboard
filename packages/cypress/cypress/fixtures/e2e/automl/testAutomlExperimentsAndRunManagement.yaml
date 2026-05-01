@@ -1,0 +1,10 @@
+projectNamePrefix: 'cy-e2e-automl-mgmt'
+dspaSecretName: dashboard-dspa-secret
+secretName: ods-ci-ds-pipelines
+runName: automl-management-run
+runDescription: 'E2E test for experiments list and run management'
+trainingDataFile: automl-test-data.csv
+taskType: binary
+topN: 1
+labelColumn: target
+awsBucket: BUCKET_2
