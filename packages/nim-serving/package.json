@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
+    "@odh-dashboard/kserve": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/plugin-core": "*"
   },

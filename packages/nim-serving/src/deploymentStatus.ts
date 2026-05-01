@@ -4,6 +4,7 @@ import {
   getInferenceServiceModelState,
   getInferenceServiceStatusMessage,
 } from '@odh-dashboard/internal/concepts/modelServingKServe/kserveStatusUtils';
+import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-points';
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 
@@ -11,13 +12,19 @@ import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/ut
  * Derive deployment status from the InferenceService created by the NIM Operator.
  * The NIMService operator reconciles into an InferenceService, so we reuse the
  * KServe status utilities against that child resource.
+ *
+ * When the InferenceService hasn't been created yet (operator is still reconciling),
+ * we return LOADING rather than undefined so the UI shows a meaningful state.
  */
 export const getNIMDeploymentStatus = (
   inferenceService: InferenceServiceKind | undefined,
   deploymentPods: PodKind[],
-): DeploymentStatus | undefined => {
+): DeploymentStatus => {
   if (!inferenceService) {
-    return undefined;
+    return {
+      state: ModelDeploymentState.LOADING,
+      message: 'Waiting for NIM Operator to provision InferenceService',
+    };
   }
 
   const deploymentPod = deploymentPods.find(
