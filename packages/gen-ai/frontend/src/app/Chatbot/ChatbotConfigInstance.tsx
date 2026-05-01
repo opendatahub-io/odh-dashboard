@@ -136,7 +136,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && (
+      {showWelcomePrompt && !messagesHook.messages.some((m) => m.role === 'user') && (
         <ChatbotWelcomePrompt
           title={username ? `Hello, ${username}` : 'Hello'}
           description={welcomeDescription}
