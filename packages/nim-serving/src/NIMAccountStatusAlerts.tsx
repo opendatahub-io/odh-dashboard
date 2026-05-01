@@ -29,8 +29,6 @@ const NIMAccountStatusAlerts: React.FC<NIMAccountStatusAlertsProps> = ({
           {errorMessages.length > 0 ? errorMessages.join('; ') : 'API key failed validation.'}
         </Alert>
       );
-    case NIMAccountStatus.READY:
-      return <Alert variant="success" isInline title="NVIDIA NIM is enabled." />;
     default:
       return null;
   }

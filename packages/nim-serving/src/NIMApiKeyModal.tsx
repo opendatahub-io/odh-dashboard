@@ -22,14 +22,6 @@ import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal
 import { NIMAccountStatus } from './useNIMAccountStatus';
 import { createNIMResources, updateNIMSecretAndRevalidate } from './nimK8sUtils';
 
-enum ModalState {
-  IDLE = 'IDLE',
-  CREATING = 'CREATING',
-  VALIDATING = 'VALIDATING',
-  SUCCESS = 'SUCCESS',
-  ERROR = 'ERROR',
-}
-
 type NIMApiKeyModalProps = {
   onClose: () => void;
   namespace: string;
@@ -51,25 +43,12 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 }) => {
   const [apiKey, setApiKey] = React.useState('');
   const [showKey, setShowKey] = React.useState(false);
-  const [modalState, setModalState] = React.useState<ModalState>(ModalState.IDLE);
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [submitted, setSubmitted] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
 
-  React.useEffect(() => {
-    if (modalState !== ModalState.VALIDATING && modalState !== ModalState.ERROR) {
-      return;
-    }
-    if (accountStatus === NIMAccountStatus.READY) {
-      setModalState(ModalState.SUCCESS);
-      refresh();
-    } else if (accountStatus === NIMAccountStatus.ERROR) {
-      setModalState(ModalState.ERROR);
-    } else if (accountStatus === NIMAccountStatus.PENDING && modalState === ModalState.ERROR) {
-      setModalState(ModalState.VALIDATING);
-    }
-  }, [modalState, accountStatus, refresh]);
-
   const handleSubmit = async () => {
-    setModalState(ModalState.CREATING);
+    setIsCreating(true);
     setCreateError(undefined);
 
     try {
@@ -79,33 +58,27 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       } else {
         await createNIMResources(namespace, apiKey);
       }
-      setModalState(ModalState.VALIDATING);
+      setSubmitted(true);
       refresh();
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
-      setModalState(ModalState.IDLE);
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleClose = () => {
-    setApiKey('');
-    setShowKey(false);
-    setModalState(ModalState.IDLE);
-    setCreateError(undefined);
     onClose();
     refresh();
   };
 
-  const isInputDisabled =
-    modalState === ModalState.CREATING ||
-    modalState === ModalState.VALIDATING ||
-    modalState === ModalState.SUCCESS;
+  const isValidating = submitted && accountStatus === NIMAccountStatus.PENDING;
+  const isSuccess = submitted && accountStatus === NIMAccountStatus.READY;
+  const hasError = !!createError || (submitted && accountStatus === NIMAccountStatus.ERROR);
+  const isInputDisabled = isCreating || isValidating || isSuccess;
   const isSubmitDisabled = !apiKey.trim() || isInputDisabled;
-  const isValidating = modalState === ModalState.VALIDATING;
-  const isCreating = modalState === ModalState.CREATING;
-  const hasError = modalState === ModalState.ERROR || !!createError;
 
-  if (modalState === ModalState.SUCCESS) {
+  if (isSuccess) {
     return (
       <ContentModal
         title="API key validated"
