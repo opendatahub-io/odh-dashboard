@@ -39,7 +39,7 @@ class PipelinesGlobal {
     return cy.findByTestId('create-pipeline-button');
   }
 
-  private findPipelineServerActionButton() {
+  findPipelineServerActionButton() {
     return cy.findByTestId('pipeline-server-action');
   }
 

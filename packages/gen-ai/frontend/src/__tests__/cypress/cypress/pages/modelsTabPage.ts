@@ -32,6 +32,10 @@ class ModelsTabRow {
   findPlaygroundCell(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Playground"]');
   }
+
+  findKebabMenu(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('model-actions-kebab');
+  }
 }
 
 class ModelsTabPage {
@@ -62,6 +66,58 @@ class ModelsTabPage {
   }
 }
 
+class DeleteModelModal {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('delete-model-modal');
+  }
+
+  shouldBeVisible(): void {
+    this.find().should('be.visible');
+  }
+
+  shouldNotExist(): void {
+    this.find().should('not.exist');
+  }
+
+  findRemoveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /^remove$/i });
+  }
+
+  findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /cancel/i });
+  }
+
+  findRemovingButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('button', { name: /removing/i });
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByRole('heading', { name: /remove asset/i });
+  }
+
+  findDangerAlert(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('delete-model-error-alert');
+  }
+}
+
+class KebabMenu {
+  find(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menu');
+  }
+
+  shouldBeVisible(): void {
+    this.find().should('be.visible');
+  }
+
+  shouldNotExist(): void {
+    this.find().should('not.exist');
+  }
+
+  findRemoveAssetItem(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByRole('menuitem', { name: /remove asset/i });
+  }
+}
+
 class EndpointModalPage {
   findModal(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.get('[role="dialog"]');
@@ -89,4 +145,6 @@ class EndpointModalPage {
 }
 
 export const modelsTabPage = new ModelsTabPage();
+export const deleteModelModal = new DeleteModelModal();
+export const kebabMenu = new KebabMenu();
 export const endpointModalPage = new EndpointModalPage();
