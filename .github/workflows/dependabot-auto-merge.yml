@@ -7,22 +7,18 @@ on:
     types:
       - completed
 
-  # Trigger when any commit status is reported (covers Prow statuses which
-  # arrive via the commit-status API after GitHub Actions workflows finish).
-  status: {}
-
-  # Reduced-frequency safety net for edge cases (dropped events, races).
+  # Safety-net for edge cases (dropped events, races, Prow status delays).
   schedule:
     - cron: "0 */6 * * *"
 
 permissions:
   contents: read
   pull-requests: write
-  statuses: read
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     if: >
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
@@ -92,85 +88,12 @@ jobs:
           gh pr edit "$PR_NUMBER" --repo "$REPO" \
             --add-label "lgtm,approved"
 
-  # Reactive path: fires when Prow (or any external tool) reports a commit
-  # status. Finds the Dependabot PR for that commit and labels it if all
-  # statuses are now green.
-  auto-merge-on-status:
-    if: github.event_name == 'status' && github.event.state == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Find Dependabot PR for this commit
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.event.commit.sha }}
-          REPO: ${{ github.repository }}
-        run: |
-          PR_DATA=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/pulls" \
-            --jq '[.[] | select(.user.login == "dependabot[bot]" and .state == "open")] | .[0] // empty' 2>/dev/null || true)
-
-          if [ -z "$PR_DATA" ]; then
-            echo "No open Dependabot PR for this commit, skipping"
-            exit 0
-          fi
-
-          PR_NUMBER=$(echo "$PR_DATA" | jq -r '.number')
-          echo "Found Dependabot PR #$PR_NUMBER"
-
-          EXISTING_LABELS=$(echo "$PR_DATA" | jq -r '[.labels[].name] | join(",")')
-          if echo "$EXISTING_LABELS" | grep -q "lgtm" && echo "$EXISTING_LABELS" | grep -q "approved"; then
-            echo "PR already has lgtm+approved, skipping"
-            exit 0
-          fi
-
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-
-      - name: Verify combined commit status
-        id: checks
-        if: steps.pr.outputs.number
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COMMIT_SHA: ${{ github.event.commit.sha }}
-          REPO: ${{ github.repository }}
-        run: |
-          COMBINED=$(gh api "repos/${REPO}/commits/${COMMIT_SHA}/status" \
-            --jq '.state')
-
-          echo "Combined commit status: $COMBINED"
-
-          if [ "$COMBINED" != "success" ]; then
-            echo "Not all checks/statuses have passed (state=$COMBINED), skipping"
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/checkout@v4
-        if: steps.checks.outputs.ready == 'true'
-
-      - name: Fetch Dependabot metadata
-        if: steps.checks.outputs.ready == 'true'
-        id: metadata
-        uses: dependabot/fetch-metadata@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Apply lgtm and approved labels for patch updates
-        if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          REPO: ${{ github.repository }}
-        run: |
-          gh pr edit "$PR_NUMBER" --repo "$REPO" \
-            --add-label "lgtm,approved"
-
   # Safety-net sweep: catches any Dependabot PRs that slipped through
   # the event-driven paths (dropped events, races, etc.).
   auto-merge-sweep:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Find open Dependabot PRs missing labels
         id: prs
@@ -225,6 +148,10 @@ jobs:
                 echo "Not a patch update ($FROM_VER -> $TO_VER), skipping"
                 continue
               fi
+            else
+              echo "Title doesn't match single-package pattern (likely a grouped PR), skipping"
+              echo "Grouped PRs are handled by the event-driven path with fetch-metadata"
+              continue
             fi
 
             echo "All checks passed — labelling PR #$PR_NUMBER"
