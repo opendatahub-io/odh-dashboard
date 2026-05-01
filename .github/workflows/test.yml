@@ -17,19 +17,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate all package-lock.json files
         run: ./scripts/check-package-lock.sh --all
-      - name: Root node_modules cache
-        uses: actions/cache@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install dependencies
         run: npm install
+      - name: Install standalone module dependencies
+        run: npm run install:modules
 
       - name: Validate module federation ports
         run: npm run validate:ports
@@ -46,13 +45,10 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore root node_modules
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -73,13 +69,10 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore root node_modules
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -100,13 +93,10 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore root node_modules
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -136,13 +126,10 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore root node_modules
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
         shell: bash
         run: |
@@ -216,13 +203,10 @@ jobs:
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
             packages/mlflow/bff/go.sum
-      - name: Restore root node_modules
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-root-
+          node-version: ${{ env.NODE_VERSION }}
       - name: Run contract tests
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
