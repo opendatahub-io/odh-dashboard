@@ -1,6 +1,7 @@
 /* eslint-disable camelcase */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as React from 'react';
+import type { Location } from 'react-router-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
@@ -30,8 +31,7 @@ const setupLocationState = (state: Record<string, unknown> | null) => {
     hash: '',
     state,
     key: 'default',
-    unstable_mask: undefined,
-  });
+  } as Location);
 };
 
 const mockBenchmark: FlatBenchmark = {
