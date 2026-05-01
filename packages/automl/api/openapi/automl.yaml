@@ -1093,6 +1093,7 @@ components:
                 required:
                   - name
                   - type
+                  - task_type
                 properties:
                   name:
                     type: string
@@ -1101,6 +1102,13 @@ components:
                     type: string
                     enum: [integer, double, timestamp, bool, string]
                     description: Inferred data type of the column
+                  task_type:
+                    type: string
+                    enum: [binary, multiclass, regression]
+                    description: >-
+                      Inferred ML task type for this column based on unique value analysis.
+                      Default is binary. Rules: regression if >10 unique values and all numerical;
+                      multiclass if >2 unique values; binary otherwise (including 2 unique string values).
                   values:
                     type: array
                     description: For boolean columns, the unique values found in the data
@@ -1113,15 +1121,20 @@ components:
               example:
                 - name: "customerID"
                   type: "string"
+                  task_type: "multiclass"
                 - name: "gender"
                   type: "bool"
+                  task_type: "binary"
                   values: [0, 1]
                 - name: "age"
                   type: "integer"
+                  task_type: "regression"
                 - name: "price"
                   type: "double"
+                  task_type: "regression"
                 - name: "signup_date"
                   type: "timestamp"
+                  task_type: "multiclass"
             parse_warnings:
               type: integer
               description: Number of rows that failed CSV parsing and were skipped during schema inference

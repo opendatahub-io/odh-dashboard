@@ -55,9 +55,10 @@ type ListObjectsOptions struct {
 
 // ColumnSchema represents a column with its name and inferred type.
 type ColumnSchema struct {
-	Name   string        `json:"name"`
-	Type   string        `json:"type"`
-	Values []interface{} `json:"values,omitempty"`
+	Name     string        `json:"name"`
+	Type     string        `json:"type"`
+	TaskType string        `json:"task_type"`
+	Values   []interface{} `json:"values,omitempty"`
 }
 
 // CSVSchemaResult contains the schema inference result with parsing metadata.
@@ -457,8 +458,9 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 	columnSchemas := make([]ColumnSchema, len(header))
 	for i, colName := range header {
 		columnSchemas[i] = ColumnSchema{
-			Name: colName,
-			Type: inferColumnType(dataRows, i),
+			Name:     colName,
+			Type:     inferColumnType(dataRows, i),
+			TaskType: inferTaskType(dataRows, i),
 		}
 		if columnSchemas[i].Type == "bool" {
 			columnSchemas[i].Values = collectBooleanValues(dataRows, i)
@@ -788,6 +790,34 @@ func collectBooleanValues(rows [][]string, colIndex int) []interface{} {
 	}
 
 	return orderedValues
+}
+
+func inferTaskType(rows [][]string, colIndex int) string {
+	uniqueValues := make(map[string]struct{})
+	allNumerical := true
+
+	for _, row := range rows {
+		if colIndex >= len(row) || strings.TrimSpace(row[colIndex]) == "" {
+			continue
+		}
+		value := strings.TrimSpace(row[colIndex])
+		uniqueValues[value] = struct{}{}
+		if allNumerical {
+			if _, err := strconv.ParseFloat(value, 64); err != nil {
+				allNumerical = false
+			}
+		}
+	}
+
+	uniqueCount := len(uniqueValues)
+
+	if uniqueCount > 10 && allNumerical {
+		return "regression"
+	}
+	if uniqueCount > 2 {
+		return "multiclass"
+	}
+	return "binary"
 }
 
 // extractFirstLine finds and returns the first complete line from the data.

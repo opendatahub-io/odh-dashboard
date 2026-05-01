@@ -364,6 +364,47 @@ func TestInferColumnType_Timestamp(t *testing.T) {
 	assert.Equal(t, "timestamp", inferColumnType(rows, 0))
 }
 
+func TestInferTaskType_Binary(t *testing.T) {
+	rows := [][]string{{"true"}, {"false"}, {"true"}, {"false"}}
+	assert.Equal(t, "binary", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_BinaryTwoUniqueStrings(t *testing.T) {
+	rows := [][]string{{"cat"}, {"dog"}, {"cat"}, {"dog"}}
+	assert.Equal(t, "binary", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_Multiclass(t *testing.T) {
+	rows := [][]string{{"red"}, {"green"}, {"blue"}, {"yellow"}}
+	assert.Equal(t, "multiclass", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_Regression(t *testing.T) {
+	rows := make([][]string, 15)
+	for i := range rows {
+		rows[i] = []string{fmt.Sprintf("%d", i*10)}
+	}
+	assert.Equal(t, "regression", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_TenUniqueNumerical_NotRegression(t *testing.T) {
+	rows := make([][]string, 10)
+	for i := range rows {
+		rows[i] = []string{fmt.Sprintf("%d", i)}
+	}
+	assert.Equal(t, "multiclass", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_ManyUniqueMixedTypes_Multiclass(t *testing.T) {
+	rows := [][]string{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9"}, {"10"}, {"11"}, {"abc"}}
+	assert.Equal(t, "multiclass", inferTaskType(rows, 0))
+}
+
+func TestInferTaskType_EmptyValues(t *testing.T) {
+	rows := [][]string{{""}, {""}, {""}}
+	assert.Equal(t, "binary", inferTaskType(rows, 0))
+}
+
 func TestExtractFirstLine(t *testing.T) {
 	line, err := extractFirstLine([]byte("header\nrow1"))
 	assert.NoError(t, err)

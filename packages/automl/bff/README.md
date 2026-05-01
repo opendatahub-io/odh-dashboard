@@ -110,6 +110,8 @@ GET  /api/v1/model-registries    (list Model Registry instances: id, server_url,
 POST /api/v1/model-registries/:registryId/models  (register model in a specific registry)
 ```
 
+The S3 file schema endpoint (`GET /api/v1/s3/files/{key}?view=schema`) returns per-column metadata including a `task_type` field (`binary`, `multiclass`, or `regression`) inferred from unique value analysis. See the OpenAPI spec for full details.
+
 For Model Registry integration details (configuration, authentication, S3), see [docs/model-registry-integration.md](docs/model-registry-integration.md).
 
 For detailed information about the secrets endpoint, see [docs/secrets-endpoint.md](docs/secrets-endpoint.md).

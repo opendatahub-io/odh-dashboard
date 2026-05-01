@@ -34,9 +34,12 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
   type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
   values?: (string | number)[];
 };
 
@@ -47,6 +50,8 @@ const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
     type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
