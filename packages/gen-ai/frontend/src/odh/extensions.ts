@@ -21,6 +21,7 @@ export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
 const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
   {
@@ -69,6 +70,10 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: MODEL_AS_SERVICE_CAMEL,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [MODEL_AS_SERVICE_CAMEL],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
