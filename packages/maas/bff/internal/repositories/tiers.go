@@ -3,8 +3,10 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -34,6 +36,9 @@ type TiersRepository struct {
 	tiersConfigMapName      string
 	gatewayNamespace        string
 	gatewayName             string
+	// combinedTokenPolicyName / combinedRatePolicyName are the single CR names holding all tier limits (Kuadrant enforces one per kind per Gateway).
+	combinedTokenPolicyName string
+	combinedRatePolicyName  string
 }
 
 var (
@@ -44,7 +49,19 @@ var (
 
 // TODO: In general, there is no protection around edits from multiple users
 
-func NewTiersRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesClientFactory, configMapNamespace, configMapName, gatewayNamespace, gatewayName string) *TiersRepository {
+func NewTiersRepository(
+	logger *slog.Logger,
+	k8sFactory kubernetes.KubernetesClientFactory,
+	configMapNamespace, configMapName, gatewayNamespace, gatewayName string,
+	combinedTokenPolicyName, combinedRatePolicyName string,
+) *TiersRepository {
+	// Tests may pass empty policy names; default from gateway so Get/List behaviour stays deterministic.
+	if combinedTokenPolicyName == "" {
+		combinedTokenPolicyName = gatewayName + "-token-rate-limits"
+	}
+	if combinedRatePolicyName == "" {
+		combinedRatePolicyName = gatewayName + "-request-rate-limits"
+	}
 	return &TiersRepository{
 		logger:                  logger,
 		k8sFactory:              k8sFactory,
@@ -52,6 +69,8 @@ func NewTiersRepository(logger *slog.Logger, k8sFactory kubernetes.KubernetesCli
 		tiersConfigMapName:      configMapName,
 		gatewayNamespace:        gatewayNamespace,
 		gatewayName:             gatewayName,
+		combinedTokenPolicyName: combinedTokenPolicyName,
+		combinedRatePolicyName:  combinedRatePolicyName,
 	}
 }
 
@@ -126,31 +145,53 @@ func (t *TiersRepository) updateTiersConfigMap(ctx context.Context, tiersConfigM
 	return nil
 }
 
-func (t *TiersRepository) fetchTierLimits(ctx context.Context, tiers models.TiersList) error {
-	tokenPolicies, ratePolicies, err := t.fetchPolicyResources(ctx)
+// attachTierRateLimits fills each tier's Limits from TokenRateLimitPolicy / RateLimitPolicy objects that target
+// this repository's Gateway. Discovery order: canonical combined names first, then other gateway-scoped policies
+// (CLI layout: arbitrary limit keys with tier predicates), then legacy per-tier CRs that may not targetRef the Gateway.
+func (t *TiersRepository) attachTierRateLimits(ctx context.Context, tiers models.TiersList) error {
+	allTRLP, err := t.listPoliciesForGateway(ctx, constants.TokenPolicyGvr)
+	if err != nil {
+		return err
+	}
+	allRLP, err := t.listPoliciesForGateway(ctx, constants.RatePolicyGvr)
+	if err != nil {
+		return err
+	}
+	sortedTR := sortPoliciesCanonicalFirst(allTRLP, t.combinedTokenPolicyName)
+	sortedRL := sortPoliciesCanonicalFirst(allRLP, t.combinedRatePolicyName)
+
+	legacyTokenPolicies, legacyRatePolicies, err := t.fetchPolicyResources(ctx)
 	if err != nil {
 		return err
 	}
 
 	for idx := range tiers {
 		tierName := tiers[idx].Name
+		tokenLimitKey := managedTokenLimitKey(tierName)
+		rateLimitKey := managedRequestLimitKey(tierName)
 
-		// Token rate limits
-		tokenPolicyName := "tier-" + tierName + "-token-rate-limits"
-		tokenLimitKey := tierName + "-tokens"
-		tokenPolicy := t.findPolicyByName(tokenPolicyName, tokenPolicies)
-		tiers[idx].Limits.TokensPerUnit, err = convertPolicyToRateLimits(tokenPolicy, tokenLimitKey)
+		tiers[idx].Limits.TokensPerUnit, err = discoverTokenRateLimitsForTier(tierName, sortedTR)
 		if err != nil {
 			return err
 		}
+		if len(tiers[idx].Limits.TokensPerUnit) == 0 {
+			legacy := t.findPolicyByName(legacyPerTierTokenPolicyName(tierName), legacyTokenPolicies)
+			tiers[idx].Limits.TokensPerUnit, err = convertPolicyToRateLimits(legacy, tokenLimitKey)
+			if err != nil {
+				return err
+			}
+		}
 
-		// Request rate limits
-		ratePolicyName := "tier-" + tierName + "-rate-limits"
-		rateLimitKey := tierName + "-requests"
-		ratePolicy := t.findPolicyByName(ratePolicyName, ratePolicies)
-		tiers[idx].Limits.RequestsPerUnit, err = convertPolicyToRateLimits(ratePolicy, rateLimitKey)
+		tiers[idx].Limits.RequestsPerUnit, err = discoverRequestRateLimitsForTier(tierName, sortedRL)
 		if err != nil {
 			return err
+		}
+		if len(tiers[idx].Limits.RequestsPerUnit) == 0 {
+			legacy := t.findPolicyByName(legacyPerTierRatePolicyName(tierName), legacyRatePolicies)
+			tiers[idx].Limits.RequestsPerUnit, err = convertPolicyToRateLimits(legacy, rateLimitKey)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -170,12 +211,14 @@ func (t *TiersRepository) GetTiersList(ctx context.Context) (models.TiersList, e
 		tiersList[idx].Description = tier.Description
 		tiersList[idx].Groups = tier.Groups
 		tiersList[idx].Level = tier.Level
-		if err = t.fetchTierLimits(ctx, tiersList); err != nil {
-			return nil, err
-		}
 
 		// TODO: Remove fake data
 		tiersList[idx].Models = []string{"ns1-llama", "n2-granite"}
+	}
+
+	// One cluster round-trip for all tiers (previously this ran inside the loop and re-fetched every iteration).
+	if err = t.attachTierRateLimits(ctx, tiersList); err != nil {
+		return nil, err
 	}
 
 	return tiersList, nil
@@ -223,11 +266,8 @@ func (t *TiersRepository) CreateTier(ctx context.Context, tier models.Tier) (*mo
 		return nil, err
 	}
 
-	if !t.isEmptyLimits(tier.Limits) {
-		err = t.createOrUpdateRateLimitPolicies(ctx, tier.Name, tier.Limits)
-	}
-
-	if err != nil {
+	// Reconcile the two combined Kuadrant policies: merge this tier's limits with every other tier's limits from the live CRs.
+	if err := t.syncCombinedPoliciesFromDirtyTier(ctx, parsedTiers, tier.Name, tier.Limits, nil); err != nil {
 		return nil, err
 	}
 
@@ -263,11 +303,9 @@ func (t *TiersRepository) UpdateTier(ctx context.Context, tier models.Tier) (*mo
 		return nil, err
 	}
 
-	if !t.isEmptyLimits(tier.Limits) {
-		err = t.createOrUpdateRateLimitPolicies(ctx, tier.Name, tier.Limits)
-		if err != nil {
-			return nil, err
-		}
+	// Always sync: clearing limits must delete managed keys; non-empty limits must upsert without wiping other tiers.
+	if err := t.syncCombinedPoliciesFromDirtyTier(ctx, parsedTiers, tier.Name, tier.Limits, nil); err != nil {
+		return nil, err
 	}
 
 	return &tier, nil
@@ -293,60 +331,18 @@ func (t *TiersRepository) DeleteTierByName(ctx context.Context, name string) err
 
 	// TODO: Delete side effects? (e.g. models belonging to the tier)
 
-	// Clean up rate limit policy resources associated with this tier
-	if err := t.deleteTierRateLimitPolicies(ctx, name); err != nil {
-		t.logger.Warn("Failed to cleanup tier rate limit policies", "tier", name, "error", err)
+	remainingTiers := slices.Delete(slices.Clone(parsedTiers), tierIdx, tierIdx+1)
+
+	// Sync the policies before updating the ConfigMap so a failed policy update leaves the tier row in place
+	// If the ConfigMap update fails after this, the tier still shows up in the UI while limits are already stripped
+	if err := t.syncCombinedPoliciesFromDirtyTier(ctx, remainingTiers, "", models.TierLimits{}, []string{name}); err != nil {
 		return err
 	}
-
-	return t.updateTiersConfigMap(ctx, tierConfigMap, slices.Delete(parsedTiers, tierIdx, tierIdx+1))
-}
-
-// deleteTierRateLimitPolicies removes all rate limit policy resources associated with a tier
-func (t *TiersRepository) deleteTierRateLimitPolicies(ctx context.Context, tierName string) error {
-	var errs []error
-
-	client, err := t.k8sFactory.GetClient(ctx)
-	if err != nil {
+	if err := t.updateTiersConfigMap(ctx, tierConfigMap, remainingTiers); err != nil {
 		return err
-	}
-
-	kubeClient := client.GetDynamicClient()
-
-	// Delete RateLimitPolicy if it exists
-	ratePolicyName := "tier-" + tierName + "-rate-limits"
-	err = kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, ratePolicyName, metav1.DeleteOptions{})
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			t.logger.Warn("Failed to delete RateLimitPolicy", "tier", tierName, "policy", ratePolicyName, "error", err)
-			errs = append(errs, err)
-		}
-	} else {
-		t.logger.Info("Deleted RateLimitPolicy", "tier", tierName, "policy", ratePolicyName)
-	}
-
-	// Delete TokenRateLimitPolicy if it exists
-	tokenPolicyName := "tier-" + tierName + "-token-rate-limits"
-	err = kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Delete(ctx, tokenPolicyName, metav1.DeleteOptions{})
-	if err != nil {
-		if !k8sErrors.IsNotFound(err) {
-			t.logger.Warn("Failed to delete TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName, "error", err)
-			errs = append(errs, err)
-		}
-	} else {
-		t.logger.Info("Deleted TokenRateLimitPolicy", "tier", tierName, "policy", tokenPolicyName)
-	}
-
-	if len(errs) > 0 {
-		return errors.Join(errs...)
 	}
 
 	return nil
-}
-
-// isEmptyLimits checks if the provided TierLimits structure contains any rate limits
-func (t *TiersRepository) isEmptyLimits(limits models.TierLimits) bool {
-	return len(limits.TokensPerUnit) == 0 && len(limits.RequestsPerUnit) == 0
 }
 
 // convertPolicyToRateLimits extracts rate limits from a policy resource
@@ -367,9 +363,22 @@ func convertPolicyToRateLimits(policy *unstructured.Unstructured, limitKey strin
 	}
 
 	for _, rate := range rates {
-		rateMap := rate.(map[string]interface{})
-		count := rateMap["limit"].(int64)
-		window := rateMap["window"].(string)
+		rateMap, ok := rate.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("rates entry: expected map[string]interface{}, got %T", rate)
+		}
+		count, err := kubernetesNumericToInt64(rateMap["limit"])
+		if err != nil {
+			return nil, fmt.Errorf("rates entry limit: %w", err)
+		}
+		windowVal, hasWindow := rateMap["window"]
+		if !hasWindow {
+			return nil, fmt.Errorf("rates entry: missing window")
+		}
+		window, ok := windowVal.(string)
+		if !ok {
+			return nil, fmt.Errorf("rates window: expected string, got %T", windowVal)
+		}
 		parsedWindow, parseWindowErr := time.ParseDuration(window)
 		if parseWindowErr != nil {
 			return nil, parseWindowErr
@@ -403,9 +412,11 @@ func convertPolicyToRateLimits(policy *unstructured.Unstructured, limitKey strin
 	return rateLimits, nil
 }
 
-// convertRateLimitToKubernetesFormat converts models.RateLimit slice to Kubernetes policy rates format
-func convertRateLimitToKubernetesFormat(rateLimits []models.RateLimit) []map[string]interface{} {
-	var rates []map[string]interface{}
+// convertRateLimitToKubernetesFormat converts models.RateLimit slice to the JSON shape Kubernetes
+// expects inside unstructured objects. Slices must be []interface{}, not []map[string]interface{} —
+// otherwise unstructured.SetNestedMap panics with "cannot deep copy []map[string]interface {}".
+func convertRateLimitToKubernetesFormat(rateLimits []models.RateLimit) []interface{} {
+	rates := make([]interface{}, 0, len(rateLimits))
 
 	for _, rateLimit := range rateLimits {
 		var duration time.Duration
@@ -423,172 +434,68 @@ func convertRateLimitToKubernetesFormat(rateLimits []models.RateLimit) []map[str
 			duration = time.Duration(rateLimit.Time) * time.Second
 		}
 
-		rate := map[string]interface{}{
+		rates = append(rates, map[string]interface{}{
 			"limit":  rateLimit.Count,
-			"window": duration.String(),
-		}
-		rates = append(rates, rate)
+			"window": formatKuadrantDurationWindow(duration),
+		})
 	}
 
 	return rates
 }
 
-// buildRateLimitPolicy creates a Kubernetes RateLimitPolicy resource for request-based rate limiting
-func buildRateLimitPolicy(tierName, gatewayNamespace, gatewayName string, rateLimits []models.RateLimit) *unstructured.Unstructured {
-	policyName := "tier-" + tierName + "-rate-limits"
-	limitKey := tierName + "-requests"
-
-	policy := &unstructured.Unstructured{}
-	policy.SetAPIVersion("kuadrant.io/v1")
-	policy.SetKind("RateLimitPolicy")
-	policy.SetName(policyName)
-	policy.SetNamespace(gatewayNamespace)
-	policy.SetLabels(map[string]string{
-		"opendatahub.io/dashboard": "true",
-	})
-
-	// Build the policy specification
-	spec := map[string]interface{}{
-		"targetRef": map[string]interface{}{
-			"group": "gateway.networking.k8s.io",
-			"kind":  "Gateway",
-			"name":  gatewayName,
-		},
-		"limits": map[string]interface{}{
-			limitKey: map[string]interface{}{
-				"rates": convertRateLimitToKubernetesFormat(rateLimits),
-				"when": []map[string]interface{}{
-					{
-						"predicate": "auth.identity.tier == \"" + tierName + "\" && !request.path.endsWith(\"/v1/models\")",
-					},
-				},
-				"counters": []map[string]interface{}{
-					{
-						"expression": "auth.identity.userid",
-					},
-				},
-			},
-		},
+// formatKuadrantDurationWindow formats a duration for Kuadrant's window field
+// (pattern ^([0-9]{1,5}(h|m|s|ms)){1,4}$ in the bundled CRD). Go's duration.String()
+// can emit values like "1h0m0s" or sub-nanosecond forms that fail validation.
+func formatKuadrantDurationWindow(d time.Duration) string {
+	if d <= 0 {
+		return "1s"
 	}
+	h := int(d / time.Hour)
+	d %= time.Hour
+	m := int(d / time.Minute)
+	d %= time.Minute
+	s := int(d / time.Second)
+	d %= time.Second
+	ms := int(d / time.Millisecond)
 
-	policy.Object["spec"] = spec
-	return policy
+	var parts []string
+	if h > 0 {
+		parts = append(parts, fmt.Sprintf("%dh", min(h, 99999)))
+	}
+	if m > 0 {
+		parts = append(parts, fmt.Sprintf("%dm", min(m, 99999)))
+	}
+	if s > 0 {
+		parts = append(parts, fmt.Sprintf("%ds", min(s, 99999)))
+	}
+	if ms > 0 {
+		parts = append(parts, fmt.Sprintf("%dms", min(ms, 99999)))
+	}
+	if len(parts) == 0 {
+		return "1s"
+	}
+	if len(parts) > 4 {
+		parts = parts[:4]
+	}
+	return strings.Join(parts, "")
 }
 
-// buildTokenRateLimitPolicy creates a Kubernetes TokenRateLimitPolicy resource for token-based rate limiting
-func buildTokenRateLimitPolicy(tierName, gatewayNamespace, gatewayName string, rateLimits []models.RateLimit) *unstructured.Unstructured {
-	policyName := "tier-" + tierName + "-token-rate-limits"
-	limitKey := tierName + "-tokens"
-
-	policy := &unstructured.Unstructured{}
-	policy.SetAPIVersion("kuadrant.io/v1alpha1")
-	policy.SetKind("TokenRateLimitPolicy")
-	policy.SetName(policyName)
-	policy.SetNamespace(gatewayNamespace)
-	policy.SetLabels(map[string]string{
-		"opendatahub.io/dashboard": "true",
-	})
-
-	// Build the policy specification
-	spec := map[string]interface{}{
-		"targetRef": map[string]interface{}{
-			"group": "gateway.networking.k8s.io",
-			"kind":  "Gateway",
-			"name":  gatewayName,
-		},
-		"limits": map[string]interface{}{
-			limitKey: map[string]interface{}{
-				"rates": convertRateLimitToKubernetesFormat(rateLimits),
-				"when": []map[string]interface{}{
-					{
-						"predicate": "auth.identity.tier == \"" + tierName + "\" && !request.path.endsWith(\"/v1/models\")",
-					},
-				},
-				"counters": []map[string]interface{}{
-					{
-						"expression": "auth.identity.userid",
-					},
-				},
-			},
-		},
+// kubernetesNumericToInt64 normalizes JSON / unstructured numeric shapes (int64 vs float64) from the API server.
+func kubernetesNumericToInt64(v interface{}) (int64, error) {
+	switch x := v.(type) {
+	case int64:
+		return x, nil
+	case int32:
+		return int64(x), nil
+	case int:
+		return int64(x), nil
+	case float64:
+		return int64(x), nil
+	case float32:
+		return int64(x), nil
+	default:
+		return 0, fmt.Errorf("unsupported numeric type %T", v)
 	}
-
-	policy.Object["spec"] = spec
-	return policy
-}
-
-// createOrUpdateRateLimitPolicies creates or updates Kubernetes rate limit policy resources for a tier
-func (t *TiersRepository) createOrUpdateRateLimitPolicies(ctx context.Context, tierName string, limits models.TierLimits) error {
-	var errs []error
-
-	client, err := t.k8sFactory.GetClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	kubeClient := client.GetDynamicClient()
-
-	// Create/update RateLimitPolicy for RequestsPerUnit if present
-	if len(limits.RequestsPerUnit) > 0 {
-		rateLimitPolicy := buildRateLimitPolicy(tierName, t.gatewayNamespace, t.gatewayName, limits.RequestsPerUnit)
-
-		_, createErr := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Create(ctx, rateLimitPolicy, metav1.CreateOptions{})
-		if createErr != nil {
-			if k8sErrors.IsAlreadyExists(createErr) {
-				existingPolicy, getErr := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Get(ctx, rateLimitPolicy.GetName(), metav1.GetOptions{})
-				if getErr != nil {
-					t.logger.Warn("Failed to get RateLimitPolicy for update", "tier", tierName, "error", getErr)
-					errs = append(errs, getErr)
-				} else {
-					existingPolicy.Object["spec"] = rateLimitPolicy.Object["spec"]
-					_, updateErr := kubeClient.Resource(constants.RatePolicyGvr).Namespace(t.gatewayNamespace).Update(ctx, existingPolicy, metav1.UpdateOptions{})
-					if updateErr != nil {
-						t.logger.Warn("Failed to update RateLimitPolicy", "tier", tierName, "error", updateErr)
-						errs = append(errs, updateErr)
-					} else {
-						t.logger.Debug("Updated RateLimitPolicy", "tier", tierName, "policy", rateLimitPolicy.GetName())
-					}
-				}
-			} else {
-				t.logger.Warn("Failed to create RateLimitPolicy", "tier", tierName, "error", createErr)
-				errs = append(errs, createErr)
-			}
-		} else {
-			t.logger.Debug("Created RateLimitPolicy", "tier", tierName, "policy", rateLimitPolicy.GetName())
-		}
-	}
-
-	// Create/update TokenRateLimitPolicy for TokensPerUnit if present
-	if len(limits.TokensPerUnit) > 0 {
-		tokenRateLimitPolicy := buildTokenRateLimitPolicy(tierName, t.gatewayNamespace, t.gatewayName, limits.TokensPerUnit)
-
-		_, createErr := kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Create(ctx, tokenRateLimitPolicy, metav1.CreateOptions{})
-		if createErr != nil {
-			if k8sErrors.IsAlreadyExists(createErr) {
-				existingPolicy, getErr := kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Get(ctx, tokenRateLimitPolicy.GetName(), metav1.GetOptions{})
-				if getErr != nil {
-					t.logger.Warn("Failed to get TokenRateLimitPolicy for update", "tier", tierName, "error", getErr)
-					errs = append(errs, getErr)
-				} else {
-					existingPolicy.Object["spec"] = tokenRateLimitPolicy.Object["spec"]
-					_, updateErr := kubeClient.Resource(constants.TokenPolicyGvr).Namespace(t.gatewayNamespace).Update(ctx, existingPolicy, metav1.UpdateOptions{})
-					if updateErr != nil {
-						t.logger.Warn("Failed to update TokenRateLimitPolicy", "tier", tierName, "error", updateErr)
-						errs = append(errs, updateErr)
-					} else {
-						t.logger.Debug("Updated TokenRateLimitPolicy", "tier", tierName, "policy", tokenRateLimitPolicy.GetName())
-					}
-				}
-			} else {
-				t.logger.Warn("Failed to create TokenRateLimitPolicy", "tier", tierName, "error", createErr)
-				errs = append(errs, createErr)
-			}
-		} else {
-			t.logger.Debug("Created TokenRateLimitPolicy", "tier", tierName, "policy", tokenRateLimitPolicy.GetName())
-		}
-	}
-
-	return errors.Join(errs...)
 }
 
 // findPolicyByName finds a policy resource by its name

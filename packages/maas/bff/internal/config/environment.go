@@ -119,4 +119,8 @@ type EnvConfig struct {
 	TiersConfigMapName      string
 	GatewayNamespace        string
 	GatewayName             string
+	// CombinedTokenRateLimitPolicyName is the single TokenRateLimitPolicy CR name the BFF maintains (all tier token limits live under spec.limits).
+	CombinedTokenRateLimitPolicyName string
+	// CombinedRequestRateLimitPolicyName is the single RateLimitPolicy CR name for all tier request limits.
+	CombinedRequestRateLimitPolicyName string
 }

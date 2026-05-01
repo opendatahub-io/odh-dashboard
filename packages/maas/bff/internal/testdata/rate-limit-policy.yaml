@@ -1,7 +1,8 @@
+# Single RateLimitPolicy: name must match {gatewayName}-request-rate-limits (see NewTiersRepository defaults).
 apiVersion: kuadrant.io/v1
 kind: RateLimitPolicy
 metadata:
-  name: tier-tier0-rate-limits
+  name: maas-default-gateway-request-rate-limits
   labels:
     opendatahub.io/dashboard: "true"
 spec:
@@ -17,5 +18,14 @@ spec:
       when:
         - predicate: |
             auth.identity.tier == "tier0"
+      counters:
+        - expression: auth.identity.userid
+    tier1-requests:
+      rates:
+        - limit: 10
+          window: 1m
+      when:
+        - predicate: |
+            auth.identity.tier == "tier1"
       counters:
         - expression: auth.identity.userid
