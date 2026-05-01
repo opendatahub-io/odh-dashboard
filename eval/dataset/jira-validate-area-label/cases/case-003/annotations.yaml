@@ -1,0 +1,6 @@
+expected_areas:
+  - dashboard-area-model-catalog
+confidence: high
+signal_dimensions:
+  - keyword (model catalog, admin settings)
+  - contextual (model + catalog = model-catalog, not model-serving or model-registry)

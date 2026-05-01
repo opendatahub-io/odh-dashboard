@@ -1,0 +1,4 @@
+prompt: >
+  Create documentation for the gen-ai package. It provides the Gen AI
+  Studio experience including the playground, chatbot, guardrails
+  configuration, RAG/vector stores, and LlamaStack integration.

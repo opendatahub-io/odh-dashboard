@@ -1,0 +1,6 @@
+expected_areas:
+  - dashboard-area-model-serving
+confidence: high
+signal_dimensions:
+  - K8s kind (InferenceService, ServingRuntime)
+  - keyword (serving runtime, inference, model deploy)

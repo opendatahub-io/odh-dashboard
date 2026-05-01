@@ -1,0 +1,11 @@
+expected_areas:
+  - dashboard-area-performance
+confidence: medium
+signal_dimensions:
+  - keyword (performance, table, virtualization)
+notes: >
+  This is a cross-cutting performance issue. Although it mentions
+  model serving, pipelines, and model registry, the issue is specifically
+  about performance improvement, not about any one feature area.
+  Feature area beats cross-cutting only when the issue is *about*
+  that feature, not when it *mentions* it.

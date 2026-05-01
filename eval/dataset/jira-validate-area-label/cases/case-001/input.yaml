@@ -1,0 +1,22 @@
+prompt: >
+  Validate area labels on this issue. The issue has no existing area labels.
+  Analyze the content and assign appropriate dashboard-area-* labels.
+
+issue_key: "RHOAIENG-99001"
+summary: "InferenceService returns 500 after deploying model with custom serving runtime"
+description: >
+  When deploying a model using a custom ServingRuntime on RHOAI 2.19,
+  the InferenceService returns HTTP 500 errors. The model deploys
+  successfully but inference calls fail with "Internal Server Error".
+  Logs show a timeout connecting to the model mesh backend.
+
+  Steps to reproduce:
+  1. Create a custom ServingRuntime
+  2. Deploy a model using that runtime
+  3. Send an inference request
+
+  Expected: 200 OK with prediction result
+  Actual: 500 Internal Server Error
+labels: []
+issuetype: Bug
+issuelinks: []
