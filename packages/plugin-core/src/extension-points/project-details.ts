@@ -13,7 +13,7 @@ export type ProjectDetailsTab = Extension<
 export const isProjectDetailsTab = (extension: Extension): extension is ProjectDetailsTab =>
   extension.type === 'app.project-details/tab';
 
-export type ProjectDetailsSettingsCard = Extension<
+export type ProjectDetailsSettingsCardExtension = Extension<
   'app.project-details/settings-card',
   {
     id: string;
@@ -21,7 +21,7 @@ export type ProjectDetailsSettingsCard = Extension<
     component: ComponentCodeRef;
   }
 >;
-export const isProjectDetailsSettingsCard = (
+export const isProjectDetailsSettingsCardExtension = (
   extension: Extension,
-): extension is ProjectDetailsSettingsCard =>
+): extension is ProjectDetailsSettingsCardExtension =>
   extension.type === 'app.project-details/settings-card';
