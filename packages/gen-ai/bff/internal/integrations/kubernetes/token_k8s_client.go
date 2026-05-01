@@ -1184,7 +1184,7 @@ func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc 
 		}
 	}
 
-	var endpoints []string
+	endpoints := []string{}
 	if internalURL != "" {
 		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internalURL))
 	}
