@@ -211,6 +211,32 @@ func (r *PipelineRunsRepository) RetryPipelineRun(
 	return nil
 }
 
+// DeletePipelineRun permanently deletes a pipeline run by ID.
+func (r *PipelineRunsRepository) DeletePipelineRun(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	runID string,
+) error {
+	if client == nil {
+		return fmt.Errorf("pipeline server client is nil")
+	}
+
+	if err := client.DeleteRun(ctx, runID); err != nil {
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) {
+			switch httpErr.Status() {
+			case http.StatusNotFound:
+				return ErrPipelineRunNotFound
+			case http.StatusBadRequest:
+				return err
+			}
+		}
+		return fmt.Errorf("failed to delete pipeline run: %w", err)
+	}
+
+	return nil
+}
+
 // ValidateCreateAutoRAGRunRequest checks that all required fields are present
 // and that optional enum fields have valid values.
 func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {

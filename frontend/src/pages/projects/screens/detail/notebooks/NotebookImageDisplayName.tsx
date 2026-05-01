@@ -320,7 +320,7 @@ export const NotebookImageDisplayName = ({
           <FlexItem>
             <Tooltip content="Updating version" data-testid="updating-image-icon-tooltip">
               <InProgressIcon
-                className="odh-u-spin"
+                className="ai-u-spin"
                 style={{ cursor: 'pointer' }}
                 data-testid="updating-image-icon"
               />

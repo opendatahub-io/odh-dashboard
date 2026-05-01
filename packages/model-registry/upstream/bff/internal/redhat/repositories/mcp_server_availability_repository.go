@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	"k8s.io/client-go/discovery"
 )
 

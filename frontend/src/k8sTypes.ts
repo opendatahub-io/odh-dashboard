@@ -1333,6 +1333,7 @@ export type DashboardCommonConfig = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  nimWizard?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

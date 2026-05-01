@@ -214,52 +214,6 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
-  /gen-ai/api/v1/lsd/safety:
-    summary: Get safety configuration
-    description: >-
-      Retrieves the safety configuration (guardrail models and shields) from the llama-stack-config ConfigMap.
-      Returns configured guardrail models with their input and output shield IDs.
-      Only returns data if trustyai_fms provider is configured.
-      Requires valid Kubernetes authentication token and namespace parameter.
-    get:
-      tags:
-        - LlamaStackDistribution
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace to get safety config from
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      responses:
-        '200':
-          description: Safety configuration retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/SafetyConfigResponse'
-              example:
-                data:
-                  guardrail_models:
-                    - model_name: 'llama-guard-3'
-                      input_shield_id: 'trustyai_input_llama_guard_3'
-                      output_shield_id: 'trustyai_output_llama_guard_3'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getSafetyConfig
-      summary: Get Safety Config
-      description: Gets the safety configuration with guardrail models and shields.
-
   /gen-ai/api/v1/lsd/install:
     summary: Install LlamaStack Distribution
     description: >-
@@ -343,6 +297,72 @@ paths:
       operationId: getGuardrailsStatus
       summary: Get Guardrails Status
       description: Gets the status of GuardrailsOrchestrator in the specified namespace.
+
+  /gen-ai/api/v1/nemo-guardrails/init:
+    summary: Initialize NemoGuardrails resources
+    description: >-
+      Creates a placeholder ConfigMap and NemoGuardrails CR in the specified namespace.
+      The actual model, prompts, and API key are supplied at request time via inline
+      config in each guardrail/checks call — no per-model K8s resources are needed.
+    post:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace in which to create NemoGuardrails resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsInitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: initNemoGuardrails
+      summary: Initialize NemoGuardrails
+      description: >-
+        Creates a placeholder ConfigMap and NemoGuardrails CR. One-time setup —
+        returns 400 if NemoGuardrails is already initialised in the namespace.
+
+  /gen-ai/api/v1/nemo-guardrails/status:
+    summary: Get NemoGuardrails status
+    description: >-
+      Returns the phase and readiness of the NemoGuardrails CR in the specified namespace.
+    get:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for the NemoGuardrails CR
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNemoGuardrailsStatus
+      summary: Get NemoGuardrails Status
+      description: Returns the phase and readiness of the NemoGuardrails CR in the namespace.
 
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
@@ -1998,37 +2018,6 @@ components:
           example: '1.0.0'
           description: BFF service version
 
-    SafetyConfigResponse:
-      type: object
-      required:
-        - guardrail_models
-      properties:
-        guardrail_models:
-          type: array
-          items:
-            $ref: '#/components/schemas/GuardrailModelConfig'
-          description: List of configured guardrail models with their shields
-
-    GuardrailModelConfig:
-      type: object
-      required:
-        - model_name
-        - input_shield_id
-        - output_shield_id
-      properties:
-        model_name:
-          type: string
-          example: 'llama-guard-3'
-          description: Name of the guardrail model
-        input_shield_id:
-          type: string
-          example: 'trustyai_input_llama_guard_3'
-          description: Shield ID for input content moderation
-        output_shield_id:
-          type: string
-          example: 'trustyai_output_llama_guard_3'
-          description: Shield ID for output content moderation
-
     # MLflow Schemas
     MLflowPrompt:
       type: object
@@ -3660,14 +3649,6 @@ components:
             - model_name: 'facebook/opt-125m'
               model_source_type: 'maas'
           minItems: 1
-        enable_guardrails:
-          type: boolean
-          description: |
-            If true, adds safety configuration with guardrail input and output shields
-            for all selected models. Input shields include jailbreak, content-moderation, and pii.
-            Output shields include content-moderation and pii.
-          example: true
-          default: false
         vector_stores:
           type: array
           items:
@@ -4227,7 +4208,6 @@ components:
           example: 'Vector store for product documentation'
           description: Description of the vector store purpose
 
-
     ExternalVectorStoresListData:
       type: object
       required:
@@ -4778,6 +4758,62 @@ components:
               value:
                 data: null
 
+    NemoGuardrailsInitResponse:
+      description: NemoGuardrails initialization result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+                    description: Name of the created or updated NemoGuardrails CR
+                    example: nemoguardrails
+          example:
+            data:
+              name: nemoguardrails
+
+    NemoGuardrailsStatusResponse:
+      description: NemoGuardrails CR status
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                  - phase
+                  - isReady
+                properties:
+                  name:
+                    type: string
+                    description: Name of the NemoGuardrails CR
+                    example: nemoguardrails
+                  phase:
+                    type: string
+                    description: Current phase of the NemoGuardrails CR
+                    example: Ready
+                  isReady:
+                    type: boolean
+                    description: Whether the NemoGuardrails CR is in the Ready phase
+                    example: true
+          example:
+            data:
+              name: nemoguardrails
+              phase: Ready
+              isReady: true
+
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL
       content:
@@ -5081,6 +5117,13 @@ components:
 
     NotFound:
       description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    Conflict:
+      description: Conflict - Resource already exists
       content:
         application/json:
           schema:

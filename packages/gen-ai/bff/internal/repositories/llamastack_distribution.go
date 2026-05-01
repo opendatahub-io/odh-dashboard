@@ -65,13 +65,10 @@ func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
 	identity *integrations.RequestIdentity,
 	namespace string,
 	installmodels []models.InstallModel,
-	enableGuardrails bool,
 	vectorStores []models.InstallVectorStore,
 	maasClient maas.MaaSClientInterface,
 ) (*models.LlamaStackDistributionInstallModel, error) {
-	// Call the Kubernetes client to install the LSD
-	// enableGuardrails - if true, safety providers with shields will be configured for all models
-	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, enableGuardrails, vectorStores, maasClient)
+	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, vectorStores, maasClient)
 	if err != nil {
 		return nil, err
 	}
@@ -105,15 +102,4 @@ func (r *LlamaStackDistributionRepository) DeleteLlamaStackDistribution(
 	}
 
 	return deleteModel, nil
-}
-
-// GetSafetyConfig retrieves safety configuration from llama-stack-config ConfigMap
-// Returns configured guardrail models and their shield IDs for use in the playground
-func (r *LlamaStackDistributionRepository) GetSafetyConfig(
-	client kubernetes.KubernetesClientInterface,
-	ctx context.Context,
-	identity *integrations.RequestIdentity,
-	namespace string,
-) (*models.SafetyConfigResponse, error) {
-	return client.GetSafetyConfig(ctx, identity, namespace)
 }

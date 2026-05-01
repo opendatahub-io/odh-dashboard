@@ -1,5 +1,5 @@
 import { pollUntilSuccess } from './baseCommands';
-import { enableGenAiFeatures, disableGenAiFeatures } from './genAi';
+import { enableGenAiBackend, disableGenAiFeatures } from './genAi';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult, MlflowExperimentRunData } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -9,8 +9,7 @@ const K8S_NAMESPACE_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 
 const UI_POLL_CONFIG = {
   maxAttempts: 20,
-  pollIntervalMs: 10000,
-  pageLoadWaitMs: 5000,
+  pollIntervalMs: 5000,
 } as const;
 
 const assertNamespace = (namespace: string): string => {
@@ -183,24 +182,110 @@ const waitForMlflowCRReady = (namespace: string): Cypress.Chainable<Cypress.Exec
 
 /**
  * Poll until a nav item with the given label appears in the sidebar.
+ * Uses visitWithLogin for the first attempt to establish a session,
+ * then cy.reload() for subsequent attempts to avoid repeated OAuth overhead.
  */
-const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
-  const { maxAttempts, pollIntervalMs, pageLoadWaitMs } = UI_POLL_CONFIG;
-  const startTime = Date.now();
+const SIDEBAR_SETTLE_TIMEOUT = 30000;
 
-  const isVisible = (): Cypress.Chainable<boolean> =>
-    appChrome
-      .findSideBar()
-      .then(($sidebar) => $sidebar.find(`a:contains("${navLabel}")`).length > 0);
+const logSidebarDiagnostics = (): void => {
+  cy.window({ log: false }).then((win) => {
+    const mfEl = win.document.getElementById('mf-remotes-json');
+    const mfContent = mfEl?.textContent ?? '(element not found)';
+    cy.log(`[DIAG] mf-remotes-json: ${mfContent}`);
+  });
+
+  appChrome.findSideBar().then(($sidebar) => {
+    const links: string[] = [];
+    $sidebar.find('a').each((_i, el) => {
+      const text = el.textContent;
+      if (text && text.trim()) {
+        links.push(text.trim());
+      }
+    });
+    cy.log(`[DIAG] Sidebar links (${links.length}): ${links.join(' | ')}`);
+
+    const sections: string[] = [];
+    $sidebar.find('button').each((_i, el) => {
+      const text = el.textContent;
+      if (text && text.trim()) {
+        sections.push(text.trim());
+      }
+    });
+    cy.log(`[DIAG] Sidebar sections (${sections.length}): ${sections.join(' | ')}`);
+  });
+
+  cy.request({ url: '/api/dsc/status', failOnStatusCode: false, timeout: 10000, log: false }).then(
+    (resp) => {
+      if (resp.status === 200 && resp.body?.components) {
+        const mlflow = resp.body.components.mlflowoperator?.managementState ?? '(missing)';
+        const llama = resp.body.components.llamastackoperator?.managementState ?? '(missing)';
+        cy.log(`[DIAG] /api/dsc/status: mlflowoperator=${mlflow}, llamastackoperator=${llama}`);
+      } else {
+        cy.log(`[DIAG] /api/dsc/status: HTTP ${resp.status}`);
+      }
+    },
+  );
+};
+
+/**
+ * Retry-aware check for a nav item inside the sidebar element.
+ *
+ * After `dashboard-page-main` appears, area flags are set via a React
+ * useEffect that runs asynchronously. Extension-provided nav items only
+ * render once the PluginStore has evaluated those flags. This creates a
+ * short gap (typically < 1 s) during which the sidebar exists but doesn't
+ * yet contain extension items. A one-shot jQuery `.find()` during that gap
+ * always misses the item, making the outer reload loop retry needlessly.
+ *
+ * This helper polls the live `#page-sidebar` DOM for up to `NAV_ITEM_SETTLE_MS`
+ * so that a single page load is enough once the extensions are ready.
+ *
+ * `.then()` must allow longer than `defaultCommandTimeout` (10s) while the inner
+ * `Cypress.Promise` polls for up to `NAV_ITEM_SETTLE_MS` (15s).
+ */
+const NAV_ITEM_SETTLE_MS = 15000;
+const NAV_ITEM_POLL_MS = 500;
+const NAV_ITEM_FIND_TIMEOUT_MS = NAV_ITEM_SETTLE_MS + 5000;
+
+const findNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =>
+  cy.wrap(null, { log: false }).then(
+    { timeout: NAV_ITEM_FIND_TIMEOUT_MS },
+    () =>
+      new Cypress.Promise<boolean>((resolve) => {
+        const deadline = Date.now() + NAV_ITEM_SETTLE_MS;
+        const poll = () => {
+          const $sidebar = Cypress.$('#page-sidebar');
+          if ($sidebar.length > 0 && $sidebar.find(`a:contains("${navLabel}")`).length > 0) {
+            resolve(true);
+          } else if (Date.now() >= deadline) {
+            resolve(false);
+          } else {
+            setTimeout(poll, NAV_ITEM_POLL_MS);
+          }
+        };
+        poll();
+      }),
+  );
+
+const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
+  const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
+  const startTime = Date.now();
 
   const check = (attemptNumber = 1): Cypress.Chainable<boolean> => {
     cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for ${navLabel} in sidebar...`);
 
-    cy.visitWithLogin('/');
+    if (attemptNumber === 1) {
+      cy.visitWithLogin('/');
+    } else {
+      cy.reload();
+    }
 
-    // eslint-disable-next-line cypress/no-unnecessary-waiting
-    return cy.wait(pageLoadWaitMs).then(() =>
-      isVisible().then((found) => {
+    cy.get('[data-testid="dashboard-page-main"]', { timeout: SIDEBAR_SETTLE_TIMEOUT });
+
+    return appChrome
+      .findSideBar()
+      .then(() => findNavItemInSidebar(navLabel))
+      .then((found) => {
         const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
         if (found) {
@@ -208,7 +293,12 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
           return cy.wrap(true);
         }
 
+        if (attemptNumber === 1) {
+          logSidebarDiagnostics();
+        }
+
         if (attemptNumber >= maxAttempts) {
+          logSidebarDiagnostics();
           throw new Error(
             `${navLabel} nav item not found in sidebar after ${maxAttempts} attempts (${elapsedTime}s)`,
           );
@@ -220,8 +310,7 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
 
         // eslint-disable-next-line cypress/no-unnecessary-waiting
         return cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      }),
-    );
+      });
   };
 
   const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
@@ -230,12 +319,152 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
 };
 
 /**
- * Enable MLflow operator and tracking server (no Gen AI):
- * 1. Set mlflowoperator to Managed and wait for it
- * 2. Create an MLflow CR and wait for it to be ready
- * 3. Wait for Experiments (MLflow) nav item in the sidebar
+ * Poll until the DSC status reports given components as Managed.
+ * The dashboard frontend reads DSC status to evaluate area flags, so these
+ * must be reflected in the cluster status before the nav items will appear.
  */
-export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
+const waitForDSCComponentsManaged = (components: string[]): Cypress.Chainable<Cypress.Exec> => {
+  const jqChecks = components
+    .map((c) => `.components.${c}.managementState == "Managed"`)
+    .join(' and ');
+  const command = `oc get datasciencecluster default-dsc -o json | jq -e '.status | ${jqChecks}'`;
+  return pollUntilSuccess(command, `DSC components [${components.join(', ')}] to be Managed`, {
+    maxAttempts: 60,
+    pollIntervalMs: 5000,
+  });
+};
+
+/**
+ * Poll until the MLflow tracking server pod is Ready (not just Running).
+ * The CR status.address.url can be set before the pod passes readiness probes,
+ * which means the BFF may still return 503 until the pod is fully ready.
+ */
+const waitForMlflowTrackingPodReady = (namespace: string): Cypress.Chainable<Cypress.Exec> => {
+  const ns = assertNamespace(namespace);
+  return pollUntilSuccess(
+    `oc wait --for=condition=Available deployment/mlflow -n ${ns} --timeout=0`,
+    'MLflow tracking server deployment to be Available',
+    { maxAttempts: 60, pollIntervalMs: 5000 },
+  );
+};
+
+/**
+ * Poll the dashboard backend's /api/dsc/status until it reflects the expected
+ * component management states.
+ *
+ * The backend uses a ResourceWatcher that caches DSC status with a 2-minute
+ * (active) or 30-minute (inactive) polling interval. After patching the DSC
+ * on the cluster, the cached response can be stale. Polling this endpoint:
+ *  - activates the watcher (switches from 30 min to 2 min interval)
+ *  - waits for the cache to refresh before the frontend evaluates area flags
+ *
+ * Requires an active browser session (call after cy.visitWithLogin).
+ */
+const waitForDashboardDSCStatus = (
+  components: Record<string, string>,
+): Cypress.Chainable<boolean> => {
+  const maxAttempts = 60;
+  const pollIntervalMs = 5000;
+  const startTime = Date.now();
+  const label = Object.entries(components)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(', ');
+
+  const check = (attempt = 1): Cypress.Chainable<boolean> => {
+    cy.step(`Attempt ${attempt}/${maxAttempts} - Polling /api/dsc/status for ${label}...`);
+
+    return cy
+      .request({ url: '/api/dsc/status', failOnStatusCode: false, timeout: 10000 })
+      .then((resp) => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (resp.status === 200 && resp.body?.components) {
+          const allMatch = Object.entries(components).every(
+            ([comp, expected]) => resp.body.components[comp]?.managementState === expected,
+          );
+          if (allMatch) {
+            cy.log(`Dashboard DSC status matches (after ${elapsed}s)`);
+            return cy.wrap(true);
+          }
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `Dashboard /api/dsc/status did not reflect ${label} after ${maxAttempts} ` +
+              `attempts (${elapsed}s)`,
+          );
+        }
+
+        cy.log(
+          `Dashboard DSC status not yet updated (attempt ${attempt}/${maxAttempts}, ${elapsed}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+      });
+  };
+
+  const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
+  cy.log(`Polling dashboard /api/dsc/status for ${label} (max ${totalTimeout}s)`);
+  return check();
+};
+
+/**
+ * Poll via cy.request() until the mlflowEmbedded module federation remote entry
+ * returns HTTP 200. The dashboard proxies this through /_mf/mlflowEmbedded/*.
+ *
+ * The k8s deployment can report "Available" before the MLflow web server is
+ * ready to serve the federated JavaScript bundle. Without this check the
+ * sidebar poll would start while loadRemote() still fails silently, so the
+ * nav item never appears.
+ *
+ * Requires an active browser session (call after cy.visitWithLogin).
+ */
+const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
+  const remoteEntryPath = '/_mf/mlflowEmbedded/mlflow/static-files/federated/remoteEntry.js';
+  const maxAttempts = 60;
+  const pollIntervalMs = 5000;
+  const startTime = Date.now();
+
+  const check = (attempt = 1): Cypress.Chainable<boolean> => {
+    cy.step(`Attempt ${attempt}/${maxAttempts} - Polling mlflowEmbedded remote entry...`);
+
+    return cy
+      .request({ url: remoteEntryPath, failOnStatusCode: false, timeout: 10000 })
+      .then((resp) => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+
+        if (resp.status === 200) {
+          cy.log(`mlflowEmbedded remote entry reachable (after ${elapsed}s)`);
+          return cy.wrap(true);
+        }
+
+        if (attempt >= maxAttempts) {
+          throw new Error(
+            `mlflowEmbedded remote entry not reachable after ${maxAttempts} attempts ` +
+              `(${elapsed}s, last status=${resp.status})`,
+          );
+        }
+
+        cy.log(
+          `remote entry returned ${resp.status} (attempt ${attempt}/${maxAttempts}, ${elapsed}s)`,
+        );
+        // eslint-disable-next-line cypress/no-unnecessary-waiting
+        return cy.wait(pollIntervalMs).then(() => check(attempt + 1));
+      });
+  };
+
+  cy.log(`Polling mlflowEmbedded remote entry (max ${(maxAttempts * pollIntervalMs) / 1000}s)`);
+  return check();
+};
+
+/**
+ * Enable MLflow backend resources without waiting for sidebar visibility.
+ * Sets MLflow operator to Managed, waits for it, creates MLflow CR,
+ * waits for CR readiness and tracking server pod availability.
+ *
+ * Useful for composition when a caller will perform its own sidebar check.
+ */
+const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
   cy.step('Set MLflow operator to Managed');
@@ -251,6 +480,39 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
     .then(() => {
       cy.step('Wait for MLflow CR to be ready');
       return waitForMlflowCRReady(namespace);
+    })
+    .then(() => {
+      cy.step('Wait for MLflow tracking server deployment to be available');
+      return waitForMlflowTrackingPodReady(namespace);
+    });
+};
+
+/**
+ * Enable MLflow operator and tracking server (no Gen AI):
+ * 1. Set mlflowoperator to Managed and wait for it
+ * 2. Create an MLflow CR and wait for it to be ready
+ * 3. Verify DSC status reflects mlflowoperator as Managed
+ * 4. Establish browser session and verify federated remote is loadable
+ * 5. Wait for Experiments (MLflow) nav item in the sidebar
+ */
+export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
+  return enableMlflowBackend()
+    .then(() => {
+      cy.step('Verify DSC status reflects mlflowoperator as Managed');
+      return waitForDSCComponentsManaged(['mlflowoperator']);
+    })
+    .then(() => {
+      cy.step('Establish browser session for remote entry check');
+      cy.visitWithLogin('/');
+      return cy.get('#page-sidebar', { timeout: 15000 });
+    })
+    .then(() => {
+      cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
+      return waitForMlflowRemoteEntry();
+    })
+    .then(() => {
+      cy.step('Wait for dashboard backend to reflect mlflowoperator as Managed');
+      return waitForDashboardDSCStatus({ mlflowoperator: 'Managed' });
     })
     .then(() => {
       cy.step('Wait for Experiments (MLflow) nav item in sidebar');
@@ -287,14 +549,41 @@ export const disableMlflowFeatures = (
 
 /**
  * Enable all features required for Prompt Management:
- * 1. Enable Gen AI features (LlamaStack operator, genAiStudio flag, sidebar)
- * 2. Enable MLflow features (operator, CR)
- * 3. Wait for Prompts nav item in the sidebar
+ * 1. Enable Gen AI backend (LlamaStack operator, genAiStudio flag)
+ * 2. Enable MLflow backend (operator, CR, tracking pod readiness)
+ * 3. Verify DSC status reflects both operators as Managed
+ * 4. Single sidebar poll for "Prompts" nav item (confirms frontend picked up the state)
+ *
+ * Polls backend resources first so the sidebar check is a quick confirmation,
+ * not a long discovery loop.
  */
 export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
-  cy.step('Enable Gen AI features (required for Prompts nav)');
-  return enableGenAiFeatures()
-    .then(() => enableMlflowFeatures())
+  cy.step('Enable Gen AI backend (required for Prompts nav)');
+  return enableGenAiBackend()
+    .then(() => {
+      cy.step('Enable MLflow backend (required for Prompts nav)');
+      return enableMlflowBackend();
+    })
+    .then(() => {
+      cy.step('Verify DSC status reflects both operators as Managed');
+      return waitForDSCComponentsManaged(['llamastackoperator', 'mlflowoperator']);
+    })
+    .then(() => {
+      cy.step('Establish browser session for remote entry check');
+      cy.visitWithLogin('/');
+      return cy.get('#page-sidebar', { timeout: 15000 });
+    })
+    .then(() => {
+      cy.step('Wait for mlflowEmbedded module federation remote to be loadable');
+      return waitForMlflowRemoteEntry();
+    })
+    .then(() => {
+      cy.step('Wait for dashboard backend to reflect both operators as Managed');
+      return waitForDashboardDSCStatus({
+        llamastackoperator: 'Managed',
+        mlflowoperator: 'Managed',
+      });
+    })
     .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
       return waitForNavItemInSidebar('Prompts');

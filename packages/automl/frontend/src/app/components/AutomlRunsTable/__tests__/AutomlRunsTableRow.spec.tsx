@@ -237,7 +237,7 @@ describe('AutomlRunsTableRow', () => {
       jest.clearAllMocks();
     });
 
-    it('should show only reconfigure action for succeeded runs', async () => {
+    it('should show reconfigure and delete actions for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutomlRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
@@ -246,8 +246,23 @@ describe('AutomlRunsTableRow', () => {
       const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
       await userEvent.click(kebab);
       expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.getByTestId('delete-run-action')).toBeInTheDocument();
       expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
       expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
+    });
+
+    it('should only show reconfigure action for canceling runs', async () => {
+      render(
+        <MemoryRouter>
+          <AutomlRunsTableRow run={{ ...mockRun, state: 'CANCELING' }} namespace={mockNamespace} />
+        </MemoryRouter>,
+      );
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('delete-run-action')).not.toBeInTheDocument();
     });
 
     it('should show stop action for running runs', async () => {

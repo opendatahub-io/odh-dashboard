@@ -23,6 +23,7 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
 
 const mockInstallLSD = jest.fn();
+const mockInitNemoGuardrails = jest.fn();
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
 beforeEach(() => {
@@ -35,10 +36,12 @@ beforeEach(() => {
     apiAvailable: true,
     api: {
       installLSD: mockInstallLSD,
+      initNemoGuardrails: mockInitNemoGuardrails,
     },
   });
 
   mockInstallLSD.mockResolvedValue({ data: null });
+  mockInitNemoGuardrails.mockResolvedValue({ name: 'nemoguardrails' });
 });
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({

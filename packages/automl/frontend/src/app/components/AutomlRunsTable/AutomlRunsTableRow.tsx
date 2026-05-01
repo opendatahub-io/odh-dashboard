@@ -4,11 +4,17 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import RunStartTimestamp from '@odh-dashboard/internal/concepts/pipelines/content/tables/RunStartTimestamp';
 import type { PipelineRun } from '~/app/types';
+import DeleteRunModal from '~/app/components/run-results/DeleteRunModal';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { TASK_TYPE_LABELS } from '~/app/utilities/const';
 import { automlReconfigurePathname, automlResultsPathname } from '~/app/utilities/routes';
-import { getTaskType, isRunTerminatable, isRunRetryable } from '~/app/utilities/utils';
+import {
+  getTaskType,
+  isRunTerminatable,
+  isRunRetryable,
+  isRunDeletable,
+} from '~/app/utilities/utils';
 import { automlRunsColumns } from './columns';
 
 /** Run state values (API / display). Use lowercase for case-insensitive matching. */
@@ -62,14 +68,13 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
   const taskType = getTaskType(run);
   const predictionTypeLabel = taskType ? (TASK_TYPE_LABELS[taskType] ?? taskType) : '—';
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
-    namespace,
-    run.run_id,
-    onActionComplete,
-  );
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
+    useAutomlRunActions(namespace, run.run_id, onActionComplete);
 
   const runTerminatable = isRunTerminatable(run.state);
   const runRetryable = isRunRetryable(run.state);
+  const runDeletable = isRunDeletable(run.state);
 
   const handleStop = React.useCallback(async () => {
     try {
@@ -79,6 +84,15 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       // Keep modal open on failure; error notification is shown by the hook.
     }
   }, [handleConfirmStop]);
+
+  const handleConfirmDelete = React.useCallback(async () => {
+    try {
+      await handleDelete();
+      setIsDeleteModalOpen(false);
+    } catch {
+      // Modal stays open; error toast is shown by handleDelete.
+    }
+  }, [handleDelete]);
 
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
@@ -104,8 +118,28 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
       to: `${automlReconfigurePathname}/${namespace}/${run.run_id}`,
     });
 
+    if (runDeletable) {
+      if (runTerminatable || runRetryable) {
+        items.push({ isSeparator: true });
+      }
+      items.push({
+        title: <span data-testid="delete-run-action">Delete</span>,
+        onClick: () => setIsDeleteModalOpen(true),
+        isDisabled: isDeleting,
+      });
+    }
+
     return items;
-  }, [runTerminatable, runRetryable, handleRetry, isRetrying, namespace, run.run_id]);
+  }, [
+    runTerminatable,
+    runRetryable,
+    runDeletable,
+    handleRetry,
+    isRetrying,
+    isDeleting,
+    namespace,
+    run.run_id,
+  ]);
 
   return (
     <>
@@ -139,6 +173,13 @@ const AutomlRunsTableRow: React.FC<AutomlRunsTableRowProps> = ({
         onClose={() => setIsStopModalOpen(false)}
         onConfirm={handleStop}
         isTerminating={isTerminating}
+        runName={run.display_name}
+      />
+      <DeleteRunModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
         runName={run.display_name}
       />
     </>

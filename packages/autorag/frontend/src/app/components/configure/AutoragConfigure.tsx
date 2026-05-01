@@ -73,7 +73,6 @@ import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
   RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
 import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
@@ -84,7 +83,7 @@ import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
-import './AutoragConfigure.css';
+import './AutoragConfigure.scss';
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -131,11 +130,6 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
-  },
-  {
-    value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
-    description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
 
@@ -457,7 +451,7 @@ function AutoragConfigure({
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add documents"
-                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="autorag-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file or folder"

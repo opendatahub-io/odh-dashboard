@@ -22,6 +22,7 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
   mlflowPipelines: false,
+  nimWizard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
