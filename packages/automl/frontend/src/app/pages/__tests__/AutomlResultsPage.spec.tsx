@@ -1014,8 +1014,10 @@ describe('AutomlResultsPage', () => {
         refetch: jest.fn(),
       });
 
+      const testQueryClient = createTestQueryClient();
+
       const { rerender } = render(
-        <QueryClientProvider client={createTestQueryClient()}>
+        <QueryClientProvider client={testQueryClient}>
           <AutomlResultsPage />
         </QueryClientProvider>,
       );
@@ -1023,7 +1025,7 @@ describe('AutomlResultsPage', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
 
       rerender(
-        <QueryClientProvider client={createTestQueryClient()}>
+        <QueryClientProvider client={testQueryClient}>
           <AutomlResultsPage />
         </QueryClientProvider>,
       );

@@ -917,8 +917,10 @@ describe('AutoragResultsPage', () => {
         refetch: jest.fn(),
       });
 
+      const testQueryClient = createTestQueryClient();
+
       const { rerender } = render(
-        <QueryClientProvider client={createTestQueryClient()}>
+        <QueryClientProvider client={testQueryClient}>
           <AutoragResultsPage />
         </QueryClientProvider>,
       );
@@ -926,7 +928,7 @@ describe('AutoragResultsPage', () => {
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
 
       rerender(
-        <QueryClientProvider client={createTestQueryClient()}>
+        <QueryClientProvider client={testQueryClient}>
           <AutoragResultsPage />
         </QueryClientProvider>,
       );
