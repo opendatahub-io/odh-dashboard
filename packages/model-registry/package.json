@@ -65,7 +65,7 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/mcpDeploymentTypes": "./upstream/frontend/src/app/mcpDeploymentTypes.ts",
+    "./types/mcpDeploymentTypes": "./upstream/frontend/src/odh/types/mcpDeploymentTypes.ts",
     "./types/types": "./upstream/frontend/src/app/types.ts",
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },

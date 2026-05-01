@@ -18,3 +18,7 @@ export declare const modelRegistryVersionsFilterOptions: {
 };
 export type ModelRegistryVersionsFilterDataType = Record<ModelRegistryVersionsFilterOptions, string | undefined>;
 export declare const initialModelRegistryVersionsFilterData: ModelRegistryVersionsFilterDataType;
+export declare enum RegistrationMode {
+    Register = "register",
+    RegisterAndStore = "registerAndStore"
+}

@@ -1,0 +1,9 @@
+export declare const CATALOG_SETTINGS_PAGE_TITLE = "Model catalog settings";
+export declare const CATALOG_SETTINGS_DESCRIPTION = "Add and manage model sources that populate the model catalog for users in your organization.";
+export declare const ADD_SOURCE_TITLE = "Add a source";
+export declare const ADD_SOURCE_DESCRIPTION = "Add a new model catalog source to your organization.";
+export declare const MANAGE_SOURCE_TITLE = "Manage source";
+export declare const MANAGE_SOURCE_DESCRIPTION = "Manage the selected model catalog source.";
+export declare const catalogSettingsUrl: () => string;
+export declare const addSourceUrl: () => string;
+export declare const manageSourceUrl: (catalogSourceId: string) => string;
