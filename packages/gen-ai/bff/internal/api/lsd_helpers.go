@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -16,8 +15,13 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(llamastackErr.Code)
 		}
 
-		httpError := app.mapLlamaStackClientErrorToHTTPError(llamastackErr, statusCode)
-		app.errorResponse(w, r, httpError)
+		frontendErr := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
+
+		// Send frontend-compatible error response
+		if writeErr := app.WriteJSON(w, frontendErr.Status, frontendErr, nil); writeErr != nil {
+			app.LogError(r, writeErr)
+			w.WriteHeader(frontendErr.Status)
+		}
 		return
 	}
 
@@ -43,40 +47,60 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-// mapLlamaStackClientErrorToHTTPError converts LlamaStackError to HTTP error with appropriate codes
-func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.HTTPError {
-	var code string
-	var message string
-
-	switch statusCode {
-	case http.StatusBadRequest:
-		code = "bad_request"
-		message = lsErr.Message
-	case http.StatusUnauthorized:
-		code = "unauthorized"
-		message = lsErr.Message
-	case http.StatusNotFound:
-		code = "not_found"
-		message = lsErr.Message
-	case http.StatusServiceUnavailable:
-		code = "service_unavailable"
-		message = lsErr.Message
-	case http.StatusBadGateway:
-		code = "bad_gateway"
-		message = lsErr.Message
-	case http.StatusInternalServerError:
-		code = "internal_server_error"
-		message = lsErr.Message
+func getComponentFromErrorCode(errorCode string) string {
+	switch errorCode {
+	case "tool_not_found", "tool_error", "mcp_error":
+		return "mcp"
+	case "resource_not_found", "vector_store_not_found":
+		return "rag"
+	case "content_policy_violation", "content_blocked", "guardrail_violation":
+		return "guardrails"
+	case "invalid_model", "model_not_found", "model_unavailable", "model_error":
+		return "model"
 	default:
-		code = "llamastack_error"
-		message = fmt.Sprintf("LlamaStack client error (HTTP %d): %s", statusCode, lsErr.Message)
+		return "llama_stack"
+	}
+}
+
+func isRetriableError(errorCode string, statusCode int) bool {
+	switch errorCode {
+	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
+		return true
+	case "timeout", "request_timeout", "gateway_timeout":
+		return true
+	case "server_error", "internal_error", "service_unavailable":
+		return true
+	default:
+		return statusCode >= 500
+	}
+}
+
+func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
+	errorCode := lsErr.ErrorCode
+	if errorCode == "" {
+		errorCode = lsErr.Code
 	}
 
-	return &integrations.HTTPError{
-		StatusCode: statusCode,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    code,
-			Message: message,
+	component := getComponentFromErrorCode(errorCode)
+	retriable := isRetriableError(errorCode, statusCode)
+
+	if retriable && (statusCode == 429 || statusCode == 504) {
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	toolName := ""
+	if component == "mcp" && lsErr.Param != "" {
+		toolName = lsErr.Param
+	}
+
+	return &integrations.FrontendErrorResponse{
+		Status: statusCode,
+		Error: &integrations.ErrorDetail{
+			Component: component,
+			Code:      errorCode,
+			Message:   lsErr.Message,
+			ToolName:  toolName,
+			Retriable: retriable,
 		},
 	}
 }

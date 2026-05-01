@@ -6,6 +6,7 @@ import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
+  ApiError,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailModelConfig,
@@ -13,10 +14,12 @@ import {
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
+  ClassifiedError,
 } from '~/app/types';
 import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
-import { getSelectedServersForAPI } from '~/app/utilities/mcp';
+import { getSelectedServersForAPI, classifyError } from '~/app/utilities';
+import { findMockScenario } from '~/app/utilities/mockErrors';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
   ToolResponseCardTitle,
@@ -26,9 +29,11 @@ import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
 
-// Extended message type that includes metrics data for display
+// Extended message type that includes metrics data and error classification for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  errorClassification?: ClassifiedError;
+  onRetryError?: () => void;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -75,6 +80,85 @@ interface UseChatbotMessagesProps {
   promptName?: string;
 }
 
+/**
+ * Extracts a user-friendly error message from an error object
+ * Handles both structured API errors and generic Error objects
+ */
+const getErrorMessage = (error: unknown): string => {
+  // Check if this is a structured error with error.error.message (mod-arch format)
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'error' in error &&
+    typeof error.error === 'object' &&
+    error.error !== null &&
+    'message' in error.error &&
+    typeof error.error.message === 'string'
+  ) {
+    return error.error.message;
+  }
+
+  // Check if this is a standard Error object
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Fallback for unknown error types
+  return ERROR_MESSAGES.GENERIC_ERROR;
+};
+
+/**
+ * Extracts the error category/code from an error object
+ * Returns undefined if no category is found
+ */
+const getErrorCategory = (error: unknown): string | undefined => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'error' in error &&
+    typeof error.error === 'object' &&
+    error.error !== null &&
+    'code' in error.error &&
+    typeof error.error.code === 'string'
+  ) {
+    return error.error.code;
+  }
+  return undefined;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Safely normalizes an unknown error to ApiError format
+ */
+const normalizeToApiError = (error: unknown): ApiError => {
+  // Handle primitives, null, undefined, and arrays
+  if (!isRecord(error)) {
+    return {
+      error: { component: 'bff', code: 'unknown', message: String(error), retriable: false },
+    };
+  }
+
+  // Check if error has nested error object (mod-arch format)
+  if ('error' in error && isRecord(error.error)) {
+    // Has nested error - preserve it
+    return {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      error: error.error as ApiError['error'],
+    };
+  }
+
+  // Fallback for unknown shape - preserve any nested info
+  const fallbackMessage = typeof error.message === 'string' ? error.message : 'An error occurred';
+  return {
+    error: isRecord(error.error)
+      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+        (error.error as ApiError['error'])
+      : { component: 'bff', code: 'unknown', message: fallbackMessage, retriable: false },
+  };
+};
+
 const useChatbotMessages = ({
   configId,
   modelId,
@@ -102,6 +186,9 @@ const useChatbotMessages = ({
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Track whether streaming content has been received (avoids stale messages in error handler)
+  const streamingReceivedRef = React.useRef(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
     null,
@@ -111,6 +198,12 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  // Keep messages in a ref for handleRetry to access latest state
+  const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
+  // Keep handleMessageSend in a ref for handleRetry to access latest function
+  const handleMessageSendRef = React.useRef<
+    ((message: string, compareID?: string) => Promise<void>) | null
+  >(null);
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -178,6 +271,11 @@ const useChatbotMessages = ({
     },
     [],
   );
+
+  // Sync messagesRef with messages state for handleRetry
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Update initial message name with the initially selected model (runs once on mount)
   React.useEffect(() => {
@@ -264,6 +362,12 @@ const useChatbotMessages = ({
   }, [modelDisplayName]);
 
   const handleMessageSend = async (message: string, compareID?: string) => {
+    // Store this function in ref for handleRetry (avoids stale closure)
+    handleMessageSendRef.current = handleMessageSend;
+
+    // Reset streaming content tracker for new message
+    streamingReceivedRef.current = false;
+
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -384,6 +488,27 @@ const useChatbotMessages = ({
           );
         };
 
+        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        if (process.env.NODE_ENV === 'development') {
+          const mockScenario = findMockScenario(message);
+          if (mockScenario) {
+            // Simulate partial response if provided
+            if (mockScenario.partialResponse) {
+              // Simulate streaming of partial response
+              await new Promise((resolve) => {
+                setTimeout(() => {
+                  completeLines.push(mockScenario.partialResponse!);
+                  updateMessage(true, true);
+                  resolve(undefined);
+                }, 500);
+              });
+            }
+
+            // Throw the mock error after partial response (or immediately if no partial)
+            throw mockScenario.apiError;
+          }
+        }
+
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
           onStreamData: (chunk: string, clearPrevious?: boolean) => {
@@ -403,6 +528,11 @@ const useChatbotMessages = ({
 
             // Add chunk to current partial line
             currentPartialLine += chunk;
+
+            // Mark that we've received streaming content (any non-empty chunk counts)
+            if (chunk) {
+              streamingReceivedRef.current = true;
+            }
 
             // Check if we have complete lines (ending with newline characters)
             const lines = currentPartialLine.split('\n');
@@ -486,6 +616,17 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
+
+        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        if (process.env.NODE_ENV === 'development') {
+          const mockScenario = findMockScenario(message);
+          if (mockScenario) {
+            // For non-streaming, we don't support partial responses
+            // Just throw the error immediately
+            throw mockScenario.apiError;
+          }
+        }
+
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
         });
@@ -538,44 +679,147 @@ const useChatbotMessages = ({
         return;
       }
 
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
+      // Extract error message for backward compatibility logging
+      const errorMessage = getErrorMessage(error);
+      const errorCategory = getErrorCategory(error);
+
+      // Log error details for debugging
+      if (errorCategory) {
+        // eslint-disable-next-line no-console
+        console.error('Response API error:', { category: errorCategory, message: errorMessage });
+      }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
       const wasUserStopped =
         isStoppingStreamRef.current &&
         (isAbortError || errorMessage === 'Response stopped by user');
 
-      if (isStreamingEnabled && botMessageId) {
-        // For streaming, update existing bot message
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) => {
-            if (msg.id === botMessageId) {
-              if (wasUserStopped) {
-                // Append "You stopped this message" to existing content
+      // Handle user-stopped messages (not errors, just user action)
+      if (wasUserStopped) {
+        if (isStreamingEnabled && botMessageId) {
+          // For streaming, append "You stopped this message" to existing content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageId) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
                 return { ...msg, content: stoppedContent, isLoading: false };
               }
-              // For other errors, replace content with error message
-              return { ...msg, content: errorMessage, isLoading: false };
+              return msg;
+            }),
+          );
+        } else {
+          // For non-streaming, add stop message as new message
+          const botStopMessage: MessageProps = {
+            id: getId(),
+            role: 'bot',
+            content: '*You stopped this message*',
+            name: modelDisplayName,
+            avatar: botAvatar,
+            timestamp: new Date().toLocaleString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, botStopMessage]);
+        }
+        return; // Exit early - this is not an error to classify
+      }
+
+      // Use ref to track streaming content (avoids stale messages snapshot)
+      const hadPartialContent = streamingReceivedRef.current;
+
+      // Classify the error for UI rendering - normalize to ApiError format
+      const normalizedError = normalizeToApiError(error);
+
+      const errorClassification = classifyError(normalizedError, {
+        modelName: modelDisplayName,
+        wasStreamStarted: isStreamingEnabled,
+        wasResponseGenerated: hadPartialContent,
+        // TODO: Add maxTokens from model config when available
+        // TODO: Add toolName if error is from MCP tool call
+      });
+
+      // Retry handler - resends the same prompt (uses refs to avoid stale closure)
+      // NOTE: botMessageId may be undefined at definition time for non-streaming errors
+      // (assigned after handleRetry on line ~837), but handleRetry captures the variable
+      // reference, not its value, so it reads the correct ID when invoked by the user.
+      const handleRetry = () => {
+        // Read latest messages from ref (avoid stale closure)
+        const currentMessages = messagesRef.current;
+        const lastUserMessage = currentMessages
+          .slice()
+          .reverse()
+          .find((msg) => msg.role === 'user');
+
+        if (!lastUserMessage?.content) {
+          return; // No user message to retry
+        }
+
+        const userContent = lastUserMessage.content;
+
+        // Remove the error message (pure state update)
+        setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== botMessageId));
+
+        // Schedule retry outside the updater, with guard against clearing
+        setTimeout(() => {
+          if (!isClearingRef.current) {
+            // Verify messages still exist and include the user message (read from ref)
+            const stillHasUserMessage = messagesRef.current.some(
+              (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
+            );
+            // Call latest handleMessageSend from ref
+            if (stillHasUserMessage && handleMessageSendRef.current) {
+              handleMessageSendRef.current(userContent);
+            }
+          }
+        }, 0);
+      };
+
+      if (isStreamingEnabled && botMessageId) {
+        // For streaming errors, update existing bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageId) {
+              // Determine if this is a streaming interruption (had some content)
+              const hadContent = msg.content && msg.content.length > 0;
+
+              const updatedMessage = hadContent
+                ? {
+                    ...msg,
+                    content: `${msg.content}...`, // Append ellipsis to signal cutoff
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  }
+                : {
+                    ...msg,
+                    content: '', // Clear loading dots
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  };
+
+              return updatedMessage;
             }
             return msg;
           }),
         );
       } else {
-        // For non-streaming, add error/stop message as new message
-        const botErrorMessage: MessageProps = {
-          id: getId(),
+        // For non-streaming, add error message as new bot message
+        const newBotId = getId();
+        const botErrorMessage: ChatbotMessageProps = {
+          id: newBotId,
           role: 'bot',
-          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
+          content: '', // No content, error alert will be shown
           name: modelDisplayName,
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
+          errorClassification,
+          onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
         };
+        // Assign botMessageId so handleRetry can filter it out on retry.
+        // This assignment is late (after handleRetry is defined), but handleRetry captures
+        // the variable reference, not the value, so it reads the correct ID when invoked.
+        botMessageId = newBotId;
         setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
       }
     } finally {

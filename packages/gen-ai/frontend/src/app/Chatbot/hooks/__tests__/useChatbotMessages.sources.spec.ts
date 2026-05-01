@@ -216,7 +216,8 @@ describe('useChatbotMessages - sources handling', () => {
 
     const botMessage = result.current.messages[2];
 
-    expect(botMessage.content).toBe('API Error');
+    expect(botMessage.content).toBe(''); // Error shown via errorClassification
+    expect(botMessage.errorClassification).toBeDefined();
     expect(botMessage.sources).toBeUndefined();
   });
 

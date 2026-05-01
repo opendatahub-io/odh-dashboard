@@ -1,0 +1,146 @@
+import * as React from 'react';
+import {
+  Alert,
+  AlertActionLink,
+  CodeBlock,
+  CodeBlockCode,
+  CodeBlockAction,
+  ClipboardCopyButton,
+} from '@patternfly/react-core';
+import { ClassifiedError } from '~/app/types';
+
+type ChatbotErrorAlertProps = {
+  /** Classified error with UI rendering details */
+  classifiedError: ClassifiedError;
+  /** Callback when retry is clicked (only shown if retriable) */
+  onRetry?: () => void;
+  /** Retry count for button label */
+  retryCount?: number;
+  /** Test ID for the alert */
+  'data-testid'?: string;
+};
+
+/**
+ * ChatbotErrorAlert - Expandable inline alert for chatbot errors
+ *
+ * Matches UXD prototype structure exactly:
+ * - Collapsed state: Icon + Title + Retry link (if retriable)
+ * - Expanded state: Description text explaining impact
+ * - Code block: Raw error code and message for debugging
+ */
+const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
+  classifiedError,
+  onRetry,
+  retryCount = 0,
+  'data-testid': dataTestId = 'chatbot-error-alert',
+}) => {
+  const { variant, title, description, details, isRetriable } = classifiedError;
+  const [copied, setCopied] = React.useState(false);
+  const copyTimeoutRef = React.useRef<number>();
+
+  const handleCopy = async () => {
+    const rawError = details.errorCode
+      ? `[${details.errorCode}] ${details.rawMessage}`
+      : details.rawMessage;
+    try {
+      await navigator.clipboard.writeText(rawError);
+      setCopied(true);
+      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = rawError;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        setCopied(true);
+        copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Silently fail - clipboard functionality is non-critical
+      }
+    }
+  };
+
+  // Cleanup timeout on unmount
+  React.useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  // Action link for retry (single ReactNode, not array - matches prototype)
+  const actionLinks = React.useMemo(() => {
+    if (isRetriable && onRetry) {
+      return (
+        <AlertActionLink onClick={onRetry} data-testid={`${dataTestId}-retry-link`}>
+          {retryCount > 0 ? 'Retry again' : 'Retry'}
+        </AlertActionLink>
+      );
+    }
+
+    // Action suggestions (e.g., "Open Build panel") - for future implementation
+    // TODO: Implement action suggestion handlers when needed
+
+    return undefined;
+  }, [isRetriable, onRetry, retryCount, dataTestId]);
+
+  const rawErrorText = details.errorCode
+    ? `[${details.errorCode}] ${details.rawMessage}`
+    : details.rawMessage;
+
+  const codeBlockRef = React.useRef<HTMLDivElement>(null);
+
+  // Fix PatternFly CodeBlock accessibility issue: remove invalid lang attribute
+  // PatternFly v6 CodeBlock sets a lang attribute that isn't a valid ISO language code
+  // This causes accessibility violations. We remove it since error messages are plain text.
+  React.useEffect(() => {
+    if (codeBlockRef.current) {
+      const codeBlockElement = codeBlockRef.current.querySelector('.pf-v6-c-code-block');
+      if (codeBlockElement && codeBlockElement.hasAttribute('lang')) {
+        codeBlockElement.removeAttribute('lang');
+      }
+    }
+  }, []);
+
+  return (
+    <Alert
+      variant={variant}
+      title={title}
+      isInline
+      isExpandable
+      actionLinks={actionLinks}
+      data-testid={dataTestId}
+    >
+      {/* Description explaining what happened and impact */}
+      <p>{description}</p>
+
+      {/* Code block with error details */}
+      <div ref={codeBlockRef}>
+        <CodeBlock
+          actions={
+            <CodeBlockAction>
+              <ClipboardCopyButton
+                id={`copy-error-${details.errorCode}`}
+                textId="error-code"
+                aria-label="Copy error to clipboard"
+                onClick={handleCopy}
+                variant="plain"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </ClipboardCopyButton>
+            </CodeBlockAction>
+          }
+        >
+          <CodeBlockCode>{rawErrorText}</CodeBlockCode>
+        </CodeBlock>
+      </div>
+    </Alert>
+  );
+};
+
+export default ChatbotErrorAlert;

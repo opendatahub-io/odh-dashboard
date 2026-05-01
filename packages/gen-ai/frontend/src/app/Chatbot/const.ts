@@ -67,7 +67,51 @@ export const ERROR_MESSAGES = {
   FILE_UPLOAD_REJECTED: 'File upload rejected',
   FILE_TOO_LARGE: 'File size exceeds 10MB',
   TOO_MANY_FILES: 'Maximum number of files exceeded',
+  GENERIC_ERROR: 'Sorry, I encountered an error while processing your request. Please try again.',
+} as const;
+
+// Error category codes from backend for enhanced error handling
+export const ERROR_CATEGORIES = {
+  INVALID_MODEL_CONFIG: 'invalid_model_config',
+  UNSUPPORTED_FEATURE: 'unsupported_feature',
+  INVALID_PARAMETER: 'invalid_parameter',
+  RAG_ERROR: 'rag_error',
+  RAG_VECTOR_STORE_NOT_FOUND: 'rag_vector_store_not_found',
+  GUARDRAILS_ERROR: 'guardrails_error',
+  GUARDRAILS_VIOLATION: 'guardrails_violation',
+  MCP_ERROR: 'mcp_error',
+  MCP_TOOL_NOT_FOUND: 'mcp_tool_not_found',
+  MCP_AUTH_ERROR: 'mcp_auth_error',
+  MODEL_INVOCATION_ERROR: 'model_invocation_error',
+  MODEL_TIMEOUT: 'model_timeout',
+  MODEL_OVERLOADED: 'model_overloaded',
+  GENERIC_ERROR: 'generic_error',
 } as const;
 
 export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.
 `;
+
+// Retriable HTTP status codes (transient failures that may succeed on retry)
+export const RETRIABLE_HTTP_STATUSES = [429, 500, 502, 503, 504] as const;
+
+// Retriable error codes (known transient errors)
+export const RETRIABLE_ERROR_CODES = [
+  'timeout',
+  'server_error',
+  'service_unavailable',
+  'bad_gateway',
+  'rate_limit',
+  'stream_lost',
+  'stream_timeout',
+] as const;
+
+// Non-retriable error codes (configuration/capability errors that will fail the same way)
+export const NON_RETRIABLE_ERROR_CODES = [
+  'invalid_model_config',
+  'unsupported_feature',
+  'invalid_parameter',
+  'no_tools',
+  'no_images',
+  'chat_template',
+  'max_tokens',
+] as const;

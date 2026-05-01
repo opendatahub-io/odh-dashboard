@@ -461,11 +461,28 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	// Check for stream errors
 	if err = stream.Err(); err != nil {
 		app.logger.Error("Streaming error", "error", err)
-		// Send error event
+
+		// Categorize and enhance the error for better user experience
+		var errorMessage string
+		var errorCode string
+
+		// Use errors.As to detect underlying LlamaStackError (supports error wrapping)
+		var lsErr *llamastack.LlamaStackError
+		if errors.As(err, &lsErr) {
+			enhancedErr := llamastack.NewEnhancedLlamaStackError(lsErr)
+			errorMessage = enhancedErr.UserFriendlyMsg
+			// Use lowercase category code to match non-streaming JSON responses
+			errorCode = strings.ToLower(string(enhancedErr.Category))
+		} else {
+			errorMessage = "An error occurred during streaming. Please try again."
+			errorCode = "streaming_error"
+		}
+
+		// Send error event with categorized error information
 		errorData := map[string]interface{}{
 			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
+				"message": errorMessage,
+				"code":    errorCode,
 			},
 		}
 		errorJSON, _ := json.Marshal(errorData)

@@ -13,6 +13,9 @@ import (
 type LlamaStackError struct {
 	Code       string `json:"code"`
 	Message    string `json:"message"`
+	Type       string `json:"type,omitempty"`       // OpenAI error type (e.g., "invalid_request_error")
+	ErrorCode  string `json:"error_code,omitempty"` // OpenAI error code (e.g., "rate_limit_exceeded")
+	Param      string `json:"param,omitempty"`      // Parameter that caused the error
 	StatusCode int    `json:"-"`
 }
 
@@ -35,6 +38,17 @@ func NewLlamaStackError(code, message string, statusCode int) *LlamaStackError {
 	return &LlamaStackError{
 		Code:       code,
 		Message:    message,
+		StatusCode: statusCode,
+	}
+}
+
+func NewLlamaStackErrorWithDetails(code, message, errorType, errorCode, param string, statusCode int) *LlamaStackError {
+	return &LlamaStackError{
+		Code:       code,
+		Message:    message,
+		Type:       errorType,
+		ErrorCode:  errorCode,
+		Param:      param,
 		StatusCode: statusCode,
 	}
 }
@@ -88,19 +102,29 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 		// Prefix message with operation context for clarity
 		message := fmt.Sprintf("LlamaStack error on operation %s: %s", operation, llamastackErrorMsg)
 
+		// Extract structured error fields from OpenAI error response
+		// These fields contain semantic error information (e.g., "rate_limit_exceeded")
+		errorType := apiErr.Type
+		errorCode := apiErr.Code
+		param := apiErr.Param
+
 		// Map openai.Error to LlamaStackError based on status code
+		// Use the structured error fields for better categorization downstream
 		switch apiErr.StatusCode {
 		case http.StatusBadRequest:
-			return NewInvalidRequestError(message)
+			return NewLlamaStackErrorWithDetails(ErrCodeInvalidRequest, message, errorType, errorCode, param, apiErr.StatusCode)
 		case http.StatusUnauthorized:
-			return NewUnauthorizedError(message)
+			return NewLlamaStackErrorWithDetails(ErrCodeUnauthorized, message, errorType, errorCode, param, apiErr.StatusCode)
 		case http.StatusNotFound:
-			return NewNotFoundError(message)
+			return NewLlamaStackErrorWithDetails(ErrCodeNotFound, message, errorType, errorCode, param, apiErr.StatusCode)
 		case http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusRequestTimeout:
-			return NewServerUnavailableError(message)
+			return NewLlamaStackErrorWithDetails(ErrCodeServerUnavailable, message, errorType, errorCode, param, apiErr.StatusCode)
+		case http.StatusTooManyRequests:
+			// 429 rate limit errors
+			return NewLlamaStackErrorWithDetails(ErrCodeServerUnavailable, message, errorType, errorCode, param, apiErr.StatusCode)
 		default:
 			// For other API errors, return as internal error with original message
-			return NewLlamaStackError(ErrCodeInternalError, message, apiErr.StatusCode)
+			return NewLlamaStackErrorWithDetails(ErrCodeInternalError, message, errorType, errorCode, param, apiErr.StatusCode)
 		}
 	}
 

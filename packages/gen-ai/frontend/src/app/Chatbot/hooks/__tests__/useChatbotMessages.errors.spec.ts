@@ -1,0 +1,854 @@
+import * as React from 'react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
+import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
+import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
+import { classifyError } from '~/app/utilities';
+
+// Mock dependencies
+jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+}));
+jest.mock('~/app/utilities', () => {
+  const actual = jest.requireActual('~/app/utilities');
+  let idCounter = 0;
+  return {
+    ...actual,
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => {
+      const slashIndex = modelId.indexOf('/');
+      if (slashIndex === -1) {
+        return { providerId: '', id: modelId };
+      }
+      const providerId = modelId.substring(0, slashIndex);
+      const id = modelId.substring(slashIndex + 1);
+      return { providerId, id };
+    }),
+    classifyError: jest.fn(),
+  };
+});
+jest.mock('react', () => ({
+  ...jest.requireActual('react'),
+  useContext: jest.fn(),
+}));
+
+const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseGenAiAPI = jest.mocked(useGenAiAPI);
+const mockClassifyError = jest.mocked(classifyError);
+
+describe('useChatbotMessages - Error Handling', () => {
+  const defaultProps = {
+    modelId: 'test-model',
+    configId: 'test-config',
+    selectedSourceSettings: null,
+    systemInstruction: '',
+    isRawUploaded: false,
+    username: 'testuser',
+    isStreamingEnabled: false,
+    temperature: 0.7,
+    currentVectorStoreId: null,
+    selectedServerIds: [],
+    mcpServers: [],
+    mcpServerStatuses: new Map(),
+    mcpServerTokens: new Map(),
+    namespace: 'test-namespace',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseContext.mockReturnValue({ namespace: 'test-namespace', aiModels: [] });
+
+    // Default mock for classifyError - tests can override as needed
+    mockClassifyError.mockImplementation(() => ({
+      pattern: 'full-failure',
+      variant: 'danger',
+      isRetriable: false,
+      title: 'Error',
+      description: 'An error occurred',
+      details: {
+        component: 'Unknown',
+        errorCode: 'UNKNOWN',
+        rawMessage: 'Error message',
+      },
+    }));
+  });
+
+  describe('Structured Error Handling', () => {
+    it('should extract error message from mod-arch error format', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG,
+          message:
+            'The model configuration is invalid. Please check parameters like max_tokens, chat_template, or prompt length.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle RAG vector store not found error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
+          message:
+            'The vector store was not found. Please verify that the vector store exists and you have access to it.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test RAG query');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle guardrails violation error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION,
+          message:
+            'Content was blocked by guardrails. Please modify your input or adjust guardrails settings.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Inappropriate message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle MCP tool errors', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.MCP_ERROR,
+          message:
+            'An error occurred while invoking the MCP tool. Please check the tool configuration and try again.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Use MCP tool');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle model timeout error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.MODEL_TIMEOUT,
+          message:
+            'The model request timed out. The model may be overloaded or the request is too complex. Please try again or simplify your request.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Complex query');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle model overloaded error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.MODEL_OVERLOADED,
+          message:
+            'The model is currently overloaded or out of resources. Please try again in a few moments.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Query');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+
+    it('should handle unsupported feature error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE,
+          message:
+            'The selected model does not support this feature (e.g., tools, images, streaming). Please choose a different model or disable the unsupported feature.',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Use tools');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.errorClassification!.variant).toBe('danger');
+        expect(lastMessage.errorClassification!.details.rawMessage).toBeDefined();
+      });
+    });
+  });
+
+  describe('Fallback Error Handling', () => {
+    it('should handle standard Error objects', async () => {
+      const mockError = new Error('Network connection failed');
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        // Error details are in errorClassification, not content
+        expect(lastMessage.errorClassification).toBeDefined();
+        expect(lastMessage.content).toBe('');
+      });
+    });
+
+    it('should handle unknown error types with generic message', async () => {
+      const mockError = { someUnexpectedFormat: 'error' };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const lastMessage = messages[messages.length - 1];
+        expect(lastMessage.errorClassification).toBeDefined();
+        // For unknown errors, classifyError would provide a generic message
+        expect(lastMessage.content).toBe(''); // Error shown via errorClassification, not content
+      });
+    });
+  });
+
+  describe('Error Logging', () => {
+    it('should log error category and message to console', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.INVALID_PARAMETER,
+          message: 'temperature out of range',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
+          category: ERROR_CATEGORIES.INVALID_PARAMETER,
+          message: 'temperature out of range',
+        });
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should not log when error has no category', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const mockError = new Error('Simple error');
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        expect(messages.length).toBeGreaterThan(1);
+      });
+
+      // Should not log categorized error
+      expect(consoleErrorSpy).not.toHaveBeenCalledWith('Response API error:', expect.any(Object));
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('Error Classification Integration', () => {
+    beforeEach(() => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Model inference failed',
+        description: 'The model server did not respond in time.',
+        details: {
+          component: 'Unknown',
+          errorCode: 'timeout',
+          rawMessage: 'Request timed out',
+        },
+      }));
+    });
+
+    it('should call classifyError with correct context for non-streaming error', async () => {
+      const mockError = {
+        error: {
+          code: ERROR_CATEGORIES.MODEL_TIMEOUT,
+          message: 'Request timed out',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          ...defaultProps,
+          isStreamingEnabled: false,
+          modelId: 'test-model-id',
+        }),
+      );
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        expect(mockClassifyError).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error: mockError.error,
+          }),
+          expect.objectContaining({
+            wasResponseGenerated: false,
+            wasStreamStarted: false,
+            modelName: 'test-model-id',
+          }),
+        );
+      });
+    });
+
+    it('should call classifyError with wasStreamStarted: true when streaming is enabled', async () => {
+      const mockError = {
+        error: {
+          code: 'stream_lost',
+          message: 'Connection lost',
+        },
+      };
+
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'streaming-interruption',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Streaming error — connection lost',
+        description: 'The connection to the model was lost during generation.',
+        details: {
+          component: 'Unknown',
+          errorCode: 'stream_lost',
+          rawMessage: 'Connection lost',
+        },
+      }));
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          ...defaultProps,
+          isStreamingEnabled: true,
+          modelId: 'streaming-model',
+        }),
+      );
+
+      await result.current.handleMessageSend('Test streaming');
+
+      await waitFor(() => {
+        expect(mockClassifyError).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error: mockError.error,
+            status: expect.any(Number),
+          }),
+          expect.objectContaining({
+            wasStreamStarted: true,
+            modelName: 'streaming-model',
+          }),
+        );
+      });
+    });
+
+    it('should add errorClassification to bot message props', async () => {
+      const mockErrorClassification = {
+        pattern: 'full-failure' as const,
+        variant: 'danger' as const,
+        isRetriable: true,
+        title: 'Test Error Title',
+        description: 'Test error description',
+        details: {
+          component: 'Unknown',
+          errorCode: 'test_code',
+          rawMessage: 'Test error message',
+        },
+      };
+
+      mockClassifyError.mockImplementation(() => mockErrorClassification);
+
+      const mockError = {
+        error: {
+          code: 'test_code',
+          message: 'Test error message',
+        },
+      };
+
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification).toEqual(mockErrorClassification);
+      });
+    });
+
+    it('should add onRetryError callback when error is retriable', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'This error can be retried',
+        details: {
+          component: 'Unknown',
+          errorCode: 'timeout',
+          rawMessage: 'Timeout',
+        },
+      }));
+
+      const mockError = { error: { code: 'timeout', message: 'Timeout' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.onRetryError).toBeDefined();
+        expect(typeof botMessage?.onRetryError).toBe('function');
+      });
+    });
+
+    it('should not add onRetryError callback when error is not retriable', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: false,
+        title: 'Non-retriable error',
+        description: 'This error cannot be retried',
+        details: {
+          component: 'Unknown',
+          errorCode: 'max_tokens',
+          rawMessage: 'Token limit exceeded',
+        },
+      }));
+
+      const mockError = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.onRetryError).toBeUndefined();
+      });
+    });
+
+    it('should retry by resending last user message when onRetryError is called', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'Can retry',
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
+      }));
+
+      const mockError = { error: { message: 'Error' } };
+      const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
+        content: 'Success on retry',
+        metadata: {},
+      });
+
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      // First attempt fails
+      await result.current.handleMessageSend('Original message');
+
+      await waitFor(() => {
+        const { messages } = result.current;
+        const botMessage = messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification).toBeDefined();
+      });
+
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
+
+      // Trigger retry
+      retryCallback?.();
+
+      // Should resend the request
+      await waitFor(() => {
+        expect(mockCreateResponse).toHaveBeenCalledTimes(2);
+        const secondCall = mockCreateResponse.mock.calls[1];
+        // BFF expects input, not messages
+        expect(secondCall[0].input).toBe('Original message');
+      });
+    });
+
+    it('should remove failed bot message before retry', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'Can retry',
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
+      }));
+
+      const mockError = { error: { message: 'Error' } };
+      const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
+        response: 'Success',
+        metadata: {},
+      });
+
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test message');
+
+      let failedBotMessageId: string | undefined;
+      await waitFor(() => {
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification).toBeDefined();
+        failedBotMessageId = botMessage?.id;
+      });
+
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
+      retryCallback?.();
+
+      await waitFor(() => {
+        // Failed bot message should be removed
+        const stillHasFailedMessage = result.current.messages.some(
+          (msg) => msg.id === failedBotMessageId,
+        );
+        expect(stillHasFailedMessage).toBe(false);
+      });
+    });
+
+    it('should not retry if no user message exists', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'full-failure',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Retriable error',
+        description: 'Can retry',
+        details: {
+          component: 'Unknown',
+          errorCode: '',
+          rawMessage: 'Error',
+        },
+      }));
+
+      const mockError = { error: { message: 'Error' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      // Manually add a bot message with error (simulating edge case)
+      await result.current.handleMessageSend('Test');
+
+      await waitFor(() => {
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification).toBeDefined();
+      });
+
+      const initialCallCount = mockCreateResponse.mock.calls.length;
+
+      // Get retry callback before clearing messages
+      const retryCallback = result.current.messages
+        .filter((msg) => msg.role === 'bot')
+        .pop()?.onRetryError;
+
+      // Rerender with no user messages to test edge case
+      await act(async () => {
+        await result.current.handleMessageSend('temp message to add bot');
+      });
+
+      await waitFor(() => {
+        expect(result.current.messages.length).toBeGreaterThan(2);
+      });
+
+      // Clear conversation to remove user messages
+      act(() => {
+        result.current.clearConversation();
+      });
+
+      // Now retry should do nothing because there's no user message
+      act(() => {
+        retryCallback?.();
+      });
+
+      // Should not make additional API calls if no user message
+      await waitFor(() => {
+        expect(mockCreateResponse).toHaveBeenCalledTimes(initialCallCount + 1); // +1 for temp message
+      });
+    });
+
+    it('should use getLlamaModelDisplayName for modelName in classifyError', async () => {
+      const mockError = { error: { message: 'Error' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          ...defaultProps,
+          modelId: 'llama-3.1-8b',
+        }),
+      );
+
+      await result.current.handleMessageSend('Test');
+
+      await waitFor(() => {
+        expect(mockClassifyError).toHaveBeenCalledWith(
+          expect.objectContaining({
+            error: mockError.error,
+            status: expect.any(Number),
+          }),
+          expect.objectContaining({
+            modelName: 'llama-3.1-8b', // getLlamaModelDisplayName is mocked to return modelId
+          }),
+        );
+      });
+    });
+
+    it('should handle partial-failure pattern classification', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'partial-failure',
+        variant: 'warning',
+        isRetriable: false,
+        title: 'Knowledge source retrieval failed',
+        description: 'Generated without context from your knowledge sources.',
+        details: {
+          component: 'RAG',
+          errorCode: 'rag_down',
+          rawMessage: 'RAG service unavailable',
+        },
+      }));
+
+      const mockError = { error: { code: 'rag_down', message: 'RAG service unavailable' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() => useChatbotMessages(defaultProps));
+
+      await result.current.handleMessageSend('Test');
+
+      await waitFor(() => {
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification?.pattern).toBe('partial-failure');
+        expect(botMessage?.errorClassification?.variant).toBe('warning');
+      });
+    });
+
+    it('should handle streaming-interruption pattern classification', async () => {
+      mockClassifyError.mockImplementation(() => ({
+        pattern: 'streaming-interruption',
+        variant: 'danger',
+        isRetriable: true,
+        title: 'Streaming error — connection lost',
+        description: 'The connection to the model was lost during generation.',
+        details: {
+          component: 'Unknown',
+          errorCode: 'stream_lost',
+          rawMessage: 'Connection reset',
+        },
+      }));
+
+      const mockError = { error: { code: 'stream_lost', message: 'Connection reset' } };
+      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
+      mockUseGenAiAPI.mockReturnValue({
+        api: { createResponse: mockCreateResponse },
+        apiAvailable: true,
+      } as unknown as ReturnType<typeof useGenAiAPI>);
+
+      const { result } = renderHook(() =>
+        useChatbotMessages({
+          ...defaultProps,
+          isStreamingEnabled: true,
+        }),
+      );
+
+      await result.current.handleMessageSend('Test');
+
+      await waitFor(() => {
+        const botMessage = result.current.messages.filter((msg) => msg.role === 'bot').pop();
+        expect(botMessage?.errorClassification?.pattern).toBe('streaming-interruption');
+        expect(botMessage?.errorClassification?.isRetriable).toBe(true);
+      });
+    });
+  });
+});
