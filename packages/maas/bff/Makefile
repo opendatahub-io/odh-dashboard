@@ -100,7 +100,7 @@ define go-install-tool
 set -e; \
 package=$(2)@$(3) ;\
 echo "Downloading $${package}" ;\
-GOBIN=$(LOCALBIN) GOTOOLCHAIN=go1.24.3 go install $${package} ;\
+GOBIN=$(LOCALBIN) GOTOOLCHAIN=go1.25.9 go install $${package} ;\
 mv "$$(echo "$(1)" | sed "s/-$(3)$$//")" $(1) ;\
 }
 endef
