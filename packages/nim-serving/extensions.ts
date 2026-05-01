@@ -1,16 +1,16 @@
 import type {
   AreaExtension,
-  ProjectDetailsSettingsCard,
+  ProjectDetailsSettingsCardExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 
-const extensions: (AreaExtension | ProjectDetailsSettingsCard)[] = [
+const extensions: (AreaExtension | ProjectDetailsSettingsCardExtension)[] = [
   {
     type: 'app.area',
     properties: {
-      id: 'nim-wizard',
+      id: SupportedArea.NIM_WIZARD,
       featureFlags: ['nimWizard'],
       reliantAreas: [SupportedArea.NIM_MODEL],
     },
@@ -23,7 +23,7 @@ const extensions: (AreaExtension | ProjectDetailsSettingsCard)[] = [
       component: () => import('./src/NIMSettingsCard'),
     },
     flags: {
-      required: ['nim-wizard'],
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
 ];
