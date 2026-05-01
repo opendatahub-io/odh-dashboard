@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CreateExternalEndpointModal from '~/app/AIAssets/components/CreateExternalEndpointModal';
 import {
@@ -59,6 +59,11 @@ describe('CreateExternalEndpointModal', () => {
     });
   });
 
+  // Helper to fill a text input quickly via fireEvent.change
+  const fillInput = (input: HTMLElement, value: string) => {
+    fireEvent.change(input, { target: { value } });
+  };
+
   describe('Rendering', () => {
     it('should render modal with title and form fields', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
@@ -105,18 +110,16 @@ describe('CreateExternalEndpointModal', () => {
       expect(submitButton).toBeDisabled();
     });
 
-    it('should enable submit button when all required fields are filled', async () => {
-      const user = userEvent.setup();
+    it('should enable submit button when all required fields are filled', () => {
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      // Fill required fields
-      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
-      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
+      fillInput(
         screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
       const submitButton = screen.getByRole('button', { name: /^Create$/i });
       expect(submitButton).toBeEnabled();
@@ -128,21 +131,14 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      // Fill all fields
-      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
-      await user.type(
-        screen.getByTestId('create-external-model-display-name-input'),
-        'My Custom GPT-4o',
-      );
-      await user.type(
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My Custom GPT-4o');
+      fillInput(
         screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token-123');
-      await user.type(
-        screen.getByTestId('create-external-model-use-cases-input'),
-        'Chat and completion',
-      );
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token-123');
+      fillInput(screen.getByTestId('create-external-model-use-cases-input'), 'Chat and completion');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -162,13 +158,13 @@ describe('CreateExternalEndpointModal', () => {
       const user = userEvent.setup();
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
-      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
+      fillInput(
         screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-test-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 
@@ -186,13 +182,13 @@ describe('CreateExternalEndpointModal', () => {
 
       render(<CreateExternalEndpointModal {...defaultProps} />);
 
-      await user.type(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
-      await user.type(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
-      await user.type(
+      fillInput(screen.getByTestId('create-external-model-id-input'), 'gpt-4o');
+      fillInput(screen.getByTestId('create-external-model-display-name-input'), 'My GPT-4o');
+      fillInput(
         screen.getByTestId('create-external-model-url-input'),
         'https://model.svc.cluster.local/v1',
       );
-      await user.type(screen.getByTestId('create-external-model-token-input'), 'sk-bad-token');
+      fillInput(screen.getByTestId('create-external-model-token-input'), 'sk-bad-token');
 
       await user.click(screen.getByRole('button', { name: /^Create$/i }));
 

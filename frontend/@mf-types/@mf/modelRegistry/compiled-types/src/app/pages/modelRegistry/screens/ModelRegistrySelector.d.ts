@@ -5,6 +5,7 @@ type ModelRegistrySelectorProps = {
     primary?: boolean;
     isFullWidth?: boolean;
     hasError?: boolean;
+    children?: React.ReactNode;
 };
 declare const ModelRegistrySelector: React.FC<ModelRegistrySelectorProps>;
 export default ModelRegistrySelector;

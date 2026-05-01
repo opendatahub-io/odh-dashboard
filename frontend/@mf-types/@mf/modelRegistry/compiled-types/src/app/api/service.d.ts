@@ -1,5 +1,5 @@
 import { APIOptions } from 'mod-arch-core';
-import { CreateModelArtifactData, CreateModelVersionData, CreateRegisteredModelData, ModelArtifact, ModelArtifactList, ModelVersionList, ModelVersion, RegisteredModelList, RegisteredModel } from '~/app/types';
+import { CreateModelArtifactData, CreateModelVersionData, CreateRegisteredModelData, CreateModelTransferJobData, ModelArtifact, ModelArtifactList, ModelVersionList, ModelVersion, RegisteredModelList, RegisteredModel, ModelTransferJobList, ModelTransferJob, ModelTransferJobEvent } from '~/app/types';
 export declare const createRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: CreateRegisteredModelData) => Promise<RegisteredModel>;
 export declare const createModelVersionForRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, registeredModelId: string, data: CreateModelVersionData, registeredModel: RegisteredModel, isFirstVersion?: boolean) => Promise<ModelVersion>;
 export declare const createModelArtifactForModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, modelVersionId: string, data: CreateModelArtifactData) => Promise<ModelArtifact>;
@@ -13,3 +13,9 @@ export declare const getModelArtifactsByModelVersion: (hostPath: string, queryPa
 export declare const patchRegisteredModel: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<RegisteredModel>, registeredModelId: string) => Promise<RegisteredModel>;
 export declare const patchModelVersion: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<ModelVersion>, modelVersionId: string) => Promise<ModelVersion>;
 export declare const patchModelArtifact: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: Partial<ModelArtifact>, modelartifactId: string) => Promise<ModelArtifact>;
+export declare const getListModelTransferJobs: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, jobNamespace?: string) => Promise<ModelTransferJobList>;
+export declare const getModelTransferJobByName: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, namespace: string, jobName: string) => Promise<ModelTransferJob>;
+export declare const createModelTransferJob: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, data: CreateModelTransferJobData) => Promise<ModelTransferJob>;
+export declare const updateModelTransferJob: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, jobName: string, data: Partial<ModelTransferJob>, additionalQueryParams?: Record<string, unknown>) => Promise<ModelTransferJob>;
+export declare const deleteModelTransferJob: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, jobName: string, jobNamespace: string) => Promise<void>;
+export declare const getModelTransferJobEvents: (hostPath: string, queryParams?: Record<string, unknown>) => (opts: APIOptions, jobName: string, jobNamespace: string) => Promise<ModelTransferJobEvent[]>;
