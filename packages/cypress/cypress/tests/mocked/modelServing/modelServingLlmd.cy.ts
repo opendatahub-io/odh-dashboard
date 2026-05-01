@@ -290,14 +290,17 @@ describe('Model Serving LLMD', () => {
       modelServingSection.findDeployModelButton().should('exist');
       modelServingSection.findDeployModelButton().click();
 
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .should('exist')
+        .click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Verify LLMD runtime option is not displayed');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist').click();
       modelServingWizard
         .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('not.exist');
@@ -319,14 +322,17 @@ describe('Model Serving LLMD', () => {
       modelServingSection.findDeployModelButton().should('exist');
       modelServingSection.findDeployModelButton().click();
 
-      modelServingWizard.findModelLocationSelectOption('URI').click();
+      modelServingWizard.findModelLocationSelectOption('URI').should('exist').click();
       modelServingWizard.findUrilocationInput().type('hf://coolmodel/coolmodel');
       modelServingWizard.findSaveConnectionCheckbox().click(); // Uncheck to simplify
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+      modelServingWizard
+        .findModelTypeSelectOption(ModelTypeLabel.GENERATIVE)
+        .should('exist')
+        .click();
       modelServingWizard.findNextButton().click();
 
       cy.step('Verify LLMD runtime option is displayed when LLMD is enabled');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist').click();
       modelServingWizard
         .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('exist');
@@ -403,7 +409,7 @@ describe('Model Serving LLMD', () => {
       modelServingWizard.findModelDeploymentDescriptionInput().type('test-llmd-description');
 
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
-      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist').click();
       modelServingWizard
         .findGlobalScopedTemplateOption('Distributed inference with llm-d')
         .should('exist')
