@@ -35,6 +35,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Spinner,
   Split,
   SplitItem,
@@ -196,17 +197,33 @@ function AutoragConfigure(): React.JSX.Element {
 
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
-  const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  const {
+    data: allModelsData,
+    isError: isModelsError,
+    isLoading: isModelsLoading,
+  } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
-  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    if (isModelsError) {
+      notification.error(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    }
+  }, [isModelsError, notification]);
+
+  // When the secret changes, mark models as needing re-initialization and
+  // immediately clear stale selections so the UI reflects the transition.
   useEffect(() => {
     modelsInitialized.current = false;
-  }, [llamaStackSecretName]);
+    setValue('generation_models', []);
+    setValue('embeddings_models', []);
+  }, [llamaStackSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
-    if (allModelsData?.models && !modelsInitialized.current) {
+    if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
       reset({
         ...getValues(),
@@ -222,7 +239,7 @@ function AutoragConfigure(): React.JSX.Element {
           .toSorted((a, b) => a.localeCompare(b)),
       });
     }
-  }, [allModelsData, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset]);
 
   // set bucket from selected secret
   useEffect(() => {
@@ -842,7 +859,10 @@ function AutoragConfigure(): React.JSX.Element {
                                       isDisabled={
                                         !inputDataBucketName ||
                                         !inputDataKeyValue ||
-                                        form.formState.isSubmitting
+                                        form.formState.isSubmitting ||
+                                        isModelsLoading ||
+                                        isModelsError ||
+                                        !allModelsData?.models.length
                                       }
                                     >
                                       Edit
@@ -857,70 +877,78 @@ function AutoragConfigure(): React.JSX.Element {
                           <CardBody>
                             <Stack hasGutter>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="generation_models"
-                                  render={(generationModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
-                                      {!!generationModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {generationModels.map((model) => (
-                                                <ListItem key={`generation-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="generation_models"
+                                    render={(generationModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        {!!generationModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {generationModels.map((model) => (
+                                                  <ListItem key={`generation-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="embeddings_models"
-                                  render={(embeddingModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                      {!!embeddingModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {embeddingModels.map((model) => (
-                                                <ListItem key={`embedding-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="embeddings_models"
+                                    render={(embeddingModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        {!!embeddingModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {embeddingModels.map((model) => (
+                                                  <ListItem key={`embedding-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                             </Stack>
                           </CardBody>

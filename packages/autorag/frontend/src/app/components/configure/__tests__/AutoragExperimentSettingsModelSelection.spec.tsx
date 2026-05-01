@@ -7,20 +7,10 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import { useNotification } from '~/app/hooks/useNotification';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
 import { LlamaStackModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
-jest.mock('~/app/hooks/useNotification', () => ({
-  useNotification: jest.fn(() => ({
-    success: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
-    warning: jest.fn(),
-    remove: jest.fn(),
-  })),
-}));
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => ({ namespace: 'test-namespace' }),
@@ -36,7 +26,6 @@ jest.mock('mod-arch-shared', () => ({
 }));
 
 const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
-const mockUseNotification = jest.mocked(useNotification);
 
 const MOCK_MODELS = [
   { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
@@ -300,32 +289,6 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
       renderComponent();
       expect(screen.getAllByText('No models available.').length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('Error handling', () => {
-    it('should show error notification when model loading fails', () => {
-      const mockError = jest.fn();
-      mockUseNotification.mockReturnValue({
-        success: jest.fn(),
-        error: mockError,
-        info: jest.fn(),
-        warning: jest.fn(),
-        remove: jest.fn(),
-      });
-
-      mockUseLlamaStackModelsQuery.mockReturnValue({
-        data: undefined,
-        isLoading: false,
-        isError: true,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
-
-      renderComponent();
-
-      expect(mockError).toHaveBeenCalledWith(
-        'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
-      );
     });
   });
 });
