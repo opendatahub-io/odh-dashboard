@@ -9,6 +9,9 @@ export type AutoragResultsContextProps = {
   pipelineRunLoading?: boolean;
   patterns: Record<string, AutoragPattern>;
   patternsLoading?: boolean;
+  patternsError?: boolean;
+  patternsLoadError?: Error;
+  onRetryPatterns?: () => void;
   parameters?: Partial<ConfigureSchema>;
   ragPatternsBasePath?: string;
 };
@@ -30,12 +33,18 @@ export function getAutoragContext({
   patterns = {},
   pipelineRunLoading,
   patternsLoading,
+  patternsError,
+  patternsLoadError,
+  onRetryPatterns,
   ragPatternsBasePath,
 }: {
   pipelineRun?: PipelineRun;
   patterns?: Record<string, AutoragPattern>;
   pipelineRunLoading?: boolean;
   patternsLoading?: boolean;
+  patternsError?: boolean;
+  patternsLoadError?: Error;
+  onRetryPatterns?: () => void;
   ragPatternsBasePath?: string;
 }): AutoragResultsContextProps {
   // Validate runtime_config.parameters against ConfigureSchema to ensure type safety
@@ -57,6 +66,9 @@ export function getAutoragContext({
     pipelineRunLoading,
     patterns,
     patternsLoading,
+    patternsError,
+    patternsLoadError,
+    onRetryPatterns,
     parameters,
     ragPatternsBasePath,
   };

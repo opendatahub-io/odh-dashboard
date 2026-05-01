@@ -26,6 +26,9 @@ export type AutomlResultsContextProps = {
   pipelineRunLoading?: boolean;
   models: Record<string, AutomlModel>;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
 };
 
@@ -46,11 +49,17 @@ export function getAutomlContext({
   models = {},
   pipelineRunLoading,
   modelsLoading,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -76,6 +85,9 @@ export function getAutomlContext({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters,
   };
 }

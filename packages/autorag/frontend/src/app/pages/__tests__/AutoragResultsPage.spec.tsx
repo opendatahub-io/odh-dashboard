@@ -107,7 +107,7 @@ jest.mock('~/app/components/run-results/StopRunModal', () => ({
     ) : null,
 }));
 
-const mockNotification = { success: jest.fn(), error: jest.fn() };
+const mockNotification = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => mockNotification,
 }));
@@ -117,6 +117,7 @@ jest.mock('mod-arch-shared', () => ({
     children,
     empty,
     loaded,
+    loadError,
     emptyStatePage,
     breadcrumb,
     headerAction,
@@ -124,6 +125,7 @@ jest.mock('mod-arch-shared', () => ({
     children: React.ReactNode;
     empty: boolean;
     loaded: boolean;
+    loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
     headerAction?: React.ReactNode;
@@ -132,6 +134,7 @@ jest.mock('mod-arch-shared', () => ({
     <div data-testid="applications-page">
       {breadcrumb}
       {headerAction}
+      {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
@@ -272,8 +275,11 @@ describe('AutoragResultsPage', () => {
 
     mockUseAutoragResults.mockReturnValue({
       patterns: {},
+      failedPatterns: [],
       isLoading: false,
       isError: false,
+      error: undefined,
+      refetch: jest.fn(),
     });
   });
 
@@ -336,6 +342,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -412,6 +419,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: true,
         isError: false,
       });
@@ -436,6 +444,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: mockPatterns,
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -460,6 +469,7 @@ describe('AutoragResultsPage', () => {
 
       mockUseAutoragResults.mockReturnValue({
         patterns: {},
+        failedPatterns: [],
         isLoading: false,
         isError: false,
       });
@@ -793,6 +803,168 @@ describe('AutoragResultsPage', () => {
 
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
+      });
+    });
+  });
+
+  describe('error handling', () => {
+    it('should not show loadError when pipeline run query fails but has previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(screen.queryByTestId('load-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('autorag-results')).toBeInTheDocument();
+    });
+
+    it('should show loadError when pipeline run query fails on initial load', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Server unavailable'),
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('load-error')).toBeInTheDocument();
+      expect(screen.getByTestId('load-error')).toHaveTextContent('Server unavailable');
+    });
+
+    it('should trigger warning notification when polling error occurs with previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    });
+
+    it('should trigger warning notification when some patterns fail to load', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1', 'BrokenPattern2'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        '2 of 4 patterns could not be loaded',
+        'The following patterns failed to load: BrokenPattern1, BrokenPattern2',
+      );
+    });
+
+    it('should only trigger failed patterns notification once across re-renders', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValueOnce({
+        patterns: mockPatterns,
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      mockUseAutoragResults.mockReturnValueOnce({
+        patterns: { ...mockPatterns },
+        failedPatterns: ['BrokenPattern1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      const testQueryClient = createTestQueryClient();
+
+      const { rerender } = render(
+        <QueryClientProvider client={testQueryClient}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <QueryClientProvider client={testQueryClient}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it('should pass patternsError, patternsLoadError, and onRetryPatterns through context', () => {
+      const mockPipelineRun = createMockPipelineRun();
+      const mockRefetch = jest.fn();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutoragResults.mockReturnValue({
+        patterns: {},
+        failedPatterns: [],
+        isLoading: false,
+        isError: true,
+        error: new Error('Failed to list RAG patterns directory'),
+        refetch: mockRefetch,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        patternsError: true,
+        patternsLoadError: expect.objectContaining({
+          message: 'Failed to list RAG patterns directory',
+        }),
+        onRetryPatterns: mockRefetch,
       });
     });
   });
