@@ -1,12 +1,12 @@
-import { useNamespaceSelector } from 'mod-arch-core';
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 
 export function usePreferredNamespaceRedirect(): void {
   const { namespace } = useParams();
   const navigate = useNavigate();
 
-  const { namespaces, preferredNamespace } = useNamespaceSelector({ storeLastNamespace: true });
+  const { namespaces, preferredNamespace } = useNamespaceSelectorWithPersistence();
 
   useEffect(() => {
     const validPreferredName = namespaces.find((n) => n.name === preferredNamespace?.name)?.name;

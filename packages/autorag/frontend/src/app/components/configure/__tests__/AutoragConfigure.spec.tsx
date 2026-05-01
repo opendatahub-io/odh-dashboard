@@ -556,7 +556,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should display all metric options when dropdown is opened', async () => {
+    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -566,8 +566,24 @@ describe('AutoragConfigure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+    });
+
+    it('should offer exactly two optimization metrics', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      selectSecretAndFile();
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+      });
+
+      const selectList = screen.getByTestId('optimization-metric-select-list');
+      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
+      expect(options).toHaveLength(2);
     });
 
     it('should render with a non-default metric when configured', () => {

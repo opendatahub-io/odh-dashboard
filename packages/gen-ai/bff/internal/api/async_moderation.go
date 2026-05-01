@@ -11,6 +11,7 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // ModerationChunk represents a chunk of text awaiting or completed moderation
@@ -98,8 +99,9 @@ func (s *AsyncModerationState) RegisterChunk(chunk *ModerationChunk) {
 		"wordCount", len(strings.Fields(chunk.Text)))
 }
 
-// ModerateChunkAsync fires off a moderation request asynchronously
-func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChunk, shieldID string) {
+// ModerateChunkAsync fires off a moderation request asynchronously.
+// opts is the guardrail config to use; output moderation always runs as RoleAssistant.
+func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChunk, opts nemo.GuardrailsOptions) {
 	go func() {
 		result := AsyncModerationResult{SequenceNum: chunk.SequenceNum}
 
@@ -110,13 +112,12 @@ func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChu
 		default:
 		}
 
-		modResult, err := app.checkModeration(s.ctx, chunk.Text, shieldID)
+		modResult, err := app.checkModeration(s.ctx, chunk.Text, opts, nemo.RoleAssistant)
 		if err != nil {
 			// Fail closed - treat as unsafe if moderation service is unavailable
 			s.logger.Error("Async moderation failed",
 				"error", err,
-				"chunk", chunk.SequenceNum,
-				"shield_id", shieldID)
+				"chunk", chunk.SequenceNum)
 			result.Safe = false
 			result.ViolationReason = "Guardrails service unavailable"
 			result.Err = err
@@ -295,7 +296,10 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	moderationEnabled := params.OutputShieldID != ""
+	// Output moderation is enabled only when an inline guardrail config is present.
+	// The OutputShieldID field is deprecated; moderation will be re-enabled once the
+	// guardrail_config request field is wired into CreateResponseParams.
+	moderationEnabled := false
 
 	// If moderation is disabled, use the simple streaming path
 	if !moderationEnabled {
@@ -428,7 +432,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			return
 		case violation := <-violationChan:
 			app.logger.Info("Output blocked by guardrails (async)",
-				"shield_id", params.OutputShieldID,
 				"reason", violation)
 			sendGuardrailViolation()
 			return
@@ -476,7 +479,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			if ShouldTriggerModeration(currentChunk.Text, wordCount) {
 				// Register and fire async moderation
 				modState.RegisterChunk(currentChunk)
-				modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
+				modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
 
 				// Reset for next chunk
 				currentChunk = nil
@@ -489,7 +492,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		// First, finalize any pending chunk
 		if currentChunk != nil && len(currentChunk.Events) > 0 {
 			modState.RegisterChunk(currentChunk)
-			modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
+			modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
 			currentChunk = nil
 			wordCount = 0
 		}
@@ -507,7 +510,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			// Wait for all pending chunks to be moderated and sent
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
-					"shield_id", params.OutputShieldID,
 					"reason", violation)
 				sendGuardrailViolation()
 				return
@@ -523,13 +525,12 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Flush any remaining chunk
 	if currentChunk != nil && len(currentChunk.Events) > 0 {
 		modState.RegisterChunk(currentChunk)
-		modState.ModerateChunkAsync(app, currentChunk, params.OutputShieldID)
+		modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
 	}
 
 	// Wait for all pending moderation to complete
 	if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 		app.logger.Info("Output blocked by guardrails (stream end)",
-			"shield_id", params.OutputShieldID,
 			"reason", violation)
 		sendGuardrailViolation()
 		return

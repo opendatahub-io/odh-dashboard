@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "id": "sentence-transformers/ibm-granite/granite-embedding-125m-english",
+      "object": "model",
+      "created": 1776356268,
+      "owned_by": "llama_stack",
+      "custom_metadata": {
+        "model_type": "embedding",
+        "provider_id": "sentence-transformers",
+        "provider_resource_id": "ibm-granite/granite-embedding-125m-english",
+        "embedding_dimension": 768
+      }
+    },
+    {
+      "id": "endpoint-2/claude-haiku-4-5-20251001",
+      "object": "model",
+      "created": 1776356268,
+      "owned_by": "llama_stack",
+      "custom_metadata": {
+        "model_type": "llm",
+        "provider_id": "endpoint-2",
+        "provider_resource_id": "claude-haiku-4-5-20251001",
+        "display_name": "Haiku"
+      }
+    },
+    {
+      "id": "endpoint-1/ibm-granite/granite-embedding-english-r2",
+      "object": "model",
+      "created": 1776356268,
+      "owned_by": "llama_stack",
+      "custom_metadata": {
+        "model_type": "embedding",
+        "provider_id": "endpoint-1",
+        "provider_resource_id": "ibm-granite/granite-embedding-english-r2",
+        "display_name": "Granite embedding",
+        "embedding_dimension": 768
+      }
+    },
+    {
+      "id": "sentence-transformers/nomic-ai/nomic-embed-text-v1.5",
+      "object": "model",
+      "created": 1776356268,
+      "owned_by": "llama_stack",
+      "custom_metadata": {
+        "model_type": "embedding",
+        "provider_id": "sentence-transformers",
+        "provider_resource_id": "nomic-ai/nomic-embed-text-v1.5",
+        "embedding_dimension": 768
+      }
+    }
+  ]
+}

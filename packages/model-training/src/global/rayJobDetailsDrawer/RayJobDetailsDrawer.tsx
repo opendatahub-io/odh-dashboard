@@ -28,6 +28,7 @@ import { getStatusFlags, getRayJobStatusSync } from '../trainingJobList/utils';
 import { useRayJobNodeScaling } from '../../hooks/useRayJobNodeScaling';
 import { RayJobKind } from '../../k8sTypes';
 import { JobDisplayState, RayJobState, TrainingJobState } from '../../types';
+import { PAUSE_RAY_JOB_TOOLTIP_CONTENT, RAY_CLUSTER_SELECTOR_LABEL } from '../../const';
 
 type RayJobDetailsDrawerProps = {
   job: RayJobKind | undefined;
@@ -55,6 +56,7 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
 
   const status = job ? jobStatus || getRayJobStatusSync(job) : TrainingJobState.UNKNOWN;
   const { isPaused, canPauseResume } = getStatusFlags(status);
+  const isClusterSelectorJob = !!job?.spec.clusterSelector?.[RAY_CLUSTER_SELECTOR_LABEL];
 
   const {
     workerGroupReplicas,
@@ -131,8 +133,18 @@ const RayJobDetailsDrawer: React.FC<RayJobDetailsDrawerProps> = ({
                     {canPauseResume && (
                       <DropdownItem
                         key="pause-resume"
-                        isDisabled={isSubmitting}
+                        isAriaDisabled={isSubmitting || isClusterSelectorJob}
+                        tooltipProps={
+                          isClusterSelectorJob
+                            ? {
+                                content: PAUSE_RAY_JOB_TOOLTIP_CONTENT,
+                              }
+                            : undefined
+                        }
                         onClick={() => {
+                          if (isClusterSelectorJob) {
+                            return;
+                          }
                           setIsKebabOpen(false);
                           if (isPaused) {
                             void handleResume();

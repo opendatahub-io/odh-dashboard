@@ -38,6 +38,7 @@ import {
   McpCatalogIcon,
   ModelConnectionRocketIcon,
   PromptManagementIcon,
+  ChecklistIcon,
 } from '#~/images/icons';
 
 type TypedObjectIconProps = SVGIconProps & {
@@ -169,6 +170,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.mcpCatalog:
       Icon = McpCatalogIcon;
+      break;
+    case ProjectObjectType.taskAssistant:
+      Icon = ChecklistIcon;
       break;
     default:
       return null;

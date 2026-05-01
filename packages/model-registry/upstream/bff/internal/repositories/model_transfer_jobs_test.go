@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/mocks"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
@@ -137,6 +137,10 @@ func (f *fakeKubernetesClient) CanAccessServiceInNamespace(ctx context.Context, 
 }
 
 func (f *fakeKubernetesClient) CanNamespaceAccessRegistry(ctx context.Context, identity *k8s.RequestIdentity, jobNamespace, registryName, registryNamespace string) (bool, error) {
+	return false, nil
+}
+
+func (f *fakeKubernetesClient) CanVerbMcpServersInNamespace(ctx context.Context, identity *k8s.RequestIdentity, namespace, verb string) (bool, error) {
 	return false, nil
 }
 

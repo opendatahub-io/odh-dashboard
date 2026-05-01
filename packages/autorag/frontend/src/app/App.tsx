@@ -13,14 +13,9 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
-import {
-  DeploymentMode,
-  logout,
-  useModularArchContext,
-  useNamespaceSelector,
-  useSettings,
-} from 'mod-arch-core';
+import { DeploymentMode, logout, useModularArchContext, useSettings } from 'mod-arch-core';
 import AppRoutes from '~/app/AppRoutes';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { AppContext } from '~/app/context/AppContext';
 
 const App: React.FC = () => {
@@ -42,9 +37,8 @@ const App: React.FC = () => {
     loadError: configError,
   } = useSettings();
 
-  const { namespacesLoaded, namespacesLoadError, initializationError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespacesLoaded, namespacesLoadError, initializationError } =
+    useNamespaceSelectorWithPersistence();
 
   const { config } = useModularArchContext();
   const { deploymentMode } = config;

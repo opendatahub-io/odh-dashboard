@@ -171,19 +171,32 @@ class McpDeployModal {
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-submit-button');
+    return this.findModal().findByTestId('modal-submit-button');
   }
 
   findCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-close-button');
+    return this.findModal().findByTestId('modal-cancel-button');
   }
 
-  findResetButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-reset-button');
+  findResourceNameHelperText(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('mcp-deploy-name-helper');
+  }
+
+  findProjectSelectorToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModal().findByTestId('project-selector-toggle');
+  }
+
+  findProjectSelectorOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('project-selector-menuList').findByRole('menuitem', { name });
+  }
+
+  selectProject(name: string): void {
+    this.findProjectSelectorToggle().click();
+    this.findProjectSelectorOption(name).click();
   }
 
   findSubmitError(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findModal().findByTestId('mcp-deploy-submit-error');
+    return this.findModal().findByTestId('error-message-alert');
   }
 
   findLoadError(): Cypress.Chainable<JQuery<HTMLElement>> {

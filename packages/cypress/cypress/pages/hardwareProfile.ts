@@ -52,6 +52,14 @@ class HardwareProfileRow extends TableRow {
     return this.find().pfSwitch('enable-switch');
   }
 
+  findAllFeaturesText() {
+    return this.find().findByTestId('feature-visibility-all');
+  }
+
+  findFeatureLabel(name: string) {
+    return this.find().findByTestId(`label-${name}`);
+  }
+
   findExpandableSection() {
     return this.find().parent().find('[data-label="Other information"]');
   }
