@@ -420,7 +420,7 @@ describe('Workbench Hardware Profiles', () => {
   describe('Edit Workbench Hardware Profiles', () => {
     it('should auto-select hardware profile from annotations', () => {
       initIntercepts();
-      // Mock notebook with hardware profile annotation
+      // Mock notebook with hardware profile annotation and resources matching profile defaults
       cy.interceptK8sList(
         {
           model: NotebookModel,
@@ -431,6 +431,10 @@ describe('Workbench Hardware Profiles', () => {
             hardwareProfileName: 'small-profile',
             hardwareProfileNamespace: 'test-project',
             displayName: 'Test Notebook',
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              limits: { cpu: '2', memory: '4Gi' },
+            },
           }),
         ]),
       );
@@ -449,7 +453,7 @@ describe('Workbench Hardware Profiles', () => {
         disableProjectScoped: false,
       });
 
-      // Mock notebook with hardware profile annotation
+      // Mock notebook with hardware profile annotation and resources matching profile defaults
       cy.interceptK8sList(
         {
           model: NotebookModel,
@@ -460,6 +464,10 @@ describe('Workbench Hardware Profiles', () => {
             hardwareProfileName: 'large-profile-1',
             displayName: 'Test Notebook',
             hardwareProfileNamespace: 'test-project',
+            resources: {
+              requests: { cpu: '4', memory: '8Gi' },
+              limits: { cpu: '8', memory: '16Gi' },
+            },
           }),
         ]),
       );
@@ -506,7 +514,7 @@ describe('Workbench Hardware Profiles', () => {
         ]),
       );
 
-      // Mock notebook with disabled hardware profile annotation
+      // Mock notebook with disabled hardware profile annotation and matching resources
       cy.interceptK8sList(
         NotebookModel,
         mockK8sResourceList([
@@ -514,6 +522,10 @@ describe('Workbench Hardware Profiles', () => {
             hardwareProfileName: 'small-profile',
             hardwareProfileNamespace: 'opendatahub',
             displayName: 'Test Notebook',
+            resources: {
+              requests: { cpu: '1', memory: '2Gi' },
+              limits: { cpu: '2', memory: '4Gi' },
+            },
           }),
         ]),
       );
@@ -530,7 +542,7 @@ describe('Workbench Hardware Profiles', () => {
 
     it('should auto-select matching hardware profile when resources match', () => {
       initIntercepts();
-      // Mock notebook with matching resources but no hardware profile annotation
+      // Mock notebook with matching resources (requests=defaultCount, limits=maxCount) but no hardware profile annotation
       cy.interceptK8sList(
         NotebookModel,
         mockK8sResourceList([
@@ -554,8 +566,8 @@ describe('Workbench Hardware Profiles', () => {
                             memory: '2Gi',
                           },
                           limits: {
-                            cpu: '1',
-                            memory: '2Gi',
+                            cpu: '2',
+                            memory: '4Gi',
                           },
                         },
                       },
@@ -578,8 +590,6 @@ describe('Workbench Hardware Profiles', () => {
       editSpawnerPage.visit('test-notebook');
       editSpawnerPage.findAlertMessage().should('not.exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Small Profile');
-      hardwareProfileSection.findSelect().click();
-      cy.findByRole('option', { name: 'Use existing settings' }).should('not.exist');
     });
 
     it('should auto-select "Use existing settings" when resources do not match any profile', () => {

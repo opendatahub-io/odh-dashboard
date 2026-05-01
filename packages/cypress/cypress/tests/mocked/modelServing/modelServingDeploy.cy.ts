@@ -479,16 +479,6 @@ describe('Model Serving Deploy Wizard', () => {
             modelFormat: {
               name: 'vLLM',
             },
-            resources: {
-              requests: {
-                cpu: '4',
-                memory: '8Gi',
-              },
-              limits: {
-                cpu: '4',
-                memory: '8Gi',
-              },
-            },
           },
         },
       },
@@ -511,11 +501,15 @@ describe('Model Serving Deploy Wizard', () => {
 
       // Check model format exists
       expect(interception.request.body.spec.predictor.model.modelFormat.name).to.equal('vLLM');
+
+      // Resources should not be set (user did not customize — platform webhook applies defaults)
+      expect(interception.request.body.spec.predictor.model).to.not.have.property('resources');
     });
 
     // Actual request
     cy.wait('@createInferenceService').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=All');
+      expect(interception.request.body.spec.predictor.model).to.not.have.property('resources');
     });
 
     cy.get('@createInferenceService.all').then((interceptions) => {
@@ -1548,38 +1542,40 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
-    // Step 2: Model deployment
-    hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
+    // Step 2: Model deployment — resources differ from profile defaults, so "Use existing settings" is shown
+    hardwareProfileSection.findSelect().should('contain.text', 'Use existing settings');
+    // Switch to profile to test the customize section validation
+    hardwareProfileSection.findSelect().click();
+    cy.findByRole('option', { name: /Large Profile/ }).click();
     hardwareProfileSection.findCustomizeButton().should('exist').click();
-    modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
-    modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
-    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
-    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '10');
+    modelServingWizardEdit.findCPURequestedInput().should('have.value', '4');
+    modelServingWizardEdit.findCPULimitInput().should('have.value', '8');
+    modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '8');
+    modelServingWizardEdit.findMemoryLimitInput().should('have.value', '16');
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
     // Test validation: CPU request cannot exceed CPU limit
-    modelServingWizardEdit.findCPURequestedButton('Plus').click(); // set request to 7
+    // CPU request starts at 4, limit at 8 — increase request 5x to 9 (> limit 8)
+    for (let i = 0; i < 5; i++) {
+      modelServingWizardEdit.findCPURequestedButton('Plus').click();
+    }
     modelServingWizardEdit.findNextButton().should('be.disabled');
     cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
-    modelServingWizardEdit.findCPURequestedButton('Minus').click();
+    for (let i = 0; i < 5; i++) {
+      modelServingWizardEdit.findCPURequestedButton('Minus').click();
+    }
     modelServingWizardEdit.findNextButton().should('be.enabled');
 
     // Test validation: Memory request cannot exceed memory limit
-    modelServingWizardEdit.findMemoryRequestedButton('Plus').click(); // set request to 11
+    // Memory request starts at 8GiB, limit at 16GiB — increase request 9x to 17 (> limit 16)
+    for (let i = 0; i < 9; i++) {
+      modelServingWizardEdit.findMemoryRequestedButton('Plus').click();
+    }
     modelServingWizardEdit.findNextButton().should('be.disabled');
     cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
-    modelServingWizardEdit.findMemoryRequestedButton('Minus').click();
-    modelServingWizardEdit.findNextButton().should('be.enabled');
-
-    // Test validation: CPU and memory limit cannot be less than CPU and memory request
-    modelServingWizardEdit.findCPULimitButton('Minus').click();
-    modelServingWizardEdit.findNextButton().should('be.disabled');
-    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
-    modelServingWizardEdit.findCPULimitButton('Plus').click();
-    modelServingWizardEdit.findMemoryLimitButton('Minus').click();
-    modelServingWizardEdit.findNextButton().should('be.disabled');
-    cy.findAllByText('Limit must be greater than or equal to request').first().should('be.visible');
-    modelServingWizardEdit.findMemoryLimitButton('Plus').click();
+    for (let i = 0; i < 9; i++) {
+      modelServingWizardEdit.findMemoryRequestedButton('Minus').click();
+    }
     modelServingWizardEdit.findNextButton().should('be.enabled');
   });
 

@@ -762,6 +762,10 @@ describe('Workbench page', () => {
           namespace: 'test-project',
         },
       });
+
+      // Resources should not be set when the user did not customize them
+      const container = interception.request.body.spec?.template?.spec?.containers?.[0];
+      expect(container).to.not.have.property('resources');
     });
     verifyRelativeURL('/projects/test-project?section=workbenches');
   });
@@ -1642,7 +1646,7 @@ describe('Workbench page', () => {
           lastImageSelection: 'test-imagestream:1.2',
           resources: {
             requests: { cpu: '4', memory: '8Gi' },
-            limits: { cpu: '4', memory: '8Gi' },
+            limits: { cpu: '8', memory: '16Gi' },
           },
           opts: {
             metadata: {
@@ -1741,7 +1745,7 @@ describe('Workbench page', () => {
           lastImageSelection: 'test-imagestream:1.2',
           resources: {
             requests: { cpu: '1', memory: '2Gi' },
-            limits: { cpu: '1', memory: '2Gi' },
+            limits: { cpu: '2', memory: '4Gi' },
           },
           opts: {
             metadata: {

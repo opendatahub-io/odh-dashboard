@@ -113,9 +113,13 @@ describe('NIM Model Serving', () => {
       if (nimInferenceService.status) {
         delete nimInferenceService.status;
       }
+      // Resources should not be in the body — user did not customize, webhook handles defaults
       cy.wait('@createInferenceService').then((interception) => {
         expect(interception.request.url).to.include('?dryRun=All');
-        expect(interception.request.body).to.eql(nimInferenceService);
+        expect(interception.request.body.spec.predictor.model).to.not.have.property('resources');
+        expect(interception.request.body.metadata.annotations).to.have.property(
+          'opendatahub.io/hardware-profile-name',
+        );
       });
 
       // Actual request

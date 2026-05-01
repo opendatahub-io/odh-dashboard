@@ -7,6 +7,7 @@ import {
   getExistingHardwareProfileData,
   assemblePodSpecOptions,
   applyHardwareProfileConfig,
+  getContainerResourcesFromHardwareProfile,
 } from '#~/concepts/hardwareProfiles/utils';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import {
@@ -457,6 +458,128 @@ describe('assemblePodSpecOptions', () => {
   });
 });
 
+describe('getContainerResourcesFromHardwareProfile', () => {
+  it('should set requests to defaultCount and limits to maxCount', () => {
+    const profile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '8Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+
+    const result = getContainerResourcesFromHardwareProfile(profile);
+
+    expect(result).toEqual({
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    });
+  });
+
+  it('should fall back to defaultCount for limits when maxCount is not set', () => {
+    const profile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: undefined as unknown as string,
+          defaultCount: '2',
+        },
+      ],
+    });
+
+    const result = getContainerResourcesFromHardwareProfile(profile);
+
+    expect(result).toEqual({
+      requests: { cpu: '2' },
+      limits: { cpu: '2' },
+    });
+  });
+
+  it('should handle GPU identifiers', () => {
+    const profile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '8Gi',
+          defaultCount: '4Gi',
+        },
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 0,
+          maxCount: 4,
+          defaultCount: 1,
+        },
+      ],
+    });
+
+    const result = getContainerResourcesFromHardwareProfile(profile);
+
+    expect(result).toEqual({
+      requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
+      limits: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 4 },
+    });
+  });
+
+  it('should handle custom identifiers', () => {
+    const profile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '2',
+          defaultCount: '1',
+        },
+        {
+          displayName: 'FPGA',
+          identifier: 'xilinx.com/fpga',
+          minCount: 0,
+          maxCount: 2,
+          defaultCount: 1,
+        },
+      ],
+    });
+
+    const result = getContainerResourcesFromHardwareProfile(profile);
+
+    expect(result).toEqual({
+      requests: { cpu: '1', 'xilinx.com/fpga': 1 },
+      limits: { cpu: '2', 'xilinx.com/fpga': 2 },
+    });
+  });
+
+  it('should return empty records when profile has no identifiers', () => {
+    const profile = mockHardwareProfile({ identifiers: [] });
+
+    const result = getContainerResourcesFromHardwareProfile(profile);
+
+    expect(result).toEqual({ requests: {}, limits: {} });
+  });
+});
+
 describe('applyHardwareProfileConfig', () => {
   const paths = NOTEBOOK_HARDWARE_PROFILE_PATHS;
 
@@ -490,24 +613,52 @@ describe('applyHardwareProfileConfig', () => {
     );
   });
 
-  it('should apply resources to notebook at configured path', () => {
+  it('should apply resources when they differ from hardware profile defaults', () => {
     const hardwareProfile = mockHardwareProfile({});
     const notebook = mockNotebookK8sResource({});
 
-    const resources: ContainerResources = {
-      requests: { cpu: '4', memory: '16Gi', 'nvidia.com/gpu': '1' },
-      limits: { cpu: '4', memory: '16Gi', 'nvidia.com/gpu': '1' },
+    const customizedResources: ContainerResources = {
+      requests: { cpu: '4', memory: '16Gi' },
+      limits: { cpu: '4', memory: '16Gi' },
     };
 
     const config = {
       selectedProfile: hardwareProfile,
       useExistingSettings: false,
-      resources,
+      resources: customizedResources,
     };
 
     const result = applyHardwareProfileConfig(notebook, config, paths);
 
-    expect(result.spec.template.spec.containers[0].resources).toEqual(resources);
+    expect(result.spec.template.spec.containers[0].resources).toEqual(customizedResources);
+  });
+
+  it('should not apply resources when they match hardware profile defaults', () => {
+    const hardwareProfile = mockHardwareProfile({});
+    const notebook = mockNotebookK8sResource({
+      resources: {
+        requests: { cpu: '1', memory: '2Gi' },
+        limits: { cpu: '1', memory: '2Gi' },
+      },
+    });
+
+    const defaultResources: ContainerResources = {
+      requests: { memory: '2Gi', cpu: '1' },
+      limits: { memory: '5Gi', cpu: '2' },
+    };
+
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: false,
+      resources: defaultResources,
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(result.spec.template.spec.containers[0].resources).toEqual({
+      requests: { cpu: '1', memory: '2Gi' },
+      limits: { cpu: '1', memory: '2Gi' },
+    });
   });
 
   it('should not mutate original resource', () => {
@@ -570,7 +721,7 @@ describe('applyHardwareProfileConfig', () => {
     ).toBeUndefined();
   });
 
-  it('should not apply resources when useExistingSettings is true', () => {
+  it('should not modify CR when useExistingSettings is true', () => {
     const hardwareProfile = mockHardwareProfile({ name: 'test-profile' });
     const notebook = mockNotebookK8sResource({
       resources: {
@@ -590,12 +741,12 @@ describe('applyHardwareProfileConfig', () => {
 
     const result = applyHardwareProfileConfig(notebook, config, paths);
 
-    // Should still have annotations
+    // Annotations should remain unchanged (no HWP annotation added)
     expect(result.metadata.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
-      'test-profile',
+      notebook.metadata.annotations?.['opendatahub.io/hardware-profile-name'],
     );
 
-    // But resources should remain unchanged (existing settings)
+    // Resources should remain unchanged (existing settings)
     expect(result.spec.template.spec.containers[0].resources).toEqual({
       requests: { cpu: '1', memory: '2Gi' },
       limits: { cpu: '1', memory: '2Gi' },
@@ -665,7 +816,7 @@ describe('applyHardwareProfileConfig', () => {
 
     const result = applyHardwareProfileConfig(inferenceService, config, inferenceServicePaths);
 
-    // Verify resources applied at correct path
+    // Resources differ from profile defaults so they should be applied
     expect(result.spec.predictor.model.resources).toEqual({
       requests: { cpu: '4', memory: '16Gi' },
       limits: { cpu: '4', memory: '16Gi' },
@@ -676,5 +827,86 @@ describe('applyHardwareProfileConfig', () => {
     expect((result as any).metadata?.annotations?.['opendatahub.io/hardware-profile-name']).toBe(
       'custom-path-test',
     );
+  });
+
+  it('should apply customized GPU resources that differ from profile defaults', () => {
+    const hardwareProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 0,
+          maxCount: 4,
+          defaultCount: 1,
+        },
+      ],
+    });
+    const notebook = mockNotebookK8sResource({});
+
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: false,
+      resources: {
+        requests: { cpu: '2', 'nvidia.com/gpu': 2 },
+        limits: { cpu: '4', 'nvidia.com/gpu': 3 },
+      },
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(result.spec.template.spec.containers[0].resources).toEqual({
+      requests: { cpu: '2', 'nvidia.com/gpu': 2 },
+      limits: { cpu: '4', 'nvidia.com/gpu': 3 },
+    });
+  });
+
+  it('should skip GPU resources when they match profile defaults', () => {
+    const hardwareProfile = mockHardwareProfile({
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 0,
+          maxCount: 4,
+          defaultCount: 1,
+        },
+      ],
+    });
+    const notebook = mockNotebookK8sResource({
+      resources: {
+        requests: { cpu: '1', 'nvidia.com/gpu': 0 },
+        limits: { cpu: '1', 'nvidia.com/gpu': 0 },
+      },
+    });
+
+    const config = {
+      selectedProfile: hardwareProfile,
+      useExistingSettings: false,
+      resources: {
+        requests: { cpu: '2', 'nvidia.com/gpu': 1 },
+        limits: { cpu: '4', 'nvidia.com/gpu': 4 },
+      },
+    };
+
+    const result = applyHardwareProfileConfig(notebook, config, paths);
+
+    expect(result.spec.template.spec.containers[0].resources).toEqual({
+      requests: { cpu: '1', 'nvidia.com/gpu': 0 },
+      limits: { cpu: '1', 'nvidia.com/gpu': 0 },
+    });
   });
 });

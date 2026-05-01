@@ -102,8 +102,8 @@ describe('useHardwareProfileConfig', () => {
 
     expect(state).toEqual({
       formData: {
-        selectedProfile: hardwareProfile,
-        useExistingSettings: false,
+        selectedProfile: undefined,
+        useExistingSettings: true,
         resources,
       },
       initialHardwareProfile: hardwareProfile,
@@ -140,7 +140,8 @@ describe('useHardwareProfileConfig', () => {
     );
     const state = renderResult.result.current;
 
-    expect(state.formData.selectedProfile).toBe(hardwareProfile);
+    expect(state.formData.selectedProfile).toBeUndefined();
+    expect(state.formData.useExistingSettings).toBe(true);
     expect(state.initialHardwareProfile).toBe(hardwareProfile);
   });
 
@@ -247,11 +248,12 @@ describe('useHardwareProfileConfig', () => {
     );
     const state = renderResult.result.current;
 
-    expect(state.formData.selectedProfile).toBe(hardwareProfile);
+    expect(state.formData.selectedProfile).toBeUndefined();
     expect(state.initialHardwareProfile).toBe(hardwareProfile);
-    expect(state.formData.useExistingSettings).toBe(false);
+    expect(state.formData.useExistingSettings).toBe(true);
 
-    // Resources should be merged: existing CPU/Memory preserved, new GPU added with default value
+    // Resources should be merged: existing CPU/Memory preserved, new GPU added with defaults
+    // Limits use maxCount from the HWP identifier (matching platform webhook behavior)
     expect(state.formData.resources).toEqual({
       requests: {
         cpu: '2',
@@ -261,7 +263,7 @@ describe('useHardwareProfileConfig', () => {
       limits: {
         cpu: '2',
         memory: '4Gi',
-        'nvidia.com/gpu': 1,
+        'nvidia.com/gpu': 2,
       },
     });
   });
@@ -344,7 +346,8 @@ describe('useHardwareProfileConfig', () => {
     );
     const state = renderResult.result.current;
 
-    expect(state.formData.selectedProfile).toBe(profile);
+    expect(state.formData.selectedProfile).toBeUndefined();
+    expect(state.formData.useExistingSettings).toBe(true);
     expect(state.formData.resources).toEqual({
       requests: { cpu: '2', memory: '4Gi' },
       limits: { cpu: '2', memory: '4Gi' },
@@ -402,7 +405,7 @@ describe('useHardwareProfileConfig', () => {
 
     expect(state.formData.resources).toEqual({
       requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
-      limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
+      limits: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 4 },
     });
   });
 
@@ -578,10 +581,10 @@ describe('useHardwareProfileConfig', () => {
     );
     const state = renderResult.result.current;
 
-    // Customizations preserved, GPU added with default
+    // Customizations preserved, GPU added with default request and max limit
     expect(state.formData.resources).toEqual({
       requests: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 1 },
-      limits: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 1 },
+      limits: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 4 },
     });
   });
 
@@ -707,5 +710,174 @@ describe('useHardwareProfileConfig', () => {
       requests: { cpu: '4', memory: '8Gi' },
       limits: { cpu: '4', memory: '8Gi' },
     });
+  });
+
+  it('should set limits to maxCount on auto-selected profile for new deployments', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'max-limit-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '8',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '16Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
+
+    const renderResult = testHook(useHardwareProfileConfig)();
+    const state = renderResult.result.current;
+
+    expect(state.formData.selectedProfile).toBe(hardwareProfile);
+    expect(state.formData.resources).toEqual({
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '8', memory: '16Gi' },
+    });
+  });
+
+  it('should set GPU limits to maxCount on auto-selected profile', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'gpu-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '8Gi',
+          defaultCount: '4Gi',
+        },
+        {
+          displayName: 'GPU',
+          identifier: 'nvidia.com/gpu',
+          minCount: 0,
+          maxCount: 4,
+          defaultCount: 1,
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
+
+    const renderResult = testHook(useHardwareProfileConfig)();
+    const state = renderResult.result.current;
+
+    expect(state.formData.resources).toEqual({
+      requests: { cpu: '2', memory: '4Gi', 'nvidia.com/gpu': 1 },
+      limits: { cpu: '4', memory: '8Gi', 'nvidia.com/gpu': 4 },
+    });
+  });
+
+  it('should preserve customized resources that differ from profile defaults on edit', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'edit-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '8',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '16Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
+
+    const customizedResources = {
+      requests: { cpu: '6', memory: '12Gi' },
+      limits: { cpu: '6', memory: '12Gi' },
+    };
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'edit-profile',
+      customizedResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      hardwareProfile.metadata.namespace,
+    );
+    const state = renderResult.result.current;
+
+    expect(state.formData.selectedProfile).toBeUndefined();
+    expect(state.formData.useExistingSettings).toBe(true);
+    expect(state.initialHardwareProfile).toBe(hardwareProfile);
+    expect(state.formData.resources).toEqual(customizedResources);
+  });
+
+  it('should select hardware profile when edit resources match profile defaults', () => {
+    const hardwareProfile = mockHardwareProfile({
+      name: 'default-match-profile',
+      identifiers: [
+        {
+          displayName: 'CPU',
+          identifier: 'cpu',
+          minCount: '1',
+          maxCount: '4',
+          defaultCount: '2',
+        },
+        {
+          displayName: 'Memory',
+          identifier: 'memory',
+          minCount: '2Gi',
+          maxCount: '8Gi',
+          defaultCount: '4Gi',
+        },
+      ],
+    });
+    mockUseHardwareProfiles.mockReturnValue({
+      projectProfiles: [[], true, undefined],
+      globalProfiles: [[hardwareProfile], true, undefined],
+    });
+
+    // Resources exactly match profile defaults (requests=default, limits=max)
+    const defaultResources = {
+      requests: { cpu: '2', memory: '4Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    };
+
+    const renderResult = testHook(useHardwareProfileConfig)(
+      'default-match-profile',
+      defaultResources,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      hardwareProfile.metadata.namespace,
+    );
+    const state = renderResult.result.current;
+
+    expect(state.formData.selectedProfile).toBe(hardwareProfile);
+    expect(state.formData.resources).toEqual(defaultResources);
   });
 });

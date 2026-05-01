@@ -57,7 +57,7 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
     expect(state.podSpecOptionsState).toBeDefined();
     expect(state.podSpecOptionsState.hardwareProfile).toBeDefined();
     expect(state.podSpecOptionsState.podSpecOptions).toEqual({
-      resources: { requests: {}, limits: {} }, // Default empty resources from formData
+      resources: undefined, // skipped when useExistingSettings is false without a selected profile
       tolerations: undefined,
       nodeSelector: undefined,
       selectedHardwareProfile: undefined,
@@ -285,10 +285,7 @@ const createSharedTests = <T extends K8sResourceCommon>(config: TestConfig<T>) =
     const renderResult = testHook(useAssignHardwareProfile)(resource, mockOptions);
     const { applyToResource, podSpecOptionsState } = renderResult.result.current;
 
-    expect(podSpecOptionsState.podSpecOptions.resources).toEqual({
-      requests: { cpu: '10', memory: '20Gi' },
-      limits: { cpu: '10', memory: '20Gi' },
-    });
+    expect(podSpecOptionsState.podSpecOptions.resources).toBeUndefined();
 
     const updatedResource = applyToResource(resource);
     expect(
