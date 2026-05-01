@@ -593,14 +593,13 @@ describe('Pipelines', () => {
 
       pipelinesGlobal.visit(projectName);
 
-      cy.interceptK8sList(DataSciencePipelineApplicationModel, mockK8sResourceList([]));
-
       pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
       deleteModal.shouldBeOpen();
       deleteModal.findInput().type('Test Project pipeline server');
       deleteModal.findSubmitButton().click();
 
       cy.wait('@deleteDSPA');
+      initIntercepts({ isEmpty: true });
       pipelinesGlobal.visit(projectName);
       pipelinesGlobal.findEmptyState().should('exist');
     });
@@ -979,6 +978,9 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
+
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
 
@@ -1000,6 +1002,9 @@ describe('Pipelines', () => {
   it('fails to import a v1 pipeline', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
+
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
 
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
