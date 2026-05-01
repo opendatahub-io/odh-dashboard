@@ -1,6 +1,8 @@
 import React from 'react';
 import {
   Button,
+  Flex,
+  FlexItem,
   FormGroup,
   FormHelperText,
   HelperText,
@@ -36,7 +38,6 @@ type NIMApiKeyModalProps = {
   refresh: () => void;
   startRevalidation: () => void;
   accountStatus: NIMAccountStatus;
-  accountErrors: string[];
 };
 
 const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
@@ -47,7 +48,6 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   refresh,
   startRevalidation,
   accountStatus,
-  accountErrors,
 }) => {
   const [apiKey, setApiKey] = React.useState('');
   const [showKey, setShowKey] = React.useState(false);
@@ -104,9 +104,6 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const isValidating = modalState === ModalState.VALIDATING;
   const isCreating = modalState === ModalState.CREATING;
   const hasError = modalState === ModalState.ERROR || !!createError;
-  const errorMessage =
-    createError ||
-    (accountErrors.length > 0 ? accountErrors.join('; ') : 'API key failed validation.');
 
   if (modalState === ModalState.SUCCESS) {
     return (
@@ -124,11 +121,15 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
           },
         ]}
         contents={
-          <HelperText>
-            <HelperTextItem icon={<CheckCircleIcon />} variant="success">
-              Your NVIDIA personal API key has been validated and saved.
-            </HelperTextItem>
-          </HelperText>
+          <Flex
+            spaceItems={{ default: 'spaceItemsSm' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <CheckCircleIcon color="var(--pf-t--global--color--status--success--default)" />
+            </FlexItem>
+            <FlexItem>Your NVIDIA personal API key has been validated and saved.</FlexItem>
+          </Flex>
         }
       />
     );
@@ -185,7 +186,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
             <HelperText>
               {hasError ? (
                 <HelperTextItem icon={<ExclamationCircleIcon />} variant="error">
-                  {errorMessage}
+                  Invalid API key. Verify your key and try again.
                 </HelperTextItem>
               ) : (
                 <HelperTextItem>This key is given to you by NVIDIA</HelperTextItem>
