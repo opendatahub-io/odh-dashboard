@@ -68,9 +68,17 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   // Keep selectedVectorStoreId in sync with the active knowledge mode:
   // - inline: always the auto-provisioned store ID
-  // - external: cleared to null so the user must pick via the selector
+  // - external: cleared to null only when transitioning FROM inline, not on remount
+  //   (remount occurs when entering compare mode; we must not clobber the user's existing selection)
+  const prevKnowledgeModeRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    updateSelectedVectorStoreId(configId, knowledgeMode === 'inline' ? currentVectorStoreId : null);
+    if (knowledgeMode === 'inline') {
+      updateSelectedVectorStoreId(configId, currentVectorStoreId);
+    } else if (prevKnowledgeModeRef.current === 'inline') {
+      // Only clear when the user explicitly switches from inline → external
+      updateSelectedVectorStoreId(configId, null);
+    }
+    prevKnowledgeModeRef.current = knowledgeMode;
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
 
   // Prompt state from store (for analytics)
