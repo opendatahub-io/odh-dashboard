@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'packages/model-registry/**'
+      - '.github/workflows/model-registry-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - 'packages/model-registry/**'
+      - '.github/workflows/model-registry-frontend-tests.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -30,21 +34,20 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Cache npm dependencies
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
+      - name: model-registry node_modules cache
         uses: actions/cache@v4
         with:
-          path: |
-            **/node_modules
-            ~/.npm
-            ~/.cache/Cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/model-registry/upstream/frontend/package-lock.json') }}
+          path: packages/model-registry/upstream/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-model-registry-
 
-      - name: Install root level dependencies
-        run: npm install
-
-      - name: Install dependencies
+      - name: Install model-registry dependencies
         working-directory: packages/model-registry/upstream/frontend
         run: npm install
 

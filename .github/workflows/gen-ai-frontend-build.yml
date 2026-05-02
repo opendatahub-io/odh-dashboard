@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'packages/gen-ai/**'
+      - '.github/workflows/gen-ai-frontend-build.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -11,6 +13,8 @@ on:
   pull_request:
     paths:
       - 'packages/gen-ai/**'
+      - '.github/workflows/gen-ai-frontend-build.yml'
+      - '.github/actions/module-caches/**'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
@@ -34,21 +38,20 @@ jobs:
           go-version-file: 'packages/gen-ai/bff/go.mod'
           cache-dependency-path: 'packages/gen-ai/bff/go.sum'
 
-      - name: Cache npm dependencies
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-cypress: 'true'
+      - name: gen-ai node_modules cache
         uses: actions/cache@v4
         with:
-          path: |
-            **/node_modules
-            ~/.npm
-            ~/.cache/Cypress
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-${{ hashFiles('package-lock.json', 'packages/gen-ai/frontend/package-lock.json') }}
+          path: packages/gen-ai/frontend/node_modules
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-npm-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-gen-ai-
 
-      - name: Install root level dependencies
-        run: npm install
-
-      - name: Install dependencies
+      - name: Install gen-ai dependencies
         working-directory: packages/gen-ai/frontend
         run: npm install
 

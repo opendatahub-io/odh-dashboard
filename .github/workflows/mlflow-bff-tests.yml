@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - 'packages/mlflow/**'
-      - '.github/workflows/**'
+      - '.github/workflows/mlflow-bff-tests.yml'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'

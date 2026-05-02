@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - "packages/automl/**"
-      - ".github/workflows/**"
+      - ".github/workflows/automl-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
