@@ -9,6 +9,9 @@ inputs:
   include-modules:
     required: false
     default: 'false'
+  force-install:
+    required: false
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -36,7 +39,7 @@ runs:
           ${{ runner.os }}-cypress-bin-
 
     - name: Install root dependencies
-      if: steps.root-cache.outputs.cache-hit != 'true'
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm install
 
@@ -50,7 +53,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-
 
     - name: Install automl dependencies
-      if: inputs.include-modules == 'true' && steps.automl-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.automl-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/automl/frontend
 
@@ -64,7 +67,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-
 
     - name: Install autorag dependencies
-      if: inputs.include-modules == 'true' && steps.autorag-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.autorag-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/autorag/frontend
 
@@ -78,7 +81,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-
 
     - name: Install eval-hub dependencies
-      if: inputs.include-modules == 'true' && steps.eval-hub-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.eval-hub-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/eval-hub/frontend
 
@@ -92,7 +95,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-
 
     - name: Install gen-ai dependencies
-      if: inputs.include-modules == 'true' && steps.gen-ai-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.gen-ai-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/gen-ai/frontend
 
@@ -106,7 +109,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-
 
     - name: Install maas dependencies
-      if: inputs.include-modules == 'true' && steps.maas-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.maas-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/maas/frontend
 
@@ -120,7 +123,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-
 
     - name: Install mlflow dependencies
-      if: inputs.include-modules == 'true' && steps.mlflow-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.mlflow-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/mlflow/frontend
 
@@ -134,7 +137,7 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-
 
     - name: Install model-registry dependencies
-      if: inputs.include-modules == 'true' && steps.model-registry-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.model-registry-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/model-registry/upstream/frontend
 
@@ -148,6 +151,6 @@ runs:
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-
 
     - name: Install notebooks dependencies
-      if: inputs.include-modules == 'true' && steps.notebooks-cache.outputs.cache-hit != 'true'
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.notebooks-cache.outputs.cache-hit != 'true')
       shell: bash
       run: npm install --prefix packages/notebooks/upstream/workspaces/frontend

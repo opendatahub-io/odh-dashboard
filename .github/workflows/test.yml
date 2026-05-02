@@ -17,16 +17,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Validate all package-lock.json files
         run: ./scripts/check-package-lock.sh --all
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Module caches
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
           include-cypress: 'true'
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          force-install: 'true'
 
       - name: Validate module federation ports
         run: npm run validate:ports
@@ -47,7 +48,6 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
@@ -97,7 +97,6 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
