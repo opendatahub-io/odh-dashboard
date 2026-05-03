@@ -264,8 +264,8 @@ github.com/openai/openai-go/v2 v2.7.1 h1:/tfvTJhfv7hTSL8mWwc5VL4WLLSDL5yn9VqVykd
 github.com/openai/openai-go/v2 v2.7.1/go.mod h1:jrJs23apqJKKbT+pqtFgNKpRju/KP9zpUTZhz3GElQE=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
-github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260122200903-ebb5f0ad6d07 h1:gvgOxDyJP8vD6x4X9wxjzzxYN4P03aYLcy5R1a6WpBc=
-github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260122200903-ebb5f0ad6d07/go.mod h1:6vZ0LLj0Zb4BRabmoQLjYM666LlBL7n7FCh4VnJKgRk=
+github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260410150631-ba8020a4fc5b h1:invmCNqnF+ShhkURzpvIKFjl5o2lP9QS2OFcVXwkHfQ=
+github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260410150631-ba8020a4fc5b/go.mod h1:KKYnoKSIEOm9Y2tOLKUplAPcgc6aKdJiMpcAkfxsxZk=
 github.com/opendatahub-io/mlflow-go v0.0.0-20260217185448-15e28bb768a5 h1:/07oJyKyXUumfMh9W5/zl6hbZdS2kU0EUOcNszToyjU=
 github.com/opendatahub-io/mlflow-go v0.0.0-20260217185448-15e28bb768a5/go.mod h1:PnE/8/k+jnNoUxKFU+tR3PRquDXTMZYQrw+9SRg0ROU=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=

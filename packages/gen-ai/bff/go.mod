@@ -1,8 +1,6 @@
 module github.com/opendatahub-io/gen-ai
 
-go 1.24.6
-
-toolchain go1.24.7
+go 1.25.8
 
 require (
 	github.com/getkin/kin-openapi v0.132.0
@@ -168,4 +166,4 @@ require (
 )
 
 // Replace the original llama-stack-k8s-operator with the Open Data Hub fork
-replace github.com/llamastack/llama-stack-k8s-operator => github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260122200903-ebb5f0ad6d07
+replace github.com/llamastack/llama-stack-k8s-operator => github.com/opendatahub-io/llama-stack-k8s-operator v0.0.0-20260410150631-ba8020a4fc5b
