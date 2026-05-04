@@ -1806,7 +1806,9 @@ const initIntercepts = ({
   pipelineStore,
 }: HandlersProps): void => {
   cy.interceptK8sList(
-    DataSciencePipelineApplicationModel,
+    isEmpty
+      ? { model: DataSciencePipelineApplicationModel, ns: projectName }
+      : DataSciencePipelineApplicationModel,
     mockK8sResourceList(
       isEmpty
         ? []
