@@ -48,6 +48,7 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
