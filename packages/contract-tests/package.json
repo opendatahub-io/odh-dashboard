@@ -28,5 +28,8 @@
   },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.18.0"
   }
 }
