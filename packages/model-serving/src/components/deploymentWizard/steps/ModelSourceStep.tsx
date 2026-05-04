@@ -8,6 +8,8 @@ import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
+import type { ExternalDataMap } from '../ExternalDataLoader';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
 // Schema
 const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
@@ -41,12 +43,19 @@ export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 type ModelSourceStepProps = {
   wizardState: UseModelDeploymentWizardState;
   validation: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
+  externalData?: ExternalDataMap;
 };
 
 export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
+  externalData,
 }) => {
+  const modelSourceFields = React.useMemo(
+    () => wizardState.fields.filter((f) => f.step === 'modelSource'),
+    [wizardState.fields],
+  );
+
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -71,6 +80,14 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
         />
+        {modelSourceFields.map((field) => (
+          <GenericFieldRenderer
+            key={field.id}
+            fieldId={field.id}
+            wizardState={wizardState}
+            externalData={externalData}
+          />
+        ))}
         <ModelTypeSelectField
           modelType={wizardState.state.modelType.data}
           setModelType={wizardState.state.modelType.setData}

@@ -29,18 +29,28 @@ export const useModelDeploymentWizardValidation = (
   fields: WizardField<unknown>[] = [],
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
-  const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
-    () => ({
-      modelType: state.modelType.data,
-      modelLocationData: state.modelLocationData.data,
-      createConnectionData: state.createConnectionData.data,
-    }),
-    [state.modelType, state.modelLocationData.data, state.createConnectionData.data],
-  );
+  const step1Fields = fields.filter((field) => field.step === 'modelSource');
+
+  const modelSourceStepValidationData: Partial<ModelSourceStepData> = {
+    modelType: state.modelType.data,
+    modelLocationData: state.modelLocationData.data,
+    createConnectionData: state.createConnectionData.data,
+    ...step1Fields.reduce<Record<string, unknown>>((acc, field) => {
+      acc[field.id] = resolveFieldValue(field, state);
+      return acc;
+    }, {}),
+  };
 
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
-    modelSourceStepSchema,
+    modelSourceStepSchema.extend(
+      step1Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+        if (field.reducerFunctions.validationSchema) {
+          acc[field.id] = field.reducerFunctions.validationSchema;
+        }
+        return acc;
+      }, {}),
+    ),
   );
 
   // Step 2: Model Deployment
