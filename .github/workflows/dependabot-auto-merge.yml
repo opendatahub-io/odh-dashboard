@@ -68,23 +68,21 @@ jobs:
 
           echo "ready=true" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
-        if: steps.checks.outputs.ready == 'true'
-
-      - name: Fetch Dependabot metadata
-        if: steps.checks.outputs.ready == 'true'
-        id: metadata
-        uses: dependabot/fetch-metadata@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Apply lgtm and approved labels for patch updates
-        if: steps.checks.outputs.ready == 'true' && steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        if: steps.checks.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
+          HAS_PATCH_LABEL=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+            --json labels --jq '[.labels[].name] | index("version-update:semver-patch") != null')
+
+          if [ "$HAS_PATCH_LABEL" != "true" ]; then
+            echo "PR #$PR_NUMBER is not a semver-patch update, skipping"
+            exit 0
+          fi
+
           gh pr edit "$PR_NUMBER" --repo "$REPO" \
             --add-label "lgtm,approved"
 
@@ -95,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Find open Dependabot PRs missing labels
+      - name: Find patch-level Dependabot PRs missing merge labels
         id: prs
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,7 +101,7 @@ jobs:
         run: |
           NUMBERS=$(gh pr list \
             --state open \
-            --label dependencies \
+            --label version-update:semver-patch \
             --json number,author,labels \
             --jq '[.[] | select(
               .author.login == "dependabot[bot]" and
@@ -113,10 +111,7 @@ jobs:
             --repo "$REPO" | tr '\n' ' ')
           echo "numbers=$NUMBERS" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
-        if: steps.prs.outputs.numbers != ''
-
-      - name: Label ready patch PRs
+      - name: Label ready PRs
         if: steps.prs.outputs.numbers != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -134,23 +129,6 @@ jobs:
 
             if [ "$COMBINED" != "success" ]; then
               echo "Combined status: $COMBINED — not ready"
-              continue
-            fi
-
-            PR_TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
-              --json title --jq '.title')
-
-            if echo "$PR_TITLE" | grep -qP '\bfrom\b.*\bto\b'; then
-              FROM_VER=$(echo "$PR_TITLE" | grep -oP 'from \K[0-9]+\.[0-9]+' | head -1)
-              TO_VER=$(echo "$PR_TITLE" | grep -oP 'to \K[0-9]+\.[0-9]+' | head -1)
-
-              if [ -n "$FROM_VER" ] && [ -n "$TO_VER" ] && [ "$FROM_VER" != "$TO_VER" ]; then
-                echo "Not a patch update ($FROM_VER -> $TO_VER), skipping"
-                continue
-              fi
-            else
-              echo "Title doesn't match single-package pattern (likely a grouped PR), skipping"
-              echo "Grouped PRs are handled by the event-driven path with fetch-metadata"
               continue
             fi
 
