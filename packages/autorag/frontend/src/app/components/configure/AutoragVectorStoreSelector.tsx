@@ -43,7 +43,9 @@ const AutoragVectorStoreSelector: React.FC = () => {
     control,
   } = useFormContext<ConfigureSchema>();
 
-  const { field } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
+  const {
+    field: { value: fieldValue, onChange: fieldOnChange },
+  } = useController<ConfigureSchema, 'llama_stack_vector_io_provider_id'>({
     name: 'llama_stack_vector_io_provider_id',
   });
 
@@ -88,16 +90,16 @@ const AutoragVectorStoreSelector: React.FC = () => {
       );
     }
   }, [isLoading, isError, totalProviderCount, providers.length, notification]);
-  const selectedProvider = providers.find((p) => p.provider_id === field.value);
+  const selectedProvider = providers.find((p) => p.provider_id === fieldValue);
 
   // Clear stale selection when the provider list changes and no longer includes
   // the previously selected provider (e.g., LlamaStack secret was changed or
   // providers became empty).
   useEffect(() => {
-    if (field.value && !providers.some((p) => p.provider_id === field.value)) {
-      field.onChange('');
+    if (fieldValue && !providers.some((p) => p.provider_id === fieldValue)) {
+      fieldOnChange('');
     }
-  }, [providers, field]);
+  }, [providers, fieldValue, fieldOnChange]);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;
@@ -112,10 +114,10 @@ const AutoragVectorStoreSelector: React.FC = () => {
       onOpenChange={setIsOpen}
       onSelect={(_e, selectedProviderId) => {
         const provider = providers.find((p) => p.provider_id === selectedProviderId);
-        field.onChange(provider ? provider.provider_id : '');
+        fieldOnChange(provider ? provider.provider_id : '');
         setIsOpen(false);
       }}
-      selected={selectedProvider?.provider_id}
+      selected={fieldValue}
       toggle={(toggleRef) => (
         <MenuToggle
           ref={toggleRef}
