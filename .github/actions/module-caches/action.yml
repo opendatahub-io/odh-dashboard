@@ -28,8 +28,13 @@ runs:
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-root-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-${{ inputs.node-version }}-modules-root-
+    - name: Install root dependencies
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm install
 
     - name: Cypress binary cache
+      id: cypress-cache
       if: inputs.include-cypress == 'true'
       uses: actions/cache@v4
       with:
@@ -37,11 +42,10 @@ runs:
         key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-cypress-bin-
-
-    - name: Install root dependencies
-      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+    - name: Install Cypress binaries
+      if: inputs.include-cypress == 'true' && (inputs.force-install == 'true' || steps.cypress-cache.outputs.cache-hit != 'true')
       shell: bash
-      run: npm install
+      run: npx cypress install
 
     - name: automl node_modules cache
       id: automl-cache
@@ -51,7 +55,6 @@ runs:
         path: packages/automl/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-${{ hashFiles('packages/automl/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-
-
     - name: Install automl dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.automl-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -65,7 +68,6 @@ runs:
         path: packages/autorag/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-${{ hashFiles('packages/autorag/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-
-
     - name: Install autorag dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.autorag-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -79,7 +81,6 @@ runs:
         path: packages/eval-hub/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-${{ hashFiles('packages/eval-hub/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-
-
     - name: Install eval-hub dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.eval-hub-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -93,7 +94,6 @@ runs:
         path: packages/gen-ai/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-
-
     - name: Install gen-ai dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.gen-ai-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -107,7 +107,6 @@ runs:
         path: packages/maas/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-${{ hashFiles('packages/maas/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-
-
     - name: Install maas dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.maas-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -121,7 +120,6 @@ runs:
         path: packages/mlflow/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-${{ hashFiles('packages/mlflow/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-
-
     - name: Install mlflow dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.mlflow-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -135,7 +133,6 @@ runs:
         path: packages/model-registry/upstream/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-
-
     - name: Install model-registry dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.model-registry-cache.outputs.cache-hit != 'true')
       shell: bash
@@ -149,7 +146,6 @@ runs:
         path: packages/notebooks/upstream/workspaces/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-${{ hashFiles('packages/notebooks/upstream/workspaces/frontend/package-lock.json') }}
         restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-
-
     - name: Install notebooks dependencies
       if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.notebooks-cache.outputs.cache-hit != 'true')
       shell: bash
