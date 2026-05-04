@@ -4,7 +4,7 @@ import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
-import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import {
   fetchNIMModelNames,
@@ -13,28 +13,43 @@ import {
   type ModelInfo,
 } from '../utils/nimModels';
 
+// --- Dependencies ---
+
+export type NIMImageDependencies = {
+  project: ProjectSectionType;
+};
+
 // --- External data hook ---
 
 export type NIMImagesData = {
   modelInfos: ModelInfo[];
 };
 
-export const useNIMImages = (): {
+export const useNIMImages = (
+  dependencies?: NIMImageDependencies,
+): {
   data: NIMImagesData;
   loaded: boolean;
   loadError?: Error;
 } => {
-  const { dashboardNamespace } = useDashboardNamespace();
+  const project = dependencies?.project;
+  const projectName = project?.projectName;
   const [modelInfos, setModelInfos] = React.useState<ModelInfo[]>([]);
   const [loaded, setLoaded] = React.useState(false);
   const [loadError, setLoadError] = React.useState<Error | undefined>();
 
   React.useEffect(() => {
+    if (!projectName) {
+      setModelInfos([]);
+      setLoaded(true);
+      return undefined;
+    }
+
     let cancelled = false;
     setLoaded(false);
     setLoadError(undefined);
 
-    fetchNIMModelNames(dashboardNamespace)
+    fetchNIMModelNames(projectName)
       .then((infos) => {
         if (!cancelled) {
           setModelInfos(infos);
@@ -51,7 +66,7 @@ export const useNIMImages = (): {
     return () => {
       cancelled = true;
     };
-  }, [dashboardNamespace]);
+  }, [projectName]);
 
   return React.useMemo(
     () => ({
@@ -207,7 +222,11 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
 // --- Field definition ---
 
-export type NIMImageFieldType = WizardField<NIMImageFieldValue, NIMImagesData>;
+export type NIMImageFieldType = WizardField<
+  NIMImageFieldValue,
+  NIMImagesData,
+  NIMImageDependencies
+>;
 
 export const NIMImageFieldWizardField: NIMImageFieldType = {
   id: 'nim-serving/nimImage',
@@ -219,6 +238,7 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
     getInitialFieldData: (existingFieldData?: NIMImageFieldValue): NIMImageFieldValue =>
       existingFieldData ?? { imageName: '' },
     validationSchema: nimImageFieldSchema,
+    resolveDependencies: (formData) => ({ project: formData.project }),
   },
   component: NIMImageFieldComponent,
   externalDataHook: useNIMImages,
