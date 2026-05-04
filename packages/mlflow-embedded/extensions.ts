@@ -12,7 +12,20 @@ import {
   promptManagementPath,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 // eslint-disable-next-line no-restricted-syntax
+import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
+// eslint-disable-next-line no-restricted-syntax
+import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+// eslint-disable-next-line no-restricted-syntax
+import navClickHandlers from '@odh-dashboard/internal/concepts/analyticsTracking/navClickHandlers';
+// eslint-disable-next-line no-restricted-syntax
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
+
+navClickHandlers.set('experiments-mlflow', () => {
+  fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
+    from: window.location.pathname,
+    section: 'sidebar-nav',
+  });
+});
 
 /**
  * MLflow host-side extensions.

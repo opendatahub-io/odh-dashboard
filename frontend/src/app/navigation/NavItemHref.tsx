@@ -5,6 +5,7 @@ import type {
   HrefNavItemExtension,
   StatusReport,
 } from '@odh-dashboard/plugin-core/extension-points';
+import navClickHandlers from '#~/concepts/analyticsTracking/navClickHandlers';
 import { StatusReportLoader } from '#~/app/status-provider/StatusReportLoader';
 import { StatusReportIcon } from '#~/app/status-provider/StatusReportIcon';
 import { NavItemTitle } from './NavItemTitle';
@@ -17,7 +18,7 @@ type Props = {
 
 export const NavItemHref: React.FC<Props> = ({
   extension: {
-    properties: { href, path, dataAttributes, title, statusProviderId, iconRef, label },
+    properties: { href, path, dataAttributes, title, statusProviderId, iconRef, label, id },
   },
   onNotifyStatus,
 }) => {
@@ -33,9 +34,13 @@ export const NavItemHref: React.FC<Props> = ({
     [],
   );
 
+  const handleClick = React.useCallback(() => {
+    navClickHandlers.get(id)?.();
+  }, [id]);
+
   return (
     <>
-      <NavItem isActive={isMatch}>
+      <NavItem isActive={isMatch} onClick={handleClick}>
         <Link {...dataAttributes} to={href}>
           <NavItemTitle
             title={title}
