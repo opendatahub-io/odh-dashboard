@@ -44,13 +44,6 @@ const getGatewayExternalUrlFromLlmInferenceService = (doc: unknown): string => {
   return httpsUrl ?? candidates[0];
 };
 
-const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
-if (!applicationNamespace) {
-  throw new Error(
-    'APPLICATIONS_NAMESPACE environment variable is required. Set CYPRESS_APPLICATIONS_NAMESPACE or add it to test-variables.',
-  );
-}
-
 export const cleanupSubscription = (
   subscriptionName: string,
   namespace: string,
@@ -69,6 +62,80 @@ export const cleanupAuthPolicy = (
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
 
+const ocGetIndicatesResourceNotFound = (result: Cypress.Exec): boolean => {
+  const combined = `${result.stderr}\n${result.stdout}`;
+  return /not found/i.test(combined) || /\bNotFound\b/.test(combined);
+};
+
+export type CheckMaaSSubscriptionOptions = {
+  expectDeleted?: boolean;
+};
+
+/**
+ * Verifies `MaaSSubscription` on the cluster (same idea as `checkLLMInferenceServiceConfigState`):
+ * - `expectDeleted`: `oc get` fails with NotFound.
+ */
+export const checkMaaSSubscriptionState = (
+  subscriptionName: string,
+  namespace = 'models-as-a-service',
+  options: CheckMaaSSubscriptionOptions = {},
+): Cypress.Chainable<CommandLineResult> => {
+  const ocCommand = `oc get MaaSSubscription ${subscriptionName} -n ${namespace} -o json`;
+
+  if (options.expectDeleted === true) {
+    cy.log(`Checking MaaSSubscription is absent: ${subscriptionName} in namespace ${namespace}`);
+    return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
+      if (result.code !== 0 && ocGetIndicatesResourceNotFound(result)) {
+        cy.log(`✅ MaaSSubscription ${subscriptionName} is absent from namespace ${namespace}`);
+        return cy.wrap(result);
+      }
+      if (result.code === 0) {
+        throw new Error(
+          `MaaSSubscription ${subscriptionName} still exists in namespace ${namespace}`,
+        );
+      }
+      throw new Error(
+        `Unexpected oc error while verifying MaaSSubscription deletion: ${result.stderr}`,
+      );
+    });
+  }
+
+  cy.log(`Checking MaaSSubscription exists: ${subscriptionName} in namespace ${namespace}`);
+  return cy.exec(ocCommand, { failOnNonZeroExit: true }).then((result) => {
+    let doc: unknown;
+    try {
+      doc = JSON.parse(result.stdout);
+    } catch {
+      throw new Error(
+        `Failed to parse MaaSSubscription JSON for ${subscriptionName}: ${result.stdout}`,
+      );
+    }
+
+    if (!isRecord(doc)) {
+      throw new Error('Invalid MaaSSubscription JSON');
+    }
+    const { metadata } = doc;
+    if (!isRecord(metadata)) {
+      throw new Error('MaaSSubscription metadata missing');
+    }
+
+    expect(doc.kind).to.equal('MaaSSubscription');
+    expect(metadata.name).to.equal(subscriptionName);
+
+    cy.log(`✅ MaaSSubscription ${subscriptionName} exists in namespace ${namespace}`);
+    return cy.wrap(result);
+  });
+};
+
+export const MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS = 24;
+
+const MAAS_COMPLETIONS_DEFAULT_RETRY_INTERVAL_MS = 5000;
+
+export type VerifyMaaSModelInferencingOptions = {
+  maxAttempts?: number;
+  retryIntervalMs?: number;
+};
+
 /**
  * Verify the model is accessible with a token via the MaaS completions API (same shape as):
  * `curl -k {gateway-external-base}/v1/completions -H "Content-Type: application/json"
@@ -78,16 +145,25 @@ export const cleanupAuthPolicy = (
  * Uses `strictSSL: false` on the request so self-signed cluster ingress TLS matches `curl -k`.
  * Uses an extended `cy.request` timeout because completions can run longer than the default 30s.
  *
+ * Retries the POST when the gateway returns transient statuses (like 400/429/502/503/504), up to `maxAttempts`,
+ * with `retryIntervalMs` between attempts (same polling pattern as other `maxAttempts` utilities in `oc_commands`).
+ *
  * @param llmInferenceServiceName `metadata.name` of the LLMInferenceService (JSON `model` field, same as curl).
  * @param namespace Namespace of the LLMInferenceService.
  * @param apiKey The API key to use for the request.
+ * @param options Optional retry budget; defaults are {@link MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS} attempts and 5000ms between attempts.
  * @returns Cypress.Chainable whose `url` is the full completions URL used for the POST.
  */
 export const verifyMaaSModelInferencing = (
   llmInferenceServiceName: string,
   namespace: string,
   apiKey: string,
+  options: VerifyMaaSModelInferencingOptions = {},
 ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
+  const maxAttempts = options.maxAttempts ?? MAAS_COMPLETIONS_DEFAULT_MAX_ATTEMPTS;
+  const retryIntervalMs = options.retryIntervalMs ?? MAAS_COMPLETIONS_DEFAULT_RETRY_INTERVAL_MS;
+  const approximateRetryWindowSec = (maxAttempts * retryIntervalMs) / 1000;
+
   const sanitizedName = llmInferenceServiceName.replace(/[^a-zA-Z0-9_-]/g, '');
   const sanitizedNamespace = namespace.replace(/[^a-zA-Z0-9_-]/g, '');
   const ocCommand = `oc get LLMInferenceService ${sanitizedName} -n ${sanitizedNamespace} -o json`;
@@ -105,6 +181,10 @@ export const verifyMaaSModelInferencing = (
     const baseUrl = getGatewayExternalUrlFromLlmInferenceService(doc).replace(/\/$/, '');
     const url = `${baseUrl}/v1/completions`;
 
+    cy.step(
+      `MaaS completions POST with retries (max ${maxAttempts} attempts, ~${approximateRetryWindowSec}s backoff window)`,
+    );
+
     const maxTokensField = 'max_tokens';
     const requestBody: Record<string, string | number> = {
       model: llmInferenceServiceName,
@@ -114,9 +194,7 @@ export const verifyMaaSModelInferencing = (
     requestBody[maxTokensField] = 256;
 
     const makeRequest = (
-      attemptNumber = 1,
-      maxAttempts = 7,
-      waitTime = 5000,
+      attemptNumber: number,
     ): Cypress.Chainable<{ url: string; response: Cypress.Response<unknown> }> => {
       cy.log(`Request attempt ${attemptNumber} of ${maxAttempts}`);
       cy.log(`Request URL: ${url}`);
@@ -154,11 +232,12 @@ export const verifyMaaSModelInferencing = (
           attemptNumber < maxAttempts
         ) {
           cy.log(
-            `Service not ready (${response.status}), retrying in ${waitTime / 1000} seconds...`,
+            `Transient completions response (${response.status}), retrying in ${
+              retryIntervalMs / 1000
+            } seconds...`,
           );
-          return cy
-            .wait(waitTime)
-            .then(() => makeRequest(attemptNumber + 1, maxAttempts, waitTime));
+          // eslint-disable-next-line cypress/no-unnecessary-waiting -- backoff between inference POST retries
+          return cy.wait(retryIntervalMs).then(() => makeRequest(attemptNumber + 1));
         }
 
         if (attemptNumber >= maxAttempts) {
@@ -170,6 +249,6 @@ export const verifyMaaSModelInferencing = (
       });
     };
 
-    return makeRequest();
+    return makeRequest(1);
   });
 };

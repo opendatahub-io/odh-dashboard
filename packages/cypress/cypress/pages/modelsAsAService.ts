@@ -445,6 +445,10 @@ class APIKeysPage {
   findUsernameFilterTooltip(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('username-filter-tooltip');
   }
+
+  findRevokeActionsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(rowName).findKebabAction('Revoke');
+  }
 }
 
 class APIKeyTableRow extends TableRow {
@@ -698,6 +702,7 @@ class SubscriptionsPage {
   reload(): void {
     cy.reload();
     this.wait();
+    this.findTable().should('exist');
   }
 
   private wait(): void {
@@ -745,6 +750,18 @@ class SubscriptionsPage {
 
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state-title');
+  }
+
+  findViewDetailsButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(rowName).findKebabAction('View details');
+  }
+
+  findEditButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(rowName).findKebabAction('Edit');
+  }
+
+  findDeleteButton(rowName: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.getRow(rowName).findKebabAction('Delete');
   }
 }
 
@@ -833,6 +850,12 @@ class CreateSubscriptionPage {
   typeCustomGroup(name: string): void {
     this.findGroupsSelect().find('input').type(name);
     cy.findByRole('option', { name: `Add group "${name}"` }).click();
+    this.findGroupsSelect().click();
+  }
+
+  selectCustomGroup(name: string): void {
+    this.findGroupsSelect().find('input').type(name);
+    cy.findByTestId(`select-multi-typeahead-${name}`).click();
     this.findGroupsSelect().click();
   }
 
