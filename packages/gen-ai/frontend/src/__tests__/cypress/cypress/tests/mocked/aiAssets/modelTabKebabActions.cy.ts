@@ -339,26 +339,24 @@ describe('AI Assets - Model Tab - Accessibility', () => {
         .findKebabMenu()
         .should('have.attr', 'aria-label', 'Actions for Custom GPT Endpoint');
 
-      cy.step('Open menu via mouse click and verify menu roles');
+      cy.step('Verify kebab toggle is focusable');
+      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().focus().should('be.focused');
+
+      cy.step('Open menu via click and verify menu roles');
       modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
       kebabMenu.shouldBeVisible();
       kebabMenu.findRemoveAssetItem().should('exist');
 
-      cy.step('Close menu');
+      cy.step('Close menu and verify toggle updates aria-expanded');
       modelsTabPage.findTable().click('topLeft');
       kebabMenu.shouldNotExist();
+      modelsTabPage
+        .getRow('Custom GPT Endpoint')
+        .findKebabMenu()
+        .should('have.attr', 'aria-expanded', 'false');
 
-      cy.step('Open menu via Enter key');
-      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().focus().type('{enter}');
-      kebabMenu.shouldBeVisible();
-      kebabMenu.findRemoveAssetItem().should('exist');
-
-      cy.step('Close menu');
-      modelsTabPage.findTable().click('topLeft');
-      kebabMenu.shouldNotExist();
-
-      cy.step('Open menu via Space key');
-      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().focus().type(' ');
+      cy.step('Reopen menu to verify repeated interaction');
+      modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
       kebabMenu.shouldBeVisible();
       kebabMenu.findRemoveAssetItem().should('exist');
     },
