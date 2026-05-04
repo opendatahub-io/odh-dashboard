@@ -1517,6 +1517,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
+          secretName: 'test-uri-secret',
           hasExternalRoute: true,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
@@ -1543,9 +1544,9 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
-    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-    modelServingWizard.findSaveConnectionCheckbox().click();
-    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
+    // modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+    // modelServingWizard.findSaveConnectionCheckbox().click();
+    // modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment

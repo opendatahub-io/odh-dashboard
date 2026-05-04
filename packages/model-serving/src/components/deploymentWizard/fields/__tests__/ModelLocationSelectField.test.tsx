@@ -421,6 +421,19 @@ describe('ModelLocationSelectField', () => {
     const mockSetModelLocationData = jest.fn();
     const mockWizardState: UseModelDeploymentWizardState = {
       fields: [],
+      state: {
+        createConnectionData: {
+          data: {},
+          setData: jest.fn(),
+        },
+        project: {
+          projectName: undefined,
+        },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+      },
     } as unknown as UseModelDeploymentWizardState;
     beforeEach(() => {
       jest.clearAllMocks();
