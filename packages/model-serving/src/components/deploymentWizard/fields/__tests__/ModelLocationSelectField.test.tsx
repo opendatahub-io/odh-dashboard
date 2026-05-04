@@ -12,6 +12,7 @@ import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8s
 import { ModelLocationData, ModelLocationType } from '../../types';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
+import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 
 const modelLocationSchema = z.object({
   modelLocationData: z.custom<ModelLocationData>((val) => {
@@ -418,12 +419,16 @@ describe('ModelLocationSelectField', () => {
   });
   describe('Component', () => {
     const mockSetModelLocationData = jest.fn();
+    const mockWizardState: UseModelDeploymentWizardState = {
+      fields: [],
+    } as unknown as UseModelDeploymentWizardState;
     beforeEach(() => {
       jest.clearAllMocks();
     });
     it('should render with default props', () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -438,6 +443,7 @@ describe('ModelLocationSelectField', () => {
     it('should render with selected value', () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -469,6 +475,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid location type selection', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -512,6 +519,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid URI location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -544,6 +552,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid S3 location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -587,6 +596,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid OCI location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -622,6 +632,7 @@ describe('ModelLocationSelectField', () => {
     it('should render the custom type select and fields and call setModelLocationData', async () => {
       const { rerender } = render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -670,6 +681,7 @@ describe('ModelLocationSelectField', () => {
       const newData = mockSetModelLocationData.mock.calls.slice(-1)[0][0];
       rerender(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -697,6 +709,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.length = 0;
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -735,6 +748,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.push(mockGeneratedURIConnection);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -793,6 +807,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.push(mockOtherConnection);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -818,6 +833,7 @@ describe('ModelLocationSelectField', () => {
       mockPvcs.push(mockPVC);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -836,6 +852,7 @@ describe('ModelLocationSelectField', () => {
       mockPvcs.length = 0;
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}

@@ -18,14 +18,18 @@ import {
 import {
   ModelServingCompatibleTypes,
   isModelServingCompatible,
-  filterEnabledConnectionTypes,
   getModelServingCompatibility,
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { useWatchConnectionTypes } from '@odh-dashboard/internal/utilities/useWatchConnectionTypes';
 import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
 import { ModelLocationInputFields } from './ModelLocationInputFields';
+import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
+import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { ModelLocationData, ModelLocationType } from '../types';
+import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 // Schema
 export const modelLocationSelectFieldSchema = z.enum(
@@ -69,6 +73,7 @@ const uriOption = {
 };
 
 type ModelLocationSelectFieldProps = {
+  wizardState: UseModelDeploymentWizardState;
   modelLocation?: ModelLocationData['type'];
   validationProps?: FieldValidationProps;
   validationIssues?: ZodIssue[];
@@ -81,6 +86,7 @@ type ModelLocationSelectFieldProps = {
   pvcs: PersistentVolumeClaimKind[];
 };
 export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> = ({
+  wizardState,
   modelLocation,
   validationProps,
   validationIssues = [],
@@ -92,34 +98,13 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   selectedConnection,
   pvcs,
 }) => {
+  const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
+
   const [modelServingConnectionTypes] = useWatchConnectionTypes(true);
-
   // Filtered types for the dropdown so only enabled types are shown
-  const filteredModelServingConnectionTypes = React.useMemo(() => {
-    return filterEnabledConnectionTypes(modelServingConnectionTypes);
-  }, [modelServingConnectionTypes]);
+  const { s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes } =
+    useEnabledModelServingConnectionTypes(modelServingConnectionTypes);
 
-  const uriConnectionTypes = React.useMemo(
-    () =>
-      filteredModelServingConnectionTypes.filter((t) =>
-        isModelServingCompatible(t, ModelServingCompatibleTypes.URI),
-      ),
-    [filteredModelServingConnectionTypes],
-  );
-  const ociConnectionTypes = React.useMemo(
-    () =>
-      filteredModelServingConnectionTypes.filter((t) =>
-        isModelServingCompatible(t, ModelServingCompatibleTypes.OCI),
-      ),
-    [filteredModelServingConnectionTypes],
-  );
-  const s3ConnectionTypes = React.useMemo(
-    () =>
-      filteredModelServingConnectionTypes.filter((t) =>
-        isModelServingCompatible(t, ModelServingCompatibleTypes.S3ObjectStorage),
-      ),
-    [filteredModelServingConnectionTypes],
-  );
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
 
@@ -181,6 +166,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     [selectedKey, modelLocation],
   );
 
+  // If duplicate connection types are available, show select to pick the specific type
   React.useEffect(() => {
     if (!modelLocationData?.connectionTypeObject && !selectedKey) {
       setShowCustomTypeSelect(false);
@@ -268,6 +254,9 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     if (uriConnectionTypes.length > 0 || hasURISelected) {
       options.push({ key: uriOption.key, label: uriOption.label });
     }
+    if (isNimWizardEnabled) {
+      options.push(NIMModelLocationOption);
+    }
     return options;
   }, [
     nonGeneratedConnections.length,
@@ -276,6 +265,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
     ociConnectionTypes.length,
     uriConnectionTypes.length,
     selectedKey?.key,
+    isNimWizardEnabled,
   ]);
 
   const selectOptions = React.useMemo(() => {
@@ -396,6 +386,17 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                         });
                       }
                       break;
+                    case NIMModelLocationOption.key:
+                      setUserSelectedKey({
+                        key: NIMModelLocationOption.key,
+                        label: NIMModelLocationOption.label,
+                      });
+                      setModelLocationData({
+                        type: ModelLocationType.NIM,
+                        fieldValues: {},
+                        additionalFields: {},
+                      });
+                      break;
                   }
                 }
               }}
@@ -409,6 +410,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
           {modelLocation && (
             <StackItem>
               <ModelLocationInputFields
+                wizardState={wizardState}
                 modelLocation={modelLocation}
                 connections={connections}
                 connectionTypes={modelServingConnectionTypes}
