@@ -30,7 +30,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@AutoML', '@AutoMLCI'] },
+    { tags: ['@Smoke', '@SmokeSet4', '@AutoML', '@AutoMLCI'] },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
