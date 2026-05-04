@@ -1376,6 +1376,22 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			Name:  "VLLM_MAX_TOKENS",
 			Value: "4096",
 		},
+		{
+			Name:  "SENTENCE_TRANSFORMERS_HOME",
+			Value: "/opt/app-root/src/.cache/huggingface/hub",
+		},
+		{
+			Name:  "HF_HUB_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "TRANSFORMERS_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "HF_DATASETS_OFFLINE",
+			Value: "1",
+		},
 	}
 
 	// Add token environment variables from existing secrets

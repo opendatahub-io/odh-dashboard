@@ -1,20 +1,28 @@
 import {
   mockDashboardConfig,
+  mockDscStatus,
   mockK8sResourceList,
   mockProjectK8sResource,
 } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import {
   mockMcpDeployment,
   mockMcpDeploymentList,
 } from '@odh-dashboard/model-registry/mocks/mockMcpDeployment';
 import { mcpDeploymentsPage } from '../../../pages/mcpDeployments';
+import { asProductAdminUser } from '../../../utils/mockUsers';
 import { ProjectModel } from '../../../utils/models';
 
 const MCP_DEPLOYMENTS_BFF = '**/model-registry/api/v1/mcp_deployments';
 const MR_API_VERSION = 'v1';
 
 const initIntercepts = () => {
+  asProductAdminUser();
+
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ mcpCatalog: true }));
+  cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
+
   cy.interceptK8sList(
     ProjectModel,
     mockK8sResourceList([
@@ -26,11 +34,11 @@ const initIntercepts = () => {
     { path: { apiVersion: MR_API_VERSION } },
     { data: { userId: 'user@example.com', clusterAdmin: true } },
   );
-  cy.interceptOdh(
-    'GET /model-registry/api/:apiVersion/namespaces',
-    { path: { apiVersion: MR_API_VERSION } },
-    { data: [{ metadata: { name: 'mcp-servers' } }] },
-  );
+
+  cy.intercept('GET', '**/model-registry/api/v1/namespaces*', {
+    body: { data: [{ name: 'mcp-servers' }] },
+  });
+
   cy.intercept('GET', `${MCP_DEPLOYMENTS_BFF}*`, {
     data: mockMcpDeploymentList({
       items: [
@@ -53,7 +61,7 @@ describe('MCP server deployment delete', () => {
       body: '',
     }).as('deleteMcpDeployment');
 
-    mcpDeploymentsPage.visit();
+    mcpDeploymentsPage.visit('mcp-servers');
 
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
     mcpDeploymentsPage.getRow('kubernetes-mcp').findKebabAction('Delete').click();
@@ -77,7 +85,7 @@ describe('MCP server deployment delete', () => {
       body: '',
     }).as('deleteMcpDeployment');
 
-    mcpDeploymentsPage.visit();
+    mcpDeploymentsPage.visit('mcp-servers');
 
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
     mcpDeploymentsPage.getRow('kubernetes-mcp').findKebabAction('Delete').click();
@@ -96,7 +104,7 @@ describe('MCP server deployment delete', () => {
       forceNetworkError: true,
     }).as('deleteMcpDeploymentFailed');
 
-    mcpDeploymentsPage.visit();
+    mcpDeploymentsPage.visit('mcp-servers');
 
     mcpDeploymentsPage.findTableRows().should('have.length', 2);
     mcpDeploymentsPage.getRow('kubernetes-mcp').findKebabAction('Delete').click();
