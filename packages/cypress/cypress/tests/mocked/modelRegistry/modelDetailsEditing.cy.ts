@@ -253,7 +253,7 @@ describe('Model version details editing (useBlocker)', () => {
       cy.contains('Second Label').parent().find('[data-testid^="remove-label-"]').click();
     });
 
-    modelVersionDetails.findSaveLabelsButton().should('exist').click();
+    modelVersionDetails.findSaveLabelsButton().should('be.visible').click();
   });
 
   it('should validate label length', () => {
@@ -290,7 +290,9 @@ describe('Model version details editing (useBlocker)', () => {
     cy.findByTestId('editable-label-group')
       .should('exist')
       .within(() => {
-        cy.get('[data-testid^="editable-label-"]').last().click();
+        cy.findAllByTestId(/^editable-label-/)
+          .last()
+          .click();
         cy.focused().type('{selectall}{backspace}Testing label{enter}');
       });
 
@@ -298,7 +300,9 @@ describe('Model version details editing (useBlocker)', () => {
     cy.findByTestId('editable-label-group')
       .should('exist')
       .within(() => {
-        cy.get('[data-testid^="editable-label-"]').last().click();
+        cy.findAllByTestId(/^editable-label-/)
+          .last()
+          .click();
         cy.focused().type('{selectall}{backspace}Testing label{enter}');
       });
 
@@ -306,14 +310,14 @@ describe('Model version details editing (useBlocker)', () => {
       .eq(0)
       .should('be.visible')
       .within(() => {
-        cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
+        cy.contains(/Testing label already exists|can't exceed 63 characters/).should('exist');
       });
 
     cy.findAllByTestId('label-error-alert')
       .eq(1)
       .should('be.visible')
       .within(() => {
-        cy.contains(/Testing label already exists|can't exceed 63 characters/g).should('exist');
+        cy.contains(/Testing label already exists|can't exceed 63 characters/).should('exist');
       });
   });
 });
