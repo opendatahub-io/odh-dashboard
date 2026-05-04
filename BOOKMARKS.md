@@ -35,6 +35,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Best Practices](docs/best-practices.md) | Coding best practices |
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
 | [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
+| [Large Tasks with AI Agents](docs/ai-agent-large-tasks.md) | Iterative AI agent loops (Ralph Loop plugin) for complex tasks |
 
 ---
 
