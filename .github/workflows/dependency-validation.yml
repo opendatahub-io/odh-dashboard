@@ -148,19 +148,22 @@ jobs:
       - name: Post bypass comment when ok-to-skip-audit is set
         if: steps.evaluate.outputs.has_new == 'true' && contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
         uses: actions/github-script@v7
+        env:
+          DIR: ${{ matrix.dir }}
+          COUNT: ${{ steps.evaluate.outputs.count }}
+          ADVISORIES: ${{ steps.evaluate.outputs.advisories }}
         with:
           script: |
             const marker = '<!-- audit-bypass-notice -->';
-            const dir = '${{ matrix.dir }}';
-            const count = '${{ steps.evaluate.outputs.count }}';
-            const advisories = `${{ steps.evaluate.outputs.advisories }}`;
-            const advisoryList = advisories.trim().split('\n').map(a => `- ${a}`).join('\n');
+            const dir = String(process.env.DIR);
+            const count = String(process.env.COUNT);
+            const advisoryList = String(process.env.ADVISORIES).trim().split('\n').map(a => '- ' + a).join('\n');
 
             const body = [
               marker,
-              `### Audit bypassed via \`ok-to-skip-audit\` label`,
+              '### Audit bypassed via `ok-to-skip-audit` label',
               '',
-              `**${count}** new production advisor${count === '1' ? 'y' : 'ies'} in \`${dir}\` not present on the base branch:`,
+              '**' + count + '** new production advisor' + (count === '1' ? 'y' : 'ies') + ' in `' + dir + '` not present on the base branch:',
               '',
               advisoryList,
               '',
