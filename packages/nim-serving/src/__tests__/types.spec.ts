@@ -3,11 +3,17 @@ import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import { isNIMDeployment, isNIMOwned } from '../types';
 
+const mockModel = {
+  apiVersion: 'apps.nvidia.com/v1alpha1',
+  kind: 'NIMService',
+  metadata: { name: 'test', namespace: 'ns' },
+};
+
 describe('isNIMDeployment', () => {
   it('should return true for a NIM deployment', () => {
     const deployment: Deployment = {
       modelServingPlatformId: 'nvidia-nim',
-      model: { metadata: { name: 'test', namespace: 'ns' } },
+      model: mockModel,
     };
     expect(isNIMDeployment(deployment)).toBe(true);
   });
@@ -15,7 +21,7 @@ describe('isNIMDeployment', () => {
   it('should return false for a KServe deployment', () => {
     const deployment: Deployment = {
       modelServingPlatformId: 'kserve',
-      model: { metadata: { name: 'test', namespace: 'ns' } },
+      model: mockModel,
     };
     expect(isNIMDeployment(deployment)).toBe(false);
   });
@@ -23,7 +29,7 @@ describe('isNIMDeployment', () => {
   it('should return false for an LLMd deployment', () => {
     const deployment: Deployment = {
       modelServingPlatformId: 'llmd-serving',
-      model: { metadata: { name: 'test', namespace: 'ns' } },
+      model: mockModel,
     };
     expect(isNIMDeployment(deployment)).toBe(false);
   });
