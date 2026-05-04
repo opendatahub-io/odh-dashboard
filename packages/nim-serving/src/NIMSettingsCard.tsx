@@ -12,6 +12,7 @@ import {
   StackItem,
   Flex,
   FlexItem,
+  Tooltip,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- project settings card needs project context
@@ -94,22 +95,26 @@ const NIMSettingsCard: React.FC = () => {
           status === NIMAccountStatus.READY) && (
           <Flex>
             <FlexItem>
-              <Button
-                variant="secondary"
-                onClick={() => setIsDeleteModalOpen(true)}
-                data-testid="nim-remove-button"
-              >
-                Remove
-              </Button>
+              <Tooltip content="Remove the NVIDIA NIM account and API key from this project">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  data-testid="nim-remove-button"
+                >
+                  Remove
+                </Button>
+              </Tooltip>
             </FlexItem>
             <FlexItem>
-              <Button
-                variant="link"
-                onClick={() => setApiKeyModalState(ApiKeyModalState.REPLACING)}
-                data-testid="nim-replace-key-button"
-              >
-                Replace key
-              </Button>
+              <Tooltip content="Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it">
+                <Button
+                  variant="link"
+                  onClick={() => setApiKeyModalState(ApiKeyModalState.REPLACING)}
+                  data-testid="nim-replace-key-button"
+                >
+                  Replace key
+                </Button>
+              </Tooltip>
             </FlexItem>
           </Flex>
         );
@@ -176,6 +181,7 @@ const NIMSettingsCard: React.FC = () => {
           deleteName="NVIDIA NIM"
           deleting={isDeleting}
           error={deleteError}
+          removeConfirmation
         >
           This will remove the NVIDIA NIM account and API key from this project.
         </DeleteModal>
