@@ -105,6 +105,8 @@ spec:
                       type: boolean
                     genAiStudio:
                       type: boolean
+                    guardrails:
+                      type: boolean
                     autorag:
                       type: boolean
                     automl:
