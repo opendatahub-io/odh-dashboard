@@ -781,7 +781,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const patternNameHeader = screen.getByTestId('pattern-name-header');
-      const sortButton = within(patternNameHeader).getByRole('button');
+      const sortButton = within(patternNameHeader).getByRole('button', { name: /Pattern name/ });
 
       fireEvent.click(sortButton);
 
@@ -801,7 +801,9 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
-      const sortButton = within(answerCorrectnessHeader).getByRole('button');
+      const sortButton = within(answerCorrectnessHeader).getByRole('button', {
+        name: /Answer correctness/,
+      });
 
       fireEvent.click(sortButton);
 
@@ -820,7 +822,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const rankHeader = screen.getByTestId('rank-header');
-      const sortButton = within(rankHeader).getByRole('button');
+      const sortButton = within(rankHeader).getByRole('button', { name: /Rank/ });
 
       // First click: descending
       fireEvent.click(sortButton);
@@ -926,7 +928,9 @@ describe('AutoragLeaderboard component', () => {
 
       // Click to sort by chunking method
       const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
-      const sortButton = within(chunkingMethodHeader).getByRole('button');
+      const sortButton = within(chunkingMethodHeader).getByRole('button', {
+        name: /Chunking method/,
+      });
       fireEvent.click(sortButton);
 
       // Table should still render without errors
@@ -1034,7 +1038,7 @@ describe('AutoragLeaderboard component', () => {
       const modelHeader = screen.getByTestId('model-name-header');
       expect(modelHeader).toBeInTheDocument();
       expect(within(modelHeader).getByText('Model names')).toBeInTheDocument();
-      expect(within(modelHeader).getByRole('button')).toBeInTheDocument();
+      expect(within(modelHeader).getByRole('button', { name: /Model names/ })).toBeInTheDocument();
     });
   });
 
