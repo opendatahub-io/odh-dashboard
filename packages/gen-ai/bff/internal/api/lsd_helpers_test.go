@@ -191,7 +191,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "max_tokens exceeds limit", "invalid_request_error", "invalid_request_error", "", http.StatusBadRequest),
 			statusCode:              http.StatusBadRequest,
 			expectedComponent:       "model",
-			expectedCode:            "invalid_parameter",
+			expectedCode:            "invalid_request_error",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "max_tokens exceeds limit",
 			expectedRetriable:       false,
@@ -241,7 +241,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", 429),
 			statusCode:              http.StatusTooManyRequests,
 			expectedComponent:       "llama_stack",
-			expectedCode:            "rate_limit",
+			expectedCode:            "rate_limit_exceeded",
 			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "model is currently overloaded",
 			expectedRetriable:       true,
@@ -251,7 +251,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "vector store 'vs_123' not found", "invalid_request_error", "resource_not_found", "", http.StatusBadRequest),
 			statusCode:              http.StatusBadRequest,
 			expectedComponent:       "rag",
-			expectedCode:            "not_found",
+			expectedCode:            "resource_not_found",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "vector store 'vs_123' not found",
 			expectedRetriable:       false,
@@ -261,7 +261,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", 400),
 			statusCode:              http.StatusBadRequest,
 			expectedComponent:       "guardrails",
-			expectedCode:            "content_blocked",
+			expectedCode:            "content_policy_violation",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "content blocked by guardrails",
 			expectedRetriable:       false,
@@ -271,7 +271,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "tool invocation failed", "tool_error", "tool_error", "github-search", 500),
 			statusCode:              http.StatusInternalServerError,
 			expectedComponent:       "mcp",
-			expectedCode:            "unreachable",
+			expectedCode:            "tool_error",
 			expectedStatusCode:      http.StatusInternalServerError,
 			expectedMessageContains: "tool invocation failed",
 			expectedRetriable:       true,
@@ -282,7 +282,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "tool not found", "invalid_request_error", "tool_not_found", "weather-api", 400),
 			statusCode:              http.StatusBadRequest,
 			expectedComponent:       "mcp",
-			expectedCode:            "unreachable",
+			expectedCode:            "tool_not_found",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "tool not found",
 			expectedRetriable:       true,
@@ -293,7 +293,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "mcp server error", "mcp_error", "mcp_error", "", 500),
 			statusCode:              http.StatusInternalServerError,
 			expectedComponent:       "mcp",
-			expectedCode:            "unreachable",
+			expectedCode:            "mcp_error",
 			expectedStatusCode:      http.StatusInternalServerError,
 			expectedMessageContains: "mcp server error",
 			expectedRetriable:       true,
@@ -303,9 +303,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			frontendErr := app.mapLlamaStackClientErrorToFrontendError(tc.lsErr, tc.statusCode)
+			frontendErr, responseStatus := app.mapLlamaStackClientErrorToFrontendError(tc.lsErr, tc.statusCode)
 
-			assert.Equal(t, tc.expectedStatusCode, frontendErr.Status)
+			assert.Equal(t, tc.expectedStatusCode, responseStatus)
 			assert.NotNil(t, frontendErr.Error)
 			assert.Equal(t, tc.expectedComponent, frontendErr.Error.Component)
 			assert.Equal(t, tc.expectedCode, frontendErr.Error.Code)

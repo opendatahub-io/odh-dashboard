@@ -43,9 +43,7 @@ type ErrorDetail struct {
 
 // FrontendErrorResponse represents the error structure expected by the Gen AI frontend
 type FrontendErrorResponse struct {
-	Status  int          `json:"status,omitempty"`
-	Error   *ErrorDetail `json:"error,omitempty"`
-	Message string       `json:"message,omitempty"`
+	Error *ErrorDetail `json:"error,omitempty"`
 }
 
 type HTTPError struct {

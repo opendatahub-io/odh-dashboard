@@ -15,12 +15,12 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(llamastackErr.Code)
 		}
 
-		frontendErr := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
+		frontendErr, responseStatus := app.mapLlamaStackClientErrorToFrontendError(llamastackErr, statusCode)
 
 		// Send frontend-compatible error response
-		if writeErr := app.WriteJSON(w, frontendErr.Status, frontendErr, nil); writeErr != nil {
+		if writeErr := app.WriteJSON(w, responseStatus, frontendErr, nil); writeErr != nil {
 			app.LogError(r, writeErr)
-			w.WriteHeader(frontendErr.Status)
+			w.WriteHeader(responseStatus)
 		}
 		return
 	}
@@ -75,7 +75,7 @@ func isRetriableError(errorCode string, statusCode int) bool {
 	}
 }
 
-func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
+func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) (*integrations.FrontendErrorResponse, int) {
 	errorCode := lsErr.ErrorCode
 	if errorCode == "" {
 		errorCode = lsErr.Code
@@ -94,7 +94,6 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	}
 
 	return &integrations.FrontendErrorResponse{
-		Status: statusCode,
 		Error: &integrations.ErrorDetail{
 			Component: component,
 			Code:      errorCode,
@@ -102,5 +101,5 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 			ToolName:  toolName,
 			Retriable: retriable,
 		},
-	}
+	}, statusCode
 }

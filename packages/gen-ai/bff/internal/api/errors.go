@@ -36,7 +36,6 @@ func (app *App) LogError(r *http.Request, err error) {
 
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusBadRequest,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "bad_request",
@@ -44,7 +43,7 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusBadRequest, frontendError)
 }
 
 func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
@@ -60,7 +59,6 @@ func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Reques
 
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusUnauthorized,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "unauthorized",
@@ -68,7 +66,7 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusUnauthorized, frontendError)
 }
 
 // TODO: remove nolint comment below when we use this method
@@ -76,7 +74,6 @@ func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err
 //nolint:unused
 func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusForbidden,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "forbidden",
@@ -84,12 +81,11 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusForbidden, frontendError)
 }
 
 func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusConflict,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "conflict",
@@ -97,7 +93,7 @@ func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err err
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusConflict, frontendError)
 }
 
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *integrations.HTTPError) {
@@ -124,12 +120,12 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	}
 	app.errorResponse(w, r, httpError)
 }
-func (app *App) frontendErrorResponse(w http.ResponseWriter, r *http.Request, frontendError *integrations.FrontendErrorResponse) {
-	err := app.WriteJSON(w, frontendError.Status, frontendError, nil)
+func (app *App) frontendErrorResponse(w http.ResponseWriter, r *http.Request, status int, frontendError *integrations.FrontendErrorResponse) {
+	err := app.WriteJSON(w, status, frontendError, nil)
 
 	if err != nil {
 		app.LogError(r, err)
-		w.WriteHeader(frontendError.Status)
+		w.WriteHeader(status)
 	}
 }
 
@@ -137,7 +133,6 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.LogError(r, err)
 
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusInternalServerError,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "internal_error",
@@ -145,12 +140,11 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 			Retriable: true,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusInternalServerError, frontendError)
 }
 
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusNotFound,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "not_found",
@@ -158,12 +152,11 @@ func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusNotFound, frontendError)
 }
 
 func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request) {
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusMethodNotAllowed,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "method_not_allowed",
@@ -171,7 +164,7 @@ func (app *App) methodNotAllowedResponse(w http.ResponseWriter, r *http.Request)
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusMethodNotAllowed, frontendError)
 }
 
 // TODO remove nolint comment below when we use this method
@@ -182,7 +175,6 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 		message = []byte("{}")
 	}
 	frontendError := &integrations.FrontendErrorResponse{
-		Status: http.StatusUnprocessableEntity,
 		Error: &integrations.ErrorDetail{
 			Component: "bff",
 			Code:      "validation_failed",
@@ -190,5 +182,5 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 			Retriable: false,
 		},
 	}
-	app.frontendErrorResponse(w, r, frontendError)
+	app.frontendErrorResponse(w, r, http.StatusUnprocessableEntity, frontendError)
 }
