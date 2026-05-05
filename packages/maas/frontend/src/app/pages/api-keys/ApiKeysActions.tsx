@@ -49,7 +49,7 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, isMaasAdmi
             isDisabled={!isMaasAdmin && apiKeyCount === 0}
             isDanger
           >
-            {isMaasAdmin ? 'Revoke all keys for a single user' : 'Revoke all my keys'}
+            {isMaasAdmin ? 'Revoke user API keys' : 'Revoke all my keys'}
           </DropdownItem>
         </DropdownList>
       </Dropdown>

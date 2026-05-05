@@ -685,9 +685,7 @@ describe('API Keys Page (Admin)', () => {
 
   it('should show admin revoke action label', () => {
     apiKeysPage.findActionsToggle().click();
-    apiKeysPage
-      .findRevokeAllAPIKeysAction()
-      .should('contain.text', 'Revoke all keys for a single user');
+    apiKeysPage.findRevokeAllAPIKeysAction().should('contain.text', 'Revoke user API keys');
     apiKeysPage.findRevokeAllAPIKeysAction().should('not.be.disabled');
   });
 

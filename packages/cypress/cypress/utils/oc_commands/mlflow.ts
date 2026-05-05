@@ -493,7 +493,7 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
  * 2. Create an MLflow CR and wait for it to be ready
  * 3. Verify DSC status reflects mlflowoperator as Managed
  * 4. Establish browser session and verify federated remote is loadable
- * 5. Wait for Experiments (MLflow) nav item in the sidebar
+ * 5. Wait for Experiments nav item in the sidebar
  */
 export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
   return enableMlflowBackend()
@@ -515,8 +515,8 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
       return waitForDashboardDSCStatus({ mlflowoperator: 'Managed' });
     })
     .then(() => {
-      cy.step('Wait for Experiments (MLflow) nav item in sidebar');
-      return waitForNavItemInSidebar('Experiments (MLflow)');
+      cy.step('Wait for Experiments nav item in sidebar');
+      return waitForNavItemInSidebar('Experiments');
     });
 };
 
