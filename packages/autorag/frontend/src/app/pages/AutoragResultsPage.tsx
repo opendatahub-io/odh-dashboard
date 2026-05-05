@@ -10,7 +10,7 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
+import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
 import { Link, useParams } from 'react-router';
@@ -26,7 +26,7 @@ import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
-import { autoragExperimentsPathname } from '~/app/utilities/routes';
+import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutoragResultsPage(): React.JSX.Element {
@@ -105,9 +105,20 @@ function AutoragResultsPage(): React.JSX.Element {
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
   const handleStop = React.useCallback(async () => {
-    await handleConfirmStop();
-    setIsStopModalOpen(false);
+    try {
+      await handleConfirmStop();
+      setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
+    }
   }, [handleConfirmStop]);
+
+  const ReconfigureLink = React.useCallback(
+    (props: React.ComponentProps<typeof Link>) => (
+      <Link {...props} to={`${autoragReconfigurePathname}/${namespace}/${runId}`} />
+    ),
+    [namespace, runId],
+  );
 
   const contextValue = React.useMemo(
     () =>
@@ -179,7 +190,7 @@ function AutoragResultsPage(): React.JSX.Element {
                       <Button
                         variant="secondary"
                         icon={<RedoIcon />}
-                        onClick={handleRetry}
+                        onClick={() => void handleRetry().catch(() => undefined)}
                         isDisabled={isRetrying}
                         isLoading={isRetrying}
                         spinnerAriaValueText="Retrying run"
@@ -188,6 +199,16 @@ function AutoragResultsPage(): React.JSX.Element {
                         Retry
                       </Button>
                     )}
+                  </SplitItem>
+                  <SplitItem>
+                    <Button
+                      variant="secondary"
+                      icon={<CogIcon />}
+                      component={ReconfigureLink}
+                      data-testid="reconfigure-run-button"
+                    >
+                      Reconfigure
+                    </Button>
                   </SplitItem>
                   <SplitItem>
                     <Button

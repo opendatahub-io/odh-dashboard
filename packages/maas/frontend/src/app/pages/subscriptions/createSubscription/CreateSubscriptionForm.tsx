@@ -400,14 +400,22 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
         {!isEditing && (
           <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  To consume model endpoints through the API gateway, users must have both a
+                  subscription and an authorization policy.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
             <Checkbox
               id="subscription-create-auth-policy"
               data-testid="subscription-create-auth-policy"
               label={
                 <>
-                  Create a matching authorization policy{' '}
+                  Create authorization policy{' '}
                   <Popover
-                    headerContent="Why create a policy?"
+                    headerContent="Why create an authorization policy?"
                     bodyContent={
                       <>
                         <p>
@@ -438,14 +446,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               isChecked={createAuthPolicy}
               onChange={(_event, checked) => setCreateAuthPolicy(checked)}
             />
-            <FormHelperText>
-              <HelperText>
-                <HelperTextItem>
-                  To consume model endpoints through the API gateway, users must have both a
-                  subscription and an authorization policy.
-                </HelperTextItem>
-              </HelperText>
-            </FormHelperText>
           </FormGroup>
         )}
 
@@ -453,13 +453,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Policies are not automatically updated"
+            title="Authorization policies are not automatically updated"
             data-testid="policy-change-warning"
           >
             If this subscription has associated authorization policies, you must manually update
             them from the{' '}
-            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link> after saving{' '}
-            your changes.
+            <b>
+              <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>
+            </b>{' '}
+            after saving your changes.
           </Alert>
         )}
 

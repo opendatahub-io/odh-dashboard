@@ -4,9 +4,6 @@ import {
   Button,
   Form,
   FormGroup,
-  FormHelperText,
-  HelperText,
-  HelperTextItem,
   Modal,
   ModalBody,
   ModalFooter,
@@ -58,23 +55,23 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }
       variant="medium"
       data-testid="revoke-all-api-keys-modal"
     >
-      <ModalHeader title="Revoke all your active keys?" titleIconVariant="warning" />
+      <ModalHeader title="Revoke all API keys?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            All of your active API keys will be permanently invalidated. Applications or services
-            using these keys will immediately lose access.
-          </StackItem>
-
-          <StackItem>
-            Revoked keys will remain visible with a Revoked status but can no longer be used for
-            authentication.
+            All of your API keys will be revoked, and any applications or services currently using
+            them will lose access. The keys will remain visible from within OpenShift AI, but can no
+            longer be used for authentication.
           </StackItem>
 
           <StackItem>
             <Form>
               <FormGroup
-                label={<>Type &quot;{userId}&quot; to confirm</>}
+                label={
+                  <>
+                    Type <b>{userId}</b> to confirm revocation:
+                  </>
+                }
                 isRequired
                 fieldId="revoke-confirmation-input"
               >
@@ -90,11 +87,6 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }
                     }
                   }}
                 />
-                <FormHelperText>
-                  <HelperText>
-                    <HelperTextItem>Type your username exactly to confirm</HelperTextItem>
-                  </HelperText>
-                </FormHelperText>
               </FormGroup>
             </Form>
           </StackItem>
@@ -122,7 +114,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }
           onClick={() => onBeforeClose(true)}
           data-testid="revoke-keys-button"
         >
-          Permanently revoke all keys
+          Revoke all keys
         </Button>
         <Button
           key="cancel-button"

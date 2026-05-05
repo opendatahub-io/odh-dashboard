@@ -140,7 +140,7 @@ export type SecretListItem = {
   uuid: string;
   name: string;
   type?: string;
-  data: Record<string, string>;
+  data?: Record<string, string>;
   displayName?: string;
   description?: string;
 };

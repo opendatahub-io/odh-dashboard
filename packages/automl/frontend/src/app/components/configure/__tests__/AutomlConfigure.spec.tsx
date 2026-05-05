@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
@@ -217,6 +218,22 @@ const renderWithQueryClient = (
 
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutomlConfigure />, defaultValues);
+
+const renderWithInitialValues = (
+  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
+  },
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutomlConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    defaultValues,
+  );
+};
 
 describe('AutomlConfigure', () => {
   beforeEach(() => {
@@ -1010,6 +1027,204 @@ describe('AutomlConfigure', () => {
           });
         });
       });
+    });
+  });
+
+  describe('reconfigure with initialValues', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+    });
+
+    it('should show the selected training data file when train_data_file_key is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      // The file table should show the file name extracted from the key
+      const table = screen.getByRole('grid', { name: 'Selected training data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('train.csv')).toBeInTheDocument();
+    });
+
+    it('should pre-select the prediction type card when task_type is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
+      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
+    });
+
+    it('should show the top_n value from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+      );
+
+      const input = screen.getByTestId('top-n-input').querySelector('input');
+      expect(input).toHaveValue(7);
+    });
+
+    it('should show label column fields for tabular task type from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByText('Label column')).toBeInTheDocument();
+      expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
+      expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+    });
+
+    it('should show timeseries fields when task_type is timeseries from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
+      expect(screen.getByText('Target column')).toBeInTheDocument();
+      expect(screen.getByTestId('target-select')).toBeInTheDocument();
+      expect(screen.queryByText('Label column')).not.toBeInTheDocument();
     });
   });
 });

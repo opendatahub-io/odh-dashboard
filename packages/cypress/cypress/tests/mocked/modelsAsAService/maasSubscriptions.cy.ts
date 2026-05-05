@@ -417,7 +417,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findPolicyChangeWarning().should('exist');
     editSubscriptionPage
       .findPolicyChangeWarning()
-      .should('contain.text', 'Policies are not automatically updated');
+      .should('contain.text', 'Authorization policies are not automatically updated');
   });
 
   it('should navigate to subscriptions list on cancel', () => {
