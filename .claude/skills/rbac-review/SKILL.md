@@ -1,11 +1,13 @@
 ---
 name: rbac-review
-description: Reviews code changes for proper RBAC enforcement across user types (cluster admin, dashboard admin, regular user). Catches missing permission gates, fail-open patterns, and assumptions of elevated access. Use when reviewing PRs, auditing permissions, or checking RBAC compliance.
+description: Reviews code changes for proper RBAC enforcement. Catches missing SSAR permission gates, fail-open patterns, assumed access from isAdmin, and pages that break for limited-access users. Use when reviewing PRs, auditing permissions, or checking RBAC compliance.
 ---
 
 # RBAC Evaluation Review — ODH Dashboard
 
-Evaluates code changes for proper RBAC enforcement. The dashboard has three user types — cluster admin, dashboard admin, and regular user — each with different Kubernetes RBAC permissions. A common failure mode is that developers test with cluster-admin privileges, which hides access-control bugs that only surface for lower-privilege users.
+Evaluates code changes for proper RBAC enforcement. The dashboard serves users with varying Kubernetes RBAC permissions determined by their cluster roles — not by any dashboard-internal user classification.
+
+**Core principle:** Dashboard admins and regular users must be treated identically — every operation requires an explicit SSAR check for the specific verb+resource being accessed. The deprecated `isAdmin` boolean must not be used to assume capabilities. The only user who bypasses checks is a cluster admin (all SSAR pass), and since developers typically test as cluster-admin, they get a false sense that everything works. The skill catches code that will break for any limited-access user.
 
 ## Inputs
 
@@ -72,11 +74,14 @@ Flag code that defaults to "allowed" when permission checks fail or are missing:
 - Conditionals like `if (isAdmin || true)`, disabled checks behind feature flags that default to off, or `isAllowed` states initialized to `true` before the SSAR resolves — flag as **Critical**.
 - Loading states that render privileged UI before SSAR completes — flag as **Warning**.
 
-### Check 3: Deprecated admin patterns
+### Check 3: Assumed access / deprecated admin patterns
+
+The `isAdmin` boolean means "can patch auths/default-auth" — it does NOT mean the user can do arbitrary operations. Code that treats `isAdmin` as a universal access pass skips the actual SSAR check and will break for users who are "dashboard admins" but lack specific permissions.
 
 Flag usage of:
 
-- `useUser().isAdmin` or Redux `state.user.isAdmin` for gating new features — **Warning** (deprecated; use `useAccessAllowed` with `verbModelAccess`).
+- `useUser().isAdmin` or Redux `state.user.isAdmin` to gate new features — **Critical** (assumes capabilities instead of checking them; use `useAccessAllowed` with `verbModelAccess` for the specific operation).
+- Any pattern like `if (isAdmin) { fetchResource() }` without also checking whether the user can actually access that resource — **Critical**.
 - `getClusterAdminUserList` or Group-based admin checks — **Warning** (deprecated).
 - Direct import of `isUserAdmin` on the frontend — **Warning** (backend-only utility).
 
@@ -86,17 +91,17 @@ Flag usage of:
 - **Frontend**: SSAR checks without a namespace default to the dashboard namespace (via `AccessReviewProvider`). Verify this is intentional when working with resources in other namespaces — **Warning** if ambiguous.
 - **BFF (Go)**: Verify token forwarding and namespace validation in proxy calls. Missing auth header propagation is **Critical**.
 
-### Check 5: User type coverage
+### Check 5: Graceful degradation for limited-access users
 
-For any permission-gated feature, verify the code handles all three user types:
+The most common bug: a developer tests with cluster-admin, everything works. A limited user navigates to the same page, a GET request fails with 403, and the page breaks or shows an error instead of degrading gracefully.
 
-| User Type | Expected Behavior |
-|-----------|------------------|
-| **Cluster admin** | Full access (all SSAR pass) |
-| **Dashboard admin** | Admin features visible, but not cluster-scoped operations |
-| **Regular user** | Only own resources; admin features hidden/disabled; graceful degradation |
+For any page, data fetch, or UI state that depends on a resource:
 
-Flag features that only consider "admin vs non-admin" without distinguishing dashboard admin from cluster admin — **Info** (consider whether the distinction matters for this feature).
+- **Pages** — If a user lacks permission to `list`/`get` the primary resource, the page must either be hidden from navigation (via `accessReview` on the route/extension) or render a meaningful empty/denied state. Showing a broken page or unhandled error is **Critical**.
+- **Conditional UI** — Features that only appear for users with specific permissions (e.g., a "Create" button requiring `create` verb) must use SSAR to determine visibility/disabled state. Assuming "dashboard admin can always create" is **Critical**.
+- **Fallback states** — When a secondary data fetch fails due to permissions (e.g., loading cluster-wide metrics on a page that also works without them), the page must continue functioning with the available data. Treating the 403 as a fatal error is **Warning**.
+
+Flag code that uses the deprecated `isAdmin` to gate features instead of checking the specific verb+resource — this creates a false binary where "admin" is assumed to have access without verification.
 
 ### Check 6: Data exposure in hooks
 
@@ -114,7 +119,7 @@ For data-fetching hooks that load sensitive or admin-only data:
 - Ticket: RHOAIENG-XXXXX — <summary>
 - Resources: <K8s resources the feature touches>
 - Expected gates: <verb/resource pairs that need SSAR checks>
-- Target user types: <who should/shouldn't have access>
+- Limited-user behavior: <what should happen when SSAR denies access>
 
 ### Summary
 - Files reviewed: N
@@ -143,8 +148,8 @@ Omit the "Feature Context" and "Permission model coverage" sections if no Jira t
 
 | Severity | Criteria |
 |----------|----------|
-| Critical | Missing backend auth on mutating endpoints; unprotected admin routes; fail-open patterns that bypass Kubernetes RBAC; new pages with no access gate |
-| Warning | Missing frontend permission gates on actions; deprecated admin patterns; ambiguous namespace scoping; loading-state privilege leaks |
-| Info | Feature only considers admin/non-admin without finer distinction; unconditional data fetch that backend rejects; patterns that work but could be cleaner |
+| Critical | Missing backend auth on mutating endpoints; unprotected pages/routes; fail-open patterns that bypass Kubernetes RBAC; using `isAdmin` to assume capabilities; pages that break for limited users |
+| Warning | Missing frontend permission gates on actions; ambiguous namespace scoping; loading-state privilege leaks; secondary fetches that 403 without fallback |
+| Info | Unconditional data fetch that backend rejects (works but wasteful); patterns that function correctly but could be cleaner |
 
 If there are no findings, confirm the changes have proper RBAC coverage and note any well-implemented patterns worth highlighting.

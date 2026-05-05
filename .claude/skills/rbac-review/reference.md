@@ -1,16 +1,18 @@
 # RBAC Reference — ODH Dashboard
 
-## User Types
+## User Model
 
-The dashboard recognizes three effective permission levels, all derived from Kubernetes RBAC:
+The dashboard does **not** maintain internal user tiers with assumed capabilities. Every operation is gated by an explicit SSAR check against the specific K8s verb+resource.
 
-| User Type | How Determined | Scope |
-|-----------|---------------|-------|
-| **Cluster admin** | Has `*` verbs on all resources (cluster-wide). SSAR always passes. | Full access to everything |
-| **Dashboard admin** | Can `patch` the `auths/default-auth` singleton (group `services.platform.opendatahub.io`). Stored as `isAdmin` in Redux (deprecated). | Admin UI features, manage other users' resources |
-| **Regular user** | Can `get` the `auths/default-auth` singleton (i.e., `isAllowed`). Cannot patch. | Own resources only; admin features hidden |
+| Concept | Meaning | Implication |
+|---------|---------|-------------|
+| **Cluster admin** | Has `*` verbs on all resources (cluster-wide). All SSAR pass. | Developers test with this — hides access bugs. Never assume code works because it passed in this persona. |
+| **`isAdmin` (deprecated)** | Can `patch` the `auths/default-auth` singleton. Stored in Redux. | Does NOT mean the user can do anything else. Must not be used to assume capabilities. |
+| **`isAllowed`** | Can `get` the `auths/default-auth` singleton. | Means "allowed to use the dashboard at all." Nothing more. |
 
-**Key insight:** There is no explicit "cluster admin" boolean in the main dashboard. Cluster admins simply pass all SSAR checks. The distinction matters when code checks a *specific* permission and a dashboard admin might fail it.
+**Core rule:** Dashboard admins and regular users must be treated identically. Both need explicit SSAR checks (`useAccessAllowed` with `verbModelAccess`) for every operation they attempt. The `isAdmin` flag is deprecated precisely because it creates a false assumption that "admins can do X" — in reality, a "dashboard admin" may lack permissions for specific resources depending on their cluster Role/RoleBindings.
+
+**The bug pattern:** Developer tests as cluster-admin → everything works → ships code → limited user navigates to the page → GET fails with 403 → page breaks with an unhandled error or shows data the user shouldn't see in a loading flash.
 
 ## Frontend Permission Infrastructure
 
@@ -48,7 +50,7 @@ Avoid for new code — does not use the context cache. Still valid but creates d
 const { isAdmin } = useUser();
 ```
 
-`UserState.isAdmin` maps to "can patch auths/default-auth". For new code, use explicit SSAR checks targeting the specific resource/verb the feature needs.
+`UserState.isAdmin` only means "can patch auths/default-auth". It does NOT grant any other capability. Code that uses this to decide whether to fetch data or show UI is **wrong** — the user may be a "dashboard admin" who still lacks permission for that specific resource. Always check the actual verb+resource via SSAR.
 
 ## Common Patterns
 
@@ -134,15 +136,17 @@ const [canEdit, loaded] = useAccessAllowed(verbModelAccess('update', Model, ns))
 if (!loaded) return <Spinner />;
 ```
 
-### 3. Using deprecated isAdmin for new features
+### 3. Using isAdmin as a capability assumption
 
 ```typescript
-// BAD: Couples to the deprecated Redux property
+// BAD: Assumes "admin" means the user can manage settings — wrong!
+// A dashboard admin may lack RoleBindings for SettingsModel.
 const { isAdmin } = useUser();
 if (isAdmin) { showAdminPanel(); }
 
-// GOOD: Check the specific permission needed
+// GOOD: Check the specific permission needed — works for any user
 const [canManage, loaded] = useAccessAllowed(verbModelAccess('patch', SettingsModel));
+if (!loaded) return <Spinner />;
 if (canManage) { showAdminPanel(); }
 ```
 
@@ -177,25 +181,27 @@ const [allowed] = useAccessAllowed(verbModelAccess('create', PipelineModel));
 const [allowed] = useAccessAllowed(verbModelAccess('create', PipelineModel, projectNs));
 ```
 
-### 7. Admin-only vs non-admin binary without finer distinction
+### 7. No graceful degradation when access is denied
 
 ```typescript
-// OVERSIMPLIFIED: Doesn't account for dashboard admin vs cluster admin
-if (isAllowed) { /* regular user path */ }
-else { /* denied */ }
+// BAD: Fetches unconditionally; if the user lacks 'list' on bars,
+// the request 403s and the page shows an unhandled error.
+const data = useFetchBars(namespace);
+return <BarTable data={data} />;
 
-// BETTER: Check specific capability
-const [canDeleteClusterWide] = useAccessAllowed({
-  group: 'foo',
-  resource: 'bars',
-  verb: 'delete',
-  // No namespace = cluster-scoped
-});
+// GOOD: Check access first; hide/degrade if denied.
+const [canList, loaded] = useAccessAllowed(verbModelAccess('list', BarModel, namespace));
+if (!loaded) return <Spinner />;
+if (!canList) return <EmptyState>You don't have access to view bars.</EmptyState>;
+const data = useFetchBars(namespace);
+return <BarTable data={data} />;
 ```
 
 ## Testing RBAC Changes
 
-- Use `DEV_IMPERSONATE_USER` / `DEV_IMPERSONATE_PASSWORD` env vars to test as different users
-- Cluster admins pass all SSAR — don't only test with cluster-admin
-- Create test Roles/RoleBindings per the `frontend/src/concepts/userSSAR/README.md` guide
-- Verify disabled/hidden states for unprivileged users, not just happy-path admin flows
+**The #1 rule:** Never only test with cluster-admin. Cluster-admin passes all SSAR checks, so everything appears to work even when permission gates are missing.
+
+- Use `DEV_IMPERSONATE_USER` / `DEV_IMPERSONATE_PASSWORD` env vars to test as a limited user
+- Create minimal Roles/RoleBindings per the `frontend/src/concepts/userSSAR/README.md` guide — grant only the permissions the feature explicitly needs
+- Verify: navigate to the page as a user who **lacks** the required permission. Does the page degrade gracefully (empty state, hidden nav item, disabled button)? Or does it crash / show a raw 403 error?
+- Test the "just-allowed" case too: user has exactly the permissions needed, nothing more
