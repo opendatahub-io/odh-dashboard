@@ -7,6 +7,14 @@ import { mockModelVersion } from '~/__mocks__/mockModelVersion';
 import { ModelRegistryMetadataType, ModelState, type ModelRegistry } from '~/app/types';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { modelVersionsCard } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelVersionsCard';
+import {
+  archiveModelVersionDetailsUrl,
+  archiveModelVersionListUrl,
+  modelVersionListUrl,
+  modelVersionUrl,
+  registeredModelArchiveDetailsUrl,
+  registeredModelUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 
 const mockRegisteredModelWithData = mockRegisteredModel({
   id: '1',
@@ -270,7 +278,7 @@ describe('Model Versions Card', () => {
   });
 
   it('does not display model versions list if there are no live model versions', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
     cy.interceptApi(
       `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
       {
@@ -289,7 +297,7 @@ describe('Model Versions Card', () => {
   });
 
   it('does not display model versions list if there are no archived model versions', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/archive/2/overview');
+    cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
     cy.interceptApi(
       `GET /api/:apiVersion/model_registry/:modelRegistryName/registered_models/:registeredModelId/versions`,
       {
@@ -308,7 +316,7 @@ describe('Model Versions Card', () => {
   });
 
   it('should display live model versions list correctly', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
 
     modelVersionsCard.findModelVersion('1').should('exist');
 
@@ -322,11 +330,11 @@ describe('Model Versions Card', () => {
     modelVersionsCard.findModelVersion('4').should('exist');
 
     modelVersionsCard.findViewAllVersionsLink().click();
-    cy.url().should('include', '/model-registry/modelregistry-sample/registered-models/1/versions');
+    cy.url().should('include', modelVersionListUrl('1', 'modelregistry-sample'));
   });
 
   it('should display archived model versions list correctly', () => {
-    cy.visit('/model-registry/modelregistry-sample/registered-models/archive/2/overview');
+    cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
 
     modelVersionsCard.findModelVersion('5').should('exist');
 
@@ -340,32 +348,26 @@ describe('Model Versions Card', () => {
     modelVersionsCard.findModelVersion('8').should('exist');
 
     modelVersionsCard.findViewAllVersionsLink().click();
-    cy.url().should(
-      'include',
-      '/model-registry/modelregistry-sample/registered-models/archive/2/versions',
-    );
+    cy.url().should('include', archiveModelVersionListUrl('2', 'modelregistry-sample'));
   });
 
   it('should have the correct link to the live model version', () => {
     initInterceptsForVersion('4');
-    cy.visit('/model-registry/modelregistry-sample/registered-models/1/overview');
+    cy.visit(`${registeredModelUrl('1', 'modelregistry-sample')}/overview`);
 
     modelVersionsCard.findModelVersionLink('4').click();
-    cy.url().should(
-      'include',
-      '/model-registry/modelregistry-sample/registered-models/1/versions/4/details',
-    );
+    cy.url().should('include', `${modelVersionUrl('4', '1', 'modelregistry-sample')}/details`);
     cy.contains('Version 4').should('be.visible');
   });
 
   it('should have the correct link to the archived model version', () => {
     initInterceptsForVersion('8');
-    cy.visit('/model-registry/modelregistry-sample/registered-models/archive/2/overview');
+    cy.visit(`${registeredModelArchiveDetailsUrl('2', 'modelregistry-sample')}/overview`);
 
     modelVersionsCard.findModelVersionLink('8').click();
     cy.url().should(
       'include',
-      '/model-registry/modelregistry-sample/registered-models/archive/2/versions/8/details',
+      `${archiveModelVersionDetailsUrl('8', '2', 'modelregistry-sample')}/details`,
     );
     cy.contains('Version 8').should('be.visible');
   });
