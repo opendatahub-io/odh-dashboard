@@ -1,11 +1,14 @@
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
-import { ConnectionTypeConfigMapObj } from '@odh-dashboard/internal/concepts/connectionTypes/types';
+import {
+  ConnectionTypeConfigMapObj,
+  ConnectionTypeFieldType,
+} from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { useEnabledModelServingConnectionTypes } from '../useEnabledConnectionTypes';
 
 const createMockConnectionType = (
   name: string,
-  fields: { envVar: string; type: string }[],
+  fields: { envVar: string; type: ConnectionTypeFieldType }[],
   annotations?: Record<string, string>,
 ): ConnectionTypeConfigMapObj => ({
   apiVersion: 'v1',
@@ -31,26 +34,28 @@ const createMockConnectionType = (
 
 describe('useEnabledModelServingConnectionTypes', () => {
   const s3ConnectionType = createMockConnectionType('s3', [
-    { envVar: 'AWS_ACCESS_KEY_ID', type: 'short-text' },
-    { envVar: 'AWS_SECRET_ACCESS_KEY', type: 'hidden' },
-    { envVar: 'AWS_S3_ENDPOINT', type: 'short-text' },
-    { envVar: 'AWS_S3_BUCKET', type: 'short-text' },
+    { envVar: 'AWS_ACCESS_KEY_ID', type: ConnectionTypeFieldType.ShortText },
+    { envVar: 'AWS_SECRET_ACCESS_KEY', type: ConnectionTypeFieldType.Hidden },
+    { envVar: 'AWS_S3_ENDPOINT', type: ConnectionTypeFieldType.ShortText },
+    { envVar: 'AWS_S3_BUCKET', type: ConnectionTypeFieldType.ShortText },
   ]);
 
-  const uriConnectionType = createMockConnectionType('uri-v1', [{ envVar: 'URI', type: 'uri' }]);
+  const uriConnectionType = createMockConnectionType('uri-v1', [
+    { envVar: 'URI', type: ConnectionTypeFieldType.URI },
+  ]);
 
   const ociConnectionType = createMockConnectionType('oci-v1', [
-    { envVar: 'OCI_HOST', type: 'short-text' },
-    { envVar: '.dockerconfigjson', type: 'file' },
+    { envVar: 'OCI_HOST', type: ConnectionTypeFieldType.ShortText },
+    { envVar: '.dockerconfigjson', type: ConnectionTypeFieldType.File },
   ]);
 
   const disabledConnectionType = createMockConnectionType(
     'disabled-s3',
     [
-      { envVar: 'AWS_ACCESS_KEY_ID', type: 'short-text' },
-      { envVar: 'AWS_SECRET_ACCESS_KEY', type: 'hidden' },
-      { envVar: 'AWS_S3_ENDPOINT', type: 'short-text' },
-      { envVar: 'AWS_S3_BUCKET', type: 'short-text' },
+      { envVar: 'AWS_ACCESS_KEY_ID', type: ConnectionTypeFieldType.ShortText },
+      { envVar: 'AWS_SECRET_ACCESS_KEY', type: ConnectionTypeFieldType.Hidden },
+      { envVar: 'AWS_S3_ENDPOINT', type: ConnectionTypeFieldType.ShortText },
+      { envVar: 'AWS_S3_BUCKET', type: ConnectionTypeFieldType.ShortText },
     ],
     { 'opendatahub.io/disabled': 'true' },
   );
