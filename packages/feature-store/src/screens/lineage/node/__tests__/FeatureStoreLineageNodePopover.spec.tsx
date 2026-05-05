@@ -12,23 +12,27 @@ jest.mock('@odh-dashboard/internal/components/lineage/LineageClickContext');
 const useFeatureStoreProjectMock = jest.mocked(useFeatureStoreProject);
 const useLineageClickMock = jest.mocked(useLineageClick);
 
+const mockProjectAndClickPosition = (): void => {
+  const pillElement = document.createElement('button');
+  useFeatureStoreProjectMock.mockReturnValue({
+    currentProject: 'proj-a',
+    setCurrentProject: jest.fn(),
+    preferredFeatureStoreProject: null,
+    updatePreferredFeatureStoreProject: jest.fn(),
+  });
+  useLineageClickMock.mockReturnValue({
+    getLastClickPosition: () => ({ pillElement, x: 0, y: 0 }),
+    setClickPosition: jest.fn(),
+  });
+};
+
 describe('FeatureStoreLineageNodePopover', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('should render View all features link with features list route for feature_view node', () => {
-    const pillElement = document.createElement('button');
-    useFeatureStoreProjectMock.mockReturnValue({
-      currentProject: 'proj-a',
-      setCurrentProject: jest.fn(),
-      preferredFeatureStoreProject: null,
-      updatePreferredFeatureStoreProject: jest.fn(),
-    });
-    useLineageClickMock.mockReturnValue({
-      getLastClickPosition: () => ({ pillElement, x: 0, y: 0 }),
-      setClickPosition: jest.fn(),
-    });
+    mockProjectAndClickPosition();
 
     const node: LineageNode = {
       id: 'n1',
@@ -48,5 +52,25 @@ describe('FeatureStoreLineageNodePopover', () => {
       'href',
       '/develop-train/feature-store/features/proj-a?featureView=node-name',
     );
+  });
+
+  it('should not render View all features link for non-feature_view node', () => {
+    mockProjectAndClickPosition();
+
+    const node: LineageNode = {
+      id: 'n2',
+      label: 'Entity',
+      entityType: 'entity',
+      fsObjectTypes: 'entity',
+      name: 'entity-name',
+    };
+
+    render(
+      <MemoryRouter>
+        <FeatureStoreLineageNodePopover node={node} isVisible onClose={jest.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: /view all features/i })).not.toBeInTheDocument();
   });
 });
