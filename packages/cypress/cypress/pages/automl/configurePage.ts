@@ -154,11 +154,8 @@ class AutomlConfigurePage {
     automlExperimentsPage.findEmptyState(120000).should('exist');
     automlExperimentsPage.findCreateRunButton().click();
 
-    cy.step('Wait for configure page to load');
-    cy.findByTestId('app-page-title', { timeout: 30000 });
-
     cy.step('Step 1 - Fill name and description');
-    this.findNameInput().type(testData.runName);
+    cy.findByTestId('automl-name-input', { timeout: 30000 }).type(testData.runName);
     this.findDescriptionInput().type(testData.runDescription);
     this.findNextButton().click();
 
