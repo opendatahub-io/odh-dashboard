@@ -445,12 +445,20 @@ describe('AutomlConfigure', () => {
         screen.queryByText('Select an S3 connection or upload a file to get started'),
       ).not.toBeInTheDocument();
 
-      // Configure details fields should be visible
+      // Target column should be visible, prediction type should NOT be visible yet
+      expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
+      expect(screen.queryByText('Prediction type')).not.toBeInTheDocument();
+      expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
+
+      // Select a target column — Prediction type cards should now appear
+      fireEvent.click(screen.getByTestId('target_column-select'));
+      fireEvent.click(screen.getByRole('option', { name: /approval_status/ }));
+
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
-      // Top models and Label column should NOT be visible until a prediction type is selected
+
+      // Top models should NOT be visible until a prediction type is selected
       expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
-      expect(screen.queryByText('Label column')).not.toBeInTheDocument();
 
       // Select a prediction type — Top models to consider should now appear
       const binaryRadio = document.getElementById('task-type-binary');
@@ -603,6 +611,12 @@ describe('AutomlConfigure', () => {
       expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
+    /** Select a target column from the dropdown */
+    const selectTargetColumn = (columnName = 'approval_status') => {
+      fireEvent.click(screen.getByTestId('target_column-select'));
+      fireEvent.click(screen.getByRole('option', { name: new RegExp(columnName) }));
+    };
+
     /** Click a prediction type tile via its hidden radio input */
     const selectPredictionType = (type: string) => {
       const input = document.getElementById(`task-type-${type}`);
@@ -612,9 +626,16 @@ describe('AutomlConfigure', () => {
     };
 
     describe('Prediction type', () => {
-      it('should render all four prediction type tile cards', () => {
+      it('should not show prediction type cards until a target column is selected', () => {
         renderComponent();
         selectSecretAndFile();
+        expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
+      });
+
+      it('should render all four prediction type tile cards after target column is selected', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
         expect(screen.getByTestId('task-type-card-binary')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-multiclass')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-regression')).toBeInTheDocument();
@@ -624,6 +645,7 @@ describe('AutomlConfigure', () => {
       it('should render prediction type labels', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         expect(screen.getByText('Binary classification')).toBeInTheDocument();
         expect(screen.getByText('Multiclass classification')).toBeInTheDocument();
         expect(screen.getByText('Regression')).toBeInTheDocument();
@@ -633,6 +655,7 @@ describe('AutomlConfigure', () => {
       it('should render prediction type descriptions', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         expect(
           screen.getByText(
             'Classify data into categories. Choose this if your prediction column contains two distinct categories',
@@ -658,21 +681,16 @@ describe('AutomlConfigure', () => {
       it('should have no prediction type selected by default', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         TASK_TYPES.forEach((type) => {
           expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
         });
       });
 
-      it('should not show column forms when no prediction type is selected', () => {
-        renderComponent();
-        selectSecretAndFile();
-        expect(screen.queryByText('Label column')).not.toBeInTheDocument();
-        expect(screen.queryByText('Target column')).not.toBeInTheDocument();
-      });
-
       it('should select a prediction type when clicked', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
 
         selectPredictionType('multiclass');
         expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
@@ -682,6 +700,7 @@ describe('AutomlConfigure', () => {
       it('should reset prediction type when the selected file is removed', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         selectPredictionType('binary');
         expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
 
@@ -693,118 +712,25 @@ describe('AutomlConfigure', () => {
           screen.getByText('Select an S3 connection or upload a file to get started'),
         ).toBeInTheDocument();
 
-        // Re-select a file — prediction type should be deselected
+        // Re-select a file — prediction type cards should not be visible (no target column)
         fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
         fireEvent.click(screen.getByTestId('file-explorer-select-file'));
 
-        TASK_TYPES.forEach((type) => {
-          expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
-        });
-        // Column forms should be hidden
-        expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('task-type-card-binary')).not.toBeInTheDocument();
       });
     });
 
-    describe('Column selector based on prediction type', () => {
-      describe('when prediction type is NOT timeseries', () => {
-        it('should render the label column dropdown for binary classification', () => {
-          renderComponent();
-          selectSecretAndFile();
-          selectPredictionType('binary');
-
-          expect(screen.getByText('Label column')).toBeInTheDocument();
-          expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-          expect(screen.queryByText('Target column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
-        });
-
-        it('should render the label column dropdown for multiclass classification', () => {
-          renderComponent();
-          selectSecretAndFile();
-          selectPredictionType('multiclass');
-
-          expect(screen.getByText('Label column')).toBeInTheDocument();
-          expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-          expect(screen.queryByText('Target column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
-        });
-
-        it('should render the label column dropdown for regression', () => {
-          renderComponent();
-          selectSecretAndFile();
-          selectPredictionType('regression');
-
-          expect(screen.getByText('Label column')).toBeInTheDocument();
-          expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-          expect(screen.queryByText('Target column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
-        });
-      });
-
-      describe('when prediction type is timeseries', () => {
-        it('should render the target column dropdown for timeseries', () => {
-          renderComponent();
-          selectSecretAndFile();
-          selectPredictionType('timeseries');
-
-          expect(screen.getByText('Target column')).toBeInTheDocument();
-          expect(screen.getByTestId('target-select')).toBeInTheDocument();
-          expect(screen.queryByText('Label column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();
-        });
-
-        it('should switch from label column to target column when changing to timeseries', () => {
-          renderComponent();
-          selectSecretAndFile();
-          selectPredictionType('binary');
-
-          // Initially shows label column for binary classification
-          expect(screen.getByText('Label column')).toBeInTheDocument();
-          expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-
-          // Switch to timeseries
-          selectPredictionType('timeseries');
-
-          // Now shows target column
-          expect(screen.getByText('Target column')).toBeInTheDocument();
-          expect(screen.getByTestId('target-select')).toBeInTheDocument();
-          expect(screen.queryByText('Label column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();
-        });
-
-        it('should switch from target column to label column when changing from timeseries', () => {
-          renderComponent();
-          selectSecretAndFile();
-
-          // Switch to timeseries
-          selectPredictionType('timeseries');
-          expect(screen.getByText('Target column')).toBeInTheDocument();
-
-          // Switch back to binary classification
-          selectPredictionType('binary');
-
-          // Now shows label column again
-          expect(screen.getByText('Label column')).toBeInTheDocument();
-          expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-          expect(screen.queryByText('Target column')).not.toBeInTheDocument();
-          expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
-        });
-      });
-    });
-
-    describe('Label column', () => {
-      it('should render the label column dropdown', () => {
+    describe('Target column', () => {
+      it('should render the target column dropdown after file selection', () => {
         renderComponent();
         selectSecretAndFile();
-        selectPredictionType('binary');
-        expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
 
       it('should show placeholder text when no column is selected', () => {
         renderComponent();
         selectSecretAndFile();
-        selectPredictionType('binary');
-        expect(screen.getByTestId('label_column-select')).toHaveTextContent('Select a column');
+        expect(screen.getByTestId('target_column-select')).toHaveTextContent('Select a column');
       });
 
       it('should not be visible when no file is selected', () => {
@@ -818,8 +744,8 @@ describe('AutomlConfigure', () => {
           screen.getByText('Select an S3 connection or upload a file to get started'),
         ).toBeInTheDocument();
 
-        // Label column should not exist since configure details is hidden
-        expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();
+        // Target column should not exist since configure details is hidden
+        expect(screen.queryByTestId('target_column-select')).not.toBeInTheDocument();
       });
 
       it('should be disabled when columns are empty', () => {
@@ -829,8 +755,27 @@ describe('AutomlConfigure', () => {
         } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
         renderComponent();
         selectSecretAndFile();
+        expect(screen.getByTestId('target_column-select')).toBeDisabled();
+      });
+
+      it('should show timeseries fields when timeseries prediction type is selected', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
+        selectPredictionType('timeseries');
+
+        expect(screen.getByText('Timestamp column')).toBeInTheDocument();
+        expect(screen.getByText('ID column')).toBeInTheDocument();
+      });
+
+      it('should not show timeseries fields for non-timeseries prediction types', () => {
+        renderComponent();
+        selectSecretAndFile();
+        selectTargetColumn();
         selectPredictionType('binary');
-        expect(screen.getByTestId('label_column-select')).toBeDisabled();
+
+        expect(screen.queryByText('Timestamp column')).not.toBeInTheDocument();
+        expect(screen.queryByText('ID column')).not.toBeInTheDocument();
       });
     });
 
@@ -838,6 +783,7 @@ describe('AutomlConfigure', () => {
       it('should render the top N input with default value 3', () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         selectPredictionType('binary');
         const input = screen.getByTestId('top-n-input').querySelector('input');
         expect(input).toHaveValue(3);
@@ -846,6 +792,7 @@ describe('AutomlConfigure', () => {
       it('should show error message when top N is below the minimum', async () => {
         renderComponent();
         selectSecretAndFile();
+        selectTargetColumn();
         selectPredictionType('binary');
 
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -860,6 +807,7 @@ describe('AutomlConfigure', () => {
         it('should accept top N at maximum (10) for binary classification', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('binary');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -874,6 +822,7 @@ describe('AutomlConfigure', () => {
         it('should reject top N exceeding maximum (10) for binary classification', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('binary');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -887,6 +836,7 @@ describe('AutomlConfigure', () => {
         it('should accept top N at maximum (10) for multiclass classification', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('multiclass');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -900,6 +850,7 @@ describe('AutomlConfigure', () => {
         it('should reject top N exceeding maximum (10) for multiclass classification', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('multiclass');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -913,6 +864,7 @@ describe('AutomlConfigure', () => {
         it('should accept top N at maximum (10) for regression', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('regression');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -926,6 +878,7 @@ describe('AutomlConfigure', () => {
         it('should reject top N exceeding maximum (10) for regression', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('regression');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -939,6 +892,7 @@ describe('AutomlConfigure', () => {
         it('should accept top N at maximum (7) for timeseries', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('timeseries');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -952,6 +906,7 @@ describe('AutomlConfigure', () => {
         it('should reject top N exceeding maximum (7) for timeseries', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('timeseries');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -965,6 +920,7 @@ describe('AutomlConfigure', () => {
         it('should automatically show error when switching from tabular to timeseries with top N exceeding new max', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('binary');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;
@@ -987,6 +943,7 @@ describe('AutomlConfigure', () => {
         it('should automatically clear error when switching from timeseries to tabular with top N within new max', async () => {
           renderComponent();
           selectSecretAndFile();
+          selectTargetColumn();
           selectPredictionType('timeseries');
 
           const input = screen.getByTestId('top-n-input').querySelector('input')!;

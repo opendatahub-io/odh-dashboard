@@ -455,18 +455,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      // Select a prediction type
       const binaryRadio = document.getElementById('task-type-binary');
       expect(binaryRadio).not.toBeNull();
       fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      // Select the first column option
-      const columnOption = await screen.findByRole('option', { name: /column1/i });
-      await user.click(columnOption);
 
       // Wait for form to be valid and Run button to be enabled
       const runButton = await screen.findByRole('button', {
@@ -514,17 +512,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      // Select a prediction type
       const binaryRadio = document.getElementById('task-type-binary');
       expect(binaryRadio).not.toBeNull();
       fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      const columnOption = await screen.findByRole('option', { name: /column1/i });
-      await user.click(columnOption);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -572,17 +569,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      // Select a prediction type
       const binaryRadio = document.getElementById('task-type-binary');
       expect(binaryRadio).not.toBeNull();
       fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      const columnOption = await screen.findByRole('option', { name: /column1/i });
-      await user.click(columnOption);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -631,17 +627,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
+      const columnOption = await screen.findByRole('option', { name: /column1/i });
+      await user.click(columnOption);
+
+      // Select a prediction type
       const binaryRadio = document.getElementById('task-type-binary');
       expect(binaryRadio).not.toBeNull();
       fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      const columnOption = await screen.findByRole('option', { name: /column1/i });
-      await user.click(columnOption);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
