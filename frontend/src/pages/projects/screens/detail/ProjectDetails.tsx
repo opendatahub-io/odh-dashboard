@@ -196,7 +196,7 @@ const ProjectDetails: React.FC = () => {
                   },
                 ]
               : []),
-            ...((biasMetricsAreaAvailable && allowCreate) || hasSettingsCards
+            ...((biasMetricsAreaAvailable || hasSettingsCards) && allowCreate
               ? [
                   {
                     id: ProjectSectionID.SETTINGS,

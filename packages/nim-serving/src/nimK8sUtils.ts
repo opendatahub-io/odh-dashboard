@@ -4,10 +4,10 @@ import {
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
-import { NIMAccountModel } from '@odh-dashboard/internal/api/models/odh';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
+import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
+import { NIMAccountModel, listNIMAccounts } from './k8s/nimAccounts';
 import {
   NIM_SECRET_GENERATE_NAME,
   NIM_ACCOUNT_NAME,
@@ -72,25 +72,39 @@ export const createNIMResources = async (
     throw e;
   }
 
-  await k8sPatchResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: namespace },
-    patches: [
-      {
-        op: 'add',
-        path: '/metadata/ownerReferences',
-        value: [
-          {
-            apiVersion: account.apiVersion,
-            kind: account.kind,
-            name: account.metadata.name,
-            uid: account.metadata.uid,
-            blockOwnerDeletion: true,
-          },
-        ],
-      },
-    ],
-  });
+  try {
+    await k8sPatchResource<SecretKind>({
+      model: SecretModel,
+      queryOptions: { name: secretName, ns: namespace },
+      patches: [
+        {
+          op: 'add',
+          path: '/metadata/ownerReferences',
+          value: [
+            {
+              apiVersion: account.apiVersion,
+              kind: account.kind,
+              name: account.metadata.name,
+              uid: account.metadata.uid,
+              blockOwnerDeletion: true,
+            },
+          ],
+        },
+      ],
+    });
+  } catch (e) {
+    await allSettledPromises<unknown>([
+      k8sDeleteResource<NIMAccountKind>({
+        model: NIMAccountModel,
+        queryOptions: { name: account.metadata.name, ns: namespace },
+      }),
+      k8sDeleteResource<SecretKind>({
+        model: SecretModel,
+        queryOptions: { name: secretName, ns: namespace },
+      }),
+    ]);
+    throw e;
+  }
 
   return account;
 };
@@ -127,7 +141,7 @@ export const deleteNIMResources = async (namespace: string): Promise<void> => {
 
 export const getNIMAccount = async (namespace: string): Promise<NIMAccountKind | undefined> => {
   const accounts = await listNIMAccounts(namespace);
-  return accounts[0];
+  return accounts.find((a) => a.metadata.name === NIM_ACCOUNT_NAME);
 };
 
 export const isAccountReady = (account: NIMAccountKind): boolean => {

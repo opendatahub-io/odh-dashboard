@@ -27,7 +27,10 @@ const ProjectSettingsPage = (): ReactElement => {
         )}
         {settingsCardExtensions.map((ext) => (
           <StackItem key={ext.properties.id}>
-            <LazyCodeRefComponent component={ext.properties.component} />
+            <LazyCodeRefComponent
+              component={ext.properties.component}
+              props={{ namespace: currentProject.metadata.name }}
+            />
           </StackItem>
         ))}
       </Stack>

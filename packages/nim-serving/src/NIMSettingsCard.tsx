@@ -15,8 +15,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports -- project settings card needs project context
-import { ProjectDetailsContext } from '@odh-dashboard/internal/pages/projects/ProjectDetailsContext';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
@@ -37,10 +35,11 @@ const NIM_DESCRIPTION =
   'community and NVIDIA AI Foundation models, it ensures seamless, scalable AI inferencing, ' +
   'on-premises or in the cloud, leveraging industry standard APIs.';
 
-const NIMSettingsCard: React.FC = () => {
-  const { currentProject } = React.useContext(ProjectDetailsContext);
-  const namespace = currentProject.metadata.name;
+type NIMSettingsCardProps = {
+  namespace: string;
+};
 
+const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, nimAccount, errorMessages, refresh, startRevalidation } =
     useNIMAccountStatus(namespace);
 
@@ -52,29 +51,42 @@ const NIMSettingsCard: React.FC = () => {
   const existingSecretName = nimAccount?.spec.apiKeySecret.name;
   const isApiKeyModalOpen = apiKeyModalState !== ApiKeyModalState.CLOSED;
 
-  const handleRemoveConfirm = async () => {
+  const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
+  const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
+    if (deleteStatusIntervalRef.current !== undefined) {
+      clearInterval(deleteStatusIntervalRef.current);
+      deleteStatusIntervalRef.current = undefined;
+    }
+    setDeleteError(error);
+    setIsDeleting(false);
+  }, []);
+  React.useEffect(() => () => stopPollingDeleteStatus(), [stopPollingDeleteStatus]);
+
+  const handleRemoveConfirm = React.useCallback(async () => {
     setIsDeleting(true);
     setDeleteError(undefined);
     try {
       await deleteNIMResources(namespace);
-      const pollUntilGone = async (retries = 10): Promise<void> => {
-        const result = await refresh();
-        if (result && retries > 0) {
-          await new Promise((resolve) => {
-            setTimeout(resolve, 1000);
-          });
-          return pollUntilGone(retries - 1);
-        }
-        return undefined;
-      };
-      await pollUntilGone();
-      setIsDeleteModalOpen(false);
     } catch (e) {
-      setDeleteError(e instanceof Error ? e : new Error('Failed to remove NIM.'));
-    } finally {
-      setIsDeleting(false);
+      stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+      return;
     }
-  };
+    let retries = 10;
+    deleteStatusIntervalRef.current = setInterval(async () => {
+      try {
+        const result = await refresh();
+        if (!result) {
+          stopPollingDeleteStatus();
+          setIsDeleteModalOpen(false);
+        } else if (retries === 0) {
+          stopPollingDeleteStatus(new Error('NIM resources were not deleted in time.'));
+        }
+        retries -= 1;
+      } catch (e) {
+        stopPollingDeleteStatus(e instanceof Error ? e : new Error('Failed to remove NIM.'));
+      }
+    }, 1000);
+  }, [namespace, refresh, stopPollingDeleteStatus]);
 
   const renderFooterContent = () => {
     switch (status) {

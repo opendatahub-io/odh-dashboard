@@ -4,9 +4,9 @@ import {
   k8sPatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { listNIMAccounts } from '@odh-dashboard/internal/api/k8s/nimAccounts';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
+import { listNIMAccounts } from '../k8s/nimAccounts';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
@@ -37,7 +37,13 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   replaceSecret: jest.fn(),
 }));
 
-jest.mock('@odh-dashboard/internal/api/k8s/nimAccounts', () => ({
+jest.mock('../k8s/nimAccounts', () => ({
+  NIMAccountModel: {
+    apiVersion: 'v1',
+    apiGroup: 'nim.opendatahub.io',
+    kind: 'Account',
+    plural: 'accounts',
+  },
   listNIMAccounts: jest.fn(),
 }));
 
@@ -143,6 +149,37 @@ describe('createNIMResources', () => {
       }),
     );
   });
+
+  it('should clean up both account and secret if ownerReference patch fails', async () => {
+    const createdSecret: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'nvidia-nim-secrets-def', namespace: 'test-ns' },
+      type: 'Opaque',
+    };
+    const createdAccount = mockNimAccount({
+      namespace: 'test-ns',
+      uid: 'account-uid-456',
+      apiKeySecretName: 'nvidia-nim-secrets-def',
+    });
+
+    mockCreateSecret.mockResolvedValue(createdSecret);
+    mockK8sCreateResource.mockResolvedValue(createdAccount);
+    mockK8sPatchResource.mockRejectedValue(new Error('patch failed'));
+
+    await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow('patch failed');
+    expect(mockK8sDeleteResource).toHaveBeenCalledTimes(2);
+    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
+      }),
+    );
+    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryOptions: { name: 'nvidia-nim-secrets-def', ns: 'test-ns' },
+      }),
+    );
+  });
 });
 
 describe('updateNIMSecretAndRevalidate', () => {
@@ -208,7 +245,7 @@ describe('getNIMAccount', () => {
     jest.clearAllMocks();
   });
 
-  it('should return the first account from the list', async () => {
+  it('should return the account matching NIM_ACCOUNT_NAME', async () => {
     const account = mockNimAccount({ namespace: 'test-ns' });
     mockListNIMAccounts.mockResolvedValue([account]);
 

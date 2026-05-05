@@ -47,16 +47,20 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   const [submitted, setSubmitted] = React.useState(false);
   const [createError, setCreateError] = React.useState<string>();
 
-  const handleSubmit = async () => {
+  const handleSubmit = React.useCallback(async () => {
+    const trimmedKey = apiKey.trim();
     setIsCreating(true);
     setCreateError(undefined);
 
     try {
-      if (isReplacing && existingSecretName) {
-        await updateNIMSecretAndRevalidate(namespace, existingSecretName, apiKey);
+      if (isReplacing) {
+        if (!existingSecretName) {
+          throw new Error('Cannot replace API key: existing secret is missing.');
+        }
+        await updateNIMSecretAndRevalidate(namespace, existingSecretName, trimmedKey);
         startRevalidation();
       } else {
-        await createNIMResources(namespace, apiKey);
+        await createNIMResources(namespace, trimmedKey);
       }
       setSubmitted(true);
       refresh();
@@ -65,12 +69,12 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     } finally {
       setIsCreating(false);
     }
-  };
+  }, [apiKey, isReplacing, existingSecretName, namespace, startRevalidation, refresh]);
 
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     onClose();
     refresh();
-  };
+  }, [onClose, refresh]);
 
   const isValidating = submitted && accountStatus === NIMAccountStatus.PENDING;
   const isSuccess = submitted && accountStatus === NIMAccountStatus.READY;
