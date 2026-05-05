@@ -41,30 +41,29 @@ function createConfigureSchema() {
       train_data_file_key: z.string().min(1).default(''),
       top_n: z.int().min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`).default(3),
 
-      // Tabular-specific fields (optional at base level, validated conditionally)
-      label_column: z.string().default('').optional(),
+      // Unified target column — transformed to `label_column` or `target` on submit
+      target_column: z.string().default('').optional(),
 
-      // Timeseries-specific fields (optional at base level, validated conditionally)
+      // API output fields — present when parsing pipeline run parameters, removed during form submit
+      label_column: z.string().default('').optional(),
       target: z.string().default('').optional(),
+
       id_column: z.string().default('').optional(),
       timestamp_column: z.string().default('').optional(),
       prediction_length: z.int().min(1).max(MAX_PREDICTION_LENGTH).default(1).optional(),
       known_covariates_names: z.array(z.string()).default([]).optional(),
     }),
     validators: [
-      // Validate tabular-specific required fields
+      // Validate target_column is required for all task types
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
-        if (
-          data.task_type !== TASK_TYPE_TIMESERIES &&
-          TABULAR_TASK_TYPES.some((t) => t === data.task_type)
-        ) {
-          if (!data.label_column || data.label_column.trim() === '') {
+        if (TASK_TYPES.some((t) => t === data.task_type)) {
+          if (!data.target_column || data.target_column.trim() === '') {
             issues.push({
               code: 'custom',
-              path: ['label_column'],
-              message: 'Label column is required',
-              input: data.label_column,
+              path: ['target_column'],
+              message: 'Target column is required',
+              input: data.target_column,
             });
           }
         }
@@ -74,14 +73,6 @@ function createConfigureSchema() {
       (data) => {
         const issues: z.core.$ZodRawIssue[] = [];
         if (data.task_type === TASK_TYPE_TIMESERIES) {
-          if (!data.target || data.target.trim() === '') {
-            issues.push({
-              code: 'custom',
-              path: ['target'],
-              message: 'Target column is required',
-              input: data.target,
-            });
-          }
           if (!data.id_column || data.id_column.trim() === '') {
             issues.push({
               code: 'custom',
@@ -123,19 +114,20 @@ function createConfigureSchema() {
     ],
     /* eslint-disable no-param-reassign */
     transformers: [
-      // Remove task-type-specific fields based on the selected task_type
+      // Map target_column to the correct output field and remove unused fields
       (data) => {
         if (data.task_type === TASK_TYPE_TIMESERIES) {
-          // Remove tabular-specific fields
+          data.target = data.target_column;
           delete data.label_column;
         } else {
-          // Remove timeseries-specific fields for tabular task types
+          data.label_column = data.target_column;
           delete data.target;
           delete data.id_column;
           delete data.timestamp_column;
           delete data.prediction_length;
           delete data.known_covariates_names;
         }
+        delete data.target_column;
         return data;
       },
     ],
