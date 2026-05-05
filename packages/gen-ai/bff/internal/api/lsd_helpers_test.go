@@ -191,7 +191,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "max_tokens exceeds limit", "invalid_request_error", "invalid_request_error", "", http.StatusBadRequest),
 			statusCode:              http.StatusBadRequest,
 			expectedComponent:       "model",
-			expectedCode:            "invalid_model_config",
+			expectedCode:            "invalid_parameter",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "max_tokens exceeds limit",
 			expectedRetriable:       false,
