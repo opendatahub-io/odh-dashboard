@@ -87,6 +87,15 @@ type RealS3Client struct {
 // (typically 30s) so the BFF can return a meaningful error instead of a raw 504.
 const s3ConnectTimeout = 10 * time.Second
 
+// maxBinaryUniqueValues is the maximum number of distinct values for a column
+// to be classified as binary.
+const maxBinaryUniqueValues = 2
+
+// maxMulticlassUniqueValues is the threshold for unique value analysis. It controls both
+// task type inference (>maxMulticlassUniqueValues numerical values → regression) and the
+// values array in the schema response (omitted when exceeded).
+const maxMulticlassUniqueValues = 10
+
 // buildS3AWSConfig creates the aws.Config used by NewRealS3Client.
 // It configures static credentials and single-attempt retries so that
 // unreachable S3 endpoints fail fast. The HTTP transport (including
@@ -457,13 +466,15 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 
 	columnSchemas := make([]ColumnSchema, len(header))
 	for i, colName := range header {
+		uniqueValues := collectUniqueRawValues(dataRows, i)
+		taskType := inferTaskType(uniqueValues)
 		columnSchemas[i] = ColumnSchema{
 			Name:     colName,
 			Type:     inferColumnType(dataRows, i),
-			TaskType: inferTaskType(dataRows, i),
+			TaskType: taskType,
 		}
-		if columnSchemas[i].Type == "bool" {
-			columnSchemas[i].Values = collectBooleanValues(dataRows, i)
+		if taskType == "binary" || taskType == "multiclass" {
+			columnSchemas[i].Values = toTypedValues(uniqueValues)
 		}
 	}
 
@@ -766,55 +777,58 @@ func isBoolean(s string) bool {
 	return false
 }
 
-func collectBooleanValues(rows [][]string, colIndex int) []interface{} {
-	uniqueValues := make(map[string]bool)
-	var orderedValues []interface{}
+// collectUniqueRawValues returns the distinct non-empty trimmed strings for a
+// column, preserving insertion order.
+func collectUniqueRawValues(rows [][]string, colIndex int) []string {
+	seen := make(map[string]bool)
+	var ordered []string
 
 	for _, row := range rows {
 		if colIndex >= len(row) || strings.TrimSpace(row[colIndex]) == "" {
 			continue
 		}
 		value := strings.TrimSpace(row[colIndex])
-		if !uniqueValues[value] {
-			uniqueValues[value] = true
-			if num, err := strconv.ParseFloat(value, 64); err == nil {
-				if num == math.Floor(num) && num >= math.MinInt64 && num <= math.MaxInt64 {
-					orderedValues = append(orderedValues, int64(num))
-				} else {
-					orderedValues = append(orderedValues, num)
-				}
-			} else {
-				orderedValues = append(orderedValues, value)
-			}
+		if !seen[value] {
+			seen[value] = true
+			ordered = append(ordered, value)
 		}
 	}
 
-	return orderedValues
+	return ordered
 }
 
-func inferTaskType(rows [][]string, colIndex int) string {
-	uniqueValues := make(map[string]struct{})
-	allNumerical := true
-
-	for _, row := range rows {
-		if colIndex >= len(row) || strings.TrimSpace(row[colIndex]) == "" {
-			continue
-		}
-		value := strings.TrimSpace(row[colIndex])
-		uniqueValues[value] = struct{}{}
-		if allNumerical {
-			if _, err := strconv.ParseFloat(value, 64); err != nil {
-				allNumerical = false
+// toTypedValues converts raw string values to their typed representations
+// (int64, float64, or string).
+func toTypedValues(rawValues []string) []interface{} {
+	result := make([]interface{}, 0, len(rawValues))
+	for _, value := range rawValues {
+		if num, err := strconv.ParseFloat(value, 64); err == nil {
+			if num == math.Floor(num) && num >= math.MinInt64 && num <= math.MaxInt64 {
+				result = append(result, int64(num))
+			} else {
+				result = append(result, num)
 			}
+		} else {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
+func inferTaskType(uniqueValues []string) string {
+	uniqueCount := len(uniqueValues)
+	allNumerical := true
+	for _, value := range uniqueValues {
+		if _, err := strconv.ParseFloat(value, 64); err != nil {
+			allNumerical = false
+			break
 		}
 	}
 
-	uniqueCount := len(uniqueValues)
-
-	if uniqueCount > 10 && allNumerical {
+	if uniqueCount > maxMulticlassUniqueValues && allNumerical {
 		return "regression"
 	}
-	if uniqueCount > 2 {
+	if uniqueCount > maxBinaryUniqueValues {
 		return "multiclass"
 	}
 	return "binary"

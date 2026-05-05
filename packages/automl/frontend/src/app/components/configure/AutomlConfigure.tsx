@@ -57,7 +57,7 @@ import type { File as S3ExplorerFile } from '~/app/components/common/FileExplore
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery, type ColumnSchema } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
@@ -112,6 +112,32 @@ const PREDICTION_TYPES: {
       'Predict future activity over a specified date/time range. Data must be structured and sequential.',
   },
 ];
+
+const getColumnConstraintTooltip = (
+  taskType: ConfigureSchema['task_type'],
+  selectedColumn: ColumnSchema | undefined,
+): string | undefined => {
+  if (!selectedColumn) {
+    return undefined;
+  }
+
+  const isStringColumn = selectedColumn.type === 'string';
+
+  switch (taskType) {
+    case TASK_TYPE_TIMESERIES:
+      return isStringColumn
+        ? 'Time series forecasting requires a numerical target column'
+        : undefined;
+    case TASK_TYPE_BINARY:
+      return selectedColumn.values == null || selectedColumn.values.length > 2
+        ? 'Binary classification requires a target column with at most 2 distinct values'
+        : undefined;
+    case TASK_TYPE_REGRESSION:
+      return isStringColumn ? 'Regression requires a numerical target column' : undefined;
+    default:
+      return undefined;
+  }
+};
 
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -301,6 +327,8 @@ function AutomlConfigure({
     trainDataBucketName,
     trainDataFileKey,
   );
+
+  const selectedColumn = columns.find((c) => c.name === targetColumn);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -827,17 +855,15 @@ function AutomlConfigure({
                                   field.onChange(value);
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
-                                    if (timestampColumn) {
+                                    const selected = columns.find((c) => c.name === value);
+                                    if (timestampColumn && selected?.type !== 'string') {
                                       setValue('task_type', TASK_TYPE_TIMESERIES, {
                                         shouldValidate: true,
                                       });
-                                    } else {
-                                      const selected = columns.find((c) => c.name === value);
-                                      if (selected?.task_type) {
-                                        setValue('task_type', selected.task_type, {
-                                          shouldValidate: true,
-                                        });
-                                      }
+                                    } else if (selected?.task_type) {
+                                      setValue('task_type', selected.task_type, {
+                                        shouldValidate: true,
+                                      });
                                     }
                                   }
                                 }}
@@ -905,34 +931,52 @@ function AutomlConfigure({
                             name="task_type"
                             render={({ field }) => (
                               <Gallery hasGutter minWidths={{ default: '200px' }}>
-                                {PREDICTION_TYPES.map((type) => (
-                                  <Card
-                                    key={type.value}
-                                    isSelectable
-                                    isDisabled={!canSelectLearningType || formIsSubmitting}
-                                    isSelected={field.value === type.value}
-                                    data-testid={`task-type-card-${type.value}`}
-                                  >
-                                    <CardHeader
-                                      selectableActions={{
-                                        selectableActionId: `task-type-${type.value}`,
-                                        selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                        name: 'task_type',
-                                        variant: 'single',
-                                        isChecked: field.value === type.value,
-                                        onChange: () => field.onChange(type.value),
-                                        isHidden: true,
-                                      }}
+                                {PREDICTION_TYPES.map((type) => {
+                                  const disabledTooltip = getColumnConstraintTooltip(
+                                    type.value,
+                                    selectedColumn,
+                                  );
+                                  const isDisabledByColumnConstraint = disabledTooltip != null;
+                                  const card = (
+                                    <Card
+                                      key={type.value}
+                                      isSelectable
+                                      isDisabled={
+                                        !canSelectLearningType ||
+                                        formIsSubmitting ||
+                                        isDisabledByColumnConstraint
+                                      }
+                                      isSelected={field.value === type.value}
+                                      data-testid={`task-type-card-${type.value}`}
                                     >
-                                      <CardTitle id={`task-type-label-${type.value}`}>
-                                        {type.label}
-                                      </CardTitle>
-                                    </CardHeader>
-                                    <CardBody>
-                                      <Content component="small">{type.description}</Content>
-                                    </CardBody>
-                                  </Card>
-                                ))}
+                                      <CardHeader
+                                        selectableActions={{
+                                          selectableActionId: `task-type-${type.value}`,
+                                          selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                          name: 'task_type',
+                                          variant: 'single',
+                                          isChecked: field.value === type.value,
+                                          onChange: () => field.onChange(type.value),
+                                          isHidden: true,
+                                        }}
+                                      >
+                                        <CardTitle id={`task-type-label-${type.value}`}>
+                                          {type.label}
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardBody>
+                                        <Content component="small">{type.description}</Content>
+                                      </CardBody>
+                                    </Card>
+                                  );
+                                  return disabledTooltip ? (
+                                    <Tooltip key={type.value} content={disabledTooltip}>
+                                      {card}
+                                    </Tooltip>
+                                  ) : (
+                                    card
+                                  );
+                                })}
                               </Gallery>
                             )}
                           />

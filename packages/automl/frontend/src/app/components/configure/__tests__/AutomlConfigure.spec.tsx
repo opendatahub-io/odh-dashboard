@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
-import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
+import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
 
@@ -172,11 +172,21 @@ const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
 
 const MOCK_COLUMNS = [
-  { name: 'approval_status', type: 'string' },
-  { name: 'credit_score', type: 'int64' },
-  { name: 'income', type: 'float64' },
-  { name: 'loan_amount', type: 'float64' },
-  { name: 'risk_category', type: 'string' },
+  {
+    name: 'approval_status',
+    type: 'string' as const,
+    task_type: 'binary' as const,
+    values: ['approved', 'denied'],
+  },
+  { name: 'credit_score', type: 'int64' as const, task_type: 'regression' as const },
+  { name: 'income', type: 'float64' as const, task_type: 'regression' as const },
+  { name: 'loan_amount', type: 'float64' as const, task_type: 'regression' as const },
+  {
+    name: 'risk_category',
+    type: 'string' as const,
+    task_type: 'multiclass' as const,
+    values: ['low', 'medium', 'high'],
+  },
 ];
 
 const configureSchema = createConfigureSchema();
@@ -474,14 +484,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
 
-      // Top models should NOT be visible until a prediction type is selected
-      expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
-
-      // Select a prediction type — Top models to consider should now appear
-      const binaryRadio = document.getElementById('task-type-binary');
-      if (binaryRadio) {
-        fireEvent.click(binaryRadio);
-      }
+      // Top models should be visible because selecting a target column auto-selects the prediction type
       expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     });
   });
@@ -695,13 +698,14 @@ describe('AutomlConfigure', () => {
         ).toBeInTheDocument();
       });
 
-      it('should have no prediction type selected by default', () => {
+      it('should auto-select the inferred prediction type when a target column is selected', () => {
         renderComponent();
         selectSecretAndFile();
-        selectTargetColumn();
-        TASK_TYPES.forEach((type) => {
-          expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
-        });
+        selectTargetColumn(); // selects 'approval_status' which has task_type 'binary'
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-selected');
+        expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-selected');
       });
 
       it('should select a prediction type when clicked', () => {
@@ -1065,7 +1069,7 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'data.csv',
           task_type: 'multiclass',
-          label_column: 'target',
+          target_column: 'risk_category',
           top_n: 3,
         },
         {
@@ -1073,7 +1077,7 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'data.csv',
           task_type: 'multiclass',
-          label_column: 'target',
+          target_column: 'risk_category',
           top_n: 3,
         },
       );
@@ -1127,7 +1131,7 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'data.csv',
           task_type: 'regression',
-          label_column: 'income',
+          target_column: 'income',
           top_n: 5,
         },
         {
@@ -1135,14 +1139,13 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'data.csv',
           task_type: 'regression',
-          label_column: 'income',
+          target_column: 'income',
           top_n: 5,
         },
       );
 
-      expect(screen.getByText('Label column')).toBeInTheDocument();
-      expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-      expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+      expect(screen.getByText('Target column')).toBeInTheDocument();
+      expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
     });
 
     it('should show timeseries fields when task_type is timeseries from initialValues', () => {
@@ -1159,7 +1162,7 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'ts.csv',
           task_type: 'timeseries',
-          target: 'sales',
+          target_column: 'credit_score',
           id_column: 'store_id',
           timestamp_column: 'date',
           prediction_length: 30,
@@ -1170,7 +1173,7 @@ describe('AutomlConfigure', () => {
           train_data_bucket_name: 'test-bucket-1',
           train_data_file_key: 'ts.csv',
           task_type: 'timeseries',
-          target: 'sales',
+          target_column: 'credit_score',
           id_column: 'store_id',
           timestamp_column: 'date',
           prediction_length: 30,
@@ -1180,8 +1183,196 @@ describe('AutomlConfigure', () => {
 
       expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
       expect(screen.getByText('Target column')).toBeInTheDocument();
-      expect(screen.getByTestId('target-select')).toBeInTheDocument();
+      expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+    });
+
+    it('should disable timeseries card when target column is string type', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
+    });
+
+    it('should disable binary card when target column has more than 2 unique values', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          target_column: 'risk_category',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
+    });
+
+    it('should disable binary card when target column has no values array', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          target_column: 'income',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          target_column: 'income',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-disabled');
+    });
+
+    it('should not disable binary card when target column has 2 or fewer unique values', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          target_column: 'approval_status',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          target_column: 'approval_status',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
+    });
+
+    it('should not disable timeseries or regression cards when target column is numerical', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          target_column: 'credit_score',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          target_column: 'credit_score',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-disabled');
+    });
+
+    it('should disable regression card when target column is string type', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          target_column: 'approval_status',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          target_column: 'approval_status',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-regression')).toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-disabled');
+      expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-disabled');
     });
   });
 });

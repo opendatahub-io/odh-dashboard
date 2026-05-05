@@ -49,9 +49,9 @@ jest.mock('~/app/hooks/mutations', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
-      { name: 'column1', type: 'string' },
-      { name: 'column2', type: 'int64' },
-      { name: 'column3', type: 'float64' },
+      { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },
+      { name: 'column2', type: 'int64', task_type: 'regression' },
+      { name: 'column3', type: 'float64', task_type: 'regression' },
     ],
     isLoading: false,
     isFetching: false,
@@ -868,7 +868,7 @@ describe('AutomlConfigurePage', () => {
         train_data_bucket_name: 'test-bucket',
         train_data_file_key: 'my-data/train.csv',
         task_type: 'binary' as const,
-        label_column: 'column1',
+        target_column: 'column1',
         top_n: 7,
       };
       const tabularInitialSecret = {
@@ -957,7 +957,7 @@ describe('AutomlConfigurePage', () => {
         expect(input).toHaveValue(7);
       });
 
-      it('should show label column fields for a tabular task type in the configure step', async () => {
+      it('should show target column fields for a tabular task type in the configure step', async () => {
         renderWithProviders(
           <AutomlConfigurePage
             initialValues={tabularInitialValues}
@@ -968,9 +968,8 @@ describe('AutomlConfigurePage', () => {
 
         await navigateToConfigure();
 
-        expect(screen.getByText('Label column')).toBeInTheDocument();
-        expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-        expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+        expect(screen.getByText('Target column')).toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
 
       it('should show timeseries fields when task_type is timeseries in the configure step', async () => {
@@ -979,7 +978,7 @@ describe('AutomlConfigurePage', () => {
             initialValues={{
               ...tabularInitialValues,
               task_type: 'timeseries',
-              target: 'sales',
+              target_column: 'column2',
               id_column: 'store_id',
               timestamp_column: 'date',
               prediction_length: 30,
@@ -992,8 +991,7 @@ describe('AutomlConfigurePage', () => {
 
         expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
         expect(screen.getByText('Target column')).toBeInTheDocument();
-        expect(screen.getByTestId('target-select')).toBeInTheDocument();
-        expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
     });
   });
