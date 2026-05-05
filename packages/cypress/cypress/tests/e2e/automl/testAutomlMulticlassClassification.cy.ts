@@ -6,13 +6,14 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
-import { setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
 
 const uuid = generateTestUUID();
 
 describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
+  let automlWasEnabled = false;
 
   retryableBefore(() =>
     cy
@@ -21,6 +22,11 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
+      .then(() =>
+        isAutomlEnabled().then((wasEnabled) => {
+          automlWasEnabled = wasEnabled;
+        }),
+      )
       .then(() => setAutomlEnabled(true))
       .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
@@ -28,7 +34,9 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
   );
 
   after(() => {
-    setAutomlEnabled(false);
+    if (!automlWasEnabled) {
+      setAutomlEnabled(false);
+    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

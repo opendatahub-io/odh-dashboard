@@ -12,13 +12,14 @@ import {
   automlConfigurePage,
   automlResultsPage,
 } from '../../../pages/automl';
-import { setAutomlEnabled } from '../../../utils/oc_commands/autoX';
+import { isAutomlEnabled, setAutomlEnabled } from '../../../utils/oc_commands/autoX';
 
 const uuid = generateTestUUID();
 
 describe('AutoML Experiments List and Run Management E2E', { testIsolation: false }, () => {
   let testData: AutomlTestData;
   let projectName: string;
+  let automlWasEnabled = false;
 
   retryableBefore(() =>
     cy
@@ -27,6 +28,11 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
       })
+      .then(() =>
+        isAutomlEnabled().then((wasEnabled) => {
+          automlWasEnabled = wasEnabled;
+        }),
+      )
       .then(() => setAutomlEnabled(true))
       .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
@@ -34,7 +40,9 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
   );
 
   after(() => {
-    setAutomlEnabled(false);
+    if (!automlWasEnabled) {
+      setAutomlEnabled(false);
+    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

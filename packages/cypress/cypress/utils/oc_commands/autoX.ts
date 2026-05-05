@@ -25,6 +25,17 @@ const buildPatchCommand = (resource: string, patchJson: object, namespace: strin
 };
 
 /**
+ * Check whether the AutoML feature flag is currently enabled.
+ */
+export const isAutomlEnabled = (): Cypress.Chainable<boolean> =>
+  cy
+    .exec(
+      `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.automl == true'`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => result.code === 0);
+
+/**
  * Set the AutoML feature flag in OdhDashboardConfig.
  * When enabling, polls until the flag is confirmed true.
  */
