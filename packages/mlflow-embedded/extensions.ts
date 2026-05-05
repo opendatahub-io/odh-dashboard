@@ -31,7 +31,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskI
     },
     properties: {
       id: 'experiments-mlflow',
-      title: 'Experiments (MLflow)',
+      title: 'Experiments',
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',

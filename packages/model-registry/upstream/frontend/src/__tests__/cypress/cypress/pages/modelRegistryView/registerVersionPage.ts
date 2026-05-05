@@ -1,3 +1,8 @@
+import {
+  registerVersionForModelUrl,
+  registerVersionUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
+
 export enum FormFieldSelector {
   REGISTERED_MODEL = '#registered-model-container .pf-m-typeahead',
   VERSION_NAME = '#version-name',
@@ -20,8 +25,8 @@ class RegisterVersionPage {
     const preferredModelRegistry = 'modelregistry-sample';
     cy.visit(
       registeredModelId
-        ? `/model-registry/${preferredModelRegistry}/registered-models/${registeredModelId}/register/version`
-        : `/model-registry/${preferredModelRegistry}/register/version`,
+        ? registerVersionForModelUrl(registeredModelId, preferredModelRegistry)
+        : registerVersionUrl(preferredModelRegistry),
     );
     this.wait();
   }

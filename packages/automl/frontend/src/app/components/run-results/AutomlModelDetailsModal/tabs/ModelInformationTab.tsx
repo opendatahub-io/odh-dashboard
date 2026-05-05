@@ -42,7 +42,7 @@ const ModelInformationTab: React.FC<TabContentProps> = ({ taskType, parameters, 
         ))}
         <DescriptionListGroup>
           <DescriptionListTerm>Evaluation metric</DescriptionListTerm>
-          <DescriptionListDescription>{evalMetric}</DescriptionListDescription>
+          <DescriptionListDescription>{formatMetricName(evalMetric)}</DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Created on</DescriptionListTerm>

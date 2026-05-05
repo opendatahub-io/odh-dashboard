@@ -11,6 +11,8 @@ import {
   mcpDeployModal,
   mcpServerDetailsPage,
 } from '../../../pages/mcpDeployments';
+import { appChrome } from '../../../pages/appChrome';
+import { tabRoutePage } from '../../../pages/tabRoutePage';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   mockRunningDeployment,
@@ -19,7 +21,13 @@ import {
   mockMcpDeployment,
   mockMcpServerCR,
 } from '../../../utils/mcpDeploymentUtils';
-import { ProjectModel } from '../../../utils/models';
+import {
+  ProjectModel,
+  ServingRuntimeModel,
+  InferenceServiceModel,
+  SecretModel,
+  TemplateModel,
+} from '../../../utils/models';
 
 const BFF_PREFIX = '/model-registry/api/v1';
 const MCP_DEPLOYMENTS_API = `${BFF_PREFIX}/mcp_deployments`;
@@ -67,7 +75,7 @@ const initIntercepts = ({
 };
 
 const visitDeployments = () => {
-  cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}?namespace=test-project`);
+  cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}/test-project`);
 };
 
 const withNewestCreationTime = (deployments: McpDeployment[]): McpDeployment =>
@@ -419,6 +427,30 @@ describe('MCP Deploy from Catalog', () => {
       mcpServerDetailsPage.findDeployButton().should('be.visible');
       mcpServerDetailsPage.findDeployButtonSpinner().should('exist');
     });
+
+    it('should not show deploy button when server is not found', () => {
+      initDeployIntercepts();
+      cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/invalid-server*`, {
+        statusCode: 404,
+        body: {
+          error: { code: '404', message: 'the requested resource could not be found' },
+        },
+      });
+
+      cy.visitWithLogin('/ai-hub/mcp-servers/catalog/invalid-server');
+
+      cy.contains('MCP server not found').should('be.visible');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
+
+    it('should not show deploy button when artifacts contain only empty URIs', () => {
+      initDeployIntercepts({ artifacts: [{ uri: '' }] });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      mcpServerDetailsPage.findBreadcrumbServerName().should('contain.text', 'Kubernetes MCP');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
   });
 
   it('should open deploy modal with pre-filled data from server details', () => {
@@ -536,5 +568,59 @@ describe('MCP Deploy from Catalog', () => {
       expect(body.name).to.match(/^gen-[a-z0-9]+$/);
       expect(body.name).to.not.equal('----');
     });
+  });
+});
+
+describe('MCP Deployments Project Persistence', () => {
+  it('should persist project selection from MCP deployments to model serving via preferredProject', () => {
+    initBaseIntercepts();
+
+    cy.intercept('GET', `${MCP_DEPLOYMENTS_API}*`, {
+      body: mockDeploymentListResponse(mockAllDeployments()),
+    }).as('getMcpDeployments');
+
+    // Model serving needs these K8s resources after the redirect lands on a valid namespace
+    cy.interceptK8sList({ model: ServingRuntimeModel, ns: undefined }, mockK8sResourceList([]));
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList({ model: InferenceServiceModel, ns: undefined }, mockK8sResourceList([]));
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([]),
+    );
+    cy.interceptK8sList(TemplateModel, mockK8sResourceList([]));
+    cy.interceptK8sList(SecretModel, mockK8sResourceList([]));
+    cy.interceptOdh('GET /api/connection-types', []);
+
+    // Visit MCP deployments with test-project — this sets preferredProject via the bridge
+    cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}/test-project`);
+    mcpDeploymentsPage.findTable().should('be.visible');
+
+    // Navigate to model serving via the nav sidebar (SPA navigation preserves preferredProject)
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
+
+    // Click the Deployments tab (Models nav lands on the catalog tab by default)
+    tabRoutePage.findTab('deployments').click();
+
+    // Model serving's CoreLoader should redirect to the preferred project
+    cy.location('pathname').should('eq', '/ai-hub/models/deployments/test-project');
+  });
+
+  it('should show select-project state when no project is in the URL and no preferred project', () => {
+    initBaseIntercepts();
+
+    cy.visitWithLogin(MCP_DEPLOYMENTS_URL);
+    mcpDeploymentsPage.findSelectProjectState().should('be.visible');
+  });
+
+  it('should show project-not-found state for invalid namespace', () => {
+    initBaseIntercepts();
+
+    cy.visitWithLogin(`${MCP_DEPLOYMENTS_URL}/nonexistent-project`);
+    cy.findByTestId('mcp-deployments-invalid-project')
+      .should('be.visible')
+      .and('contain.text', 'nonexistent-project');
   });
 });

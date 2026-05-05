@@ -218,9 +218,7 @@ const extensions: (
     },
     properties: {
       useIsDeployAvailable: () =>
-        import('../app/hooks/mcpCatalogDeployment/useMcpServerDeployAvailable').then(
-          (m) => m.default,
-        ),
+        import('./hooks/useMcpServerDeployAvailable').then((m) => m.default),
     },
   },
 ];

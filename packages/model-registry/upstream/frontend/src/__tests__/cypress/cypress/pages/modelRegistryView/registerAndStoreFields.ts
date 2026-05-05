@@ -1,10 +1,11 @@
+import { registerModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { FormFieldSelector } from './registerModelPage';
 
 class RegisterAndStoreFields {
   visit(registryNamespace?: string) {
     const preferredModelRegistry = 'modelregistry-sample';
     const query = registryNamespace ? `?namespace=${encodeURIComponent(registryNamespace)}` : '';
-    cy.visit(`/model-registry/${preferredModelRegistry}/register/model${query}`);
+    cy.visit(`${registerModelUrl(preferredModelRegistry)}${query}`);
   }
 
   findNamespaceFormGroup() {

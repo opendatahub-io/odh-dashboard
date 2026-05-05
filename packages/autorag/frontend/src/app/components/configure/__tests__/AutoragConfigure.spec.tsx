@@ -96,6 +96,7 @@ jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
+    isError: false,
   }),
   useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
@@ -694,6 +695,23 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('Model error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    });
+  });
+
   describe('selected input data file table', () => {
     it('should NOT display the selected file table when no file is selected', () => {
       renderComponent();
@@ -824,7 +842,39 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
+    it('should disable "Edit" button when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      // Select a valid secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Browse and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Edit button should be disabled due to model error
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
+    });
+
     it('should enable "Edit" button when a file/folder is selected', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
       renderComponent();
 
       // Select a valid secret

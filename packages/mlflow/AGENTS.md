@@ -99,7 +99,7 @@ mlflow/
 
 ### BFF
 
-- **Go**: >= 1.24.3
+- **Go**: >= 1.25.0
 
 ---
 
@@ -361,7 +361,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:

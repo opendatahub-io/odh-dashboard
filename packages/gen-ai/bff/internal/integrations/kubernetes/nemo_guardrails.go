@@ -158,6 +158,37 @@ func (kc *TokenKubernetesClient) CreateNemoGuardrailsResources(
 	return nemoGuardrailsCRName, nil
 }
 
+// GetNemoGuardrailsStatus returns the status of the NemoGuardrails CR in the given namespace.
+// Returns a 404 K8s error if the CR does not exist.
+func (kc *TokenKubernetesClient) GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error) {
+	cr, err := kc.GetNemoGuardrailsCR(ctx, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, NewK8sErrorWithNamespace(ErrCodeNotFound, "NemoGuardrails not found", namespace, 404)
+		}
+		return nil, NewK8sErrorWithNamespace(ErrCodeInternalError,
+			fmt.Sprintf("failed to get NemoGuardrails: %v", err), namespace, 500)
+	}
+
+	// Extract phase from status.conditions — look for the ReconcileComplete condition
+	// or fall back to Progressing if none indicate readiness.
+	phase := constants.GuardrailsPhaseProgressing
+	isReady := false
+
+	if status, ok := cr.Object["status"].(map[string]interface{}); ok {
+		if rawPhase, ok := status["phase"].(string); ok && rawPhase != "" {
+			phase = rawPhase
+			isReady = rawPhase == constants.GuardrailsPhaseReady
+		}
+	}
+
+	return &models.NemoGuardrailsStatus{
+		Name:    cr.GetName(),
+		Phase:   phase,
+		IsReady: isReady,
+	}, nil
+}
+
 // GetNemoGuardrailsCR returns the NemoGuardrails CR in the given namespace, or nil if not found.
 func (kc *TokenKubernetesClient) GetNemoGuardrailsCR(ctx context.Context, namespace string) (*unstructured.Unstructured, error) {
 	cr := &unstructured.Unstructured{}
