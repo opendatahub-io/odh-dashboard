@@ -6,6 +6,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
+import { enableAutomlFeature, disableAutomlFeature } from '../../../utils/oc_commands/automl';
 
 const uuid = generateTestUUID();
 
@@ -14,14 +15,20 @@ describe('AutoML Regression E2E', { testIsolation: false }, () => {
   let projectName: string;
 
   retryableBefore(() =>
-    cy.fixture('e2e/automl/testAutomlRegression.yaml', 'utf8').then((yamlContent: string) => {
-      testData = yaml.load(yamlContent) as AutomlTestData;
-      projectName = `${testData.projectNamePrefix}-${uuid}`;
-      provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-    }),
+    cy
+      .fixture('e2e/automl/testAutomlRegression.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as AutomlTestData;
+        projectName = `${testData.projectNamePrefix}-${uuid}`;
+      })
+      .then(() => enableAutomlFeature())
+      .then(() => {
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+      }),
   );
 
   after(() => {
+    disableAutomlFeature();
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

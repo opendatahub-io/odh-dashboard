@@ -6,6 +6,7 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutomlTestData } from '../../../types';
 import { automlConfigurePage, automlResultsPage } from '../../../pages/automl';
+import { enableAutomlFeature, disableAutomlFeature } from '../../../utils/oc_commands/automl';
 
 const uuid = generateTestUUID();
 
@@ -19,11 +20,15 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutomlTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+      })
+      .then(() => enableAutomlFeature())
+      .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
       }),
   );
 
   after(() => {
+    disableAutomlFeature();
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
