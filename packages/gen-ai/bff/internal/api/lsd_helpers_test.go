@@ -29,8 +29,8 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewInvalidRequestError("input is required"),
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBodyContains: []string{
-				`"component": "model"`,
-				`"code": "invalid_parameter"`,
+				`"component": "bff"`,
+				`"code": "INVALID_REQUEST"`,
 				`"retriable": false`,
 				`"message": "input is required"`,
 			},
@@ -40,8 +40,8 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewInvalidRequestError("temperature invalid"),
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBodyContains: []string{
-				`"component": "model"`,
-				`"code": "invalid_parameter"`,
+				`"component": "bff"`,
+				`"code": "INVALID_REQUEST"`,
 				`"message": "temperature invalid"`,
 			},
 		},
@@ -50,9 +50,9 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewUnauthorizedError("invalid token"),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedBodyContains: []string{
-				`"component": "llama_stack"`,
-				`"code": "server_error"`,
-				`"retriable": true`,
+				`"component": "bff"`,
+				`"code": "UNAUTHORIZED"`,
+				`"retriable": false`,
 				`"message": "invalid token"`,
 			},
 		},
@@ -61,8 +61,8 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewNotFoundError("resource not found"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedBodyContains: []string{
-				`"component": "llama_stack"`,
-				`"code": "server_error"`,
+				`"component": "bff"`,
+				`"code": "NOT_FOUND"`,
 				`"message": "resource not found"`,
 			},
 		},
@@ -71,8 +71,8 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewConnectionError("connection refused"),
 			expectedStatusCode: http.StatusBadGateway,
 			expectedBodyContains: []string{
-				`"component": "llama_stack"`,
-				`"code": "server_error"`,
+				`"component": "bff"`,
+				`"code": "CONNECTION_FAILED"`,
 				`"message": "connection refused"`,
 			},
 		},
@@ -180,8 +180,8 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "bad request with invalid parameter",
 			lsErr:                   llamastack.NewInvalidRequestError("temperature must be between 0.0 and 2.0"),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "model",
-			expectedCode:            "invalid_parameter",
+			expectedComponent:       "bff",
+			expectedCode:            "INVALID_REQUEST",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "temperature must be between 0.0 and 2.0",
 			expectedRetriable:       false,
@@ -200,28 +200,28 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "unauthorized error",
 			lsErr:                   llamastack.NewUnauthorizedError("invalid token"),
 			statusCode:              http.StatusUnauthorized,
-			expectedComponent:       "llama_stack",
-			expectedCode:            "server_error",
+			expectedComponent:       "bff",
+			expectedCode:            "UNAUTHORIZED",
 			expectedStatusCode:      http.StatusUnauthorized,
 			expectedMessageContains: "invalid token",
-			expectedRetriable:       true,
+			expectedRetriable:       false,
 		},
 		{
 			name:                    "not found error",
 			lsErr:                   llamastack.NewNotFoundError("resource not found"),
 			statusCode:              http.StatusNotFound,
-			expectedComponent:       "llama_stack",
-			expectedCode:            "server_error",
+			expectedComponent:       "bff",
+			expectedCode:            "NOT_FOUND",
 			expectedStatusCode:      http.StatusNotFound,
 			expectedMessageContains: "resource not found",
-			expectedRetriable:       true,
+			expectedRetriable:       false,
 		},
 		{
 			name:                    "connection error",
 			lsErr:                   llamastack.NewConnectionError("connection refused"),
 			statusCode:              http.StatusBadGateway,
-			expectedComponent:       "llama_stack",
-			expectedCode:            "server_error",
+			expectedComponent:       "bff",
+			expectedCode:            "CONNECTION_FAILED",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "connection refused",
 			expectedRetriable:       true,
@@ -230,9 +230,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "timeout error - overrides to 503",
 			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504),
 			statusCode:              http.StatusGatewayTimeout,
-			expectedComponent:       "llama_stack",
-			expectedCode:            "timeout",
-			expectedStatusCode:      http.StatusServiceUnavailable,
+			expectedComponent:       "bff",
+			expectedCode:            "TIMEOUT",
+			expectedStatusCode:      http.StatusGatewayTimeout,
 			expectedMessageContains: "request timed out",
 			expectedRetriable:       true,
 		},
@@ -338,9 +338,8 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		body := rr.Body.String()
 
-		// "input is required" should be categorized as invalid_parameter
-		assert.Contains(t, body, `"component": "model"`)
-		assert.Contains(t, body, `"code": "invalid_parameter"`)
+		assert.Contains(t, body, `"component": "bff"`)
+		assert.Contains(t, body, `"code": "INVALID_REQUEST"`)
 		assert.Contains(t, body, "input is required")
 		assert.Contains(t, body, `"retriable": false`)
 	})
@@ -354,9 +353,8 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		// Temperature error gets invalid_parameter category
-		assert.Contains(t, rr.Body.String(), `"component": "model"`)
-		assert.Contains(t, rr.Body.String(), `"code": "invalid_parameter"`)
+		assert.Contains(t, rr.Body.String(), `"component": "bff"`)
+		assert.Contains(t, rr.Body.String(), `"code": "INVALID_REQUEST"`)
 		assert.Contains(t, rr.Body.String(), "temperature out of range")
 	})
 
@@ -369,11 +367,10 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
-		assert.Contains(t, rr.Body.String(), `"code": "server_error"`)
-		// Not found errors pass through the actual OpenAI message
+		assert.Contains(t, rr.Body.String(), `"component": "bff"`)
+		assert.Contains(t, rr.Body.String(), `"code": "NOT_FOUND"`)
 		assert.Contains(t, rr.Body.String(), "resource not found")
-		assert.Contains(t, rr.Body.String(), `"retriable": true`)
+		assert.Contains(t, rr.Body.String(), `"retriable": false`)
 	})
 
 	t.Run("should fall back to serverErrorResponse for unknown error type", func(t *testing.T) {
@@ -398,7 +395,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"component": "rag"`)
-		assert.Contains(t, rr.Body.String(), `"code": "not_found"`)
+		assert.Contains(t, rr.Body.String(), `"code": "resource_not_found"`)
 		assert.Contains(t, rr.Body.String(), "vector store")
 		assert.Contains(t, rr.Body.String(), `"retriable": false`)
 	})
