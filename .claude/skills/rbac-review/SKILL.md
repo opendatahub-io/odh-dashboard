@@ -21,15 +21,7 @@ The user may provide:
 
 ## Phase 0: Gather feature context
 
-Run the context script to prompt for a Jira ticket:
-
-```bash
-bash .claude/skills/rbac-review/scripts/gather-context.sh
-```
-
-The script prints a prompt to stderr and reads a Jira key from stdin. If the user provides one, it outputs a structured context block. If skipped (empty input), the script exits cleanly with no output.
-
-**When a ticket is provided:** Use the `jira_get_issue` MCP tool (server: `user-atlassian`) to fetch the full issue. Extract from the response:
+If the user provided a Jira ticket key as an argument (e.g. `/rbac-review RHOAIENG-12345`), fetch the full Jira issue (via MCP or CLI). Extract from the response:
 
 - **Summary** — what feature is being built
 - **Description** — acceptance criteria, referenced resources, API groups, verbs
@@ -37,7 +29,7 @@ The script prints a prompt to stderr and reads a Jira key from stdin. If the use
 
 Use this to build an **expected permission model**: which K8s resources and verbs the feature likely needs, and which user types should or should not have access. This model guides all subsequent checks — instead of only detecting generic anti-patterns, the review can flag specific **missing gates** for the resources/operations the feature introduces.
 
-**When no ticket is provided:** Proceed with generic checks only — the review still catches anti-patterns but cannot validate completeness against feature requirements.
+If no ticket was provided, proceed with generic checks only — the review still catches anti-patterns but cannot validate completeness against feature requirements.
 
 ## Phase 1: Load reference data
 
@@ -142,7 +134,13 @@ For data-fetching hooks that load sensitive or admin-only data:
 - User impact: Which user type is affected and how
 ```
 
-Omit the "Feature Context" and "Permission model coverage" sections if no Jira ticket was provided.
+Omit the "Feature Context" and "Permission model coverage" sections if no Jira ticket was provided. Instead, append a note at the end of the report:
+
+```md
+---
+
+> **Note:** This review checked for generic RBAC anti-patterns only. For a more targeted review that validates permission coverage against feature requirements, re-run with a Jira ticket: `/rbac-review RHOAIENG-XXXXX`
+```
 
 ### Severity classification
 
