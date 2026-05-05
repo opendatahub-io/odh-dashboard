@@ -79,17 +79,6 @@ func isRetriableError(errorCode string, statusCode int) bool {
 	}
 }
 
-func shouldOverrideToServiceUnavailable(errorCode string) bool {
-	switch errorCode {
-	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
-		return true
-	case "timeout", "request_timeout", "gateway_timeout":
-		return true
-	default:
-		return false
-	}
-}
-
 func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) (*integrations.FrontendErrorResponse, int) {
 	errorCode := lsErr.ErrorCode
 	if errorCode == "" {
@@ -98,11 +87,6 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 
 	component := getComponentFromErrorCode(errorCode)
 	retriable := isRetriableError(errorCode, statusCode)
-
-	// Only normalize generic 500 errors for timeout/rate-limit cases
-	if shouldOverrideToServiceUnavailable(errorCode) && statusCode == 500 {
-		statusCode = http.StatusServiceUnavailable
-	}
 
 	toolName := ""
 	if component == "mcp" && lsErr.Param != "" {

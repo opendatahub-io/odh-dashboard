@@ -400,7 +400,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), `"retriable": false`)
 	})
 
-	t.Run("should categorize timeout errors correctly and override to 503", func(t *testing.T) {
+	t.Run("should categorize timeout errors correctly and keep 500", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
@@ -408,7 +408,7 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
-		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
 		assert.Contains(t, rr.Body.String(), `"code": "timeout"`)
 		assert.Contains(t, rr.Body.String(), "timed out")
