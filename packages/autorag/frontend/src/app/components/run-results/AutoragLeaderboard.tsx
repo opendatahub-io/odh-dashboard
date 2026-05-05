@@ -177,7 +177,7 @@ const COLUMN_META: Record<
   retrievalRankerStrategy: {
     name: 'Hybrid strategy',
     description:
-      'The ranking algorithm used to combine and reorder results when hybrid retrieval is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
+      'The ranking algorithm used to combine and reorder results when hybrid retrieval search mode is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
     minWidth: '12rem',
     priority: 4,
     field: 'retrievalRankerStrategy',
