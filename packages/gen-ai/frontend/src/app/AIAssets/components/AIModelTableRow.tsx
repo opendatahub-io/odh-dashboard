@@ -234,14 +234,16 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                     aria-label={`Actions for ${model.display_name || model.model_id}`}
                     variant="plain"
                     onClick={() => setIsKebabOpen(!isKebabOpen)}
+                    data-testid="model-actions-kebab"
                   >
                     <EllipsisVIcon />
                   </MenuToggle>
                 )}
               >
-                <DropdownList>
+                <DropdownList data-testid="model-actions-dropdown-menu">
                   <DropdownItem
                     key="delete"
+                    data-testid="remove-asset-action"
                     onClick={() => {
                       setIsKebabOpen(false);
                       setIsDeleteModalOpen(true);
@@ -289,6 +291,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 variant="danger"
                 isInline
                 title="Error"
+                data-testid="delete-model-error-alert"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
                 {deleteError}

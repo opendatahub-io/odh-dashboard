@@ -17,8 +17,14 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: { to: string; children: React.ReactNode } & Record<string, unknown>) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -801,6 +807,8 @@ describe('AutomlResultsPage', () => {
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
       });
+
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
     });
 
     it('should close StopRunModal after stop completes', async () => {
@@ -891,6 +899,76 @@ describe('AutomlResultsPage', () => {
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
       });
+    });
+  });
+
+  describe('reconfigure action', () => {
+    it('should always show Reconfigure button when pipeline run is loaded', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should link to the reconfigure route with namespace and runId', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const reconfigureButton = screen.getByTestId('reconfigure-run-button');
+      const link = reconfigureButton.closest('a');
+      expect(link).toHaveAttribute('href', '/develop-train/automl/reconfigure/test-ns/run-123');
+    });
+
+    it('should show Reconfigure button alongside Stop button for active runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'RUNNING' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure button alongside Retry button for failed runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'FAILED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
     });
   });
 });
