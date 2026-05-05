@@ -5,13 +5,9 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Title,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   Modal,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalFooter,
   Button,
   ActionGroup,
