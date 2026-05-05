@@ -268,13 +268,13 @@ func TestNewEnhancedLlamaStackError(t *testing.T) {
 		expectedCategory ResponseErrorCategory
 	}{
 		{
-			name: "configuration error",
+			name: "invalid parameter error",
 			baseError: &LlamaStackError{
 				Code:       ErrCodeInvalidRequest,
 				Message:    "max_tokens value 10000 exceeds model maximum",
 				StatusCode: 400,
 			},
-			expectedCategory: CategoryInvalidModelConfig,
+			expectedCategory: CategoryInvalidParameter,
 		},
 		{
 			name: "timeout error",

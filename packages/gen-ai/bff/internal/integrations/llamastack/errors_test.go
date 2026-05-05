@@ -157,7 +157,7 @@ func TestWrapClientError_APIErrors_ServiceUnavailable(t *testing.T) {
 
 			require.NotNil(t, result)
 			assert.Equal(t, ErrCodeServerUnavailable, result.Code)
-			assert.Equal(t, 503, result.StatusCode)
+			assert.Equal(t, tt.statusCode, result.StatusCode) // Preserve original status code for debugging
 			// NewServerUnavailableError passes the formatted message including operation context
 			assert.Contains(t, result.Message, "LlamaStack error on operation CreateResponse")
 		})
@@ -182,24 +182,28 @@ func TestWrapClientError_APIErrors_WithMessage(t *testing.T) {
 
 func TestWrapClientError_APIErrors_OtherStatusCodes(t *testing.T) {
 	tests := []struct {
-		name       string
-		statusCode int
-		message    string
+		name            string
+		statusCode      int
+		message         string
+		expectedErrCode string
 	}{
 		{
-			name:       "500 Internal Server Error",
-			statusCode: http.StatusInternalServerError,
-			message:    "internal server error",
+			name:            "500 Internal Server Error",
+			statusCode:      http.StatusInternalServerError,
+			message:         "internal server error",
+			expectedErrCode: ErrCodeInternalError,
 		},
 		{
-			name:       "502 Bad Gateway",
-			statusCode: http.StatusBadGateway,
-			message:    "bad gateway",
+			name:            "502 Bad Gateway",
+			statusCode:      http.StatusBadGateway,
+			message:         "bad gateway",
+			expectedErrCode: ErrCodeInternalError,
 		},
 		{
-			name:       "429 Too Many Requests",
-			statusCode: http.StatusTooManyRequests,
-			message:    "rate limit exceeded",
+			name:            "429 Too Many Requests",
+			statusCode:      http.StatusTooManyRequests,
+			message:         "rate limit exceeded",
+			expectedErrCode: ErrCodeServerUnavailable,
 		},
 	}
 
@@ -213,7 +217,7 @@ func TestWrapClientError_APIErrors_OtherStatusCodes(t *testing.T) {
 			result := wrapClientError(apiErr, "ListModels")
 
 			require.NotNil(t, result)
-			assert.Equal(t, ErrCodeInternalError, result.Code)
+			assert.Equal(t, tt.expectedErrCode, result.Code)
 			assert.Equal(t, tt.statusCode, result.StatusCode)
 			assert.Contains(t, result.Message, "LlamaStack error on operation ListModels")
 			assert.Contains(t, result.Message, tt.message)
