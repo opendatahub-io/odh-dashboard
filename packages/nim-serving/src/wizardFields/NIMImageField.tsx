@@ -1,6 +1,7 @@
 import React from 'react';
 import { z } from 'zod';
-import { FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Alert, FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
@@ -23,6 +24,7 @@ export type NIMImageDependencies = {
 
 export type NIMImagesData = {
   modelInfos: ModelInfo[];
+  projectName?: string;
 };
 
 export const useNIMImages = (
@@ -70,11 +72,11 @@ export const useNIMImages = (
 
   return React.useMemo(
     () => ({
-      data: { modelInfos },
+      data: { modelInfos, projectName },
       loaded,
       loadError,
     }),
-    [modelInfos, loaded, loadError],
+    [modelInfos, projectName, loaded, loadError],
   );
 };
 
@@ -182,11 +184,28 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [modelInfos, onChange, isEditing],
   );
 
-  const hasError = externalData?.loaded && modelInfos.length === 0 && !externalData.loadError;
+  const projectName = externalData?.data.projectName;
+  const hasNoModels = externalData?.loaded && modelInfos.length === 0 && !externalData.loadError;
+
+  if (hasNoModels) {
+    return (
+      <Alert variant="warning" isInline title="NVIDIA Inference Microservices (NIM image)">
+        NVIDIA NIM key is required in project to deploy NVIDIA NIM models.{' '}
+        {projectName && (
+          <Link to={`/projects/${projectName}?section=settings`}>Enable in project settings</Link>
+        )}
+      </Alert>
+    );
+  }
 
   return (
-    <FormGroup label="NVIDIA NIM" fieldId="nim-image-selection" isRequired>
+    <FormGroup
+      label="NVIDIA Inference Microservices (NIM image)"
+      fieldId="nim-image-selection"
+      isRequired
+    >
       <TypeaheadSelect
+        toggleWidth="450px"
         selectOptions={options}
         selected={selectedKey}
         isScrollable
@@ -206,13 +225,6 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         <HelperText>
           <HelperTextItem variant="error">
             There was a problem fetching the NIM models. Please try again later.
-          </HelperTextItem>
-        </HelperText>
-      )}
-      {hasError && (
-        <HelperText>
-          <HelperTextItem variant="warning">
-            No NVIDIA NIM models found. Please check the NIM Account installation.
           </HelperTextItem>
         </HelperText>
       )}
