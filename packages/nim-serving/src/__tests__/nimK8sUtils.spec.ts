@@ -84,7 +84,7 @@ describe('createNIMResources', () => {
     jest.clearAllMocks();
   });
 
-  it('should create secret, account, and patch ownerReference', async () => {
+  it('should dry-run both creates, then create secret, account, and patch ownerReference', async () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
@@ -103,14 +103,26 @@ describe('createNIMResources', () => {
 
     const result = await createNIMResources('test-ns', 'nvapi-key');
 
-    expect(mockCreateSecret).toHaveBeenCalledTimes(1);
-    expect(mockK8sCreateResource).toHaveBeenCalledWith(
+    expect(mockCreateSecret).toHaveBeenCalledTimes(2);
+    expect(mockCreateSecret).toHaveBeenNthCalledWith(1, expect.any(Object), { dryRun: true });
+    expect(mockCreateSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
+
+    expect(mockK8sCreateResource).toHaveBeenCalledTimes(2);
+    expect(mockK8sCreateResource).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        queryOptions: { queryParams: { dryRun: 'All' } },
+      }),
+    );
+    expect(mockK8sCreateResource).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({
         resource: expect.objectContaining({
           spec: { apiKeySecret: { name: 'nvidia-nim-secrets-xyz99' } },
         }),
       }),
     );
+
     expect(mockK8sPatchResource).toHaveBeenCalledWith(
       expect.objectContaining({
         patches: [
@@ -130,6 +142,17 @@ describe('createNIMResources', () => {
     expect(result).toBe(createdAccount);
   });
 
+  it('should not create any resources if dry-run fails', async () => {
+    mockCreateSecret.mockRejectedValueOnce(new Error('dry-run validation failed'));
+
+    await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
+      'dry-run validation failed',
+    );
+    expect(mockCreateSecret).toHaveBeenCalledTimes(1);
+    expect(mockK8sCreateResource).toHaveBeenCalledTimes(1);
+    expect(mockK8sDeleteResource).not.toHaveBeenCalled();
+  });
+
   it('should clean up secret if account creation fails', async () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
@@ -138,7 +161,9 @@ describe('createNIMResources', () => {
       type: 'Opaque',
     };
     mockCreateSecret.mockResolvedValue(createdSecret);
-    mockK8sCreateResource.mockRejectedValue(new Error('account creation failed'));
+    mockK8sCreateResource
+      .mockResolvedValueOnce(mockNimAccount({}))
+      .mockRejectedValueOnce(new Error('account creation failed'));
 
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
       'account creation failed',
@@ -187,7 +212,7 @@ describe('updateNIMSecretAndRevalidate', () => {
     jest.clearAllMocks();
   });
 
-  it('should fetch existing secret, replace with new key and force-validation annotation', async () => {
+  it('should dry-run replace before committing', async () => {
     const existingSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
@@ -205,20 +230,38 @@ describe('updateNIMSecretAndRevalidate', () => {
     await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'nvapi-new-key');
 
     expect(mockGetSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
-    expect(mockReplaceSecret).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          resourceVersion: '12345',
-          annotations: expect.objectContaining({
-            'runtimes.opendatahub.io/nim-force-validation': expect.any(String),
-          }),
+    expect(mockReplaceSecret).toHaveBeenCalledTimes(2);
+
+    const expectedSecret = expect.objectContaining({
+      metadata: expect.objectContaining({
+        resourceVersion: '12345',
+        annotations: expect.objectContaining({
+          'runtimes.opendatahub.io/nim-force-validation': expect.any(String),
         }),
-        stringData: {
-          [NIM_API_KEY_DATA_KEY]: 'nvapi-new-key',
-          [NGC_API_KEY_DATA_KEY]: 'nvapi-new-key',
-        },
       }),
-    );
+      stringData: {
+        [NIM_API_KEY_DATA_KEY]: 'nvapi-new-key',
+        [NGC_API_KEY_DATA_KEY]: 'nvapi-new-key',
+      },
+    });
+    expect(mockReplaceSecret).toHaveBeenNthCalledWith(1, expectedSecret, { dryRun: true });
+    expect(mockReplaceSecret).toHaveBeenNthCalledWith(2, expectedSecret);
+  });
+
+  it('should not replace if dry-run fails', async () => {
+    const existingSecret: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'nvidia-nim-access-abc', namespace: 'test-ns' },
+      type: 'Opaque',
+    };
+    mockGetSecret.mockResolvedValue(existingSecret);
+    mockReplaceSecret.mockRejectedValueOnce(new Error('dry-run failed'));
+
+    await expect(
+      updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'bad-key'),
+    ).rejects.toThrow('dry-run failed');
+    expect(mockReplaceSecret).toHaveBeenCalledTimes(1);
   });
 });
 

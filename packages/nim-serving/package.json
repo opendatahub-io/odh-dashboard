@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./k8s": "./src/k8s/nimAccounts.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

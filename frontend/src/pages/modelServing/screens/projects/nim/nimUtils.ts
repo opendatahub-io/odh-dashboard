@@ -7,9 +7,9 @@ import {
   deleteSecret,
   getPvc,
   getTemplate,
-  listNIMAccounts,
   listServingRuntimes,
 } from '#~/api';
+import { listNIMAccounts } from '@odh-dashboard/nim-serving/k8s';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 
 export const getNGCSecretType = (isNGC: boolean): string =>

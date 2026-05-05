@@ -55,7 +55,19 @@ export const createNIMResources = async (
   namespace: string,
   apiKey: string,
 ): Promise<NIMAccountKind> => {
-  const secret = await createSecret(assembleNIMSecret(namespace, apiKey));
+  const secretData = assembleNIMSecret(namespace, apiKey);
+  const accountData = assembleNIMAccount(namespace, '');
+
+  await Promise.all([
+    createSecret(secretData, { dryRun: true }),
+    k8sCreateResource<NIMAccountKind>({
+      model: NIMAccountModel,
+      resource: accountData,
+      queryOptions: { queryParams: { dryRun: 'All' } },
+    }),
+  ]);
+
+  const secret = await createSecret(secretData);
   const secretName = secret.metadata.name;
 
   let account: NIMAccountKind;
@@ -115,7 +127,7 @@ export const updateNIMSecretAndRevalidate = async (
   apiKey: string,
 ): Promise<void> => {
   const existingSecret = await getSecret(namespace, secretName);
-  await replaceSecret({
+  const updatedSecret: SecretKind = {
     ...existingSecret,
     data: undefined,
     metadata: {
@@ -129,7 +141,9 @@ export const updateNIMSecretAndRevalidate = async (
       [NIM_API_KEY_DATA_KEY]: apiKey,
       [NGC_API_KEY_DATA_KEY]: apiKey,
     },
-  });
+  };
+  await replaceSecret(updatedSecret, { dryRun: true });
+  await replaceSecret(updatedSecret);
 };
 
 export const deleteNIMResources = async (namespace: string): Promise<void> => {
