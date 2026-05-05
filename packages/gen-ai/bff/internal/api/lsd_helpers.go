@@ -55,8 +55,10 @@ func getComponentFromErrorCode(errorCode string) string {
 		return "rag"
 	case "content_policy_violation", "content_blocked", "guardrail_violation":
 		return "guardrails"
-	case "invalid_model", "model_not_found", "model_unavailable", "model_error":
+	case "invalid_model", "model_not_found", "model_unavailable", "model_error", "invalid_parameter", "invalid_request_error":
 		return "model"
+	case "INVALID_REQUEST", "UNAUTHORIZED", "NOT_FOUND", "CONNECTION_FAILED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR", "TIMEOUT":
+		return "bff"
 	default:
 		return "llama_stack"
 	}
@@ -70,8 +72,21 @@ func isRetriableError(errorCode string, statusCode int) bool {
 		return true
 	case "server_error", "internal_error", "service_unavailable":
 		return true
+	case "tool_not_found", "tool_error", "mcp_error":
+		return true
 	default:
 		return statusCode >= 500
+	}
+}
+
+func shouldOverrideToServiceUnavailable(errorCode string) bool {
+	switch errorCode {
+	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
+		return true
+	case "timeout", "request_timeout", "gateway_timeout":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -84,7 +99,7 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	component := getComponentFromErrorCode(errorCode)
 	retriable := isRetriableError(errorCode, statusCode)
 
-	if retriable && (statusCode == 429 || statusCode == 504) {
+	if shouldOverrideToServiceUnavailable(errorCode) && (statusCode == 429 || statusCode == 500 || statusCode == 504) {
 		statusCode = http.StatusServiceUnavailable
 	}
 
