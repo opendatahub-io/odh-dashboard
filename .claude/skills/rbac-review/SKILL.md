@@ -14,7 +14,7 @@ Evaluates code changes for proper RBAC enforcement. The dashboard serves users w
 The user may provide:
 
 - **A Jira ticket key** (e.g. `RHOAIENG-12345`) — the feature being implemented. Provides context on which resources and operations the code must gate.
-- **No code arguments** — review files changed versus `main` by running `git diff main --name-only`, filtering to `*.ts` and `*.tsx` files, **excluding** `**/upstream/**` and `**/__tests__/**` paths.
+- **No code arguments** — review files changed versus `main` by running `git diff main --name-only -- '*.ts' '*.tsx' '*.go' '*.proto'`, **excluding** `**/upstream/**` and `**/__tests__/**` paths. This ensures frontend, backend, and BFF (Go) surfaces are all scanned for RBAC issues.
 - **A file or directory path** — review only those files.
 - **A PR number (`#N`)** — run `gh pr diff N` to get changed files and review those.
 - **A branch name** — validate the ref, then diff against `main`.
