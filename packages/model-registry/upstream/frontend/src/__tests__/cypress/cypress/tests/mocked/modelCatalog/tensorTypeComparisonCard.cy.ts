@@ -14,6 +14,8 @@ import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptio
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { catalogModelDetailsTabUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
+import { ModelDetailsTab } from '~/concepts/modelCatalog/const';
 
 type InterceptConfig = {
   currentModel?: (typeof mockVariantModels)[0];
@@ -107,7 +109,9 @@ const initIntercepts = ({
 };
 
 const visitPerformanceTab = (modelName: string) => {
-  cy.visit(`/model-catalog/sample-source/${encodeURIComponent(modelName)}/performance-insights`);
+  cy.visit(
+    catalogModelDetailsTabUrl(ModelDetailsTab.PERFORMANCE_INSIGHTS, modelName, 'sample-source'),
+  );
 };
 
 describe('Compression Level Comparison Card', () => {

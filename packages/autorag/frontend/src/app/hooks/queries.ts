@@ -6,7 +6,7 @@ import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   LlamaStackModelsResponse,
   LlamaStackModelType,
-  LlamaStackVectorStoreProvidersResponse,
+  LlamaStackFilteredVectorStoreProvidersResponse,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
@@ -124,7 +124,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
   providerTypes?: string[],
-): UseQueryResult<LlamaStackVectorStoreProvidersResponse, Error> {
+): UseQueryResult<LlamaStackFilteredVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
@@ -153,11 +153,14 @@ export function useLlamaStackVectorStoreProvidersQuery(
       }
     },
     // Filter by provider_type when a non-empty providerTypes array is given.
+    // totalProviderCount preserves the unfiltered count so the UI can distinguish
+    // "no providers at all" from "providers exist but none are supported".
     select: (data) => ({
       // eslint-disable-next-line camelcase
       vector_store_providers: data.vector_store_providers.filter(
         (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
       ),
+      totalProviderCount: data.vector_store_providers.length,
     }),
   });
 }
