@@ -521,29 +521,32 @@ describe('Pipelines', () => {
     managePipelineServerModal.findCloseButton().click();
   });
 
-  it('should show pipeline server actions per role and disable when unconfigured', () => {
-    // Product admin: button exists and is enabled
-    asProductAdminUser();
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
+  describe('Pipeline server actions per role', () => {
+    afterEach(() => {
+      Cypress.env('USER_CONFIG', undefined);
+    });
 
-    // Project admin: button exists
-    Cypress.env('USER_CONFIG', undefined);
-    asProjectAdminUser();
-    initIntercepts({});
-    pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.findPipelineServerActionButton().should('exist');
+    it('should show enabled pipeline server action button for product admin', () => {
+      asProductAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
+    });
 
-    // Product admin with no server configured: button is disabled
-    Cypress.env('USER_CONFIG', undefined);
-    asProductAdminUser();
-    initIntercepts({ isEmpty: true });
-    pipelinesGlobal.visit(projectName);
-    pipelinesGlobal.findEmptyState().should('exist');
-    pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
+    it('should show pipeline server action button for project admin', () => {
+      asProjectAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist');
+    });
 
-    Cypress.env('USER_CONFIG', undefined);
+    it('should show disabled pipeline server action button when server is unconfigured', () => {
+      asProductAdminUser();
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
+    });
   });
 
   it('should validate delete confirmation text and allow cancel', () => {

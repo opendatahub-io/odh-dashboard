@@ -844,7 +844,7 @@ describe('Pipeline topology', () => {
           ns: projectId,
           queryParams: { container: 'step-main', tailLines: '500' },
         },
-        mock404Error({}),
+        { statusCode: 404, body: mock404Error({}) },
       ).as('logs404');
 
       navigateToLogsTab();
@@ -862,7 +862,7 @@ describe('Pipeline topology', () => {
           ns: projectId,
           queryParams: { container: 'step-main', tailLines: '500' },
         },
-        mock500Error({}),
+        { statusCode: 500, body: mock500Error({}) },
       ).as('logs500');
 
       navigateToLogsTab();
@@ -900,7 +900,7 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findLogs().should('be.visible');
       pipelineRunDetails.findLogs().contains('No logs available');
 
-      // Malformed log data
+      // Malformed log data — still a successful HTTP 200, so the component renders it as content
       mockPod();
       cy.interceptK8s(
         {
@@ -916,7 +916,7 @@ describe('Pipeline topology', () => {
       navigateToLogsTab();
       cy.wait('@malformedLogs');
       pipelineRunDetails.findLogs().should('be.visible');
-      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
+      pipelineRunDetails.findLogs().should('contain.text', 'malformed');
     });
 
     it('should retrieve logs for different containers', () => {

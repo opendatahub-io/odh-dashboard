@@ -240,9 +240,10 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                   </MenuToggle>
                 )}
               >
-                <DropdownList>
+                <DropdownList data-testid="model-actions-dropdown-menu">
                   <DropdownItem
                     key="delete"
+                    data-testid="remove-asset-action"
                     onClick={() => {
                       setIsKebabOpen(false);
                       setIsDeleteModalOpen(true);

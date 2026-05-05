@@ -75,33 +75,38 @@ class PipelinesTopology {
     return cy.get('[data-kind="edge"]');
   }
 
-  // PatternFly Topology third-party component — no data-testid support
+  // PF Topology uses data-test-id (hyphenated), not data-testid
   findVisualizationSurface() {
-    return cy.get('.pf-topology-visualization-surface');
+    return cy.get('[data-test-id="topology"]');
   }
 
+  findControlBar() {
+    return cy.findByTestId('pipeline-topology-control-bar');
+  }
+
+  // PF Topology toolbar buttons — third-party components without data-testid support; scoped within control bar
   findCollapseAllButton() {
-    return cy.findByRole('button', { name: /collapse all/i });
+    return this.findControlBar().findByRole('button', { name: /collapse all/i });
   }
 
   findExpandAllButton() {
-    return cy.findByRole('button', { name: /expand all/i });
+    return this.findControlBar().findByRole('button', { name: /expand all/i });
   }
 
   findZoomInButton() {
-    return cy.findByRole('button', { name: /zoom in/i });
+    return this.findControlBar().findByRole('button', { name: /zoom in/i });
   }
 
   findZoomOutButton() {
-    return cy.findByRole('button', { name: /zoom out/i });
+    return this.findControlBar().findByRole('button', { name: /zoom out/i });
   }
 
   findFitToScreenButton() {
-    return cy.findByRole('button', { name: /fit to screen/i });
+    return this.findControlBar().findByRole('button', { name: /fit to screen/i });
   }
 
   findResetViewButton() {
-    return cy.findByRole('button', { name: /reset view/i });
+    return this.findControlBar().findByRole('button', { name: /reset view/i });
   }
 
   findArtifactNode(name: string) {

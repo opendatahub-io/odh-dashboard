@@ -130,7 +130,13 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
   };
 
   return (
-    <Modal isOpen onClose={handleClose} variant={ModalVariant.medium} aria-label="Endpoints">
+    <Modal
+      isOpen
+      onClose={handleClose}
+      variant={ModalVariant.medium}
+      aria-label="Endpoints"
+      data-testid="endpoint-detail-modal"
+    >
       <ModalHeader
         title={
           <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>

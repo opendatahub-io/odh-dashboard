@@ -102,7 +102,7 @@ class DeleteModelModal {
 
 class KebabMenu {
   find(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menu');
+    return cy.findByTestId('model-actions-dropdown-menu');
   }
 
   shouldBeVisible(): void {
@@ -114,13 +114,13 @@ class KebabMenu {
   }
 
   findRemoveAssetItem(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('menuitem', { name: /remove asset/i });
+    return cy.findByTestId('remove-asset-action');
   }
 }
 
 class EndpointModalPage {
   findModal(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.get('[role="dialog"]');
+    return cy.findByTestId('endpoint-detail-modal');
   }
 
   findSubscriptionSelect(): Cypress.Chainable<JQuery<HTMLElement>> {
