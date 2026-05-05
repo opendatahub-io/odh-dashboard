@@ -1,0 +1,91 @@
+name: Audit bypass notice
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  post-bypass-notice:
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Find audit workflow run
+        id: find-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          RUN_ID=$(gh run list \
+            --repo "$REPO" \
+            --workflow dependency-validation.yml \
+            --json databaseId,headSha,conclusion \
+            --jq "[.[] | select(.headSha == \"$HEAD_SHA\" and .conclusion == \"success\")] | .[0].databaseId")
+
+          if [ -z "$RUN_ID" ] || [ "$RUN_ID" = "null" ]; then
+            echo "No successful Dependency Validation run found for $HEAD_SHA"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+
+      - name: Download bypass details
+        if: steps.find-run.outputs.found == 'true'
+        id: download
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ steps.find-run.outputs.run_id }}
+        run: |
+          mkdir -p bypass-details
+          gh run download "$RUN_ID" \
+            --repo "$REPO" \
+            --pattern "audit-bypass-*" \
+            --dir bypass-details 2>/dev/null || true
+
+          if [ -z "$(find bypass-details -name 'report.txt' 2>/dev/null)" ]; then
+            echo "No bypass artifacts found"
+            echo "has_details=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "has_details=true" >> "$GITHUB_OUTPUT"
+
+      - name: Post bypass comment
+        if: steps.download.outputs.has_details == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "### Audit bypassed via \`ok-to-skip-audit\` label"
+            echo ""
+
+            for report in $(find bypass-details -name 'report.txt' -type f | sort); do
+              DIR=$(head -1 "$report" | sed 's/^DIR=//')
+              COUNT=$(sed -n '2p' "$report" | sed 's/^COUNT=//')
+              ADVISORIES=$(tail -n +3 "$report")
+
+              WORD="advisories"
+              [ "$COUNT" = "1" ] && WORD="advisory"
+              echo "**${COUNT}** new production ${WORD} in \`${DIR}\` not present on the base branch:"
+              echo ""
+              echo "$ADVISORIES" | sed 's/^/- /'
+              echo ""
+            done
+
+            echo "> This PR was merged with known advisories accepted via the \`ok-to-skip-audit\` label."
+          } > comment-body.txt
+
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment-body.txt

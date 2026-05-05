@@ -17,6 +17,7 @@ jobs:
         uses: dependabot/fetch-metadata@v3
 
       - name: Label with update type
+        if: steps.dependabot-metadata.outputs.update-type != ''
         run: gh pr edit "$PR_URL" --add-label "$UPDATE_TYPE"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
