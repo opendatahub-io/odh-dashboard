@@ -11,10 +11,13 @@ const mockNavigate = jest.fn();
 const mockUseParams = jest.fn();
 const mockMutateAsync = jest.fn();
 
+let mockLocationState: { from?: string } | null = null;
+
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
+  useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
     <a href={to}>{children}</a>
   ),
@@ -211,6 +214,7 @@ const renderWithProviders = (component: React.ReactElement) => {
 describe('AutomlConfigurePage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLocationState = null;
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
   });
 
@@ -752,7 +756,8 @@ describe('AutomlConfigurePage', () => {
       expect(mockNavigate).toHaveBeenCalledWith(-1);
     });
 
-    it('should display breadcrumb with source run link on create step when reconfiguring', async () => {
+    it('should display breadcrumb with source run link when navigating from results page', async () => {
+      mockLocationState = { from: 'results' };
       renderWithProviders(
         <AutomlConfigurePage
           initialValues={{ display_name: 'Original Run - 1' }}
@@ -771,6 +776,20 @@ describe('AutomlConfigurePage', () => {
         '/develop-train/automl/results/test-namespace/prev-run-456',
       );
 
+      const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
+      expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
+    });
+
+    it('should NOT display source run breadcrumb when navigating from experiments page', async () => {
+      renderWithProviders(
+        <AutomlConfigurePage
+          initialValues={{ display_name: 'Original Run - 1' }}
+          sourceRunId="prev-run-456"
+          sourceRunName="Original Run"
+        />,
+      );
+
+      expect(screen.queryByTestId('configure-breadcrumb-source-run')).not.toBeInTheDocument();
       const activeBreadcrumb = await screen.findByTestId('configure-breadcrumb-name');
       expect(activeBreadcrumb).toHaveTextContent('Reconfigure');
     });

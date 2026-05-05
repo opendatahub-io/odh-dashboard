@@ -115,7 +115,11 @@ function AutoragResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link {...props} to={`${autoragReconfigurePathname}/${namespace}/${runId}`} />
+      <Link
+        {...props}
+        to={`${autoragReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
     ),
     [namespace, runId],
   );

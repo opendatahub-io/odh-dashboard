@@ -114,7 +114,11 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link {...props} to={`${automlReconfigurePathname}/${namespace}/${runId}`} />
+      <Link
+        {...props}
+        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
     ),
     [namespace, runId],
   );
