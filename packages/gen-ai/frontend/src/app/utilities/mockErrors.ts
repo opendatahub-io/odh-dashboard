@@ -511,11 +511,24 @@ export const MOCK_SCENARIOS: MockScenario[] = [
  * Check if a message matches any mock error scenario.
  * Returns the first matching scenario, or undefined if no match.
  * Uses exact match or opt-in token to prevent accidental triggering.
+ *
+ * Valid formats:
+ * - Exact trigger: "max_tokens"
+ * - Opt-in token: "MOCK:max_tokens" (must match exactly after prefix)
  */
 export function findMockScenario(message: string): MockScenario | undefined {
   const lower = message.toLowerCase().trim();
-  // Only match if exact trigger or if message starts with "MOCK:" prefix
-  return MOCK_SCENARIOS.find(
-    (s) => lower === s.trigger || (lower.startsWith('mock:') && lower.includes(s.trigger)),
-  );
+
+  // Check for exact match first
+  if (MOCK_SCENARIOS.some((s) => lower === s.trigger)) {
+    return MOCK_SCENARIOS.find((s) => lower === s.trigger);
+  }
+
+  // Check for MOCK: prefix with exact trigger match
+  if (lower.startsWith('mock:')) {
+    const triggerPart = lower.slice(5).trim(); // Remove "mock:" prefix
+    return MOCK_SCENARIOS.find((s) => triggerPart === s.trigger);
+  }
+
+  return undefined;
 }
