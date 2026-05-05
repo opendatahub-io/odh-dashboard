@@ -99,7 +99,8 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	component := getComponentFromErrorCode(errorCode)
 	retriable := isRetriableError(errorCode, statusCode)
 
-	if shouldOverrideToServiceUnavailable(errorCode) && (statusCode == 429 || statusCode == 500 || statusCode == 504) {
+	// Only normalize generic 500 errors for timeout/rate-limit cases
+	if shouldOverrideToServiceUnavailable(errorCode) && statusCode == 500 {
 		statusCode = http.StatusServiceUnavailable
 	}
 

@@ -227,7 +227,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedRetriable:       true,
 		},
 		{
-			name:                    "timeout error - overrides to 503",
+			name:                    "timeout error - keeps 504",
 			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504),
 			statusCode:              http.StatusGatewayTimeout,
 			expectedComponent:       "bff",
@@ -237,12 +237,12 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			expectedRetriable:       true,
 		},
 		{
-			name:                    "overload error - overrides to 503",
+			name:                    "overload error - keeps 429",
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", 429),
 			statusCode:              http.StatusTooManyRequests,
 			expectedComponent:       "llama_stack",
 			expectedCode:            "rate_limit_exceeded",
-			expectedStatusCode:      http.StatusServiceUnavailable,
+			expectedStatusCode:      http.StatusTooManyRequests,
 			expectedMessageContains: "model is currently overloaded",
 			expectedRetriable:       true,
 		},
