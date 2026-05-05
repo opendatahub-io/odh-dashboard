@@ -211,7 +211,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         isScrollable
         isDisabled={isEditing || isDisabled}
         onSelect={onSelect}
-        placeholder={isEditing ? selectedKey : 'Select a NVIDIA NIM to deploy'}
+        placeholder={isEditing ? selectedKey : 'Select NVIDIA NIM image'}
         noOptionsFoundMessage={(filter) => `No results found for "${filter}"`}
         isCreatable={false}
         allowClear={!isEditing}
