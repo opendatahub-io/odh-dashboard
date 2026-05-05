@@ -27,6 +27,12 @@ describe('getFeatureStoreObjectFromPath', () => {
     const result = getFeatureStoreObjectFromPath(pathname);
     expect(result).toBe(FeatureStoreObject.FEATURE_VIEWS);
   });
+
+  it('should return default (OVERVIEW) when pathname has an invalid feature store object', () => {
+    const pathname = '/develop-train/feature-store/invalid/project1';
+    const result = getFeatureStoreObjectFromPath(pathname);
+    expect(result).toBe(FeatureStoreObject.OVERVIEW);
+  });
 });
 
 describe('useFeatureStoreObject', () => {
