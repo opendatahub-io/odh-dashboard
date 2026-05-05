@@ -140,10 +140,12 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        {pathsLoaded ? (
+        {formDataResolved ? (
           <DeploymentHardwareProfileCell deployment={deployment} />
         ) : (
-          <Td dataLabel="Hardware profile">{formDataResolved ? '-' : <Spinner size="md" />}</Td>
+          <Td dataLabel="Hardware profile">
+            <Spinner size="md" />
+          </Td>
         )}
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />

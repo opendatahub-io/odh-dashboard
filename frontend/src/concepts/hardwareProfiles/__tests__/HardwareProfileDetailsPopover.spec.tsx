@@ -104,14 +104,16 @@ describe('HardwareProfileDetailsPopover', () => {
       );
     });
 
-    it('should not display fallback resource values', async () => {
+    it('should contain only the fallback message with no resource details', async () => {
       renderWithContext(<HardwareProfileDetailsPopover />);
 
       await userEvent.click(screen.getByTestId('hardware-profile-details-popover'));
 
       const details = screen.getByTestId('hardware-profile-details');
-      expect(details).not.toHaveTextContent('Request');
-      expect(details).not.toHaveTextContent('Limit');
+      expect(details).toHaveTextContent(
+        'No matching hardware profile found, using existing settings. Default, min, and max values are not available.',
+      );
+      expect(details.querySelectorAll('dl')).toHaveLength(0);
     });
   });
 
