@@ -55,20 +55,20 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 // handleMaaSCall handles mock calls to MaaS BFF
 func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	switch {
-	case path == "/tokens" && method == "POST":
-		// Mock token creation response
-		// MaaS BFF wraps responses in {"data": ...} envelope
-		tokenResp := map[string]interface{}{
+	case path == "/api-keys" && method == "POST":
+		// Mock API key creation response.
+		// MaaS BFF wraps responses in {"data": ...} envelope.
+		keyResp := map[string]interface{}{
 			"data": map[string]interface{}{
-				"token":     "mock-ephemeral-token-" + fmt.Sprintf("%d", time.Now().Unix()),
-				"expiresAt": time.Now().Add(4 * time.Hour).Unix(),
+				"key":       "sk-oai-mock-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"keyPrefix": "sk-oai-mock",
+				"id":        "mock-id-" + fmt.Sprintf("%d", time.Now().Unix()),
+				"name":      "gen-ai-mock",
+				"createdAt": time.Now().Format(time.RFC3339),
+				"expiresAt": time.Now().Add(time.Hour).Format(time.RFC3339),
 			},
 		}
-		return marshalToResponse(tokenResp, response)
-
-	case path == "/tokens" && method == "DELETE":
-		// Mock token revocation (no response body)
-		return nil
+		return marshalToResponse(keyResp, response)
 
 	case path == "/models" && method == "GET":
 		// Mock models list
