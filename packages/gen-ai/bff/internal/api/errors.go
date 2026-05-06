@@ -170,7 +170,6 @@ func (app *App) failedValidationResponse(w http.ResponseWriter, r *http.Request,
 	if err != nil {
 		message = []byte("{}")
 	}
-
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnprocessableEntity,
 		ErrorResponse: integrations.ErrorResponse{
