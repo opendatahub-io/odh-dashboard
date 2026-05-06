@@ -177,6 +177,9 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   taskType?: string;
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -188,6 +191,9 @@ const renderWithContext = ({
   pipelineRun,
   pipelineRunLoading = false,
   modelsLoading = false,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
   taskType,
   namespace = 'test-namespace',
   onViewDetails,
@@ -201,6 +207,9 @@ const renderWithContext = ({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters: createMockParameters(finalTaskType),
   };
 
@@ -459,6 +468,93 @@ describe('AutomlLeaderboard component', () => {
       const skeletonRows = screen.getAllByRole('row');
       // Header row + 5 skeleton rows = 6 total
       expect(skeletonRows.length).toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  describe('error states', () => {
+    it('should show error empty state when modelsError is true', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('Failed to list model directories'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toBeInTheDocument();
+      expect(within(errorState).getByText('Unable to fetch models')).toBeInTheDocument();
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show generic error message when modelsLoadError is undefined', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+    });
+
+    it('should call onRetryModels when Retry button is clicked', () => {
+      const mockRetry = jest.fn();
+
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should display models after successful retry', () => {
+      const mockRetry = jest.fn();
+
+      const { rerender } = renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('leaderboard-error')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      // Simulate successful refetch by rerendering with models
+      const contextValue = {
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        pipelineRunLoading: false,
+        models: mockBinaryModels,
+        modelsLoading: false,
+        modelsError: false,
+        onRetryModels: mockRetry,
+        parameters: createMockParameters('binary'),
+      };
+
+      rerender(
+        <MemoryRouter initialEntries={['/automl/test-namespace/results/test-run-123']}>
+          <Routes>
+            <Route
+              path="/automl/:namespace/results/:runId"
+              element={
+                <AutomlResultsContext.Provider value={contextValue}>
+                  <AutomlLeaderboard />
+                </AutomlResultsContext.Provider>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByTestId('leaderboard-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
     });
   });
 
