@@ -5,11 +5,15 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "true"
+    pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main" && ( " packages/gen-ai/**".pathChanged()
-      || ".tekton/odh-mod-arch-gen-ai-push.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" &&
+      target_branch == "main" &&
+      (
+        "packages/gen-ai/**".pathChanged() ||
+        ".tekton/odh-mod-arch-gen-ai-push.yaml".pathChanged() ||
+        "Dockerfile.workspace".pathChanged()
       )
   creationTimestamp: null
   labels:

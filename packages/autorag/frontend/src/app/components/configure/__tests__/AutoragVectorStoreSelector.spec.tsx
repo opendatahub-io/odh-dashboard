@@ -21,12 +21,13 @@ jest.mock('~/app/hooks/queries', () => ({
 }));
 
 const mockNotificationError = jest.fn();
+const mockNotificationWarning = jest.fn();
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: jest.fn(() => ({
     success: jest.fn(),
     error: mockNotificationError,
     info: jest.fn(),
-    warning: jest.fn(),
+    warning: mockNotificationWarning,
     remove: jest.fn(),
   })),
 }));
@@ -134,7 +135,7 @@ describe('AutoragVectorStoreSelector', () => {
 
   it('should disable the toggle when no providers are available', () => {
     mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
-      data: { vector_store_providers: [] }, // eslint-disable-line camelcase
+      data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
       isLoading: false,
     } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
 
@@ -160,6 +161,31 @@ describe('AutoragVectorStoreSelector', () => {
       'Failed to load vector I/O providers.',
       expect.anything(), // Error message may include details from lls BFF in the future.
     );
+  });
+
+  it('should show warning notification when providers exist but none are supported', () => {
+    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+      data: { vector_store_providers: [], totalProviderCount: 2 }, // eslint-disable-line camelcase
+      isLoading: false,
+    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+
+    renderWithProviders(<AutoragVectorStoreSelector />);
+
+    expect(mockNotificationWarning).toHaveBeenCalledWith(
+      'No compatible vector I/O providers found.',
+      expect.anything(),
+    );
+  });
+
+  it('should not show warning notification when no providers exist at all', () => {
+    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+      data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
+      isLoading: false,
+    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+
+    renderWithProviders(<AutoragVectorStoreSelector />);
+
+    expect(mockNotificationWarning).not.toHaveBeenCalled();
   });
 
   it('should show a loading skeleton when providers are loading', () => {

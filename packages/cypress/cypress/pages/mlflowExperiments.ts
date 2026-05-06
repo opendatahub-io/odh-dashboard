@@ -39,7 +39,7 @@ class MlflowExperiments {
 
   findNavItem() {
     return appChrome.findNavItem({
-      name: 'Experiments (MLflow)',
+      name: 'Experiments',
       rootSection: 'Develop & train',
     });
   }

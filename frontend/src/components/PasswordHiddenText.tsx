@@ -26,6 +26,7 @@ const PasswordHiddenText: React.FC<PasswordHiddenTextProps> = ({ password }) => 
           icon={isHidden ? <EyeSlashIcon /> : <EyeIcon />}
           variant="plain"
           onClick={() => setIsHidden(!isHidden)}
+          aria-label={isHidden ? 'Show password' : 'Hide password'}
           data-testid="password-hidden-button"
         />
       </FlexItem>

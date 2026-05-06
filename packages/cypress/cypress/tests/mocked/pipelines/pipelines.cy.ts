@@ -36,6 +36,7 @@ import {
   SecretModel,
 } from '../../../utils/models';
 import { tablePagination } from '../../../pages/components/Pagination';
+import { asProductAdminUser, asProjectAdminUser } from '../../../utils/mockUsers';
 import { verifyRelativeURL } from '../../../utils/url';
 import { pipelineRunsGlobal } from '../../../pages/pipelines/pipelineRunsGlobal';
 import { argoAlert } from '../../../pages/pipelines/argoAlert';
@@ -520,6 +521,144 @@ describe('Pipelines', () => {
     managePipelineServerModal.findCloseButton().click();
   });
 
+  describe('Pipeline server actions per role', () => {
+    afterEach(() => {
+      Cypress.env('USER_CONFIG', undefined);
+    });
+
+    it('should show enabled pipeline server action button for product admin', () => {
+      asProductAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.enabled');
+    });
+
+    it('should show pipeline server action button for project admin', () => {
+      asProjectAdminUser();
+      initIntercepts({});
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findPipelineServerActionButton().should('exist');
+    });
+
+    it('should show disabled pipeline server action button when server is unconfigured', () => {
+      asProductAdminUser();
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+      pipelinesGlobal.findPipelineServerActionButton().should('exist').should('be.disabled');
+    });
+  });
+
+  it('should validate delete confirmation text and allow cancel', () => {
+    initIntercepts({});
+    pipelinesGlobal.visit(projectName);
+
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+
+    deleteModal.findSubmitButton().should('be.disabled');
+
+    deleteModal.findInput().type('wrong text');
+    deleteModal.findSubmitButton().should('be.disabled');
+
+    deleteModal.findInput().clear();
+    deleteModal.findInput().type('Test Project pipeline server');
+    deleteModal.findSubmitButton().should('be.enabled');
+
+    deleteModal.findCancelButton().click();
+    deleteModal.shouldBeOpen(false);
+  });
+
+  describe('Pipeline server deletion flow', () => {
+    it('should update UI to show empty state after successful deletion', () => {
+      initIntercepts({});
+
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'ds-pipeline-config', namespace: projectName }),
+      ).as('deletePipelineConfig');
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'pipelines-db-password', namespace: projectName }),
+      ).as('deletePipelineDBPassword');
+      cy.interceptK8s(
+        'DELETE',
+        SecretModel,
+        mockSecretK8sResource({ name: 'dashboard-dspa-secret', namespace: projectName }),
+      ).as('deleteDSPASecret');
+      cy.interceptK8s(
+        'DELETE',
+        DataSciencePipelineApplicationModel,
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+      ).as('deleteDSPA');
+
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test Project pipeline server');
+      deleteModal.findSubmitButton().click();
+
+      cy.wait('@deleteDSPA');
+      initIntercepts({ isEmpty: true });
+      pipelinesGlobal.visit(projectName);
+      pipelinesGlobal.findEmptyState().should('exist');
+    });
+  });
+
+  describe('Manage then delete pipeline server', () => {
+    it('should be able to view and then delete pipeline server', () => {
+      initIntercepts({});
+
+      cy.interceptK8s(
+        {
+          model: SecretModel,
+          ns: projectName,
+        },
+        mockSecretK8sResource({
+          s3Bucket: 'c2RzZA==',
+          namespace: projectName,
+          name: 'aws-connection-test',
+        }),
+      );
+
+      pipelinesGlobal.visit(projectName);
+
+      pipelinesGlobal.selectPipelineServerAction('Manage pipeline server configuration');
+      managePipelineServerModal.shouldBeOpen();
+      managePipelineServerModal.shouldHaveAccessKey('sdsd');
+      managePipelineServerModal.findCloseButton().click();
+
+      cy.interceptK8s(
+        'DELETE',
+        DataSciencePipelineApplicationModel,
+        mockDataSciencePipelineApplicationK8sResource({ namespace: projectName }),
+      ).as('deleteDSPA');
+
+      pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+      deleteModal.shouldBeOpen();
+      deleteModal.findInput().type('Test Project pipeline server');
+      deleteModal.findSubmitButton().click();
+
+      cy.wait('@deleteDSPA');
+    });
+  });
+
+  it('should show delete option when server is initializing or has error', () => {
+    initIntercepts({ initializing: true });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+    deleteModal.findCancelButton().click();
+
+    initIntercepts({ initializing: false, errorMessage: 'Failed to connect to storage' });
+    pipelinesGlobal.visit(projectName);
+    pipelinesGlobal.selectPipelineServerAction('Delete pipeline server');
+    deleteModal.shouldBeOpen();
+  });
+
   it('renders the page with pipelines table data', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
@@ -842,6 +981,9 @@ describe('Pipelines', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
 
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
+
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
 
@@ -863,6 +1005,9 @@ describe('Pipelines', () => {
   it('fails to import a v1 pipeline', () => {
     initIntercepts({});
     pipelinesGlobal.visit(projectName);
+
+    // Return empty for subsequent pipeline list requests (e.g. duplicate name check)
+    pipelinesTable.mockGetPipelines([], projectName);
 
     // Open the "Import pipeline" modal
     pipelinesGlobal.findImportPipelineButton().click();
@@ -1664,7 +1809,9 @@ const initIntercepts = ({
   pipelineStore,
 }: HandlersProps): void => {
   cy.interceptK8sList(
-    DataSciencePipelineApplicationModel,
+    isEmpty
+      ? { model: DataSciencePipelineApplicationModel, ns: projectName }
+      : DataSciencePipelineApplicationModel,
     mockK8sResourceList(
       isEmpty
         ? []
