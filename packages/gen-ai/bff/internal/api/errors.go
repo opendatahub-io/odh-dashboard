@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 )
@@ -40,6 +41,17 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusBadRequest),
 			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) guardrailViolationResponse(w http.ResponseWriter, r *http.Request, code string, msg string) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusBadRequest,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    code,
+			Message: msg,
 		},
 	}
 	app.errorResponse(w, r, httpError)
@@ -91,6 +103,19 @@ func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *int
 		app.LogError(r, err)
 		w.WriteHeader(error.StatusCode)
 	}
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    constants.GuardrailServiceUnavailableCode,
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
 }
 
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {

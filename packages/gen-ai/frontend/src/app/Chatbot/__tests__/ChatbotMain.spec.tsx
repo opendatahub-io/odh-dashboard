@@ -141,6 +141,9 @@ describe('ChatbotMain - Empty State Logic', () => {
       maasModelsError: undefined,
       models: [],
       modelsError: undefined,
+      nemoGuardrailsStatus: null,
+      nemoGuardrailsStatusLoaded: true,
+      nemoGuardrailsStatusError: undefined,
       lastInput: '',
       setLastInput: jest.fn(),
     };
