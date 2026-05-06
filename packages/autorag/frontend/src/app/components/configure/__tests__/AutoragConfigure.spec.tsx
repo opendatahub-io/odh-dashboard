@@ -455,7 +455,7 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+      Object.defineProperty(largeFile, 'size', { value: INPUT_DATA_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });

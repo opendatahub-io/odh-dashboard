@@ -373,7 +373,7 @@ describe('AutomlConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
-      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+      Object.defineProperty(largeFile, 'size', { value: TRAINING_DATA_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });
