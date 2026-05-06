@@ -20,33 +20,33 @@ import {
 } from '../../../utils/models';
 import { asClusterAdminUser } from '../../../utils/mockUsers';
 
-const mockNIMOwnedInferenceService = (): InferenceServiceKind => ({
-  ...mockInferenceServiceK8sResource({
+const mockNIMOwnedInferenceService = (): InferenceServiceKind => {
+  const base = mockInferenceServiceK8sResource({
     name: 'nim-managed-is',
     displayName: 'NIM Managed Model',
     namespace: 'test-project',
-  }),
-  metadata: {
-    ...mockInferenceServiceK8sResource({
-      name: 'nim-managed-is',
-      namespace: 'test-project',
-    }).metadata,
-    ownerReferences: [
-      {
-        apiVersion: 'apps.nvidia.com/v1alpha1',
-        kind: 'NIMService',
-        name: 'my-nim-service',
-        uid: '046c2db8-68cf-449e-b7cb-45ee7b2de60a',
-        blockOwnerDeletion: true,
-        controller: true,
+  });
+  return {
+    ...base,
+    metadata: {
+      ...base.metadata,
+      ownerReferences: [
+        {
+          apiVersion: 'apps.nvidia.com/v1alpha1',
+          kind: 'NIMService',
+          name: 'my-nim-service',
+          uid: '046c2db8-68cf-449e-b7cb-45ee7b2de60a',
+          blockOwnerDeletion: true,
+          controller: true,
+        },
+      ],
+      labels: {
+        ...base.metadata.labels,
+        'app.kubernetes.io/managed-by': 'k8s-nim-operator',
       },
-    ],
-    labels: {
-      'opendatahub.io/dashboard': 'true',
-      'app.kubernetes.io/managed-by': 'k8s-nim-operator',
     },
-  },
-});
+  };
+};
 
 describe('NIM InferenceService Exclusion from KServe', () => {
   beforeEach(() => {
