@@ -23,6 +23,7 @@ import (
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/julienschmidt/httprouter"
@@ -449,5 +450,5 @@ func (app *App) Routes() http.Handler {
 
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
-	return combinedMux
+	return otelhttp.NewHandler(combinedMux, "gen-ai-bff")
 }

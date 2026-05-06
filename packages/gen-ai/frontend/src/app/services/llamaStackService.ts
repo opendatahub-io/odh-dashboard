@@ -258,10 +258,15 @@ const postCreateResponse = (
   hostPath: string,
   baseQueryParams: Record<string, unknown>,
   request: CreateResponseRequest,
-  opts?: APIOptions & { abortSignal?: AbortSignal },
+  opts?: APIOptions & { abortSignal?: AbortSignal; sessionId?: string },
 ): Promise<SimplifiedResponseData> => {
   // Map abortSignal to signal for standard fetch API compatibility
-  const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
+  const fetchOpts: APIOptions & { signal?: AbortSignal } = opts?.abortSignal
+    ? { ...opts, signal: opts.abortSignal }
+    : { ...opts };
+  if (opts?.sessionId) {
+    fetchOpts.headers = { ...fetchOpts.headers, 'X-Session-ID': opts.sessionId };
+  }
   return modArchRestCREATE<BackendResponseData, Record<string, unknown>>('/lsd/responses')(
     hostPath,
     baseQueryParams,
@@ -274,6 +279,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
+  sessionId?: string,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -281,6 +287,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...(sessionId && { 'X-Session-ID': sessionId }),
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -422,11 +429,12 @@ export const createResponse =
     opts: APIOptions & {
       onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
       abortSignal?: AbortSignal;
+      sessionId?: string;
     } = {},
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.sessionId);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };

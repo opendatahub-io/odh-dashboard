@@ -625,6 +625,7 @@ type CreateResponse = (
   opts?: APIOptions & {
     onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
     abortSignal?: AbortSignal;
+    sessionId?: string;
   },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;

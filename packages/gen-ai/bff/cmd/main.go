@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/api"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/telemetry"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -88,6 +89,8 @@ func main() {
 	// Only use for logging errors about logging configuration.
 	slog.SetDefault(logger)
 
+	shutdownTelemetry := telemetry.Setup(logger)
+
 	app, err := api.NewApp(cfg, slog.New(logger.Handler()))
 	if err != nil {
 		logger.Error(err.Error())
@@ -137,6 +140,11 @@ func main() {
 	// Shutdown the HTTP server gracefully
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Error("server shutdown failed", "error", err)
+	}
+
+	// Shutdown telemetry (flush pending spans)
+	if err := shutdownTelemetry(ctx); err != nil {
+		logger.Error("telemetry shutdown failed", "error", err)
 	}
 
 	// Shutdown the App gracefully

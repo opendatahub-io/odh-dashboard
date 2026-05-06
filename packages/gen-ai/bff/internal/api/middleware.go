@@ -21,6 +21,9 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	"github.com/rs/cors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/baggage"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -61,6 +64,16 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 		// Adds a unique id to the context to allow tracing of requests
 		traceId := uuid.NewString()
 		ctx := context.WithValue(r.Context(), constants.TraceIdKey, traceId)
+
+		if sessionID := r.Header.Get("X-Session-ID"); sessionID != "" {
+			span := trace.SpanFromContext(ctx)
+			span.SetAttributes(attribute.String("session.id", sessionID))
+			if member, err := baggage.NewMember("session.id", sessionID); err == nil {
+				if bag, err := baggage.New(member); err == nil {
+					ctx = baggage.ContextWithBaggage(ctx, bag)
+				}
+			}
+		}
 
 		// logger will only be nil in tests.
 		if app.logger != nil {

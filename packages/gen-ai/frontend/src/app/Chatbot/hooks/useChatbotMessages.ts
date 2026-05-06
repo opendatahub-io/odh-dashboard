@@ -111,6 +111,7 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  const sessionIdRef = React.useRef<string>(crypto.randomUUID());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -386,6 +387,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          sessionId: sessionIdRef.current,
           onStreamData: (chunk: string, clearPrevious?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -488,6 +490,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          sessionId: sessionIdRef.current,
         });
 
         const toolResponse = response.toolCallData
