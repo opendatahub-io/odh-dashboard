@@ -37,7 +37,7 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments
         .findLaunchMlflowButton()
         .should('be.visible')
-        .should('have.attr', 'href', '/mlflow')
+        .should('have.attr', 'href', `/mlflow/#/?workspace=${PROJECT_A}`)
         .should('have.attr', 'target', '_blank');
     });
 
