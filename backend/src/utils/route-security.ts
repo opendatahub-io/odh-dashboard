@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-import { getOpenshiftUser, getUserInfo, usernameTranslate } from './userUtils';
+import { getUserInfo, usernameTranslate } from './userUtils';
 import { createCustomError } from './requestUtils';
 import { isUserAdmin } from './adminUtils';
 import { getNamespaces } from './notebookUtils';
@@ -38,25 +38,6 @@ const testAdmin = async (
   }
 
   return false; // Not admin, no bypassing
-};
-
-const requestSecurityGuardNotebook = async (
-  fastify: KubeFastifyInstance,
-  request: OauthFastifyRequest,
-  username: string,
-): Promise<void> => {
-  // Check first admin to not give away if a user does not exist to regular users
-  await testAdmin(fastify, request, true);
-
-  try {
-    await getOpenshiftUser(fastify, username);
-  } catch (e) {
-    throw createCustomError(
-      'Wrong username',
-      'Request invalid against a username that does not exist.',
-      403,
-    );
-  }
 };
 
 const requestSecurityGuard = async (
@@ -191,7 +172,7 @@ const handleSecurityOnRouteData = async (
       request.params.name,
     );
   } else if (isRequestNotebookAdmin(request)) {
-    await requestSecurityGuardNotebook(fastify, request, request.body.username ?? '');
+    await testAdmin(fastify, request, true);
   } else if (isRequestNotebookEndpoint(request)) {
     // Endpoint has self validation internal
   } else {

@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - 'packages/model-registry/**'
-      - '.github/workflows/**'
+      - '.github/workflows/model-registry-bff-tests.yml'
       - '!LICENSE*'
       - '!DOCKERFILE*'
       - '!**.gitignore'
