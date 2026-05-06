@@ -8,36 +8,26 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: 22.x
+  NODE_VERSION: 22
   DO_NOT_TRACK: 1
-  NODE_MODULES_CACHE_VERSION: 1
 jobs:
   Setup:
     runs-on: ubuntu-latest
-    outputs:
-      modules-cache-key: ${{ steps.key.outputs.modules-cache-key }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate all package-lock.json files
         run: ./scripts/check-package-lock.sh --all
-      - name: Generate modules cache key
-        id: key
-        run: |
-          echo "modules-cache-key=${{ runner.os }}-${{ env.NODE_VERSION }}-modules-${{ env.NODE_MODULES_CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
-      - name: Node.js modules cache
-        uses: actions/cache@v4
-        id: modules-cache
-        with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ steps.key.outputs.modules-cache-key }}
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Install dependencies
-        run: npm install
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+          include-cypress: 'true'
+          force-install: 'true'
 
       - name: Validate module federation ports
         run: npm run validate:ports
@@ -54,21 +44,19 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-type-check
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-type-check-
       - name: Run type checks
         run: npm run type-check
 
@@ -81,21 +69,19 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
       - name: Cache turbo
         uses: actions/cache@v4
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-lint
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-lint-
       - name: Run linting and formatting checks
         run: NODE_OPTIONS="--max-old-space-size=8192" npm run lint
 
@@ -108,21 +94,18 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
       - name: Cache turbo
         uses: actions/cache@v4
         with:
           path: |
             **/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-unit-tests
+          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
+            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-unit-tests-
       - name: Unit tests with coverage
         run: |
           npm run test-unit-coverage
@@ -144,13 +127,10 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
       - id: set-groups
         shell: bash
         run: |
@@ -224,13 +204,10 @@ jobs:
             packages/model-registry/upstream/bff/go.sum
             packages/gen-ai/bff/go.sum
             packages/mlflow/bff/go.sum
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
       - name: Run contract tests
         run: |
           export GITHUB_RUN_ID="$GITHUB_RUN_ID"
@@ -276,14 +253,13 @@ jobs:
           path: |
             **/public-cypress
           key: ${{ steps.key.outputs.cypress-cache-key }}
-      - name: Restore cache
+      - name: Module caches
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/restore@v4
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+          include-cypress: 'true'
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
@@ -306,13 +282,12 @@ jobs:
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - name: Restore cache
-        uses: actions/cache/restore@v4
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ needs.Setup.outputs.modules-cache-key }}
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+          include-cypress: 'true'
       - name: Restore Cypress build cache
         id: cypress-build-cache
         uses: actions/cache/restore@v4

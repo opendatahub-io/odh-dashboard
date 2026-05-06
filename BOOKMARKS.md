@@ -34,6 +34,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Pre-Commit Hooks](docs/PRE-COMMIT.md) | Pre-commit hook details |
 | [Best Practices](docs/best-practices.md) | Coding best practices |
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
+| [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
 
 ---
 
