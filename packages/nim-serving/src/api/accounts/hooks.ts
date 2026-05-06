@@ -1,29 +1,12 @@
 import React from 'react';
-import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/utilities/useFetch';
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
+import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { listNIMAccounts } from './k8s';
-import {
-  isAccountReady,
-  isApiKeyValidated,
-  isApiKeyValidationFailed,
-  getAccountErrors,
-} from './utils';
-import { NIM_ACCOUNT_NAME } from './constants';
+import { NIMAccountStatus, deriveStatus, getAccountStatusTransitionTime } from './utils';
+import { NIM_ACCOUNT_NAME, REVALIDATION_TIMEOUT_MS } from './constants';
 
-export enum NIMAccountStatus {
-  LOADING = 'LOADING',
-  NOT_FOUND = 'NOT_FOUND',
-  PENDING = 'PENDING',
-  ERROR = 'ERROR',
-  READY = 'READY',
-}
-
-const REVALIDATION_TIMEOUT_MS = 30_000;
-const VALIDATION_TIMEOUT_MS = 300_000;
-
-const VALIDATION_TIMEOUT_MESSAGE =
-  'NIM account validation is taking longer than expected. You may want to replace the API key or disable NIM and try again.';
+export { NIMAccountStatus } from './utils';
 
 type NIMAccountStatusResult = {
   status: NIMAccountStatus;
@@ -33,52 +16,6 @@ type NIMAccountStatusResult = {
   refresh: () => Promise<NIMAccountKind | null | undefined>;
   startRevalidation: () => void;
 };
-
-const getAccountAgeMs = (account: NIMAccountKind): number => {
-  const timestamp = account.status?.lastAccountCheck ?? account.metadata.creationTimestamp;
-  if (!timestamp) {
-    return 0;
-  }
-  return Date.now() - new Date(timestamp).getTime();
-};
-
-export const deriveStatus = (
-  account: NIMAccountKind | null,
-  loaded = true,
-): { status: NIMAccountStatus; errorMessages: string[] } => {
-  if (!loaded) {
-    return { status: NIMAccountStatus.LOADING, errorMessages: [] };
-  }
-  if (!account) {
-    return { status: NIMAccountStatus.NOT_FOUND, errorMessages: [] };
-  }
-  if (isAccountReady(account)) {
-    return { status: NIMAccountStatus.READY, errorMessages: [] };
-  }
-  if (isApiKeyValidationFailed(account)) {
-    const errors = getAccountErrors(account);
-    return { status: NIMAccountStatus.ERROR, errorMessages: errors };
-  }
-  const accountAge = getAccountAgeMs(account);
-  if (isApiKeyValidated(account)) {
-    if (accountAge > VALIDATION_TIMEOUT_MS) {
-      const errors = getAccountErrors(account);
-      return {
-        status: NIMAccountStatus.ERROR,
-        errorMessages: errors.length > 0 ? errors : [VALIDATION_TIMEOUT_MESSAGE],
-      };
-    }
-    return { status: NIMAccountStatus.PENDING, errorMessages: [] };
-  }
-  if (accountAge > VALIDATION_TIMEOUT_MS) {
-    return { status: NIMAccountStatus.ERROR, errorMessages: [VALIDATION_TIMEOUT_MESSAGE] };
-  }
-  return { status: NIMAccountStatus.PENDING, errorMessages: [] };
-};
-
-const getAccountStatusTransitionTime = (account: NIMAccountKind | null): string | undefined =>
-  account?.status?.conditions?.find((c: K8sCondition) => c.type === 'AccountStatus')
-    ?.lastTransitionTime;
 
 const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
   const fetchCallback = React.useCallback<

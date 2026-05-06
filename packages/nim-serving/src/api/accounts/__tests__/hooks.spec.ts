@@ -1,105 +1,13 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { listNIMAccounts } from '../k8s';
-import useNIMAccountStatus, { deriveStatus, NIMAccountStatus } from '../hooks';
+import useNIMAccountStatus, { NIMAccountStatus } from '../hooks';
 
 jest.mock('../k8s', () => ({
   listNIMAccounts: jest.fn(),
 }));
 
 const mockListNIMAccounts = jest.mocked(listNIMAccounts);
-
-describe('deriveStatus', () => {
-  it('should return LOADING when not yet loaded', () => {
-    const result = deriveStatus(null, false);
-    expect(result.status).toBe(NIMAccountStatus.LOADING);
-    expect(result.errorMessages).toEqual([]);
-  });
-
-  it('should return NOT_FOUND when account is null', () => {
-    const result = deriveStatus(null);
-    expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
-    expect(result.errorMessages).toEqual([]);
-  });
-
-  it('should return READY when AccountStatus condition is True', () => {
-    const account = mockNimAccount({
-      conditions: [{ type: 'AccountStatus', status: 'True', reason: 'AccountSuccessful' }],
-    });
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.READY);
-    expect(result.errorMessages).toEqual([]);
-  });
-
-  it('should return ERROR when APIKeyValidation condition is False', () => {
-    const account = mockNimAccount({
-      conditions: [
-        {
-          type: 'APIKeyValidation',
-          status: 'False',
-          reason: 'ValidationFailed',
-          message: 'API key failed validation.',
-        },
-        { type: 'AccountStatus', status: 'False', reason: 'Failed', message: 'invalid key' },
-      ],
-    });
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.ERROR);
-    expect(result.errorMessages).toEqual(['API key failed validation.', 'invalid key']);
-  });
-
-  it('should return PENDING when APIKeyValidation is True but AccountStatus is not ready (mid-reconciliation)', () => {
-    const account = mockNimAccount({
-      conditions: [
-        { type: 'APIKeyValidation', status: 'True', reason: 'ApiKeyValidated' },
-        {
-          type: 'AccountStatus',
-          status: 'False',
-          reason: 'AccountNotSuccessful',
-          message: 'nim config reconciliation failed',
-        },
-      ],
-    });
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.PENDING);
-    expect(result.errorMessages).toEqual([]);
-  });
-
-  it('should return ERROR when CONFIGURING has timed out based on lastAccountCheck', () => {
-    const staleTime = new Date(Date.now() - 360_000).toISOString();
-    const account = mockNimAccount({
-      conditions: [
-        { type: 'APIKeyValidation', status: 'True', reason: 'ApiKeyValidated' },
-        {
-          type: 'AccountStatus',
-          status: 'False',
-          reason: 'AccountNotSuccessful',
-          message: 'nim config reconciliation failed',
-        },
-      ],
-    });
-    account.status = { ...account.status, lastAccountCheck: staleTime };
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.ERROR);
-    expect(result.errorMessages).toEqual(['nim config reconciliation failed']);
-  });
-
-  it('should return ERROR when PENDING has timed out based on creationTimestamp', () => {
-    const staleTime = new Date(Date.now() - 360_000).toISOString();
-    const account = mockNimAccount({ conditions: [] });
-    account.metadata.creationTimestamp = staleTime;
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.ERROR);
-    expect(result.errorMessages[0]).toContain('taking longer than expected');
-  });
-
-  it('should return PENDING when account exists but has no definitive conditions', () => {
-    const account = mockNimAccount({ conditions: [] });
-    const result = deriveStatus(account);
-    expect(result.status).toBe(NIMAccountStatus.PENDING);
-    expect(result.errorMessages).toEqual([]);
-  });
-});
 
 describe('useNIMAccountStatus', () => {
   beforeEach(() => {

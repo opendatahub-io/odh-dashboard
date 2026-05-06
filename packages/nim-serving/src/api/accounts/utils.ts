@@ -1,170 +1,32 @@
-import {
-  k8sCreateResource,
-  k8sDeleteResource,
-  k8sPatchResource,
-  K8sStatusError,
-} from '@openshift/dynamic-plugin-sdk-utils';
-import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
-import { SecretModel } from '@odh-dashboard/internal/api/models';
-import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
-import { NIMAccountModel, listNIMAccounts } from './k8s';
 import {
-  NIM_SECRET_GENERATE_NAME,
-  NIM_ACCOUNT_NAME,
-  NIM_API_KEY_DATA_KEY,
-  NGC_API_KEY_DATA_KEY,
-  NIM_FORCE_VALIDATION_ANNOTATION,
-} from './constants';
+  assembleNIMSecret,
+  assembleNIMAccount,
+  assembleUpdatedSecret,
+  createNIMSecret,
+  createNIMAccount,
+  deleteNIMAccount,
+  deleteSecret,
+  patchSecretOwnerReference,
+  fetchExistingSecret,
+  replaceNIMSecret,
+} from './k8s';
 
-export const assembleNIMSecret = (namespace: string, apiKey: string): SecretKind => ({
-  apiVersion: 'v1',
-  kind: 'Secret',
-  metadata: {
-    name: '',
-    generateName: NIM_SECRET_GENERATE_NAME,
-    namespace,
-    labels: {
-      'opendatahub.io/managed': 'true',
-    },
-  },
-  type: 'Opaque',
-  stringData: {
-    [NIM_API_KEY_DATA_KEY]: apiKey,
-    [NGC_API_KEY_DATA_KEY]: apiKey,
-  },
-});
+import { VALIDATION_TIMEOUT_MS } from './constants';
 
-export const assembleNIMAccount = (namespace: string, secretName: string): NIMAccountKind => ({
-  apiVersion: 'nim.opendatahub.io/v1',
-  kind: 'Account',
-  metadata: {
-    name: NIM_ACCOUNT_NAME,
-    namespace,
-    labels: {
-      'opendatahub.io/managed': 'true',
-    },
-  },
-  spec: {
-    apiKeySecret: {
-      name: secretName,
-    },
-  },
-});
+export { deleteNIMAccount as deleteNIMResources } from './k8s';
 
-export const createNIMResources = async (
-  namespace: string,
-  apiKey: string,
-): Promise<NIMAccountKind> => {
-  const secretData = assembleNIMSecret(namespace, apiKey);
-  const accountData = assembleNIMAccount(namespace, '');
+export enum NIMAccountStatus {
+  LOADING = 'LOADING',
+  NOT_FOUND = 'NOT_FOUND',
+  PENDING = 'PENDING',
+  ERROR = 'ERROR',
+  READY = 'READY',
+}
 
-  await Promise.all([
-    createSecret(secretData, { dryRun: true }),
-    k8sCreateResource<NIMAccountKind>({
-      model: NIMAccountModel,
-      resource: accountData,
-      queryOptions: { queryParams: { dryRun: 'All' } },
-    }),
-  ]);
-
-  const secret = await createSecret(secretData);
-  const secretName = secret.metadata.name;
-
-  let account: NIMAccountKind;
-  try {
-    account = await k8sCreateResource<NIMAccountKind>({
-      model: NIMAccountModel,
-      resource: assembleNIMAccount(namespace, secretName),
-    });
-  } catch (e) {
-    await k8sDeleteResource<SecretKind>({
-      model: SecretModel,
-      queryOptions: { name: secretName, ns: namespace },
-    });
-    throw e;
-  }
-
-  try {
-    await k8sPatchResource<SecretKind>({
-      model: SecretModel,
-      queryOptions: { name: secretName, ns: namespace },
-      patches: [
-        {
-          op: 'add',
-          path: '/metadata/ownerReferences',
-          value: [
-            {
-              apiVersion: account.apiVersion,
-              kind: account.kind,
-              name: account.metadata.name,
-              uid: account.metadata.uid,
-              blockOwnerDeletion: true,
-            },
-          ],
-        },
-      ],
-    });
-  } catch (e) {
-    await allSettledPromises<unknown>([
-      k8sDeleteResource<NIMAccountKind>({
-        model: NIMAccountModel,
-        queryOptions: { name: account.metadata.name, ns: namespace },
-      }),
-      k8sDeleteResource<SecretKind>({
-        model: SecretModel,
-        queryOptions: { name: secretName, ns: namespace },
-      }),
-    ]);
-    throw e;
-  }
-
-  return account;
-};
-
-export const updateNIMSecretAndRevalidate = async (
-  namespace: string,
-  secretName: string,
-  apiKey: string,
-): Promise<void> => {
-  const existingSecret = await getSecret(namespace, secretName);
-  const updatedSecret: SecretKind = {
-    ...existingSecret,
-    data: undefined,
-    metadata: {
-      ...existingSecret.metadata,
-      annotations: {
-        ...existingSecret.metadata.annotations,
-        [NIM_FORCE_VALIDATION_ANNOTATION]: new Date().toISOString(),
-      },
-    },
-    stringData: {
-      [NIM_API_KEY_DATA_KEY]: apiKey,
-      [NGC_API_KEY_DATA_KEY]: apiKey,
-    },
-  };
-  await replaceSecret(updatedSecret, { dryRun: true });
-  await replaceSecret(updatedSecret);
-};
-
-export const deleteNIMResources = async (namespace: string): Promise<void> => {
-  try {
-    await k8sDeleteResource<NIMAccountKind>({
-      model: NIMAccountModel,
-      queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
-    });
-  } catch (e) {
-    if (e instanceof K8sStatusError && e.status.code === 404) {
-      return;
-    }
-    throw e;
-  }
-};
-
-export const getNIMAccount = async (namespace: string): Promise<NIMAccountKind | undefined> => {
-  const accounts = await listNIMAccounts(namespace);
-  return accounts.find((a) => a.metadata.name === NIM_ACCOUNT_NAME);
-};
+const VALIDATION_TIMEOUT_MESSAGE =
+  'NIM account validation is taking longer than expected. You may want to replace the API key or disable NIM and try again.';
 
 export const isAccountReady = (account: NIMAccountKind): boolean => {
   const conditions = account.status?.conditions ?? [];
@@ -193,4 +55,96 @@ export const getAccountErrors = (account: NIMAccountKind): string[] => {
         .filter((msg): msg is string => !!msg),
     ),
   ];
+};
+
+export const getAccountAgeMs = (account: NIMAccountKind): number => {
+  const timestamp = account.status?.lastAccountCheck ?? account.metadata.creationTimestamp;
+  if (!timestamp) {
+    return 0;
+  }
+  return Date.now() - new Date(timestamp).getTime();
+};
+
+export const getAccountStatusTransitionTime = (
+  account: NIMAccountKind | null,
+): string | undefined =>
+  account?.status?.conditions?.find((c: K8sCondition) => c.type === 'AccountStatus')
+    ?.lastTransitionTime;
+
+export const deriveStatus = (
+  account: NIMAccountKind | null,
+  loaded = true,
+): { status: NIMAccountStatus; errorMessages: string[] } => {
+  if (!loaded) {
+    return { status: NIMAccountStatus.LOADING, errorMessages: [] };
+  }
+  if (!account) {
+    return { status: NIMAccountStatus.NOT_FOUND, errorMessages: [] };
+  }
+  if (isAccountReady(account)) {
+    return { status: NIMAccountStatus.READY, errorMessages: [] };
+  }
+  if (isApiKeyValidationFailed(account)) {
+    const errors = getAccountErrors(account);
+    return { status: NIMAccountStatus.ERROR, errorMessages: errors };
+  }
+  const accountAge = getAccountAgeMs(account);
+  if (isApiKeyValidated(account)) {
+    if (accountAge > VALIDATION_TIMEOUT_MS) {
+      const errors = getAccountErrors(account);
+      return {
+        status: NIMAccountStatus.ERROR,
+        errorMessages: errors.length > 0 ? errors : [VALIDATION_TIMEOUT_MESSAGE],
+      };
+    }
+    return { status: NIMAccountStatus.PENDING, errorMessages: [] };
+  }
+  if (accountAge > VALIDATION_TIMEOUT_MS) {
+    return { status: NIMAccountStatus.ERROR, errorMessages: [VALIDATION_TIMEOUT_MESSAGE] };
+  }
+  return { status: NIMAccountStatus.PENDING, errorMessages: [] };
+};
+
+export const createNIMResources = async (
+  namespace: string,
+  apiKey: string,
+): Promise<NIMAccountKind> => {
+  const secretData = assembleNIMSecret(namespace, apiKey);
+  const accountData = assembleNIMAccount(namespace, '');
+
+  await Promise.all([createNIMSecret(secretData, true), createNIMAccount(accountData, true)]);
+
+  const secret = await createNIMSecret(secretData);
+  const secretName = secret.metadata.name;
+
+  let account: NIMAccountKind;
+  try {
+    account = await createNIMAccount(assembleNIMAccount(namespace, secretName));
+  } catch (e) {
+    await deleteSecret(namespace, secretName);
+    throw e;
+  }
+
+  try {
+    await patchSecretOwnerReference(namespace, secretName, account);
+  } catch (e) {
+    await allSettledPromises<unknown>([
+      deleteNIMAccount(namespace),
+      deleteSecret(namespace, secretName),
+    ]);
+    throw e;
+  }
+
+  return account;
+};
+
+export const updateNIMSecretAndRevalidate = async (
+  namespace: string,
+  secretName: string,
+  apiKey: string,
+): Promise<void> => {
+  const existingSecret = await fetchExistingSecret(namespace, secretName);
+  const updatedSecret = assembleUpdatedSecret(existingSecret, apiKey);
+  await replaceNIMSecret(updatedSecret, true);
+  await replaceNIMSecret(updatedSecret);
 };

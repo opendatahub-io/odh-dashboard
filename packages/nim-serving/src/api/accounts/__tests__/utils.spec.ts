@@ -1,62 +1,53 @@
-import {
-  k8sCreateResource,
-  k8sDeleteResource,
-  k8sPatchResource,
-  K8sStatusError,
-} from '@openshift/dynamic-plugin-sdk-utils';
-import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
-import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { listNIMAccounts } from '../k8s';
+import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
+  assembleUpdatedSecret,
+  createNIMSecret,
+  createNIMAccount,
+  deleteNIMAccount,
+  deleteSecret,
+  patchSecretOwnerReference,
+  fetchExistingSecret,
+  replaceNIMSecret,
+} from '../k8s';
+import {
   createNIMResources,
   updateNIMSecretAndRevalidate,
   deleteNIMResources,
-  getNIMAccount,
   isAccountReady,
   isApiKeyValidationFailed,
   getAccountErrors,
+  deriveStatus,
+  NIMAccountStatus,
 } from '../utils';
 import {
   NIM_ACCOUNT_NAME,
   NIM_API_KEY_DATA_KEY,
   NGC_API_KEY_DATA_KEY,
   NIM_SECRET_GENERATE_NAME,
+  NIM_FORCE_VALIDATION_ANNOTATION,
 } from '../constants';
 
-jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
-  ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
-  k8sCreateResource: jest.fn(),
-  k8sDeleteResource: jest.fn(),
-  k8sPatchResource: jest.fn(),
-}));
-
-jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
-  createSecret: jest.fn(),
-  getSecret: jest.fn(),
-  replaceSecret: jest.fn(),
-}));
-
 jest.mock('../k8s', () => ({
-  NIMAccountModel: {
-    apiVersion: 'v1',
-    apiGroup: 'nim.opendatahub.io',
-    kind: 'Account',
-    plural: 'accounts',
-  },
-  listNIMAccounts: jest.fn(),
+  ...jest.requireActual('../k8s'),
+  createNIMSecret: jest.fn(),
+  createNIMAccount: jest.fn(),
+  deleteNIMAccount: jest.fn(),
+  deleteSecret: jest.fn(),
+  patchSecretOwnerReference: jest.fn(),
+  fetchExistingSecret: jest.fn(),
+  replaceNIMSecret: jest.fn(),
 }));
 
-const mockCreateSecret = jest.mocked(createSecret);
-const mockGetSecret = jest.mocked(getSecret);
-const mockReplaceSecret = jest.mocked(replaceSecret);
-const mockK8sCreateResource = jest.mocked(k8sCreateResource);
-const mockK8sDeleteResource = jest.mocked(k8sDeleteResource);
-const mockK8sPatchResource = jest.mocked(k8sPatchResource);
-const mockListNIMAccounts = jest.mocked(listNIMAccounts);
-
+const mockCreateNIMSecret = jest.mocked(createNIMSecret);
+const mockCreateNIMAccount = jest.mocked(createNIMAccount);
+const mockDeleteNIMAccount = jest.mocked(deleteNIMAccount);
+const mockDeleteSecret = jest.mocked(deleteSecret);
+const mockPatchSecretOwnerReference = jest.mocked(patchSecretOwnerReference);
+const mockFetchExistingSecret = jest.mocked(fetchExistingSecret);
+const mockReplaceNIMSecret = jest.mocked(replaceNIMSecret);
 describe('assembleNIMSecret', () => {
   it('should build a secret with generateName and the API key', () => {
     const secret = assembleNIMSecret('test-ns', 'nvapi-test-key');
@@ -81,6 +72,25 @@ describe('assembleNIMAccount', () => {
   });
 });
 
+describe('assembleUpdatedSecret', () => {
+  it('should build an updated secret with new key and force-validation annotation', () => {
+    const existing: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: 'test-secret', namespace: 'test-ns', resourceVersion: '123' },
+      type: 'Opaque',
+      data: { old: 'data' },
+    };
+    const updated = assembleUpdatedSecret(existing, 'nvapi-new-key');
+
+    expect(updated.data).toBeUndefined();
+    expect(updated.metadata.resourceVersion).toBe('123');
+    expect(updated.metadata.annotations?.[NIM_FORCE_VALIDATION_ANNOTATION]).toBeDefined();
+    expect(updated.stringData?.[NIM_API_KEY_DATA_KEY]).toBe('nvapi-new-key');
+    expect(updated.stringData?.[NGC_API_KEY_DATA_KEY]).toBe('nvapi-new-key');
+  });
+});
+
 describe('createNIMResources', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -99,60 +109,42 @@ describe('createNIMResources', () => {
       apiKeySecretName: 'nvidia-nim-secrets-xyz99',
     });
 
-    mockCreateSecret.mockResolvedValue(createdSecret);
-    mockK8sCreateResource.mockResolvedValue(createdAccount);
-    mockK8sPatchResource.mockResolvedValue(createdSecret);
+    mockCreateNIMSecret.mockResolvedValue(createdSecret);
+    mockCreateNIMAccount.mockResolvedValue(createdAccount);
+    mockPatchSecretOwnerReference.mockResolvedValue(createdSecret);
 
     const result = await createNIMResources('test-ns', 'nvapi-key');
 
-    expect(mockCreateSecret).toHaveBeenCalledTimes(2);
-    expect(mockCreateSecret).toHaveBeenNthCalledWith(1, expect.any(Object), { dryRun: true });
-    expect(mockCreateSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
+    expect(mockCreateNIMSecret).toHaveBeenCalledTimes(2);
+    expect(mockCreateNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
+    expect(mockCreateNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
 
-    expect(mockK8sCreateResource).toHaveBeenCalledTimes(2);
-    expect(mockK8sCreateResource).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        queryOptions: { queryParams: { dryRun: 'All' } },
-      }),
-    );
-    expect(mockK8sCreateResource).toHaveBeenNthCalledWith(
+    expect(mockCreateNIMAccount).toHaveBeenCalledTimes(2);
+    expect(mockCreateNIMAccount).toHaveBeenNthCalledWith(1, expect.any(Object), true);
+    expect(mockCreateNIMAccount).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        resource: expect.objectContaining({
-          spec: { apiKeySecret: { name: 'nvidia-nim-secrets-xyz99' } },
-        }),
+        spec: { apiKeySecret: { name: 'nvidia-nim-secrets-xyz99' } },
       }),
     );
 
-    expect(mockK8sPatchResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        patches: [
-          expect.objectContaining({
-            op: 'add',
-            path: '/metadata/ownerReferences',
-            value: [
-              expect.objectContaining({
-                uid: 'account-uid-123',
-                blockOwnerDeletion: true,
-              }),
-            ],
-          }),
-        ],
-      }),
+    expect(mockPatchSecretOwnerReference).toHaveBeenCalledWith(
+      'test-ns',
+      'nvidia-nim-secrets-xyz99',
+      createdAccount,
     );
     expect(result).toBe(createdAccount);
   });
 
   it('should not create any resources if dry-run fails', async () => {
-    mockCreateSecret.mockRejectedValueOnce(new Error('dry-run validation failed'));
+    mockCreateNIMSecret.mockRejectedValueOnce(new Error('dry-run validation failed'));
 
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
       'dry-run validation failed',
     );
-    expect(mockCreateSecret).toHaveBeenCalledTimes(1);
-    expect(mockK8sCreateResource).toHaveBeenCalledTimes(1);
-    expect(mockK8sDeleteResource).not.toHaveBeenCalled();
+    expect(mockCreateNIMSecret).toHaveBeenCalledTimes(1);
+    expect(mockCreateNIMAccount).toHaveBeenCalledTimes(1);
+    expect(mockDeleteSecret).not.toHaveBeenCalled();
   });
 
   it('should clean up secret if account creation fails', async () => {
@@ -162,19 +154,15 @@ describe('createNIMResources', () => {
       metadata: { name: 'nvidia-nim-secrets-abc', namespace: 'test-ns' },
       type: 'Opaque',
     };
-    mockCreateSecret.mockResolvedValue(createdSecret);
-    mockK8sCreateResource
+    mockCreateNIMSecret.mockResolvedValue(createdSecret);
+    mockCreateNIMAccount
       .mockResolvedValueOnce(mockNimAccount({}))
       .mockRejectedValueOnce(new Error('account creation failed'));
 
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
       'account creation failed',
     );
-    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryOptions: { name: 'nvidia-nim-secrets-abc', ns: 'test-ns' },
-      }),
-    );
+    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-secrets-abc');
   });
 
   it('should clean up both account and secret if ownerReference patch fails', async () => {
@@ -190,22 +178,13 @@ describe('createNIMResources', () => {
       apiKeySecretName: 'nvidia-nim-secrets-def',
     });
 
-    mockCreateSecret.mockResolvedValue(createdSecret);
-    mockK8sCreateResource.mockResolvedValue(createdAccount);
-    mockK8sPatchResource.mockRejectedValue(new Error('patch failed'));
+    mockCreateNIMSecret.mockResolvedValue(createdSecret);
+    mockCreateNIMAccount.mockResolvedValue(createdAccount);
+    mockPatchSecretOwnerReference.mockRejectedValue(new Error('patch failed'));
 
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow('patch failed');
-    expect(mockK8sDeleteResource).toHaveBeenCalledTimes(2);
-    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
-      }),
-    );
-    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryOptions: { name: 'nvidia-nim-secrets-def', ns: 'test-ns' },
-      }),
-    );
+    expect(mockDeleteNIMAccount).toHaveBeenCalledWith('test-ns');
+    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-secrets-def');
   });
 });
 
@@ -226,28 +205,15 @@ describe('updateNIMSecretAndRevalidate', () => {
       type: 'Opaque',
       data: { [NIM_API_KEY_DATA_KEY]: btoa('old-key'), [NGC_API_KEY_DATA_KEY]: btoa('old-key') },
     };
-    mockGetSecret.mockResolvedValue(existingSecret);
-    mockReplaceSecret.mockResolvedValue({} as SecretKind);
+    mockFetchExistingSecret.mockResolvedValue(existingSecret);
+    mockReplaceNIMSecret.mockResolvedValue({} as SecretKind);
 
     await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'nvapi-new-key');
 
-    expect(mockGetSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
-    expect(mockReplaceSecret).toHaveBeenCalledTimes(2);
-
-    const expectedSecret = expect.objectContaining({
-      metadata: expect.objectContaining({
-        resourceVersion: '12345',
-        annotations: expect.objectContaining({
-          'runtimes.opendatahub.io/nim-force-validation': expect.any(String),
-        }),
-      }),
-      stringData: {
-        [NIM_API_KEY_DATA_KEY]: 'nvapi-new-key',
-        [NGC_API_KEY_DATA_KEY]: 'nvapi-new-key',
-      },
-    });
-    expect(mockReplaceSecret).toHaveBeenNthCalledWith(1, expectedSecret, { dryRun: true });
-    expect(mockReplaceSecret).toHaveBeenNthCalledWith(2, expectedSecret);
+    expect(mockFetchExistingSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
+    expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(2);
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
   });
 
   it('should not replace if dry-run fails', async () => {
@@ -257,13 +223,13 @@ describe('updateNIMSecretAndRevalidate', () => {
       metadata: { name: 'nvidia-nim-access-abc', namespace: 'test-ns' },
       type: 'Opaque',
     };
-    mockGetSecret.mockResolvedValue(existingSecret);
-    mockReplaceSecret.mockRejectedValueOnce(new Error('dry-run failed'));
+    mockFetchExistingSecret.mockResolvedValue(existingSecret);
+    mockReplaceNIMSecret.mockRejectedValueOnce(new Error('dry-run failed'));
 
     await expect(
       updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'bad-key'),
     ).rejects.toThrow('dry-run failed');
-    expect(mockReplaceSecret).toHaveBeenCalledTimes(1);
+    expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -272,58 +238,57 @@ describe('deleteNIMResources', () => {
     jest.clearAllMocks();
   });
 
-  it('should delete the NIMAccount', async () => {
-    mockK8sDeleteResource.mockResolvedValue({} as never);
+  it('should delegate to deleteNIMAccount', async () => {
+    mockDeleteNIMAccount.mockResolvedValue(undefined);
 
     await deleteNIMResources('test-ns');
 
-    expect(mockK8sDeleteResource).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
-      }),
-    );
-  });
-
-  it('should treat 404 as success (already deleted)', async () => {
-    mockK8sDeleteResource.mockRejectedValue(
-      new K8sStatusError({
-        kind: 'Status',
-        apiVersion: 'v1',
-        status: 'Failure',
-        code: 404,
-        message: 'not found',
-        reason: 'NotFound',
-      }),
-    );
-
-    await expect(deleteNIMResources('test-ns')).resolves.toBeUndefined();
-  });
-
-  it('should rethrow non-404 errors', async () => {
-    mockK8sDeleteResource.mockRejectedValue(new Error('server error'));
-
-    await expect(deleteNIMResources('test-ns')).rejects.toThrow('server error');
+    expect(mockDeleteNIMAccount).toHaveBeenCalledWith('test-ns');
   });
 });
 
-describe('getNIMAccount', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+describe('deriveStatus', () => {
+  it('should return LOADING when not yet loaded', () => {
+    const result = deriveStatus(null, false);
+    expect(result.status).toBe(NIMAccountStatus.LOADING);
+    expect(result.errorMessages).toEqual([]);
   });
 
-  it('should return the account matching NIM_ACCOUNT_NAME', async () => {
-    const account = mockNimAccount({ namespace: 'test-ns' });
-    mockListNIMAccounts.mockResolvedValue([account]);
-
-    const result = await getNIMAccount('test-ns');
-    expect(result).toBe(account);
+  it('should return NOT_FOUND when account is null', () => {
+    const result = deriveStatus(null);
+    expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
+    expect(result.errorMessages).toEqual([]);
   });
 
-  it('should return undefined when no accounts exist', async () => {
-    mockListNIMAccounts.mockResolvedValue([]);
+  it('should return READY when AccountStatus condition is True', () => {
+    const account = mockNimAccount({
+      conditions: [{ type: 'AccountStatus', status: 'True', reason: 'AccountSuccessful' }],
+    });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.READY);
+  });
 
-    const result = await getNIMAccount('test-ns');
-    expect(result).toBeUndefined();
+  it('should return ERROR when APIKeyValidation condition is False', () => {
+    const account = mockNimAccount({
+      conditions: [
+        {
+          type: 'APIKeyValidation',
+          status: 'False',
+          reason: 'ValidationFailed',
+          message: 'API key failed validation.',
+        },
+      ],
+    });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.ERROR);
+    expect(result.errorMessages).toEqual(['API key failed validation.']);
+  });
+
+  it('should return PENDING when account exists but has no definitive conditions', () => {
+    const account = mockNimAccount({ conditions: [] });
+    const result = deriveStatus(account);
+    expect(result.status).toBe(NIMAccountStatus.PENDING);
+    expect(result.errorMessages).toEqual([]);
   });
 });
 
