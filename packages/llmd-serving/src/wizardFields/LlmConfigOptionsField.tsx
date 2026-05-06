@@ -9,6 +9,7 @@ import ModelServerTemplateSelectField, {
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import { HardwareProfileKind } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isCompatibleWithIdentifier } from '@odh-dashboard/internal/pages/projects/screens/spawner/spawnerUtils';
 import { useModelServingClusterSettings } from '@odh-dashboard/model-serving/concepts/useModelServingClusterSettings';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
@@ -186,6 +187,8 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
         return {
           data: {
             selection: options[0],
+            autoSelect: true,
+            suggestion: options[0],
           },
         };
       }

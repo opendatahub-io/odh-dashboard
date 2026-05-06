@@ -19,7 +19,7 @@ export const cleanupLLMInferenceServiceConfig = (
   configName: string,
 ): Cypress.Chainable<CommandLineResult> => {
   const sanitizedName = configName.replace(/[^a-zA-Z0-9_-]/g, '');
-  const ocCommand = `oc get llminferenceserviceconfig -ojson -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${sanitizedName}")) | .metadata.name' | tr -d '"'`;
+  const ocCommand = `oc get llminferenceserviceconfig -o json -n ${applicationNamespace} | jq '.items[] | select(.metadata.name | contains("${sanitizedName}")) | .metadata.name' | tr -d '"'`;
   cy.log(`Executing delete LLMInferenceServiceConfig command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
