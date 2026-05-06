@@ -824,12 +824,11 @@ paths:
   # =============================================================================
 
   /gen-ai/api/v1/bff/maas/tokens:
-    summary: Manage MaaS BFF tokens via inter-BFF communication
+    summary: Create ephemeral MaaS API keys via inter-BFF communication
     description: >-
-      Issue new ephemeral tokens and revoke existing tokens by communicating with
-      the MaaS BFF service. This uses inter-BFF communication for playground session
-      token management, allowing Gen-AI playground to request tokens from the MaaS BFF
-      without direct cluster access.
+      Issue ephemeral OpenAI-compatible API keys by calling the MaaS BFF POST /api-keys
+      endpoint. Keys are always created as ephemeral (short-lived) and are intended for
+      gen-ai playground session authentication.
     post:
       tags:
         - Inter-BFF
@@ -839,16 +838,17 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace for token operations
+          description: Kubernetes namespace for the operation
           required: true
           schema:
             type: string
             example: 'default'
-      summary: Issue Token via MaaS BFF
+      summary: Create Ephemeral API Key via MaaS BFF
       description: >-
-        Request a new ephemeral token from the MaaS BFF service. The token is issued
-        by calling the MaaS BFF's token endpoint, which handles the actual token
-        creation logic. This endpoint is used for playground session authentication.
+        Calls the MaaS BFF POST /api-keys endpoint to create an ephemeral
+        OpenAI-compatible API key (sk-oai-* format) for playground session use.
+        The key is shown only once at creation time. The ephemeral flag is always
+        set to true by the gen-ai BFF.
       requestBody:
         required: false
         content:
@@ -856,17 +856,27 @@ paths:
             schema:
               type: object
               properties:
-                expiration:
+                name:
                   type: string
-                  description: Token time-to-live in Go duration format (ns, us, ms, s, m, h).
-                  default: '4h'
-                  example: '30m'
-                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+                  description: Human-readable name for the API key. Auto-generated if omitted.
+                  example: 'gen-ai-1735406400'
+                description:
+                  type: string
+                  description: Optional description for the key.
+                expiresIn:
+                  type: string
+                  description: Optional expiration duration (e.g. "1h", "30m"). Defaults to MaaS BFF default.
+                  example: '1h'
+                subscription:
+                  type: string
+                  description: Subscription ID to scope this API key to.
+                  example: 'premium-team-sub'
             example:
-              expiration: '30m'
+              expiresIn: '1h'
+              subscription: 'premium-team-sub'
       responses:
         '201':
-          description: Token created successfully
+          description: API key created successfully
           content:
             application/json:
               schema:
@@ -875,18 +885,36 @@ paths:
                   data:
                     type: object
                     properties:
-                      token:
+                      key:
                         type: string
-                        description: Generated JWT token for MaaS API authentication
-                        example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'
+                        description: Plaintext API key (shown only once).
+                        example: 'sk-oai-abc123...'
+                      keyPrefix:
+                        type: string
+                        description: Key prefix for identification.
+                        example: 'sk-oai-abc'
+                      id:
+                        type: string
+                        description: Unique identifier for the API key.
+                        example: '550e8400-e29b-41d4-a716-446655440000'
+                      name:
+                        type: string
+                        description: Name of the API key.
+                        example: 'gen-ai-1735406400'
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Key creation timestamp.
                       expiresAt:
-                        type: integer
-                        format: int64
-                        description: Token expiration timestamp as Unix timestamp
-                        example: 1735406400
+                        type: string
+                        format: date-time
+                        description: Key expiration timestamp (if set).
                     required:
-                      - token
-                      - expiresAt
+                      - key
+                      - keyPrefix
+                      - id
+                      - name
+                      - createdAt
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -899,8 +927,15 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: issueBFFMaaSToken
-    delete:
+      operationId: issueBFFMaaSAPIKey
+
+  /gen-ai/api/v1/bff/maas/models:
+    summary: List MaaS models via inter-BFF communication
+    description: >-
+      Retrieves the list of available MaaS models by calling the MaaS BFF GET /models
+      endpoint. The X-MaaS-Return-All-Models header is forwarded so the MaaS BFF passes
+      it through to the MaaS API, returning all models accessible to the user.
+    get:
       tags:
         - Inter-BFF
         - MaaS
@@ -909,20 +944,59 @@ paths:
       parameters:
         - name: namespace
           in: query
-          description: Kubernetes namespace for token operations
+          description: Kubernetes namespace for the operation
           required: true
           schema:
             type: string
             example: 'default'
-      summary: Revoke All Tokens via MaaS BFF
+      summary: List Models via MaaS BFF
       description: >-
-        Revoke all tokens for the current user by calling the MaaS BFF service.
-        This is useful for invalidating playground session tokens.
+        Calls the MaaS BFF GET /models endpoint, forwarding X-MaaS-Return-All-Models: true
+        so the complete model catalogue is returned.
       responses:
-        '204':
-          description: All tokens revoked successfully (no content)
-        '400':
-          $ref: '#/components/responses/BadRequest'
+        '200':
+          description: List of available MaaS models
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object:
+                    type: string
+                    example: 'list'
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        object:
+                          type: string
+                        created:
+                          type: integer
+                          format: int64
+                        owned_by:
+                          type: string
+                        ready:
+                          type: boolean
+                        url:
+                          type: string
+                        display_name:
+                          type: string
+                        description:
+                          type: string
+                        subscriptions:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/SubscriptionInfo'
+                      required:
+                        - id
+                        - object
+                        - created
+                        - owned_by
+                        - ready
+                        - url
         '401':
           $ref: '#/components/responses/Unauthorized'
         '503':
@@ -933,7 +1007,7 @@ paths:
                 $ref: '#/components/schemas/ErrorEnvelope'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: revokeAllBFFMaaSTokens
+      operationId: listBFFMaaSModels
 
   # =============================================================================
   # MLFLOW ENDPOINTS

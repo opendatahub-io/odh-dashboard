@@ -23,7 +23,6 @@ import (
 func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	// Create test app with mock BFF client factory
 	bffClientFactory := bffmocks.NewMockClientFactory(logger)
 	app := App{
 		config: config.EnvConfig{
@@ -32,12 +31,11 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		bffClientFactory: bffClientFactory,
 	}
 
-	t.Run("should issue token via BFF client with default TTL", func(t *testing.T) {
+	t.Run("should create api key via BFF client with no body", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/bff/maas/tokens", nil)
 		assert.NoError(t, err)
 
-		// Simulate AttachBFFMaaSClient middleware by adding client to context
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
 		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
@@ -50,15 +48,16 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var responseEnvelope Envelope[models.MaaSBFFTokenResponseData, None]
+		var responseEnvelope Envelope[models.MaaSBFFAPIKeyCreateData, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, responseEnvelope.Data.Token)
-		assert.NotEmpty(t, responseEnvelope.Data.ExpiresAt)
+		assert.NotEmpty(t, responseEnvelope.Data.Key)
+		assert.NotEmpty(t, responseEnvelope.Data.ID)
+		assert.NotEmpty(t, responseEnvelope.Data.CreatedAt)
 	})
 
-	t.Run("should issue token with custom TTL", func(t *testing.T) {
-		tokenRequest := models.MaaSTokenRequest{ExpiresIn: "2h"}
+	t.Run("should create api key with custom expiresIn and subscription", func(t *testing.T) {
+		tokenRequest := models.MaaSTokenRequest{ExpiresIn: "2h", Subscription: "my-sub"}
 		requestBody, err := json.Marshal(tokenRequest)
 		assert.NoError(t, err)
 
@@ -67,7 +66,6 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Simulate AttachBFFMaaSClient middleware
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
 		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
@@ -82,7 +80,6 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/bff/maas/tokens", nil)
 		assert.NoError(t, err)
 
-		// Don't add client to context (simulating unavailable MaaS BFF)
 		app.BFFMaaSIssueTokenHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
@@ -99,7 +96,6 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
-		// Simulate AttachBFFMaaSClient middleware
 		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
 		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
 		req = req.WithContext(ctx)
@@ -107,51 +103,6 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		app.BFFMaaSIssueTokenHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-}
-
-func TestBFFMaaSRevokeAllTokensHandler(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-
-	// Create test app with mock BFF client factory
-	bffClientFactory := bffmocks.NewMockClientFactory(logger)
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		bffClientFactory: bffClientFactory,
-	}
-
-	t.Run("should revoke all tokens via BFF client", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodDelete, "/gen-ai/api/v1/bff/maas/tokens", nil)
-		assert.NoError(t, err)
-
-		// Simulate AttachBFFMaaSClient middleware
-		maasClient := bffClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
-		ctx := context.WithValue(req.Context(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), maasClient)
-		req = req.WithContext(ctx)
-
-		app.BFFMaaSRevokeAllTokensHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusNoContent, rr.Code)
-
-		// Verify no content in response body
-		defer rr.Result().Body.Close()
-		body, err := io.ReadAll(rr.Result().Body)
-		assert.NoError(t, err)
-		assert.Empty(t, body)
-	})
-
-	t.Run("should return 503 when BFF client is nil", func(t *testing.T) {
-		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodDelete, "/gen-ai/api/v1/bff/maas/tokens", nil)
-		assert.NoError(t, err)
-
-		// Don't add client to context (simulating unavailable MaaS BFF)
-		app.BFFMaaSRevokeAllTokensHandler(rr, req, nil)
-
-		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	})
 }
 

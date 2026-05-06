@@ -56,6 +56,7 @@ const (
 	// Inter-BFF Communication endpoints - calls to other BFF services
 	// These use the BFF client for inter-service communication
 	BFFMaaSTokensPath = ApiPathPrefix + "/bff/maas/tokens"
+	BFFMaaSModelsPath = ApiPathPrefix + "/bff/maas/models"
 
 	// MLflow endpoints
 	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"

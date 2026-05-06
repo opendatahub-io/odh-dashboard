@@ -443,7 +443,7 @@ func (app *App) Routes() http.Handler {
 
 	// Inter-BFF Communication routes - calls to MaaS BFF service
 	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
+	apiRouter.GET(constants.BFFMaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSModelsHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
