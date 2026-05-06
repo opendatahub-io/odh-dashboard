@@ -20,7 +20,9 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
+import { z } from 'zod';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
@@ -32,6 +34,11 @@ import {
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+
+const policyFormSchema = z.object({
+  groups: z.array(z.string()).min(1, 'At least one group must be selected'),
+  models: z.array(z.unknown()).min(1, 'At least one model must be added'),
+});
 
 export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
@@ -72,16 +79,21 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   const isValidK8sNameDescription = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
+
+  const zodFormData = React.useMemo(
+    () => ({ groups: selectedGroupNames, models: selectedModels }),
+    [selectedGroupNames, selectedModels],
+  );
+
+  const { getFieldValidation } = useZodFormValidation(zodFormData, policyFormSchema);
+
   const groupsValidationError =
-    groupsTouched && selectedGroupNames.length === 0
-      ? 'At least one group must be selected'
+    groupsTouched && getFieldValidation(['groups'], true).length > 0
+      ? getFieldValidation(['groups'], true)[0].message
       : undefined;
 
   const canSubmit =
-    isValidK8sNameDescription &&
-    selectedGroupNames.length > 0 &&
-    selectedModels.length > 0 &&
-    !isSubmitting;
+    isValidK8sNameDescription && getFieldValidation(undefined, true).length === 0 && !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
