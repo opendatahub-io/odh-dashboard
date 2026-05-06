@@ -27,7 +27,7 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   },
   {
     field: 'visibility',
-    label: 'Visibility',
+    label: 'Workload type',
     sortable: false,
     info: {
       popover: (
@@ -75,13 +75,13 @@ export enum HardwareProfileEnableType {
 export enum HardwareProfileFilterOptions {
   name = 'Name',
   enabled = 'Enabled',
-  visibility = 'Visibility',
+  visibility = 'Workload type',
 }
 
 export const hardwareProfileFilterOptions = {
   [HardwareProfileFilterOptions.name]: 'Name',
   [HardwareProfileFilterOptions.enabled]: 'Enabled',
-  [HardwareProfileFilterOptions.visibility]: 'Visibility',
+  [HardwareProfileFilterOptions.visibility]: 'Workload type',
 };
 
 export type HardwareProfileFilterDataType = Record<
@@ -95,9 +95,11 @@ export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.visibility]: undefined,
 };
 
+export const LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL = 'Specify local queue';
+
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',
-  [ManageHardwareProfileSectionID.VISIBILITY]: 'Visibility',
+  [ManageHardwareProfileSectionID.VISIBILITY]: 'Workload type',
   [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Resource requests and limits',
   [ManageHardwareProfileSectionID.SCHEDULING]: 'Resource allocation',
   [ManageHardwareProfileSectionID.ALLOCATION_STRATEGY]: 'Workload allocation strategy',

@@ -1,4 +1,10 @@
-import { FormGroup, Radio } from '@patternfly/react-core';
+import {
+  FormGroup,
+  FormHelperText,
+  HelperText,
+  HelperTextItem,
+  Radio,
+} from '@patternfly/react-core';
 import React from 'react';
 import { HardwareProfileFeatureVisibility } from '#~/k8sTypes';
 import { MultiSelection, type SelectionOptions } from '#~/components/MultiSelection';
@@ -52,10 +58,17 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         />
       }
     >
+      <FormHelperText>
+        <HelperText>
+          <HelperTextItem>
+            Select which workloads to make this hardware profile available to.
+          </HelperTextItem>
+        </HelperText>
+      </FormHelperText>
       <Radio
         id="all-features"
         name="features-visibility"
-        label="Visible everywhere"
+        label="All workloads"
         isChecked={!isLimitedOptionSelected}
         onChange={() => {
           setLimitedOptionSelected(false);
@@ -65,7 +78,7 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
       <Radio
         id="limited-features"
         name="features-visibility"
-        label="Limited visibility"
+        label="Select workloads"
         isChecked={isLimitedOptionSelected}
         onChange={() => {
           setLimitedOptionSelected(true);
@@ -82,8 +95,8 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
                 setVisibility(selected);
                 setSelectedOptions(selected);
               }}
-              ariaLabel="Select features"
-              placeholder="Select features"
+              ariaLabel="Select workloads"
+              placeholder="Select workloads"
             />
           )
         }

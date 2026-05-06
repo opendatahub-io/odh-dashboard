@@ -10,6 +10,7 @@ import TruncatedText from '#~/components/TruncatedText.tsx';
 import {
   DEFAULT_PRIORITY_CLASS,
   HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP,
+  NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
 } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
 
 type ManageWorkloadPrioritySectionProps = {
@@ -28,8 +29,8 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
   const priorityOptions: SimpleSelectOption[] = React.useMemo(() => {
     const noneOption = {
       key: DEFAULT_PRIORITY_CLASS,
-      label: DEFAULT_PRIORITY_CLASS,
-      dropdownLabel: DEFAULT_PRIORITY_CLASS,
+      label: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
+      dropdownLabel: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
     };
 
     if (!loaded || error) {
@@ -70,6 +71,7 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
 
     return options;
   }, [workloadPriorityClasses, loaded, error, priorityClass]);
+
   return (
     <FormGroup
       label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.WORKLOAD_PRIORITY]}

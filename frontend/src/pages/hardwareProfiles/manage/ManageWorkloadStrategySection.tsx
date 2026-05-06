@@ -2,8 +2,15 @@ import * as React from 'react';
 import { Alert, FormGroup, List, ListItem, Radio, Stack, StackItem } from '@patternfly/react-core';
 import { SchedulingType } from '#~/types.ts';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx';
-import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
+import {
+  LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL,
+  ManageHardwareProfileSectionTitles,
+} from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';
+import {
+  HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP,
+  NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL,
+} from '#~/pages/hardwareProfiles/nodeResource/const.ts';
 
 type ManageWorkloadStrategySectionProps = {
   schedulingType: SchedulingType | undefined;
@@ -35,21 +42,29 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
                 {!hideQueueOption ? (
                   <List>
                     <ListItem>
-                      <b>Local queue</b> uses Kueue to automatically queue jobs and manage resources
-                      based on workload priority.
+                      <b>
+                        {
+                          ManageHardwareProfileSectionTitles[
+                            ManageHardwareProfileSectionID.LOCAL_QUEUE
+                          ]
+                        }
+                      </b>{' '}
+                      uses Kueue to automatically queue jobs and manage resources based on workload
+                      priority.
                     </ListItem>
                     <ListItem>
                       <>
-                        <b>Node selectors and tolerations</b> are manually added by administrators,
-                        and are best for more fine-grained scheduling of workloads.
+                        <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}</b> lets you manually add
+                        node selectors and tolerations for more fine-grained scheduling of
+                        workloads.
                       </>
                     </ListItem>
                   </List>
                 ) : (
                   <StackItem>
                     <>
-                      <b>Node selectors and tolerations</b> are manually added by administrators,
-                      and are best for more fine-grained scheduling of workloads.
+                      <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}</b> lets you manually add
+                      node selectors and tolerations for more fine-grained scheduling of workloads.
                     </>
                   </StackItem>
                 )}
@@ -61,25 +76,37 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
     >
       {!hideQueueOption ? (
         <>
-          <Radio
-            id="local-queue"
-            name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
-            data-testid="local-queue-radio-input"
-            label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.LOCAL_QUEUE]}
-            isChecked={schedulingType === SchedulingType.QUEUE}
-            onChange={() => setSchedulingType(SchedulingType.QUEUE)}
-          />
-          <Radio
-            id="node-strategy"
-            name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
-            data-testid="node-strategy-radio-input"
-            label="Node selectors and tolerations"
-            isChecked={schedulingType === SchedulingType.NODE}
-            onChange={() => setSchedulingType(SchedulingType.NODE)}
-          />
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <Radio
+              id="local-queue"
+              name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
+              data-testid="local-queue-radio-input"
+              label={LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL}
+              isChecked={schedulingType === SchedulingType.QUEUE}
+              onChange={() => setSchedulingType(SchedulingType.QUEUE)}
+            />
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <Radio
+              id="node-strategy"
+              name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
+              data-testid="node-strategy-radio-input"
+              label={NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}
+              isChecked={schedulingType === SchedulingType.NODE}
+              onChange={() => setSchedulingType(SchedulingType.NODE)}
+            />
+            <DashboardHelpTooltip
+              content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.nodeSelectorsAndTolerations}
+            />
+          </span>
         </>
       ) : (
-        <>Node selectors and tolerations</>
+        <>
+          {NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}{' '}
+          <DashboardHelpTooltip
+            content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.nodeSelectorsAndTolerations}
+          />
+        </>
       )}
     </FormGroup>
     {disableQueueOption && (
