@@ -472,11 +472,11 @@ describe('useChatbotMessages - Error Handling', () => {
         expect(mockClassifyError).toHaveBeenCalledWith(
           expect.objectContaining({
             error: mockError.error,
-            status: expect.any(Number),
           }),
           expect.objectContaining({
             wasStreamStarted: true,
             modelName: 'streaming-model',
+            wasResponseGenerated: false,
           }),
         );
       });
@@ -773,10 +773,11 @@ describe('useChatbotMessages - Error Handling', () => {
         expect(mockClassifyError).toHaveBeenCalledWith(
           expect.objectContaining({
             error: mockError.error,
-            status: expect.any(Number),
           }),
           expect.objectContaining({
             modelName: 'llama-3.1-8b', // getLlamaModelDisplayName is mocked to return modelId
+            wasResponseGenerated: false,
+            wasStreamStarted: false,
           }),
         );
       });
