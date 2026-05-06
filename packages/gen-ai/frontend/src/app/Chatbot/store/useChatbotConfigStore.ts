@@ -204,6 +204,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           guardrail: sourceConfig.guardrail,
           guardrailUserInputEnabled: sourceConfig.guardrailUserInputEnabled,
           guardrailModelOutputEnabled: sourceConfig.guardrailModelOutputEnabled,
+          guardrailSubscription: sourceConfig.guardrailSubscription,
           isRagEnabled: sourceConfig.isRagEnabled,
           knowledgeMode: sourceConfig.knowledgeMode,
           selectedVectorStoreId: sourceConfig.selectedVectorStoreId,
@@ -403,6 +404,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           const config = state.configurations[id];
           if (config) {
             config.guardrail = value;
+            config.guardrailSubscription = '';
           }
         });
       },
@@ -421,6 +423,15 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           const config = state.configurations[id];
           if (config) {
             config.guardrailModelOutputEnabled = value;
+          }
+        });
+      },
+
+      updateGuardrailSubscription: (id: string, value: string) => {
+        set((state) => {
+          const config = state.configurations[id];
+          if (config) {
+            config.guardrailSubscription = value;
           }
         });
       },
