@@ -82,13 +82,33 @@ const configureSchema = createConfigureSchema();
 /** Matches `EVAL_JSON_UPLOAD_MAX_BYTES` in AutoragEvaluationSelect. */
 const EVAL_JSON_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
+/**
+ * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
+ */
 function createFileList(fileArr: File[]): FileList {
-  return Object.assign(fileArr, {
-    length: fileArr.length,
+  const arr = [...fileArr];
+  const list = Object.assign(arr, {
+    length: arr.length,
     item(index: number): File | null {
-      return fileArr[index] ?? null;
+      return arr[index] ?? null;
     },
-  }) as unknown as FileList;
+    *[Symbol.iterator]() {
+      for (let i = 0; i < arr.length; i++) {
+        yield arr[i];
+      }
+    },
+  });
+  return list as unknown as FileList;
+}
+
+/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
+function mockDataTransferForDrop(files: File[]) {
+  return {
+    files: createFileList(files),
+    types: ['Files'],
+    dropEffect: 'copy',
+    effectAllowed: 'all',
+  };
 }
 
 /** `FileSelector` wraps content in `.pf-v6-c-multiple-file-upload`; react-dropzone lives on `.pf-v6-c-file-upload`. */
@@ -96,10 +116,7 @@ function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]):
   const zone = container.querySelector('.pf-v6-c-file-upload');
   expect(zone).toBeTruthy();
   fireEvent.drop(zone as HTMLElement, {
-    dataTransfer: {
-      files: createFileList(files),
-      types: ['Files'],
-    },
+    dataTransfer: mockDataTransferForDrop(files),
   });
 }
 

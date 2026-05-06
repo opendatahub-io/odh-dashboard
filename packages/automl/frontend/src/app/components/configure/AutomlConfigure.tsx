@@ -121,6 +121,8 @@ const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
 
 /** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
 const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+const TRAINING_DATA_UPLOAD_MAX_SIZE_MIB = TRAINING_DATA_UPLOAD_MAX_BYTES / (1024 * 1024);
+const TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${TRAINING_DATA_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
 
 /** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
 function isAllowedTrainingDataUploadFile(file: File): boolean {
@@ -339,7 +341,7 @@ function AutomlConfigure({
         return;
       }
       if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+        notification.error('File too large', TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedTrainingDataUploadFile(file)) {
@@ -391,7 +393,7 @@ function AutomlConfigure({
       const { file, errors } = fileRejections[0];
       const codes = new Set(errors.map((e) => e.code));
       if (codes.has('file-too-large')) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+        notification.error('File too large', TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (codes.has('too-many-files')) {
@@ -402,6 +404,7 @@ function AutomlConfigure({
         notification.error('Invalid file type', 'File type must be CSV.');
         return;
       }
+      // Fallback: future react-dropzone codes or composite rejections use native messages (when present).
       notification.error(
         'File not accepted',
         errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
@@ -644,7 +647,7 @@ function AutomlConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: CSV. Maximum file size: 32 MiB"
+                                  infoText={`Accepted file types: CSV. Maximum file size: ${TRAINING_DATA_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
