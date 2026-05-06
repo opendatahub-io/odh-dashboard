@@ -67,7 +67,9 @@ describe('generateFeatureStoreCode', () => {
     const code = generateFeatureStoreCode();
 
     expect(code).toContain('from feast import FeatureStore');
-    expect(code).toContain("fs = FeatureStore(fs_yaml_file='/opt/app-root/src/feature_store.yaml')");
+    expect(code).toContain(
+      "fs = FeatureStore(fs_yaml_file='/opt/app-root/src/feature_store.yaml')",
+    );
     expect(code).toContain('list_feature_views()');
     expect(code).toContain('get_historical_features');
     expect(code).toContain('get_online_features');
