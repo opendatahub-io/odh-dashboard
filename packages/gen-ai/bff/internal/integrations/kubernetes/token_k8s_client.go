@@ -200,8 +200,8 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		return nil, fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	// Use CopyConfig for explicit, clean copying
-	cfg := rest.CopyConfig(baseConfig)
+	// Start with an anonymous config to avoid preloaded auth
+	cfg := rest.AnonymousClientConfig(baseConfig)
 	cfg.BearerToken = token
 
 	// Explicitly clear all other auth mechanisms
@@ -249,7 +249,7 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *in
 	}
 
 	// Create a dynamic client with user token
-	userConfig := rest.CopyConfig(kc.Config)
+	userConfig := rest.AnonymousClientConfig(kc.Config)
 	userConfig.BearerToken = identity.Token
 	userConfig.BearerTokenFile = ""
 
@@ -330,7 +330,7 @@ func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -374,7 +374,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -418,7 +418,7 @@ func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Conte
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -513,7 +513,7 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, identity *integrat
 	defer cancel()
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 

@@ -235,6 +235,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
@@ -298,6 +299,11 @@ export type DataScienceProjectData = {
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigContainerImage: string;
 };
 
 export type NotebookImageData = {
