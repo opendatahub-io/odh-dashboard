@@ -52,8 +52,11 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     setIsCreating(true);
     setCreateError(undefined);
 
+    const accountExists =
+      accountStatus !== NIMAccountStatus.NOT_FOUND && accountStatus !== NIMAccountStatus.LOADING;
+
     try {
-      if (isReplacing) {
+      if (isReplacing || accountExists) {
         if (!existingSecretName) {
           throw new Error('Cannot replace API key: existing secret is missing.');
         }
@@ -69,7 +72,15 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     } finally {
       setIsCreating(false);
     }
-  }, [apiKey, isReplacing, existingSecretName, namespace, startRevalidation, refresh]);
+  }, [
+    apiKey,
+    isReplacing,
+    accountStatus,
+    existingSecretName,
+    namespace,
+    startRevalidation,
+    refresh,
+  ]);
 
   const handleClose = React.useCallback(() => {
     onClose();
