@@ -187,7 +187,10 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
       {isDeleteModalOpen && (
         <DeleteModal
           title="Remove NVIDIA NIM"
-          onClose={() => setIsDeleteModalOpen(false)}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeleteError(undefined);
+          }}
           onDelete={handleRemoveConfirm}
           submitButtonLabel="Remove"
           deleteName="NVIDIA NIM"

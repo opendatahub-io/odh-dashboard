@@ -2,6 +2,7 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sPatchResource,
+  K8sStatusError,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
@@ -147,10 +148,17 @@ export const updateNIMSecretAndRevalidate = async (
 };
 
 export const deleteNIMResources = async (namespace: string): Promise<void> => {
-  await k8sDeleteResource<NIMAccountKind>({
-    model: NIMAccountModel,
-    queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
-  });
+  try {
+    await k8sDeleteResource<NIMAccountKind>({
+      model: NIMAccountModel,
+      queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
+    });
+  } catch (e) {
+    if (e instanceof K8sStatusError && e.status.code === 404) {
+      return;
+    }
+    throw e;
+  }
 };
 
 export const getNIMAccount = async (namespace: string): Promise<NIMAccountKind | undefined> => {

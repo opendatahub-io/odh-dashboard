@@ -12,6 +12,7 @@ import {
 import { NIM_ACCOUNT_NAME } from '../nimConstants';
 
 export enum NIMAccountStatus {
+  LOADING = 'LOADING',
   NOT_FOUND = 'NOT_FOUND',
   PENDING = 'PENDING',
   ERROR = 'ERROR',
@@ -43,7 +44,11 @@ const getAccountAgeMs = (account: NIMAccountKind): number => {
 
 export const deriveStatus = (
   account: NIMAccountKind | null,
+  loaded = true,
 ): { status: NIMAccountStatus; errorMessages: string[] } => {
+  if (!loaded) {
+    return { status: NIMAccountStatus.LOADING, errorMessages: [] };
+  }
   if (!account) {
     return { status: NIMAccountStatus.NOT_FOUND, errorMessages: [] };
   }
@@ -97,7 +102,7 @@ const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
     refreshRate: pollRate,
   });
 
-  const derived = loaded ? deriveStatus(nimAccount) : deriveStatus(null);
+  const derived = deriveStatus(nimAccount, loaded);
 
   const isWaitingForRevalidation = React.useMemo(() => {
     if (!revalidationState) {

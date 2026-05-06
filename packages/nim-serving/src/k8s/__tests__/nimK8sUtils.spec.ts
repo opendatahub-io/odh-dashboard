@@ -2,6 +2,7 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sPatchResource,
+  K8sStatusError,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
@@ -26,6 +27,7 @@ import {
 } from '../../nimConstants';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
+  ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
   k8sCreateResource: jest.fn(),
   k8sDeleteResource: jest.fn(),
   k8sPatchResource: jest.fn(),
@@ -280,6 +282,27 @@ describe('deleteNIMResources', () => {
         queryOptions: { name: NIM_ACCOUNT_NAME, ns: 'test-ns' },
       }),
     );
+  });
+
+  it('should treat 404 as success (already deleted)', async () => {
+    mockK8sDeleteResource.mockRejectedValue(
+      new K8sStatusError({
+        kind: 'Status',
+        apiVersion: 'v1',
+        status: 'Failure',
+        code: 404,
+        message: 'not found',
+        reason: 'NotFound',
+      }),
+    );
+
+    await expect(deleteNIMResources('test-ns')).resolves.toBeUndefined();
+  });
+
+  it('should rethrow non-404 errors', async () => {
+    mockK8sDeleteResource.mockRejectedValue(new Error('server error'));
+
+    await expect(deleteNIMResources('test-ns')).rejects.toThrow('server error');
   });
 });
 

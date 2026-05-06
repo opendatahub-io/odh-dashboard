@@ -10,6 +10,12 @@ jest.mock('../../k8s/nimAccounts', () => ({
 const mockListNIMAccounts = jest.mocked(listNIMAccounts);
 
 describe('deriveStatus', () => {
+  it('should return LOADING when not yet loaded', () => {
+    const result = deriveStatus(null, false);
+    expect(result.status).toBe(NIMAccountStatus.LOADING);
+    expect(result.errorMessages).toEqual([]);
+  });
+
   it('should return NOT_FOUND when account is null', () => {
     const result = deriveStatus(null);
     expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
