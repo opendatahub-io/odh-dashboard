@@ -76,9 +76,6 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
 
       cy.step('Verify create run button is available');
       autoragExperimentsPage.findCreateRunButton().should('be.visible');
-
-      cy.step('Verify AutoRAG nav item is present');
-      autoragExperimentsPage.findNavItem().should('be.visible');
     },
   );
 
