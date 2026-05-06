@@ -3,7 +3,7 @@ import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/uti
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { listNIMAccounts } from './k8s';
-import { NIMAccountStatus, deriveStatus, getAccountStatusTransitionTime } from './utils';
+import { NIMAccountStatus, deriveAccountStatus, getAccountStatusTransitionTime } from './utils';
 import { NIM_ACCOUNT_NAME, REVALIDATION_TIMEOUT_MS } from './constants';
 
 export { NIMAccountStatus } from './utils';
@@ -39,7 +39,7 @@ const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
     refreshRate: pollRate,
   });
 
-  const derived = deriveStatus(nimAccount, loaded);
+  const derived = deriveAccountStatus(nimAccount, loaded);
 
   const isWaitingForRevalidation = React.useMemo(() => {
     if (!revalidationState) {

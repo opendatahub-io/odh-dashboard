@@ -19,7 +19,7 @@ import {
   isAccountReady,
   isApiKeyValidationFailed,
   getAccountErrors,
-  deriveStatus,
+  deriveAccountStatus,
   NIMAccountStatus,
 } from '../utils';
 import {
@@ -247,15 +247,15 @@ describe('deleteNIMResources', () => {
   });
 });
 
-describe('deriveStatus', () => {
+describe('deriveAccountStatus', () => {
   it('should return LOADING when not yet loaded', () => {
-    const result = deriveStatus(null, false);
+    const result = deriveAccountStatus(null, false);
     expect(result.status).toBe(NIMAccountStatus.LOADING);
     expect(result.errorMessages).toEqual([]);
   });
 
   it('should return NOT_FOUND when account is null', () => {
-    const result = deriveStatus(null);
+    const result = deriveAccountStatus(null);
     expect(result.status).toBe(NIMAccountStatus.NOT_FOUND);
     expect(result.errorMessages).toEqual([]);
   });
@@ -264,7 +264,7 @@ describe('deriveStatus', () => {
     const account = mockNimAccount({
       conditions: [{ type: 'AccountStatus', status: 'True', reason: 'AccountSuccessful' }],
     });
-    const result = deriveStatus(account);
+    const result = deriveAccountStatus(account);
     expect(result.status).toBe(NIMAccountStatus.READY);
   });
 
@@ -279,14 +279,14 @@ describe('deriveStatus', () => {
         },
       ],
     });
-    const result = deriveStatus(account);
+    const result = deriveAccountStatus(account);
     expect(result.status).toBe(NIMAccountStatus.ERROR);
     expect(result.errorMessages).toEqual(['API key failed validation.']);
   });
 
   it('should return PENDING when account exists but has no definitive conditions', () => {
     const account = mockNimAccount({ conditions: [] });
-    const result = deriveStatus(account);
+    const result = deriveAccountStatus(account);
     expect(result.status).toBe(NIMAccountStatus.PENDING);
     expect(result.errorMessages).toEqual([]);
   });

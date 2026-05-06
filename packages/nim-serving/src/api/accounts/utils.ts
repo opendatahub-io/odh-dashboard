@@ -71,7 +71,7 @@ export const getAccountStatusTransitionTime = (
   account?.status?.conditions?.find((c: K8sCondition) => c.type === 'AccountStatus')
     ?.lastTransitionTime;
 
-export const deriveStatus = (
+export const deriveAccountStatus = (
   account: NIMAccountKind | null,
   loaded = true,
 ): { status: NIMAccountStatus; errorMessages: string[] } => {
