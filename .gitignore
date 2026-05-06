@@ -92,6 +92,9 @@ vendor/
 # Agent worktrees
 .claude/worktrees/
 
+# Shared specs for cross-worktree context
+.claude/local-specs/
+
 # Triage artifacts
 .artifacts/
 
