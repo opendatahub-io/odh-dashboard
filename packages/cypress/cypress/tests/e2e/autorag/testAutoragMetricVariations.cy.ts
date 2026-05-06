@@ -11,12 +11,14 @@ import {
   autoragConfigurePage,
   autoragResultsPage,
 } from '../../../pages/autorag';
+import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 
 const uuid = generateTestUUID();
 
 describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
+  let autoragWasEnabled = false;
 
   retryableBefore(() =>
     cy
@@ -24,6 +26,14 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as AutoragTestData;
         projectName = `${testData.projectNamePrefix}-${uuid}`;
+      })
+      .then(() =>
+        isAutoragEnabled().then((wasEnabled) => {
+          autoragWasEnabled = wasEnabled;
+        }),
+      )
+      .then(() => setAutoragEnabled(true))
+      .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
         const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
@@ -41,6 +51,9 @@ describe('AutoRAG Metric Variations E2E', { testIsolation: false }, () => {
   );
 
   after(() => {
+    if (!autoragWasEnabled) {
+      setAutoragEnabled(false);
+    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });

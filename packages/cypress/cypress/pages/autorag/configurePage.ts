@@ -189,7 +189,7 @@ class AutoragConfigurePage {
     });
 
     cy.step('Step 1 - Fill name and description');
-    this.findNameInput().type(testData.runName);
+    cy.findByTestId('autorag-name-input', { timeout: 30000 }).type(testData.runName);
     this.findDescriptionInput().type(testData.runDescription);
 
     cy.step('Step 1 - Select LlamaStack secret');

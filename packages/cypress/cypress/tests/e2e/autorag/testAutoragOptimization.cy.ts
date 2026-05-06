@@ -7,34 +7,49 @@ import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage, autoragResultsPage } from '../../../pages/autorag';
+import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 
 const uuid = generateTestUUID();
 
 describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
+  let autoragWasEnabled = false;
 
   retryableBefore(() =>
-    cy.fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8').then((yamlContent: string) => {
-      testData = yaml.load(yamlContent) as AutoragTestData;
-      projectName = `${testData.projectNamePrefix}-${uuid}`;
-      provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+    cy
+      .fixture('e2e/autorag/testAutoragOptimization.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as AutoragTestData;
+        projectName = `${testData.projectNamePrefix}-${uuid}`;
+      })
+      .then(() =>
+        isAutoragEnabled().then((wasEnabled) => {
+          autoragWasEnabled = wasEnabled;
+        }),
+      )
+      .then(() => setAutoragEnabled(true))
+      .then(() => {
+        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
 
-      const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
-      if (!llamaStackUrl) {
-        throw new Error('LLAMA_STACK_URL must be set in test-variables.yml');
-      }
-      const llamaStackApiKey = (Cypress.env('LLAMA_STACK_API_KEY') as string) || '';
-      createLlamaStackSecret(
-        projectName,
-        testData.llamaStackSecretName,
-        llamaStackUrl,
-        llamaStackApiKey,
-      );
-    }),
+        const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
+        if (!llamaStackUrl) {
+          throw new Error('LLAMA_STACK_URL must be set in test-variables.yml');
+        }
+        const llamaStackApiKey = (Cypress.env('LLAMA_STACK_API_KEY') as string) || '';
+        createLlamaStackSecret(
+          projectName,
+          testData.llamaStackSecretName,
+          llamaStackUrl,
+          llamaStackApiKey,
+        );
+      }),
   );
 
   after(() => {
+    if (!autoragWasEnabled) {
+      setAutoragEnabled(false);
+    }
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
