@@ -35,13 +35,13 @@ import { accessAllowedRouteHoC } from '#~/concepts/userSSAR/accessAllowedRouteHo
 - `frontend/src/concepts/userSSAR/accessAllowedRouteHoC.tsx` — HOC for route-level gating
 - `frontend/src/concepts/userSSAR/utils.ts` — `verbModelAccess(verb, model, namespace?)`
 
-### Legacy: Non-cached SSAR (avoid for new code)
+### Legacy: Non-cached SSAR (valid but avoid for new code)
 
 ```typescript
 import { useAccessReview, checkAccess } from '#~/api/useAccessReview';
 ```
 
-Avoid for new code — does not use the context cache. Still valid but creates duplicate requests.
+`useAccessReview` is a **valid SSAR mechanism** — it performs the same K8s SelfSubjectAccessReview as `useAccessAllowed`. Avoid for new code because it does not use the context cache and creates duplicate requests. However, existing code using `useAccessReview` **is correctly gated** — do not flag it as missing a permission check.
 
 ### Deprecated: Redux isAdmin
 
@@ -79,6 +79,10 @@ const { kebabDisabled, kebabTooltip } = useKebabAccessAllowed(
 );
 ```
 
+### Route-level feature-flag gating (deprecated but functional)
+
+Routes with `flags: { required: [ADMIN_USER] }` in the extension system are protected at the plugin layer — only users with the dashboard admin flag can reach them. This is a **deprecated-but-functional** mechanism: it works but should migrate to `accessAllowedRouteHoC` with a proper SSAR check. When reviewing existing code that uses this pattern, flag as **Info** (not Critical) since the route is still gated, just not via fine-grained SSAR.
+
 ### Navigation filtering
 
 Extensions declare `accessReview?: AccessReviewResourceAttributes` in their route definition. `NavSection.tsx` uses `useAccessReviewExtensions` to filter inaccessible items.
@@ -95,9 +99,9 @@ const secrets = useSomeHook(ns, { enabled: canList });
 
 ### Key utilities
 
-- `secureRoute(fastify)` — Validates namespace scoping and resource ownership
-- `secureAdminRoute(fastify)` — Same as `secureRoute` but requires dashboard admin
-- `createSelfSubjectAccessReview(fastify, request, attrs)` — Backend SSAR helper
+- `secureRoute(fastify)` — Validates namespace scoping and resource ownership **only for parameterized requests** (i.e., routes with `:namespace` or resource-identifying params). Un-parameterized POST/PUT/PATCH/DELETE routes wrapped in `secureRoute` are only **logged**, not blocked. This is the exact class of backend vulnerability the skill should catch.
+- `secureAdminRoute(fastify)` — Same as `secureRoute` but only for explicit dashboard-admin-owned operations (e.g., `auths/default-auth` management). Not a generic substitute for resource-specific SSAR checks.
+- `createSelfSubjectAccessReview(fastify, request, attrs)` — Backend SSAR helper for fine-grained permission checks on specific verb+resource combinations.
 
 **Location:** `backend/src/utils/route-security.ts`, `backend/src/utils/adminUtils.ts`
 
@@ -107,10 +111,17 @@ Routes validate the target namespace against `dashboardNamespace` and `workbench
 
 ### BFF (Go) patterns
 
-Go BFF services in `packages/*/bff/` must:
+Go BFF services in `packages/*/bff/` use middleware equivalents of the Node.js security utilities:
+
+- `InjectRequestIdentity` — Go equivalent of `secureRoute`; extracts and validates the user's identity from the request token
+- `RequireAccessToService` — Validates the user has access to the specific BFF service
+- `AttachNamespace` — Go equivalent of namespace validation; binds and validates the target namespace parameter
+
+Go BFF services must:
 - Forward the user's auth token on upstream K8s API calls
-- Validate namespace parameters
+- Validate namespace parameters (via `AttachNamespace`)
 - Not assume the calling user is an admin
+- Use `InjectRequestIdentity` on all routes that perform operations on behalf of the user
 
 ## Anti-Patterns to Flag
 

@@ -54,9 +54,9 @@ For each changed file, determine the layer:
 
 For any new page, route, button, kebab action, or data-fetching hook:
 
-- **Frontend pages/routes** — Verify `accessAllowedRouteHoC` or `useAccessAllowed` + conditional rendering is applied. A new page without an SSAR gate is a **Critical** finding.
-- **Buttons/actions** — Verify the action checks permissions (via `useAccessAllowed`, `useKebabAccessAllowed`, or `AccessAllowed` render-prop). A mutation action without a permission check is **Warning**.
-- **Backend routes** — Verify mutating endpoints use `secureRoute` or `secureAdminRoute`. An unprotected mutating endpoint is **Critical**.
+- **Frontend pages/routes** — Verify `accessAllowedRouteHoC`, `useAccessAllowed`, or `useAccessReview` + conditional rendering is applied. Routes with `flags: { required: [ADMIN_USER] }` in the extension system are protected at the plugin layer — flag as **Info** (should migrate to `accessAllowedRouteHoC`) rather than Critical. A new page with no SSAR gate at all is a **Critical** finding.
+- **Buttons/actions** — Verify the action checks permissions (via `useAccessAllowed`, `useAccessReview`, `useKebabAccessAllowed`, or `AccessAllowed` render-prop). A mutation action without a permission check is **Warning**.
+- **Backend routes** — Verify mutating endpoints use `secureRoute` or `secureAdminRoute`. Note: `secureRoute` only validates namespace scoping on parameterized requests; un-parameterized POST/PUT/PATCH/DELETE routes are only logged, not blocked. An unprotected mutating endpoint (especially un-parameterized ones without `secureAdminRoute`) is **Critical**.
 
 ### Check 2: Fail-open patterns
 
