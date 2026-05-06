@@ -199,6 +199,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   autorag-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -216,6 +217,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   automl-reviewers:
     - nickmazzi
     - chrjones-rh
