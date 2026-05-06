@@ -24,8 +24,7 @@ import { deleteNIMResources } from '../k8s/nimK8sUtils';
 
 enum ApiKeyModalState {
   CLOSED = 'CLOSED',
-  ADDING = 'ADDING',
-  REPLACING = 'REPLACING',
+  OPEN = 'OPEN',
 }
 
 const NIM_DESCRIPTION =
@@ -94,7 +93,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         return (
           <Button
             variant="secondary"
-            onClick={() => setApiKeyModalState(ApiKeyModalState.ADDING)}
+            onClick={() => setApiKeyModalState(ApiKeyModalState.OPEN)}
             data-testid="nim-enable-button"
           >
             Add personal API key
@@ -121,7 +120,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
               <Tooltip content="Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it">
                 <Button
                   variant="link"
-                  onClick={() => setApiKeyModalState(ApiKeyModalState.REPLACING)}
+                  onClick={() => setApiKeyModalState(ApiKeyModalState.OPEN)}
                   data-testid="nim-replace-key-button"
                 >
                   Replace key
@@ -176,7 +175,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         <NIMApiKeyModal
           onClose={() => setApiKeyModalState(ApiKeyModalState.CLOSED)}
           namespace={namespace}
-          isReplacing={apiKeyModalState === ApiKeyModalState.REPLACING}
           existingSecretName={existingSecretName}
           refresh={refresh}
           startRevalidation={startRevalidation}

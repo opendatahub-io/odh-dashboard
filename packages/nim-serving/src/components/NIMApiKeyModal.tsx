@@ -25,7 +25,6 @@ import { createNIMResources, updateNIMSecretAndRevalidate } from '../k8s/nimK8sU
 type NIMApiKeyModalProps = {
   onClose: () => void;
   namespace: string;
-  isReplacing: boolean;
   existingSecretName?: string;
   refresh: () => Promise<unknown>;
   startRevalidation: () => void;
@@ -35,7 +34,6 @@ type NIMApiKeyModalProps = {
 const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   onClose,
   namespace,
-  isReplacing,
   existingSecretName,
   refresh,
   startRevalidation,
@@ -56,7 +54,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
       accountStatus !== NIMAccountStatus.NOT_FOUND && accountStatus !== NIMAccountStatus.LOADING;
 
     try {
-      if (isReplacing || accountExists) {
+      if (accountExists) {
         if (!existingSecretName) {
           throw new Error('Cannot replace API key: existing secret is missing.');
         }
@@ -72,15 +70,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     } finally {
       setIsCreating(false);
     }
-  }, [
-    apiKey,
-    isReplacing,
-    accountStatus,
-    existingSecretName,
-    namespace,
-    startRevalidation,
-    refresh,
-  ]);
+  }, [apiKey, accountStatus, existingSecretName, namespace, startRevalidation, refresh]);
 
   const handleClose = React.useCallback(() => {
     onClose();
