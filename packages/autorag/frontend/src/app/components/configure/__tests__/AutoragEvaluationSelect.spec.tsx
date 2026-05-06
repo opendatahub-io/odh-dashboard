@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -78,6 +78,30 @@ const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
 const configureSchema = createConfigureSchema();
+
+/** Matches `EVAL_JSON_UPLOAD_MAX_BYTES` in AutoragEvaluationSelect. */
+const EVAL_JSON_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+
+function createFileList(fileArr: File[]): FileList {
+  return Object.assign(fileArr, {
+    length: fileArr.length,
+    item(index: number): File | null {
+      return fileArr[index] ?? null;
+    },
+  }) as unknown as FileList;
+}
+
+/** `FileSelector` wraps content in `.pf-v6-c-multiple-file-upload`; react-dropzone lives on `.pf-v6-c-file-upload`. */
+function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]): void {
+  const zone = container.querySelector('.pf-v6-c-file-upload');
+  expect(zone).toBeTruthy();
+  fireEvent.drop(zone as HTMLElement, {
+    dataTransfer: {
+      files: createFileList(files),
+      types: ['Files'],
+    },
+  });
+}
 
 type FormWrapperProps = {
   children: React.ReactNode;
@@ -224,6 +248,74 @@ describe('AutoragEvaluationSelect', () => {
     await waitFor(() => {
       expect(formValues).toMatchObject({
         test_data_key: 'test.json', // eslint-disable-line camelcase
+      });
+    });
+  });
+
+  describe('evaluation file upload validation', () => {
+    it('should show a notification when a disallowed file type is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [badFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Invalid file type',
+          'Evaluation dataset must be a JSON file (.json).',
+        );
+      });
+    });
+
+    it('should show a notification when an oversized file is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const largeFile = new File(['x'], 'big.json', { type: 'application/json' });
+      Object.defineProperty(largeFile, 'size', { value: EVAL_JSON_UPLOAD_MAX_BYTES + 1 });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [largeFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File too large',
+          'File size must be 32 MiB or less.',
+        );
+      });
+    });
+
+    it('should not upload a disallowed file type from the file input and should notify', async () => {
+      const file = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      mockUploadMutateAsync.mockClear();
+      const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(uploadInput, { target: { files: [file] } });
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Invalid file type',
+          'Evaluation dataset must be a JSON file (.json).',
+        );
+      });
+    });
+
+    it('should not upload an oversized file from the file input and should notify', async () => {
+      const file = new File(['x'], 'big.json', { type: 'application/json' });
+      Object.defineProperty(file, 'size', { value: EVAL_JSON_UPLOAD_MAX_BYTES + 1 });
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+      mockUploadMutateAsync.mockClear();
+      const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+      fireEvent.change(uploadInput, { target: { files: [file] } });
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File too large',
+          'File size must be 32 MiB or less.',
+        );
       });
     });
   });

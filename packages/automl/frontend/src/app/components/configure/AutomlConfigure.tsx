@@ -43,6 +43,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
+import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -382,6 +383,33 @@ function AutomlConfigure({
     [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
   );
 
+  const handleTrainingDataDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      if (fileRejections.length === 0) {
+        return;
+      }
+      const { file, errors } = fileRejections[0];
+      const codes = new Set(errors.map((e) => e.code));
+      if (codes.has('file-too-large')) {
+        notification.error('File too large', 'File size must be 32 MiB or less.');
+        return;
+      }
+      if (codes.has('too-many-files')) {
+        notification.error('Too many files', 'Only one file can be uploaded at a time.');
+        return;
+      }
+      if (codes.has('file-invalid-type')) {
+        notification.error('Invalid file type', 'File type must be CSV.');
+        return;
+      }
+      notification.error(
+        'File not accepted',
+        errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
+      );
+    },
+    [notification],
+  );
+
   const openTrainingDataReplaceFileDialog = useCallback(() => {
     setIsTrainingDataUploadDropdownOpen(false);
     trainingDataNativeInputRef.current?.click();
@@ -609,6 +637,7 @@ function AutomlConfigure({
                                   maxFiles: 1,
                                   maxSize: TRAINING_DATA_UPLOAD_MAX_BYTES,
                                   multiple: false,
+                                  onDropRejected: handleTrainingDataDropRejected,
                                 }}
                               >
                                 <MultipleFileUploadMain

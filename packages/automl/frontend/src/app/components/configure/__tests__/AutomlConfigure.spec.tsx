@@ -235,6 +235,36 @@ const renderWithInitialValues = (
   );
 };
 
+/** Matches `TRAINING_DATA_UPLOAD_MAX_BYTES` in AutomlConfigure (32 MiB). */
+const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+
+/** Minimal FileList stand-in for react-dropzone / file-selector in jsdom (no global DataTransfer). */
+function createFileList(fileArr: File[]): FileList {
+  return Object.assign(fileArr, {
+    length: fileArr.length,
+    item(index: number): File | null {
+      return fileArr[index] ?? null;
+    },
+  }) as unknown as FileList;
+}
+
+/**
+ * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
+ * Requires training-data upload mode to be open so `.pf-v6-c-multiple-file-upload` is mounted.
+ *
+ * Uses `dataTransfer.files` only (omit `items`) so file-selector reads files without needing `DataTransfer`.
+ */
+function dropFilesOnTrainingDataUploadZone(files: File[]): void {
+  const zone = document.querySelector('.pf-v6-c-multiple-file-upload');
+  expect(zone).not.toBeNull();
+  fireEvent.drop(zone!, {
+    dataTransfer: {
+      files: createFileList(files),
+      types: ['Files'],
+    },
+  });
+}
+
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -356,6 +386,68 @@ describe('AutomlConfigure', () => {
         'Invalid file type',
         'File type must be CSV.',
       );
+    });
+
+    describe('MultipleFileUpload drag-and-drop', () => {
+      it('should show a notification when a disallowed file type is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Invalid file type',
+            'File type must be CSV.',
+          );
+        });
+      });
+
+      it('should show a notification when an oversized file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
+        Object.defineProperty(largeFile, 'size', { value: TRAINING_DATA_UPLOAD_MAX_BYTES + 1 });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([largeFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File too large',
+            'File size must be 32 MiB or less.',
+          );
+        });
+      });
+
+      it('should upload an allowed file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({
+              namespace: 'test-namespace',
+              secretName: 'Test Secret 1',
+              bucket: 'test-bucket-1',
+              key: 'training.csv',
+              file: goodFile,
+            }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
     });
 
     it('should upload an allowed file from the native file input', async () => {

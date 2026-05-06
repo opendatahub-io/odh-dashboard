@@ -1,6 +1,7 @@
 import { Flex } from '@patternfly/react-core';
 import { DesktopIcon, StorageDomainIcon } from '@patternfly/react-icons';
-import React, { useState } from 'react';
+import type { FileRejection } from 'react-dropzone';
+import React, { useCallback, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
 import FileSelector from '~/app/components/common/FileSelector';
@@ -9,6 +10,18 @@ import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
+
+/** Matches BFF upload limit and knowledge-document dropzone (`32 MiB`). */
+const EVAL_JSON_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+
+function isAllowedEvaluationJsonFile(file: File): boolean {
+  const dot = file.name.lastIndexOf('.');
+  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
+  if (ext === '.json') {
+    return true;
+  }
+  return file.type === 'application/json' || file.type === 'text/json';
+}
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
@@ -29,6 +42,33 @@ function AutoragEvaluationSelect(): React.JSX.Element {
   const { data: secrets } = useSecretsQuery(namespace ?? '', 'storage');
   const uploadToStorageMutation = useUploadToStorageMutation(namespace ?? '', testDataSecretName);
 
+  const handleEvaluationDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      if (fileRejections.length === 0) {
+        return;
+      }
+      const { file, errors } = fileRejections[0];
+      const codes = new Set(errors.map((e) => e.code));
+      if (codes.has('file-too-large')) {
+        notification.error('File too large', 'File size must be 32 MiB or less.');
+        return;
+      }
+      if (codes.has('too-many-files')) {
+        notification.error('Too many files', 'Only one file can be uploaded at a time.');
+        return;
+      }
+      if (codes.has('file-invalid-type')) {
+        notification.error('Invalid file type', 'Evaluation dataset must be a JSON file (.json).');
+        return;
+      }
+      notification.error(
+        'File not accepted',
+        errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
+      );
+    },
+    [notification],
+  );
+
   return (
     <>
       <FileSelector
@@ -36,6 +76,20 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         selected={field.value}
         isDisabled={isSubmitting}
         onUpload={async (file, setProgress, setStatus) => {
+          if (file.size > EVAL_JSON_UPLOAD_MAX_BYTES) {
+            notification.error('File too large', 'File size must be 32 MiB or less.');
+            setStatus('danger');
+            return;
+          }
+          if (!isAllowedEvaluationJsonFile(file)) {
+            notification.error(
+              'Invalid file type',
+              'Evaluation dataset must be a JSON file (.json).',
+            );
+            setStatus('danger');
+            return;
+          }
+
           let response;
           try {
             response = await uploadToStorageMutation.mutateAsync({ file, onProgress: setProgress });
@@ -58,7 +112,13 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
-          dropzoneProps: { accept: { 'application/json': ['.json'] } },
+          dropzoneProps: {
+            accept: { 'application/json': ['.json'] },
+            maxFiles: 1,
+            maxSize: EVAL_JSON_UPLOAD_MAX_BYTES,
+            multiple: false,
+            onDropRejected: handleEvaluationDropRejected,
+          },
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon
           browseButtonText: (

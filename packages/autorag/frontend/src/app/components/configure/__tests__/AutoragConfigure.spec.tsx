@@ -283,6 +283,36 @@ const renderWithInitialValues = (
   );
 };
 
+/** Matches `INPUT_DATA_UPLOAD_MAX_BYTES` in AutoragConfigure (32 MiB). */
+const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
+
+/** Minimal FileList stand-in for react-dropzone / file-selector in jsdom (no global DataTransfer). */
+function createFileList(fileArr: File[]): FileList {
+  return Object.assign(fileArr, {
+    length: fileArr.length,
+    item(index: number): File | null {
+      return fileArr[index] ?? null;
+    },
+  }) as unknown as FileList;
+}
+
+/**
+ * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
+ * Requires upload mode to be open so `.pf-v6-c-multiple-file-upload` is mounted.
+ *
+ * Uses `dataTransfer.files` only (omit `items`) so file-selector reads files without needing `DataTransfer`.
+ */
+function dropFilesOnKnowledgeUploadZone(files: File[]): void {
+  const zone = document.querySelector('.pf-v6-c-multiple-file-upload');
+  expect(zone).not.toBeNull();
+  fireEvent.drop(zone!, {
+    dataTransfer: {
+      files: createFileList(files),
+      types: ['Files'],
+    },
+  });
+}
+
 describe('AutoragConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -438,6 +468,68 @@ describe('AutoragConfigure', () => {
         'Invalid file type',
         'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
       );
+    });
+
+    describe('MultipleFileUpload drag-and-drop', () => {
+      it('should show a notification when a disallowed file type is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Invalid file type',
+            'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+          );
+        });
+      });
+
+      it('should show a notification when an oversized file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
+        Object.defineProperty(largeFile, 'size', { value: INPUT_DATA_UPLOAD_MAX_BYTES + 1 });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([largeFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File too large',
+            'File size must be 32 MiB or less.',
+          );
+        });
+      });
+
+      it('should upload an allowed file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({
+              namespace: 'test-namespace',
+              secretName: 'Test Secret 1',
+              bucket: 'test-bucket-1',
+              key: 'notes.txt',
+              file: goodFile,
+            }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
     });
 
     it('should upload an allowed file from the native file input', async () => {
