@@ -14,6 +14,10 @@ import {
   autoragResultsPage,
 } from '../../../pages/autorag';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
+import {
+  allowLlamaStackAccess,
+  removeLlamaStackAccess,
+} from '../../../utils/oc_commands/llamaStackNetworkPolicy';
 
 const uuid = generateTestUUID();
 
@@ -37,6 +41,7 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
       .then(() => setAutoragEnabled(true))
       .then(() => {
         provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+        allowLlamaStackAccess(projectName);
 
         const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
         if (!llamaStackUrl) {
@@ -56,6 +61,7 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
     if (!autoragWasEnabled) {
       setAutoragEnabled(false);
     }
+    removeLlamaStackAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
