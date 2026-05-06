@@ -7,7 +7,7 @@ import {
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { listNIMAccounts } from '../nimAccounts';
+import { listNIMAccounts } from '../k8s';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
@@ -18,13 +18,13 @@ import {
   isAccountReady,
   isApiKeyValidationFailed,
   getAccountErrors,
-} from '../nimK8sUtils';
+} from '../utils';
 import {
   NIM_ACCOUNT_NAME,
   NIM_API_KEY_DATA_KEY,
   NGC_API_KEY_DATA_KEY,
   NIM_SECRET_GENERATE_NAME,
-} from '../../nimConstants';
+} from '../constants';
 
 jest.mock('@openshift/dynamic-plugin-sdk-utils', () => ({
   ...jest.requireActual('@openshift/dynamic-plugin-sdk-utils'),
@@ -39,7 +39,7 @@ jest.mock('@odh-dashboard/internal/api/k8s/secrets', () => ({
   replaceSecret: jest.fn(),
 }));
 
-jest.mock('../nimAccounts', () => ({
+jest.mock('../k8s', () => ({
   NIMAccountModel: {
     apiVersion: 'v1',
     apiGroup: 'nim.opendatahub.io',

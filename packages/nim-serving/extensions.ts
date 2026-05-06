@@ -20,7 +20,7 @@ const extensions: (AreaExtension | ProjectDetailsSettingsCardExtension)[] = [
     properties: {
       id: 'nim-settings',
       title: 'NVIDIA NIM',
-      component: () => import('./src/components/NIMSettingsCard'),
+      component: () => import('./src/pages/projectSettings/NIMSettingsCard'),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],

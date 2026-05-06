@@ -12,7 +12,7 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
-    "./k8s": "./src/k8s/nimAccounts.ts"
+    "./k8s": "./src/api/accounts/k8s.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

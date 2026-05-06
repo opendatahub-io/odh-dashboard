@@ -1,9 +1,9 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
-import { listNIMAccounts } from '../../k8s/nimAccounts';
-import useNIMAccountStatus, { deriveStatus, NIMAccountStatus } from '../useNIMAccountStatus';
+import { listNIMAccounts } from '../k8s';
+import useNIMAccountStatus, { deriveStatus, NIMAccountStatus } from '../hooks';
 
-jest.mock('../../k8s/nimAccounts', () => ({
+jest.mock('../k8s', () => ({
   listNIMAccounts: jest.fn(),
 }));
 

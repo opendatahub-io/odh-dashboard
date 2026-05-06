@@ -8,14 +8,14 @@ import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/interna
 import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
-import { NIMAccountModel, listNIMAccounts } from './nimAccounts';
+import { NIMAccountModel, listNIMAccounts } from './k8s';
 import {
   NIM_SECRET_GENERATE_NAME,
   NIM_ACCOUNT_NAME,
   NIM_API_KEY_DATA_KEY,
   NGC_API_KEY_DATA_KEY,
   NIM_FORCE_VALIDATION_ANNOTATION,
-} from '../nimConstants';
+} from './constants';
 
 export const assembleNIMSecret = (namespace: string, apiKey: string): SecretKind => ({
   apiVersion: 'v1',
