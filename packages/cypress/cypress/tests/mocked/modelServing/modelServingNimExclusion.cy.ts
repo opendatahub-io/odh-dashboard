@@ -107,7 +107,7 @@ describe('NIM InferenceService Exclusion from KServe', () => {
     modelServingGlobal.visit('test-project');
 
     modelServingSection.findDeploymentsTable().should('exist');
-    modelServingSection.getDeploymentRow('KServe Model').should('exist');
-    modelServingSection.findDeploymentsTable().find('tr').should('have.length', 2); // header + 1 data row (KServe only)
+    modelServingSection.getDeploymentRow('KServe Model').find().should('exist');
+    cy.findByTestId('deployments-table').find('tbody tr').should('have.length', 1);
   });
 });
