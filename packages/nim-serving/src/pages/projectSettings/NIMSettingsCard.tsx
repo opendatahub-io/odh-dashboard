@@ -53,7 +53,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     setDeleteError(error);
     setIsDeleting(false);
   }, []);
-  React.useEffect(() => () => stopPollingDeleteStatus(), [stopPollingDeleteStatus]);
+  React.useEffect(
+    () => () => {
+      if (deleteStatusIntervalRef.current !== undefined) {
+        clearInterval(deleteStatusIntervalRef.current);
+      }
+    },
+    [],
+  );
 
   const handleRemoveConfirm = React.useCallback(async () => {
     setIsDeleting(true);

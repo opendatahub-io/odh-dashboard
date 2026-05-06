@@ -10,7 +10,7 @@ import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
 import {
-  NIM_SECRET_GENERATE_NAME,
+  NIM_SECRET_NAME,
   NIM_ACCOUNT_NAME,
   NIM_API_KEY_DATA_KEY,
   NGC_API_KEY_DATA_KEY,
@@ -39,8 +39,7 @@ export const assembleNIMSecret = (namespace: string, apiKey: string): SecretKind
   apiVersion: 'v1',
   kind: 'Secret',
   metadata: {
-    name: '',
-    generateName: NIM_SECRET_GENERATE_NAME,
+    name: NIM_SECRET_NAME,
     namespace,
     labels: {
       'opendatahub.io/managed': 'true',

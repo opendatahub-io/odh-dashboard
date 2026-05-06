@@ -26,7 +26,7 @@ import {
   NIM_ACCOUNT_NAME,
   NIM_API_KEY_DATA_KEY,
   NGC_API_KEY_DATA_KEY,
-  NIM_SECRET_GENERATE_NAME,
+  NIM_SECRET_NAME,
   NIM_FORCE_VALIDATION_ANNOTATION,
 } from '../constants';
 
@@ -49,10 +49,10 @@ const mockPatchSecretOwnerReference = jest.mocked(patchSecretOwnerReference);
 const mockFetchExistingSecret = jest.mocked(fetchExistingSecret);
 const mockReplaceNIMSecret = jest.mocked(replaceNIMSecret);
 describe('assembleNIMSecret', () => {
-  it('should build a secret with generateName and the API key', () => {
+  it('should build a secret with a static name and the API key', () => {
     const secret = assembleNIMSecret('test-ns', 'nvapi-test-key');
 
-    expect(secret.metadata.generateName).toBe(NIM_SECRET_GENERATE_NAME);
+    expect(secret.metadata.name).toBe(NIM_SECRET_NAME);
     expect(secret.metadata.namespace).toBe('test-ns');
     expect(secret.type).toBe('Opaque');
     expect(secret.stringData?.[NIM_API_KEY_DATA_KEY]).toBe('nvapi-test-key');
@@ -63,11 +63,11 @@ describe('assembleNIMSecret', () => {
 
 describe('assembleNIMAccount', () => {
   it('should build an account referencing the given secret name', () => {
-    const account = assembleNIMAccount('test-ns', 'nvidia-nim-secrets-abc12');
+    const account = assembleNIMAccount('test-ns', NIM_SECRET_NAME);
 
     expect(account.metadata.name).toBe(NIM_ACCOUNT_NAME);
     expect(account.metadata.namespace).toBe('test-ns');
-    expect(account.spec.apiKeySecret.name).toBe('nvidia-nim-secrets-abc12');
+    expect(account.spec.apiKeySecret.name).toBe(NIM_SECRET_NAME);
     expect(account.metadata.labels).toEqual({ 'opendatahub.io/managed': 'true' });
   });
 });
@@ -100,13 +100,13 @@ describe('createNIMResources', () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
-      metadata: { name: 'nvidia-nim-secrets-xyz99', namespace: 'test-ns' },
+      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns' },
       type: 'Opaque',
     };
     const createdAccount = mockNimAccount({
       namespace: 'test-ns',
       uid: 'account-uid-123',
-      apiKeySecretName: 'nvidia-nim-secrets-xyz99',
+      apiKeySecretName: NIM_SECRET_NAME,
     });
 
     mockCreateNIMSecret.mockResolvedValue(createdSecret);
@@ -124,13 +124,13 @@ describe('createNIMResources', () => {
     expect(mockCreateNIMAccount).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        spec: { apiKeySecret: { name: 'nvidia-nim-secrets-xyz99' } },
+        spec: { apiKeySecret: { name: NIM_SECRET_NAME } },
       }),
     );
 
     expect(mockPatchSecretOwnerReference).toHaveBeenCalledWith(
       'test-ns',
-      'nvidia-nim-secrets-xyz99',
+      NIM_SECRET_NAME,
       createdAccount,
     );
     expect(result).toBe(createdAccount);
@@ -151,7 +151,7 @@ describe('createNIMResources', () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
-      metadata: { name: 'nvidia-nim-secrets-abc', namespace: 'test-ns' },
+      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns' },
       type: 'Opaque',
     };
     mockCreateNIMSecret.mockResolvedValue(createdSecret);
@@ -162,20 +162,20 @@ describe('createNIMResources', () => {
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
       'account creation failed',
     );
-    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-secrets-abc');
+    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
   });
 
   it('should clean up both account and secret if ownerReference patch fails', async () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
-      metadata: { name: 'nvidia-nim-secrets-def', namespace: 'test-ns' },
+      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns' },
       type: 'Opaque',
     };
     const createdAccount = mockNimAccount({
       namespace: 'test-ns',
       uid: 'account-uid-456',
-      apiKeySecretName: 'nvidia-nim-secrets-def',
+      apiKeySecretName: NIM_SECRET_NAME,
     });
 
     mockCreateNIMSecret.mockResolvedValue(createdSecret);
@@ -184,7 +184,7 @@ describe('createNIMResources', () => {
 
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow('patch failed');
     expect(mockDeleteNIMAccount).toHaveBeenCalledWith('test-ns');
-    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-secrets-def');
+    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
   });
 });
 

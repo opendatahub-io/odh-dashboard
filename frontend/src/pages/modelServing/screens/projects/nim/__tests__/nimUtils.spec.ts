@@ -1,7 +1,6 @@
-import { listNIMAccounts } from '@odh-dashboard/nim-serving/k8s';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
-import { deletePvc, deleteSecret, listServingRuntimes, getPvc } from '#~/api';
+import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
 import {
   checkPVCUsage,
   fetchNIMAccountTemplateName,
@@ -17,11 +16,9 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
 jest.mock('#~/api', () => ({
   deletePvc: jest.fn(),
   deleteSecret: jest.fn(),
+  listNIMAccounts: jest.fn(),
   listServingRuntimes: jest.fn(),
   getPvc: jest.fn(),
-}));
-jest.mock('@odh-dashboard/nim-serving/k8s', () => ({
-  listNIMAccounts: jest.fn(),
 }));
 describe('getNIMResourcesToDelete', () => {
   const projectName = 'test-project';

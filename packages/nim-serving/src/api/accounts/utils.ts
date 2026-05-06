@@ -13,7 +13,7 @@ import {
   replaceNIMSecret,
 } from './k8s';
 
-import { VALIDATION_TIMEOUT_MS } from './constants';
+import { NIM_SECRET_NAME, VALIDATION_TIMEOUT_MS } from './constants';
 
 export { deleteNIMAccount as deleteNIMResources } from './k8s';
 
@@ -62,7 +62,7 @@ export const getAccountAgeMs = (account: NIMAccountKind): number => {
   if (!timestamp) {
     return 0;
   }
-  return Date.now() - new Date(timestamp).getTime();
+  return Date.now() - new Date(String(timestamp)).getTime();
 };
 
 export const getAccountStatusTransitionTime = (
@@ -110,27 +110,26 @@ export const createNIMResources = async (
   apiKey: string,
 ): Promise<NIMAccountKind> => {
   const secretData = assembleNIMSecret(namespace, apiKey);
-  const accountData = assembleNIMAccount(namespace, '');
+  const accountData = assembleNIMAccount(namespace, NIM_SECRET_NAME);
 
   await Promise.all([createNIMSecret(secretData, true), createNIMAccount(accountData, true)]);
 
-  const secret = await createNIMSecret(secretData);
-  const secretName = secret.metadata.name;
+  await createNIMSecret(secretData);
 
   let account: NIMAccountKind;
   try {
-    account = await createNIMAccount(assembleNIMAccount(namespace, secretName));
+    account = await createNIMAccount(accountData);
   } catch (e) {
-    await deleteSecret(namespace, secretName);
+    await deleteSecret(namespace, NIM_SECRET_NAME);
     throw e;
   }
 
   try {
-    await patchSecretOwnerReference(namespace, secretName, account);
+    await patchSecretOwnerReference(namespace, NIM_SECRET_NAME, account);
   } catch (e) {
     await allSettledPromises<unknown>([
       deleteNIMAccount(namespace),
-      deleteSecret(namespace, secretName),
+      deleteSecret(namespace, NIM_SECRET_NAME),
     ]);
     throw e;
   }

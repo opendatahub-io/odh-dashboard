@@ -11,8 +11,7 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts",
-    "./k8s": "./src/api/accounts/k8s.ts"
+    "./extensions": "./extensions.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
