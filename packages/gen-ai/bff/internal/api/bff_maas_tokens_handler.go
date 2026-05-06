@@ -1,7 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -10,8 +12,8 @@ import (
 )
 
 // BFFMaaSIssueTokenHandler handles POST /bff/maas/tokens
-// This endpoint uses the BFF client to call the MaaS BFF for token issuance,
-// enabling inter-BFF communication for playground session tokens.
+// Calls the MaaS BFF POST /api-keys endpoint to create an ephemeral OpenAI-compatible
+// API key for use in gen-ai playground sessions.
 func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -40,59 +42,37 @@ func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request,
 		}
 	}
 
-	// Map Gen-AI token request to MaaS BFF token contract
-	// Gen-AI uses MaaSTokenRequest (name, expiresIn) while MaaS BFF expects TokenRequest (expiration)
-	maasTokenReq := models.MaaSBFFTokenRequest{
-		Expiration: tokenRequest.ExpiresIn,
+	// Build the MaaS BFF API key request.
+	// Auto-generate a name if the caller did not provide one.
+	name := tokenRequest.Name
+	if name == "" {
+		name = fmt.Sprintf("gen-ai-%d", time.Now().Unix())
 	}
 
-	// Call MaaS BFF to issue token
-	// MaaS BFF returns response wrapped in envelope: {"data": {...}}
-	var bffResponse models.MaaSBFFTokenResponse
-	err := maasClient.Call(ctx, "POST", "/tokens", maasTokenReq, &bffResponse)
-	if err != nil {
+	apiKeyReq := models.MaaSBFFAPIKeyRequest{
+		Name:         name,
+		Description:  tokenRequest.Description,
+		ExpiresIn:    tokenRequest.ExpiresIn,
+		Subscription: tokenRequest.Subscription,
+		Ephemeral:    true, // always ephemeral for gen-ai playground keys
+	}
+
+	// MaaS BFF expects requests in a mod-arch envelope: {"data": {...}}
+	reqEnvelope := Envelope[models.MaaSBFFAPIKeyRequest, None]{Data: apiKeyReq}
+
+	var bffResponse models.MaaSBFFAPIKeyResponse
+	if err := maasClient.Call(ctx, "POST", "/api-keys", reqEnvelope, &bffResponse); err != nil {
 		app.handleBFFClientError(w, r, err)
 		return
 	}
 
-	// Re-wrap the MaaS BFF response in our envelope format
-	tokenResponseEnvelope := Envelope[models.MaaSBFFTokenResponseData, None]{
+	responseEnvelope := Envelope[models.MaaSBFFAPIKeyCreateData, None]{
 		Data: bffResponse.Data,
 	}
 
-	err = app.WriteJSON(w, http.StatusCreated, tokenResponseEnvelope, nil)
-	if err != nil {
+	if err := app.WriteJSON(w, http.StatusCreated, responseEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
-}
-
-// BFFMaaSRevokeAllTokensHandler handles DELETE /bff/maas/tokens
-// This endpoint uses the BFF client to call the MaaS BFF to revoke all tokens.
-func (app *App) BFFMaaSRevokeAllTokensHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-
-	// Get MaaS BFF client from context (set by AttachBFFClient middleware)
-	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
-	if maasClient == nil {
-		app.errorResponse(w, r, &integrations.HTTPError{
-			StatusCode: http.StatusServiceUnavailable,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "service_unavailable",
-				Message: "MaaS BFF is not available",
-			},
-		})
-		return
-	}
-
-	// Call MaaS BFF to revoke all tokens
-	err := maasClient.Call(ctx, "DELETE", "/tokens", nil, nil)
-	if err != nil {
-		app.handleBFFClientError(w, r, err)
-		return
-	}
-
-	// Return 204 No Content for successful deletion
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleBFFClientError maps BFF client errors to appropriate HTTP responses
