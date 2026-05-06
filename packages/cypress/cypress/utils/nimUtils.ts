@@ -23,11 +23,11 @@ import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
 import { mockOdhApplication } from '@odh-dashboard/internal/__mocks__/mockOdhApplication';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
+import { NIMAccountModel } from '@odh-dashboard/nim-serving/k8s';
 import {
   ConfigMapModel,
   HardwareProfileModel,
   InferenceServiceModel,
-  NIMAccountModel,
   ProjectModel,
   PVCModel,
   SecretModel,

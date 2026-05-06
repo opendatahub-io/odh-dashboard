@@ -1,7 +1,7 @@
+import { listNIMAccounts } from '@odh-dashboard/nim-serving/k8s';
 import { ServingRuntimeKind } from '#~/k8sTypes';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 import { deletePvc, deleteSecret, listServingRuntimes, getPvc } from '#~/api';
-import { listNIMAccounts } from '@odh-dashboard/nim-serving/k8s';
 import {
   checkPVCUsage,
   fetchNIMAccountTemplateName,

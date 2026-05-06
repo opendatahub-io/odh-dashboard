@@ -25,9 +25,9 @@ import { ConnectionTypeFieldType } from '@odh-dashboard/internal/concepts/connec
 import { ServingRuntimePlatform } from '@odh-dashboard/internal/types';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockServiceAccountK8sResource } from '@odh-dashboard/internal/__mocks__/mockServiceAccountK8sResource';
+import { NIMAccountModel } from '@odh-dashboard/nim-serving/k8s';
 import {
   HardwareProfileModel,
-  NIMAccountModel,
   ProjectModel,
   RoleBindingModel,
   RoleModel,

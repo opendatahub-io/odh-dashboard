@@ -27,7 +27,7 @@ type NIMApiKeyModalProps = {
   namespace: string;
   isReplacing: boolean;
   existingSecretName?: string;
-  refresh: () => void;
+  refresh: () => Promise<unknown>;
   startRevalidation: () => void;
   accountStatus: NIMAccountStatus;
 };
@@ -63,7 +63,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
         await createNIMResources(namespace, trimmedKey);
       }
       setSubmitted(true);
-      refresh();
+      await refresh();
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : 'Failed to create NIM resources.');
     } finally {
@@ -73,7 +73,8 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 
   const handleClose = React.useCallback(() => {
     onClose();
-    refresh();
+    // void operator: intentionally not awaiting — we're closing the modal and don't need the result
+    void refresh();
   }, [onClose, refresh]);
 
   const isValidating = submitted && accountStatus === NIMAccountStatus.PENDING;

@@ -28,11 +28,11 @@ import {
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/internal/k8sTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { deleteProjectModal, editProjectModal, projectDetails } from '../../../pages/projects';
+import { NIMAccountModel } from '@odh-dashboard/nim-serving/k8s';
 import {
   DataSciencePipelineApplicationModel,
   ImageStreamModel,
   InferenceServiceModel,
-  NIMAccountModel,
   NotebookModel,
   PodModel,
   ProjectModel,

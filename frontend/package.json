@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "@module-federation/runtime": "^0.15.0",
+    "@odh-dashboard/nim-serving": "*",
     "@monaco-editor/react": "^4.6.0",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@openshift/dynamic-plugin-sdk-utils": "^5.0.1",
