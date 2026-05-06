@@ -303,9 +303,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			frontendErr, responseStatus := app.mapLlamaStackClientErrorToFrontendError(tc.lsErr, tc.statusCode)
+			frontendErr := app.mapLlamaStackClientErrorToFrontendError(tc.lsErr, tc.statusCode)
 
-			assert.Equal(t, tc.expectedStatusCode, responseStatus)
+			assert.Equal(t, tc.expectedStatusCode, frontendErr.StatusCode)
 			assert.NotNil(t, frontendErr.Error)
 			assert.Equal(t, tc.expectedComponent, frontendErr.Error.Component)
 			assert.Equal(t, tc.expectedCode, frontendErr.Error.Code)
