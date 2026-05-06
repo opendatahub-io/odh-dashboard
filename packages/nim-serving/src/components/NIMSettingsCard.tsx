@@ -22,11 +22,6 @@ import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../hooks/useNIMAccountStatus';
 import { deleteNIMResources } from '../k8s/nimK8sUtils';
 
-enum ApiKeyModalState {
-  CLOSED = 'CLOSED',
-  OPEN = 'OPEN',
-}
-
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
   'for secure, reliable deployment of high-performance AI model inferencing across the cloud, ' +
@@ -42,13 +37,12 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, nimAccount, errorMessages, refresh, startRevalidation } =
     useNIMAccountStatus(namespace);
 
-  const [apiKeyModalState, setApiKeyModalState] = React.useState(ApiKeyModalState.CLOSED);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
 
   const existingSecretName = nimAccount?.spec.apiKeySecret.name;
-  const isApiKeyModalOpen = apiKeyModalState !== ApiKeyModalState.CLOSED;
 
   const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
   const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
@@ -93,7 +87,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         return (
           <Button
             variant="secondary"
-            onClick={() => setApiKeyModalState(ApiKeyModalState.OPEN)}
+            onClick={() => setIsApiKeyModalOpen(true)}
             data-testid="nim-enable-button"
           >
             Add personal API key
@@ -120,7 +114,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
               <Tooltip content="Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it">
                 <Button
                   variant="link"
-                  onClick={() => setApiKeyModalState(ApiKeyModalState.OPEN)}
+                  onClick={() => setIsApiKeyModalOpen(true)}
                   data-testid="nim-replace-key-button"
                 >
                   Replace key
@@ -173,7 +167,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
 
       {isApiKeyModalOpen && (
         <NIMApiKeyModal
-          onClose={() => setApiKeyModalState(ApiKeyModalState.CLOSED)}
+          onClose={() => setIsApiKeyModalOpen(false)}
           namespace={namespace}
           existingSecretName={existingSecretName}
           refresh={refresh}
