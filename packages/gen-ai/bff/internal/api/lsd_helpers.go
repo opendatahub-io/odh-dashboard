@@ -47,46 +47,43 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-func getComponentFromErrorCode(errorCode string) string {
-	switch errorCode {
-	case "tool_not_found", "tool_error", "mcp_error":
-		return "mcp"
-	case "resource_not_found", "vector_store_not_found":
-		return "rag"
-	case "content_policy_violation", "content_blocked", "guardrail_violation":
-		return "guardrails"
-	case "invalid_model", "model_not_found", "model_unavailable", "model_error", "invalid_parameter", "invalid_request_error":
-		return "model"
-	case "INVALID_REQUEST", "UNAUTHORIZED", "NOT_FOUND", "CONNECTION_FAILED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR", "TIMEOUT":
-		return "bff"
-	default:
-		return "llama_stack"
-	}
-}
-
-func isRetriableError(errorCode string, statusCode int) bool {
-	switch errorCode {
-	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
-		return true
-	case "timeout", "request_timeout", "gateway_timeout":
-		return true
-	case "server_error", "internal_error", "service_unavailable":
-		return true
-	case "tool_not_found", "tool_error", "mcp_error":
-		return true
-	default:
-		return statusCode >= 500
-	}
-}
-
 func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) (*integrations.FrontendErrorResponse, int) {
 	errorCode := lsErr.ErrorCode
 	if errorCode == "" {
 		errorCode = lsErr.Code
 	}
 
-	component := getComponentFromErrorCode(errorCode)
-	retriable := isRetriableError(errorCode, statusCode)
+	// Determine component from error code
+	var component string
+	switch errorCode {
+	case "tool_not_found", "tool_error", "mcp_error":
+		component = "mcp"
+	case "resource_not_found", "vector_store_not_found":
+		component = "rag"
+	case "content_policy_violation", "content_blocked", "guardrail_violation":
+		component = "guardrails"
+	case "invalid_model", "model_not_found", "model_unavailable", "model_error", "invalid_parameter", "invalid_request_error":
+		component = "model"
+	case "INVALID_REQUEST", "UNAUTHORIZED", "NOT_FOUND", "CONNECTION_FAILED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR", "TIMEOUT":
+		component = "bff"
+	default:
+		component = "llama_stack"
+	}
+
+	// Determine if error is retriable
+	var retriable bool
+	switch errorCode {
+	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
+		retriable = true
+	case "timeout", "request_timeout", "gateway_timeout":
+		retriable = true
+	case "server_error", "internal_error", "service_unavailable":
+		retriable = true
+	case "tool_not_found", "tool_error", "mcp_error":
+		retriable = true
+	default:
+		retriable = statusCode >= 500
+	}
 
 	toolName := ""
 	if component == "mcp" && lsErr.Param != "" {
