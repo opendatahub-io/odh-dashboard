@@ -56,7 +56,7 @@ For any new page, route, button, kebab action, or data-fetching hook:
 
 - **Frontend pages/routes** — Verify `accessAllowedRouteHoC`, `useAccessAllowed`, or `useAccessReview` + conditional rendering is applied. Routes with `flags: { required: [ADMIN_USER] }` in the extension system are protected at the plugin layer — flag as **Info** (should migrate to `accessAllowedRouteHoC`) rather than Critical. A new page with no SSAR gate at all is a **Critical** finding.
 - **Buttons/actions** — Verify the action checks permissions (via `useAccessAllowed`, `useAccessReview`, `useKebabAccessAllowed`, or `AccessAllowed` render-prop). A mutation action without a permission check is **Warning**.
-- **Backend routes** — Verify mutating endpoints use `secureRoute` or `secureAdminRoute`. Note: `secureRoute` only validates namespace scoping on parameterized requests; un-parameterized POST/PUT/PATCH/DELETE routes are only logged, not blocked. An unprotected mutating endpoint (especially un-parameterized ones without `secureAdminRoute`) is **Critical**.
+- **Backend routes** — Verify mutating endpoints are protected. `secureRoute` only enforces namespace/resource validation on parameterized requests (routes with `:namespace` or resource ID params); un-parameterized POST/PUT/PATCH/DELETE routes are only logged, not blocked. For un-parameterized mutating endpoints, require `secureAdminRoute` or an explicit backend SSAR check (`createSelfSubjectAccessReview`). An unprotected or insufficiently protected mutating endpoint is **Critical**.
 
 ### Check 2: Fail-open patterns
 
@@ -76,6 +76,8 @@ Flag usage of:
 - Any pattern like `if (isAdmin) { fetchResource() }` without also checking whether the user can actually access that resource — **Critical**.
 - `getClusterAdminUserList` or Group-based admin checks — **Warning** (deprecated).
 - Direct import of `isUserAdmin` on the frontend — **Warning** (backend-only utility).
+
+**Exception:** Routes gated via `flags: { required: [ADMIN_USER] }` in the extension system are NOT the same as using `isAdmin` directly — they are protected at the plugin layer (see Check 1). Flag as **Info** (deprecated-but-functional; recommend migration to `accessAllowedRouteHoC` with `verbModelAccess`).
 
 ### Check 4: Namespace and resource scoping
 

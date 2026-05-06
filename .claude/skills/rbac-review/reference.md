@@ -99,8 +99,8 @@ const secrets = useSomeHook(ns, { enabled: canList });
 
 ### Key utilities
 
-- `secureRoute(fastify)` — Validates namespace scoping and resource ownership **only for parameterized requests** (i.e., routes with `:namespace` or resource-identifying params). Un-parameterized POST/PUT/PATCH/DELETE routes wrapped in `secureRoute` are only **logged**, not blocked. This is the exact class of backend vulnerability the skill should catch.
-- `secureAdminRoute(fastify)` — Same as `secureRoute` but only for explicit dashboard-admin-owned operations (e.g., `auths/default-auth` management). Not a generic substitute for resource-specific SSAR checks.
+- `secureRoute(fastify)` — Validates namespace scoping and resource ownership **only for parameterized requests** (i.e., routes with `:namespace` or resource-identifying params). Un-parameterized POST/PUT/PATCH/DELETE routes wrapped in `secureRoute` are only **logged**, not blocked — they still execute. **Caveat:** Un-parameterized mutating endpoints require stronger protection: use `secureAdminRoute`, add explicit parameterized namespace/resource validation, or perform a backend SSAR via `createSelfSubjectAccessReview`.
+- `secureAdminRoute(fastify)` — Same as `secureRoute` but additionally verifies the caller is a dashboard admin before proceeding. Use for admin-owned operations (e.g., `auths/default-auth` management) and as the minimum guard for un-parameterized mutating endpoints that cannot be parameterized. Not a generic substitute for resource-specific SSAR checks.
 - `createSelfSubjectAccessReview(fastify, request, attrs)` — Backend SSAR helper for fine-grained permission checks on specific verb+resource combinations.
 
 **Location:** `backend/src/utils/route-security.ts`, `backend/src/utils/adminUtils.ts`
