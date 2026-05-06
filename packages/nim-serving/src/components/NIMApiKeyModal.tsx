@@ -19,8 +19,8 @@ import {
   CheckCircleIcon,
 } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
-import { NIMAccountStatus } from './useNIMAccountStatus';
-import { createNIMResources, updateNIMSecretAndRevalidate } from './nimK8sUtils';
+import { NIMAccountStatus } from '../hooks/useNIMAccountStatus';
+import { createNIMResources, updateNIMSecretAndRevalidate } from '../k8s/nimK8sUtils';
 
 type NIMApiKeyModalProps = {
   onClose: () => void;

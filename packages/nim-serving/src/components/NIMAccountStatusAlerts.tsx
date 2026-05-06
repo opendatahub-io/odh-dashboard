@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Spinner } from '@patternfly/react-core';
-import { NIMAccountStatus } from './useNIMAccountStatus';
+import { NIMAccountStatus } from '../hooks/useNIMAccountStatus';
 
 type NIMAccountStatusAlertsProps = {
   status: NIMAccountStatus;

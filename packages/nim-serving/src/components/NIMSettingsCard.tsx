@@ -19,8 +19,8 @@ import { CheckCircleIcon } from '@patternfly/react-icons';
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
-import useNIMAccountStatus, { NIMAccountStatus } from './useNIMAccountStatus';
-import { deleteNIMResources } from './nimK8sUtils';
+import useNIMAccountStatus, { NIMAccountStatus } from '../hooks/useNIMAccountStatus';
+import { deleteNIMResources } from '../k8s/nimK8sUtils';
 
 enum ApiKeyModalState {
   CLOSED = 'CLOSED',

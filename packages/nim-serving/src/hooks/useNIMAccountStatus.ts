@@ -2,14 +2,14 @@ import React from 'react';
 import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/utilities/useFetch';
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
-import { listNIMAccounts } from './k8s/nimAccounts';
+import { listNIMAccounts } from '../k8s/nimAccounts';
 import {
   isAccountReady,
   isApiKeyValidated,
   isApiKeyValidationFailed,
   getAccountErrors,
-} from './nimK8sUtils';
-import { NIM_ACCOUNT_NAME } from './nimConstants';
+} from '../k8s/nimK8sUtils';
+import { NIM_ACCOUNT_NAME } from '../nimConstants';
 
 export enum NIMAccountStatus {
   NOT_FOUND = 'NOT_FOUND',
