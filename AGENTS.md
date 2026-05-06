@@ -126,5 +126,6 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Issue Type**      | `skills/jira-validate-issue-type/`     | Validating or correcting issue types (Bug, Story, Task) and labeling feature requests |
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
+| **Jira Eval Review**             | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria to produce per-criterion verdicts |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.
