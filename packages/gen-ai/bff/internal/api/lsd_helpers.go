@@ -71,6 +71,9 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	}
 
 	// Determine if error is retriable
+	// An error is retriable when:
+	// - The error code is a known transient code (timeout, server_error, rate_limit, etc.), OR
+	// - The HTTP status is 429, 500, 502, 503, or 504
 	var retriable bool
 	switch errorCode {
 	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
@@ -82,7 +85,8 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	case "tool_not_found", "tool_error", "mcp_error":
 		retriable = true
 	default:
-		retriable = statusCode >= 500
+		// HTTP 429 (Too Many Requests) and 5xx errors are retriable
+		retriable = statusCode == http.StatusTooManyRequests || statusCode >= 500
 	}
 
 	toolName := ""
