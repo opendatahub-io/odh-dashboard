@@ -10,6 +10,7 @@ import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage
 import {
   HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP,
   NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL,
+  NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME,
 } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
 
 type ManageWorkloadStrategySectionProps = {
@@ -54,8 +55,8 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
                     </ListItem>
                     <ListItem>
                       <>
-                        <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}</b> lets you manually add
-                        node selectors and tolerations for more fine-grained scheduling of
+                        <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME}</b> are manually
+                        added by administrators, and are best for more fine-grained scheduling of
                         workloads.
                       </>
                     </ListItem>
@@ -63,8 +64,9 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
                 ) : (
                   <StackItem>
                     <>
-                      <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}</b> lets you manually add
-                      node selectors and tolerations for more fine-grained scheduling of workloads.
+                      <b>{NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME}</b> are manually
+                      added by administrators, and are best for more fine-grained scheduling of
+                      workloads.
                     </>
                   </StackItem>
                 )}
