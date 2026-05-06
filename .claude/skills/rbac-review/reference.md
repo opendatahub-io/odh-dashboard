@@ -107,7 +107,7 @@ const secrets = useSomeHook(ns, { enabled: canList });
 
 ### Namespace validation
 
-Routes validate the target namespace against `dashboardNamespace` and `workbenchNamespace`. Requests targeting other namespaces are rejected with 403.
+Routes that accept a namespace parameter (via `secureRoute`) validate it against `dashboardNamespace` and `workbenchNamespace`, rejecting other namespaces with 403. This protection only applies to parameterized requests — un-parameterized mutating endpoints are **not** automatically namespace-scoped. Those routes must use `secureAdminRoute` or add explicit namespace enforcement (e.g., hard-code the target namespace or reject requests that omit one) to prevent cross-namespace mutations.
 
 ### BFF (Go) patterns
 

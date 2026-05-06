@@ -81,7 +81,7 @@ Flag usage of:
 
 ### Check 4: Namespace and resource scoping
 
-- **Backend**: Verify namespace validation in route handlers. Operations must be scoped to `dashboardNamespace` or `workbenchNamespace`. Un-scoped operations are **Critical**.
+- **Backend**: Verify namespace validation in route handlers. Operations must be scoped to `dashboardNamespace` or `workbenchNamespace`. Note: `secureRoute` only enforces namespace validation on parameterized requests (see Check 1); un-parameterized mutating routes may still allow cross-namespace mutations. Treat un-scoped mutating endpoints as **Critical** unless the handler explicitly enforces `dashboardNamespace`/`workbenchNamespace`.
 - **Frontend**: SSAR checks without a namespace default to the dashboard namespace (via `AccessReviewProvider`). Verify this is intentional when working with resources in other namespaces — **Warning** if ambiguous.
 - **BFF (Go)**: Verify token forwarding and namespace validation in proxy calls. Missing auth header propagation is **Critical**.
 
