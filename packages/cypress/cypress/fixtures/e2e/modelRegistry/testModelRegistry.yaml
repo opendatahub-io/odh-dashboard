@@ -89,3 +89,7 @@ ociDestinationPassword: "dummy-oci-pass"
 ociUriModelName: "test-oci-uri-model"
 ociUriJobName: "oci-uri-transfer-job"
 ociUriOriginUri: "s3://test-models/models/oci-test-model/v1.0?endpoint=http%3A%2F%2Fminio.example.com%3A9000&defaultRegion=us-east-1"
+
+# Hardware profile configuration
+hardwareProfileName: "cypress-registry-deploy-model-hwp"
+hardwareProfileYamlPath: "resources/yaml/registry-deploy-model-hardware-profile.yaml"
