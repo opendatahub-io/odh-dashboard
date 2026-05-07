@@ -27,7 +27,7 @@ export const addKueueLabelToNamespace = (
   const labelCommand = `oc label namespace ${namespace} kueue.openshift.io/managed=true --overwrite`;
   cy.log(`Adding Kueue label to namespace: ${namespace}`);
   return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`Warning: Failed to label namespace: ${result.stderr}`);
     }
     return cy.wrap(result);
@@ -112,7 +112,7 @@ export const deleteKueueWorkbenchResources = (
 
   cy.log('Deleting Kueue resources');
   return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Warning: Error deleting Kueue resources: ${maskedStderr}`);
     }

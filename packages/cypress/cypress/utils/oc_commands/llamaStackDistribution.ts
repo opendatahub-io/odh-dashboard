@@ -99,9 +99,9 @@ export const waitForLlamaStackDistributionReady = (
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
       // Handle command failure
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
-        throw new Error(`Command failed with exit code ${result.code}: ${maskedStderr}`);
+        throw new Error(`Command failed with exit code ${result.exitCode}: ${maskedStderr}`);
       }
 
       // Handle empty output
