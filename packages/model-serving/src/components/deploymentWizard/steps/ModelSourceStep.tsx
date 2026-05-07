@@ -11,18 +11,20 @@ import { ModelLocationData, ModelLocationType } from '../types';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
 
 // Schema
+const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
+  if (!val) return false;
+  return isValidModelLocationData(val.type, val);
+});
+
 export const modelSourceStepSchema = z
   .object({
     modelType: modelTypeSelectFieldSchema,
-    modelLocationData: z.custom<ModelLocationData>((val) => {
-      if (!val) return false;
-      return isValidModelLocationData(val.type, val);
-    }),
+    modelLocationData: modelLocationDataSchema,
     createConnectionData: createConnectionDataSchema.optional(),
   })
-  // If the model location data is a new connection, then the create connection data is required
   .superRefine((data, ctx) => {
-    if (data.modelLocationData.type === ModelLocationType.NEW) {
+    const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
+    if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
       const result = createConnectionDataSchema.safeParse(data.createConnectionData);
       if (!result.success) {
         result.error.issues.forEach((issue) => {

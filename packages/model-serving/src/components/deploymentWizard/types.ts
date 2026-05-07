@@ -49,6 +49,12 @@ export enum ModelLocationType {
   PVC = 'pvc',
   NIM = NIMModelLocationKey,
 }
+export const isModelLocationType = (value?: string): value is ModelLocationType => {
+  if (!value) return false;
+  const values: string[] = Object.values(ModelLocationType);
+  return values.includes(value);
+};
+
 export enum ModelLocationSelectOption {
   EXISTING = 'Existing connection',
   PVC = 'Cluster storage',
