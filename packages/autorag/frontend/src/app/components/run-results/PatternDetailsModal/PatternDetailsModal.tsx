@@ -9,11 +9,13 @@ import {
   ModalVariant,
   Stack,
   StackItem,
+  Switch,
   Tab,
   TabTitleText,
   Tabs,
   Title,
 } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { AutoragPattern, PatternDataBundle, ScoreType } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
 import {
@@ -150,16 +152,14 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
 
   const handleToggleComparison = React.useCallback(() => {
     if (comparisonEnabled) {
-      // Turning off comparison
+      // Turning off comparison — clear the selected pattern
       setComparisonEnabled(false);
-    } else if (comparisonPatternIndex !== null) {
-      // Turning on with a previously selected pattern
-      setComparisonEnabled(true);
+      setComparisonPatternIndex(null);
     } else {
       // Turning on with no pattern selected — open the selection modal
       setIsComparisonSelectOpen(true);
     }
-  }, [comparisonEnabled, comparisonPatternIndex]);
+  }, [comparisonEnabled]);
 
   // Settings keys for print view
   const settingsKeys = Object.keys(data.settings);
@@ -183,7 +183,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             onDownload={() => setIsPrinting(true)}
             onSaveNotebook={onSaveNotebook}
             comparisonEnabled={comparisonEnabled}
-            onToggleComparison={handleToggleComparison}
           />
         </ModalHeader>
         <ModalBody>
@@ -209,9 +208,36 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
               {activeTab && ActiveComponent && (
                 <Stack hasGutter>
                   <StackItem>
-                    <Title headingLevel="h3" data-testid="pattern-details-tab-title">
-                      {activeTab.label}
-                    </Title>
+                    <Flex
+                      justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                      alignItems={{ default: 'alignItemsCenter' }}
+                    >
+                      <FlexItem>
+                        <Title headingLevel="h3" data-testid="pattern-details-tab-title">
+                          {activeTab.label}
+                        </Title>
+                      </FlexItem>
+                      <FlexItem>
+                        <Switch
+                          id="compare-patterns-toggle"
+                          label={
+                            <Flex
+                              alignItems={{ default: 'alignItemsCenter' }}
+                              gap={{ default: 'gapSm' }}
+                              display={{ default: 'inlineFlex' }}
+                            >
+                              <FlexItem>Compare Patterns</FlexItem>
+                              <FlexItem>
+                                <SyncAltIcon />
+                              </FlexItem>
+                            </Flex>
+                          }
+                          isChecked={comparisonEnabled}
+                          onChange={handleToggleComparison}
+                          data-testid="compare-patterns-toggle"
+                        />
+                      </FlexItem>
+                    </Flex>
                   </StackItem>
                   <StackItem>
                     <ActiveComponent

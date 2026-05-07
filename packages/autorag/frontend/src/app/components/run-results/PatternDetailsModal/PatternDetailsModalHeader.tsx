@@ -12,7 +12,6 @@ import {
   MenuToggle,
   Stack,
   StackItem,
-  Switch,
   Title,
 } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
@@ -28,8 +27,7 @@ type PatternDetailsModalHeaderProps = {
   onPatternChange: (index: number) => void;
   onDownload: () => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
-  comparisonEnabled: boolean;
-  onToggleComparison: () => void;
+  comparisonEnabled?: boolean;
 };
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
@@ -41,7 +39,6 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onDownload,
   onSaveNotebook,
   comparisonEnabled,
-  onToggleComparison,
 }) => {
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
@@ -129,15 +126,6 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
               </Title>
             </StackItem>
           </Stack>
-        </FlexItem>
-        <FlexItem>
-          <Switch
-            id="compare-patterns-toggle"
-            label="Compare Patterns"
-            isChecked={comparisonEnabled}
-            onChange={onToggleComparison}
-            data-testid="compare-patterns-toggle"
-          />
         </FlexItem>
         <FlexItem align={{ default: 'alignRight' }}>
           <Flex gap={{ default: 'gapSm' }}>
