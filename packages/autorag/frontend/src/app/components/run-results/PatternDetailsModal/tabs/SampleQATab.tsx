@@ -1,0 +1,159 @@
+import React from 'react';
+import {
+  Card,
+  CardBody,
+  Content,
+  ContentVariants,
+  ExpandableSection,
+  Grid,
+  GridItem,
+  Skeleton,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
+import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
+import { formatPatternName } from '~/app/utilities/utils';
+import SampleQAEntry from '../components/SampleQAEntry';
+import ComparisonRadarChart from '../components/ComparisonRadarChart';
+import ComparisonColumnHeader from '../components/ComparisonColumnHeader';
+
+const ComparisonQAEntry: React.FC<{
+  primaryResult: AutoRAGEvaluationResult;
+  comparisonResult?: AutoRAGEvaluationResult;
+  primaryLabel: string;
+  comparisonLabel: string;
+}> = ({ primaryResult, comparisonResult, primaryLabel, comparisonLabel }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <Card isCompact data-testid={`qa-entry-${primaryResult.question_id}`}>
+      <CardBody>
+        <Stack hasGutter>
+          <StackItem>
+            <Content component={ContentVariants.small}>
+              <strong>Question</strong>
+            </Content>
+            <Content component={ContentVariants.p} className="autorag-pre-wrap">
+              {primaryResult.question}
+            </Content>
+          </StackItem>
+          {comparisonResult && (
+            <StackItem>
+              <ComparisonRadarChart
+                primaryScores={primaryResult.scores}
+                primaryLabel={primaryLabel}
+                comparisonScores={comparisonResult.scores}
+                comparisonLabel={comparisonLabel}
+              />
+            </StackItem>
+          )}
+          <StackItem>
+            <Grid hasGutter>
+              <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
+                <Content component={ContentVariants.small}>
+                  <strong>Answer</strong>
+                </Content>
+                <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                  {primaryResult.answer}
+                </Content>
+              </GridItem>
+              <GridItem span={6} data-testid={`qa-comparison-answer-${primaryResult.question_id}`}>
+                <Content component={ContentVariants.small}>
+                  <strong>Answer</strong>
+                </Content>
+                <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                  {comparisonResult?.answer ?? '\u2014'}
+                </Content>
+              </GridItem>
+            </Grid>
+          </StackItem>
+          <StackItem>
+            <ExpandableSection
+              toggleText={`View expected answer (${primaryResult.correct_answers.length})`}
+              isExpanded={isExpanded}
+              onToggle={(_e, expanded) => setIsExpanded(expanded)}
+              isIndented
+              data-testid={`qa-expected-answers-${primaryResult.question_id}`}
+            >
+              <Stack hasGutter>
+                {primaryResult.correct_answers.map((answer, i) => (
+                  <StackItem key={`answer-${primaryResult.question_id}-${i}`}>
+                    <Content component={ContentVariants.small}>
+                      <strong>Expected answer {i + 1}</strong>
+                    </Content>
+                    <Content component={ContentVariants.p} className="autorag-pre-wrap">
+                      {answer}
+                    </Content>
+                  </StackItem>
+                ))}
+              </Stack>
+            </ExpandableSection>
+          </StackItem>
+        </Stack>
+      </CardBody>
+    </Card>
+  );
+};
+
+const SampleQATab: React.FC<TabContentProps> = ({ primaryPattern, comparisonPattern }) => {
+  if (
+    primaryPattern.isEvaluationLoading ||
+    (comparisonPattern && comparisonPattern.isEvaluationLoading)
+  ) {
+    return <Skeleton screenreaderText="Loading evaluation results" />;
+  }
+
+  const primaryResults = primaryPattern.evaluationResults ?? [];
+
+  if (!comparisonPattern) {
+    return (
+      <Stack hasGutter>
+        {primaryResults.map((result, index) => (
+          <StackItem key={`qa-${result.question_id || index}`}>
+            <SampleQAEntry result={result} />
+          </StackItem>
+        ))}
+      </Stack>
+    );
+  }
+
+  const comparisonResults = comparisonPattern.evaluationResults ?? [];
+  const primaryLabel = formatPatternName(primaryPattern.pattern.name);
+  const comparisonLabel = formatPatternName(comparisonPattern.pattern.name);
+
+  return (
+    <Stack hasGutter>
+      <StackItem>
+        <Grid hasGutter>
+          <GridItem span={6}>
+            <ComparisonColumnHeader
+              patternName={primaryPattern.pattern.name}
+              rank={primaryPattern.rank}
+              label="selected pattern"
+              data-testid="comparison-column-header-primary"
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ComparisonColumnHeader
+              patternName={comparisonPattern.pattern.name}
+              rank={comparisonPattern.rank}
+              data-testid="comparison-column-header-comparison"
+            />
+          </GridItem>
+        </Grid>
+      </StackItem>
+      {primaryResults.map((primaryResult, index) => (
+        <StackItem key={`qa-${primaryResult.question_id || index}`}>
+          <ComparisonQAEntry
+            primaryResult={primaryResult}
+            comparisonResult={comparisonResults[index]}
+            primaryLabel={primaryLabel}
+            comparisonLabel={comparisonLabel}
+          />
+        </StackItem>
+      ))}
+    </Stack>
+  );
+};
+
+export default SampleQATab;

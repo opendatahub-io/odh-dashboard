@@ -5,19 +5,7 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
 } from '@patternfly/react-core';
-
-const humanize = (key: string): string =>
-  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-
-const formatValue = (value: unknown): string => {
-  if (value === null || value === undefined) {
-    return '\u2014';
-  }
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  return JSON.stringify(value);
-};
+import { formatDisplayValue, humanize } from '~/app/utilities/utils';
 
 const flattenEntries = (obj: Record<string, unknown>, prefix = ''): [string, string][] =>
   Object.entries(obj).flatMap(([key, value]) => {
@@ -26,13 +14,16 @@ const flattenEntries = (obj: Record<string, unknown>, prefix = ''): [string, str
       const nested: Record<string, unknown> = Object.fromEntries(Object.entries(value));
       return flattenEntries(nested, label);
     }
-    return [[label, formatValue(value)]];
+    return [[label, formatDisplayValue(value)]];
   });
 
-export { humanize, flattenEntries };
+export { flattenEntries };
 
-const KeyValueList: React.FC<{ entries: Record<string, unknown> }> = ({ entries }) => (
-  <DescriptionList isHorizontal>
+const KeyValueList: React.FC<{ entries: Record<string, unknown>; 'data-testid'?: string }> = ({
+  entries,
+  'data-testid': testId,
+}) => (
+  <DescriptionList isHorizontal data-testid={testId}>
     {flattenEntries(entries).map(([label, value]) => (
       <DescriptionListGroup key={label}>
         <DescriptionListTerm>{label}</DescriptionListTerm>

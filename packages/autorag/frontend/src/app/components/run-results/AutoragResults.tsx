@@ -16,11 +16,16 @@ import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
-import { downloadBlob, getOptimizedMetricForRAG, sanitizeFilename } from '~/app/utilities/utils';
+import {
+  computePatternRankMap,
+  downloadBlob,
+  getOptimizedMetricForRAG,
+  sanitizeFilename,
+} from '~/app/utilities/utils';
 import AutoragLeaderboard from './AutoragLeaderboard';
 import './AutoragResults.scss';
 
-const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal'));
+const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 function AutoragResults(): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
@@ -36,14 +41,7 @@ function AutoragResults(): React.JSX.Element {
 
   const patternsArray = React.useMemo(() => Object.values(patterns), [patterns]);
 
-  const rankMap = React.useMemo(() => {
-    const sorted = patternsArray.toSorted((a, b) => b.final_score - a.final_score);
-    const map: Record<string, number> = {};
-    sorted.forEach((p, i) => {
-      map[p.name] = i + 1;
-    });
-    return map;
-  }, [patternsArray]);
+  const rankMap = React.useMemo(() => computePatternRankMap(patternsArray), [patternsArray]);
 
   const selectedIndex = React.useMemo(
     () =>

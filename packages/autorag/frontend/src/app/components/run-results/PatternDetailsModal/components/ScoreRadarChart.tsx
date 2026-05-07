@@ -68,7 +68,16 @@ const ScoreRadarChart: React.FC<{ scores: AutoRAGEvaluationScores }> = ({ scores
     [scores, labelColor, splitLineColor, seriesColor],
   );
 
-  return <Charts themeColor="blue" nodeSelector="html" height={280} width={420} option={option} />;
+  return (
+    <Charts
+      themeColor="blue"
+      nodeSelector="html"
+      height={280}
+      width={420}
+      option={option}
+      data-testid="score-radar-chart"
+    />
+  );
 };
 
 export default ScoreRadarChart;

@@ -8,7 +8,7 @@ import {
   ProgressMeasureLocation,
 } from '@patternfly/react-core';
 import type { AutoragPatternScoreMetric, ScoreType } from '~/app/types/autoragPattern';
-import { humanize } from './KeyValueList';
+import { humanize } from '~/app/utilities/utils';
 
 /* eslint-disable camelcase */
 export const scoreTypeLabels: Record<ScoreType, string> = {
