@@ -208,3 +208,340 @@ reviews:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
         2. Remote entry configuration must be consistent with manifests/modular-architecture/.
         3. Changes to shared dependency list require coordination across all plugins.
+
+  # ── Pre-merge checks (custom) ─────────────────────────────────
+  # Derived from 15,049 human review comments across 2,177 merged PRs (1 year).
+  # Each check evaluates against principles, NOT existing code patterns.
+  # "Matches existing code" is never a passing justification.
+  pre_merge_checks:
+    custom_checks:
+      # ── RBAC & Permission Model ─────────────────────────────────
+      - name: "RBAC & Permission Model"
+        mode: "error"
+        instructions: |
+          Evaluate against RBAC principles. Do NOT accept "matches existing code" as justification.
+
+          CORE PRINCIPLE: The dashboard service account (SA) must NOT accumulate permissions for every new CRD. User-scoped operations must forward user tokens. When a new CRD is added to cluster-role.yaml, ask: "Why does the SA need this instead of forwarding the user's token?" The existing ClusterRole entries are accumulated technical debt, not a pattern to follow.
+
+          PERMISSION HIERARCHY (enforce this ordering):
+          1. cluster-admin — Full cluster access
+          2. product-admin — ODH/RHOAI admin (migrating from isAdmin to SSAR checks)
+          3. project-admin — Namespace admin
+          4. project-editor — Can edit resources but CANNOT write Roles/RoleBindings
+          5. project-viewer — Read-only (future)
+
+          CONTRIBUTOR FLOW CONSTRAINTS:
+          - Project contributors cannot read/write Roles or RoleBindings
+          - Code modifying RoleBindings must check canCreateRoleBindings first
+          - Skip RoleBinding/Role modification entirely when user lacks permission
+          - On edit flows, preserve existing auth annotations rather than stripping them on save
+          - Do not auto-select features requiring RoleBinding creation if user cannot create them
+
+          ANTI-PATTERNS TO FAIL:
+          1. New entries in dashboard ClusterRole for CRDs (get/list/watch or create/update/patch/delete) — flag even if existing entries do the same
+          2. SAR checks outside KubernetesClientInterface — must use CanVerbResourceInNamespace on shared client
+          3. Silently swallowed SAR failures — must log error and deny access, never grant on failure
+          4. New isAdmin checks — deprecated in favor of SSAR
+          5. Unguarded extension routes — must filter by flags and user permissions before rendering
+
+          CLUSTERROLE CHANGES: New apiGroup/resource entries require justification comment. Verbs beyond get/list/watch are a stronger concern. RoleBinding and Role names must be distinct. apiGroup: rbac.authorization.k8s.io must be present.
+
+          AUTH PROXY: Naming should be generic (auth-image, auth-proxy) not implementation-specific (oauth-proxy). Migration from OAuth Proxy to Kube RBAC Proxy is in progress.
+
+          PASS: No RBAC changes, or changes justified with user-token-forwarding.
+          FAIL: New SA permissions without justification, contributor flows broken, SAR violations.
+
+      # ── Input Validation & Network Security ─────────────────────
+      - name: "Input Validation & Security"
+        mode: "error"
+        instructions: |
+          Evaluate against security principles. Do NOT accept "matches existing code" as justification.
+
+          SSRF PREVENTION:
+          Any URL from user input, CR status, or ConfigMap used by an HTTP client is an SSRF vector. Concrete vectors in this codebase: base_url in "Create External Endpoint" modals, CR .status.URL for EvalHub/GuardrailsOrchestrator clients, S3 endpoint URLs. Required checks: enforce http/https scheme, reject credentials in URLs, reject private/internal IPs (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8), validate non-empty host. Flag URLs passed through ConfigMaps to downstream services (indirect SSRF).
+
+          UNBOUNDED READS:
+          HTTP response bodies need io.LimitReader or equivalent. Apply to BOTH error and success paths. K8s list calls need server-side Limit/Continue, not client-side filtering. Pagination tokens must be returned to caller, not discarded.
+
+          CREDENTIAL EXPOSURE:
+          Tokens must never appear in logs, errors, or responses. r.URL.RequestURI() in logs can leak secrets from query params — use r.URL.Path. Use redacting wrapper types for bearer tokens. Remove SA tokens stored only for logging. .env files must not contain real credentials.
+
+          SANITIZATION ORDERING:
+          rehypeSanitize must run AFTER rehypeRaw, not before. Sanitization before raw HTML processing lets raw plugin re-introduce unsanitized content.
+
+          NETWORKPOLICY:
+          Empty from field allows ALL ingress — must specify namespaceSelector/podSelector. Use --ignore-scripts in Dockerfile npm ci. Use specific image tags, not latest.
+
+          PASS: No security-relevant changes, or all inputs validated.
+          FAIL: Unvalidated URLs reaching HTTP clients, unbounded reads, credential exposure, wrong sanitization order.
+
+      # ── Testing Selectors & Page Objects ─────────────────────────
+      - name: "Test Selectors & Page Objects"
+        mode: "warning"
+        instructions: |
+          Check Cypress test files (*.cy.ts), page objects (pages/*.ts), and test mocks.
+
+          1. USE DATA-TESTID OVER BRITTLE LOCATORS: Tests must not select by text content, CSS classes, placeholder text, PatternFly internal classes (pf-v6-c-*, pf-m-*), or DOM traversal. All interactive elements need data-testid attributes accessed via cy.findByTestId through page objects.
+
+          2. PAGE OBJECT ENCAPSULATION: Test files must never use cy.get(), cy.findByTestId(), cy.findByRole(), or cy.findByText() directly. All element access goes through page object methods.
+
+          3. NO HARDCODED VALUES: String literals for model names, namespaces, URLs, UI labels must not be inline in test files. Move to YAML fixtures, constants, or mock factories.
+
+          4. NO HARDCODED WAITS: cy.wait(milliseconds) with arbitrary durations prohibited. Use cy.wait('@alias') for intercepts, .should() assertions, or polling-based waits. Timeouts belong in the test, never in page objects.
+
+          5. NO PF INTERNAL CSS IN SELECTORS: Tests must not rely on pf-m-current, .pf-v6-c-label__content, or PF DOM structure. Use data-testid or aria-* attributes.
+
+          PASS: No test files changed, or all follow conventions.
+          FAIL: Direct selectors in tests, missing page objects, hardcoded waits.
+
+      # ── Code Reuse & DRY ─────────────────────────────────────────
+      - name: "Code Reuse & DRY"
+        mode: "warning"
+        instructions: |
+          Check for duplicated logic, missed existing utilities, and DRY violations.
+
+          1. DUPLICATED LOGIC: Flag same logic in two or more files — copy-pasted blocks, repeated conditional chains, duplicated validation, identical mock setup. Extract to shared utility, hook, or component.
+
+          2. MAGIC NUMBERS AND STRINGS: Flag inline literal values — annotation keys, paths, status strings, numeric thresholds, repeated constants. Extract to named constant, enum, or const file.
+
+          3. REIMPLEMENTING EXISTING UTILITIES: Before approving new helpers, search codebase for existing equivalents. Flag reimplementations of date formatting, K8s helpers, connection type utilities, table patterns, modal wrappers, form validation.
+
+          4. REDEFINING EXISTING TYPES: Flag duplicate type/interface/enum/constant declarations that already exist elsewhere. Import from canonical source.
+
+          5. CROSS-PACKAGE IMPORT VIOLATIONS: Flag direct imports from another package's internal modules. Use exported APIs, extension points, or shared packages (plugin-core, app-config). Use @odh-dashboard/<package> absolute imports.
+
+          PASS: No duplication found, existing utilities used.
+          FAIL: Duplicated logic, reimplemented utilities, cross-package internal imports.
+
+      # ── PatternFly & Styling ─────────────────────────────────────
+      - name: "PatternFly & Styling"
+        mode: "warning"
+        instructions: |
+          Read and apply the rules from these files in the repository:
+          - .claude/rules/css-patternfly.md — Priority order, token rules, PF wrapper components, custom class naming conventions
+          - .claude/skills/style-review/SKILL.md — Check 1 (PF priority order), Check 2 (wrapper compliance), Check 3 (class naming)
+
+          Apply all three checks from the style-review skill to changed *.tsx, *.scss, *.css files.
+          Also check: consistent terminology (notebook→workbench, GPU→accelerator, data connection→connection) and displayName with k8s name as fallback.
+
+          PASS: All styling follows PF priority order, wrappers used correctly, class names follow convention.
+          FAIL: Custom CSS where PF suffices, missing wrappers, naming convention violations, hardcoded token values.
+
+      # ── React Hooks & Performance ────────────────────────────────
+      - name: "React Hooks & Performance"
+        mode: "warning"
+        instructions: |
+          Check *.tsx and *.ts component/hook files.
+
+          1. NO USEEFFECT FOR DERIVED STATE: useEffect only for external system sync (APIs, subscriptions, timers). Never for transforming data, resetting form fields on prop change, or responding to user input. Use useMemo, inline computation, event handlers, or component key reset.
+
+          2. MEMOIZE UNSTABLE REFERENCES: Functions from custom hooks need useCallback. Object/array values for context providers or props need useMemo. Inline [] fallbacks create new references — use module-level constant.
+
+          3. NO UNNECESSARY MEMOIZATION: Don't wrap strings, booleans, or cheap computations in useMemo/useCallback. Overhead exceeds recomputation cost.
+
+          4. NO SETSTATE DURING RENDER: setState in render body causes infinite loops. Derive values inline or use useMemo.
+
+          5. RULES OF HOOKS: All hooks called unconditionally, same order every render. Early return before hooks = Rules of Hooks violation.
+
+          6. NO CONTEXT OVERLOADING: Contexts loading many resources slow initial load. Load data in targeted hooks near consumer, not global context.
+
+          7. NO PREEMPTIVE FETCHING: Don't call fetch hooks at page/toolbar level when data only needed inside modal or child opened by user action.
+
+          PASS: Hooks used correctly, no performance anti-patterns.
+          FAIL: useEffect for derived state, Rules of Hooks violations, setState in render.
+
+      # ── Dead Code & Cleanup ──────────────────────────────────────
+      - name: "Dead Code & Cleanup"
+        mode: "warning"
+        instructions: |
+          Check all changed files for dead code and diff hygiene.
+
+          1. UNUSED CODE: Flag imports added but never used, variables assigned but never read, functions defined but never called, files committed by accident.
+
+          2. COMMENTED-OUT CODE: Flag multi-line commented-out blocks without tracking reference (TODO: JIRA-XXXXX). Bare commented-out code must be deleted or justified.
+
+          3. DEBUG ARTIFACTS: Flag console.log/warn/error/debugger statements unless in a dedicated logger utility. Flag hardcoded test values in production code.
+
+          4. DIFF NOISE: Flag whitespace-only changes to unrelated files, import reordering in unmodified files. Suggest separate PR.
+
+          5. STALE FEATURE FLAGS: Flag feature flags never toggled off, @deprecated without tracking issue, temporary workarounds without TODO ticket.
+
+          PASS: No dead code or artifacts found.
+          FAIL: Unused code, debug artifacts, commented-out blocks without justification.
+
+      # ── Architecture & Module Boundaries ─────────────────────────
+      - name: "Architecture Boundaries"
+        mode: "warning"
+        instructions: |
+          Check package boundaries, abstraction layers, and extension system.
+
+          1. PACKAGE BOUNDARIES: Feature-package code must not import from another feature package's internals. Shared code must not import from feature-specific modules. Use @odh-dashboard/<package> absolute imports.
+
+          2. WRONG ABSTRACTION LAYER: Network calls belong in hooks not components. UI rendering belongs in components not utils. Business logic belongs in field hooks not step components. Platform-specific code stays in its platform package.
+
+          3. EXTENSION SYSTEM: Extensions need correct flags.required/flags.disallowed. Area definitions need reliantAreas and requiredComponents. Module-specific code must not leak into shared extension points. Use useExtensions/useResolvedExtensions, not direct component imports.
+
+          4. UPSTREAM-FIRST: Changes to upstream-synced packages (model-registry, notebooks) must go through upstream repo. Flag direct modifications to upstream/ directories.
+
+          PASS: Package boundaries respected, correct abstraction layers.
+          FAIL: Cross-package imports, wrong layer, missing extension config.
+
+      # ── Error Handling & Edge Cases ──────────────────────────────
+      - name: "Error Handling"
+        mode: "warning"
+        instructions: |
+          Check backend routes, BFF handlers, API calls, and async React code.
+
+          1. UNHANDLED ASYNC ERRORS: Every Promise, fetch, go func, or K8s client call must have error handling. Empty catches and ignored err are not acceptable.
+
+          2. WRONG HTTP STATUS: 400 for bad input, 404 for not-found (not 500), 409 for conflicts. 500 only for unexpected server failures.
+
+          3. MISSING NULL/NIL GUARDS: Check nil pointers, undefined properties, optional chaining before accessing metadata.annotations, status.components, identity from context.
+
+          4. SILENT FAILURES: Never skip access checks or security guards on error. Fail closed, not open.
+
+          5. MISSING UI STATES: Components fetching async data must handle loading, empty, and error states. No blank pages on fetch failure.
+
+          6. FORM VALIDATION: Reject past dates, enforce max-length, constrain numeric ranges, prevent NaN/Infinity. Frontend and backend validation must agree.
+
+          PASS: All error paths handled, correct status codes.
+          FAIL: Unhandled async errors, wrong status codes, silent failures.
+
+      # ── Test Coverage ────────────────────────────────────────────
+      - name: "Test Coverage"
+        mode: "warning"
+        instructions: |
+          Check that new code has corresponding tests.
+
+          1. NEW UTILITIES/HOOKS/HANDLERS: New or modified .ts/.tsx files with exported functions must have __tests__/*.spec.ts(x). Serialization code, complex conditionals, and business logic are high priority.
+
+          2. NEW UI FEATURES: New pages, modals, forms, or significant interactions need Cypress mock tests covering happy path, error states, and access control (admin vs non-admin).
+
+          3. BFF HANDLER CHANGES: New *_handler.go must have *_handler_test.go with table-driven tests. Modules with BFF need contract tests validating OpenAPI compliance.
+
+          4. WEAK ASSERTIONS: Flag tests checking only existence without values, trivially true conditions, or duplicate coverage. Every it() block must catch a real regression.
+
+          5. E2E TAGGING: Tests behind feature flags need @Featureflagged tag and must NOT have @Smoke/@SanitySet tags until GA. Quarantined tests need proper prefix and tag.
+
+          PASS: All new code has adequate test coverage.
+          FAIL: New utilities/handlers without tests, weak assertions.
+
+      # ── Naming & Readability ─────────────────────────────────────
+      - name: "Naming & Readability"
+        mode: "warning"
+        instructions: |
+          Check all changed *.ts, *.tsx, *.go files.
+
+          1. MISLEADING NAMES: Flag generic names (data, info, result, stuff), names contradicting behavior (get* that creates, isEnabled returning disabled state), unclear abbreviations in public APIs.
+
+          2. CASING CONVENTIONS: Components = PascalCase files + exports. Hooks start with use. Non-hook functions in use*.ts files are misleading. Folders = camelCase. Constants = UPPER_SNAKE_CASE.
+
+          3. TYPOS: Misspelled identifiers (Retrives, seperate, testtsss).
+
+          4. OVERCOMPLICATED CONDITIONALS: Nested multi-line ternaries, x === true, x ? true : false. Use early returns, array.every/some, helper functions.
+
+          5. UNJUSTIFIED ESLINT-DISABLE: Every eslint-disable needs a justification comment. as type assertions are unsafe — prefer type guards or fixing the underlying type.
+
+          PASS: Names are clear, conventions followed.
+          FAIL: Misleading names, casing violations, typos, unjustified suppressions.
+
+      # ── Type Safety ──────────────────────────────────────────────
+      - name: "Type Safety"
+        mode: "warning"
+        instructions: |
+          Check *.ts, *.tsx, *.go, and openapi/*.yaml files.
+
+          1. NO ANY: Flag any in type annotations, parameters, return types. Flag as any and as unknown as T double-casts. Use specific types, generics, or discriminated unions.
+
+          2. ENUMS OVER STRINGS: Flag string literals in === comparisons or switch cases when an enum exists or should be created. Flag SomeEnum | string where string subsumes the enum.
+
+          3. UNSAFE AS ASSERTIONS: Flag as casts bypassing type system. Use type guards, instanceof, discriminated unions. Each suppression needs justification.
+
+          4. OPENAPI SYNC: Response schemas must include all status codes the handler returns. Query params in code must match spec. Request/response field types must match between spec and implementation.
+
+          5. SHARED OBJECT MUTATION: Flag direct property assignment on objects from function args or hooks/context. Use structuredClone, spread, or functional updates.
+
+          6. GO ERROR TYPING: Flag strings.Contains(err.Error()) for error classification — use errors.As with typed errors. Flag direct type assertions without errors.As.
+
+          PASS: Types are specific, no unsafe casts, spec in sync.
+          FAIL: any types, unsafe casts, OpenAPI mismatches, mutation of shared objects.
+
+      # ── Agent Documentation ──────────────────────────────────────
+      - name: "Agent Documentation"
+        mode: "warning"
+        instructions: |
+          Check .claude/**, **/AGENTS.md, **/CLAUDE.md files.
+
+          1. NO DUPLICATION: Content must not duplicate BOOKMARKS.md, CONTRIBUTING.md, other rule files, or root AGENTS.md. Each fact lives in one file. Cross-reference by path.
+
+          2. TOKEN EFFICIENCY: Prefer concise point-form directives. Remove explanations an LLM can infer from code. Remove architectural rationale unless it changes agent behavior.
+
+          3. NO NEGATIVE EXAMPLES: Do not show "bad" code samples. Negative examples misdirect agents. State the positive requirement only.
+
+          4. RFC 2119 LANGUAGE: Use MUST, SHOULD, MAY consistently. Avoid "try to" or "ideally."
+
+          5. CORRECT PATHS: All file paths and cross-doc links must resolve to existing locations.
+
+          6. SCOPE SEPARATION: Agent docs (.claude/, AGENTS.md) target AI. Human docs (CONTRIBUTING.md, docs/) target humans. Don't mix audiences.
+
+          PASS: Documentation is concise, deduplicated, correct paths.
+          FAIL: Duplicated content, verbose prose, broken paths, negative examples.
+
+      # ── Test Methodology & Strategy ─────────────────────────────
+      - name: "Test Methodology"
+        mode: "warning"
+        instructions: |
+          Check *.cy.ts, *.spec.ts, *.spec.tsx, and test utility files for test structure and strategy issues beyond selectors and coverage.
+
+          1. RETRYABLEBEFORE ORDERING: retryableBefore blocks must run setup steps in dependency order — resource creation before resource configuration, namespace before resources in that namespace. Misordered setup causes flaky failures on retry.
+
+          2. FIXTURE VS INLINE DATA: Test data (model names, namespaces, config objects, mock payloads) must live in fixture files or shared constants, not inline in test bodies. Inline data drifts across tests and makes maintenance harder.
+
+          3. TEST ISOLATION: Each test must be independently runnable. Shared mutable state between tests (global variables, module-level arrays modified in beforeEach) causes order-dependent failures. Use fresh fixtures per test.
+
+          4. INTERCEPT BEFORE ACTION: cy.intercept() calls must be registered before the action that triggers the request. Registering after means the request fires before the intercept is set up, causing missed intercepts and flaky waits.
+
+          5. CLEANUP IN AFTER HOOKS: Resources created during E2E tests (namespaces, CRDs, deployments) must be cleaned up in after() hooks. Missing cleanup causes failures in subsequent test runs on shared clusters.
+
+          6. MOCK DATA REALISM: Mock responses must match the real API shape — include all required fields, use realistic values, and match the OpenAPI spec. Overly simplified mocks pass tests but miss real integration bugs.
+
+          PASS: Test structure follows methodology guidelines.
+          FAIL: Misordered setup, inline test data, missing cleanup, unrealistic mocks.
+
+      # ── Feature Flags & Configuration ───────────────────────────
+      - name: "Feature Flags & Config"
+        mode: "warning"
+        instructions: |
+          Check feature flag usage, configuration, and lifecycle.
+
+          1. FLAG GATING COMPLETENESS: New features behind a flag must gate ALL entry points — routes, nav items, extension contributions, and API calls. A single ungated route exposes unreleased features to users.
+
+          2. STALE FLAGS: Feature flags that shipped in a previous release and are now always-on should be removed. The flag, all conditional checks, and the disabled code path should be cleaned up. Track removal via Jira.
+
+          3. DEV FLAGS VS FEATURE FLAGS: Dev flags (controlledByDevFlag) are for local development only and must never gate production behavior. Feature flags (controlledByFeatureFlag) gate production features. Do not conflate them.
+
+          4. FLAG NAMING: Feature flag names must be camelCase and descriptive. Flags in OdhDashboardConfig CRD must match the TypeScript constant name.
+
+          5. ENVIRONMENT-SPECIFIC CONFIG: Hardcoded values that differ between ODH and RHOAI (URLs, default images, feature availability) must use the platform detection utilities, not raw conditionals.
+
+          PASS: Flags properly gate all paths, no stale flags, correct naming.
+          FAIL: Ungated routes, stale always-on flags, dev flags in production paths.
+
+      # ── Build & Manifest Configuration ──────────────────────────
+      - name: "Build & Manifest Config"
+        mode: "warning"
+        instructions: |
+          Check Dockerfiles, manifests/**/*.yaml, turbo.json, webpack configs, and package.json files.
+
+          1. DOCKERFILE MULTI-STAGE: Dockerfiles must use multi-stage builds. No source code, node_modules, or .git in the runtime stage. Use --ignore-scripts in npm ci for supply chain safety.
+
+          2. IMAGE TAG PINNING: No :latest tags in production manifests. Use specific version tags or digests. Base images should match across Dockerfiles in the repo.
+
+          3. KUSTOMIZE VALIDITY: Manifest changes must not break kustomize build. New resources must be added to kustomization.yaml. Removed resources must be cleaned from all overlays.
+
+          4. PORT CONFLICTS: New services must not reuse ports already claimed by other services in the same namespace. Check for conflicts across packages when adding port-forwarding or service definitions.
+
+          5. RESOURCE LIMITS: All container specs in manifests must have resource requests and limits. SecurityContext must include runAsNonRoot and drop ALL capabilities.
+
+          PASS: Build configs are correct, images pinned, manifests valid.
+          FAIL: :latest tags, missing multi-stage, broken kustomize, port conflicts.
