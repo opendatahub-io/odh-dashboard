@@ -25,6 +25,8 @@ import {
 } from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import { classifyError } from '~/app/utilities/errorClassifier';
+import { findMockScenario } from '~/app/utilities/mockErrors';
 
 import {
   ToolResponseCardTitle,
