@@ -1,8 +1,8 @@
 import React from 'react';
 import { Grid, GridItem } from '@patternfly/react-core';
 import type { AutoragPatternSettings, TabContentProps } from '~/app/types/autoragPattern';
-import KeyValueList from '../components/KeyValueList';
-import ComparisonColumnHeader from '../components/ComparisonColumnHeader';
+import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
+import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 /**
  * Extracts a named section from pattern settings as a generic record.

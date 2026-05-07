@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
-import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal';
+import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({

@@ -13,9 +13,9 @@ import {
 } from '@patternfly/react-core';
 import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import SampleQAEntry from '../components/SampleQAEntry';
-import ComparisonRadarChart from '../components/ComparisonRadarChart';
-import ComparisonColumnHeader from '../components/ComparisonColumnHeader';
+import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
+import ComparisonRadarChart from '~/app/components/run-results/PatternDetailsModal/components/ComparisonRadarChart';
+import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 const ComparisonQAEntry: React.FC<{
   primaryResult: AutoRAGEvaluationResult;

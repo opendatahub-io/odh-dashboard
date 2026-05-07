@@ -1,12 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {
-  Grid,
-  GridItem,
+  Flex,
+  FlexItem,
   Modal,
   ModalBody,
   ModalHeader,
   ModalVariant,
+  Stack,
+  StackItem,
+  Tab,
+  TabTitleText,
+  Tabs,
   Title,
 } from '@patternfly/react-core';
 import type { AutoragPattern, PatternDataBundle, ScoreType } from '~/app/types/autoragPattern';
@@ -182,50 +187,45 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           />
         </ModalHeader>
         <ModalBody>
-          <Grid hasGutter className="autorag-pattern-details-screen-only">
-            <GridItem span={2} className="autorag-pattern-details-sidebar">
-              <nav aria-label="Pattern detail sections" data-testid="pattern-details-nav">
-                <ul className="autorag-pattern-details-nav-list">
-                  {visibleTabs.map((tab) => (
-                    <li key={tab.key}>
-                      <button
-                        type="button"
-                        className={`autorag-pattern-details-nav-item${
-                          activeTabKey === tab.key
-                            ? ' autorag-pattern-details-nav-item--active'
-                            : ''
-                        }`}
-                        onClick={() => setActiveTabKey(tab.key)}
-                        data-testid={`tab-${tab.key}`}
-                      >
-                        {tab.label}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </GridItem>
-            <GridItem span={10} data-testid="pattern-details-content">
-              {activeTab && ActiveComponent && (
-                <>
-                  <Title
-                    headingLevel="h3"
-                    className="pf-v6-u-mb-lg"
-                    data-testid="pattern-details-tab-title"
-                  >
-                    {activeTab.label}
-                  </Title>
-                  <ActiveComponent
-                    primaryPattern={primaryBundle}
-                    comparisonPattern={comparisonBundle}
-                    optimizedMetric={optimizedMetric}
-                    scoreType={scoreType}
-                    onScoreTypeChange={setScoreType}
+          <Flex className="autorag-pattern-details-screen-only" data-testid="pattern-details-nav">
+            <FlexItem>
+              <Tabs
+                activeKey={activeTabKey}
+                onSelect={(_e, key) => setActiveTabKey(String(key))}
+                isVertical
+                aria-label="Pattern detail sections"
+              >
+                {visibleTabs.map((tab) => (
+                  <Tab
+                    key={tab.key}
+                    eventKey={tab.key}
+                    title={<TabTitleText>{tab.label}</TabTitleText>}
+                    data-testid={`tab-${tab.key}`}
                   />
-                </>
+                ))}
+              </Tabs>
+            </FlexItem>
+            <FlexItem flex={{ default: 'flex_1' }} data-testid="pattern-details-content">
+              {activeTab && ActiveComponent && (
+                <Stack hasGutter>
+                  <StackItem>
+                    <Title headingLevel="h3" data-testid="pattern-details-tab-title">
+                      {activeTab.label}
+                    </Title>
+                  </StackItem>
+                  <StackItem>
+                    <ActiveComponent
+                      primaryPattern={primaryBundle}
+                      comparisonPattern={comparisonBundle}
+                      optimizedMetric={optimizedMetric}
+                      scoreType={scoreType}
+                      onScoreTypeChange={setScoreType}
+                    />
+                  </StackItem>
+                </Stack>
               )}
-            </GridItem>
-          </Grid>
+            </FlexItem>
+          </Flex>
         </ModalBody>
       </Modal>
 

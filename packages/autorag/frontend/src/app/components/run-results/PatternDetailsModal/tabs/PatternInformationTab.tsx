@@ -14,9 +14,11 @@ import {
 } from '@patternfly/react-core';
 import type { ScoreType, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import KeyValueList from '../components/KeyValueList';
-import ScoresList, { scoreTypeLabels } from '../components/ScoresList';
-import ComparisonColumnHeader from '../components/ComparisonColumnHeader';
+import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
+import ScoresList, {
+  scoreTypeLabels,
+} from '~/app/components/run-results/PatternDetailsModal/components/ScoresList';
+import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 function buildTopLevelFields(pattern: {
   name: string;
