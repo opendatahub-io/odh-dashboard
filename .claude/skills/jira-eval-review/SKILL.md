@@ -7,6 +7,8 @@ description: Evaluates code changes in a PR against the acceptance criteria of a
 
 Evaluates code changes against Jira acceptance criteria to produce a structured per-criterion verdict report.
 
+This skill operates independently of the [jira-triage pipeline](../jira-triage/SKILL.md). It is invoked on-demand for a single issue+PR pair, not as part of bulk triage.
+
 ## Inputs
 
 The user provides one or more of:
@@ -28,7 +30,7 @@ Check that both required MCP servers are available before proceeding.
 
 **Verification procedure:**
 
-1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,labels,assignee,parent,issuelinks`
+1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks`
 2. If the call fails with an auth or connection error, stop and report:
    > Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the `user-atlassian` MCP server.
 3. Attempt a lightweight GitHub call (e.g., `get_me`) to verify the GitHub MCP is reachable
@@ -88,7 +90,7 @@ Store each criterion as a numbered item. When criteria come from multiple issues
 Resolve the PR to evaluate. **Auto-detection from the current branch is the default** when no PR number or URL is provided.
 
 1. **User provided a PR number or URL** — use it directly
-2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then `gh pr view --json number,title,url 2>/dev/null` to check for an open PR
+2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then use the GitHub MCP's `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR for that branch. If the GitHub MCP is unavailable, fall back to `gh pr view --json number,title,url 2>/dev/null`
    - **If on `main`:** stop and report an error:
      > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
    - **If on a feature branch with an open PR:** use that PR
@@ -98,9 +100,11 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 
 **If a PR was resolved:**
 
-1. Call `pull_request_read` with `method: "get"` to get PR metadata (title, body, state)
+1. Call `pull_request_read` with `method: "get"` to get PR metadata (title, body, state, draft status)
 2. Call `pull_request_read` with `method: "get_files"` to get the list of changed files
 3. Call `pull_request_read` with `method: "get_diff"` to get the full diff
+
+If the PR is in **draft** state, note this prominently in the report header. Draft PRs may have intentionally incomplete changes; use `[SKIP]` rather than `[MISS]` for criteria that appear to be not-yet-implemented (as opposed to overlooked).
 
 **If evaluating local branch changes (no PR):**
 
@@ -108,7 +112,6 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 2. Use `git diff --name-only <base>...HEAD` to get the list of changed files
 3. Read key changed files from the local workspace using the `Read` tool
 
-For large PRs (many files), also read key changed files from the local workspace using the `Read` tool for deeper analysis beyond what the diff shows.
 
 ## Phase 3: Evaluate Criteria
 
