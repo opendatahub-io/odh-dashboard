@@ -17,6 +17,10 @@ export const getOcResourceNames = (
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.code !== 0 || !result.stdout.trim()) {
+      cy.log(`Failed to get ${kind} in ${applicationNamespace}: ${result.stderr}`);
+      return [] as string[];
+    }
     const jsonResponse = JSON.parse(result.stdout);
     const metadataNames = jsonResponse.items.map(
       (item: { metadata: { name: string } }) => item.metadata.name,
