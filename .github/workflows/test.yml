@@ -388,18 +388,8 @@ jobs:
     steps:
       - name: Check for failures
         run: |
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
-            echo "One or more required jobs failed:"
-            echo "  Lint: ${{ needs.Lint.result }}"
-            echo "  Type-Check: ${{ needs.Type-Check.result }}"
-            echo "  Unit-Tests: ${{ needs.Unit-Tests.result }}"
-            echo "  Contract-Tests: ${{ needs.Contract-Tests.result }}"
-            echo "  Cypress-Mock-Tests: ${{ needs.Cypress-Mock-Tests.result }}"
-            echo "  Combine-Results-and-Upload: ${{ needs.Combine-Results-and-Upload.result }}"
-            exit 1
-          fi
-          if [[ "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
-            echo "One or more required jobs were cancelled"
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required jobs failed or were cancelled."
             exit 1
           fi
           echo "All required jobs have successfully completed for Node.js ${{ env.NODE_VERSION }}."
