@@ -55,8 +55,6 @@ func (app *App) determineErrorComponentAndRetriability(errorCode string, statusC
 		component = "mcp"
 	case "resource_not_found", "vector_store_not_found":
 		component = "rag"
-	case "content_policy_violation", "content_blocked", "guardrail_violation":
-		component = "guardrails"
 	case "invalid_model", "model_not_found", "model_unavailable", "model_error", "invalid_parameter", "invalid_request_error":
 		component = "model"
 	case "INVALID_REQUEST", "UNAUTHORIZED", "NOT_FOUND", "CONNECTION_FAILED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR", "TIMEOUT":
