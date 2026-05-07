@@ -1,4 +1,17 @@
 // From packages/maas/bff/internal/models/model.go
+export type MaaSModelDetails = {
+  displayName?: string;
+  description?: string;
+  genaiUseCase?: string;
+  contextWindow?: string;
+};
+
+export type MaaSModelSubscriptionInfo = {
+  name: string;
+  displayName?: string;
+  description?: string;
+};
+
 export type MaaSModel = {
   id: string;
   object: string;
@@ -6,6 +19,9 @@ export type MaaSModel = {
   owned_by: string;
   ready: boolean;
   url?: string;
+  modelDetails?: MaaSModelDetails;
+  kind?: string;
+  subscriptions?: MaaSModelSubscriptionInfo[];
 };
 
 export type MaaSModelRef = {
