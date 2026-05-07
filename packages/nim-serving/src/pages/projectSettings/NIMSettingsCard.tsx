@@ -13,6 +13,7 @@ import {
   StackItem,
   Flex,
   FlexItem,
+  Spinner,
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
@@ -99,19 +100,23 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   }, [namespace, refresh, stopPollingDeleteStatus]);
 
   const renderFooterContent = () => {
+    if (!accessReviewLoaded) {
+      return <Spinner size="md" />;
+    }
+    if (!canCreateAccount) {
+      return (
+        <Alert
+          variant="warning"
+          isInline
+          isPlain
+          title="You do not have permission to configure NVIDIA NIM in this project. Contact a project administrator."
+          data-testid="nim-no-permission-alert"
+        />
+      );
+    }
+
     switch (status) {
       case NIMAccountStatus.NOT_FOUND:
-        if (!accessReviewLoaded || !canCreateAccount) {
-          return accessReviewLoaded ? (
-            <Alert
-              variant="warning"
-              isInline
-              isPlain
-              title="You do not have permission to configure NVIDIA NIM in this project. Contact a project administrator."
-              data-testid="nim-no-permission-alert"
-            />
-          ) : null;
-        }
         return (
           <Button
             variant="secondary"
