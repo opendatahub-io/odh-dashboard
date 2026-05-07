@@ -301,6 +301,22 @@ describe('AutoragEvaluationSelect', () => {
       });
     });
 
+    it('should show a notification when more than one file is dropped', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const fileA = new File(['{}'], 'a.json', { type: 'application/json' });
+      const fileB = new File(['{}'], 'b.json', { type: 'application/json' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [fileA, fileB]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Too many files',
+          'Only one file can be uploaded at a time.',
+        );
+      });
+    });
+
     it('should not upload a disallowed file type from the file input and should notify', async () => {
       const file = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);

@@ -442,6 +442,25 @@ describe('AutomlConfigure', () => {
         });
       });
 
+      it('should show a notification when more than one file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const fileA = new File(['a'], 'a.csv', { type: 'text/csv' });
+        const fileB = new File(['b'], 'b.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([fileA, fileB]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Too many files',
+            'Only one file can be uploaded at a time.',
+          );
+        });
+      });
+
       it('should upload an allowed file dropped on the zone', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));

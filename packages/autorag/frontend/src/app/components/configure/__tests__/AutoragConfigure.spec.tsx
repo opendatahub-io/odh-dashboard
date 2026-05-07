@@ -524,6 +524,25 @@ describe('AutoragConfigure', () => {
         });
       });
 
+      it('should show a notification when more than one file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const fileA = new File(['a'], 'a.txt', { type: 'text/plain' });
+        const fileB = new File(['b'], 'b.txt', { type: 'text/plain' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([fileA, fileB]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Too many files',
+            'Only one file can be uploaded at a time.',
+          );
+        });
+      });
+
       it('should upload an allowed file dropped on the zone', async () => {
         renderComponent();
         fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
