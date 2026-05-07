@@ -63,6 +63,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
         '@SmokeSet1',
         '@Tier1',
         '@HardwareProfilesCI',
+        '@TemporaryTagHardwareProfile',
       ],
     },
     () => {
