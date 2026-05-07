@@ -72,10 +72,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-        timeout-minutes: 10
-        working-directory: ${{ matrix.dir }}
+      - name: Module caches
+        uses: ./.github/actions/module-caches
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
 
       - name: Run npm audit on head
         id: audit
@@ -114,7 +115,7 @@ jobs:
             touch "base/${AUDIT_DIR}/base-ids.txt"
           else
             cd "base/${AUDIT_DIR}"
-            npm ci --ignore-scripts
+            npm install --ignore-scripts
             set +e
             npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
             set -e
