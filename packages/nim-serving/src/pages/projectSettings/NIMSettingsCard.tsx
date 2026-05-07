@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Alert,
   Card,
   CardBody,
   CardFooter,
@@ -17,10 +18,12 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
+import { useAccessReview } from '@odh-dashboard/internal/api';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
 import { deleteNIMResources } from '../../api/accounts/utils';
+import { NIMAccountModel } from '../../api/accounts/k8s';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -36,6 +39,13 @@ type NIMSettingsCardProps = {
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, nimAccount, errorMessages, refresh, startRevalidation } =
     useNIMAccountStatus(namespace);
+
+  const [canCreateAccount, accessReviewLoaded] = useAccessReview({
+    group: NIMAccountModel.apiGroup,
+    resource: NIMAccountModel.plural,
+    namespace,
+    verb: 'create',
+  });
 
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -91,6 +101,17 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const renderFooterContent = () => {
     switch (status) {
       case NIMAccountStatus.NOT_FOUND:
+        if (!accessReviewLoaded || !canCreateAccount) {
+          return accessReviewLoaded ? (
+            <Alert
+              variant="warning"
+              isInline
+              isPlain
+              title="You do not have permission to configure NVIDIA NIM in this project. Contact a project administrator."
+              data-testid="nim-no-permission-alert"
+            />
+          ) : null;
+        }
         return (
           <Button
             variant="secondary"
