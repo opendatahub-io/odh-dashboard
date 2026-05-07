@@ -28,7 +28,7 @@ Check that both required MCP servers are available before proceeding.
 
 **Verification procedure:**
 
-1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,labels,assignee`
+1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,labels,assignee,parent,issuelinks`
 2. If the call fails with an auth or connection error, stop and report:
    > Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the `user-atlassian` MCP server.
 3. Attempt a lightweight GitHub call (e.g., `get_me`) to verify the GitHub MCP is reachable
@@ -41,6 +41,10 @@ If both succeed, proceed. The Jira issue data from step 1 is reused in Phase 2 (
 
 ### Step 1: Extract Acceptance Criteria
 
+Extract acceptance criteria from the provided Jira issue **and** its parent/linked issues.
+
+#### 1a. Collect criteria from the direct issue
+
 Parse the Jira issue description (fetched in Phase 1) to extract discrete acceptance criteria. Look for:
 
 - A section titled "Acceptance Criteria" (any heading level, case-insensitive)
@@ -51,12 +55,33 @@ If no explicit "Acceptance Criteria" section exists, look for:
 - A "Requirements" or "Definition of Done" section
 - Bullet-point lists that describe expected behavior or deliverables
 
-If no structured criteria can be found, report:
-> No acceptance criteria found in the issue description. The issue may need a description update before evaluation. Proceeding with the issue summary as a single high-level criterion.
+#### 1b. Traverse parent hierarchy and linked issues
+
+The direct issue may not contain all relevant criteria. Parent epics/stories and linked issues often carry high-level acceptance criteria that child tasks must satisfy.
+
+1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key and extract any acceptance criteria from its description. Continue up the hierarchy (parent-of-parent) until there is no further parent or no additional criteria are found (max depth: 3).
+2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), fetch the linked issue and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements (skip "is cloned by", "duplicates", etc.).
+3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
+
+De-duplicate criteria that appear in multiple issues. When a criterion appears in both the direct issue and a parent, keep it once and note that it originates from the parent.
+
+#### 1c. Handle no criteria found
+
+If no structured criteria can be found across the issue and its parents/links, report:
+> No acceptance criteria found in the issue or its parent/linked issues. The issue may need a description update before evaluation. Proceeding with the issue summary as a single high-level criterion.
 
 In that case, use the issue **summary** as a single criterion (the evaluation will be less granular).
 
-Store each criterion as a numbered item for the report.
+#### 1d. Organize criteria for the report
+
+Store each criterion as a numbered item. When criteria come from multiple issues, group and label them by source:
+
+```
+1. [RHOAIENG-12345] Criterion from the direct issue
+2. [RHOAIENG-12345] Another criterion from the direct issue
+3. [RHOAIENG-12000 — parent] Criterion inherited from parent epic
+4. [RHOAIENG-12100 — linked] Criterion from a linked story
+```
 
 ### Step 2: Find the PR
 
@@ -71,11 +96,17 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 
 ### Step 3: Fetch Code Changes
 
-Using the resolved PR number:
+**If a PR was resolved:**
 
 1. Call `pull_request_read` with `method: "get"` to get PR metadata (title, body, state)
 2. Call `pull_request_read` with `method: "get_files"` to get the list of changed files
 3. Call `pull_request_read` with `method: "get_diff"` to get the full diff
+
+**If evaluating local branch changes (no PR):**
+
+1. Use the `git diff <base>...HEAD` output from Step 2 as the diff
+2. Use `git diff --name-only <base>...HEAD` to get the list of changed files
+3. Read key changed files from the local workspace using the `Read` tool
 
 For large PRs (many files), also read key changed files from the local workspace using the `Read` tool for deeper analysis beyond what the diff shows.
 
@@ -118,6 +149,7 @@ Present the report in this format:
 ## Jira Evaluation Review
 
 **Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
+**Related issues analyzed:** {list of parent/linked issue keys with links, or "none" if only the direct issue}
 **PR:** [#{number}]({url}) — {title}
 **Status:** {N}/{total} criteria satisfied
 
@@ -155,5 +187,5 @@ Present the report in this format:
 - Every issue key in the report is a clickable link: `[RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345)`
 - PR references are clickable links when a PR exists: `[#4567](https://github.com/opendatahub-io/odh-dashboard/pull/4567)`. When evaluating from a local branch diff, show the branch name instead (e.g., `_(no PR)_ — branch \`feature-branch\``)
 - File references use backtick-wrapped paths: `` `frontend/src/pages/Foo.tsx` ``
-- Code citations use the code reference format with `startLine:endLine:filepath`
+- Code citations use fenced code blocks with the `startLine:endLine:filepath` header (e.g., `` ```12:18:frontend/src/pages/Foo.tsx ``)
 - The summary table appears first for quick scanning; detailed sections follow
