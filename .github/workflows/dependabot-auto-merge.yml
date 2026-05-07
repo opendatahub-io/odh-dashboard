@@ -47,21 +47,21 @@ jobs:
           fi
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
-      - name: Verify combined commit status
+      - name: Verify all checks passed
         id: checks
         if: steps.pr.outputs.number
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |
-          COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
-            --jq '.state')
+          FAILING=$(gh pr checks "$PR_NUMBER" --repo "$REPO" \
+            --json name,state --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")] | length')
 
-          echo "Combined commit status: $COMBINED"
+          echo "Non-passing checks: $FAILING"
 
-          if [ "$COMBINED" != "success" ]; then
-            echo "Not all checks/statuses have passed (state=$COMBINED), skipping"
+          if [ "$FAILING" != "0" ]; then
+            echo "Not all checks have passed, skipping"
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -89,7 +89,7 @@ jobs:
   # Safety-net sweep: catches any Dependabot PRs that slipped through
   # the event-driven paths (dropped events, races, etc.).
   auto-merge-sweep:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && github.repository == 'opendatahub-io/odh-dashboard'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -121,14 +121,11 @@ jobs:
           for PR_NUMBER in $PR_NUMBERS; do
             echo "--- Checking PR #$PR_NUMBER ---"
 
-            HEAD_SHA=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
-              --json headRefOid --jq '.headRefOid')
+            FAILING=$(gh pr checks "$PR_NUMBER" --repo "$REPO" \
+              --json name,state --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")] | length' 2>/dev/null || echo "unknown")
 
-            COMBINED=$(gh api "repos/${REPO}/commits/${HEAD_SHA}/status" \
-              --jq '.state' 2>/dev/null || echo "unknown")
-
-            if [ "$COMBINED" != "success" ]; then
-              echo "Combined status: $COMBINED — not ready"
+            if [ "$FAILING" != "0" ]; then
+              echo "PR #$PR_NUMBER has non-passing checks — not ready"
               continue
             fi
 
