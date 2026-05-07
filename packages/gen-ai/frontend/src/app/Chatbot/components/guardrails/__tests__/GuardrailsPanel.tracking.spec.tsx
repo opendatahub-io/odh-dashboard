@@ -86,6 +86,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
       await user.click(inputSwitch);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+        isEnabled: true,
         inputEnabled: true,
         outputEnabled: false,
       });
@@ -100,6 +101,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
       await user.click(inputSwitch);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+        isEnabled: false,
         inputEnabled: false,
         outputEnabled: false,
       });
@@ -115,6 +117,7 @@ describe('GuardrailsPanel - Event Tracking', () => {
       await user.click(outputSwitch);
 
       expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Guardrails Enabled', {
+        isEnabled: true,
         inputEnabled: false,
         outputEnabled: true,
       });
