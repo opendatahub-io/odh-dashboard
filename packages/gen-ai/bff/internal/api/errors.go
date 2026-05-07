@@ -117,14 +117,6 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	}
 	app.errorResponse(w, r, httpError)
 }
-func (app *App) frontendErrorResponse(w http.ResponseWriter, r *http.Request, status int, frontendError *integrations.FrontendErrorResponse) {
-	err := app.WriteJSON(w, status, frontendError, nil)
-
-	if err != nil {
-		app.LogError(r, err)
-		w.WriteHeader(status)
-	}
-}
 
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
