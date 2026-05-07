@@ -702,7 +702,10 @@ const useChatbotMessages = ({
       // Log error details for debugging
       if (errorCategory) {
         // eslint-disable-next-line no-console
-        console.error('Response API error:', { category: errorCategory, message: getErrorMessage(error) });
+        console.error('Response API error:', {
+          category: errorCategory,
+          message: getErrorMessage(error),
+        });
       }
 
       const errorCode =
