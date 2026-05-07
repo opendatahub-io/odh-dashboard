@@ -105,21 +105,27 @@ jobs:
         env:
           AUDIT_DIR: ${{ matrix.dir }}
         run: |
-          cd "base/${AUDIT_DIR}"
-          npm ci
-          set +e
-          npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
-          set -e
-
-          if jq empty audit-base.json 2>/dev/null; then
-            jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
+          if [ ! -d "base/${AUDIT_DIR}" ]; then
+            echo "Directory base/${AUDIT_DIR} does not exist on the base branch (new package); treating as zero advisories"
+            mkdir -p "base/${AUDIT_DIR}"
+            touch "base/${AUDIT_DIR}/base-ids.txt"
           else
-            echo "::warning::npm audit produced invalid JSON on base; treating as zero advisories"
-            touch base-ids.txt
+            cd "base/${AUDIT_DIR}"
+            npm ci
+            set +e
+            npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
+            set -e
+
+            if jq empty audit-base.json 2>/dev/null; then
+              jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
+            else
+              echo "::warning::npm audit produced invalid JSON on base; treating as zero advisories"
+              touch base-ids.txt
+            fi
           fi
 
           echo "Advisory IDs on base:"
-          cat base-ids.txt
+          cat "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt"
 
       - name: Evaluate new advisories
         id: evaluate
