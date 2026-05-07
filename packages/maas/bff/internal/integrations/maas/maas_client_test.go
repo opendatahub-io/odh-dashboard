@@ -147,3 +147,40 @@ func TestListSubscriptionsForApiKeys_ValidDataPassedThrough(t *testing.T) {
 		t.Errorf("rate limit data was altered: got %+v", got)
 	}
 }
+
+func TestListModels_ForwardsRequestHeaders(t *testing.T) {
+	body := models.MaaSModelsResponse{
+		Object: "list",
+		Data: []models.MaaSModel{{
+			ID: "m1", Object: "model", Created: 1, OwnedBy: "ns", Ready: true, URL: "http://x",
+		}},
+	}
+	var sawReturnAll string
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/models" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		sawReturnAll = r.Header.Get("X-MaaS-Return-All-Models")
+		b, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(b)
+	})
+	client := newTestClient(t, h)
+
+	incoming := make(http.Header)
+	incoming.Set("X-MaaS-Return-All-Models", "true")
+
+	got, err := client.ListModels(context.Background(), incoming)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sawReturnAll != "true" {
+		t.Errorf("expected X-MaaS-Return-All-Models forwarded upstream, got %q", sawReturnAll)
+	}
+	if len(got) != 1 || got[0].ID != "m1" {
+		t.Errorf("unexpected models list: %+v", got)
+	}
+}
