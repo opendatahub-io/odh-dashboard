@@ -28,6 +28,7 @@ type PatternDetailsModalHeaderProps = {
   onDownload: () => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   comparisonEnabled?: boolean;
+  comparisonPatternIndex?: number | null;
 };
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
@@ -39,6 +40,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onDownload,
   onSaveNotebook,
   comparisonEnabled,
+  comparisonPatternIndex,
 }) => {
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
@@ -82,6 +84,7 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       <DropdownItem
                         key={i}
                         value={i}
+                        isDisabled={comparisonEnabled && i === comparisonPatternIndex}
                         data-testid={`pattern-option-${pattern.name}`}
                       >
                         {formatPatternName(pattern.name)}
@@ -170,14 +173,14 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
                       value="indexing"
                       data-testid="pattern-details-save-indexing-notebook"
                     >
-                      Indexing
+                      {comparisonEnabled ? 'Save as indexing notebook' : 'Indexing'}
                     </DropdownItem>
                     <DropdownItem
                       key="inference"
                       value="inference"
                       data-testid="pattern-details-save-inference-notebook"
                     >
-                      Inference
+                      {comparisonEnabled ? 'Save as inference notebook' : 'Inference'}
                     </DropdownItem>
                   </DropdownList>
                 </Dropdown>

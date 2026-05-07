@@ -18,11 +18,20 @@ export const scoreTypeLabels: Record<ScoreType, string> = {
 };
 /* eslint-enable camelcase */
 
+export type ScoresListVariant = 'primary' | 'comparison';
+
+const VARIANT_CLASSES: Record<ScoresListVariant, string> = {
+  primary: '',
+  comparison: 'autorag-scores-list--comparison',
+};
+
 const ScoresList: React.FC<{
   scores: Record<string, AutoragPatternScoreMetric | undefined>;
   scoreType: ScoreType;
-}> = ({ scores, scoreType }) => (
-  <DescriptionList isHorizontal horizontalTermWidthModifier={{ default: '20ch' }}>
+  /** Visual variant for the progress bar color. Defaults to 'primary' (blue). */
+  variant?: ScoresListVariant;
+}> = ({ scores, scoreType, variant = 'primary' }) => (
+  <DescriptionList isHorizontal className="autorag-scores-list">
     {Object.entries(scores).map(([key, score]) => {
       if (!score) {
         return null;
@@ -50,6 +59,7 @@ const ScoresList: React.FC<{
               title=""
               label={`${value.toFixed(3)}`}
               measureLocation={ProgressMeasureLocation.outside}
+              className={VARIANT_CLASSES[variant]}
               data-testid={`score-progress-${key}`}
             />
           </DescriptionListDescription>

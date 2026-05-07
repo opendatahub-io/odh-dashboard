@@ -183,6 +183,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             onDownload={() => setIsPrinting(true)}
             onSaveNotebook={onSaveNotebook}
             comparisonEnabled={comparisonEnabled}
+            comparisonPatternIndex={comparisonPatternIndex}
           />
         </ModalHeader>
         <ModalBody>

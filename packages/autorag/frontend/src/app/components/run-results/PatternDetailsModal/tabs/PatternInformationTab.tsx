@@ -121,24 +121,28 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
       <StackItem>
         <Grid hasGutter>
           <GridItem span={6}>
-            <Stack hasGutter>
-              <StackItem>
-                <KeyValueList entries={primaryFields} />
-              </StackItem>
-              <StackItem>
-                <ScoresList scores={primaryPattern.pattern.scores} scoreType={scoreType} />
-              </StackItem>
-            </Stack>
+            <KeyValueList entries={primaryFields} />
           </GridItem>
           <GridItem span={6}>
-            <Stack hasGutter>
-              <StackItem>
-                <KeyValueList entries={comparisonFields} />
-              </StackItem>
-              <StackItem>
-                <ScoresList scores={comparisonPattern.pattern.scores} scoreType={scoreType} />
-              </StackItem>
-            </Stack>
+            <KeyValueList entries={comparisonFields} />
+          </GridItem>
+        </Grid>
+      </StackItem>
+      <StackItem>
+        <Grid hasGutter>
+          <GridItem span={6}>
+            <ScoresList
+              scores={primaryPattern.pattern.scores}
+              scoreType={scoreType}
+              variant="primary"
+            />
+          </GridItem>
+          <GridItem span={6}>
+            <ScoresList
+              scores={comparisonPattern.pattern.scores}
+              scoreType={scoreType}
+              variant="comparison"
+            />
           </GridItem>
         </Grid>
       </StackItem>

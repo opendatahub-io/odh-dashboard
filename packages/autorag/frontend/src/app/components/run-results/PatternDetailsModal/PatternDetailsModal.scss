@@ -1,11 +1,16 @@
 .autorag-pattern-details-modal {
-  --pf-v6-c-modal-box--MaxWidth: 1200px;
-  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1200px;
+  --pf-v6-c-modal-box--MaxWidth: 1300px;
+  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   height: 80vh;
 }
 
 .autorag-pattern-details-modal .pf-v6-c-description-list__group {
   align-items: center;
+}
+
+// Comparison pattern scores use green bars to distinguish from primary (blue)
+.autorag-scores-list--comparison {
+  --pf-v6-c-progress__indicator--BackgroundColor: var(--pf-t--global--color--status--success--default);
 }
 
 .autorag-pre-wrap {
