@@ -13,7 +13,6 @@ type MaaSModelSubscriptionInfo struct {
 	Description string `json:"description,omitempty"`
 }
 
-
 // MaaSModel represents a Model as a Service model.
 type MaaSModel struct {
 	ID            string                      `json:"id"`
