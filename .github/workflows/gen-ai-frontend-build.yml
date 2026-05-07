@@ -53,7 +53,7 @@ jobs:
 
       - name: Install gen-ai dependencies
         working-directory: packages/gen-ai/frontend
-        run: npm install
+        run: npm install && npx --no-install cypress install
 
       - name: Run tests
         working-directory: packages/gen-ai/frontend

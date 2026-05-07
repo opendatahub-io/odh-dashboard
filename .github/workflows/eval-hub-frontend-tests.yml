@@ -49,7 +49,7 @@ jobs:
 
       - name: Install eval-hub dependencies
         working-directory: packages/eval-hub/frontend
-        run: npm install
+        run: npm install && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/eval-hub/frontend

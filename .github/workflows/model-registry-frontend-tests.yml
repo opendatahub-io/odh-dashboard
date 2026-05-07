@@ -49,7 +49,7 @@ jobs:
 
       - name: Install model-registry dependencies
         working-directory: packages/model-registry/upstream/frontend
-        run: npm install
+        run: npm install && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/model-registry/upstream/frontend

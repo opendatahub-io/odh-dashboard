@@ -10,11 +10,11 @@ export const getGroupsConfig = (): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Getting groups config: ${command}`);
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR getting groups config
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -30,11 +30,11 @@ export const restoreDefaultGroupsConfig = (): void => {
   cy.log('Restoring default groups configuration to rhods-admins / system:authenticated');
 
   cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR restoring groups config
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     cy.log(`Restored groups config: ${result.stdout}`);
   });
@@ -60,11 +60,11 @@ export const updateGroupsConfig = (adminGroups: string, allowedGroups: string): 
   cy.log(`Updating groups config - Admin: ${adminGroups}, Allowed: ${allowedGroups}`);
 
   cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR updating groups config
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     cy.log(`Updated groups config: ${result.stdout}`);
   });

@@ -26,7 +26,7 @@ export const getOdhDocuments = (
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH documents: ${maskedStderr}`);
       return [];
@@ -48,7 +48,7 @@ export const getOdhQuickstarts = (
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH quickstarts: ${maskedStderr}`);
       return [];
@@ -72,7 +72,7 @@ export const getOdhApplications = (
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH applications: ${maskedStderr}`);
       return [];
