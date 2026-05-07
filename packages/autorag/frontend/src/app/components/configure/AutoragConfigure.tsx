@@ -35,6 +35,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Spinner,
   Split,
   SplitItem,
@@ -64,6 +65,7 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer.tsx';
 import type { File as S3File } from '~/app/components/common/FileExplorer/FileExplorer.tsx';
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
+import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -74,7 +76,7 @@ import {
   RAG_METRIC_ANSWER_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
-import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
+import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
@@ -83,10 +85,6 @@ import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.scss';
-
-const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
-  s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
-};
 
 /** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
 const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -136,7 +134,15 @@ const OPTIMIZATION_METRICS: {
   },
 ];
 
-function AutoragConfigure(): React.JSX.Element {
+type AutoragConfigureProps = {
+  initialValues?: Partial<ConfigureSchema>;
+  initialInputDataSecret?: SecretSelection;
+};
+
+function AutoragConfigure({
+  initialValues,
+  initialInputDataSecret,
+}: AutoragConfigureProps): React.JSX.Element {
   const { namespace } = useParams();
   const [allConnectionTypes] = useWatchConnectionTypes();
   const autoragConnectionTypes = React.useMemo(
@@ -159,9 +165,21 @@ function AutoragConfigure(): React.JSX.Element {
   const [isExperimentSettingsOpen, setIsExperimentSettingsOpen] = useState<boolean>(false);
   const [isMetricSelectOpen, setIsMetricSelectOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>();
+  const initialInputDataKey = initialValues?.input_data_key;
+
+  const [selectedSecret, setSelectedSecret] = useState<SecretSelection | undefined>(
+    initialInputDataSecret,
+  );
   const [inputDataSourceMode, setInputDataSourceMode] = useState<'select' | 'upload'>('select');
-  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>();
+  const [selectedInputDataFile, setSelectedInputDataFile] = useState<S3File | undefined>(() => {
+    if (!initialInputDataKey) {
+      return undefined;
+    }
+    const lastSegment = initialInputDataKey.split('/').pop();
+    const fileName = lastSegment || initialInputDataKey;
+    const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+    return { name: fileName, path: `/${initialInputDataKey}`, type: ext };
+  });
   const [isInputDataFileUploading, setIsInputDataFileUploading] = useState(false);
   const [isInputDataDropdownOpen, setIsInputDataDropdownOpen] = useState(false);
   const inputDataUploadSeqRef = useRef(0);
@@ -196,17 +214,33 @@ function AutoragConfigure(): React.JSX.Element {
 
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
-  const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  const {
+    data: allModelsData,
+    isError: isModelsError,
+    isLoading: isModelsLoading,
+  } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
-  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    if (isModelsError) {
+      notification.error(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    }
+  }, [isModelsError, notification]);
+
+  // When the secret changes, mark models as needing re-initialization and
+  // immediately clear stale selections so the UI reflects the transition.
   useEffect(() => {
     modelsInitialized.current = false;
-  }, [llamaStackSecretName]);
+    setValue('generation_models', []);
+    setValue('embeddings_models', []);
+  }, [llamaStackSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
-    if (allModelsData?.models && !modelsInitialized.current) {
+    if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
       reset({
         ...getValues(),
@@ -222,39 +256,40 @@ function AutoragConfigure(): React.JSX.Element {
           .toSorted((a, b) => a.localeCompare(b)),
       });
     }
-  }, [allModelsData, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset]);
 
-  // set bucket from selected secret
-  useEffect(() => {
-    // reset bucket if secret is removed
+  // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
+  useReconfigureSafeEffect(() => {
+    // Clear bucket when the secret object is deselected
     if (!selectedSecret) {
       setValue('input_data_bucket_name', '', { shouldValidate: true });
       return;
     }
 
-    const bucketKey = findKey(selectedSecret.data, (value, key) => key === 'AWS_S3_BUCKET');
-    setValue('input_data_bucket_name', bucketKey ? selectedSecret.data[bucketKey] : '', {
+    const secretData = selectedSecret.data ?? {};
+    const bucketKey = findKey(secretData, (value, key) => key === 'AWS_S3_BUCKET');
+    setValue('input_data_bucket_name', bucketKey ? secretData[bucketKey] : '', {
       shouldValidate: true,
     });
   }, [selectedSecret, setValue]);
 
-  // reset bucket if secret is removed
+  // Clear bucket when the form-level secret name is reset (e.g. user clears the dropdown)
   useEffect(() => {
     if (inputDataSecretName === '') {
       setValue('input_data_bucket_name', '', { shouldValidate: true });
     }
   }, [inputDataSecretName, setValue]);
 
-  // reset input data key if document input mode changes
-  useEffect(() => {
+  // reset input data key if document input mode changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSourceMode, setValue]);
 
-  // ensure input and test have the same secret and bucket
-  useEffect(() => {
+  // ensure input and test have the same secret and bucket (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     if (inputDataSecretName !== testDataSecretName) {
       setValue('test_data_secret_name', inputDataSecretName, { shouldValidate: true });
     }
@@ -263,18 +298,17 @@ function AutoragConfigure(): React.JSX.Element {
     }
   }, [inputDataBucketName, inputDataSecretName, setValue, testDataBucketName, testDataSecretName]);
 
-  // reset selected file values if input secret or bucket changes
-  useEffect(() => {
+  // reset selected file values if input secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     inputDataUploadSeqRef.current += 1;
     setIsInputDataFileUploading(false);
     setValue('input_data_key', '', { shouldValidate: true });
     setSelectedInputDataFile(undefined);
   }, [inputDataSecretName, inputDataBucketName, setValue]);
 
-  // reset selected file values if test secret or bucket changes
-  useEffect(() => {
+  // reset selected file values if test secret or bucket changes (skips mount to preserve reconfigure)
+  useReconfigureSafeEffect(() => {
     setValue('test_data_key', '', { shouldValidate: true });
-    setSelectedInputDataFile(undefined);
   }, [testDataSecretName, testDataBucketName, setValue]);
 
   const openExperimentSettings = () => {
@@ -381,7 +415,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 <SecretSelector
                                   namespace={String(namespace)}
                                   type="storage"
-                                  additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  additionalRequiredKeys={REQUIRED_CONNECTION_SECRET_KEYS}
                                   isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
@@ -392,11 +426,13 @@ function AutoragConfigure(): React.JSX.Element {
                                     }
 
                                     const requiredKeys =
-                                      AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-                                    const availableKeys = Object.keys(secret.data);
-                                    const invalid =
-                                      getMissingRequiredKeys(requiredKeys, availableKeys).length >
-                                      0;
+                                      REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+                                    const invalid = requiredKeys
+                                      ? getMissingRequiredKeys(
+                                          requiredKeys,
+                                          Object.keys(secret.data ?? {}),
+                                        ).length > 0
+                                      : true;
                                     setSelectedSecret({ ...secret, invalid });
                                     onChange(invalid ? '' : secret.name);
                                   }}
@@ -842,7 +878,10 @@ function AutoragConfigure(): React.JSX.Element {
                                       isDisabled={
                                         !inputDataBucketName ||
                                         !inputDataKeyValue ||
-                                        form.formState.isSubmitting
+                                        form.formState.isSubmitting ||
+                                        isModelsLoading ||
+                                        isModelsError ||
+                                        !allModelsData?.models.length
                                       }
                                     >
                                       Edit
@@ -857,70 +896,78 @@ function AutoragConfigure(): React.JSX.Element {
                           <CardBody>
                             <Stack hasGutter>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="generation_models"
-                                  render={(generationModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
-                                      {!!generationModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {generationModels.map((model) => (
-                                                <ListItem key={`generation-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="generation_models"
+                                    render={(generationModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        {!!generationModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {generationModels.map((model) => (
+                                                  <ListItem key={`generation-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="embeddings_models"
-                                  render={(embeddingModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                      {!!embeddingModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {embeddingModels.map((model) => (
-                                                <ListItem key={`embedding-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="embeddings_models"
+                                    render={(embeddingModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        {!!embeddingModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {embeddingModels.map((model) => (
+                                                  <ListItem key={`embedding-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                             </Stack>
                           </CardBody>
@@ -950,9 +997,10 @@ function AutoragConfigure(): React.JSX.Element {
             const list = await refresh();
             const secret = list?.find((s) => s.name === connection.metadata.name);
             if (secret) {
-              const requiredKeys = AUTORAG_REQUIRED_KEYS[secret.type ?? ''] ?? [];
-              const availableKeys = Object.keys(secret.data);
-              const invalid = getMissingRequiredKeys(requiredKeys, availableKeys).length > 0;
+              const requiredKeys = REQUIRED_CONNECTION_SECRET_KEYS[secret.type ?? ''];
+              const invalid = requiredKeys
+                ? getMissingRequiredKeys(requiredKeys, Object.keys(secret.data ?? {})).length > 0
+                : true;
               setSelectedSecret({ ...secret, invalid });
               setValue('input_data_secret_name', invalid ? '' : secret.name, {
                 shouldValidate: true,

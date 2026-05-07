@@ -73,6 +73,8 @@ npm run type-check
 
 **[BOOKMARKS.md](BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
 
+**[Multi-Agent Workflows](docs/multi-agent-workflows.md)** covers running parallel agent sessions locally (git worktrees, Agent Teams, terminal layout) and remotely (Ambient platform).
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.

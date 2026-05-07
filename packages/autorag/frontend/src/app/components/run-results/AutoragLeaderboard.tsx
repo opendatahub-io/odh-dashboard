@@ -2,7 +2,9 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Label,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -106,6 +108,8 @@ type SettingsField =
  *   When present, the header displays the acronym while the tooltip continues to show the
  *   full `name`. Useful for metric columns where the full name is too long for a header cell.
  * @property description - Optional supplementary text shown below `name` in the tooltip.
+ * @property minWidth - Optional CSS min-width value applied to the column header (e.g., `"9rem"`).
+ *   Prevents narrow metric columns from collapsing when the table has many columns.
  * @property priority - Sort order for non-sticky columns (ascending). Default: MAX_SAFE_INTEGER.
  * @property field - LeaderboardEntry key for togglable settings columns.
  * @property testId - data-testid prefix for settings column headers and cells.
@@ -116,6 +120,7 @@ const COLUMN_META: Record<
     name: string;
     acronym?: string;
     description?: string;
+    minWidth?: string;
     priority?: number;
     field?: SettingsField;
     testId?: string;
@@ -127,6 +132,10 @@ const COLUMN_META: Record<
     description:
       'The rank of the pattern. Ranks are determined by the performance of the optimized metric.',
   },
+  pattern: {
+    name: 'Pattern name',
+    description: 'The name of the generated RAG pattern.',
+  },
   modelNames: {
     name: 'Model names',
     description: 'Names of the generation and embedding models used in the pattern.',
@@ -134,64 +143,76 @@ const COLUMN_META: Record<
   // metric columns use the "metric:<key>" id — handled via a fallback with priority 1
   'metric:faithfulness': {
     name: formatMetricName('faithfulness'),
-    // description: 'Accuracy of the generated response to the retrieved text.',
+    description:
+      'Measures whether the generated answer uses information from the retrieved context rather than hallucinated content. A high faithfulness score means the answer uses information from the retrieved documents, not from the model’s training data.',
+    minWidth: '15rem',
   },
   'metric:answer_correctness': {
     name: formatMetricName('answer_correctness'),
-    // description:
-    //   'Correctness of the generated response including both the relevance of the retrieved context and the quality of the generated response.',
+    description:
+      'Measures whether the generated answer matches the expected ground-truth answers in your test data. A high answer correctness score means the RAG system produces answers that align with your provided correct answers.',
+    minWidth: '15rem',
   },
   'metric:context_correctness': {
     name: formatMetricName('context_correctness'),
-    // description: 'Relevancy of the generated response to the input.',
+    description:
+      'Measures whether the retrieved documents are relevant to the question. A high context correctness score means the retrieval step retrieves the relevant documents before the generation model produces an answer.',
+    minWidth: '15.5rem',
   },
   retrievalMethod: {
     name: 'Retrieval method',
-    // description:
-    //   'Retrieval methods differ in the ways that they filter and rank documents so that they can retrieve relevant data.',
+    description: 'The method used to retrieve relevant chunks from the vector database.',
     priority: 2,
     field: 'retrievalMethod',
     testId: 'retrieval-method',
-  },
-  retrievalRankerStrategy: {
-    name: 'Hybrid strategy',
-    // description:
-    //   'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
-    priority: 3,
-    field: 'retrievalRankerStrategy',
-    testId: 'retrieval-ranker-strategy',
+    minWidth: '13rem',
   },
   retrievalSearchMode: {
     name: 'Retrieval search mode',
-    priority: 4,
+    description:
+      'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
+    minWidth: '14rem',
+    priority: 3,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
   },
+  retrievalRankerStrategy: {
+    name: 'Hybrid strategy',
+    description:
+      'The ranking algorithm used to combine and reorder results when hybrid retrieval search mode is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
+    minWidth: '12rem',
+    priority: 4,
+    field: 'retrievalRankerStrategy',
+    testId: 'retrieval-ranker-strategy',
+  },
   chunkingMethod: {
-    name: 'Chunk method',
-    // description:
-    //   'How relevant text is retrieved for each chunk of the input after splitting the input into multiple chunks.',
+    name: 'Chunking method',
+    description: 'The method used to split documents into chunks.',
+    minWidth: '13rem',
     priority: 5,
     field: 'chunkingMethod',
     testId: 'chunking-method',
   },
   retrievalNumberOfChunks: {
     name: 'Number of chunks',
-    // description: 'The number of chunks that are retrieved from the indexed documents.',
+    description: 'The number of document chunks retrieved per query.',
+    minWidth: '13rem',
     priority: 6,
     field: 'retrievalNumberOfChunks',
     testId: 'retrieval-number-of-chunks',
   },
   chunkingChunkSize: {
     name: 'Chunk size',
-    // description: 'The maximum number of characters that a chunk should contain.',
+    description: 'The size of each document chunk in characters.',
+    minWidth: '10rem',
     priority: 7,
     field: 'chunkingChunkSize',
     testId: 'chunking-chunk-size',
   },
   chunkingChunkOverlap: {
     name: 'Chunk overlap',
-    // description: 'The number of characters that overlap between two chunks.',
+    description: 'The number of overlapping characters between consecutive chunks.',
+    minWidth: '12rem',
     priority: 8,
     field: 'chunkingChunkOverlap',
     testId: 'chunking-chunk-overlap',
@@ -224,6 +245,10 @@ const getColumnPriority = (id: string): number => {
 const getColumnName = (id: string, fallbackLabel: string): string =>
   getColumnMeta(id)?.name ?? fallbackLabel;
 
+// Resolve display text for a column header: acronym → name → fallback
+const getColumnHeader = (id: string, fallback?: string): string =>
+  getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
+
 // Togglable settings columns for the table body. Derived by filtering COLUMN_META to entries
 // with a `field` — only those map to a LeaderboardEntry key and render as data cells.
 // Entries without `field` (e.g. modelNames) are sticky columns handled separately.
@@ -236,26 +261,27 @@ const SETTINGS_COLUMNS = Object.entries(COLUMN_META)
     testId: meta.testId!,
   }));
 
-const ColumnHeaderContent: React.FC<{
-  columnId: string;
-  tooltipName?: string;
-  children: React.ReactNode;
-}> = ({ columnId, tooltipName, children }) => {
+const getColumnInfoProps = (
+  columnId: string,
+  tooltipName?: string,
+  suffix?: string,
+): ThProps['info'] | undefined => {
   const meta = getColumnMeta(columnId);
-  const name = tooltipName ?? meta?.name ?? children;
+  const name = tooltipName ?? meta?.name;
   const description = meta?.description;
-  return (
-    <Tooltip
-      content={
-        <div>
-          <div className="pf-v6-u-font-weight-bold">{name}</div>
-          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
-        </div>
-      }
-    >
-      <span>{children}</span>
-    </Tooltip>
-  );
+  if (!description && !meta?.acronym && !suffix) {
+    return undefined;
+  }
+  return {
+    popover: (
+      <>
+        {name && <strong>{name}</strong>}
+        {name && description && ': '}
+        {description}
+        {suffix && ` ${suffix}`}
+      </>
+    ),
+  };
 };
 
 const MetricCell: React.FC<{ value: number | string }> = ({ value }) => {
@@ -287,7 +313,14 @@ function AutoragLeaderboard({
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
-  const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
+  const {
+    patterns,
+    patternsLoading,
+    patternsError,
+    onRetryPatterns,
+    pipelineRun,
+    pipelineRunLoading,
+  } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   // Sorting state
@@ -308,7 +341,7 @@ function AutoragLeaderboard({
           ? pattern.scores
           : {};
       Object.keys(scores).forEach((key) => {
-        keysSet.add(key);
+        keysSet.add(key.toLowerCase());
       });
     });
     return Array.from(keysSet).toSorted();
@@ -316,7 +349,7 @@ function AutoragLeaderboard({
 
   // Metric keys excluding the optimized metric (shown in sticky column)
   const nonOptimizedMetricKeys = React.useMemo(
-    () => metricKeys.filter((key) => key !== optimizedMetric),
+    () => metricKeys.filter((key) => key.toLowerCase() !== optimizedMetric.toLowerCase()),
     [metricKeys, optimizedMetric],
   );
 
@@ -435,17 +468,19 @@ function AutoragLeaderboard({
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(patterns).map(
       ([patternName, pattern]: [string, AutoragPattern]) => {
-        // Helper to get metric object from scores
+        // Defensive check: verify scores is a non-null plain object (not array)
+        const scores =
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
+            ? pattern.scores
+            : {};
+        const scoreLookup = Object.fromEntries(
+          Object.entries(scores).map(([k, v]) => [k.toLowerCase(), v]),
+        );
+
         const getMetricObject = (metricName: string) => {
-          // Defensive check: verify scores is a non-null plain object (not array)
-          const scores =
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            pattern.scores && typeof pattern.scores === 'object' && !Array.isArray(pattern.scores)
-              ? pattern.scores
-              : {};
-          const metricData = scores[metricName];
+          const metricData = scoreLookup[metricName.toLowerCase()];
           const meanValue = metricData?.mean;
-          // Only return numeric mean if it's a finite number
           const isValidNumber = typeof meanValue === 'number' && Number.isFinite(meanValue);
           return {
             mean: isValidNumber ? meanValue : 'N/A',
@@ -676,6 +711,31 @@ function AutoragLeaderboard({
     );
   }
 
+  // Show error state when pattern fetching failed
+  if (patternsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to fetch RAG patterns"
+          status="danger"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-error"
+        >
+          <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="link" onClick={onRetryPatterns}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
+    );
+  }
+
   // Show empty state when no patterns were produced
   if (Object.keys(patterns).length === 0) {
     const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
@@ -770,69 +830,85 @@ function AutoragLeaderboard({
             <Tr>
               <Th
                 sort={getSortParams('rank')}
+                info={getColumnInfoProps('rank')}
                 data-testid="rank-header"
                 className="autorag-leaderboard__rank-cell"
                 isStickyColumn
-                stickyMinWidth="120px"
+                stickyMinWidth="140px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">Rank</ColumnHeaderContent>
+                {getColumnHeader('rank')}
               </Th>
               <Th
                 sort={getSortParams('pattern')}
+                info={getColumnInfoProps('pattern')}
                 data-testid="pattern-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
-                stickyLeftOffset="120px"
+                stickyLeftOffset="140px"
               >
-                <ColumnHeaderContent columnId="pattern">Pattern name</ColumnHeaderContent>
+                {getColumnHeader('pattern')}
               </Th>
               <Th
                 sort={getSortParams('modelNames')}
+                info={getColumnInfoProps('modelNames')}
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="200px"
-                stickyLeftOffset="270px"
+                stickyLeftOffset="290px"
               >
-                <ColumnHeaderContent columnId="modelNames">Model names</ColumnHeaderContent>
+                {getColumnHeader('modelNames')}
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
+                info={(() => {
+                  const metricName =
+                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                    formatMetricName(optimizedMetric);
+                  const hasBrackets = metricName.includes('(');
+                  return getColumnInfoProps(
+                    `metric:${optimizedMetric}`,
+                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    'AutoRAG prioritized performance of this metric and used it to rank patterns.',
+                  );
+                })()}
                 data-testid={`metric-header-${optimizedMetric}`}
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
-                stickyLeftOffset="470px"
+                stickyLeftOffset="490px"
+                style={
+                  getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
+                    ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
+                    : undefined
+                }
               >
-                <ColumnHeaderContent
-                  columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${getColumnMeta(`metric:${optimizedMetric}`)?.name ?? formatMetricName(optimizedMetric)} (optimized)`}
+                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+                <span
+                  data-testid="optimized-indicator"
+                  className="autorag-leaderboard__optimized-indicator"
                 >
-                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
-                    formatMetricName(optimizedMetric)}
-                  <div
-                    data-testid="optimized-indicator"
-                    className="autorag-leaderboard__optimized-indicator"
-                  >
-                    (optimized)
-                  </div>
-                </ColumnHeaderContent>
+                  (optimized)
+                </span>
               </Th>
-              {visibleDynamicColumns.map((dc) => (
-                <Th
-                  key={dc.id}
-                  sort={getSortParams(dc.id)}
-                  data-testid={
-                    dc.kind === 'metric'
-                      ? `metric-header-${dc.metricKey}`
-                      : `${dc.col.testId}-header`
-                  }
-                >
-                  <ColumnHeaderContent columnId={dc.id}>
-                    {getColumnMeta(dc.id)?.acronym ?? dc.label}
-                  </ColumnHeaderContent>
-                </Th>
-              ))}
+              {visibleDynamicColumns.map((dc) => {
+                const colMeta = getColumnMeta(dc.id);
+                return (
+                  <Th
+                    key={dc.id}
+                    sort={getSortParams(dc.id)}
+                    info={getColumnInfoProps(dc.id)}
+                    data-testid={
+                      dc.kind === 'metric'
+                        ? `metric-header-${dc.metricKey}`
+                        : `${dc.col.testId}-header`
+                    }
+                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                  >
+                    {getColumnHeader(dc.id, dc.label)}
+                  </Th>
+                );
+              })}
               <Th
                 screenReaderText="Actions"
                 isStickyColumn
@@ -850,7 +926,7 @@ function AutoragLeaderboard({
                   data-testid={`rank-${entry.rank}`}
                   className="autorag-leaderboard__rank-cell"
                   isStickyColumn
-                  stickyMinWidth="80px"
+                  stickyMinWidth="140px"
                   stickyLeftOffset="0"
                 >
                   {entry.rank === 1 ? (
@@ -866,7 +942,7 @@ function AutoragLeaderboard({
                   data-testid={`pattern-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="150px"
-                  stickyLeftOffset="120px"
+                  stickyLeftOffset="140px"
                 >
                   <Button
                     variant="link"
@@ -882,7 +958,7 @@ function AutoragLeaderboard({
                   data-testid={`model-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="200px"
-                  stickyLeftOffset="270px"
+                  stickyLeftOffset="290px"
                 >
                   <Tooltip content={entry.generationModelId}>
                     <span>{getModelIdShortName(entry.generationModelId)}</span>
@@ -899,7 +975,7 @@ function AutoragLeaderboard({
                   isStickyColumn
                   hasRightBorder
                   stickyMinWidth="150px"
-                  stickyLeftOffset="470px"
+                  stickyLeftOffset="490px"
                 >
                   <MetricCell value={entry.optimizedMetricValue} />
                 </Td>
@@ -928,7 +1004,7 @@ function AutoragLeaderboard({
                   isActionCell
                   isStickyColumn
                   hasLeftBorder
-                  stickyMinWidth="80px"
+                  stickyMinWidth="50px"
                   stickyRightOffset="0"
                 >
                   <ActionsColumn

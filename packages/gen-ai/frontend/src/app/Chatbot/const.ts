@@ -69,5 +69,17 @@ export const ERROR_MESSAGES = {
   TOO_MANY_FILES: 'Maximum number of files exceeded',
 } as const;
 
+export const GUARDRAIL_ERROR_CODES = {
+  INPUT_VIOLATION: 'guardrail_input_violation',
+  OUTPUT_VIOLATION: 'guardrail_output_violation',
+} as const;
+
+export const GUARDRAIL_MESSAGES = {
+  INPUT_VIOLATION:
+    'I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII).',
+  OUTPUT_VIOLATION:
+    'The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII).',
+} as const;
+
 export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.
 `;

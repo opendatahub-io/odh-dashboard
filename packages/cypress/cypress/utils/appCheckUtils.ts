@@ -5,7 +5,7 @@ import * as yaml from 'js-yaml';
  * @returns Cypress chainable boolean indicating whether RHOAI is hidden.
  */
 export function isRhoaiHidden(): Cypress.Chainable<boolean> {
-  const rhoaiYamlPath = '../../manifests/rhoai/shared/apps/rhoai/rhoai-app.yaml';
+  const rhoaiYamlPath = '../../manifests/rhoai/apps/rhoai/rhoai-app.yaml';
 
   return cy.readFile(rhoaiYamlPath).then((fileContent) => {
     // Parse the YAML content

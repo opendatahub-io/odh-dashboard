@@ -58,6 +58,12 @@ export const selectGuardrailModelOutputEnabled =
     state.configurations[configId]?.guardrailModelOutputEnabled ??
     DEFAULT_CONFIGURATION.guardrailModelOutputEnabled;
 
+export const selectGuardrailSubscription =
+  (configId: string) =>
+  (state: ChatbotConfigStore): string =>
+    state.configurations[configId]?.guardrailSubscription ??
+    DEFAULT_CONFIGURATION.guardrailSubscription;
+
 export const selectRagEnabled =
   (configId: string) =>
   (state: ChatbotConfigStore): boolean =>

@@ -190,6 +190,10 @@ class ProjectDetails {
     return cy.findByTestId(`${sectionId}-tab`);
   }
 
+  findModelServingTab() {
+    return this.findSectionTab('model-server');
+  }
+
   private wait(section = 'overview') {
     cy.findByTestId(`section-${section}`);
     cy.testA11y();

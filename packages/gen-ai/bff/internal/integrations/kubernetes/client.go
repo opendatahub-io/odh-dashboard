@@ -39,6 +39,7 @@ type KubernetesClientInterface interface {
 
 	// NemoGuardrails operations
 	CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error)
+	GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
@@ -61,4 +62,9 @@ type KubernetesClientInterface interface {
 	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
 	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
 	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
+
+	// GetInferenceServiceURL returns the internal endpoint URL for an InferenceService or
+	// LLMInferenceService whose K8s resource name matches modelName.
+	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
 }

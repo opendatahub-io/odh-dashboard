@@ -1,0 +1,152 @@
+name: Module caches
+description: Restores and saves root, per-module node_modules, and Cypress binary caches. Runs npm install when cache is not an exact hit.
+inputs:
+  node-version:
+    required: true
+  include-cypress:
+    required: false
+    default: 'false'
+  include-modules:
+    required: false
+    default: 'false'
+  force-install:
+    required: false
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - name: Root node_modules cache
+      id: root-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          backend/node_modules
+          frontend/node_modules
+          frontend/src/node_modules
+          packages/*/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-root-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.node-version }}-modules-root-
+    - name: Install root dependencies
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm install
+
+    - name: Cypress binary cache
+      id: cypress-cache
+      if: inputs.include-cypress == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/Cypress
+        key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-cypress-bin-
+    - name: Install Cypress binaries
+      if: inputs.include-cypress == 'true' && (inputs.force-install == 'true' || steps.cypress-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npx cypress install
+
+    - name: automl node_modules cache
+      id: automl-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/automl/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-${{ hashFiles('packages/automl/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-
+    - name: Install automl dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.automl-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/automl/frontend
+
+    - name: autorag node_modules cache
+      id: autorag-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/autorag/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-${{ hashFiles('packages/autorag/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-
+    - name: Install autorag dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.autorag-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/autorag/frontend
+
+    - name: eval-hub node_modules cache
+      id: eval-hub-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/eval-hub/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-${{ hashFiles('packages/eval-hub/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-
+    - name: Install eval-hub dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.eval-hub-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/eval-hub/frontend
+
+    - name: gen-ai node_modules cache
+      id: gen-ai-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/gen-ai/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-
+    - name: Install gen-ai dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.gen-ai-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/gen-ai/frontend
+
+    - name: maas node_modules cache
+      id: maas-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/maas/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-${{ hashFiles('packages/maas/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-
+    - name: Install maas dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.maas-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/maas/frontend
+
+    - name: mlflow node_modules cache
+      id: mlflow-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/mlflow/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-${{ hashFiles('packages/mlflow/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-
+    - name: Install mlflow dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.mlflow-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/mlflow/frontend
+
+    - name: model-registry node_modules cache
+      id: model-registry-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/model-registry/upstream/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-
+    - name: Install model-registry dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.model-registry-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/model-registry/upstream/frontend
+
+    - name: notebooks node_modules cache
+      id: notebooks-cache
+      if: inputs.include-modules == 'true'
+      uses: actions/cache@v4
+      with:
+        path: packages/notebooks/upstream/workspaces/frontend/node_modules
+        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-${{ hashFiles('packages/notebooks/upstream/workspaces/frontend/package-lock.json') }}
+        restore-keys: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-
+    - name: Install notebooks dependencies
+      if: inputs.include-modules == 'true' && (inputs.force-install == 'true' || steps.notebooks-cache.outputs.cache-hit != 'true')
+      shell: bash
+      run: npm install --prefix packages/notebooks/upstream/workspaces/frontend

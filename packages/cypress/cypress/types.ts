@@ -235,6 +235,7 @@ export type CommandLineResult = {
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
@@ -298,6 +299,11 @@ export type DataScienceProjectData = {
   legacyServingRuntime?: string;
   legacyModelLocationURI?: string;
   legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigContainerImage: string;
 };
 
 export type NotebookImageData = {
@@ -725,6 +731,25 @@ export type MlflowExperimentRunData = {
 export type MlflowExperimentData = {
   name: string;
   renamedName: string;
+};
+
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
 };
 
 export type MlflowExperimentsTestData = {

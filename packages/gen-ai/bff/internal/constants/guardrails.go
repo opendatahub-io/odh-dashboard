@@ -92,6 +92,14 @@ const (
 	// OutputGuardrailViolationMessage is the message shown when model output is blocked by guardrails
 	OutputGuardrailViolationMessage = "The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII)."
 
+	GuardrailServiceUnavailableMessage = "guardrail service is temporarily unavailable; your message was not sent"
+
+	GuardrailServiceUnavailableCode = "guardrail_service_unavailable"
+
+	GuardrailInputViolationCode = "guardrail_input_violation"
+
+	GuardrailOutputViolationCode = "guardrail_output_violation"
+
 	// AsyncModerationResultBufferSize is the buffer size for the async moderation result channel
 	// This allows multiple moderation requests to complete without blocking
 	AsyncModerationResultBufferSize = 10

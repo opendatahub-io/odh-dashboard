@@ -81,7 +81,7 @@ permissions:
   statuses: write
 
 env:
-  NODE_VERSION: 22.x
+  NODE_VERSION: 22
   DO_NOT_TRACK: 1
 
 # =============================================================================
@@ -869,34 +869,17 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Restore npm dependencies cache
-        uses: actions/cache/restore@v4
-        id: npm-cache
+      - name: Module caches
+        uses: ./.github/actions/module-caches
         with:
-          path: |
-            ~/.cache/Cypress
-            **/node_modules
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-all-modules-
+          node-version: ${{ env.NODE_VERSION }}
+          include-modules: 'true'
+          include-cypress: 'true'
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm ci
-
-      - name: Restore turbo build artifacts cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/.turbo
-          key: ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-${{ github.sha }}-e2e
-          restore-keys: |
-            ${{ runner.os }}-${{ env.NODE_VERSION }}-turbo-
 
       - name: Restore OpenShift CLI tarball cache
         uses: actions/cache/restore@v4

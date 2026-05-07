@@ -131,11 +131,16 @@ export type LlamaStackVectorStoreProvidersResponse = {
   vector_store_providers: LlamaStackVectorStoreProvider[];
 };
 
+export type LlamaStackFilteredVectorStoreProvidersResponse =
+  LlamaStackVectorStoreProvidersResponse & {
+    totalProviderCount: number;
+  };
+
 export type SecretListItem = {
   uuid: string;
   name: string;
   type?: string;
-  data: Record<string, string>;
+  data?: Record<string, string>;
   displayName?: string;
   description?: string;
 };

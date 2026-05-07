@@ -2,7 +2,9 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Label,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -57,8 +59,11 @@ type LeaderboardEntry = {
  *   When present, the header displays the acronym while the tooltip continues to show the
  *   full `name`. Useful for metric columns where the full name is too long for a header cell.
  * @property description - Optional supplementary text shown below `name` in the tooltip.
+ * @property minWidth - Optional CSS min-width value applied to the column header (e.g., `"9rem"`).
+ *   Prevents narrow metric columns from collapsing when the table has many columns.
  */
-type ColumnMeta = { name: string; description?: string; acronym?: string };
+type ColumnMeta = { name: string; acronym?: string; description?: string; minWidth?: string };
+
 const COLUMN_META: Record<string, ColumnMeta> = {
   rank: {
     name: 'Rank',
@@ -69,118 +74,188 @@ const COLUMN_META: Record<string, ColumnMeta> = {
     name: 'Model name',
     description: 'The name of the generated model.',
   },
+  'metric:accuracy': {
+    name: 'Accuracy',
+    description:
+      'The proportion of predictions that are correct. A high accuracy score means the model correctly classifies most inputs.',
+    minWidth: '9rem',
+  },
+  'metric:balanced_accuracy': {
+    name: 'Balanced Accuracy',
+    description:
+      "The average of the model's accuracy in each category. A high balanced accuracy score means the model correctly classifies inputs in most categories.",
+    minWidth: '13rem',
+  },
+  'metric:precision': {
+    name: 'Precision',
+    description:
+      'The proportion of positive predictions that are correct. A high precision score means the model rarely labels a negative example as positive.',
+    minWidth: '9rem',
+  },
+  'metric:recall': {
+    name: 'Recall',
+    description:
+      'The proportion of actual positives that the model correctly identifies. A high recall score means the model rarely misses positive examples.',
+    minWidth: '9rem',
+  },
   'metric:roc_auc': {
     name: 'Receiver Operating Characteristic (Area Under Curve)',
     acronym: formatMetricName('roc_auc'),
-    // description: 'Receiver Operating Characteristic (Area Under Curve)',
+    description: 'Measures how well a model distinguishes between two classes.',
+    minWidth: '9rem',
   },
   'metric:mcc': {
     name: 'Matthews correlation coefficient (MCC)',
     acronym: formatMetricName('mcc'),
-    // description: 'Matthews correlation coefficient (MCC)',
+    description:
+      'A correlation coefficient between observed and predicted classifications that accounts for all four quadrants of a confusion matrix. Ranges from -1 (total disagreement) to +1 (perfect prediction), with 0 indicating no better than random.',
+    minWidth: '9rem',
   },
   'metric:f1': {
     name: formatMetricName('f1'),
     acronym: formatMetricName('f1'),
-    // description: formatMetricName('f1'),
+    description:
+      'Harmonic average of the precision and recall, with best value of 1 (perfect precision and recall) and worst at 0.',
+    minWidth: '8rem',
   },
   'metric:r2': {
     name: formatMetricName('r2'),
     acronym: formatMetricName('r2'),
-    // description: formatMetricName('r2'),
+    description:
+      'The proportion of variance in the target variable that the model explains. A score of 1.0 means the model perfectly predicts the target. A score of 0.0 means the model performs no better than predicting the mean.',
+    minWidth: '8rem',
   },
-  'metric:mae': {
+  'metric:mean_absolute_error': {
     name: 'Mean Absolute Error (MAE)',
-    acronym: formatMetricName('mae'),
-    // description: 'Mean Absolute Error (MAE)',
+    acronym: formatMetricName('mean_absolute_error'),
+    description: 'Average of absolute differences between the actual values and predicted values.',
+    minWidth: '9rem',
   },
-  'metric:mse': {
+  'metric:mean_squared_error': {
     name: 'Mean Squared Error (MSE)',
-    acronym: formatMetricName('mse'),
-    // description: 'Mean Squared Error (MSE)',
+    acronym: formatMetricName('mean_squared_error'),
+    description: 'Measures the average squared difference between the actual and predicted values.',
+    minWidth: '9rem',
   },
-  'metric:rmse': {
-    name: 'Root Mean Square Error (RMSE)',
-    acronym: formatMetricName('rmse'),
-    // description: 'Root Mean Square Error (RMSE)',
+  'metric:root_mean_squared_error': {
+    name: 'Root Mean Squared Error (RMSE)',
+    acronym: formatMetricName('root_mean_squared_error'),
+    description:
+      'Square root of the mean of the squared differences between the actual values and predicted values.',
+    minWidth: '9rem',
   },
-  'metric:mape': {
+  'metric:median_absolute_error': {
+    name: 'Median Absolute Error (MedAE)',
+    acronym: formatMetricName('median_absolute_error'),
+    description: 'The median of all absolute differences between actual and predicted values.',
+    minWidth: '9rem',
+  },
+  'metric:pearsonr': {
+    name: 'Pearson r',
+    acronym: formatMetricName('pearsonr'),
+    description:
+      'Measures the linear correlation between predicted and actual values. Ranges from -1 (perfect negative correlation) to +1 (perfect positive correlation), with 0 indicating no linear relationship.',
+    minWidth: '9rem',
+  },
+  'metric:mean_absolute_percentage_error': {
     name: 'Mean Absolute Percentage Error (MAPE)',
-    acronym: formatMetricName('mape'),
-    // description: 'Mean Absolute Percentage Error (MAPE)',
+    acronym: formatMetricName('mean_absolute_percentage_error'),
+    description:
+      'The average of absolute percentage errors between predicted and actual values. Expresses prediction accuracy as a percentage, making it easy to interpret across different scales.',
+    minWidth: '9rem',
   },
-  'metric:mase': {
+  'metric:mean_absolute_scaled_error': {
     name: 'Mean Absolute Scaled Error (MASE)',
-    acronym: formatMetricName('mase'),
-    // description: 'Mean Absolute Scaled Error (MASE)',
+    acronym: formatMetricName('mean_absolute_scaled_error'),
+    description:
+      'A scale-independent measure of forecast accuracy. A MASE absolute value below 1.0 means the model outperforms a naive baseline forecast. Lower values indicate better performance.',
+    minWidth: '9rem',
   },
-  'metric:rmsle': {
+  'metric:root_mean_squared_logarithmic_error': {
     name: 'Root Mean Squared Logarithmic Error (RMSLE)',
-    acronym: formatMetricName('rmsle'),
-    // description: 'Root Mean Squared Logarithmic Error (RMSLE)',
+    acronym: formatMetricName('root_mean_squared_logarithmic_error'),
+    description:
+      'Square root of the mean of the squared differences between the log of actual values and the log of predicted values. Useful when target values span a wide range.',
+    minWidth: '9rem',
   },
-  'metric:rmsse': {
+  'metric:root_mean_squared_scaled_error': {
     name: 'Root Mean Squared Scaled Error (RMSSE)',
-    acronym: formatMetricName('rmsse'),
-    // description: 'Root Mean Squared Scaled Error (RMSSE)',
+    acronym: formatMetricName('root_mean_squared_scaled_error'),
+    description:
+      'A scale-independent error metric that normalizes RMSE by the in-sample naive forecast error. A value below 1.0 means the model outperforms a naive one-step-ahead baseline.',
+    minWidth: '9rem',
   },
-  'metric:smape': {
+  'metric:symmetric_mean_absolute_percentage_error': {
     name: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
-    acronym: formatMetricName('smape'),
-    // description: 'Symmetric Mean Absolute Percentage Error (SMAPE)',
+    acronym: formatMetricName('symmetric_mean_absolute_percentage_error'),
+    description:
+      'Symmetric mean absolute percentage error (SMAPE or sMAPE). At each fitted point, the absolute difference between actual value and predicted value is divided by half the sum of absolute actual value and predicted value, and then average all such values across all the fitted points.',
+    minWidth: '9rem',
   },
-  'metric:sql': {
+  'metric:scaled_quantile_loss': {
     name: 'Scaled Quantile Loss (SQL)',
-    acronym: formatMetricName('sql'),
-    // description: 'Scaled Quantile Loss (SQL)',
+    acronym: formatMetricName('scaled_quantile_loss'),
+    description:
+      'Measures the accuracy of probabilistic forecasts at specific quantiles, scaled relative to the total absolute values of the target. Lower values indicate better calibrated prediction intervals.',
+    minWidth: '9rem',
   },
-  'metric:wape': {
+  'metric:weighted_absolute_percentage_error': {
     name: 'Weighted Absolute Percentage Error (WAPE)',
-    acronym: formatMetricName('wape'),
-    // description: 'Weighted Absolute Percentage Error (WAPE)',
+    acronym: formatMetricName('weighted_absolute_percentage_error'),
+    description:
+      'The sum of absolute errors divided by the sum of absolute actual values. Unlike MAPE, it handles zero actual values gracefully and gives more weight to larger observations.',
+    minWidth: '9rem',
   },
-  'metric:wql': {
+  'metric:weighted_quantile_loss': {
     name: 'Weighted Quantile Loss (WQL)',
-    acronym: formatMetricName('wql'),
-    // description: 'Weighted Quantile Loss (WQL)',
+    acronym: formatMetricName('weighted_quantile_loss'),
+    description:
+      'A weighted average of quantile losses across multiple quantiles, measuring the overall quality of probabilistic forecasts. Lower values indicate better prediction interval coverage.',
+    minWidth: '9rem',
   },
 };
 
 // Safe accessor — COLUMN_META is typed as Record<string, …> so TS believes every
 // key returns a value, but at runtime dynamic metric keys may be absent.
-const getColumnMeta = (id: string): ColumnMeta | undefined => {
-  if (id in COLUMN_META) {
-    return COLUMN_META[id];
+// Helper to resolve display name for any column id
+const getColumnName = (id: string, fallbackLabel: string): string =>
+  getColumnMeta(id)?.name ?? fallbackLabel;
+
+// Resolve display text for a column header: acronym → name → fallback
+const getColumnHeader = (id: string, fallback?: string): string =>
+  getColumnMeta(id)?.acronym ?? getColumnMeta(id)?.name ?? fallback ?? id;
+
+const getColumnMeta = (id: string): ColumnMeta | undefined =>
+  id in COLUMN_META ? COLUMN_META[id] : undefined;
+
+const getColumnInfoProps = (
+  columnId: string,
+  tooltipName?: string,
+  suffix?: string,
+): ThProps['info'] | undefined => {
+  const meta = getColumnMeta(columnId);
+  const name = tooltipName ?? meta?.name;
+  const description = meta?.description;
+  if (!description && !meta?.acronym && !suffix) {
+    return undefined;
   }
-  // Metric keys from the API may differ in case (e.g. "metric:MASE" vs "metric:mase")
-  const lowerId = id.toLowerCase();
-  if (lowerId in COLUMN_META) {
-    return COLUMN_META[lowerId];
-  }
-  return undefined;
+  return {
+    popover: (
+      <>
+        {name && <strong>{name}</strong>}
+        {name && description && ': '}
+        {description}
+        {suffix && ` ${suffix}`}
+      </>
+    ),
+  };
 };
 
-const ColumnHeaderContent: React.FC<{
-  columnId: string;
-  tooltipName?: string;
-  children: React.ReactNode;
-}> = ({ columnId, tooltipName, children }) => {
-  const meta = getColumnMeta(columnId);
-  const name = tooltipName ?? meta?.name ?? children;
-  const description = meta?.description;
-  return (
-    <Tooltip
-      content={
-        <div>
-          <div className="pf-v6-u-font-weight-bold">{name}</div>
-          {description && <div className="pf-v6-u-font-size-xs pf-v6-u-mt-xs">{description}</div>}
-        </div>
-      }
-    >
-      <span>{children}</span>
-    </Tooltip>
-  );
-};
+const MetricCell: React.FC<{ value: number | string }> = ({ value }) => (
+  <Tooltip content={String(value)}>
+    <span>{formatMetricValue(value)}</span>
+  </Tooltip>
+);
 
 type AutomlLeaderboardProps = {
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -194,8 +269,15 @@ function AutomlLeaderboard({
   onRegisterModel,
 }: AutomlLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
-  const { models, parameters, modelsLoading, pipelineRun, pipelineRunLoading } =
-    useAutomlResultsContext();
+  const {
+    models,
+    parameters,
+    modelsLoading,
+    modelsError,
+    onRetryModels,
+    pipelineRun,
+    pipelineRunLoading,
+  } = useAutomlResultsContext();
   // FYI default taskType to timeseries since it is the only task which will not have
   // this as an actual parameter passed to the pipeline
   const taskType = parameters?.task_type ?? 'timeseries';
@@ -228,7 +310,7 @@ function AutomlLeaderboard({
           ? model.metrics.test_data
           : {};
       Object.keys(testData).forEach((key) => {
-        keysSet.add(key);
+        keysSet.add(key.toLowerCase());
       });
     });
     return Array.from(keysSet).toSorted();
@@ -252,7 +334,7 @@ function AutomlLeaderboard({
       },
       ...nonOptimizedMetricKeys.map((key) => ({
         id: `metric:${key}`,
-        label: formatMetricName(key),
+        label: getColumnName(`metric:${key}`, formatMetricName(key)),
       })),
     ],
     [nonOptimizedMetricKeys, optimizedMetric],
@@ -270,7 +352,7 @@ function AutomlLeaderboard({
         title: col.label,
         isShownByDefault: true,
         isShown: !hiddenColumnIds.has(col.id),
-        isUntoggleable: col.isAlwaysVisible,
+        isUntoggleable: 'isAlwaysVisible' in col ? Boolean(col.isAlwaysVisible) : undefined,
       })),
     [columnDefs, hiddenColumnIds],
   );
@@ -309,27 +391,25 @@ function AutomlLeaderboard({
   // Transform models into LeaderboardEntry array
   const data: LeaderboardEntry[] = React.useMemo(() => {
     const entries = Object.entries(models).map(([modelName, model]: [string, AutomlModel]) => {
-      // Helper to get metric value from test_data
-      const getMetricValue = (metricName: string): number | string => {
-        // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
-        const testData =
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          model.metrics &&
-          typeof model.metrics === 'object' &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          !Array.isArray(model.metrics) &&
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          model.metrics.test_data &&
-          typeof model.metrics.test_data === 'object' &&
-          !Array.isArray(model.metrics.test_data)
-            ? model.metrics.test_data
-            : {};
+      // Defensive check: verify metrics and test_data are non-null plain objects (not arrays)
+      const testData =
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics &&
+        typeof model.metrics === 'object' &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        !Array.isArray(model.metrics) &&
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        model.metrics.test_data &&
+        typeof model.metrics.test_data === 'object' &&
+        !Array.isArray(model.metrics.test_data)
+          ? model.metrics.test_data
+          : {};
+      const testDataLookup = Object.fromEntries(
+        Object.entries(testData).map(([k, v]) => [k.toLowerCase(), v]),
+      );
 
-        // Case-insensitive metric lookup
-        const metricKey = Object.keys(testData).find(
-          (key) => key.toLowerCase() === metricName.toLowerCase(),
-        );
-        const value = metricKey ? testData[metricKey] : undefined;
+      const getMetricValue = (metricName: string): number | string => {
+        const value = testDataLookup[metricName.toLowerCase()];
 
         if (typeof value === 'number' && Number.isFinite(value)) {
           return value;
@@ -500,6 +580,31 @@ function AutomlLeaderboard({
     );
   }
 
+  // Show error state when model fetching failed
+  if (modelsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to fetch models"
+          status="danger"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-error"
+        >
+          <EmptyStateBody>An error occurred while loading model results.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="link" onClick={onRetryModels}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
+    );
+  }
+
   // Show empty state when no models were produced
   if (Object.keys(models).length === 0) {
     const isRunSucceeded = pipelineRun?.state === RuntimeStateKF.SUCCEEDED;
@@ -594,59 +699,71 @@ function AutomlLeaderboard({
             <Tr>
               <Th
                 sort={getSortParams('rank')}
+                info={getColumnInfoProps('rank')}
                 data-testid="rank-header"
                 className="automl-leaderboard__rank-cell"
                 isStickyColumn
-                stickyMinWidth="120px"
+                stickyMinWidth="140px"
                 stickyLeftOffset="0"
               >
-                <ColumnHeaderContent columnId="rank">Rank</ColumnHeaderContent>
+                {getColumnHeader('rank')}
               </Th>
               <Th
                 sort={getSortParams('model')}
+                info={getColumnInfoProps('model')}
                 data-testid="model-name-header"
                 isStickyColumn
                 stickyMinWidth="150px"
-                stickyLeftOffset="120px"
+                stickyLeftOffset="140px"
               >
-                <ColumnHeaderContent columnId="model">Model name</ColumnHeaderContent>
+                {getColumnHeader('model')}
               </Th>
               <Th
                 sort={getSortParams('optimized-metric')}
+                info={(() => {
+                  const metricName =
+                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
+                    formatMetricName(optimizedMetric);
+                  const hasBrackets = metricName.includes('(');
+                  return getColumnInfoProps(
+                    `metric:${optimizedMetric}`,
+                    `${metricName} ${hasBrackets ? '[optimized]' : '(optimized)'}`,
+                    'AutoML prioritized performance of this metric and used it to rank models.',
+                  );
+                })()}
                 data-testid={`metric-header-${optimizedMetric}`}
                 isStickyColumn
                 hasRightBorder
                 stickyMinWidth="150px"
-                stickyLeftOffset="270px"
+                stickyLeftOffset="290px"
+                style={
+                  getColumnMeta(`metric:${optimizedMetric}`)?.minWidth
+                    ? { minWidth: getColumnMeta(`metric:${optimizedMetric}`)?.minWidth }
+                    : undefined
+                }
               >
-                <ColumnHeaderContent
-                  columnId={`metric:${optimizedMetric}`}
-                  tooltipName={`${
-                    getColumnMeta(`metric:${optimizedMetric}`)?.name ??
-                    formatMetricName(optimizedMetric)
-                  } (optimized)`}
+                {getColumnHeader(`metric:${optimizedMetric}`, formatMetricName(optimizedMetric))}{' '}
+                <span
+                  data-testid="optimized-indicator"
+                  className="automl-leaderboard__optimized-indicator"
                 >
-                  {getColumnMeta(`metric:${optimizedMetric}`)?.acronym ??
-                    formatMetricName(optimizedMetric)}
-                  <div
-                    data-testid="optimized-indicator"
-                    className="automl-leaderboard__optimized-indicator"
-                  >
-                    (optimized)
-                  </div>
-                </ColumnHeaderContent>
+                  (optimized)
+                </span>
               </Th>
-              {visibleNonOptimizedMetricKeys.map((metricKey) => (
-                <Th
-                  key={metricKey}
-                  sort={getSortParams(`metric:${metricKey}`)}
-                  data-testid={`metric-header-${metricKey}`}
-                >
-                  <ColumnHeaderContent columnId={`metric:${metricKey}`}>
-                    {getColumnMeta(`metric:${metricKey}`)?.acronym ?? formatMetricName(metricKey)}
-                  </ColumnHeaderContent>
-                </Th>
-              ))}
+              {visibleNonOptimizedMetricKeys.map((metricKey) => {
+                const colMeta = getColumnMeta(`metric:${metricKey}`);
+                return (
+                  <Th
+                    key={metricKey}
+                    sort={getSortParams(`metric:${metricKey}`)}
+                    info={getColumnInfoProps(`metric:${metricKey}`)}
+                    data-testid={`metric-header-${metricKey}`}
+                    style={colMeta?.minWidth ? { minWidth: colMeta.minWidth } : undefined}
+                  >
+                    {getColumnHeader(`metric:${metricKey}`, formatMetricName(metricKey))}
+                  </Th>
+                );
+              })}
               <Th
                 screenReaderText="Actions"
                 isStickyColumn
@@ -664,7 +781,7 @@ function AutomlLeaderboard({
                   data-testid={`rank-${entry.rank}`}
                   className="automl-leaderboard__rank-cell"
                   isStickyColumn
-                  stickyMinWidth="120px"
+                  stickyMinWidth="140px"
                   stickyLeftOffset="0"
                 >
                   {entry.rank === 1 ? (
@@ -680,7 +797,7 @@ function AutomlLeaderboard({
                   data-testid={`model-name-${entry.rank}`}
                   isStickyColumn
                   stickyMinWidth="150px"
-                  stickyLeftOffset="120px"
+                  stickyLeftOffset="140px"
                 >
                   <Button
                     variant="link"
@@ -697,11 +814,9 @@ function AutomlLeaderboard({
                   isStickyColumn
                   hasRightBorder
                   stickyMinWidth="150px"
-                  stickyLeftOffset="270px"
+                  stickyLeftOffset="290px"
                 >
-                  <Tooltip content={String(entry.optimizedMetricValue)}>
-                    <span>{formatMetricValue(entry.optimizedMetricValue)}</span>
-                  </Tooltip>
+                  <MetricCell value={entry.optimizedMetricValue} />
                 </Td>
                 {visibleNonOptimizedMetricKeys.map((metricKey) => (
                   <Td
@@ -709,16 +824,14 @@ function AutomlLeaderboard({
                     dataLabel={formatMetricName(metricKey)}
                     data-testid={`metric-${metricKey}-${entry.rank}`}
                   >
-                    <Tooltip content={String(entry.metrics[metricKey])}>
-                      <span>{formatMetricValue(entry.metrics[metricKey])}</span>
-                    </Tooltip>
+                    <MetricCell value={entry.metrics[metricKey]} />
                   </Td>
                 ))}
                 <Td
                   isActionCell
                   isStickyColumn
                   hasLeftBorder
-                  stickyMinWidth="80px"
+                  stickyMinWidth="50px"
                   stickyRightOffset="0"
                 >
                   <ActionsColumn
