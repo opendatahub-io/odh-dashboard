@@ -39,6 +39,9 @@ export function getSearchFilterPlaceholder(
   if (filterKey === 'tags') {
     return `Filter by tag`;
   }
+  if (!label) {
+    return `Filter by ${filterKey}`;
+  }
   const labelLower = label.toLowerCase();
   const excludedKeys = new Set([
     'owner',

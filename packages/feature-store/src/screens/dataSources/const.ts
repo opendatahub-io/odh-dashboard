@@ -73,7 +73,7 @@ export const dataSourceTableFilterKeyMapping = {
   owner: 'owner',
 };
 export const dataSourceTableFilterOptions: Record<string, string> = {
-  name: 'Resource',
+  name: 'Name',
   project: 'Feature store',
   type: 'Data source connector',
   featureViews: 'Feature view',
