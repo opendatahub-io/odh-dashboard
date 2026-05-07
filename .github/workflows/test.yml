@@ -26,7 +26,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-          include-cypress: 'true'
           force-install: 'true'
 
       - name: Validate module federation ports
@@ -259,7 +258,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-          include-cypress: 'true'
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         if: steps.cypress-build-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4.3.0
@@ -287,7 +285,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           include-modules: 'true'
-          include-cypress: 'true'
       - name: Restore Cypress build cache
         id: cypress-build-cache
         uses: actions/cache/restore@v4

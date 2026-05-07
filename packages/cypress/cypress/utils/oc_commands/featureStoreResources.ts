@@ -56,7 +56,7 @@ export const createRouteAndGetUrl = (
   const findServiceCommand = `oc get services -n ${namespace} -o custom-columns="NAME:.metadata.name" --no-headers | grep registry-rest`;
 
   return cy.exec(findServiceCommand, { failOnNonZeroExit: false }).then((findResult) => {
-    if (findResult.code !== 0 || !findResult.stdout.trim()) {
+    if (findResult.exitCode !== 0 || !findResult.stdout.trim()) {
       cy.log(`ERROR finding service with 'registry-rest': ${findResult.stderr}`);
       throw new Error(`No service containing 'registry-rest' found in namespace ${namespace}`);
     }
@@ -71,7 +71,7 @@ export const createRouteAndGetUrl = (
         const createCommand = `oc create route passthrough ${routeName} --service=${serviceName} --port=https -n ${namespace}`;
 
         return cy.exec(createCommand, { failOnNonZeroExit: false }).then((createResult) => {
-          if (createResult.code !== 0) {
+          if (createResult.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(createResult.stderr);
             cy.log(`ERROR creating route: ${maskedStderr}`);
             throw new Error(`Failed to create route: ${maskedStderr}`);
@@ -83,7 +83,7 @@ export const createRouteAndGetUrl = (
           const getCommand = `oc get route -n ${namespace} -o jsonpath="{.items[?(@.spec.to.name=='${serviceName}')].spec.host}"`;
 
           return cy.exec(getCommand, { failOnNonZeroExit: false }).then((getResult) => {
-            if (getResult.code !== 0 || !getResult.stdout.trim()) {
+            if (getResult.exitCode !== 0 || !getResult.stdout.trim()) {
               const maskedStderr = maskSensitiveInfo(getResult.stderr);
               cy.log(`Failed to get route host: ${maskedStderr}`);
               throw new Error(`Failed to get route host: ${maskedStderr}`);

@@ -48,7 +48,7 @@ export function isFeatureFlagEnabled(flagPath: string): Cypress.Chainable<boolea
     const isEnabled = isDisableFlag ? flagValue !== true : flagValue === true;
 
     cy.log(`Feature flag ${flagPath}: ${isEnabled ? 'enabled' : 'disabled'}`);
-    return isEnabled;
+    return cy.wrap(isEnabled);
   });
 }
 
