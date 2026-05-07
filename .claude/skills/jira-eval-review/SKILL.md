@@ -61,7 +61,9 @@ If no explicit "Acceptance Criteria" section exists, look for:
 
 The direct issue may not contain all relevant criteria. Parent epics/stories and linked issues often carry high-level acceptance criteria that child tasks must satisfy.
 
-1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key and extract any acceptance criteria from its description. Continue up the hierarchy (parent-of-parent) until there is no further parent or no additional criteria are found (max depth: 3).
+**MANDATORY: Always walk the full parent chain.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Acceptance criteria at any ancestor level may constrain the child task. The only valid reason to stop is reaching an issue with no `parent` field (the root).
+
+1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key and extract any acceptance criteria from its description. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Fetch **every** ancestor regardless of whether intermediate levels contain criteria — a grandparent or great-grandparent may still have relevant acceptance criteria even if the immediate parent does not.
 2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), fetch the linked issue and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements (skip "is cloned by", "duplicates", etc.).
 3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
 
