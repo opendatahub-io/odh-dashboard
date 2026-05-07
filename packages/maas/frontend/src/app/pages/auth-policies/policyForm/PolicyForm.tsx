@@ -36,8 +36,7 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 
 const policyFormSchema = z.object({
-  groups: z.array(z.string()).min(1, 'At least one group must be selected'),
-  models: z.array(z.unknown()).min(1, 'At least one model must be added'),
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
 });
 
 export type PolicyFormProps = {
@@ -80,10 +79,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
 
-  const zodFormData = React.useMemo(
-    () => ({ groups: selectedGroupNames, models: selectedModels }),
-    [selectedGroupNames, selectedModels],
-  );
+  const zodFormData = React.useMemo(() => ({ groups: selectedGroupNames }), [selectedGroupNames]);
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, policyFormSchema);
 
@@ -93,7 +89,10 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
       : undefined;
 
   const canSubmit =
-    isValidK8sNameDescription && getFieldValidation(undefined, true).length === 0 && !isSubmitting;
+    isValidK8sNameDescription &&
+    getFieldValidation(undefined, true).length === 0 &&
+    selectedModels.length > 0 &&
+    !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
@@ -153,9 +152,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
         <FormGroup label="Groups" fieldId="policy-groups" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
-                {groupsValidationError ||
-                  'Select user groups that can access models in this authorization policy.'}
+              <HelperTextItem>
+                Select user groups that can access models in this authorization policy.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -170,9 +168,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
           />
+          {groupsValidationError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">{groupsValidationError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {formData.modelRefs.length === 0 ? (

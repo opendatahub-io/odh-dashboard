@@ -54,8 +54,7 @@ const subscriptionFormSchema = z.object({
     .int('Priority must be a whole number')
     .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
     .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
-  groups: z.array(z.string()).min(1, 'At least one group must be selected'),
-  models: z.array(z.unknown()).min(1, 'At least one model must be added'),
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
@@ -212,9 +211,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     () => ({
       priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
       groups: selectedGroupNames,
-      models,
     }),
-    [priority, selectedGroupNames, models],
+    [priority, selectedGroupNames],
   );
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
@@ -228,6 +226,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const canSubmit =
     isNameValid &&
     getFieldValidation(undefined, true).length === 0 &&
+    models.length > 0 &&
     allModelsHaveRateLimits &&
     !isSubmitting &&
     !priorityConflictError;
@@ -359,14 +358,12 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
           />
-          {groupsTouched && getFieldValidation(['groups']).length > 0 && (
+          {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>
               <HelperText>
                 <HelperTextItem variant="error">
-                  {getFieldValidation(['groups'])[0].message}
+                  {getFieldValidation(['groups'], true)[0].message}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
