@@ -149,15 +149,17 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   ]);
 
   const handleToggleComparison = React.useCallback(() => {
-    setComparisonEnabled((prev) => {
-      const next = !prev;
-      if (next && comparisonPatternIndex === null) {
-        // Auto-open the selection modal when enabling comparison with no pattern selected
-        setIsComparisonSelectOpen(true);
-      }
-      return next;
-    });
-  }, [comparisonPatternIndex]);
+    if (comparisonEnabled) {
+      // Turning off comparison
+      setComparisonEnabled(false);
+    } else if (comparisonPatternIndex !== null) {
+      // Turning on with a previously selected pattern
+      setComparisonEnabled(true);
+    } else {
+      // Turning on with no pattern selected — open the selection modal
+      setIsComparisonSelectOpen(true);
+    }
+  }, [comparisonEnabled, comparisonPatternIndex]);
 
   // Settings keys for print view
   const settingsKeys = Object.keys(data.settings);
@@ -182,8 +184,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             onSaveNotebook={onSaveNotebook}
             comparisonEnabled={comparisonEnabled}
             onToggleComparison={handleToggleComparison}
-            comparisonPattern={comparisonBundle}
-            onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
           />
         </ModalHeader>
         <ModalBody>
@@ -220,6 +220,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                       optimizedMetric={optimizedMetric}
                       scoreType={scoreType}
                       onScoreTypeChange={setScoreType}
+                      onChangeComparisonPattern={() => setIsComparisonSelectOpen(true)}
                     />
                   </StackItem>
                 </Stack>
@@ -233,10 +234,6 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
         isOpen={isComparisonSelectOpen}
         onClose={() => {
           setIsComparisonSelectOpen(false);
-          // If user cancels without selecting, disable comparison
-          if (comparisonPatternIndex === null) {
-            setComparisonEnabled(false);
-          }
         }}
         patterns={patterns}
         rankMap={rankMap}

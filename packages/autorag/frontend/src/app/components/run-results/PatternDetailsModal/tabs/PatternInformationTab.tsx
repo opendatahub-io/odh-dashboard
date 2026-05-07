@@ -71,6 +71,7 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
   comparisonPattern,
   scoreType,
   onScoreTypeChange,
+  onChangeComparisonPattern,
 }) => {
   const primaryFields = buildTopLevelFields(primaryPattern.pattern);
 
@@ -108,6 +109,7 @@ const PatternInformationTab: React.FC<TabContentProps> = ({
             <ComparisonColumnHeader
               patternName={comparisonPattern.pattern.name}
               rank={comparisonPattern.rank}
+              onChangeClick={onChangeComparisonPattern}
               data-testid="comparison-column-header-comparison"
             />
           </GridItem>

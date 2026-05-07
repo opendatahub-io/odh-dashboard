@@ -35,6 +35,7 @@ export function createKeyValueTab(sectionKey: string): React.FC<TabContentProps>
   const KeyValueTabComponent: React.FC<TabContentProps> = ({
     primaryPattern,
     comparisonPattern,
+    onChangeComparisonPattern,
   }) => {
     const primaryEntries = settingsSectionEntries(primaryPattern.pattern.settings, sectionKey);
 
@@ -62,6 +63,7 @@ export function createKeyValueTab(sectionKey: string): React.FC<TabContentProps>
             <ComparisonColumnHeader
               patternName={comparisonPattern.pattern.name}
               rank={comparisonPattern.rank}
+              onChangeClick={onChangeComparisonPattern}
               data-testid="comparison-column-header-comparison"
             />
           </GridItem>

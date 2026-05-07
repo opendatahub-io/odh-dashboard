@@ -95,7 +95,11 @@ const ComparisonQAEntry: React.FC<{
   );
 };
 
-const SampleQATab: React.FC<TabContentProps> = ({ primaryPattern, comparisonPattern }) => {
+const SampleQATab: React.FC<TabContentProps> = ({
+  primaryPattern,
+  comparisonPattern,
+  onChangeComparisonPattern,
+}) => {
   if (
     primaryPattern.isEvaluationLoading ||
     (comparisonPattern && comparisonPattern.isEvaluationLoading)
@@ -137,6 +141,7 @@ const SampleQATab: React.FC<TabContentProps> = ({ primaryPattern, comparisonPatt
             <ComparisonColumnHeader
               patternName={comparisonPattern.pattern.name}
               rank={comparisonPattern.rank}
+              onChangeClick={onChangeComparisonPattern}
               data-testid="comparison-column-header-comparison"
             />
           </GridItem>

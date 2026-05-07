@@ -1,11 +1,13 @@
 import React from 'react';
-import { Content, ContentVariants, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { Button, Content, ContentVariants, Flex, FlexItem, Title } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import { formatPatternName } from '~/app/utilities/utils';
 
 type ComparisonColumnHeaderProps = {
   patternName: string;
   rank: number;
   label?: string;
+  onChangeClick?: () => void;
   children?: React.ReactNode;
   'data-testid'?: string;
 };
@@ -14,6 +16,7 @@ const ComparisonColumnHeader: React.FC<ComparisonColumnHeaderProps> = ({
   patternName,
   rank,
   label,
+  onChangeClick,
   children,
   'data-testid': testId,
 }) => (
@@ -30,6 +33,18 @@ const ComparisonColumnHeader: React.FC<ComparisonColumnHeaderProps> = ({
     {label && (
       <FlexItem>
         <Content component={ContentVariants.small}>({label})</Content>
+      </FlexItem>
+    )}
+    {onChangeClick && (
+      <FlexItem>
+        <Button
+          variant="link"
+          icon={<SyncAltIcon />}
+          onClick={onChangeClick}
+          data-testid="change-comparison-pattern"
+        >
+          Change
+        </Button>
       </FlexItem>
     )}
     {children}

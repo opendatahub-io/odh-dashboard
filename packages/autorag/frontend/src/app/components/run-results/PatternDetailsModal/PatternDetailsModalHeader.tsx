@@ -16,8 +16,8 @@ import {
   Title,
 } from '@patternfly/react-core';
 import type { MenuToggleElement } from '@patternfly/react-core';
-import { DownloadIcon, SyncAltIcon } from '@patternfly/react-icons';
-import type { AutoragPattern, PatternDataBundle } from '~/app/types/autoragPattern';
+import { DownloadIcon } from '@patternfly/react-icons';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
 
 type PatternDetailsModalHeaderProps = {
@@ -30,8 +30,6 @@ type PatternDetailsModalHeaderProps = {
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
   comparisonEnabled: boolean;
   onToggleComparison: () => void;
-  comparisonPattern: PatternDataBundle | null;
-  onChangeComparisonPattern: () => void;
 };
 
 const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
@@ -44,8 +42,6 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
   onSaveNotebook,
   comparisonEnabled,
   onToggleComparison,
-  comparisonPattern,
-  onChangeComparisonPattern,
 }) => {
   const [isPatternDropdownOpen, setIsPatternDropdownOpen] = React.useState(false);
   const [isActionsDropdownOpen, setIsActionsDropdownOpen] = React.useState(false);
@@ -202,30 +198,6 @@ const PatternDetailsModalHeader: React.FC<PatternDetailsModalHeaderProps> = ({
           </Flex>
         </FlexItem>
       </Flex>
-      {comparisonEnabled && comparisonPattern && (
-        <Flex
-          alignItems={{ default: 'alignItemsCenter' }}
-          gap={{ default: 'gapSm' }}
-          className="pf-v6-u-mt-md"
-          data-testid="comparison-pattern-info"
-        >
-          <FlexItem>
-            <Title headingLevel="h3" size="md" data-testid="comparison-pattern-name">
-              {formatPatternName(comparisonPattern.pattern.name)} (#{comparisonPattern.rank})
-            </Title>
-          </FlexItem>
-          <FlexItem>
-            <Button
-              variant="link"
-              icon={<SyncAltIcon />}
-              onClick={onChangeComparisonPattern}
-              data-testid="change-comparison-pattern"
-            >
-              Change
-            </Button>
-          </FlexItem>
-        </Flex>
-      )}
       <Divider className="pf-v6-u-mt-md" />
     </>
   );

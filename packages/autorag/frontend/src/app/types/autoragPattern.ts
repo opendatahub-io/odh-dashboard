@@ -95,6 +95,7 @@ export type TabContentProps = {
   optimizedMetric?: string;
   scoreType: ScoreType;
   onScoreTypeChange?: (type: ScoreType) => void;
+  onChangeComparisonPattern?: () => void;
 };
 
 /**
