@@ -35,7 +35,7 @@ const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] 
       summary ?? {
         name: ref.name,
         namespace: ref.namespace,
-        modelRef: { kind: '', name: '' },
+        modelRef: { kind: '', name: ref.name },
       }
     );
   });

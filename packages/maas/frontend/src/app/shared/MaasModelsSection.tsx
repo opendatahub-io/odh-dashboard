@@ -64,9 +64,9 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   onRemoveModel,
   helperText,
   resourceType = 'subscription',
-  formGroupFieldId = `${resourceType.toLowerCase().replace(' ', '-')}-models`,
-  sectionTestId = `${resourceType.toLowerCase().replace(' ', '-')}-models-section`,
-  tableTestId = `${resourceType.toLowerCase().replace(' ', '-')}-models-table`,
+  formGroupFieldId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models`,
+  sectionTestId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models-section`,
+  tableTestId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models-table`,
   tableAriaLabel = `${resourceType} models`,
   addModelsButtonTestId = 'add-models-button',
   addModelsButtonAriaLabel,
@@ -248,7 +248,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
             </Title>
           </FlexItem>
           <FlexItem>
-            <Content component="p">Models available to members of this {resourceType}</Content>
+            <Content component="p">Models available to members of this {resourceType}.</Content>
           </FlexItem>
         </Flex>
       </StackItem>
