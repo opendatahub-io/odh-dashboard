@@ -108,8 +108,8 @@ If the PR is in **draft** state, note this prominently in the report header. Dra
 
 **If evaluating local branch changes (no PR):**
 
-1. Use the `git diff <base>...HEAD` output from Step 2 as the diff
-2. Use `git diff --name-only <base>...HEAD` to get the list of changed files
+1. Use the `git diff main...HEAD` output from Step 2 as the diff
+2. Use `git diff --name-only main...HEAD` to get the list of changed files
 3. Read key changed files from the local workspace using the `Read` tool
 
 
@@ -190,5 +190,5 @@ Present the report in this format:
 - Every issue key in the report is a clickable link: `[RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345)`
 - PR references are clickable links when a PR exists: `[#4567](https://github.com/opendatahub-io/odh-dashboard/pull/4567)`. When evaluating from a local branch diff, show the branch name instead (e.g., `_(no PR)_ — branch \`feature-branch\``)
 - File references use backtick-wrapped paths: `` `frontend/src/pages/Foo.tsx` ``
-- Code citations use fenced code blocks with the `startLine:endLine:filepath` header (e.g., `` ```12:18:frontend/src/pages/Foo.tsx ``)
+- Code citations use the repository's standard fenced code block format with a `startLine:endLine:filepath` header, e.g., a line containing `` ``` `` followed by `12:18:frontend/src/pages/Foo.tsx` on the same line as the opening fence
 - The summary table appears first for quick scanning; detailed sections follow
