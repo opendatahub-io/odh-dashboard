@@ -4,10 +4,6 @@ inputs:
   node-version:
     description: Node.js version used for cache key generation.
     required: true
-  include-cypress:
-    description: Whether the restored root cache should include the Cypress binary for workflows that use it.
-    required: false
-    default: 'false'
   include-modules:
     description: Whether to restore and install per-module dependency caches.
     required: false
