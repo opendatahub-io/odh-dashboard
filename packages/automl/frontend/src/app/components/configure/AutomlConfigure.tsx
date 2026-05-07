@@ -630,6 +630,7 @@ function AutomlConfigure({
                             {showTrainingDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="training-data-upload-description"
+                                data-testid="training-data-upload-zone"
                                 onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
                                   const [file] = droppedFiles;
                                   void uploadTrainingDataFile(file);

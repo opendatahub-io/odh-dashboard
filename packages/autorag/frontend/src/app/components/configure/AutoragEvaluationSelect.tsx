@@ -119,6 +119,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         }}
         onClear={() => field.onChange('')}
         fileUploadProps={{
+          'data-testid': 'evaluation-upload-zone',
           dropzoneProps: {
             accept: { 'application/json': ['.json'] },
             maxFiles: 1,

@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -111,11 +111,9 @@ function mockDataTransferForDrop(files: File[]) {
   };
 }
 
-/** `FileSelector` wraps content in `.pf-v6-c-multiple-file-upload`; react-dropzone lives on `.pf-v6-c-file-upload`. */
+/** Drop target is `FileUpload` with `data-testid="evaluation-upload-zone"` (see AutoragEvaluationSelect). */
 function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]): void {
-  const zone = container.querySelector('.pf-v6-c-file-upload');
-  expect(zone).toBeTruthy();
-  fireEvent.drop(zone as HTMLElement, {
+  fireEvent.drop(within(container).getByTestId('evaluation-upload-zone'), {
     dataTransfer: mockDataTransferForDrop(files),
   });
 }

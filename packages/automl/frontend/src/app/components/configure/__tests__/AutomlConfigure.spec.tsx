@@ -269,14 +269,12 @@ function mockDataTransferForDrop(files: File[]) {
 
 /**
  * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
- * Requires training-data upload mode to be open so `.pf-v6-c-multiple-file-upload` is mounted.
+ * Requires training-data upload mode to be open so the training upload zone is mounted.
  *
  * Uses `dataTransfer.files` without `items` so file-selector reads via `dt.files`.
  */
 function dropFilesOnTrainingDataUploadZone(files: File[]): void {
-  const zone = document.querySelector('.pf-v6-c-multiple-file-upload');
-  expect(zone).not.toBeNull();
-  fireEvent.drop(zone!, {
+  fireEvent.drop(screen.getByTestId('training-data-upload-zone'), {
     dataTransfer: mockDataTransferForDrop(files),
   });
 }

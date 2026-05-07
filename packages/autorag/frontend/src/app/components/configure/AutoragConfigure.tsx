@@ -614,6 +614,7 @@ function AutoragConfigure({
                             {showInputDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="input-data-upload-description"
+                                data-testid="knowledge-upload-zone"
                                 onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
                                   const [file] = droppedFiles;
                                   void uploadInputDataFile(file);
