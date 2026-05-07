@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"net/url"
 
 	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
@@ -26,8 +27,8 @@ func NewModelsRepository(logger *slog.Logger, maasApiUrl string) (*ModelsReposit
 	}, nil
 }
 
-func (r *ModelsRepository) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+func (r *ModelsRepository) ListModels(ctx context.Context, headers http.Header) ([]models.MaaSModel, error) {
 	r.logger.Debug("Listing MaaS models")
 
-	return r.maasClient.ListModels(ctx)
+	return r.maasClient.ListModels(ctx, headers)
 }
