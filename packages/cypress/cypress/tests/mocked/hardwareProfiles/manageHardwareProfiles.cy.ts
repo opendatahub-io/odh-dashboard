@@ -749,7 +749,9 @@ describe('Manage Hardware Profile', () => {
       createHardwareProfile.findLocalQueueInput().should('have.value', 'default');
 
       // The default workload priority is None, and is optional
-      createHardwareProfile.findWorkloadPrioritySelect().should('contain.text', 'None');
+      createHardwareProfile
+        .findWorkloadPrioritySelect()
+        .should('contain.text', 'No priority options configured');
 
       // The workload priority dropdown should show all the workload priorities available
       createHardwareProfile.findWorkloadPrioritySelect().click();
