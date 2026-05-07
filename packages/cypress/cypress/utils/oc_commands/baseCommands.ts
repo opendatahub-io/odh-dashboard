@@ -54,10 +54,11 @@ export const execWithOutput = (
     .exec(command, { failOnNonZeroExit: false, timeout: timeoutMs })
     .then((result: CommandLineResult | null) => {
       if (!result) {
-        return { exitCode: 0, stdout: '', stderr: '' };
+        // Provide a default CommandLineResult shape using cy.wrap
+        return cy.wrap({ exitCode: 0, stdout: '', stderr: '' });
       }
       cy.log(`Command exit code: ${result.exitCode}`);
-      return result;
+      return cy.wrap(result);
     });
 };
 

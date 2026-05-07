@@ -200,7 +200,7 @@ export const deleteTrainingRuntime = (
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR deleting TrainingRuntime: ${maskedStderr}`);
     }
-    return result;
+    return cy.wrap(result);
   });
 };
 

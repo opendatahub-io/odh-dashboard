@@ -29,7 +29,7 @@ export const getOdhDocuments = (
     if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH documents: ${maskedStderr}`);
-      return [];
+      return cy.wrap([] as { spec?: { type?: string }; [key: string]: unknown }[]);
     }
     const jsonResponse = JSON.parse(result.stdout);
     return jsonResponse.items || [];
@@ -51,7 +51,7 @@ export const getOdhQuickstarts = (
     if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH quickstarts: ${maskedStderr}`);
-      return [];
+      return cy.wrap([] as { [key: string]: unknown }[]);
     }
     const jsonResponse = JSON.parse(result.stdout);
     return jsonResponse.items || [];
@@ -75,7 +75,9 @@ export const getOdhApplications = (
     if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ODH applications: ${maskedStderr}`);
-      return [];
+      return cy.wrap(
+        [] as { spec?: { docsLink?: string; isEnabled?: boolean }; [key: string]: unknown }[],
+      );
     }
     const jsonResponse = JSON.parse(result.stdout);
     return jsonResponse.items || [];

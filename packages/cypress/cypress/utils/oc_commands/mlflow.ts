@@ -161,7 +161,7 @@ export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLine
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Warning: Failed to delete MLflow CR: ${maskedStderr}`);
       }
-      return result;
+      return cy.wrap(result);
     });
 };
 

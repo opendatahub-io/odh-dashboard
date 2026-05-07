@@ -133,7 +133,7 @@ export const createModelRegistryDatabaseViaYAML = (
             .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
             .then((result) => {
               cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
-              return result;
+              return cy.wrap(result);
             });
         });
     })
@@ -237,7 +237,7 @@ export const createPostgresDatabaseViaYAML = (
             .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
             .then((result) => {
               cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
-              return result;
+              return cy.wrap(result);
             });
         });
     })

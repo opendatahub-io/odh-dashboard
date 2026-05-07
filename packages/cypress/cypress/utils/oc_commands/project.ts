@@ -32,9 +32,8 @@ export const createOpenShiftProject = (
         cy.log(`WARNING: Failed to add dashboard label to ${projectName}
                   stdout: ${labelResult.stdout}
                   stderr: ${labelResult.stderr}`);
-        // Don't fail the entire operation if labeling fails, but log it
       }
-      return result; // Return the original creation result
+      return cy.wrap(result);
     });
   });
 };
