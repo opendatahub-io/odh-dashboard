@@ -76,7 +76,7 @@ In that case, use the issue **summary** as a single criterion (the evaluation wi
 
 Store each criterion as a numbered item. When criteria come from multiple issues, group and label them by source:
 
-```
+```text
 1. [RHOAIENG-12345] Criterion from the direct issue
 2. [RHOAIENG-12345] Another criterion from the direct issue
 3. [RHOAIENG-12000 — parent] Criterion inherited from parent epic
