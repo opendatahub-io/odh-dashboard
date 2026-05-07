@@ -47,14 +47,9 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
-	errorCode := lsErr.ErrorCode
-	if errorCode == "" {
-		errorCode = lsErr.Code
-	}
-
+// determineErrorComponentAndRetriability determines the component and retriability of a LlamaStack error
+func (app *App) determineErrorComponentAndRetriability(errorCode string, statusCode int) (component string, retriable bool) {
 	// Determine component from error code
-	var component string
 	switch errorCode {
 	case "tool_not_found", "tool_error", "mcp_error":
 		component = "mcp"
@@ -74,7 +69,6 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 	// An error is retriable when:
 	// - The error code is a known transient code (timeout, server_error, rate_limit, etc.), OR
 	// - The HTTP status is 429, 500, 502, 503, or 504
-	var retriable bool
 	switch errorCode {
 	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
 		retriable = true
@@ -88,6 +82,17 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 		// HTTP 429 (Too Many Requests) and 5xx errors are retriable
 		retriable = statusCode == http.StatusTooManyRequests || statusCode >= 500
 	}
+
+	return component, retriable
+}
+
+func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
+	errorCode := lsErr.ErrorCode
+	if errorCode == "" {
+		errorCode = lsErr.Code
+	}
+
+	component, retriable := app.determineErrorComponentAndRetriability(errorCode, statusCode)
 
 	toolName := ""
 	if component == "mcp" && lsErr.Param != "" {

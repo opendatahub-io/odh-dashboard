@@ -625,6 +625,8 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 		var errorMessage string
 		var errorCode string
+		var component string
+		var retriable bool
 
 		// Use errors.As to detect underlying LlamaStackError (supports error wrapping)
 		var lsErr *llamastack.LlamaStackError
@@ -634,16 +636,27 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			if errorCode == "" {
 				errorCode = strings.ToLower(lsErr.Code)
 			}
+
+			// Determine component and retriability using the default status code for this error code
+			statusCode := lsErr.StatusCode
+			if statusCode == 0 {
+				statusCode = app.getDefaultStatusCodeForLlamaStackClientError(lsErr.Code)
+			}
+			component, retriable = app.determineErrorComponentAndRetriability(errorCode, statusCode)
 		} else {
 			errorMessage = "An error occurred during streaming. Please try again."
 			errorCode = "streaming_error"
+			component = "bff"
+			retriable = false
 		}
 
 		// Send error event
 		errorData := map[string]interface{}{
 			"error": map[string]interface{}{
-				"message": errorMessage,
-				"code":    errorCode,
+				"message":   errorMessage,
+				"code":      errorCode,
+				"component": component,
+				"retriable": retriable,
 			},
 		}
 		errorJSON, _ := json.Marshal(errorData)
