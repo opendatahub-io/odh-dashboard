@@ -4,7 +4,7 @@ import { FeatureService } from '../../types/featureServices';
 export const columns: SortableData<FeatureService>[] = [
   {
     field: 'feature_service',
-    label: 'Feature service',
+    label: 'Name',
     width: 25,
     sortable: (a: FeatureService, b: FeatureService): number =>
       a.spec.name.localeCompare(b.spec.name),

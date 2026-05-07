@@ -176,7 +176,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
                     dataSet.meta.lastUpdatedTimestamp ? (
                       <FeatureStoreTimestamp date={dataSet.meta.lastUpdatedTimestamp} />
                     ) : (
-                      'No last modified'
+                      '--'
                     )
                   }
                   testId="data-set-last-modified"

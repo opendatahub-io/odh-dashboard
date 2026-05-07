@@ -47,7 +47,7 @@ const FeatureViewsTabContent: React.FC<{
     >
       <Thead>
         <Tr>
-          <Th width={20}>Feature View</Th>
+          <Th width={20}>Name</Th>
           <Th width={20}>Feature service consumers</Th>
         </Tr>
       </Thead>
