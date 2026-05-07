@@ -402,9 +402,9 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
       updateGuardrail: (id: string, value: string) => {
         set((state) => {
           const config = state.configurations[id];
-          if (config) {
-            config.guardrail = value;
+          if (config && config.guardrail !== value) {
             config.guardrailSubscription = '';
+            config.guardrail = value;
           }
         });
       },
