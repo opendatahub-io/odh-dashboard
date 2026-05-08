@@ -59,7 +59,7 @@ export const handleConnectionCreation = async (
   // EXISTING to NEW for UI display, but we should not create a new secret for them.
   if (modelLocationData.connection && selectedConnection) {
     const isHidden =
-      selectedConnection.metadata.annotations?.['opendatahub.io/connection-hidden'] === 'true';
+      selectedConnection.metadata.annotations['opendatahub.io/connection-hidden'] === 'true';
     if (isHidden) {
       if (!dryRun) {
         getSecret(project, modelLocationData.connection)
