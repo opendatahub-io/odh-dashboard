@@ -1,3 +1,4 @@
+import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE') || 'opendatahub';
@@ -28,12 +29,6 @@ interface ImageStream {
   };
 }
 
-interface ExecResult {
-  code: number;
-  stdout: string;
-  stderr: string;
-}
-
 /**
  * Gets the display name of an imagestream based on the opendatahub.io/notebook-image-name annotation
  * @param imageStreamName - The name of the imagestream (e.g., 'code-server-notebook')
@@ -46,8 +41,8 @@ export const getImageStreamDisplayName = (
 ): Cypress.Chainable<string> =>
   cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
-    .then((result: ExecResult) => {
-      if (result.code !== 0) {
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get image stream: ${maskedStderr}`);
       }
@@ -72,7 +67,7 @@ export const imageStreamExists = (
 ): Cypress.Chainable<boolean> =>
   cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} --ignore-not-found -o name`)
-    .then((result: ExecResult) => result.stdout.trim() !== '');
+    .then((result: CommandLineResult) => result.stdout.trim() !== '');
 
 /**
  * Gets all available notebook imagestreams in a namespace
@@ -84,8 +79,8 @@ export const getAvailableNotebookImageStreams = (
 ): Cypress.Chainable<string[]> =>
   cy
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
-    .then((result: ExecResult) => {
-      if (result.code !== 0) {
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get image streams: ${maskedStderr}`);
       }
@@ -148,21 +143,21 @@ export const getImageStreamTags = (
 ): Cypress.Chainable<string[]> =>
   cy
     .exec(`oc get imagestream ${imageStreamName} -n ${namespace} -o json`)
-    .then((result: ExecResult) => {
-      if (result.code !== 0) {
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get image stream: ${maskedStderr}`);
       }
       const imageStream: ImageStream = JSON.parse(result.stdout);
       return imageStream.spec.tags.map((tag) => tag.name);
     })
-    .then((tags) => tags.toSorted());
+    .then((tags: string[]) => tags.toSorted());
 
 export const getNotebookImageNames = (namespace: string): Cypress.Chainable<NotebookImageInfo[]> =>
   cy
     .exec(`oc get imagestream -n ${namespace} -o jsonpath='{.items[*].metadata.name}'`)
-    .then((result: ExecResult) => {
-      if (result.code !== 0) {
+    .then((result: CommandLineResult) => {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get image streams: ${maskedStderr}`);
       }
@@ -173,8 +168,8 @@ export const getNotebookImageNames = (namespace: string): Cypress.Chainable<Note
       cy.wrap(filteredNames).each((imageName: string) => {
         cy.exec(
           `oc get imagestream ${imageName} -n ${namespace} -o jsonpath='{.spec.tags[*].name}'`,
-        ).then((tagResult: ExecResult) => {
-          if (tagResult.code !== 0) {
+        ).then((tagResult: CommandLineResult) => {
+          if (tagResult.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(tagResult.stderr);
             throw new Error(`Failed to get image stream tags: ${maskedStderr}`);
           }

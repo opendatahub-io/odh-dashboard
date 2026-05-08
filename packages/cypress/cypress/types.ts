@@ -228,7 +228,7 @@ export type StandaloneNotebookTestData = {
 };
 
 export type CommandLineResult = {
-  code: number;
+  exitCode: number;
   stdout: string;
   stderr: string;
 };
@@ -731,6 +731,25 @@ export type MlflowExperimentRunData = {
 export type MlflowExperimentData = {
   name: string;
   renamedName: string;
+};
+
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
 };
 
 export type MlflowExperimentsTestData = {

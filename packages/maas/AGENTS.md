@@ -105,7 +105,7 @@ maas/
 
 ### BFF
 
-- **Go**: >= 1.24
+- **Go**: >= 1.25
 
 ---
 
@@ -313,7 +313,7 @@ DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme make dev-start
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 20+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 20+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it

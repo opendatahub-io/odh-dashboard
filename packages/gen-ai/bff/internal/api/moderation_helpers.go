@@ -16,22 +16,15 @@ type ModerationResult struct {
 	ViolationReason string
 }
 
-// checkModeration sends content to the NeMo Guardrails API for safety evaluation.
-//
-// opts identifies the guardrail configuration — either a pre-created config_id (ConfigMap on
-// the cluster) or a fully inline config with model, rails, and prompts per-request.
-//
-// role controls which rails fire: nemo.RoleUser ("user") for input moderation,
-// nemo.RoleAssistant ("assistant") for output moderation.
-func (app *App) checkModeration(ctx context.Context, input string, opts nemo.GuardrailsOptions, role string) (*ModerationResult, error) {
-	app.logger.Debug("Moderation check started", "inline", opts.Config != nil, "role", role, "input_length", len(input))
+func (app *App) checkModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (*ModerationResult, error) {
+	app.logger.Debug("Moderation check started", "inline", opts.Config != nil, "messageCount", len(messages))
 
 	nemoClient, err := helper.GetContextNemoClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get NeMo Guardrails client: %w", err)
 	}
 
-	response, err := nemoClient.CheckGuardrails(ctx, input, opts, role)
+	response, err := nemoClient.CheckGuardrails(ctx, messages, opts)
 	if err != nil {
 		app.logger.Debug("NeMo guardrail check error", "error", err)
 		return nil, fmt.Errorf("guardrail check failed: %w", err)
@@ -43,15 +36,11 @@ func (app *App) checkModeration(ctx context.Context, input string, opts nemo.Gua
 // buildInlineGuardrailOptions constructs a GuardrailsOptions with a fully inline config,
 // allowing per-request model, rails, and prompt customisation without a cluster ConfigMap.
 //
-// endpointURL is the raw base URL of the guardrail model (e.g. vLLM InferenceService URL,
-// external model URL, or MaaS API URL).  The BFF resolves this via GetModelProviderInfo so
-// the frontend never needs to send credentials or URLs.
+// A rail is enabled when its corresponding prompt is non-empty — no separate boolean needed.
 func buildInlineGuardrailOptions(
 	endpointURL string,
 	modelID string,
 	apiKey string,
-	inputEnabled bool,
-	outputEnabled bool,
 	inputPrompt string,
 	outputPrompt string,
 ) nemo.GuardrailsOptions {
@@ -69,24 +58,19 @@ func buildInlineGuardrailOptions(
 		},
 	}
 
-	if inputEnabled {
+	if inputPrompt != "" {
 		config.Rails.Input = &nemo.InlineGuardrailRailFlows{
 			Flows: []string{nemo.FlowSelfCheckInput},
 		}
-	}
-	if outputEnabled {
-		config.Rails.Output = &nemo.InlineGuardrailRailFlows{
-			Flows: []string{nemo.FlowSelfCheckOutput},
-		}
-	}
-
-	if inputEnabled && inputPrompt != "" {
 		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
 			Task:    nemo.TaskSelfCheckInput,
 			Content: inputPrompt,
 		})
 	}
-	if outputEnabled && outputPrompt != "" {
+	if outputPrompt != "" {
+		config.Rails.Output = &nemo.InlineGuardrailRailFlows{
+			Flows: []string{nemo.FlowSelfCheckOutput},
+		}
 		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
 			Task:    nemo.TaskSelfCheckOutput,
 			Content: outputPrompt,
@@ -151,9 +135,6 @@ func EndsWithSentenceBoundary(text string) bool {
 }
 
 // extractResponseText extracts the text content from a response for moderation.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
 func extractResponseText(response *ResponseData) string {
 	var textParts []string
 	for _, output := range response.Output {
@@ -166,36 +147,4 @@ func extractResponseText(response *ResponseData) string {
 		}
 	}
 	return strings.Join(textParts, " ")
-}
-
-// createGuardrailViolationResponse builds a non-streaming guardrail refusal ResponseData.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
-func createGuardrailViolationResponse(responseID string, model string, isInput bool) ResponseData {
-	message := constants.OutputGuardrailViolationMessage
-	if isInput {
-		message = constants.InputGuardrailViolationMessage
-	}
-
-	return ResponseData{
-		ID:        responseID,
-		Model:     model,
-		Status:    "completed",
-		CreatedAt: 0,
-		Output: []OutputItem{
-			{
-				ID:     "msg_guardrail",
-				Type:   "message",
-				Role:   "assistant",
-				Status: "completed",
-				Content: []ContentItem{
-					{
-						Type:    "refusal",
-						Refusal: message,
-					},
-				},
-			},
-		},
-	}
 }

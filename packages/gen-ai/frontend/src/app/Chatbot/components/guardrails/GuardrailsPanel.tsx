@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import * as React from 'react';
 import {
   Form,
@@ -5,43 +6,35 @@ import {
   FormHelperText,
   HelperText,
   HelperTextItem,
-  MenuToggle,
-  Select,
-  SelectOption,
-  SelectList,
   Switch,
 } from '@patternfly/react-core';
-import FieldGroupHelpLabelIcon from '@odh-dashboard/internal/components/FieldGroupHelpLabelIcon';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   useChatbotConfigStore,
   selectGuardrail,
   selectGuardrailUserInputEnabled,
   selectGuardrailModelOutputEnabled,
+  selectGuardrailSubscription,
 } from '~/app/Chatbot/store';
-
-// Keep this type for useChatbotMessages API payload
-export type GuardrailsConfig = {
-  enabled: boolean;
-  guardrail: string;
-  userInputEnabled: boolean;
-  modelOutputEnabled: boolean;
-};
+import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
+import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
+import { isLlamaModelEnabled } from '~/app/utilities/utils';
 
 interface GuardrailsPanelProps {
   configId: string;
-  availableModels: string[];
 }
 
-const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableModels }) => {
-  const [isModelSelectOpen, setIsModelSelectOpen] = React.useState(false);
+const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
+  const { models, modelsLoaded, aiModels, maasModels } = React.useContext(ChatbotContext);
+  const { data: bffConfig } = useFetchBFFConfig();
 
-  // Read from store
   const guardrail = useChatbotConfigStore(selectGuardrail(configId));
   const userInputEnabled = useChatbotConfigStore(selectGuardrailUserInputEnabled(configId));
   const modelOutputEnabled = useChatbotConfigStore(selectGuardrailModelOutputEnabled(configId));
+  const guardrailSubscription = useChatbotConfigStore(selectGuardrailSubscription(configId));
 
-  // Get updaters directly
   const updateGuardrail = useChatbotConfigStore((state) => state.updateGuardrail);
   const updateUserInputEnabled = useChatbotConfigStore(
     (state) => state.updateGuardrailUserInputEnabled,
@@ -49,25 +42,28 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
   const updateModelOutputEnabled = useChatbotConfigStore(
     (state) => state.updateGuardrailModelOutputEnabled,
   );
+  const updateGuardrailSubscription = useChatbotConfigStore(
+    (state) => state.updateGuardrailSubscription,
+  );
 
-  const handleModelSelect = (
-    _event: React.MouseEvent<Element, MouseEvent> | undefined,
-    value: string | number | undefined,
-  ) => {
-    if (typeof value === 'string') {
-      updateGuardrail(configId, value);
-      fireMiscTrackingEvent('Guardrails Model Dropdown Option Selected', {
-        selectedModel: value,
-      });
+  React.useEffect(() => {
+    if (modelsLoaded && models.length > 0 && !guardrail) {
+      const first = models.find((m) =>
+        isLlamaModelEnabled(m.id, aiModels, maasModels, bffConfig?.isCustomLSD ?? false),
+      );
+      if (first) {
+        updateGuardrail(configId, first.id);
+      }
     }
-    setIsModelSelectOpen(false);
+  }, [modelsLoaded, models, guardrail, aiModels, maasModels, bffConfig, configId, updateGuardrail]);
+
+  const handleModelChange = (value: string) => {
+    updateGuardrail(configId, value);
+    fireMiscTrackingEvent('Guardrails Model Dropdown Option Selected', { selectedModel: value });
   };
 
   const handleUserInputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    // Update state
     updateUserInputEnabled(configId, checked);
-
-    // Fire tracking with the new input value and current output value
     fireMiscTrackingEvent('Guardrails Enabled', {
       inputEnabled: checked,
       outputEnabled: modelOutputEnabled,
@@ -75,61 +71,29 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId, availableMo
   };
 
   const handleModelOutputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    // Update state
     updateModelOutputEnabled(configId, checked);
-
-    // Fire tracking with current input value and the new output value
     fireMiscTrackingEvent('Guardrails Enabled', {
       inputEnabled: userInputEnabled,
       outputEnabled: checked,
     });
   };
 
-  const handleInfoIconClick = () => {
-    fireMiscTrackingEvent('Guardrail Model Info Icon Selected', {
-      infoClicked: true,
-    });
-  };
-
   return (
     <Form>
-      <FormGroup
-        label="Guardrail model"
-        fieldId="guardrail-model"
-        labelHelp={
-          <FieldGroupHelpLabelIcon
-            content="This is the model that enforces the guardrails."
-            onClick={handleInfoIconClick}
-          />
-        }
-      >
-        <Select
-          id="guardrail-model-select"
-          isOpen={isModelSelectOpen}
-          selected={guardrail}
-          onSelect={handleModelSelect}
-          onOpenChange={setIsModelSelectOpen}
-          toggle={(toggleRef) => (
-            <MenuToggle
-              ref={toggleRef}
-              onClick={() => setIsModelSelectOpen(!isModelSelectOpen)}
-              isExpanded={isModelSelectOpen}
-              style={{ width: '100%' }}
-              data-testid="guardrail-model-toggle"
-            >
-              {guardrail || 'Select a model'}
-            </MenuToggle>
-          )}
-        >
-          <SelectList>
-            {availableModels.map((model) => (
-              <SelectOption key={model} value={model}>
-                {model}
-              </SelectOption>
-            ))}
-          </SelectList>
-        </Select>
+      <FormGroup label="Guardrail model" fieldId="guardrail-model">
+        <ModelDetailsDropdown
+          selectedModel={guardrail}
+          onModelChange={handleModelChange}
+          style={{ width: '100%' }}
+          testId="guardrail-model-toggle"
+        />
       </FormGroup>
+
+      <SubscriptionDropdown
+        selectedModel={guardrail}
+        selectedSubscription={guardrailSubscription}
+        onSubscriptionChange={(value) => updateGuardrailSubscription(configId, value)}
+      />
 
       <FormGroup fieldId="user-input-guardrails">
         <Switch

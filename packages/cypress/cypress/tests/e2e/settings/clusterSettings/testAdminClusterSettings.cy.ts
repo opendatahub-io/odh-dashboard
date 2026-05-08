@@ -110,7 +110,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
             return getClusterRoleBinding(clusterRoleBindingName);
           })
           .then((result: CommandLineResult) => {
-            if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+            if (result.exitCode === 0 && result.stdout && result.stdout.trim() !== '') {
               originalClusterRoleBinding = result.stdout;
               cy.log('Found existing ClusterRoleBinding, will restore after test');
             }
@@ -129,7 +129,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
             return applyOpenShiftYaml(modifiedYamlContent);
           })
           .then((result: CommandLineResult) => {
-            if (result.code !== 0) {
+            if (result.exitCode !== 0) {
               const maskedStderr = maskSensitiveInfo(result.stderr);
               throw new Error(`Failed to create ClusterRoleBinding: ${maskedStderr}`);
             }
@@ -142,7 +142,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     // Cleanup: Remove the ClusterRoleBinding we created
     cy.step('Cleanup: Remove test ClusterRoleBinding');
     deleteClusterRoleBinding(clusterRoleBindingName).then((result: CommandLineResult) => {
-      if (result.code === 0) {
+      if (result.exitCode === 0) {
         cy.log('Successfully removed test ClusterRoleBinding');
       }
     });
@@ -151,7 +151,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
     if (originalClusterRoleBinding) {
       cy.step('Restore original ClusterRoleBinding');
       applyOpenShiftYaml(originalClusterRoleBinding).then((result: CommandLineResult) => {
-        if (result.code === 0) {
+        if (result.exitCode === 0) {
           cy.log('Successfully restored original ClusterRoleBinding');
         }
       });

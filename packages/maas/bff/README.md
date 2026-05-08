@@ -4,7 +4,7 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Dependencies
 
-- Go >= 1.24.3
+- Go >= 1.25.9
 
 ## Scope
 
