@@ -80,6 +80,7 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
     data: nemoGuardrailsStatus,
     loaded: nemoGuardrailsStatusLoaded,
     error: nemoGuardrailsStatusError,
+    refresh: nemoGuardrailsStatusRefresh,
   } = useFetchNemoGuardrailsStatus();
 
   const {
@@ -92,7 +93,8 @@ export const ChatbotContextProvider: React.FC<ChatbotContextProviderProps> = ({ 
   const refresh = React.useCallback(() => {
     lsdStatusRefresh();
     modelsRefresh();
-  }, [lsdStatusRefresh, modelsRefresh]);
+    nemoGuardrailsStatusRefresh();
+  }, [lsdStatusRefresh, modelsRefresh, nemoGuardrailsStatusRefresh]);
 
   // Set activeRefresh to false when the component unmounts
   React.useEffect(() => {
