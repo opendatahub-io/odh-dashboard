@@ -29,6 +29,11 @@ jest.mock('~/concepts/k8s/NamespaceSelectorField/NamespaceSelectorField', () => 
   default: () => <div data-testid="mock-namespace-selector-field" />,
 }));
 
+jest.mock('~/odh/components/NamespaceSelectorFieldWrapper', () => ({
+  __esModule: true,
+  default: () => <div data-testid="mock-namespace-selector-field" />,
+}));
+
 jest.mock('~/app/pages/modelRegistry/components/pf-overrides/FormSection', () => ({
   __esModule: true,
   default: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
