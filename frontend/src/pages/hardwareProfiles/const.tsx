@@ -32,8 +32,8 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
     info: {
       popover: (
         <>
-          Visible features indicate where the hardware profile can be used: in <b>workbenches</b>{' '}
-          and during <b>model deployment</b>.
+          Workload type indicates which workloads this hardware profile is available for:{' '}
+          <b>workbenches</b> and <b>model deployment</b>.
         </>
       ),
       popoverProps: {
@@ -94,8 +94,6 @@ export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
   [HardwareProfileFilterOptions.enabled]: undefined,
   [HardwareProfileFilterOptions.visibility]: undefined,
 };
-
-export const LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL = 'Specify local queue';
 
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',

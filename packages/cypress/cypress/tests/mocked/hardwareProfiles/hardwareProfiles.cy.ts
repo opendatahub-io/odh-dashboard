@@ -571,7 +571,7 @@ describe('hardware profiles - empty state', () => {
     cy.url().should('include', '/hardware-profiles/create');
   });
 
-  it('should hide "Add new hardware profile" button when user does not have create permission', () => {
+  it('should hide "Create hardware profile" button when user does not have create permission', () => {
     cy.interceptK8s(
       'POST',
       SelfSubjectAccessReviewModel,

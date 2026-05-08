@@ -27,10 +27,16 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
   const [workloadPriorityClasses, loaded, error] = useWorkloadPriorityClasses();
 
   const priorityOptions: SimpleSelectOption[] = React.useMemo(() => {
-    const noneOption = {
+    const noneOptionWhenEmptyOrLoading = {
       key: DEFAULT_PRIORITY_CLASS,
       label: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
       dropdownLabel: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
+    };
+
+    const noneOptionWhenClassesExist = {
+      key: DEFAULT_PRIORITY_CLASS,
+      label: DEFAULT_PRIORITY_CLASS,
+      dropdownLabel: DEFAULT_PRIORITY_CLASS,
     };
 
     if (!loaded || error) {
@@ -38,7 +44,7 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
       // This prevents SimpleSelect from auto-calling onChange when the real options haven't loaded yet
       if (priorityClass && priorityClass !== DEFAULT_PRIORITY_CLASS) {
         return [
-          noneOption,
+          noneOptionWhenEmptyOrLoading,
           {
             key: priorityClass,
             label: priorityClass,
@@ -47,8 +53,13 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
         ];
       }
 
-      return [noneOption];
+      return [noneOptionWhenEmptyOrLoading];
     }
+
+    const noneOption =
+      workloadPriorityClasses.length > 0
+        ? noneOptionWhenClassesExist
+        : noneOptionWhenEmptyOrLoading;
 
     const options = [
       noneOption,

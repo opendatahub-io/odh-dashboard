@@ -108,12 +108,13 @@ export const NO_PRIORITY_OPTIONS_CONFIGURED_LABEL = 'No priority options configu
 
 export const NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL = 'Add node selectors and tolerations';
 
-/** Strategy name in the workload allocation strategy help popover (radio label stays "Add ..."). */
 export const NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME =
   'Node selectors and tolerations';
 
 export const LOCAL_QUEUE_FIELD_DESCRIPTION =
   'Type the name of an existing local queue. Hardware profiles using this workload allocation strategy are only accessible to Kueue-enabled projects.';
+
+export const LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL = 'Specify local queue';
 
 export const LOCAL_QUEUE_NAMES_CASE_SENSITIVE_HELPER = 'Local queue names are case-sensitive.';
 

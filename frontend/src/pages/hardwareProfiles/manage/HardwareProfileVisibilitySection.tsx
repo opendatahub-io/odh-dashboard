@@ -51,8 +51,8 @@ export const HardwareProfileVisibilitySection: React.FC<HardwareProfileUseCaseSe
         <DashboardHelpTooltip
           content={
             <>
-              Visible features indicate where the hardware profile can be used: in{' '}
-              <b>workbenches</b> and during <b>model deployment</b>.
+              Workload type indicates which workloads this hardware profile is available for:{' '}
+              <b>workbenches</b> and <b>model deployment</b>.
             </>
           }
         />

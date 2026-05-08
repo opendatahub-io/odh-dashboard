@@ -1,14 +1,22 @@
 import * as React from 'react';
-import { Alert, FormGroup, List, ListItem, Radio, Stack, StackItem } from '@patternfly/react-core';
+import {
+  Alert,
+  Flex,
+  FlexItem,
+  FormGroup,
+  List,
+  ListItem,
+  Radio,
+  Stack,
+  StackItem,
+} from '@patternfly/react-core';
 import { SchedulingType } from '#~/types.ts';
 import DashboardHelpTooltip from '#~/concepts/dashboard/DashboardHelpTooltip.tsx';
-import {
-  LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL,
-  ManageHardwareProfileSectionTitles,
-} from '#~/pages/hardwareProfiles/const.tsx';
+import { ManageHardwareProfileSectionTitles } from '#~/pages/hardwareProfiles/const.tsx';
 import { ManageHardwareProfileSectionID } from '#~/pages/hardwareProfiles/manage/types.ts';
 import {
   HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP,
+  LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL,
   NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL,
   NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME,
 } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
@@ -78,29 +86,43 @@ const ManageWorkloadStrategySection: React.FC<ManageWorkloadStrategySectionProps
     >
       {!hideQueueOption ? (
         <>
-          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <Radio
-              id="local-queue"
-              name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
-              data-testid="local-queue-radio-input"
-              label={LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL}
-              isChecked={schedulingType === SchedulingType.QUEUE}
-              onChange={() => setSchedulingType(SchedulingType.QUEUE)}
-            />
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <Radio
-              id="node-strategy"
-              name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
-              data-testid="node-strategy-radio-input"
-              label={NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}
-              isChecked={schedulingType === SchedulingType.NODE}
-              onChange={() => setSchedulingType(SchedulingType.NODE)}
-            />
-            <DashboardHelpTooltip
-              content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.nodeSelectorsAndTolerations}
-            />
-          </span>
+          <Flex
+            display={{ default: 'inlineFlex' }}
+            spaceItems={{ default: 'spaceItemsNone' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Radio
+                id="local-queue"
+                name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
+                data-testid="local-queue-radio-input"
+                label={LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL}
+                isChecked={schedulingType === SchedulingType.QUEUE}
+                onChange={() => setSchedulingType(SchedulingType.QUEUE)}
+              />
+            </FlexItem>
+          </Flex>
+          <Flex
+            display={{ default: 'inlineFlex' }}
+            spaceItems={{ default: 'spaceItemsNone' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <FlexItem>
+              <Radio
+                id="node-strategy"
+                name={ManageHardwareProfileSectionID.ALLOCATION_STRATEGY}
+                data-testid="node-strategy-radio-input"
+                label={NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL}
+                isChecked={schedulingType === SchedulingType.NODE}
+                onChange={() => setSchedulingType(SchedulingType.NODE)}
+              />
+            </FlexItem>
+            <FlexItem>
+              <DashboardHelpTooltip
+                content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.nodeSelectorsAndTolerations}
+              />
+            </FlexItem>
+          </Flex>
         </>
       ) : (
         <>
