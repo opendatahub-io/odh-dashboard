@@ -473,7 +473,7 @@ func (c *RealS3Client) GetCSVSchema(ctx context.Context, bucket, key string) (CS
 			Type:     inferColumnType(dataRows, i),
 			TaskType: taskType,
 		}
-		if taskType == "binary" || taskType == "multiclass" {
+		if taskType == "binary" || (taskType == "multiclass" && len(uniqueValues) <= maxMulticlassUniqueValues) {
 			columnSchemas[i].Values = toTypedValues(uniqueValues)
 		}
 	}
