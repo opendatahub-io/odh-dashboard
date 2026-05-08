@@ -514,6 +514,8 @@ const useChatbotMessages = ({
                 setTimeout(() => {
                   completeLines.push(mockScenario.partialResponse!);
                   updateMessage(true, true);
+                  // Mark that streaming content was received for error classification
+                  streamingReceivedRef.current = true;
                   resolve(undefined);
                 }, 500);
               });

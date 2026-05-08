@@ -25,9 +25,12 @@ const PARTIAL_COMPONENTS = new Set(['rag', 'guardrails', 'mcp']);
 const STREAMING_ERROR_MAP: Record<string, string> = {
   /* eslint-disable camelcase */
   stream_lost: 'stream:connection_lost',
+  connection_lost: 'stream:connection_lost', // Mock scenario code
   stream_timeout: 'stream:timeout',
+  timeout: 'stream:timeout', // Mock scenario code (also real BFF timeout)
   stream_context: 'stream:context_length',
   context_length: 'stream:context_length',
+  context_length_exceeded: 'stream:context_length', // Mock scenario code
   /* eslint-enable camelcase */
 };
 
@@ -93,7 +96,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   let pattern: ClassifiedError['pattern'];
   let variant: ClassifiedError['variant'];
 
-  if (isStreamingError && context.wasStreamStarted) {
+  if (isStreamingError && context.wasResponseGenerated) {
     pattern = 'streaming-interruption';
     variant = 'danger';
   } else if (isPartial || context.wasResponseGenerated) {
