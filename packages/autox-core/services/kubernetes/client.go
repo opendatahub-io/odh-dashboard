@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // ClientsetInterface wraps kubernetes.Interface for testing
@@ -28,8 +29,21 @@ type K8sClientInterface interface {
 	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
 	// Convenience methods for common resources
-	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]string, error)
-	GetPods(ctx context.Context, namespace string, identity *RequestIdentity) (*v1.PodList, error)
+	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error)
+	GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error)
+	GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error)
+	GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error)
+
+	// User identity and permissions
+	GetUser(identity *RequestIdentity) (string, error)
+	IsClusterAdmin(identity *RequestIdentity) (bool, error)
+
+	// Generic RBAC check - checks if identity can perform verb on resource in namespace
+	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error)
+
+	// Advanced operations - expose underlying clients
+	GetClientset() any
+	GetRestConfig() *rest.Config
 }
 
 // DefaultK8sClientConfig for creating a K8s client based on auth method
