@@ -183,6 +183,19 @@ A module MUST be defined as a directory inside of [packages](https://github.com/
 
 ---
 
+## External BFF consumers (inter-BFF contract)
+
+The MaaS BFF is called over HTTP by **other packages** in this repo (and possibly external callers), not only by the Mod Arch UI.
+
+**Before you change handlers, routes, or JSON shapes that inter-BFF clients rely on:**
+
+1. Open and read **[`bff/CONSUMERS.md`](bff/CONSUMERS.md)** — contract endpoints, known consumers, request/response shapes, and breaking-change policy.
+2. Coordinate with maintainers of every listed consumer when a change is not backward compatible.
+
+Skipping this can **silently break downstream services**. Treat the endpoints documented there as a **public API contract** for the monorepo.
+
+---
+
 ## BFF Rules ([bff/](bff/))
 
 All backend-for-frontend (BFF) Go code MUST use the following directory organization structure:
