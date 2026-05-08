@@ -37,6 +37,7 @@ import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
 
 const policyFormSchema = z.object({
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
 });
 
 export type PolicyFormProps = {
@@ -68,6 +69,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   });
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
   const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() =>
     initialPolicy ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs) : [],
   );
@@ -79,7 +81,10 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
 
-  const zodFormData = React.useMemo(() => ({ groups: selectedGroupNames }), [selectedGroupNames]);
+  const zodFormData = React.useMemo(
+    () => ({ groups: selectedGroupNames, models: selectedModels }),
+    [selectedGroupNames, selectedModels],
+  );
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, policyFormSchema);
 
@@ -89,10 +94,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
       : undefined;
 
   const canSubmit =
-    isValidK8sNameDescription &&
-    getFieldValidation(undefined, true).length === 0 &&
-    selectedModels.length > 0 &&
-    !isSubmitting;
+    isValidK8sNameDescription && getFieldValidation(undefined, true).length === 0 && !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
@@ -195,11 +197,19 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               hideColumns={['tokenLimits']}
               editable
               onAddModels={() => setIsAddModelsModalOpen(true)}
-              onRemoveModel={handleRemoveModelAt}
+              onRemoveModel={(index) => {
+                setModelsTouched(true);
+                handleRemoveModelAt(index);
+              }}
               helperText={
                 <Content>
                   Add models that subjects of this authorization policy will be granted access to.
                 </Content>
+              }
+              validationError={
+                modelsTouched && getFieldValidation(['models'], true).length > 0
+                  ? getFieldValidation(['models'], true)[0].message
+                  : undefined
               }
               formGroupFieldId="policy-models"
               sectionTestId="policy-models-section"
@@ -216,8 +226,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
                 allSubscriptions={formData.subscriptions}
                 allPolicies={formData.policies}
                 currentModels={selectedModels.map((m) => ({ modelRefSummary: m }))}
-                onAdd={handleAddModels}
-                onRemove={handleRemoveModelsByRef}
+                onAdd={(refs) => {
+                  setModelsTouched(true);
+                  handleAddModels(refs);
+                }}
+                onRemove={(refs) => {
+                  setModelsTouched(true);
+                  handleRemoveModelsByRef(refs);
+                }}
                 onClose={() => setIsAddModelsModalOpen(false)}
                 ariaLabel="Add models to authorization policy"
                 title="Add models to authorization policy"

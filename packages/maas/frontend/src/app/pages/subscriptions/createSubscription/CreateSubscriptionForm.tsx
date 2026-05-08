@@ -55,6 +55,7 @@ const subscriptionFormSchema = z.object({
     .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
     .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
   groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
 });
 
 type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
@@ -107,6 +108,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     return [];
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
   const [priority, setPriority] = React.useState<number | undefined>(
     subscription?.priority ?? undefined,
   );
@@ -211,8 +213,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     () => ({
       priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
       groups: selectedGroupNames,
+      models,
     }),
-    [priority, selectedGroupNames],
+    [priority, selectedGroupNames, models],
   );
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
@@ -226,7 +229,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const canSubmit =
     isNameValid &&
     getFieldValidation(undefined, true).length === 0 &&
-    models.length > 0 &&
     allModelsHaveRateLimits &&
     !isSubmitting &&
     !priorityConflictError;
@@ -392,7 +394,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             editable
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
-            onRemoveModel={handleRemoveModel}
+            onRemoveModel={(index) => {
+              setModelsTouched(true);
+              handleRemoveModel(index);
+            }}
+            validationError={
+              modelsTouched && getFieldValidation(['models'], true).length > 0
+                ? getFieldValidation(['models'], true)[0].message
+                : undefined
+            }
             resourceType="subscription"
           />
         )}
@@ -404,8 +414,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             allSubscriptions={subscriptionsForConflictCheck}
             allPolicies={formData.policies}
             currentModels={models}
-            onAdd={handleAddModels}
-            onRemove={handleRemoveModelsByRef}
+            onAdd={(refs) => {
+              setModelsTouched(true);
+              handleAddModels(refs);
+            }}
+            onRemove={(refs) => {
+              setModelsTouched(true);
+              handleRemoveModelsByRef(refs);
+            }}
             onClose={() => setIsAddModelsModalOpen(false)}
           />
         )}
