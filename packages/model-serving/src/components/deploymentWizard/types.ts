@@ -286,7 +286,9 @@ export const resolveFieldValue = (
 
 export type ModelServerTemplateField = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
-  suggestion?: (clusterSettings?: ModelServingClusterSettings) => ModelServerOption | undefined;
+  suggestion?: (
+    clusterSettings: ModelServingClusterSettings | null | undefined,
+  ) => ModelServerOption | undefined;
 };
 export type ModelAvailabilityField = DeploymentWizardFieldBase<'modelAvailability'> & {
   id: 'modelAvailability';
