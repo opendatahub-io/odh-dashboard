@@ -40,6 +40,8 @@ The gen-ai package runs as a sidecar container (`gen-ai-ui`) in the `odh-dashboa
 **Why not just `podman build --platform linux/amd64` with the full Dockerfile?**
 On ARM Macs, QEMU emulation of amd64 causes Go's networking goroutines to deadlock during `go mod download`. The workaround is to build artifacts locally (natively) and use a minimal Dockerfile that only COPYs them — no emulated `RUN` steps.
 
+**Docker alternative**: This skill assumes Podman since that's what the team uses by default. If you have Docker with buildx installed, you may be able to skip the local cross-compile workaround and build directly with `docker buildx build --file ./packages/gen-ai/Dockerfile.workspace --platform linux/amd64 -t <image> .` — Docker's buildx/BuildKit handles cross-platform Go builds more reliably than Podman's QEMU emulation.
+
 **Dev build vs production build**: This drops `-tags strictfipsruntime` and `CGO_ENABLED=1` from the production build. Acceptable for dev/test — not for production images.
 
 ## Phase 1: Check prerequisites and gather parameters
