@@ -48,7 +48,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
   retryableBefore(() => {
     cy.step('Check if RayJob CRD is available');
     cy.exec('oc get crd rayjobs.ray.io', { failOnNonZeroExit: false }).then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         cy.log('RayJob CRD not found, skipping test (requires KubeRay operator).');
         skipTest = true;
       } else {

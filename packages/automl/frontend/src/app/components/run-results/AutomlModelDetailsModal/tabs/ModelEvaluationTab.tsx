@@ -2,19 +2,7 @@ import React from 'react';
 import { Title } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import type { TabContentProps } from '~/app/components/run-results/AutomlModelDetailsModal/tabConfig';
-import {
-  formatMetricName,
-  formatMetricValue as formatValue,
-  toNumericMetric,
-  isErrorMetric,
-} from '~/app/utilities/utils';
-
-/** Format a metric value for display. Only apply Math.abs() for error metrics (lower-is-better). */
-function formatMetricValue(key: string, value: unknown): string {
-  const rawMetricValue = toNumericMetric(value);
-  const absoluteValue = isErrorMetric(key) ? Math.abs(rawMetricValue) : rawMetricValue;
-  return formatValue(absoluteValue);
-}
+import { formatMetricName, formatMetricValue, toNumericMetric } from '~/app/utilities/utils';
 
 const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: test_data may be missing in malformed model.json
@@ -41,7 +29,7 @@ const ModelEvaluationTab: React.FC<TabContentProps> = ({ model }) => {
           {entries.map(([key, value]) => (
             <Tr key={key}>
               <Td dataLabel="Measures">{formatMetricName(key)}</Td>
-              <Td dataLabel="Holdout score">{formatMetricValue(key, value)}</Td>
+              <Td dataLabel="Holdout score">{formatMetricValue(toNumericMetric(value))}</Td>
             </Tr>
           ))}
         </Tbody>

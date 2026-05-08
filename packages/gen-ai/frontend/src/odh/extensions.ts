@@ -3,6 +3,8 @@ import type {
   NavExtension,
   RouteExtension,
   AreaExtension,
+  TaskGroupExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import {
   aiAssetsRootPath,
@@ -22,7 +24,14 @@ export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | AIAssetsTabExtension
+  | TaskGroupExtension
+  | TaskItemExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -153,6 +162,47 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: 'vectorstores',
       title: 'Vector stores',
       component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
+    },
+  },
+
+  // -- Task Assistant --
+
+  {
+    type: 'app.task/group',
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      description: 'Prototype, test, and manage models and applications.',
+      label: 'Test gen AI models and apps',
+      icon: () => import('./GenAiStudioNavIcon'),
+      type: 'organize',
+      order: '2_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'genai-playground',
+      group: 'gen-ai-studio',
+      title: 'Chat with models',
+      destination: { href: chatPlaygroundRootPath },
+      order: '1_playground',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'genai-ai-assets',
+      group: 'gen-ai-studio',
+      title: 'Browse available AI assets',
+      destination: { href: aiAssetsRootPath },
+      order: '2_ai_assets',
     },
   },
 ];

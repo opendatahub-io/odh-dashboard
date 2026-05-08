@@ -308,8 +308,8 @@ describe('Playground - MCP Servers', () => {
         namespace,
         serverName: github.name,
         servers: [
-          { name: github.name, status: 'Ready' },
-          { name: kubernetes.name, status: 'Ready' },
+          { name: github.name, status: 'healthy' },
+          { name: kubernetes.name, status: 'healthy' },
         ],
       });
 
@@ -460,8 +460,9 @@ describe('Playground - MCP Servers', () => {
 
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
-      // Wait for MCP table to be visible after potential tab remount
+      mcpServerSuccessModal.find().should('not.exist');
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
+      serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
       serverRow.findToolsButton().click();
 
       cy.step('Verify tools modal opens with all tools selected');

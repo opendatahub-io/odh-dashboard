@@ -37,7 +37,7 @@ const TEST_TIMESTAMP = '2024-01-15T10:30:00Z';
 const TEST_TIMESTAMP_LATER = '2024-01-15T10:35:00Z';
 
 const createMockWorkload = (conditions: WorkloadCondition[] = [], active = true): WorkloadKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: {
     name: 'test-workload',

@@ -24,11 +24,11 @@ export const createOpenShiftConfigMap = (
   const ocCommand = `oc create configmap ${configMapName} -n ${namespace} ${literals}`;
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR creating ConfigMap ${configMapName} in namespace ${namespace}
                   stdout: ${result.stdout}
                   stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });

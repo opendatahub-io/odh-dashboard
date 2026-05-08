@@ -6,6 +6,7 @@ type contextKey string
 // to ensure requests are not blocked when using CORS.
 const (
 	LlamaStackClientKey contextKey = "LlamaStackClientKey"
+	NemoClientKey       contextKey = "NemoClientKey"
 	MaaSClientKey       contextKey = "MaaSClientKey"
 	MLflowClientKey     contextKey = "MLflowClientKey"
 
@@ -16,3 +17,13 @@ const (
 	RequestIdentityKey         contextKey = "requestIdentityKey"
 	NamespaceQueryParameterKey contextKey = "namespace"
 )
+
+// BFFTarget represents a target BFF service (re-exported from bffclient package)
+type BFFTarget string
+
+// BFFClientKey returns a context key for storing BFF clients by target.
+// This allows multiple BFF clients to be stored in the same context.
+// Usage: ctx.Value(constants.BFFClientKey(bffclient.BFFTargetMaaS))
+func BFFClientKey(target BFFTarget) contextKey {
+	return contextKey("BFFClientKey_" + string(target))
+}

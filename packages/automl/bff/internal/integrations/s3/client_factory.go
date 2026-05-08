@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"crypto/x509"
 	"log/slog"
 	"os"
 )
@@ -20,6 +21,15 @@ const (
 // S3ClientOptions holds configuration for S3 client behavior.
 type S3ClientOptions struct {
 	DevMode bool // Controls whether ALLOW_UNRESOLVED_S3_ENDPOINTS is honoured
+
+	// RootCAs is the CA certificate pool used to verify S3 endpoint TLS certificates.
+	// In production the RHOAI operator mounts cluster and custom CA bundles into the
+	// pod (e.g. odh-trusted-ca-bundle, service-ca.crt) and passes them via
+	// --bundle-paths. When non-nil this pool is used instead of the system default,
+	// allowing connections to MinIO or other S3-compatible stores that use
+	// self-signed or cluster-issued certificates without skipping verification.
+	// When nil the system CA pool is used (suitable for public S3 endpoints).
+	RootCAs *x509.CertPool
 
 	// Transfer manager tuning for GetObject. Zero values fall back to defaults.
 	Concurrency        int

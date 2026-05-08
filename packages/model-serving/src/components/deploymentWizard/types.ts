@@ -34,6 +34,7 @@ import {
   type CreateConnectionData,
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
+import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
@@ -46,7 +47,14 @@ export enum ModelLocationType {
   NEW = 'new',
   EXISTING = 'existing',
   PVC = 'pvc',
+  NIM = NIMModelLocationKey,
 }
+export const isModelLocationType = (value?: string): value is ModelLocationType => {
+  if (!value) return false;
+  const values: string[] = Object.values(ModelLocationType);
+  return values.includes(value);
+};
+
 export enum ModelLocationSelectOption {
   EXISTING = 'Existing connection',
   PVC = 'Cluster storage',
@@ -87,7 +95,7 @@ export enum YAMLViewerToggleOption {
 }
 
 export type ModelLocationData = {
-  type: ModelLocationType.EXISTING | ModelLocationType.NEW | ModelLocationType.PVC;
+  type: ModelLocationType;
   connectionTypeObject?: ConnectionTypeConfigMapObj;
   connection?: string;
   disableInputFields?: boolean;

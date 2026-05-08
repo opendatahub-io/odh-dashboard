@@ -3,7 +3,7 @@ import { getKueueWorkloadStatusWithMessage, getKueueStatusInfo } from '#~/concep
 import { KueueWorkloadStatus } from '#~/concepts/kueue/types';
 
 const baseWorkload: WorkloadKind = {
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: { name: 'test-workload', namespace: 'test-ns' },
   spec: {
@@ -358,7 +358,7 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Admitted);
     expect(info.label).toBe('Starting');
     expect(info.color).toBe('blue');
-    expect(info.iconClassName).toBe('odh-u-spin');
+    expect(info.iconClassName).toBe('ai-u-spin');
   });
 
   it('should return correct info for Complete', () => {

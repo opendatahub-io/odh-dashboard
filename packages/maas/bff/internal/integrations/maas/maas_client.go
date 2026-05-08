@@ -61,7 +61,7 @@ func (c *MaasClient) CreateAPIKey(ctx context.Context, request models.APIKeyCrea
 
 	endpoint := c.prefix.JoinPath("api-keys")
 	var apiResponse models.APIKeyCreateResponse
-	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
+	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +77,13 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 
 	endpoint := c.prefix.JoinPath("api-keys", "search")
 	var apiResponse models.APIKeyListResponse
-	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
+	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if apiResponse.Data == nil {
+		apiResponse.Data = []models.APIKey{}
 	}
 
 	return &apiResponse, nil
@@ -89,7 +93,7 @@ func (c *MaasClient) GetAPIKey(ctx context.Context, id string) (*models.APIKey, 
 	endpoint := c.prefix.JoinPath("api-keys", id)
 
 	var apiResponse models.APIKey
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
@@ -102,7 +106,7 @@ func (c *MaasClient) RevokeAPIKey(ctx context.Context, id string) (*models.APIKe
 	endpoint := c.prefix.JoinPath("api-keys", id)
 
 	var apiResponse models.APIKey
-	err := c.sendRequest(ctx, "DELETE", endpoint, nil, &apiResponse)
+	err := c.sendRequest(ctx, "DELETE", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
@@ -119,7 +123,7 @@ func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKe
 
 	endpoint := c.prefix.JoinPath("api-keys", "bulk-revoke")
 	var apiResponse models.APIKeyBulkRevokeResponse
-	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse)
+	err = c.sendRequest(ctx, "POST", endpoint, jsonRequest, &apiResponse, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +131,11 @@ func (c *MaasClient) BulkRevokeAPIKeys(ctx context.Context, request models.APIKe
 	return &apiResponse, nil
 }
 
-func (c *MaasClient) ListModels(ctx context.Context) ([]models.MaaSModel, error) {
+func (c *MaasClient) ListModels(ctx context.Context, headers http.Header) ([]models.MaaSModel, error) {
 	endpoint := c.prefix.JoinPath("models")
 
 	var apiResponse models.MaaSModelsResponse
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, headers)
 
 	if err != nil {
 		return nil, err
@@ -144,16 +148,27 @@ func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.
 	endpoint := c.prefix.JoinPath("subscriptions")
 
 	var apiResponse []models.SubscriptionListItem
-	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse)
+	err := c.sendRequest(ctx, "GET", endpoint, nil, &apiResponse, nil)
 
 	if err != nil {
 		return nil, err
 	}
 
+	for i := range apiResponse {
+		if apiResponse[i].ModelRefs == nil {
+			apiResponse[i].ModelRefs = []models.ModelRefInfo{}
+		}
+		for j := range apiResponse[i].ModelRefs {
+			if apiResponse[i].ModelRefs[j].TokenRateLimits == nil {
+				apiResponse[i].ModelRefs[j].TokenRateLimits = []models.TokenRateLimitInfo{}
+			}
+		}
+	}
+
 	return apiResponse, nil
 }
 
-func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any) error {
+func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any, headers http.Header) error {
 	var bodyReader io.Reader
 	if requestBody != nil {
 		bodyReader = bytes.NewBuffer(requestBody)
@@ -162,6 +177,12 @@ func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *u
 	request, err := http.NewRequestWithContext(ctx, method, endpoint.String(), bodyReader)
 	if err != nil {
 		return err
+	}
+
+	for k, vv := range headers {
+		for _, v := range vv {
+			request.Header.Add(k, v)
+		}
 	}
 
 	request.Header.Set("Content-Type", "application/json")

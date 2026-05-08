@@ -14,7 +14,7 @@ describe('Queue API', () => {
 
   describe('getLocalQueue', () => {
     const mockLocalQueue: LocalQueueKind = {
-      apiVersion: 'kueue.x-k8s.io/v1beta1',
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
       kind: 'LocalQueue',
       metadata: {
         name: 'test-queue',
@@ -50,13 +50,13 @@ describe('Queue API', () => {
 
   describe('getClusterQueue', () => {
     const mockClusterQueue: ClusterQueueKind = {
-      apiVersion: 'kueue.x-k8s.io/v1beta1',
+      apiVersion: 'kueue.x-k8s.io/v1beta2',
       kind: 'ClusterQueue',
       metadata: {
         name: 'cluster-queue',
       },
       spec: {
-        cohort: 'default-cohort',
+        cohortName: 'default-cohort',
         resourceGroups: [],
       },
     };

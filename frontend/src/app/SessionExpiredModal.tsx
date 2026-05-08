@@ -28,7 +28,7 @@ const SessionExpiredModal: React.FC = () => (
         data-testid="modal-login-button"
         key="confirm"
         variant="primary"
-        onClick={() => logout().then(() => window.location.reload())}
+        onClick={() => logout()}
       >
         Log in
       </Button>

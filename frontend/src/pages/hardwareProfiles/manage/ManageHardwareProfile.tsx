@@ -12,6 +12,11 @@ import {
   ManageHardwareProfileSectionTitles,
 } from '#~/pages/hardwareProfiles/const';
 import {
+  HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT,
+  HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT,
+} from '#~/pages/hardwareProfiles/manage/const';
+import {
+  filterRecognizedVisibility,
   getHardwareProfileDescription,
   getHardwareProfileDisplayName,
   isHardwareProfileEnabled,
@@ -67,10 +72,10 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
           if (
             hardwareProfile.metadata.annotations?.['opendatahub.io/dashboard-feature-visibility']
           ) {
-            const visibleIn = JSON.parse(
+            const visibleIn: string[] = JSON.parse(
               hardwareProfile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
             );
-            setVisibility(visibleIn);
+            setVisibility(filterRecognizedVisibility(visibleIn));
           } else {
             setVisibility([]);
           }
@@ -157,6 +162,8 @@ const ManageHardwareProfile: React.FC<ManageHardwareProfileProps> = ({
                 data={profileNameDesc}
                 onDataChange={setProfileNameDesc}
                 dataTestId="hardware-profile-name-desc"
+                maxLength={HARDWARE_PROFILE_DISPLAY_NAME_CHAR_LIMIT}
+                maxLengthDesc={HARDWARE_PROFILE_DESCRIPTION_CHAR_LIMIT}
               />
             </FormSection>
             <HardwareProfileVisibilitySection

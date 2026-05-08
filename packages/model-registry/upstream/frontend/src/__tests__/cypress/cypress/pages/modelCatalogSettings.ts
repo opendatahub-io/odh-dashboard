@@ -1,4 +1,9 @@
 import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import {
+  addSourceUrl,
+  catalogSettingsUrl,
+  manageSourceUrl,
+} from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 import { appChrome } from './appChrome';
 import { TableRow } from './components/table';
 import { Modal } from './components/Modal';
@@ -97,7 +102,7 @@ class CatalogSourceConfigRow extends TableRow {
     return this;
   }
 
-  shouldHaveValidationStatus(status: 'Connected' | 'Failed' | 'Starting' | 'Unknown' | '-') {
+  shouldHaveValidationStatus(status: 'Ready' | 'Failed' | 'Starting' | 'Unknown' | '-') {
     this.findValidationStatus().contains(status);
     return this;
   }
@@ -120,7 +125,7 @@ class ModelCatalogSettings {
     if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
       window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
     }
-    cy.visit('/model-catalog-settings');
+    cy.visit(catalogSettingsUrl());
     if (wait) {
       this.wait();
     }
@@ -210,7 +215,7 @@ class ManageSourcePage {
     if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
       window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
     }
-    cy.visit('/model-catalog-settings/add-source');
+    cy.visit(addSourceUrl());
     if (wait) {
       this.wait();
     }
@@ -226,7 +231,7 @@ class ManageSourcePage {
     if (enableTempDevCatalogHuggingFaceApiKeyFeature) {
       window.localStorage.setItem(TempDevFeature.CatalogHuggingFaceApiKey, 'true');
     }
-    cy.visit(`/model-catalog-settings/manage-source/${encodeURIComponent(catalogSourceId)}`);
+    cy.visit(manageSourceUrl(catalogSourceId));
     if (wait) {
       this.wait();
     }
@@ -242,7 +247,7 @@ class ManageSourcePage {
   }
 
   findBreadcrumb() {
-    return cy.get('a[href="/model-catalog-settings"]').contains('Model catalog settings');
+    return cy.get(`a[href="${catalogSettingsUrl()}"]`).contains('Model catalog settings');
   }
 
   findBreadcrumbAction() {

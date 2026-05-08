@@ -17,6 +17,7 @@ import {
   type CatalogSourceConfigList,
 } from '~/app/modelCatalogTypes';
 import { EMPTY_CUSTOM_PROPERTY_VALUE } from '~/concepts/modelCatalog/const';
+import { manageSourceUrl } from '~/app/routes/modelCatalogSettings/modelCatalogSettings';
 
 const NAMESPACE = 'kubeflow';
 const userMock = {
@@ -277,7 +278,7 @@ describe('Catalog Source Configs Table', () => {
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
       row.findManageSourceButton().should('be.visible').click();
-      cy.url().should('include', '/model-catalog-settings/manage-source/hf-google');
+      cy.url().should('include', manageSourceUrl('hf-google'));
       manageSourcePage.findManageSourceTitle();
     });
 
@@ -286,7 +287,7 @@ describe('Catalog Source Configs Table', () => {
       const customRow = modelCatalogSettings.getRow('Custom YAML');
       customRow.findName().should('be.visible');
       customRow.findManageSourceButton().should('be.visible').click();
-      cy.url().should('include', '/model-catalog-settings/manage-source/custom-yaml');
+      cy.url().should('include', manageSourceUrl('custom-yaml'));
     });
   });
 
@@ -443,7 +444,7 @@ describe('Catalog Source Configs Table', () => {
       modelCatalogSettings.visit();
       const row = modelCatalogSettings.getRow('HuggingFace Google');
       row.findName().should('be.visible');
-      row.shouldHaveValidationStatus('Connected');
+      row.shouldHaveValidationStatus('Ready');
       row.findValidationStatus().findByTestId('source-status-connected-hf-google').should('exist');
     });
 
@@ -783,7 +784,7 @@ describe('Manage Source Page', () => {
 
       // Before entering organization, should show generic text
       cy.contains(
-        'Optionally filter which models from your source appear in the model catalog',
+        'Optionally filter which models from this source appear in the model catalog',
       ).should('exist');
 
       // Fill organization name
@@ -791,7 +792,7 @@ describe('Manage Source Page', () => {
 
       // After entering organization, should show organization-specific text
       cy.contains(
-        'Optionally filter which Google models from your source appear in the model catalog',
+        'Optionally filter which Google models from this source appear in the model catalog',
       ).should('exist');
       cy.contains('all Google models from the source will be visible').should('exist');
 
@@ -800,7 +801,7 @@ describe('Manage Source Page', () => {
 
       // Text should update to new organization
       cy.contains(
-        'Optionally filter which Meta models from your source appear in the model catalog',
+        'Optionally filter which Meta models from this source appear in the model catalog',
       ).should('exist');
       cy.contains('all Meta models from the source will be visible').should('exist');
     });
@@ -996,7 +997,7 @@ describe('Manage Source Page', () => {
     }).as('manageSourcewithYamlType');
 
     manageSourcePage.visitManageSource('source_2');
-    cy.url().should('include', '/model-catalog-settings/manage-source/source_2');
+    cy.url().should('include', manageSourceUrl('source_2'));
     manageSourcePage.findNameInput().should('have.value', 'Source 2');
     manageSourcePage.findSourceTypeHuggingFace().should('not.exist');
     manageSourcePage.findSourceTypeYaml().should('not.exist');
@@ -1046,7 +1047,7 @@ describe('Manage Source Page', () => {
     }).as('manageSourcewithYamlType');
 
     manageSourcePage.visitManageSource('sample_source_1');
-    cy.url().should('include', '/model-catalog-settings/manage-source/sample_source_1');
+    cy.url().should('include', manageSourceUrl('sample_source_1'));
     manageSourcePage.findNameInput().should('have.value', 'Sample source 1');
     manageSourcePage.findSourceTypeHuggingFace().should('not.exist');
     manageSourcePage.findSourceTypeYaml().should('not.exist');

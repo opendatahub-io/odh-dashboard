@@ -6,3 +6,4 @@ export const HTPASSWD_CLUSTER_ADMIN_USER: UserAuthConfig = Cypress.env(
   'HTPASSWD_CLUSTER_ADMIN_USER',
 );
 export const LDAP_CLUSTER_ADMIN_USER: UserAuthConfig = Cypress.env('LDAP_CLUSTER_ADMIN_USER');
+export const LDAP_ADMIN_USER: UserAuthConfig = Cypress.env('TEST_USER');

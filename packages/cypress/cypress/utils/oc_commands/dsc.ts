@@ -7,7 +7,7 @@ const getDSC = (): Cypress.Chainable<DSC | null> => {
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0 || !result.stdout) {
+    if (result.exitCode !== 0 || !result.stdout) {
       cy.log('Failed to retrieve DSC or DSC not found.');
       return cy.wrap(null as DSC | null);
     }

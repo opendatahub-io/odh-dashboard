@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
@@ -7,11 +8,12 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
+
+const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -28,30 +30,18 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => {
-  const mockS3MutateAsync = jest
-    .fn()
-    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
-  const stableS3UploadMutation = {
+jest.mock('~/app/hooks/mutations', () => ({
+  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+  useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
     reset: jest.fn(),
-    variables: undefined as { file: File } | undefined,
-  };
-  return {
-    ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
-    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
-  };
-});
+    variables: undefined,
+  })),
+}));
 
 function getMockS3MutateAsync(): jest.Mock {
-  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
-    | { mutateAsync: jest.Mock }
-    | undefined;
-  if (!result?.mutateAsync) {
-    throw new Error('useS3FileUploadMutation was not called; render AutomlConfigure first');
-  }
-  return result.mutateAsync;
+  return mockS3MutateAsync;
 }
 
 // Mock S3FileExplorer component
@@ -229,6 +219,22 @@ const renderWithQueryClient = (
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutomlConfigure />, defaultValues);
 
+const renderWithInitialValues = (
+  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
+  },
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutomlConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    defaultValues,
+  );
+};
+
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -239,6 +245,8 @@ describe('AutomlConfigure', () => {
     } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -376,6 +384,30 @@ describe('AutomlConfigure', () => {
       expect(mockNotificationError).not.toHaveBeenCalled();
     });
 
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
+    });
+
     it('should show the newly selected secret name when switching secrets', () => {
       renderComponent();
 
@@ -433,9 +465,16 @@ describe('AutomlConfigure', () => {
       // Configure details fields should be visible
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
-      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
-      // Label column should NOT be visible until a prediction type is selected
+      // Top models and Label column should NOT be visible until a prediction type is selected
+      expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
       expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+
+      // Select a prediction type — Top models to consider should now appear
+      const binaryRadio = document.getElementById('task-type-binary');
+      if (binaryRadio) {
+        fireEvent.click(binaryRadio);
+      }
+      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     });
   });
 
@@ -816,6 +855,7 @@ describe('AutomlConfigure', () => {
       it('should render the top N input with default value 3', () => {
         renderComponent();
         selectSecretAndFile();
+        selectPredictionType('binary');
         const input = screen.getByTestId('top-n-input').querySelector('input');
         expect(input).toHaveValue(3);
       });
@@ -823,6 +863,7 @@ describe('AutomlConfigure', () => {
       it('should show error message when top N is below the minimum', async () => {
         renderComponent();
         selectSecretAndFile();
+        selectPredictionType('binary');
 
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '0' } });
@@ -986,6 +1027,204 @@ describe('AutomlConfigure', () => {
           });
         });
       });
+    });
+  });
+
+  describe('reconfigure with initialValues', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+    });
+
+    it('should show the selected training data file when train_data_file_key is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      // The file table should show the file name extracted from the key
+      const table = screen.getByRole('grid', { name: 'Selected training data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('train.csv')).toBeInTheDocument();
+    });
+
+    it('should pre-select the prediction type card when task_type is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
+      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
+    });
+
+    it('should show the top_n value from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+      );
+
+      const input = screen.getByTestId('top-n-input').querySelector('input');
+      expect(input).toHaveValue(7);
+    });
+
+    it('should show label column fields for tabular task type from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByText('Label column')).toBeInTheDocument();
+      expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
+      expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+    });
+
+    it('should show timeseries fields when task_type is timeseries from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
+      expect(screen.getByText('Target column')).toBeInTheDocument();
+      expect(screen.getByTestId('target-select')).toBeInTheDocument();
+      expect(screen.queryByText('Label column')).not.toBeInTheDocument();
     });
   });
 });

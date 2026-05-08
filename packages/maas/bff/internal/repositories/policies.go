@@ -49,7 +49,8 @@ func (r *PoliciesRepository) ListPolicies(ctx context.Context) ([]models.MaaSAut
 	for _, item := range list.Items {
 		policy, err := convertUnstructuredToAuthPolicy(&item)
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert MaaSAuthPolicy %s: %w", item.GetName(), err)
+			r.logger.Warn("Failed to convert MaaSAuthPolicy", slog.String("name", item.GetName()), slog.Any("error", err))
+			continue
 		}
 		policies = append(policies, *policy)
 	}
@@ -179,36 +180,52 @@ func (r *PoliciesRepository) DeletePolicy(ctx context.Context, name string) erro
 
 // updateAuthPolicySpec updates the spec of an existing MaaSAuthPolicy unstructured object.
 func updateAuthPolicySpec(obj *unstructured.Unstructured, modelRefs []models.ModelRef, groups []models.GroupReference, meteringMetadata *models.TokenMetadata) {
-	mrList := make([]interface{}, len(modelRefs))
-	for i, mr := range modelRefs {
-		mrList[i] = map[string]interface{}{
-			"name":      mr.Name,
-			"namespace": mr.Namespace,
-		}
+	groupList := make([]interface{}, 0, len(groups))
+	for _, group := range groups {
+		groupList = append(groupList, map[string]interface{}{
+			"name": group.Name,
+		})
 	}
 
-	groupList := make([]interface{}, len(groups))
-	for i, g := range groups {
-		groupList[i] = map[string]interface{}{
-			"name": g.Name,
-		}
-	}
-
-	// Get existing spec or create empty map
-	spec, ok := obj.Object["spec"].(map[string]interface{})
-	if !ok {
+	spec, _, _ := unstructured.NestedMap(obj.Object, "spec")
+	if spec == nil {
 		spec = make(map[string]interface{})
 	}
 
-	// Merge fields instead of overwriting the entire spec
-	spec["modelRefs"] = mrList
-	spec["subjects"] = map[string]interface{}{
-		"groups": groupList,
-	}
+	existingModelRefs, _ := spec["modelRefs"].([]interface{})
+	spec["modelRefs"] = mergeAuthPolicyModelRefs(existingModelRefs, modelRefs)
+	existingSubjects, _ := spec["subjects"].(map[string]interface{})
+	spec["subjects"] = mergeSubjectGroups(existingSubjects, groupList)
 
 	if meteringMetadata != nil {
 		spec["meteringMetadata"] = buildTokenMetadata(meteringMetadata)
 	}
 
 	obj.Object["spec"] = spec
+}
+
+// mergeAuthPolicyModelRefs updates the ref list while keeping any unmanaged fields on each entry intact.
+func mergeAuthPolicyModelRefs(existing []interface{}, refs []models.ModelRef) []interface{} {
+	existingByKey := indexModelRefsByKey(existing)
+	result := make([]interface{}, 0, len(refs))
+	for _, ref := range refs {
+		refMap := existingByKey[ref.Namespace+"/"+ref.Name]
+		if refMap == nil {
+			refMap = map[string]interface{}{
+				"name":      ref.Name,
+				"namespace": ref.Namespace,
+			}
+		}
+		result = append(result, refMap)
+	}
+	return result
+}
+
+// mergeSubjectGroups updates only the groups key in the existing subjects map preserving unmanaged fields like users.
+func mergeSubjectGroups(existing map[string]interface{}, groups []interface{}) map[string]interface{} {
+	if existing == nil {
+		existing = map[string]interface{}{}
+	}
+	existing["groups"] = groups
+	return existing
 }

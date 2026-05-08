@@ -101,7 +101,7 @@ Output a report with a title and a summary table.
 
 **If there are no unsynced commits:**
 
-```
+```markdown
 ## <Package-Name> Sync Status
 
 odh-dashboard's copy of the <package-name> upstream is up to date at commit `<short-sha>`.
@@ -109,7 +109,7 @@ odh-dashboard's copy of the <package-name> upstream is up to date at commit `<sh
 
 **If there are unsynced commits:**
 
-```
+```markdown
 ## <Package-Name> Sync Status
 
 odh-dashboard's copy of the <package-name> upstream is not up to date. There are **N commits** on `<owner>/<repo>` `<branch>` (since synced commit `<short-sha>`) that touch `<src>`:
@@ -131,12 +131,12 @@ If `src` is empty, omit the "that touch `<src>`" clause from the summary.
 **Local branch status (always shown after the upstream report):**
 
 If local `main` matches `upstream/main`:
-```
+```markdown
 Local `main` is up to date with `upstream/main` (`opendatahub-io/odh-dashboard`).
 ```
 
 If local `main` is behind:
-```
+```markdown
 **Warning:** Local `main` is **N commits behind** `upstream/main` (`opendatahub-io/odh-dashboard`). Run `git pull upstream main` to update before syncing.
 ```
 

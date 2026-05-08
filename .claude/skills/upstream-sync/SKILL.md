@@ -150,12 +150,12 @@ Ask the user if they're ready to open a PR. If not, exit gracefully.
 First, read the PR template at `.github/pull_request_template.md` to get the current structure and "Request review criteria" checklist. The PR body should follow this template's structure.
 
 **[Normal Mode]** Title format:
-```
+```text
 Sync from <owner>/<repo> <7-char-sha>
 ```
 
 **[PR Test Mode]** Title format:
-```
+```text
 [DO NOT MERGE] Test sync for <owner>/<repo>#<pr-number>
 ```
 

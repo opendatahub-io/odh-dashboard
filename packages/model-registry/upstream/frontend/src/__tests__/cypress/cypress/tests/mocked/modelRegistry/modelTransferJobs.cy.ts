@@ -4,6 +4,7 @@ import { mockModelTransferJob, mockModelTransferJobList } from '~/__mocks__/mock
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { modelTransferJobsPage } from '~/__tests__/cypress/cypress/pages/modelRegistryView/modelTransferJobs';
 import { MODEL_REGISTRY_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { modelVersionUrl, registeredModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 const modelRegistryName = 'modelregistry-sample';
 
@@ -165,7 +166,7 @@ describe('Model transfer jobs', () => {
     completedWithIdsRow.find().findByRole('button', { name: 'Completed model' }).click();
     cy.location('pathname').should(
       'eq',
-      `/model-registry/${modelRegistryName}/registered-models/rm-1/overview`,
+      `${registeredModelUrl('rm-1', modelRegistryName)}/overview`,
     );
 
     cy.go('back');
@@ -177,7 +178,7 @@ describe('Model transfer jobs', () => {
       .click();
     cy.location('pathname').should(
       'eq',
-      `/model-registry/${modelRegistryName}/registered-models/rm-1/versions/mv-1/details`,
+      `${modelVersionUrl('mv-1', 'rm-1', modelRegistryName)}/details`,
     );
 
     cy.go('back');
@@ -475,6 +476,146 @@ describe('Model transfer jobs', () => {
       cy.findByTestId('job-author').should('contain.text', 'Sherlock Holmes');
       cy.findByTestId('job-status').should('contain.text', 'Running');
     });
+  });
+
+  it('should show truncated error message below Failed label when errorMessage exists', () => {
+    interceptWithSingleFailedJob(
+      'job-with-error',
+      'Connection timeout while uploading to destination bucket',
+    );
+
+    modelTransferJobsPage.visit(modelRegistryName);
+    modelTransferJobsPage.findTableRows().should('have.length', 1);
+
+    const row = modelTransferJobsPage.getRow('job-with-error');
+    row.findStatus().should('contain.text', 'Failed');
+    row
+      .findErrorMessage()
+      .should('be.visible')
+      .and('contain.text', 'Connection timeout while uploading to destination bucket');
+  });
+
+  it('should not show error message when job is Failed but errorMessage is undefined', () => {
+    const failedJobList = mockModelTransferJobList({
+      items: [
+        mockModelTransferJob({
+          id: 'job-failed-no-msg',
+          name: 'job-failed-no-msg',
+          jobDisplayName: 'job-failed-no-msg',
+          status: ModelTransferJobStatus.FAILED,
+          errorMessage: undefined,
+        }),
+      ],
+      size: 1,
+      pageSize: 10,
+      nextPageToken: '',
+    });
+
+    cy.intercept(
+      'GET',
+      `**/api/${MODEL_REGISTRY_API_VERSION}/model_registry/${modelRegistryName}/model_transfer_jobs*`,
+      mockModArchResponse(failedJobList),
+    );
+
+    modelTransferJobsPage.visit(modelRegistryName);
+
+    const row = modelTransferJobsPage.getRow('job-failed-no-msg');
+    row.findStatus().should('contain.text', 'Failed');
+    row.findErrorMessage().should('not.exist');
+  });
+
+  it('should not show error message when errorMessage is an empty string', () => {
+    const failedJobList = mockModelTransferJobList({
+      items: [
+        mockModelTransferJob({
+          id: 'job-failed-empty-msg',
+          name: 'job-failed-empty-msg',
+          jobDisplayName: 'job-failed-empty-msg',
+          status: ModelTransferJobStatus.FAILED,
+          errorMessage: '',
+        }),
+      ],
+      size: 1,
+      pageSize: 10,
+      nextPageToken: '',
+    });
+
+    cy.intercept(
+      'GET',
+      `**/api/${MODEL_REGISTRY_API_VERSION}/model_registry/${modelRegistryName}/model_transfer_jobs*`,
+      mockModArchResponse(failedJobList),
+    );
+
+    modelTransferJobsPage.visit(modelRegistryName);
+
+    const row = modelTransferJobsPage.getRow('job-failed-empty-msg');
+    row.findStatus().should('contain.text', 'Failed');
+    row.findErrorMessage().should('not.exist');
+  });
+
+  it('should open status modal when clicking the truncated error message', () => {
+    interceptWithSingleFailedJob('job-click-error', 'Upload failed: insufficient storage');
+
+    cy.intercept('GET', '**/model_transfer_jobs/job-click-error/events*', {
+      forceNetworkError: true,
+    });
+
+    modelTransferJobsPage.visit(modelRegistryName);
+
+    const row = modelTransferJobsPage.getRow('job-click-error');
+    row.findErrorMessage().click();
+
+    cy.findByTestId('transfer-job-status-modal').should('be.visible');
+    cy.findByLabelText('Close').click();
+    cy.findByTestId('transfer-job-status-modal').should('not.exist');
+  });
+
+  it('should show retry button for failed jobs and open retry modal on click', () => {
+    interceptWithSingleFailedJob('job-retry-test', 'Connection error');
+
+    cy.intercept(
+      'PUT',
+      `**/api/${MODEL_REGISTRY_API_VERSION}/model_registry/${modelRegistryName}/model_transfer_jobs/job-retry-test*`,
+      { statusCode: 200, body: {} },
+    ).as('retryJob');
+
+    modelTransferJobsPage.visit(modelRegistryName);
+
+    const row = modelTransferJobsPage.getRow('job-retry-test');
+    row.findRetryButton().should('be.visible').click();
+
+    modelTransferJobsPage.findRetryModal().should('be.visible');
+    modelTransferJobsPage.findRetryModal().contains('Retry model transfer job?').should('exist');
+    modelTransferJobsPage.findRetryModalSubmitButton().should('be.visible');
+  });
+
+  it('should not show error message for non-FAILED statuses', () => {
+    const completedJobList = mockModelTransferJobList({
+      items: [
+        mockModelTransferJob({
+          id: 'job-completed-no-error',
+          name: 'job-completed-no-error',
+          jobDisplayName: 'job-completed-no-error',
+          status: ModelTransferJobStatus.COMPLETED,
+        }),
+      ],
+      size: 1,
+      pageSize: 10,
+      nextPageToken: '',
+    });
+
+    cy.intercept(
+      'GET',
+      `**/api/${MODEL_REGISTRY_API_VERSION}/model_registry/${modelRegistryName}/model_transfer_jobs*`,
+      mockModArchResponse(completedJobList),
+    );
+
+    modelTransferJobsPage.visit(modelRegistryName);
+
+    const row = modelTransferJobsPage.getRow('job-completed-no-error');
+    row.findStatus().should('contain.text', 'Complete');
+    row.findErrorMessage().should('not.exist');
+    row.findRetryButton().should('not.exist');
   });
 
   it('should show the empty state when there are no transfer jobs', () => {

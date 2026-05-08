@@ -53,6 +53,10 @@ class ManageRunsTable {
     return cy.findByTestId('manage-runs-table');
   }
 
+  findColumnHeaders() {
+    return this.find().find('thead th');
+  }
+
   getRowByName(name: string) {
     return new ManageRunsRow(() =>
       this.find().find(`[data-label=Name]`).contains(name).parents('tr'),

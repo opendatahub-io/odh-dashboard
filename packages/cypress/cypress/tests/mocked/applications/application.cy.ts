@@ -13,6 +13,7 @@ import { OdhPlatformType } from '@odh-dashboard/internal/types';
 import { appChrome } from '../../../pages/appChrome';
 import { asDisallowedUser, asProductAdminUser } from '../../../utils/mockUsers';
 import { aboutDialog } from '../../../pages/aboutDialog';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 import { loginDialog } from '../../../pages/loginDialog';
 
 describe('Application', () => {
@@ -93,6 +94,7 @@ describe('Application', () => {
     );
     cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
     cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+    interceptMlflowStatus();
     appChrome.visit();
     const applicationLauncher = appChrome.getApplicationLauncher();
     applicationLauncher.toggleAppLauncherButton();

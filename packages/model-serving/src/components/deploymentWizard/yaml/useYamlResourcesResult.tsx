@@ -69,9 +69,16 @@ export const useFormYamlResources = (
     return {
       yaml: lastUpdatedSource.current === 'editor' ? editorYaml : formAsYaml,
       setYaml,
-      resources: lastUpdatedSource.current === 'editor' ? yamlResources : formResources,
+      resources:
+        lastUpdatedSource.current === 'editor'
+          ? {
+              model: yamlResources.model,
+              // We are limiting the YAML to only the model, but we still want to include the server during submit if it exists in the form.
+              ...(formResources.server ? { server: formResources.server } : {}),
+            }
+          : formResources,
       error: lastUpdatedSource.current === 'editor' ? yamlResourcesError : formAsYamlError,
-    };
+    } satisfies UseFormYamlResourcesResult;
   }, [
     editorYaml,
     formAsYaml,

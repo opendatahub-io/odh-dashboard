@@ -77,46 +77,47 @@ const mockMulticlassModels: Record<string, AutomlModel> = {
 const mockRegressionModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('Linear Regression', {
     r2: 0.85,
-    mae: 2.5,
-    mse: 10.2,
-    rmse: 3.19,
+    mean_absolute_error: 2.5,
+    mean_squared_error: 10.2,
+    root_mean_squared_error: 3.19,
   }),
   'model-2': createMockModel('Gradient Boosting', {
     r2: 0.92,
-    mae: 1.8,
-    mse: 5.4,
-    rmse: 2.32,
+    mean_absolute_error: 1.8,
+    mean_squared_error: 5.4,
+    root_mean_squared_error: 2.32,
   }),
   'model-3': createMockModel('Ridge Regression', {
     r2: 0.88,
-    mae: 2.1,
-    mse: 7.8,
-    rmse: 2.79,
+    mean_absolute_error: 2.1,
+    mean_squared_error: 7.8,
+    root_mean_squared_error: 2.79,
   }),
 };
 
-// Timeseries models
+// Timeseries models — AutoGluon negates error/loss metrics so higher (closer to 0) is better.
+// Keys are snake_case (normalized from acronyms by useAutomlResults).
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('ARIMA', {
-    mase: 0.15,
-    mape: 0.18,
-    mae: 5.2,
-    mse: 45.3,
-    rmse: 6.73,
+    mean_absolute_scaled_error: -0.15,
+    mean_absolute_percentage_error: -0.18,
+    mean_absolute_error: -5.2,
+    mean_squared_error: -45.3,
+    root_mean_squared_error: -6.73,
   }),
   'model-2': createMockModel('Prophet', {
-    mase: 0.12,
-    mape: 0.14,
-    mae: 4.1,
-    mse: 32.1,
-    rmse: 5.67,
+    mean_absolute_scaled_error: -0.12,
+    mean_absolute_percentage_error: -0.14,
+    mean_absolute_error: -4.1,
+    mean_squared_error: -32.1,
+    root_mean_squared_error: -5.67,
   }),
   'model-3': createMockModel('LSTM', {
-    mase: 0.09,
-    mape: 0.11,
-    mae: 3.5,
-    mse: 25.6,
-    rmse: 5.06,
+    mean_absolute_scaled_error: -0.09,
+    mean_absolute_percentage_error: -0.11,
+    mean_absolute_error: -3.5,
+    mean_squared_error: -25.6,
+    root_mean_squared_error: -5.06,
   }),
 };
 
@@ -176,6 +177,9 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   taskType?: string;
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -187,6 +191,9 @@ const renderWithContext = ({
   pipelineRun,
   pipelineRunLoading = false,
   modelsLoading = false,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
   taskType,
   namespace = 'test-namespace',
   onViewDetails,
@@ -200,6 +207,9 @@ const renderWithContext = ({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters: createMockParameters(finalTaskType),
   };
 
@@ -240,11 +250,11 @@ describe('AutomlLeaderboard utility functions', () => {
             mcc: 0.85,
             f1: 0.9,
             r2: 0.88,
-            mae: 2.5,
-            mse: 10.2,
-            rmse: 3.19,
-            mape: 0.15,
-            mase: 0.12,
+            mean_absolute_error: 2.5,
+            mean_squared_error: 10.2,
+            root_mean_squared_error: 3.19,
+            mean_absolute_percentage_error: 0.15,
+            mean_absolute_scaled_error: 0.12,
           }),
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
@@ -253,7 +263,7 @@ describe('AutomlLeaderboard utility functions', () => {
       // Check that special case acronyms are displayed correctly
       expect(screen.getByText('ROC AUC')).toBeInTheDocument();
       expect(screen.getByText('MCC')).toBeInTheDocument();
-      expect(screen.getByText('F1')).toBeInTheDocument();
+      expect(screen.getByText('F₁')).toBeInTheDocument();
       expect(screen.getByText('R²')).toBeInTheDocument();
       expect(screen.getByText('MAE')).toBeInTheDocument();
       expect(screen.getByText('MSE')).toBeInTheDocument();
@@ -461,6 +471,93 @@ describe('AutomlLeaderboard component', () => {
     });
   });
 
+  describe('error states', () => {
+    it('should show error empty state when modelsError is true', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('Failed to list model directories'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toBeInTheDocument();
+      expect(within(errorState).getByText('Unable to fetch models')).toBeInTheDocument();
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show generic error message when modelsLoadError is undefined', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+    });
+
+    it('should call onRetryModels when Retry button is clicked', () => {
+      const mockRetry = jest.fn();
+
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should display models after successful retry', () => {
+      const mockRetry = jest.fn();
+
+      const { rerender } = renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('leaderboard-error')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      // Simulate successful refetch by rerendering with models
+      const contextValue = {
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        pipelineRunLoading: false,
+        models: mockBinaryModels,
+        modelsLoading: false,
+        modelsError: false,
+        onRetryModels: mockRetry,
+        parameters: createMockParameters('binary'),
+      };
+
+      rerender(
+        <MemoryRouter initialEntries={['/automl/test-namespace/results/test-run-123']}>
+          <Routes>
+            <Route
+              path="/automl/:namespace/results/:runId"
+              element={
+                <AutomlResultsContext.Provider value={contextValue}>
+                  <AutomlLeaderboard />
+                </AutomlResultsContext.Provider>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByTestId('leaderboard-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+    });
+  });
+
   describe('running pipeline state', () => {
     it('should show running state when pipeline is PENDING', () => {
       renderWithContext({
@@ -616,13 +713,13 @@ describe('AutomlLeaderboard component', () => {
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
     });
 
-    it('should rank models correctly for timeseries (lower MASE is better)', () => {
+    it('should rank models correctly for timeseries (higher negated MASE is better)', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      // LSTM has lowest MASE (0.09), should be rank 1
+      // LSTM has highest negated MASE (-0.09, closest to 0), should be rank 1
       const rank1Row = screen.getByTestId('leaderboard-row-1');
       expect(within(rank1Row).getByText('LSTM')).toBeInTheDocument();
       expect(within(rank1Row).getByTestId('top-rank-label')).toBeInTheDocument();
@@ -668,13 +765,13 @@ describe('AutomlLeaderboard component', () => {
       expect(within(r2Header).getByTestId('optimized-indicator')).toHaveTextContent('(optimized)');
     });
 
-    it('should use mase as optimized metric for timeseries', () => {
+    it('should use mean_absolute_scaled_error as optimized metric for timeseries', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      const maseHeader = screen.getByTestId('metric-header-mase');
+      const maseHeader = screen.getByTestId('metric-header-mean_absolute_scaled_error');
       expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
@@ -687,7 +784,7 @@ describe('AutomlLeaderboard component', () => {
       });
 
       // Should still show MASE as optimized (timeseries default)
-      const maseHeader = screen.getByTestId('metric-header-mase');
+      const maseHeader = screen.getByTestId('metric-header-mean_absolute_scaled_error');
       expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
@@ -733,9 +830,9 @@ describe('AutomlLeaderboard component', () => {
 
       // All models should have all metric columns even if values differ
       expect(screen.getByTestId('metric-r2-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-mae-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-mse-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-rmse-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-mean_absolute_error-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-mean_squared_error-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-root_mean_squared_error-1')).toBeInTheDocument();
     });
   });
 
@@ -920,6 +1017,171 @@ describe('AutomlLeaderboard component', () => {
       // Click "Save notebook" action - should not throw error
       const saveNotebookAction = screen.getByText('Save notebook');
       expect(() => fireEvent.click(saveNotebookAction)).not.toThrow();
+    });
+  });
+
+  // ========================================================================
+  // Manage Columns
+  // ========================================================================
+
+  describe('manage columns', () => {
+    it('should render manage columns button', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const button = screen.getByTestId('manage-columns-button');
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveTextContent('Manage columns');
+    });
+
+    it('should open column management modal when button is clicked', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Modal should be open with column checkboxes
+      expect(
+        screen.getByText('Selected categories will be displayed in the table.'),
+      ).toBeInTheDocument();
+      // Verify always-visible columns are present but disabled
+      const rankCheckbox = screen.getByTestId('column-check-rank');
+      expect(rankCheckbox).toBeDisabled();
+      const modelCheckbox = screen.getByTestId('column-check-model');
+      expect(modelCheckbox).toBeDisabled();
+      const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
+      expect(optimizedCheckbox).toBeDisabled();
+    });
+
+    it('should allow toggling non-sticky metric columns', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Verify metric columns exist before hiding
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-roc_auc')).toBeInTheDocument();
+
+      // Open modal
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Non-sticky metric columns should be toggleable (not disabled)
+      const f1Checkbox = screen.getByTestId('column-check-metric:f1');
+      expect(f1Checkbox).not.toBeDisabled();
+
+      // Uncheck F1
+      fireEvent.click(f1Checkbox);
+
+      // Save
+      fireEvent.click(screen.getByText('Save'));
+
+      // F1 column should be hidden
+      expect(screen.queryByTestId('metric-header-f1')).not.toBeInTheDocument();
+      // Other columns should still be visible
+      expect(screen.getByTestId('metric-header-roc_auc')).toBeInTheDocument();
+    });
+
+    it('should hide metric data cells when a column is hidden', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Verify data cells exist
+      expect(screen.getByTestId('metric-f1-1')).toBeInTheDocument();
+
+      // Hide F1 column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // F1 data cells should also be hidden
+      expect(screen.queryByTestId('metric-f1-1')).not.toBeInTheDocument();
+      // Optimized metric cell should still be visible
+      expect(screen.getByTestId('metric-accuracy-1')).toBeInTheDocument();
+    });
+
+    it('should keep optimized metric visible even when not in metric columns', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Optimized metric (accuracy) should always be visible as a sticky column
+      expect(screen.getByTestId('metric-header-accuracy')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-accuracy-1')).toBeInTheDocument();
+
+      // The optimized metric checkbox should be disabled (untoggleable)
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
+      expect(optimizedCheckbox).toBeDisabled();
+    });
+
+    it('should not change columns when modal is cancelled', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+
+      // Open modal, uncheck F1, then cancel
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // F1 column should still be visible
+      expect(screen.getByTestId('metric-header-f1')).toBeInTheDocument();
+    });
+
+    it('should maintain sorting after hiding columns', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Sort by model name first
+      const modelNameHeader = screen.getByTestId('model-name-header');
+      const sortButton = modelNameHeader.querySelector('button');
+      fireEvent.click(sortButton!);
+
+      // Verify sort order: Logistic, Random, XGBoost
+      let modelLinks = screen.getAllByTestId(/^model-link-/);
+      expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
+
+      // Hide a column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:f1'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Sort order should be preserved
+      modelLinks = screen.getAllByTestId(/^model-link-/);
+      expect(modelLinks[0]).toHaveTextContent('Logistic Regression');
+    });
+  });
+
+  // ========================================================================
+  // Column Header Tooltips
+  // ========================================================================
+
+  describe('column header tooltips', () => {
+    it('should render column headers with tooltip wrappers', () => {
+      renderWithContext({
+        models: mockBinaryModels,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      // Headers should contain span elements (tooltip triggers)
+      const rankHeader = screen.getByTestId('rank-header');
+      expect(within(rankHeader).getByText('Rank')).toBeInTheDocument();
+
+      const modelHeader = screen.getByTestId('model-name-header');
+      expect(within(modelHeader).getByText('Model name')).toBeInTheDocument();
     });
   });
 });

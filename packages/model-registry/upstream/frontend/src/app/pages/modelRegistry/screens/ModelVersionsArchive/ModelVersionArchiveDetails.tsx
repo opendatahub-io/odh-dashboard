@@ -58,7 +58,6 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
     }
   }, [rm?.state, mv?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-
   return (
     <>
       <ApplicationsPage

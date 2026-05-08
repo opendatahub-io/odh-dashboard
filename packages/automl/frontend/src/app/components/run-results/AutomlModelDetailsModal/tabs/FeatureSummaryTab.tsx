@@ -90,6 +90,7 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
                 onChange={(_e, value) => setSearchValue(value)}
                 onClear={() => setSearchValue('')}
                 data-testid="feature-search"
+                inputProps={{ 'data-testid': 'feature-search-input' }}
               />
             </ToolbarItem>
           </ToolbarContent>
@@ -137,10 +138,13 @@ const FeatureSummaryTab: React.FC<TabContentProps> = ({
             entries.map(([name, importance]) => (
               <Tr key={name}>
                 <Td dataLabel="Feature name">{name}</Td>
-                <Td dataLabel="Importance">{(importance * 100).toFixed(2)}%</Td>
+                {/* Clamp near-zero values to 0 to avoid displaying "-0.00%" */}
+                <Td dataLabel="Importance">
+                  {(Math.abs(importance * 100) < 0.005 ? 0 : importance * 100).toFixed(2)}%
+                </Td>
                 <Td>
                   <div
-                    className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 ? ' m-negative' : ''}`}
+                    className={`automl-feature-importance-bar${importance !== 0 ? ' m-has-value' : ''}${importance < 0 && Math.abs(importance * 100) >= 0.005 ? ' m-negative' : ''}`}
                     data-testid={`feature-importance-bar-${name}`}
                     style={{
                       width: `${maxImportance > 0 ? (Math.abs(importance) / maxImportance) * 100 : 0}%`,

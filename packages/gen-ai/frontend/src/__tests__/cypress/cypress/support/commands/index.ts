@@ -1,4 +1,5 @@
 import '@testing-library/cypress/add-commands';
+import './axe';
 import './genai';
 
 // Add cy.step() command for better test documentation

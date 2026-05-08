@@ -55,7 +55,7 @@ export const createTrainingKueueResources = (
   const labelCommand = `oc label namespace ${namespace} kueue.openshift.io/managed=true --overwrite`;
   cy.log(`Adding Kueue label to namespace: ${namespace}`);
   cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-    if (labelResult.code !== 0) {
+    if (labelResult.exitCode !== 0) {
       cy.log(`Warning: Failed to label namespace: ${labelResult.stderr}`);
     } else {
       cy.log(`Kueue label added to namespace ${namespace}`);
@@ -92,7 +92,7 @@ export const createTrainingKueueResources = (
       (result) => {
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create Kueue resources: ${maskedStderr}`);
           }
@@ -124,7 +124,7 @@ export const createTrainingRuntime = (namespace: string, trainingRuntimeName: st
       (result) => {
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create TrainingRuntime: ${maskedStderr}`);
           }
@@ -164,7 +164,7 @@ export const createTrainJob = (
       (result) => {
         // Always cleanup temp file first, then check result
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create TrainJob: ${maskedStderr}`);
           }
@@ -196,11 +196,11 @@ export const deleteTrainingRuntime = (
   cy.log(`Deleting TrainingRuntime: ${trainingRuntimeName}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
-    if (result.code !== 0 && !ignoreNotFound) {
+    if (result.exitCode !== 0 && !ignoreNotFound) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR deleting TrainingRuntime: ${maskedStderr}`);
     }
-    return result;
+    return cy.wrap(result);
   });
 };
 
@@ -226,7 +226,7 @@ export const getTrainJobNumNodes = (
       },
     )
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get TrainJob numNodes: ${maskedStderr}`);
       }
@@ -266,7 +266,7 @@ export const verifyTrainJobPodsCompleted = (
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get TrainJob pods: ${maskedStderr}`);
       }
@@ -289,7 +289,7 @@ export const verifyTrainJobPodsCompleted = (
           return cy
             .exec(waitCmd, { failOnNonZeroExit: false, timeout: cypressTimeout })
             .then((waitResult) => {
-              if (waitResult.code !== 0) {
+              if (waitResult.exitCode !== 0) {
                 return cy
                   .exec(`oc get pod/${podName} -n ${namespace} -o jsonpath='{.status.phase}'`, {
                     failOnNonZeroExit: false,
@@ -323,7 +323,7 @@ export const verifyTrainJobDeleted = (trainJobName: string, namespace: string): 
   cy.exec(`oc get trainjob ${trainJobName} -n ${namespace}`, {
     failOnNonZeroExit: false,
   }).then((result) => {
-    expect(result.code).to.not.equal(0);
+    expect(result.exitCode).to.not.equal(0);
     cy.log('Training job successfully deleted');
   });
 };
@@ -386,7 +386,7 @@ export const setupTrainingResources = (config: TrainingResourcesConfig): void =>
     failOnNonZeroExit: false,
     timeout: 30000,
   }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`TrainJob verification failed: ${maskedStderr}`);
       throw new Error(`TrainJob ${trainJobName} was not created: ${maskedStderr}`);

@@ -169,7 +169,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -235,7 +235,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
@@ -256,7 +256,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 
 		ctx := context.Background()
 
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, nil, mockMaaSClient, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "")
 
 		assert.Error(t, err)
 		assert.Empty(t, result)
@@ -279,7 +279,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -308,7 +308,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, nil, mockMaaSClient, "test-oidc-token")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -544,12 +544,16 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 
 	t.Run("nil LLMInferenceService returns empty endpoints", func(t *testing.T) {
 		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
 	t.Run("empty status returns empty endpoints", func(t *testing.T) {
+		// Simulates a stopped llm-d deployment where the address is removed from the CR.
+		// Must return [] (not nil) so the JSON response contains [] instead of null.
 		llmSvc := &kservev1alpha1.LLMInferenceService{}
 		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
@@ -725,7 +729,7 @@ registered_resources:
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, false, nil, nil, "")
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "")
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
@@ -1303,5 +1307,83 @@ func TestGetSecretValue(t *testing.T) {
 		require.Error(t, err)
 		assert.Empty(t, value)
 		assert.Contains(t, err.Error(), "key 'wrong_key' not found in Secret")
+	})
+}
+
+func TestAnonymousClientConfigStripsServiceAccountCredentials(t *testing.T) {
+	t.Run("should strip TLS client cert fields from base config", func(t *testing.T) {
+		baseConfig := &rest.Config{
+			Host: "https://test-cluster.example.com",
+			TLSClientConfig: rest.TLSClientConfig{
+				CertData: []byte("fake-cert-data"),
+				CertFile: "/var/run/secrets/kubernetes.io/serviceaccount/cert.pem",
+				KeyData:  []byte("fake-key-data"),
+				KeyFile:  "/var/run/secrets/kubernetes.io/serviceaccount/key.pem",
+				CAData:   []byte("fake-ca-data"),
+				CAFile:   "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+			},
+			BearerToken:     "sa-token-should-be-stripped",
+			BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+			Username:        "system:serviceaccount:test:default",
+			Password:        "sa-password",
+		}
+
+		cfg := rest.AnonymousClientConfig(baseConfig)
+		cfg.BearerToken = "user-token"
+
+		assert.Equal(t, "https://test-cluster.example.com", cfg.Host,
+			"server URL must be preserved")
+		assert.Equal(t, []byte("fake-ca-data"), cfg.CAData,
+			"CA data must be preserved for TLS verification")
+		assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", cfg.CAFile,
+			"CA file must be preserved for TLS verification")
+
+		assert.Empty(t, cfg.CertData,
+			"client cert data must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.CertFile,
+			"client cert file must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.KeyData,
+			"client key data must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.KeyFile,
+			"client key file must be stripped to prevent SA auth")
+
+		assert.Equal(t, "user-token", cfg.BearerToken,
+			"user bearer token must be the only auth credential")
+		assert.Empty(t, cfg.BearerTokenFile,
+			"bearer token file must be stripped")
+		assert.Empty(t, cfg.Username,
+			"username must be stripped")
+		assert.Empty(t, cfg.Password,
+			"password must be stripped")
+	})
+
+	t.Run("user-scoped client config should not inherit SA credentials", func(t *testing.T) {
+		baseConfig := &rest.Config{
+			Host: "https://test-cluster.example.com",
+			TLSClientConfig: rest.TLSClientConfig{
+				CertData: []byte("sa-cert"),
+				KeyData:  []byte("sa-key"),
+				CAData:   []byte("cluster-ca"),
+			},
+			BearerToken: "sa-bearer-token",
+		}
+
+		kc := &TokenKubernetesClient{
+			Config: baseConfig,
+			Logger: slog.Default(),
+		}
+
+		userConfig := rest.AnonymousClientConfig(kc.Config)
+		userConfig.BearerToken = "user-token-123"
+		userConfig.BearerTokenFile = ""
+
+		assert.Equal(t, "user-token-123", userConfig.BearerToken)
+		assert.Empty(t, userConfig.CertData,
+			"user config must not carry SA client cert")
+		assert.Empty(t, userConfig.KeyData,
+			"user config must not carry SA client key")
+		assert.Equal(t, []byte("cluster-ca"), userConfig.CAData,
+			"user config must keep cluster CA for TLS verification")
+		assert.Equal(t, "https://test-cluster.example.com", userConfig.Host)
 	})
 }

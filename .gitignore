@@ -89,6 +89,15 @@ public-cypress/
 .npm/
 vendor/
 
+# Agent worktrees
+.claude/worktrees/
+
+# Shared specs for cross-worktree context
+.claude/local-specs/
+
+# Triage artifacts
+.artifacts/
+
 # AgentReady reports
 .agentready/
 assessment-output.txt

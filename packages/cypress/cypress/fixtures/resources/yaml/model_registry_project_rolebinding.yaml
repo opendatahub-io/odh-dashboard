@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{PROJECT_NAME}}-rb
+  namespace: {{NAMESPACE}}
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/rb-project-subject: "true"
+    app: {{REGISTRY_NAME}}
+    app.kubernetes.io/component: model-registry
+    app.kubernetes.io/part-of: model-registry
+    app.kubernetes.io/name: {{REGISTRY_NAME}}
+    component: model-registry
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: system:serviceaccounts:{{PROJECT_NAME}}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: registry-user-{{REGISTRY_NAME}}

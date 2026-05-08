@@ -1,3 +1,4 @@
+import * as yaml from 'js-yaml';
 import { execWithOutput } from './baseCommands';
 import { getModelRegistryNamespace } from './modelRegistry';
 import type { CommandLineResult } from '../../types';
@@ -68,7 +69,7 @@ export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandL
   cy.log(`Verifying default-catalog-sources ConfigMap: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: default-catalog-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -92,7 +93,7 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
   cy.log(`Verifying model-catalog deployment: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -114,7 +115,7 @@ export const verifyModelCatalogService = (): Cypress.Chainable<CommandLineResult
   cy.log(`Verifying model-catalog service: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog service not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -178,7 +179,7 @@ export const verifyModelCatalogSourceEnabled = (
       const userValue = userResult.stdout.trim();
 
       // If user configmap has a value for this source, use it
-      if (userResult.code === 0 && (userValue === 'true' || userValue === 'false')) {
+      if (userResult.exitCode === 0 && (userValue === 'true' || userValue === 'false')) {
         const actualEnabled = userValue === 'true';
         cy.log(
           `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled} (from user configmap), expected=${expectedEnabled}`,
@@ -203,7 +204,7 @@ export const verifyModelCatalogSourceEnabled = (
 
       // Fall back to default configmap
       execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
-        if (defaultResult.code !== 0) {
+        if (defaultResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
           cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -250,7 +251,7 @@ export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable
   const command = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
       cy.log(`stderr: ${maskedStderr}`);
@@ -278,7 +279,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
 
   return cy.then(() => {
     execWithOutput(getCommand, 30).then((result: CommandLineResult) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get model-catalog-sources ConfigMap: ${maskedStderr}`);
       }
@@ -292,7 +293,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
       `;
 
       execWithOutput(updateCommand, 60).then((patchResult: CommandLineResult) => {
-        if (patchResult.code !== 0) {
+        if (patchResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(patchResult.stderr);
           cy.log(`stdout: ${patchResult.stdout}`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -327,6 +328,41 @@ export const ensureModelCatalogSourceEnabled = (sourceId: string): Cypress.Chain
     });
   });
 };
+/**
+ * Wait for the model-catalog deployment to become Available.
+ * The BFF resolves the model-catalog Kubernetes Service on every catalog API request,
+ * so if the deployment is not ready all catalog endpoints return 404.
+ * Throws an error (fails the test) if the deployment has no ready replicas within 120s.
+ * @returns A Cypress chainable that resolves when the deployment is Available.
+ */
+export const waitForModelCatalogDeployment = (): Cypress.Chainable<undefined> => {
+  const namespace = getModelRegistryNamespace();
+  const command = `oc wait --for=jsonpath='{.status.readyReplicas}'=1 deployment/model-catalog -n ${namespace} --timeout=120s`;
+
+  cy.log(`Waiting for model-catalog deployment to have a ready pod in namespace ${namespace}...`);
+  return cy.then(() => {
+    cy.exec(command, { failOnNonZeroExit: false, timeout: 120000 }).then(
+      (result: CommandLineResult) => {
+        if (result.stdout) {
+          cy.log(`model-catalog deployment wait result: ${result.stdout}`);
+        }
+        if (result.stderr) {
+          const maskedStderr = maskSensitiveInfo(result.stderr);
+          cy.log(`model-catalog deployment wait stderr: ${maskedStderr}`);
+        }
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `model-catalog deployment has no ready replicas after 120s. The catalog backend must have at least 1 ready pod before running performance filter tests. stderr: ${maskSensitiveInfo(
+              result.stderr,
+            )}`,
+          );
+        }
+        cy.log(`✓ model-catalog deployment has a ready pod in namespace ${namespace}`);
+      },
+    );
+  });
+};
+
 // polling and refresh is required until https://issues.redhat.com/browse/RHOAIENG-45098 is resolved
 // UI polling configuration
 const UI_POLL_CONFIG = {
@@ -384,6 +420,130 @@ export const waitForModelCatalogCards = (
 
   cy.step(`Polling for model catalog cards (max ${maxAttempts} attempts)`);
   return cy.then(() => checkForCards(1));
+};
+
+/**
+ * Check whether any catalog sources other than the specified ones are enabled.
+ * Reads the model-catalog-sources (user overrides) ConfigMap, falling back to
+ * model-catalog-default-sources. Parses YAML in TypeScript via js-yaml so there
+ * is no dependency on yq, python3 or jq being available in CI.
+ * Sources without an explicit `.enabled` field are treated as enabled by default.
+ * @param excludeSourceIds Source IDs to exclude from the check
+ * @returns A Cypress chainable that resolves with true if at least one other source is enabled.
+ */
+export const hasOtherEnabledCatalogSources = (
+  excludeSourceIds: string[],
+): Cypress.Chainable<boolean> => {
+  const namespace = getModelRegistryNamespace();
+
+  const parseAndCount = (yamlContent: string): boolean => {
+    const parsed = yaml.load(yamlContent) as {
+      catalogs: Array<{ id: string; enabled?: boolean }>;
+    };
+    const otherEnabled = parsed.catalogs.filter(
+      (c) => c.enabled !== false && !excludeSourceIds.includes(c.id),
+    );
+    cy.log(`Other enabled sources found: ${otherEnabled.length}`);
+    return otherEnabled.length > 0;
+  };
+
+  const userCmd = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+  const defaultCmd = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
+
+  return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
+    if (userResult.exitCode === 0 && userResult.stdout.trim()) {
+      return cy.wrap(parseAndCount(userResult.stdout));
+    }
+    return execWithOutput(defaultCmd, 30).then((defaultResult: CommandLineResult) => {
+      if (defaultResult.exitCode !== 0 || !defaultResult.stdout.trim()) {
+        const maskedStderr = maskSensitiveInfo(
+          [userResult.stderr, defaultResult.stderr].filter(Boolean).join('\n'),
+        );
+        throw new Error(`Failed to read catalog sources configmaps: ${maskedStderr}`);
+      }
+      return cy.wrap(parseAndCount(defaultResult.stdout));
+    });
+  });
+};
+
+/**
+ * Poll until the model catalog UI has stabilized after disabling sources.
+ * If other sources are still enabled, waits for cards to be present (no empty state).
+ * If no other sources remain, waits for the empty state to appear.
+ * @param disabledSourceIds The source IDs that were just disabled
+ * @returns A Cypress chainable that resolves when the UI has stabilized.
+ */
+export const waitForModelCatalogAfterDisable = (
+  disabledSourceIds: string[],
+): Cypress.Chainable<undefined> =>
+  hasOtherEnabledCatalogSources(disabledSourceIds).then((hasOthers) => {
+    if (hasOthers) {
+      cy.step('Other catalog sources are enabled — waiting for catalog cards');
+      return waitForModelCatalogCards();
+    }
+    cy.step('No other catalog sources — waiting for empty state');
+    return waitForModelCatalogEmptyState();
+  });
+
+/**
+ * Poll until at least one model catalog card with validated performance data is visible,
+ * reloading the page between attempts.
+ * Required after enabling the performance view toggle on a fresh RHOAI install, where
+ * the model-catalog pod may be ready but the BFF has not yet served validated model metrics.
+ * @param maxAttempts Maximum number of attempts (default: 10)
+ * @param pollIntervalMs Interval between attempts in milliseconds (default: 5000)
+ * @returns A Cypress chainable that resolves when at least one validated model card is visible.
+ */
+export const waitForValidatedModelCards = (
+  maxAttempts = UI_POLL_CONFIG.maxAttempts,
+  pollIntervalMs = 10000,
+): Cypress.Chainable<undefined> => {
+  const startTime = Date.now();
+
+  const checkForValidatedCards = (attempt: number): void => {
+    const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+    // Wait for the page content to stabilize after reload
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(UI_POLL_CONFIG.pageLoadWaitMs);
+    cy.get('body').then(($body) => {
+      const validatedCardCount = $body.find(
+        '[data-testid="model-catalog-card"]:has([data-testid="validated-model-hardware"])',
+      ).length;
+
+      cy.log(
+        `Attempt ${attempt}/${maxAttempts}: validatedCards=${validatedCardCount}, elapsed=${elapsedTime}s`,
+      );
+
+      if (validatedCardCount > 0) {
+        cy.log(
+          `✅ Found ${validatedCardCount} validated model card(s) with performance data (after ${elapsedTime}s)`,
+        );
+        return;
+      }
+
+      if (attempt >= maxAttempts) {
+        throw new Error(
+          `Validated model cards with performance data did not appear after ${maxAttempts} attempts (${elapsedTime}s). ` +
+            `Ensure the model-catalog BFF has fully loaded validated model metrics.`,
+        );
+      }
+
+      // Reload and retry — re-enable the performance toggle after reload as it resets to OFF
+      // eslint-disable-next-line cypress/no-unnecessary-waiting
+      cy.wait(pollIntervalMs);
+      cy.reload();
+      cy.findByTestId('model-performance-view-toggle').then(($toggle) => {
+        if ($toggle.attr('aria-checked') !== 'true') {
+          cy.wrap($toggle).click({ force: true });
+        }
+      });
+      checkForValidatedCards(attempt + 1);
+    });
+  };
+
+  cy.step(`Polling for validated model cards with performance data (max ${maxAttempts} attempts)`);
+  return cy.then(() => checkForValidatedCards(1));
 };
 
 /**

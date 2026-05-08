@@ -14,6 +14,13 @@ export enum FormFieldSelector {
   LOCATION_PATH = '#location-path',
   LOCATION_TYPE_URI = '#location-type-uri',
   LOCATION_URI = '#location-uri',
+  JOB_NAME = '#model-transfer-job-name',
+  LOCATION_S3_ACCESS_KEY_ID = '#location-s3-access-key-id',
+  LOCATION_S3_SECRET_ACCESS_KEY = '#location-s3-secret-access-key',
+  DESTINATION_OCI_REGISTRY = '#destination-oci-registry',
+  DESTINATION_OCI_URI = '#destination-oci-uri',
+  DESTINATION_OCI_USERNAME = '#destination-oci-username',
+  DESTINATION_OCI_PASSWORD = '#destination-oci-password',
 }
 
 class RegisterModelPage {
@@ -67,12 +74,55 @@ class RegisterModelPage {
     return cy.findByTestId('autofill-modal-button');
   }
 
-  findSubmitButton() {
-    return cy.findByTestId('create-button');
+  findSubmitButton(timeout?: number) {
+    return cy.findByTestId('create-button', { timeout });
   }
 
   findModelNameError() {
     return cy.findByTestId('model-name-error');
+  }
+
+  findRegistrationModeToggleGroup(timeout?: number) {
+    return cy.findByTestId('registration-mode-toggle-group', { timeout });
+  }
+
+  findRegisterToggle() {
+    return cy.findByTestId('registration-mode-register');
+  }
+
+  findRegisterAndStoreToggle() {
+    return cy.findByTestId('registration-mode-register-and-store');
+  }
+
+  findRegisterAndStoreToggleButton() {
+    return this.findRegisterAndStoreToggle().find('button');
+  }
+
+  findNamespaceSelector(timeout?: number) {
+    return cy.findByTestId('form-namespace-selector', { timeout });
+  }
+
+  findNamespaceSelectorTrigger() {
+    return cy.findByTestId('form-namespace-selector-trigger');
+  }
+
+  findNamespaceTextInput(timeout?: number) {
+    return cy.findByTestId('form-namespace-text-input', { timeout });
+  }
+
+  /**
+   * Namespace options render in the SimpleSelect menu (often portaled). Query by role after opening the menu.
+   */
+  findNamespaceOption(name: string) {
+    return cy.findByRole('option', { name });
+  }
+
+  findOriginLocationSection(timeout?: number) {
+    return cy.findByTestId('model-origin-location-section', { timeout });
+  }
+
+  findDestinationLocationSection(timeout?: number) {
+    return cy.findByTestId('model-destination-location-section', { timeout });
   }
 }
 

@@ -79,7 +79,6 @@ describe('Verify that users can provide contributor project permissions to non-a
         'Verify that the user has access to the created project but cannot access Permissions',
       );
       projectListPage.navigate();
-      projectListPage.waitForPageAndToolbar();
       projectListPage.filterProjectByName(projectName);
       projectListPage.findProjectLink(projectName).click();
       cy.log('Attempting to find permissions tab which should not be visible');

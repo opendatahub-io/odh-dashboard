@@ -214,52 +214,6 @@ paths:
       summary: Get LSD Status
       description: Gets the status of LlamaStack Distribution in the specified namespace.
 
-  /gen-ai/api/v1/lsd/safety:
-    summary: Get safety configuration
-    description: >-
-      Retrieves the safety configuration (guardrail models and shields) from the llama-stack-config ConfigMap.
-      Returns configured guardrail models with their input and output shield IDs.
-      Only returns data if trustyai_fms provider is configured.
-      Requires valid Kubernetes authentication token and namespace parameter.
-    get:
-      tags:
-        - LlamaStackDistribution
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace to get safety config from
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      responses:
-        '200':
-          description: Safety configuration retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/SafetyConfigResponse'
-              example:
-                data:
-                  guardrail_models:
-                    - model_name: 'llama-guard-3'
-                      input_shield_id: 'trustyai_input_llama_guard_3'
-                      output_shield_id: 'trustyai_output_llama_guard_3'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getSafetyConfig
-      summary: Get Safety Config
-      description: Gets the safety configuration with guardrail models and shields.
-
   /gen-ai/api/v1/lsd/install:
     summary: Install LlamaStack Distribution
     description: >-
@@ -343,6 +297,72 @@ paths:
       operationId: getGuardrailsStatus
       summary: Get Guardrails Status
       description: Gets the status of GuardrailsOrchestrator in the specified namespace.
+
+  /gen-ai/api/v1/nemo-guardrails/init:
+    summary: Initialize NemoGuardrails resources
+    description: >-
+      Creates a placeholder ConfigMap and NemoGuardrails CR in the specified namespace.
+      The actual model, prompts, and API key are supplied at request time via inline
+      config in each guardrail/checks call — no per-model K8s resources are needed.
+    post:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace in which to create NemoGuardrails resources
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsInitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: initNemoGuardrails
+      summary: Initialize NemoGuardrails
+      description: >-
+        Creates a placeholder ConfigMap and NemoGuardrails CR. One-time setup —
+        returns 400 if NemoGuardrails is already initialised in the namespace.
+
+  /gen-ai/api/v1/nemo-guardrails/status:
+    summary: Get NemoGuardrails status
+    description: >-
+      Returns the phase and readiness of the NemoGuardrails CR in the specified namespace.
+    get:
+      tags:
+        - NemoGuardrails
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace to query for the NemoGuardrails CR
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      responses:
+        '200':
+          $ref: '#/components/responses/NemoGuardrailsStatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNemoGuardrailsStatus
+      summary: Get NemoGuardrails Status
+      description: Returns the phase and readiness of the NemoGuardrails CR in the namespace.
 
   # =============================================================================
   # AI AVAILABLE ASSETS (AAA) ENDPOINTS
@@ -798,6 +818,122 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: revokeAllMaaSTokens
+
+  # =============================================================================
+  # INTER-BFF COMMUNICATION ENDPOINTS
+  # =============================================================================
+
+  /gen-ai/api/v1/bff/maas/tokens:
+    summary: Manage MaaS BFF tokens via inter-BFF communication
+    description: >-
+      Issue new ephemeral tokens and revoke existing tokens by communicating with
+      the MaaS BFF service. This uses inter-BFF communication for playground session
+      token management, allowing Gen-AI playground to request tokens from the MaaS BFF
+      without direct cluster access.
+    post:
+      tags:
+        - Inter-BFF
+        - MaaS
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      summary: Issue Token via MaaS BFF
+      description: >-
+        Request a new ephemeral token from the MaaS BFF service. The token is issued
+        by calling the MaaS BFF's token endpoint, which handles the actual token
+        creation logic. This endpoint is used for playground session authentication.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expiration:
+                  type: string
+                  description: Token time-to-live in Go duration format (ns, us, ms, s, m, h).
+                  default: '4h'
+                  example: '30m'
+                  pattern: '^[0-9]+(ns|us|ms|s|m|h)$'
+            example:
+              expiration: '30m'
+      responses:
+        '201':
+          description: Token created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: Generated JWT token for MaaS API authentication
+                        example: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...'
+                      expiresAt:
+                        type: integer
+                        format: int64
+                        description: Token expiration timestamp as Unix timestamp
+                        example: 1735406400
+                    required:
+                      - token
+                      - expiresAt
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: MaaS BFF service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: issueBFFMaaSToken
+    delete:
+      tags:
+        - Inter-BFF
+        - MaaS
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for token operations
+          required: true
+          schema:
+            type: string
+            example: 'default'
+      summary: Revoke All Tokens via MaaS BFF
+      description: >-
+        Revoke all tokens for the current user by calling the MaaS BFF service.
+        This is useful for invalidating playground session tokens.
+      responses:
+        '204':
+          description: All tokens revoked successfully (no content)
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: MaaS BFF service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: revokeAllBFFMaaSTokens
 
   # =============================================================================
   # MLFLOW ENDPOINTS
@@ -1882,37 +2018,6 @@ components:
           example: '1.0.0'
           description: BFF service version
 
-    SafetyConfigResponse:
-      type: object
-      required:
-        - guardrail_models
-      properties:
-        guardrail_models:
-          type: array
-          items:
-            $ref: '#/components/schemas/GuardrailModelConfig'
-          description: List of configured guardrail models with their shields
-
-    GuardrailModelConfig:
-      type: object
-      required:
-        - model_name
-        - input_shield_id
-        - output_shield_id
-      properties:
-        model_name:
-          type: string
-          example: 'llama-guard-3'
-          description: Name of the guardrail model
-        input_shield_id:
-          type: string
-          example: 'trustyai_input_llama_guard_3'
-          description: Shield ID for input content moderation
-        output_shield_id:
-          type: string
-          example: 'trustyai_output_llama_guard_3'
-          description: Shield ID for output content moderation
-
     # MLflow Schemas
     MLflowPrompt:
       type: object
@@ -2969,6 +3074,59 @@ components:
             When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
             When omitted, the user's highest-priority accessible subscription is used by MaaS.
             Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
+        guardrail_config:
+          $ref: '#/components/schemas/GuardrailInlineConfig'
+
+    # Inline NeMo Guardrail Configuration
+    GuardrailInlineConfig:
+      type: object
+      required:
+        - guardrail_model
+      properties:
+        guardrail_model:
+          type: string
+          example: 'llama-guard-3'
+          description: >-
+            Model ID to use for NeMo Guardrails content checks. Must be a model already
+            registered in the LlamaStack distribution for the target namespace.
+        guardrail_model_source_type:
+          type: string
+          enum: [namespace, custom_endpoint, maas]
+          example: custom_endpoint
+          description: >-
+            Declares how the guardrail model's endpoint URL and API key should be resolved —
+            mirrors the model_source_type field on the main request.
+            - namespace: in-cluster vLLM/InferenceService; user JWT is used for auth.
+            - custom_endpoint: external endpoint in the external-models ConfigMap; key read from K8s Secret.
+            - maas: MaaS model (maas- prefix); an ephemeral scoped token is generated.
+            When omitted the BFF auto-detects via GetModelProviderInfo (backward-compatible).
+        guardrail_subscription:
+          type: string
+          example: 'team-safety-subscription'
+          description: >-
+            MaaS subscription name used to issue an ephemeral API key for the guardrail model
+            when guardrail_model_source_type is "maas". Independent from the top-level subscription
+            field which applies to the main model — use this when the guardrail model belongs to a
+            different MaaS subscription than the main model. When omitted, the top-level subscription
+            is used as a fallback.
+        input_prompt:
+          type: string
+          example: |
+            You are a security guardrail analyzer. Determine if the user input below violates policy.
+            User Input: "{{ user_input }}"
+            Should this be BLOCKED? Answer ONLY with "yes" or "no". Answer:
+          description: >-
+            Prompt template for input (user message) moderation. Its presence enables the input rail —
+            no separate input_enabled flag is needed. Must contain the {{ user_input }} placeholder.
+        output_prompt:
+          type: string
+          example: |
+            You are a compliance guardrail analyzer. Determine if the bot response below violates policy.
+            Bot Response: "{{ bot_response }}"
+            Should this be BLOCKED? Answer ONLY with "yes" or "no". Answer:
+          description: >-
+            Prompt template for output (assistant response) moderation. Its presence enables the output
+            rail — no separate output_enabled flag is needed. Must contain the {{ bot_response }} placeholder.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:
@@ -3544,14 +3702,6 @@ components:
             - model_name: 'facebook/opt-125m'
               model_source_type: 'maas'
           minItems: 1
-        enable_guardrails:
-          type: boolean
-          description: |
-            If true, adds safety configuration with guardrail input and output shields
-            for all selected models. Input shields include jailbreak, content-moderation, and pii.
-            Output shields include content-moderation and pii.
-          example: true
-          default: false
         vector_stores:
           type: array
           items:
@@ -4111,7 +4261,6 @@ components:
           example: 'Vector store for product documentation'
           description: Description of the vector store purpose
 
-
     ExternalVectorStoresListData:
       type: object
       required:
@@ -4662,6 +4811,62 @@ components:
               value:
                 data: null
 
+    NemoGuardrailsInitResponse:
+      description: NemoGuardrails initialization result
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+                    description: Name of the created or updated NemoGuardrails CR
+                    example: nemoguardrails
+          example:
+            data:
+              name: nemoguardrails
+
+    NemoGuardrailsStatusResponse:
+      description: NemoGuardrails CR status
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                type: object
+                required:
+                  - name
+                  - phase
+                  - isReady
+                properties:
+                  name:
+                    type: string
+                    description: Name of the NemoGuardrails CR
+                    example: nemoguardrails
+                  phase:
+                    type: string
+                    description: Current phase of the NemoGuardrails CR
+                    example: Ready
+                  isReady:
+                    type: boolean
+                    description: Whether the NemoGuardrails CR is in the Ready phase
+                    example: true
+          example:
+            data:
+              name: nemoguardrails
+              phase: Ready
+              isReady: true
+
     MCPToolsResponse:
       description: Comprehensive tools information from MCP server specified by URL
       content:
@@ -4970,6 +5175,13 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorEnvelope'
 
+    Conflict:
+      description: Conflict - Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
     InternalServerError:
       description: Internal Server Error - Server encountered an unexpected condition
       content:
@@ -5060,6 +5272,15 @@ tags:
   - name: MaaS
     description: |
       Model as a Service operations
+
+  # =============================================================================
+  # INTER-BFF COMMUNICATION OPERATIONS
+  # =============================================================================
+  - name: Inter-BFF
+    description: |
+      Inter-BFF communication operations for service-to-service calls.
+      These endpoints use the BFF client to communicate with other BFF services
+      (MaaS BFF, Model Registry BFF) for operations like playground session tokens.
 
   # =============================================================================
   # MODEL CONTEXT PROTOCOL (MCP) OPERATIONS
