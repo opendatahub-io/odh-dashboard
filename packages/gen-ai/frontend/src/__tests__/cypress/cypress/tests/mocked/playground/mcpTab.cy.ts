@@ -461,8 +461,6 @@ describe('Playground - MCP Servers', () => {
       cy.step('Close success modal and open tools modal');
       playgroundPage.mcpTab.closeSuccessModal();
       mcpServerSuccessModal.find().should('not.exist');
-      // Re-click MCP tab to ensure table is visible after modal-triggered remount
-      playgroundPage.mcpTab.clickMCPTab();
       playgroundPage.mcpTab.findMCPServersTable().should('be.visible');
       serverRow.findToolsButton().should('exist').and('not.have.attr', 'aria-disabled');
       serverRow.findToolsButton().click();
