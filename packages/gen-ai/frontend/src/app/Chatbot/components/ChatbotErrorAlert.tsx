@@ -83,9 +83,6 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
       );
     }
 
-    // Action suggestions (e.g., "Open Build panel") - for future implementation
-    // TODO: Implement action suggestion handlers when needed
-
     return undefined;
   }, [isRetriable, onRetry, retryCount, dataTestId]);
 

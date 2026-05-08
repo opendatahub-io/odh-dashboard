@@ -667,7 +667,6 @@ export interface ClassifiedError {
   description: string;
   details: ErrorDetails;
   isRetriable: boolean;
-  actionSuggestion?: string;
 }
 
 export interface ApiError {

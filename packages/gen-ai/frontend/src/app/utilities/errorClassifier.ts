@@ -118,6 +118,5 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
       rawMessage,
     },
     isRetriable,
-    actionSuggestion: microcopy.actionSuggestion,
   };
 }

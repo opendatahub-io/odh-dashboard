@@ -1,7 +1,6 @@
 interface MicrocopyTemplate {
   title: string;
   description: string;
-  actionSuggestion?: string;
 }
 
 interface MicrocopyContext {
@@ -22,7 +21,6 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: 'Token limit exceeds model capacity',
     description:
       '{modelName} supports a maximum of {maxTokens} tokens. Reduce the token limit in the Build panel.',
-    actionSuggestion: 'Open Build panel',
   },
   'llama_stack:invalid_model_config': {
     title: 'Model configuration error',
@@ -33,7 +31,6 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: "This model doesn't support tool calling",
     description:
       "{modelName} doesn't support the tools feature you've enabled. Try selecting a model that supports tool calling, or disable tools in the Build panel.",
-    actionSuggestion: 'Open Build panel',
   },
   'model:no_images': {
     title: "This model doesn't support image input",
@@ -247,7 +244,6 @@ const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: '{toolName} tool call failed',
     description:
       "The {toolName} tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
-    actionSuggestion: 'Open Build panel',
   },
   'mcp:execution_error': {
     title: '{toolName} tool returned an error',
@@ -284,7 +280,7 @@ const fallbackTemplate: MicrocopyTemplate = {
 export function getMicrocopy(
   templateKey: string,
   context: MicrocopyContext = {},
-): { title: string; description: string; actionSuggestion?: string } {
+): { title: string; description: string } {
   /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const template =
     fullFailureTemplates[templateKey] ||
@@ -296,6 +292,5 @@ export function getMicrocopy(
   return {
     title: interpolate(template.title, context),
     description: interpolate(template.description, context),
-    actionSuggestion: template.actionSuggestion,
   };
 }
