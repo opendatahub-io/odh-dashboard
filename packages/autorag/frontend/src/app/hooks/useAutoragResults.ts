@@ -91,14 +91,20 @@ export function useAutoragResults(
   }, [templatesOptimizationData]);
 
   // Step 2: List pattern directories (Pattern1, Pattern2, etc.) from {uuid}/rag_patterns/
-  const ragPatternsBasePath = nonDeterministicId
+  const candidateRagPatternsPrefix = nonDeterministicId
     ? `${rootDir}/${runId}/${patternGenerationDir}/${nonDeterministicId}/rag_patterns`
     : undefined;
   const {
     data: ragPatternsData,
     isLoading: isRagPatternsLoading,
     isError: isRagPatternsError,
-  } = useS3ListFilesQuery(namespace, ragPatternsBasePath);
+  } = useS3ListFilesQuery(namespace, candidateRagPatternsPrefix);
+
+  // Only expose ragPatternsBasePath when S3 listing succeeded and returned results
+  const ragPatternsBasePath =
+    isRagPatternsLoading || isRagPatternsError || !ragPatternsData?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- ragPatternsData can be undefined when query is disabled
+      ? undefined
+      : candidateRagPatternsPrefix;
 
   // Step 2b: Extract pattern directory names
   const patternDirectories = React.useMemo(() => {

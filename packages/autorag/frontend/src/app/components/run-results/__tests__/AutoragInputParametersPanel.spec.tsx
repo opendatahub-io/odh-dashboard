@@ -27,7 +27,7 @@ jest.mock('react-router', () => ({
 }));
 
 jest.mock('~/app/hooks/queries', () => ({
-  isTerminalState: (state: string) => ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(state),
+  isTerminalState: jest.requireActual('~/app/hooks/queries').isTerminalState,
 }));
 
 const defaultParameters: Partial<ConfigureSchema> = {

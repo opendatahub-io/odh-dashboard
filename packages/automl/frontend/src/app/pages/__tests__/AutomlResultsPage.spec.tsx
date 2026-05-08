@@ -43,7 +43,8 @@ const mockUseAutomlResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
-  isTerminalState: (state: string) => ['SUCCEEDED', 'FAILED', 'CANCELED'].includes(state),
+  isTerminalState: (state: string) =>
+    ['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED'].includes(state),
 }));
 
 jest.mock('~/app/hooks/useAutomlResults', () => ({

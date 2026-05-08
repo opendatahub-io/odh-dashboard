@@ -196,51 +196,55 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
             ))}
           </Stack>
         ) : (
-          <DescriptionList>
-            {pipelineRun?.run_id && (
-              <>
-                <DescriptionListGroup data-testid="parameter-run-id">
-                  <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
-                  <DescriptionListDescription>
+          <>
+            <DescriptionList>
+              {pipelineRun?.run_id && (
+                <>
+                  <DescriptionListGroup data-testid="parameter-run-id">
+                    <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                        {pipelineRun.run_id}
+                      </ClipboardCopy>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <Divider />
+                </>
+              )}
+              <DescriptionListGroup data-testid="parameter-output-directory">
+                <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  ) : modelsBasePath ? (
                     <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                      {pipelineRun.run_id}
+                      {modelsBasePath}
                     </ClipboardCopy>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <Divider />
-              </>
-            )}
-            <DescriptionListGroup data-testid="parameter-output-directory">
-              <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
-              <DescriptionListDescription>
-                {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
-                  <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
-                ) : modelsBasePath ? (
-                  <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                    {modelsBasePath}
-                  </ClipboardCopy>
-                ) : (
-                  'Not available'
-                )}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
+                  ) : (
+                    'Not available'
+                  )}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
             <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg">
               Input parameters
             </Title>
-            {entries.map(([key, value], index) => (
-              <React.Fragment key={key}>
-                {index > 0 && <Divider />}
-                <DescriptionListGroup data-testid={`parameter-${key}`}>
-                  <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Content component="p" className="odh-automl-input-parameters-panel__value">
-                      {formatValue(key, value)}
-                    </Content>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </React.Fragment>
-            ))}
-          </DescriptionList>
+            <DescriptionList>
+              {entries.map(([key, value], index) => (
+                <React.Fragment key={key}>
+                  {index > 0 && <Divider />}
+                  <DescriptionListGroup data-testid={`parameter-${key}`}>
+                    <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Content component="p" className="odh-automl-input-parameters-panel__value">
+                        {formatValue(key, value)}
+                      </Content>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </React.Fragment>
+              ))}
+            </DescriptionList>
+          </>
         )}
       </DrawerPanelBody>
     </DrawerPanelContent>

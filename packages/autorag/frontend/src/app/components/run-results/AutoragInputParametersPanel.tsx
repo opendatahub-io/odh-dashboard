@@ -238,65 +238,69 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
             ))}
           </Stack>
         ) : (
-          <DescriptionList>
-            {pipelineRun?.run_id && (
-              <>
-                <DescriptionListGroup data-testid="parameter-run-id">
-                  <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
-                  <DescriptionListDescription>
+          <>
+            <DescriptionList>
+              {pipelineRun?.run_id && (
+                <>
+                  <DescriptionListGroup data-testid="parameter-run-id">
+                    <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                        {pipelineRun.run_id}
+                      </ClipboardCopy>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <Divider />
+                </>
+              )}
+              <DescriptionListGroup data-testid="parameter-output-directory">
+                <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  ) : ragPatternsBasePath ? (
                     <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                      {pipelineRun.run_id}
+                      {ragPatternsBasePath}
                     </ClipboardCopy>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <Divider />
-              </>
-            )}
-            <DescriptionListGroup data-testid="parameter-output-directory">
-              <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
-              <DescriptionListDescription>
-                {patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
-                  <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
-                ) : ragPatternsBasePath ? (
-                  <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
-                    {ragPatternsBasePath}
-                  </ClipboardCopy>
-                ) : (
-                  'Not available'
-                )}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
+                  ) : (
+                    'Not available'
+                  )}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
             <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg">
               Input parameters
             </Title>
-            {entries.map(([key, value], index) => (
-              <React.Fragment key={key}>
-                {index > 0 && <Divider />}
-                <DescriptionListGroup data-testid={`parameter-${key}`}>
-                  <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
-                  <DescriptionListDescription>
-                    <Content component="p" className="odh-autorag-input-parameters-panel__value">
-                      {formatValue(key, value)}
-                    </Content>
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </React.Fragment>
-            ))}
-            {hasModelConfig && (
-              <>
-                {entries.length > 0 && <Divider />}
-                <DescriptionListGroup data-testid="parameter-model-configuration">
-                  <DescriptionListTerm>Model configuration</DescriptionListTerm>
-                  <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
-                    <ModelConfigurationValue
-                      generationModels={generationModels}
-                      embeddingsModels={embeddingsModels}
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </>
-            )}
-          </DescriptionList>
+            <DescriptionList>
+              {entries.map(([key, value], index) => (
+                <React.Fragment key={key}>
+                  {index > 0 && <Divider />}
+                  <DescriptionListGroup data-testid={`parameter-${key}`}>
+                    <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <Content component="p" className="odh-autorag-input-parameters-panel__value">
+                        {formatValue(key, value)}
+                      </Content>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </React.Fragment>
+              ))}
+              {hasModelConfig && (
+                <>
+                  {entries.length > 0 && <Divider />}
+                  <DescriptionListGroup data-testid="parameter-model-configuration">
+                    <DescriptionListTerm>Model configuration</DescriptionListTerm>
+                    <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
+                      <ModelConfigurationValue
+                        generationModels={generationModels}
+                        embeddingsModels={embeddingsModels}
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </>
+              )}
+            </DescriptionList>
+          </>
         )}
       </DrawerPanelBody>
     </DrawerPanelContent>
