@@ -200,8 +200,8 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		return nil, fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	// Use CopyConfig for explicit, clean copying
-	cfg := rest.CopyConfig(baseConfig)
+	// Start with an anonymous config to avoid preloaded auth
+	cfg := rest.AnonymousClientConfig(baseConfig)
 	cfg.BearerToken = token
 
 	// Explicitly clear all other auth mechanisms
@@ -249,7 +249,7 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *in
 	}
 
 	// Create a dynamic client with user token
-	userConfig := rest.CopyConfig(kc.Config)
+	userConfig := rest.AnonymousClientConfig(kc.Config)
 	userConfig.BearerToken = identity.Token
 	userConfig.BearerTokenFile = ""
 
@@ -330,7 +330,7 @@ func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -374,7 +374,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -418,7 +418,7 @@ func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Conte
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -513,7 +513,7 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, identity *integrat
 	defer cancel()
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -1184,7 +1184,7 @@ func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc 
 		}
 	}
 
-	var endpoints []string
+	endpoints := []string{}
 	if internalURL != "" {
 		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internalURL))
 	}
@@ -2351,6 +2351,19 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 	return targetLSD, nil
 }
 
+// GetInferenceServiceURL returns the internal endpoint URL for the InferenceService or
+// LLMInferenceService whose K8s resource name equals modelName.
+// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *integrations.RequestIdentity, namespace string, modelName string) (string, error) {
+	details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, modelName)
+	if err != nil {
+		kc.Logger.Debug("GetInferenceServiceURL: no InferenceService/LLMInferenceService found",
+			"namespace", namespace, "modelName", modelName, "error", err)
+		return "", nil
+	}
+	return details.endpointURL, nil
+}
+
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
 	// Get LlamaStackDistribution
@@ -2409,7 +2422,6 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 	return &config, nil
 }
 
-// GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
 // GenerateProviderID generates a unique provider ID for external models
 func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
 	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)

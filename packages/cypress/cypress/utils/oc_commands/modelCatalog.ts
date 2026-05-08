@@ -69,7 +69,7 @@ export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandL
   cy.log(`Verifying model-catalog-default-sources ConfigMap: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -93,7 +93,7 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
   cy.log(`Verifying model-catalog deployment: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -115,7 +115,7 @@ export const verifyModelCatalogService = (): Cypress.Chainable<CommandLineResult
   cy.log(`Verifying model-catalog service: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog service not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -179,7 +179,7 @@ export const verifyModelCatalogSourceEnabled = (
       const userValue = userResult.stdout.trim();
 
       // If user configmap has a value for this source, use it
-      if (userResult.code === 0 && (userValue === 'true' || userValue === 'false')) {
+      if (userResult.exitCode === 0 && (userValue === 'true' || userValue === 'false')) {
         const actualEnabled = userValue === 'true';
         cy.log(
           `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled} (from user configmap), expected=${expectedEnabled}`,
@@ -204,7 +204,7 @@ export const verifyModelCatalogSourceEnabled = (
 
       // Fall back to default configmap
       execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
-        if (defaultResult.code !== 0) {
+        if (defaultResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
           cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -251,7 +251,7 @@ export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable
   const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
       cy.log(`stderr: ${maskedStderr}`);
@@ -279,7 +279,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
 
   return cy.then(() => {
     execWithOutput(getCommand, 30).then((result: CommandLineResult) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get model-catalog-sources ConfigMap: ${maskedStderr}`);
       }
@@ -293,7 +293,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
       `;
 
       execWithOutput(updateCommand, 60).then((patchResult: CommandLineResult) => {
-        if (patchResult.code !== 0) {
+        if (patchResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(patchResult.stderr);
           cy.log(`stdout: ${patchResult.stdout}`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -350,7 +350,7 @@ export const waitForModelCatalogDeployment = (): Cypress.Chainable<undefined> =>
           const maskedStderr = maskSensitiveInfo(result.stderr);
           cy.log(`model-catalog deployment wait stderr: ${maskedStderr}`);
         }
-        if (result.code !== 0) {
+        if (result.exitCode !== 0) {
           throw new Error(
             `model-catalog deployment has no ready replicas after 120s. The catalog backend must have at least 1 ready pod before running performance filter tests. stderr: ${maskSensitiveInfo(
               result.stderr,
@@ -451,11 +451,11 @@ export const hasOtherEnabledCatalogSources = (
   const defaultCmd = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
 
   return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
-    if (userResult.code === 0 && userResult.stdout.trim()) {
+    if (userResult.exitCode === 0 && userResult.stdout.trim()) {
       return cy.wrap(parseAndCount(userResult.stdout));
     }
     return execWithOutput(defaultCmd, 30).then((defaultResult: CommandLineResult) => {
-      if (defaultResult.code !== 0 || !defaultResult.stdout.trim()) {
+      if (defaultResult.exitCode !== 0 || !defaultResult.stdout.trim()) {
         const maskedStderr = maskSensitiveInfo(
           [userResult.stderr, defaultResult.stderr].filter(Boolean).join('\n'),
         );

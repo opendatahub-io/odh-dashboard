@@ -19,7 +19,11 @@ import {
 } from '../../../../pages/connections';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
-import { clusterStorage, clusterStorageActions } from '../../../../pages/clusterStorage';
+import {
+  clusterStorage,
+  clusterStorageActions,
+  addClusterStorageModal,
+} from '../../../../pages/clusterStorage';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
   selectNotebookImageWithBackendFallback,
@@ -32,7 +36,6 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
   let editedTestNamespace: string;
   let editedTestDescription: string;
   let pvcEditDisplayName: string;
-  let pvcStorageName: string;
   let connectionDescription: string;
   let contributor: string;
   let s3Config: AWSS3BucketDetails;
@@ -50,7 +53,6 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
         editedTestDescription = fixtureData.editedTestDescription;
         pvcEditDisplayName = fixtureData.pvcEditDisplayName;
         contributor = LDAP_CONTRIBUTOR_USER.USERNAME;
-        pvcStorageName = `${fixtureData.pvcStorageName}-${uuid}-storage`;
         connectionDescription = fixtureData.connectionDescription;
         notebookImage = fixtureData.notebookImage;
         const bucketKey = 'BUCKET_1' as const;
@@ -199,19 +201,23 @@ describe('Create, Delete and Edit - Workbench Tests', () => {
       deleteModal.findSubmitButton().should('be.enabled').click();
       connectionsPage.findDataConnectionName().should('not.exist');
 
-      //Navigate to Cluster Storage and click to Add Storage
-      cy.step('Navigate to Cluster Storage and click to create Cluster Storage');
+      //Navigate to Cluster Storage and create a new Cluster Storage
+      cy.step('Navigate to Cluster Storage and create Cluster Storage');
+      const deleteTestStorageName = `delete-test-storage-${uuid}`;
       projectDetails.findSectionTab('cluster-storages').click();
+      clusterStorage.findAddClusterStorageButton().click();
+      addClusterStorageModal.findNameInput().type(deleteTestStorageName);
+      addClusterStorageModal.findSubmitButton().should('not.be.disabled').click();
+      clusterStorage.getClusterStorageRow(deleteTestStorageName).find().should('exist');
+
       // Delete the Cluster Storage and confirm that the deletion was successful
       cy.step('Delete the Cluster Storage and verify deletion');
-      // Note reload is required to ensure that the new edited name is propagated
-      cy.reload();
-      clusterStorage.getClusterStorageRow(pvcStorageName).findKebab().click();
+      clusterStorage.getClusterStorageRow(deleteTestStorageName).findKebab().click();
       clusterStorageActions.findDeleteStorageAction().click();
       deleteModal.shouldBeOpen();
-      deleteModal.findInput().type(pvcStorageName);
+      deleteModal.findInput().type(deleteTestStorageName);
       deleteModal.findSubmitButton().should('be.enabled').click();
-      clusterStorage.findEmptyState().should('exist');
+      cy.contains(deleteTestStorageName).should('not.exist');
     },
   );
 });

@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -6,9 +6,11 @@ import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
+  failedPatterns: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
   ragPatternsBasePath?: string;
 };
 
@@ -56,7 +58,9 @@ export function useAutoragResults(
   const {
     data: templatesOptimizationData,
     isLoading: isTemplatesOptimizationLoading,
+    isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
+    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory
@@ -178,7 +182,7 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['s3File', namespace, name, patternJsonPath],
+        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
@@ -328,11 +332,24 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
+  const queryClient = useQueryClient();
+  const refetch = React.useCallback(() => {
+    refetchTemplatesOptimization();
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
+  }, [refetchTemplatesOptimization, queryClient, namespace]);
+
   return {
     patterns,
-    isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
+    failedPatterns: patternQueries.failedPatterns,
+    isLoading:
+      isTemplatesOptimizationLoading ||
+      (!templatesOptimizationData && isTemplatesOptimizationFetching) ||
+      isRagPatternsLoading ||
+      patternQueries.isPending,
     isError: hasError,
     error,
+    refetch,
     ragPatternsBasePath: ragPatternsPath,
   };
 }

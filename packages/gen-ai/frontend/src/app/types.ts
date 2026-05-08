@@ -90,6 +90,14 @@ export type MCPServerConfig = {
   allowed_tools?: string[]; // Backend rules: undefined=all, []=none, ["x"]=specific
 };
 
+export type GuardrailInlineConfig = {
+  guardrail_model: string;
+  guardrail_model_source_type?: 'namespace' | 'custom_endpoint' | 'maas';
+  guardrail_subscription?: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
 export type CreateResponseRequest = {
   input: string;
   model: string;
@@ -99,8 +107,7 @@ export type CreateResponseRequest = {
   instructions?: string;
   stream?: boolean;
   mcp_servers?: MCPServerConfig[];
-  input_shield_id?: string;
-  output_shield_id?: string;
+  guardrail_config?: GuardrailInlineConfig;
   model_source_type?: string;
   subscription?: string;
 };
@@ -332,32 +339,6 @@ export type BFFConfig = {
   isCustomLSD: boolean;
 };
 
-export type GuardrailsCondition = {
-  type: string;
-  status: string;
-  reason?: string;
-  message?: string;
-  lastTransitionTime?: string;
-};
-
-export type GuardrailsStatus = {
-  name: string;
-  phase: string;
-  conditions?: GuardrailsCondition[];
-};
-
-/** Guardrail model config from safety config endpoint */
-export type GuardrailModelConfig = {
-  model_name: string;
-  input_shield_id: string;
-  output_shield_id: string;
-};
-
-/** Response from /lsd/safety endpoint */
-export type SafetyConfigResponse = {
-  guardrail_models: GuardrailModelConfig[];
-};
-
 /** Status of the NemoGuardrails CR */
 export type NemoGuardrailsStatus = {
   name: string;
@@ -562,8 +543,6 @@ export type GenAiAPIs = {
   getMCPServers: GetMCPServers;
   getMCPServerStatus: GetMCPServerStatus;
   getBFFConfig: GetBFFConfig;
-  getGuardrailsStatus: GetGuardrailsStatus;
-  getSafetyConfig: GetSafetyConfig;
   getNemoGuardrailsStatus: GetNemoGuardrailsStatus;
   initNemoGuardrails: InitNemoGuardrails;
   listMLflowPrompts: ListMLflowPrompts;
@@ -648,8 +627,6 @@ type GetMCPServerTools = ModArchRestGET<MCPToolsStatus>;
 type GetMCPServers = ModArchRestGET<MCPServersResponse>;
 type GetMCPServerStatus = ModArchRestGET<MCPConnectionStatus>;
 type GetBFFConfig = ModArchRestGET<BFFConfig>;
-type GetGuardrailsStatus = ModArchRestGET<GuardrailsStatus>;
-type GetSafetyConfig = ModArchRestGET<SafetyConfigResponse>;
 type GetNemoGuardrailsStatus = ModArchRestGET<NemoGuardrailsStatus>;
 type InitNemoGuardrails = (
   _data: Record<string, never>,

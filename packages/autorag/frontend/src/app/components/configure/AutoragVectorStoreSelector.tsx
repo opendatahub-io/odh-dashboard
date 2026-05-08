@@ -94,12 +94,13 @@ const AutoragVectorStoreSelector: React.FC = () => {
 
   // Clear stale selection when the provider list changes and no longer includes
   // the previously selected provider (e.g., LlamaStack secret was changed or
-  // providers became empty).
+  // providers became empty). Skip while loading so reconfigure flows don't
+  // clear a valid initial value before providers have been fetched.
   useEffect(() => {
-    if (fieldValue && !providers.some((p) => p.provider_id === fieldValue)) {
+    if (!isLoading && fieldValue && !providers.some((p) => p.provider_id === fieldValue)) {
       fieldOnChange('');
     }
-  }, [providers, fieldValue, fieldOnChange]);
+  }, [providers, fieldValue, fieldOnChange, isLoading]);
 
   if (isLoading) {
     return <Skeleton width="200px" height="36px" />;

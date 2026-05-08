@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3ListFilesQuery,
@@ -41,9 +41,11 @@ function normalizeMetricsToSnakeCase(testData: Record<string, number>): Record<s
 
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
+  failedModels: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
 };
 
 /**
@@ -106,7 +108,9 @@ export function useAutomlResults(
   const {
     data: s3Files,
     isLoading: isS3Loading,
+    isFetching: isS3Fetching,
     isError: isS3Error,
+    refetch: refetchS3Files,
   } = useS3ListFilesQuery(namespace, generatedModelsPath);
 
   // Step 2: Fetch model artifact directories from each common prefix
@@ -117,7 +121,7 @@ export function useAutomlResults(
       .map((prefixObj) => {
         const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
         return {
-          queryKey: ['s3Files', namespace, path],
+          queryKey: ['automl', 's3Files', namespace, path],
           queryFn: async ({ signal }) => {
             if (!namespace) {
               throw new Error('namespace is required');
@@ -195,7 +199,7 @@ export function useAutomlResults(
     queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['s3File', namespace, name, modelJsonPath],
+        queryKey: ['automl', 's3File', namespace, name, modelJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace) {
             throw new Error('namespace is required');
@@ -322,10 +326,23 @@ export function useAutomlResults(
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
+  const queryClient = useQueryClient();
+  const refetch = React.useCallback(() => {
+    refetchS3Files();
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
+  }, [refetchS3Files, queryClient, namespace]);
+
   return {
     models,
-    isLoading: isS3Loading || modelArtifactQueries.isPending || modelQueries.isPending,
+    failedModels: modelQueries.failedModels,
+    isLoading:
+      isS3Loading ||
+      (!s3Files && isS3Fetching) ||
+      modelArtifactQueries.isPending ||
+      modelQueries.isPending,
     isError: hasError,
     error,
+    refetch,
   };
 }

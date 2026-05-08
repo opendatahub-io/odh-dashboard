@@ -2,7 +2,9 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Label,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -165,23 +167,23 @@ const COLUMN_META: Record<
     testId: 'retrieval-method',
     minWidth: '13rem',
   },
-  retrievalRankerStrategy: {
-    name: 'Hybrid strategy',
-    description:
-      'A method that combines multiple retrieval approaches to enhance answer accuracy. RRF (reciprocal rank fusion) merges rankings from various sources into one list, and weighted assigns importance to outputs, prioritizing the most reliable for the final outcome.',
-    minWidth: '12rem',
-    priority: 3,
-    field: 'retrievalRankerStrategy',
-    testId: 'retrieval-ranker-strategy',
-  },
   retrievalSearchMode: {
     name: 'Retrieval search mode',
     description:
       'The search strategy. Hybrid search combines vector and keyword search and is available only with Milvus.',
     minWidth: '14rem',
-    priority: 4,
+    priority: 3,
     field: 'retrievalSearchMode',
     testId: 'retrieval-search-mode',
+  },
+  retrievalRankerStrategy: {
+    name: 'Hybrid strategy',
+    description:
+      'The ranking algorithm used to combine and reorder results when hybrid retrieval search mode is active. RRF (reciprocal rank fusion) merges rankings from multiple sources into a single list. Weighted ranking assigns different importance levels to each source. Only applicable when retrieval search mode is hybrid.',
+    minWidth: '12rem',
+    priority: 4,
+    field: 'retrievalRankerStrategy',
+    testId: 'retrieval-ranker-strategy',
   },
   chunkingMethod: {
     name: 'Chunking method',
@@ -311,7 +313,14 @@ function AutoragLeaderboard({
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
-  const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
+  const {
+    patterns,
+    patternsLoading,
+    patternsError,
+    onRetryPatterns,
+    pipelineRun,
+    pipelineRunLoading,
+  } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   // Sorting state
@@ -699,6 +708,31 @@ function AutoragLeaderboard({
           ))}
         </Tbody>
       </Table>
+    );
+  }
+
+  // Show error state when pattern fetching failed
+  if (patternsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to fetch RAG patterns"
+          status="danger"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-error"
+        >
+          <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="link" onClick={onRetryPatterns}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
     );
   }
 

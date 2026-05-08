@@ -58,8 +58,7 @@ describe('ChatbotConfigInstance', () => {
       ).toBe('vs-inline-abc');
     });
 
-    it('clears selectedVectorStoreId to null when knowledgeMode is external', () => {
-      // Prime the store with an inline ID as if it was previously in inline mode
+    it('clears selectedVectorStoreId to null when switching from inline to external while mounted', () => {
       act(() => {
         useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'inline');
         useChatbotConfigStore
@@ -67,15 +66,34 @@ describe('ChatbotConfigInstance', () => {
           .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-inline-abc');
       });
 
+      const { rerender } = render(<ChatbotConfigInstance {...defaultProps} />);
+
       act(() => {
         useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+      });
+
+      rerender(<ChatbotConfigInstance {...defaultProps} />);
+
+      expect(
+        useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
+      ).toBeNull();
+    });
+
+    it('preserves selectedVectorStoreId on remount when knowledgeMode is already external', () => {
+      // Simulates compare mode entry: the component unmounts and remounts with external mode
+      // already active and a store already selected — the selection must not be wiped.
+      act(() => {
+        useChatbotConfigStore.getState().updateKnowledgeMode(DEFAULT_CONFIG_ID, 'external');
+        useChatbotConfigStore
+          .getState()
+          .updateSelectedVectorStoreId(DEFAULT_CONFIG_ID, 'vs-external-xyz');
       });
 
       render(<ChatbotConfigInstance {...defaultProps} />);
 
       expect(
         useChatbotConfigStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedVectorStoreId,
-      ).toBeNull();
+      ).toBe('vs-external-xyz');
     });
 
     it('updates selectedVectorStoreId when switching from external back to inline', () => {

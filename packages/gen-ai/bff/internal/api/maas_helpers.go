@@ -8,6 +8,16 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 )
 
+func (app *App) resolveMaaSBaseURL() string {
+	if app.config.MaaSURL != "" {
+		return app.config.MaaSURL
+	}
+	if app.clusterDomain != "" {
+		return fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
+	}
+	return ""
+}
+
 // handleMaaSClientError maps MaaS client errors to appropriate HTTP status codes
 func (app *App) handleMaaSClientError(w http.ResponseWriter, r *http.Request, err error) {
 	if maasErr, ok := err.(*maas.MaaSError); ok {

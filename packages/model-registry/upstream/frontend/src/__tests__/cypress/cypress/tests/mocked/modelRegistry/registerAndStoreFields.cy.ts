@@ -8,6 +8,7 @@ import { ModelTransferJobStatus } from '~/app/types';
 import type { ModelRegistry, ModelTransferJob, RegisteredModel } from '~/app/types';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { mockModelTransferJob } from '~/__mocks__/mockModelTransferJob';
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type HandlersProps = {
   modelRegistries?: ModelRegistry[];
@@ -491,7 +492,7 @@ describe('Register and Store Fields - Form Submission', () => {
     });
 
     // Should navigate to model list (not version page)
-    cy.url().should('include', '/model-registry/modelregistry-sample');
+    cy.url().should('include', modelRegistryUrl('modelregistry-sample'));
     cy.url().should('not.include', '/register');
   });
 

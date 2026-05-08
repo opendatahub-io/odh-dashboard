@@ -35,7 +35,7 @@ describe('Workbench and PVSs tests', () => {
     // Check if a default storage class exists - if not, skip tests
     // (workbench tests require real storage provisioner to create PVCs)
     getOpenshiftDefaultStorageClass().then((result) => {
-      if (result.code !== 0 || !result.stdout.trim()) {
+      if (result.exitCode !== 0 || !result.stdout.trim()) {
         cy.log(
           'No default storage class found - skipping workbench tests (requires real storage provisioner)',
         );
