@@ -260,7 +260,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "guardrails violation",
 			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", 400),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "guardrails",
+			expectedComponent:       "llama_stack",
 			expectedCode:            "content_policy_violation",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "content blocked by guardrails",
