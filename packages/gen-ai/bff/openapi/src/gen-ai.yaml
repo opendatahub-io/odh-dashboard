@@ -3074,6 +3074,59 @@ components:
             When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
             When omitted, the user's highest-priority accessible subscription is used by MaaS.
             Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
+        guardrail_config:
+          $ref: '#/components/schemas/GuardrailInlineConfig'
+
+    # Inline NeMo Guardrail Configuration
+    GuardrailInlineConfig:
+      type: object
+      required:
+        - guardrail_model
+      properties:
+        guardrail_model:
+          type: string
+          example: 'llama-guard-3'
+          description: >-
+            Model ID to use for NeMo Guardrails content checks. Must be a model already
+            registered in the LlamaStack distribution for the target namespace.
+        guardrail_model_source_type:
+          type: string
+          enum: [namespace, custom_endpoint, maas]
+          example: custom_endpoint
+          description: >-
+            Declares how the guardrail model's endpoint URL and API key should be resolved —
+            mirrors the model_source_type field on the main request.
+            - namespace: in-cluster vLLM/InferenceService; user JWT is used for auth.
+            - custom_endpoint: external endpoint in the external-models ConfigMap; key read from K8s Secret.
+            - maas: MaaS model (maas- prefix); an ephemeral scoped token is generated.
+            When omitted the BFF auto-detects via GetModelProviderInfo (backward-compatible).
+        guardrail_subscription:
+          type: string
+          example: 'team-safety-subscription'
+          description: >-
+            MaaS subscription name used to issue an ephemeral API key for the guardrail model
+            when guardrail_model_source_type is "maas". Independent from the top-level subscription
+            field which applies to the main model — use this when the guardrail model belongs to a
+            different MaaS subscription than the main model. When omitted, the top-level subscription
+            is used as a fallback.
+        input_prompt:
+          type: string
+          example: |
+            You are a security guardrail analyzer. Determine if the user input below violates policy.
+            User Input: "{{ user_input }}"
+            Should this be BLOCKED? Answer ONLY with "yes" or "no". Answer:
+          description: >-
+            Prompt template for input (user message) moderation. Its presence enables the input rail —
+            no separate input_enabled flag is needed. Must contain the {{ user_input }} placeholder.
+        output_prompt:
+          type: string
+          example: |
+            You are a compliance guardrail analyzer. Determine if the bot response below violates policy.
+            Bot Response: "{{ bot_response }}"
+            Should this be BLOCKED? Answer ONLY with "yes" or "no". Answer:
+          description: >-
+            Prompt template for output (assistant response) moderation. Its presence enables the output
+            rail — no separate output_enabled flag is needed. Must contain the {{ bot_response }} placeholder.
 
     # Clean Response Schema - Preserves LlamaStack Structure
     ResponseData:

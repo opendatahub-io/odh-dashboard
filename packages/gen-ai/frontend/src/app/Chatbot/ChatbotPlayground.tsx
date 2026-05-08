@@ -13,7 +13,6 @@ import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import useFetchGuardrailModels from '~/app/hooks/useFetchGuardrailModels';
 import { isLlamaModelEnabled } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
@@ -40,7 +39,6 @@ import {
   useChatbotConfigStore,
   selectSelectedModel,
   selectConfigIds,
-  selectGuardrail,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
@@ -130,15 +128,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
-  const guardrail = useChatbotConfigStore(selectGuardrail(primaryConfigId));
-
-  // Guardrails
-  const {
-    data: guardrailModelConfigs,
-    modelNames: guardrailModelNames,
-    loaded: guardrailModelsLoaded,
-    error: guardrailModelsError,
-  } = useFetchGuardrailModels();
 
   // Router state
   const location = useLocation();
@@ -320,12 +309,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     selectedAAModel,
   ]);
 
-  React.useEffect(() => {
-    if (guardrailModelsLoaded && guardrailModelNames.length > 0 && !guardrail) {
-      useChatbotConfigStore.getState().updateGuardrail(primaryConfigId, guardrailModelNames[0]);
-    }
-  }, [guardrailModelsLoaded, guardrailModelNames, guardrail, primaryConfigId]);
-
   // Cleanup stale message hooks
   React.useEffect(() => {
     const staleKeys = Array.from(messageHooksRef.current.keys()).filter(
@@ -422,7 +405,6 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           showWelcomePrompt
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onMessagesHookReady={getHookReadyCallback(configId)}
-          guardrailModelConfigs={guardrailModelConfigs}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
         />
@@ -479,11 +461,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
               mcpServerTokens={mcpServerTokens}
               onMcpServerTokensChange={setMcpServerTokens}
               checkMcpServerStatus={checkMcpServerStatus}
-              guardrailModels={guardrailModelNames}
-              guardrailModelsLoaded={guardrailModelsLoaded}
               onCloseClick={() => setIsDrawerExpanded(false)}
               onActiveConfigChange={setActivePaneConfigId}
-              guardrailModelsError={guardrailModelsError}
               defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
             />
           }

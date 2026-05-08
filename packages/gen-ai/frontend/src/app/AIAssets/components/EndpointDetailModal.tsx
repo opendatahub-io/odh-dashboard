@@ -151,23 +151,11 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
       />
       <ModalBody>
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
-          {isMaaS && (
-            <FlexItem>
-              <Content component={ContentVariants.p}>
-                The underlying model is managed by a cluster administrator and shared across
-                projects via the API gateway. Use this endpoint to connect your application to this
-                model. Copy the endpoint URL below to start making requests.
-              </Content>
-            </FlexItem>
-          )}
-          {!isMaaS && (
-            <FlexItem>
-              <Content component={ContentVariants.p}>
-                Use this endpoint to connect your application to this model. Copy the endpoint URL
-                below along with the authentication details to start making requests.
-              </Content>
-            </FlexItem>
-          )}
+          <FlexItem>
+            <Content component={ContentVariants.p}>
+              Use the following URL endpoints to connect this model to your application.
+            </Content>
+          </FlexItem>
 
           {hasExternal && (
             <FlexItem>
@@ -252,8 +240,8 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                 </FlexItem>
                 <FlexItem>
                   <Content component={ContentVariants.small}>
-                    Select a subscription, then generate a temporary API key to authenticate
-                    requests to this model.
+                    To authenticate requests to this model, select a subscription, then generate a
+                    temporary API key.
                   </Content>
                 </FlexItem>
 
@@ -323,7 +311,7 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     component={ContentVariants.p}
                     style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}
                   >
-                    API key
+                    Temporary API key
                   </Content>
                 </FlexItem>
 
@@ -343,8 +331,8 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
 
                     <FlexItem>
                       <Content component={ContentVariants.small}>
-                        To create a permanent API key, visit the{' '}
-                        <Link to={maasTokensPath}>API Keys</Link> page.
+                        Create permanent API keys from the <Link to={maasTokensPath}>API keys</Link>{' '}
+                        page.
                       </Content>
                     </FlexItem>
                   </>
@@ -353,13 +341,13 @@ const EndpointDetailModal: React.FC<EndpointDetailModalProps> = ({ model, onClos
                     <FlexItem>
                       <Alert
                         variant={AlertVariant.info}
-                        title="This is an ephemeral API key"
+                        title="Copy your temporary key"
                         isInline
                         customIcon={<InfoCircleIcon />}
                       >
-                        This key expires in 1 hour and will not appear in your list of API keys. To
-                        create a permanent key, visit the <Link to={maasTokensPath}>API Keys</Link>{' '}
-                        page.
+                        This key will expire in 1 hour, and will never appear in your API keys list.
+                        You can create permanent API keys from the{' '}
+                        <Link to={maasTokensPath}>API keys</Link> page.
                       </Alert>
                     </FlexItem>
                     <FlexItem>

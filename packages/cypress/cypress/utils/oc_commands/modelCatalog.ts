@@ -60,25 +60,25 @@ print(yaml.dump(data, default_flow_style=False), end='')
 };
 
 /**
- * Verify that the model-catalog-default-sources ConfigMap exists in the model registry namespace.
+ * Verify that the default-catalog-sources ConfigMap exists in the model registry namespace.
  * @returns A Cypress chainable that resolves with the command result.
  */
 export const verifyModelCatalogSourcesConfigMap = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = getModelRegistryNamespace();
-  const command = `oc get configmap model-catalog-default-sources -n ${namespace}`;
-  cy.log(`Verifying model-catalog-default-sources ConfigMap: ${command}`);
+  const command = `oc get configmap default-catalog-sources -n ${namespace}`;
+  cy.log(`Verifying default-catalog-sources ConfigMap: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
-      cy.log(`ERROR: model-catalog-default-sources ConfigMap not found in ${namespace}`);
+      cy.log(`ERROR: default-catalog-sources ConfigMap not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
       cy.log(`stderr: ${maskedStderr}`);
       throw new Error(
-        `model-catalog-default-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
+        `default-catalog-sources ConfigMap not found in ${namespace}: ${maskedStderr}`,
       );
     }
-    cy.log(`✓ model-catalog-default-sources ConfigMap exists in ${namespace}`);
+    cy.log(`✓ default-catalog-sources ConfigMap exists in ${namespace}`);
     return cy.wrap(result);
   });
 };
@@ -93,7 +93,7 @@ export const verifyModelCatalogDeployment = (): Cypress.Chainable<CommandLineRes
   cy.log(`Verifying model-catalog deployment: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog deployment not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -115,7 +115,7 @@ export const verifyModelCatalogService = (): Cypress.Chainable<CommandLineResult
   cy.log(`Verifying model-catalog service: ${command}`);
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: model-catalog service not found in ${namespace}`);
       cy.log(`stdout: ${result.stdout}`);
@@ -150,7 +150,7 @@ export const verifyModelCatalogBackend = (): Cypress.Chainable<CommandLineResult
 
 /**
  * Verify the enabled status of a specific source in the catalog configmaps.
- * First checks model-catalog-sources (user overrides), then falls back to model-catalog-default-sources.
+ * First checks model-catalog-sources (user overrides), then falls back to default-catalog-sources.
  * Polls until the expected value is found or max attempts is reached.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai')
  * @param expectedEnabled The expected enabled status (true or false)
@@ -166,10 +166,10 @@ export const verifyModelCatalogSourceEnabled = (
 ): Cypress.Chainable<undefined> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  // User changes are stored in model-catalog-sources, defaults in model-catalog-default-sources
+  // User changes are stored in model-catalog-sources, defaults in default-catalog-sources
   // Try user configmap first, fall back to default if source not found there
   const userCommand = `oc get configmap model-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' 2>/dev/null | ${parseCmd}`;
-  const defaultCommand = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const defaultCommand = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   cy.log(`Polling for source ${sourceId} enabled status to be ${expectedEnabled}`);
 
@@ -179,7 +179,7 @@ export const verifyModelCatalogSourceEnabled = (
       const userValue = userResult.stdout.trim();
 
       // If user configmap has a value for this source, use it
-      if (userResult.code === 0 && (userValue === 'true' || userValue === 'false')) {
+      if (userResult.exitCode === 0 && (userValue === 'true' || userValue === 'false')) {
         const actualEnabled = userValue === 'true';
         cy.log(
           `Attempt ${attempt}/${maxAttempts}: Source ${sourceId} enabled=${actualEnabled} (from user configmap), expected=${expectedEnabled}`,
@@ -204,7 +204,7 @@ export const verifyModelCatalogSourceEnabled = (
 
       // Fall back to default configmap
       execWithOutput(defaultCommand, 30).then((defaultResult: CommandLineResult) => {
-        if (defaultResult.code !== 0) {
+        if (defaultResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(defaultResult.stderr);
           cy.log(`ERROR: Failed to get source enabled status from both configmaps`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -241,17 +241,17 @@ export const verifyModelCatalogSourceEnabled = (
 
 /**
  * Check if a specific model catalog source is currently enabled.
- * Checks the model-catalog-default-sources ConfigMap for the source's enabled status.
+ * Checks the default-catalog-sources ConfigMap for the source's enabled status.
  * @param sourceId The ID of the source to check (e.g., 'redhat_ai_models')
  * @returns A Cypress chainable that resolves with true if enabled, false otherwise.
  */
 export const isModelCatalogSourceEnabled = (sourceId: string): Cypress.Chainable<boolean> => {
   const namespace = getModelRegistryNamespace();
   const parseCmd = getYamlParseCommand(sourceId);
-  const command = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
+  const command = `oc get configmap default-catalog-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}' | ${parseCmd}`;
 
   return execWithOutput(command, 30).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`ERROR: Failed to check source enabled status`);
       cy.log(`stderr: ${maskedStderr}`);
@@ -279,7 +279,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
 
   return cy.then(() => {
     execWithOutput(getCommand, 30).then((result: CommandLineResult) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to get model-catalog-sources ConfigMap: ${maskedStderr}`);
       }
@@ -293,7 +293,7 @@ export const enableModelCatalogSource = (sourceId: string): Cypress.Chainable<un
       `;
 
       execWithOutput(updateCommand, 60).then((patchResult: CommandLineResult) => {
-        if (patchResult.code !== 0) {
+        if (patchResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(patchResult.stderr);
           cy.log(`stdout: ${patchResult.stdout}`);
           cy.log(`stderr: ${maskedStderr}`);
@@ -350,7 +350,7 @@ export const waitForModelCatalogDeployment = (): Cypress.Chainable<undefined> =>
           const maskedStderr = maskSensitiveInfo(result.stderr);
           cy.log(`model-catalog deployment wait stderr: ${maskedStderr}`);
         }
-        if (result.code !== 0) {
+        if (result.exitCode !== 0) {
           throw new Error(
             `model-catalog deployment has no ready replicas after 120s. The catalog backend must have at least 1 ready pod before running performance filter tests. stderr: ${maskSensitiveInfo(
               result.stderr,
@@ -451,11 +451,11 @@ export const hasOtherEnabledCatalogSources = (
   const defaultCmd = `oc get configmap model-catalog-default-sources -n ${namespace} -o jsonpath='{.data.sources\\.yaml}'`;
 
   return execWithOutput(userCmd, 30).then((userResult: CommandLineResult) => {
-    if (userResult.code === 0 && userResult.stdout.trim()) {
+    if (userResult.exitCode === 0 && userResult.stdout.trim()) {
       return cy.wrap(parseAndCount(userResult.stdout));
     }
     return execWithOutput(defaultCmd, 30).then((defaultResult: CommandLineResult) => {
-      if (defaultResult.code !== 0 || !defaultResult.stdout.trim()) {
+      if (defaultResult.exitCode !== 0 || !defaultResult.stdout.trim()) {
         const maskedStderr = maskSensitiveInfo(
           [userResult.stderr, defaultResult.stderr].filter(Boolean).join('\n'),
         );

@@ -2,7 +2,9 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateActions,
   EmptyStateBody,
+  EmptyStateFooter,
   EmptyStateVariant,
   Label,
   Skeleton,
@@ -11,7 +13,7 @@ import {
   ToolbarItem,
   Tooltip,
 } from '@patternfly/react-core';
-import { ColumnsIcon, StarIcon } from '@patternfly/react-icons';
+import { ColumnsIcon, ExclamationCircleIcon, StarIcon } from '@patternfly/react-icons';
 import {
   ActionsColumn,
   InnerScrollContainer,
@@ -311,7 +313,14 @@ function AutoragLeaderboard({
   onSaveNotebook,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
-  const { patterns, patternsLoading, pipelineRun, pipelineRunLoading } = useAutoragResultsContext();
+  const {
+    patterns,
+    patternsLoading,
+    patternsError,
+    onRetryPatterns,
+    pipelineRun,
+    pipelineRunLoading,
+  } = useAutoragResultsContext();
   const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
 
   // Sorting state
@@ -699,6 +708,31 @@ function AutoragLeaderboard({
           ))}
         </Tbody>
       </Table>
+    );
+  }
+
+  // Show error state when pattern fetching failed
+  if (patternsError) {
+    return (
+      <Bullseye>
+        <EmptyState
+          headingLevel="h2"
+          icon={ExclamationCircleIcon}
+          titleText="Unable to fetch RAG patterns"
+          status="danger"
+          variant={EmptyStateVariant.sm}
+          data-testid="leaderboard-error"
+        >
+          <EmptyStateBody>An error occurred while loading pattern results.</EmptyStateBody>
+          <EmptyStateFooter>
+            <EmptyStateActions>
+              <Button variant="link" onClick={onRetryPatterns}>
+                Retry
+              </Button>
+            </EmptyStateActions>
+          </EmptyStateFooter>
+        </EmptyState>
+      </Bullseye>
     );
   }
 

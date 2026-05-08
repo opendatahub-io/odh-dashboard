@@ -12,10 +12,10 @@ export const findRefreshIntervalList = (): Cypress.Chainable<string[]> => {
   return cy.get('button[role="option"]').then(($options) => {
     if ($options.length === 0) {
       cy.log('No refresh interval options found');
-      return [];
+      return cy.wrap([] as string[]);
     }
 
-    return Cypress.$.makeArray($options).map((el) => Cypress.$(el).text().trim());
+    return cy.wrap(Cypress.$.makeArray($options).map((el) => Cypress.$(el).text().trim()));
   });
 };
 

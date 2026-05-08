@@ -84,7 +84,7 @@ describe('AI Assets - Model Tab - Kebab Menu Actions', () => {
   );
 });
 
-describe('AI Assets - Model Tab - Remove Asset Action', () => {
+describe('AI Assets - Model Tab - Delete Endpoint Action', () => {
   beforeEach(() => {
     setupModelsTabIntercepts({
       namespace: TEST_NAMESPACE,
@@ -96,10 +96,10 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
   });
 
   it(
-    'should open delete modal, allow cancel, and remove asset when confirmed',
+    'should open delete modal, allow cancel, and delete endpoint when confirmed',
     { tags: ['@GenAI', '@ModelsTab'] },
     () => {
-      cy.step('Open kebab menu and click Remove asset');
+      cy.step('Open kebab menu and click Delete endpoint');
       modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
       kebabMenu.findRemoveAssetItem().click();
 
@@ -138,7 +138,7 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
       delay: 1000,
     }).as('deleteModel');
 
-    cy.step('Open delete modal and click Remove');
+    cy.step('Open delete modal and click Delete');
     modelsTabPage.getRow('Custom GPT Endpoint').findKebabMenu().click();
     kebabMenu.findRemoveAssetItem().click();
     deleteModelModal.findRemoveButton().click();
@@ -173,7 +173,7 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
       .should('be.visible')
       .and('contain.text', 'Internal server error');
 
-    cy.step('Verify modal remains open with Remove re-enabled');
+    cy.step('Verify modal remains open with Delete re-enabled');
     deleteModelModal.shouldBeVisible();
     deleteModelModal.findRemoveButton().should('be.enabled');
 
@@ -181,7 +181,7 @@ describe('AI Assets - Model Tab - Remove Asset Action', () => {
     cy.interceptGenAi('DELETE /api/v1/models/external', { success: true }).as('deleteModelSuccess');
     cy.interceptGenAi('GET /api/v1/aaa/models', { data: [NAMESPACE_MODEL] }).as('refreshModels');
 
-    cy.step('Click Remove button again to retry');
+    cy.step('Click Delete button again to retry');
     deleteModelModal.findRemoveButton().click();
 
     cy.step('Verify successful deletion');

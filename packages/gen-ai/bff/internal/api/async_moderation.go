@@ -112,14 +112,13 @@ func (s *AsyncModerationState) ModerateChunkAsync(app *App, chunk *ModerationChu
 		default:
 		}
 
-		modResult, err := app.checkModeration(s.ctx, chunk.Text, opts, nemo.RoleAssistant)
+		modResult, err := app.checkModeration(s.ctx, []nemo.Message{{Role: nemo.RoleAssistant, Content: chunk.Text}}, opts)
 		if err != nil {
-			// Fail closed - treat as unsafe if moderation service is unavailable
-			s.logger.Error("Async moderation failed",
+			s.logger.Error("Async moderation check failed, blocking chunk",
 				"error", err,
 				"chunk", chunk.SequenceNum)
 			result.Safe = false
-			result.ViolationReason = "Guardrails service unavailable"
+			result.ViolationReason = "guardrail service error"
 			result.Err = err
 		} else if modResult.Flagged {
 			result.Safe = false
@@ -296,10 +295,9 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Output moderation is enabled only when an inline guardrail config is present.
-	// The OutputShieldID field is deprecated; moderation will be re-enabled once the
-	// guardrail_config request field is wired into CreateResponseParams.
-	moderationEnabled := false
+	// Output moderation is enabled when the request included an inline guardrail config
+	// with output rails configured.
+	moderationEnabled := hasOutputModeration(params.GuardrailOpts)
 
 	// If moderation is disabled, use the simple streaming path
 	if !moderationEnabled {
@@ -310,10 +308,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Initialize async moderation state
 	modState := NewAsyncModerationState(ctx, app.logger)
 	defer modState.Cancel()
-
-	// Track response metadata for guardrail violation reporting
-	var responseID, responseModel, currentItemID string
-	var lastSequenceNum int64
 
 	// Mutex for thread-safe writes to response writer
 	var writeMu sync.Mutex
@@ -359,62 +353,14 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
-	// Helper to send guardrail violation in streaming format using OpenAI standard refusal events
 	sendGuardrailViolation := func() {
-		message := constants.OutputGuardrailViolationMessage
-
-		// Send response.refusal.delta with the guardrail message (OpenAI standard)
-		refusalDeltaEvent := &StreamingEvent{
-			Type:           "response.refusal.delta",
-			SequenceNumber: lastSequenceNum,
-			ItemID:         currentItemID,
-			OutputIndex:    0,
-			ContentIndex:   0,
-			Delta:          message,
-		}
-		if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-
-		// Send response.refusal.done (OpenAI standard)
-		refusalDoneEvent := &StreamingEvent{
-			Type:           "response.refusal.done",
-			SequenceNumber: lastSequenceNum + 1,
-			ItemID:         currentItemID,
-			OutputIndex:    0,
-			ContentIndex:   0,
-			Refusal:        message,
-		}
-		if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-
-		// Send response.completed with refusal content type (OpenAI standard)
-		completedEvent := &StreamingEvent{
-			Type:           "response.completed",
-			SequenceNumber: 0,
-			Response: &ResponseData{
-				ID:        responseID,
-				Model:     responseModel,
-				Status:    "completed",
-				CreatedAt: 0,
-				Output: []OutputItem{
-					{
-						ID:     currentItemID,
-						Type:   "message",
-						Role:   "assistant",
-						Status: "completed",
-						Content: []ContentItem{
-							{
-								Type:    "refusal",
-								Refusal: message,
-							},
-						},
-					},
-				},
+		errorData := map[string]interface{}{
+			"error": map[string]interface{}{
+				"message": "output blocked by safety guardrails",
+				"code":    constants.GuardrailOutputViolationCode,
 			},
 		}
-		if eventData, err := json.Marshal(completedEvent); err == nil {
+		if eventData, err := json.Marshal(errorData); err == nil {
 			_ = sendEvent(eventData) // Best effort - client may have disconnected
 		}
 	}
@@ -447,22 +393,13 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			continue
 		}
 
-		// Track metadata from response.created event
-		if streamingEvent.Type == "response.created" && streamingEvent.Response != nil {
-			responseID = streamingEvent.Response.ID
-			responseModel = streamingEvent.Response.Model
-			// Send response.created immediately (not moderated)
+		// Send response.created immediately (not moderated)
+		if streamingEvent.Type == "response.created" {
 			if eventData, err := json.Marshal(streamingEvent); err == nil {
 				_ = sendEvent(eventData) // Best effort - client may have disconnected
 			}
 			continue
 		}
-
-		// Track item ID and sequence number
-		if streamingEvent.ItemID != "" {
-			currentItemID = streamingEvent.ItemID
-		}
-		lastSequenceNum = streamingEvent.SequenceNumber
 
 		// Handle output moderation for text delta events
 		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
@@ -479,7 +416,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			if ShouldTriggerModeration(currentChunk.Text, wordCount) {
 				// Register and fire async moderation
 				modState.RegisterChunk(currentChunk)
-				modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+				modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 
 				// Reset for next chunk
 				currentChunk = nil
@@ -492,7 +429,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		// First, finalize any pending chunk
 		if currentChunk != nil && len(currentChunk.Events) > 0 {
 			modState.RegisterChunk(currentChunk)
-			modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+			modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 			currentChunk = nil
 			wordCount = 0
 		}
@@ -525,7 +462,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Flush any remaining chunk
 	if currentChunk != nil && len(currentChunk.Events) > 0 {
 		modState.RegisterChunk(currentChunk)
-		modState.ModerateChunkAsync(app, currentChunk, nemo.GuardrailsOptions{})
+		modState.ModerateChunkAsync(app, currentChunk, params.GuardrailOpts)
 	}
 
 	// Wait for all pending moderation to complete

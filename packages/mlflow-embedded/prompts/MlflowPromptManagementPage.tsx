@@ -77,7 +77,11 @@ const MlflowPromptManagementPage: React.FC = () => {
       }
       headerAction={
         isTopLevel ? (
-          <LaunchMlflowButton testId="mlflow-prompts-jump-link" section="prompt-management-page" />
+          <LaunchMlflowButton
+            testId="mlflow-prompts-jump-link"
+            section="prompt-management-page"
+            workspace={workspace}
+          />
         ) : undefined
       }
       keepBodyWrapper={false}

@@ -7,10 +7,7 @@ import (
 
 // NemoClientInterface defines the interface for NeMo Guardrails client operations
 type NemoClientInterface interface {
-	// CheckGuardrails sends content to the NeMo guardrail/checks endpoint.
-	// opts must carry a fully inline config (model, rails, prompts).
-	// role should be RoleUser for input moderation, RoleAssistant for output moderation.
-	CheckGuardrails(ctx context.Context, input string, opts GuardrailsOptions, role string) (*GuardrailCheckResponse, error)
+	CheckGuardrails(ctx context.Context, messages []Message, opts GuardrailsOptions) (*GuardrailCheckResponse, error)
 }
 
 // NemoClientFactory creates NeMo Guardrails clients

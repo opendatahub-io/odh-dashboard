@@ -72,7 +72,7 @@ export const createRayJob = (
     cy.exec(`oc apply -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
       (result) => {
         cy.exec(`rm -f ${shQuote(tempFile)}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create RayJob: ${maskedStderr}`);
           }
@@ -106,7 +106,7 @@ export const createBasicRayJob = (
     cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false, timeout: 60000 }).then(
       (result) => {
         cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false }).then(() => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(result.stderr);
             throw new Error(`Failed to create RayJob: ${maskedStderr}`);
           }
@@ -153,7 +153,7 @@ export const setupRayJobResources = (config: RayJobResourcesConfig): void => {
     failOnNonZeroExit: false,
     timeout: 30000,
   }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       throw new Error(`RayJob ${rj} was not created: ${maskedStderr}`);
     }
@@ -177,7 +177,7 @@ export const getRayJobWorkerReplicas = (
       { failOnNonZeroExit: false, timeout: 30000 },
     )
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to read RayJob worker replicas: ${maskedStderr}`);
       }
@@ -199,7 +199,7 @@ export const verifyRayJobDeleted = (rayJobName: string, namespace: string): void
     failOnNonZeroExit: false,
     timeout: 130000,
   }).then((waitResult) => {
-    if (waitResult.code !== 0) {
+    if (waitResult.exitCode !== 0) {
       const masked = maskSensitiveInfo(waitResult.stderr || waitResult.stdout);
       throw new Error(`Timed out waiting for RayJob deletion: ${masked}`);
     }
@@ -227,7 +227,7 @@ export const deleteRayJob = (
   cy.log(`Deleting RayJob: ${rayJobName}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false, timeout: 120000 }).then((result) => {
-    if (result.code !== 0 && !ignoreNotFound) {
+    if (result.exitCode !== 0 && !ignoreNotFound) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       throw new Error(`Failed to delete RayJob: ${maskedStderr}`);
     }

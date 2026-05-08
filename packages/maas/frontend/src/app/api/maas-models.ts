@@ -34,6 +34,19 @@ const isMaaSModelRef = (v: unknown): v is MaaSModelRef =>
 const isDeleteMaaSModelRefResponse = (v: unknown): v is DeleteMaaSModelRefResponse =>
   isRecord(v) && typeof v.message === 'string';
 
+/** Inner payload: BFF wraps this in mod-arch `{ data: { object, data } }` for GET /api/v1/models */
+const isMaaSModel = (v: unknown): v is MaaSModel =>
+  isRecord(v) &&
+  typeof v.id === 'string' &&
+  typeof v.object === 'string' &&
+  typeof v.created === 'number' &&
+  typeof v.owned_by === 'string' &&
+  typeof v.ready === 'boolean' &&
+  (typeof v.url === 'string' || v.url === undefined);
+
+const isMaaSModelsListPayload = (v: unknown): v is { object: string; data: MaaSModel[] } =>
+  isRecord(v) && v.object === 'list' && Array.isArray(v.data) && v.data.every(isMaaSModel);
+
 /** GET /api/v1/models - Fetch the list of models that have been registered with MaaS */
 export const getMaaSModelsList =
   (hostPath = '') =>
@@ -41,8 +54,8 @@ export const getMaaSModelsList =
     handleRestFailures(
       restGET(hostPath, `${URL_PREFIX}/api/${BFF_API_VERSION}/models`, {}, opts),
     ).then((response) => {
-      if (isModArchResponse<MaaSModel[]>(response)) {
-        return response.data;
+      if (isModArchResponse<unknown>(response) && isMaaSModelsListPayload(response.data)) {
+        return response.data.data;
       }
       throw new Error('Invalid response format');
     });

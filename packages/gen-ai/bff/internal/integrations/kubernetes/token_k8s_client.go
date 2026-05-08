@@ -2351,6 +2351,19 @@ func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Contex
 	return targetLSD, nil
 }
 
+// GetInferenceServiceURL returns the internal endpoint URL for the InferenceService or
+// LLMInferenceService whose K8s resource name equals modelName.
+// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *integrations.RequestIdentity, namespace string, modelName string) (string, error) {
+	details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, modelName)
+	if err != nil {
+		kc.Logger.Debug("GetInferenceServiceURL: no InferenceService/LLMInferenceService found",
+			"namespace", namespace, "modelName", modelName, "error", err)
+		return "", nil
+	}
+	return details.endpointURL, nil
+}
+
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
 	// Get LlamaStackDistribution
@@ -2409,7 +2422,6 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 	return &config, nil
 }
 
-// GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
 // GenerateProviderID generates a unique provider ID for external models
 func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
 	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.ExternalModelsConfigMapName)
