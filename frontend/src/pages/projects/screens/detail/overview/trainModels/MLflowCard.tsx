@@ -44,6 +44,13 @@ const MLflowCard: React.FC = () => {
   const mlflowLink = consoleLinks.find((link) => isMLflowConsoleLink(link.metadata?.name));
   const projectName = currentProject.metadata.name;
 
+  const handleGoToExperiments = React.useCallback(() => {
+    fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
+      from: window.location.pathname,
+      section: 'project-overview',
+    });
+  }, []);
+
   if (!mlflowLink) {
     return null;
   }
@@ -81,12 +88,7 @@ const MLflowCard: React.FC = () => {
               component={(props: React.ComponentProps<'a'>) => (
                 <Link {...props} to={mlflowExperimentsPath} />
               )}
-              onClick={() =>
-                fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
-                  from: window.location.pathname,
-                  section: 'project-overview',
-                })
-              }
+              onClick={handleGoToExperiments}
             >
               Go to <strong>Experiments</strong>
             </Button>
