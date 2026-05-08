@@ -405,6 +405,36 @@ func TestInferTaskType_EmptyValues(t *testing.T) {
 	assert.Equal(t, "binary", inferTaskType(collectUniqueRawValues(rows, 0)))
 }
 
+func TestInferTaskType_NilSlice(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType(nil))
+}
+
+func TestInferTaskType_EmptySlice(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType([]string{}))
+}
+
+func TestInferTaskType_SingleValue(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType([]string{"only_one"}))
+}
+
+func TestCollectUniqueRawValues_NilRows(t *testing.T) {
+	assert.Equal(t, []string(nil), collectUniqueRawValues(nil, 0))
+}
+
+func TestCollectUniqueRawValues_EmptyRows(t *testing.T) {
+	assert.Equal(t, []string(nil), collectUniqueRawValues([][]string{}, 0))
+}
+
+func TestCollectUniqueRawValues_ColIdxOutOfBounds(t *testing.T) {
+	rows := [][]string{{"only_one"}, {"two"}}
+	assert.Equal(t, []string(nil), collectUniqueRawValues(rows, 5))
+}
+
+func TestCollectUniqueRawValues_MixedShortRows(t *testing.T) {
+	rows := [][]string{{"a", "b"}, {"c"}, {"d", "e"}}
+	assert.Equal(t, []string{"b", "e"}, collectUniqueRawValues(rows, 1))
+}
+
 func TestCollectUniqueRawValues_Basic(t *testing.T) {
 	rows := [][]string{{"a"}, {"b"}, {"a"}, {"c"}, {"b"}}
 	assert.Equal(t, []string{"a", "b", "c"}, collectUniqueRawValues(rows, 0))

@@ -1111,6 +1111,7 @@ components:
                   task_type:
                     type: string
                     enum: [binary, multiclass, regression]
+                    default: binary
                     description: >-
                       Inferred ML task type for this column based on unique value analysis.
                       Default is binary. Rules: regression if >10 unique values and all numerical;

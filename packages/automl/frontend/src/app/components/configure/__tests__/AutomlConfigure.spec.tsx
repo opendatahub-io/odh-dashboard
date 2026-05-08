@@ -27,6 +27,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => ({
     error: mockNotificationError,
     success: jest.fn(),
+    warning: jest.fn(),
   }),
 }));
 
@@ -797,6 +798,51 @@ describe('AutomlConfigure', () => {
 
         expect(screen.queryByText('Timestamp column')).not.toBeInTheDocument();
         expect(screen.queryByText('ID column')).not.toBeInTheDocument();
+      });
+
+      it('should clear timeseries fields that conflict with the newly selected target column', () => {
+        renderWithInitialValues(
+          {
+            initialInputDataSecret: {
+              uuid: 'secret-1',
+              name: 'Test Secret 1',
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+              type: 's3',
+              invalid: false,
+            },
+            train_data_secret_name: 'Test Secret 1',
+            train_data_bucket_name: 'test-bucket-1',
+            train_data_file_key: 'ts.csv',
+            task_type: 'timeseries',
+            target_column: 'credit_score',
+            timestamp_column: 'income',
+            id_column: 'loan_amount',
+            prediction_length: 10,
+            top_n: 3,
+          },
+          {
+            train_data_secret_name: 'Test Secret 1',
+            train_data_bucket_name: 'test-bucket-1',
+            train_data_file_key: 'ts.csv',
+            task_type: 'timeseries',
+            target_column: 'credit_score',
+            timestamp_column: 'income',
+            id_column: 'loan_amount',
+            prediction_length: 10,
+            top_n: 3,
+          },
+        );
+
+        // Verify timeseries fields are pre-populated
+        expect(screen.getByTestId('timestamp_column-select')).toHaveTextContent('income');
+        expect(screen.getByTestId('id_column-select')).toHaveTextContent('loan_amount');
+
+        // Change target column to 'income' which conflicts with timestamp_column
+        selectTargetColumn('income');
+
+        // timestamp_column should be cleared, id_column should remain
+        expect(screen.getByTestId('timestamp_column-select')).toHaveTextContent('Select a column');
+        expect(screen.getByTestId('id_column-select')).toHaveTextContent('loan_amount');
       });
     });
 

@@ -88,6 +88,30 @@ describe('createConfigureSchema', () => {
       }
     });
 
+    it('should reject whitespace-only target_column for all task types', () => {
+      for (const taskType of TASK_TYPES) {
+        const data: Record<string, unknown> = {
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: taskType,
+          target_column: '   ',
+        };
+        if (taskType === TASK_TYPE_TIMESERIES) {
+          data.id_column = 'id_col';
+          data.timestamp_column = 'ts_col';
+        }
+        const result = schema.full.safeParse(data);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const paths = result.error.issues.map((i) => i.path.join('.'));
+          expect(paths).toContain('target_column');
+        }
+      }
+    });
+
     it('should not require target_column when task_type is empty', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
@@ -102,6 +126,88 @@ describe('createConfigureSchema', () => {
         const paths = result.error.issues.map((i) => i.path.join('.'));
         expect(paths).toContain('task_type');
         expect(paths).not.toContain('target_column');
+      }
+    });
+
+    it('should reject target_column equal to timestamp_column for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'same_col',
+        id_column: 'id_col',
+        timestamp_column: 'same_col',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must be different from timestamp column',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should reject target_column equal to id_column for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'same_col',
+        id_column: 'same_col',
+        timestamp_column: 'ts_col',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must be different from ID column',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should reject target_column included in known_covariates_names for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+        known_covariates_names: ['covar1', 'target_col', 'covar2'],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must not be included in known covariates',
+            }),
+          ]),
+        );
       }
     });
 

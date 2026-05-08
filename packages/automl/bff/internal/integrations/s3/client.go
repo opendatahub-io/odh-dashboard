@@ -788,9 +788,13 @@ func collectUniqueRawValues(rows [][]string, colIndex int) []string {
 			continue
 		}
 		value := strings.TrimSpace(row[colIndex])
-		if !seen[value] {
-			seen[value] = true
-			ordered = append(ordered, value)
+		key := value
+		if num, err := strconv.ParseFloat(value, 64); err == nil {
+			key = strconv.FormatFloat(num, 'g', -1, 64)
+		}
+		if !seen[key] {
+			seen[key] = true
+			ordered = append(ordered, key)
 		}
 	}
 

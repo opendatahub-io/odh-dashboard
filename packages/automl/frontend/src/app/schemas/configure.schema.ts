@@ -89,6 +89,34 @@ function createConfigureSchema() {
               input: data.timestamp_column,
             });
           }
+          if (
+            data.target_column &&
+            data.timestamp_column &&
+            data.target_column === data.timestamp_column
+          ) {
+            issues.push({
+              code: 'custom',
+              path: ['target_column'],
+              message: 'Target column must be different from timestamp column',
+              input: data.target_column,
+            });
+          }
+          if (data.target_column && data.id_column && data.target_column === data.id_column) {
+            issues.push({
+              code: 'custom',
+              path: ['target_column'],
+              message: 'Target column must be different from ID column',
+              input: data.target_column,
+            });
+          }
+          if (data.target_column && data.known_covariates_names?.includes(data.target_column)) {
+            issues.push({
+              code: 'custom',
+              path: ['target_column'],
+              message: 'Target column must not be included in known covariates',
+              input: data.target_column,
+            });
+          }
         }
         return issues;
       },

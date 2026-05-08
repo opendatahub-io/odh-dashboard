@@ -382,7 +382,7 @@ function AutomlConfigure({
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
 
-  // reset columns query cache and label column when connection data is cleared
+  // reset columns query cache and target column when connection data is cleared
   useEffect(() => {
     if (!namespace) {
       return;
@@ -403,16 +403,19 @@ function AutomlConfigure({
     setValue,
   ]);
 
-  // Auto-detect and set timestamp_column when columns are loaded
+  // Auto-detect and set timestamp_column when columns are loaded, only if not already set
   useEffect(() => {
     if (columns.length === 0) {
       return;
     }
-    const detectedTimestamp = findTimestampColumn(columns);
-    if (detectedTimestamp) {
-      setValue('timestamp_column', detectedTimestamp, { shouldValidate: true });
+    const current = getValues('timestamp_column');
+    if (!current) {
+      const detectedTimestamp = findTimestampColumn(columns);
+      if (detectedTimestamp) {
+        setValue('timestamp_column', detectedTimestamp, { shouldValidate: true });
+      }
     }
-  }, [columns, setValue]);
+  }, [columns, setValue, getValues]);
 
   // Initialize timeseries-specific fields when switching to timeseries mode
   useEffect(() => {
@@ -857,6 +860,19 @@ function AutomlConfigure({
                                   field.onChange(value);
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
+                                    if (timestampColumn === value) {
+                                      setValue('timestamp_column', '', { shouldValidate: true });
+                                    }
+                                    if (idColumn === value) {
+                                      setValue('id_column', '', { shouldValidate: true });
+                                    }
+                                    if (knownCovariatesNames?.includes(value)) {
+                                      setValue(
+                                        'known_covariates_names',
+                                        knownCovariatesNames.filter((v: string) => v !== value),
+                                        { shouldValidate: true },
+                                      );
+                                    }
                                     const selected = columns.find((c) => c.name === value);
                                     if (timestampColumn && selected?.type !== 'string') {
                                       setValue('task_type', TASK_TYPE_TIMESERIES, {

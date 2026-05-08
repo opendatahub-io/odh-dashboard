@@ -150,6 +150,7 @@ describe('ConfigureTimeseriesForm', () => {
 
       expect(screen.getByTestId('timestamp_column-select')).toHaveClass('pf-m-danger');
       expect(screen.getByTestId('id_column-select')).toHaveClass('pf-m-danger');
+      expect(screen.getByTestId('known_covariates_names-select')).toHaveClass('pf-m-danger');
     });
 
     it('should not disable prediction_length input when loading columns', () => {
