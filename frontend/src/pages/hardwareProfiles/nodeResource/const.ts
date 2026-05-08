@@ -122,7 +122,9 @@ export const HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP = {
   localQueue:
     'Local queue uses Kueue to automatically queue jobs and manage resources based on workload priority.',
   workloadPriority:
-    "Workload priority determines how the workload is handled within Kueue's resource management system. For example, production workloads might have a higher priority than development workloads.",
+    "Workload priority determines how the workload is handled within Kueue's resource management system. For example, you might assign production workloads a higher priority than development workloads.",
+  workloadPriorityOptions:
+    'Priority options are determined by the configuration of the specified local queue.',
   nodeSelectorsAndTolerations:
     'Manually add node selectors and tolerations for more fine-grained scheduling of workloads.',
   nodeSelectors:

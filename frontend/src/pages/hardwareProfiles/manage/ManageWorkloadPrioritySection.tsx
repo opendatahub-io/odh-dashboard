@@ -89,7 +89,12 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
       fieldId={ManageHardwareProfileSectionID.WORKLOAD_PRIORITY}
       labelHelp={
         <DashboardHelpTooltip
-          content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriority}
+          content={
+            <>
+              <p>{HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriority}</p>
+              <p>{HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriorityOptions}</p>
+            </>
+          }
         />
       }
     >
