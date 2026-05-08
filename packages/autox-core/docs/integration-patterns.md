@@ -86,9 +86,14 @@ package k8s
 
 // K8sClientInterface defines the contract for Kubernetes operations
 type K8sClientInterface interface {
+    // Generic resource operations
+    ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+    GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+    CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+    
+    // Convenience methods for common resources
     GetNamespaces(ctx context.Context, identity *auth.RequestIdentity) ([]string, error)
     GetPods(ctx context.Context, namespace string, identity *auth.RequestIdentity) (*v1.PodList, error)
-    CreateNamespace(ctx context.Context, name string, identity *auth.RequestIdentity) error
 }
 
 // K8sService provides business logic for Kubernetes operations
@@ -137,9 +142,15 @@ type ClientsetInterface interface {
     kubernetes.Interface
 }
 
+// DynamicClientInterface wraps dynamic.Interface for testing
+type DynamicClientInterface interface {
+    dynamic.Interface
+}
+
 // K8sTokenClient implements Kubernetes operations using user tokens
 type K8sTokenClient struct {
     Clientset     ClientsetInterface
+    DynamicClient DynamicClientInterface
     GetAuthToken  func(ctx context.Context) (string, error)
 }
 
@@ -171,18 +182,19 @@ type DefaultK8sTokenClientConfig struct {
     // Could have additional fields like custom transport settings
 }
 
-// NewK8sTokenClient creates a token client with injectable clientset (for testing)
-func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface) *K8sTokenClient {
+// NewK8sTokenClient creates a token client with injectable clientset and dynamic client (for testing)
+func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface) *K8sTokenClient {
     return &K8sTokenClient{
-        Clientset:    clientset,
-        GetAuthToken: cfg.GetAuthToken,
+        Clientset:     clientset,
+        DynamicClient: dynamicClient,
+        GetAuthToken:  cfg.GetAuthToken,
     }
 }
 
-// NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset
+// NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset and dynamic client
 func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
-    // Configure clientset with token-based auth using RoundTripper
-    clientsetCfg := &rest.Config{
+    // Configure with token-based auth using RoundTripper
+    clientCfg := &rest.Config{
         Host: "https://kubernetes.default.svc",
         WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
             return &tokenRoundTripper{
@@ -192,15 +204,41 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
         },
     }
 
-    clientset, err := kubernetes.NewForConfig(clientsetCfg)
+    clientset, err := kubernetes.NewForConfig(clientCfg)
+    if err != nil {
+        panic(err) // Or return error
+    }
+
+    // Create dynamic client with the same config
+    dynamicClient, err := dynamic.NewForConfig(clientCfg)
     if err != nil {
         panic(err) // Or return error
     }
 
     return &K8sTokenClient{
-        Clientset:    clientset,
-        GetAuthToken: cfg.GetAuthToken,
+        Clientset:     clientset,
+        DynamicClient: dynamicClient,
+        GetAuthToken:  cfg.GetAuthToken,
     }
+}
+
+func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+    var resourceClient dynamic.ResourceInterface
+    if namespace != "" {
+        resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
+    } else {
+        resourceClient = c.DynamicClient.Resource(gvr)
+    }
+
+    return resourceClient.List(ctx, metav1.ListOptions{})
+}
+
+func (c *K8sTokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+    return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+}
+
+func (c *K8sTokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+    return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
 }
 
 func (c *K8sTokenClient) GetNamespaces(ctx context.Context, identity *auth.RequestIdentity) ([]string, error) {
@@ -333,14 +371,52 @@ func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClientInter
 func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace string) (string, error) {
     s.Logger.Info("discovering ready DSPA", "namespace", namespace)
 
-    // Use k8s client to find ready DSPA and get its base URL
-    baseUrl, err := s.K8sClient.GetReadyDSPAUrl(ctx, namespace)
+    // Define DSPA GroupVersionResource
+    dspaGVR := schema.GroupVersionResource{
+        Group:    "datasciencepipelinesapplications.opendatahub.io",
+        Version:  "v1alpha1",
+        Resource: "datasciencepipelinesapplications",
+    }
+
+    // List DSPAs in namespace using low-level K8s client
+    dspas, err := s.K8sClient.ListResources(ctx, dspaGVR, namespace)
     if err != nil {
-        s.Logger.Error("failed to discover ready DSPA", "error", err)
+        s.Logger.Error("failed to list DSPAs", "error", err)
         return "", err
     }
 
-    return baseUrl, nil
+    // Find a ready DSPA (business logic in service layer)
+    for _, dspa := range dspas.Items {
+        // Check if DSPA is ready
+        conditions, found, err := unstructured.NestedSlice(dspa.Object, "status", "conditions")
+        if err != nil || !found {
+            continue
+        }
+
+        isReady := false
+        for _, cond := range conditions {
+            condMap := cond.(map[string]interface{})
+            if condMap["type"] == "Ready" && condMap["status"] == "True" {
+                isReady = true
+                break
+            }
+        }
+
+        if !isReady {
+            continue
+        }
+
+        // Extract base URL from status
+        baseUrl, found, err := unstructured.NestedString(dspa.Object, "status", "apiServerUrl")
+        if err != nil || !found || baseUrl == "" {
+            continue
+        }
+
+        s.Logger.Info("found ready DSPA", "name", dspa.GetName(), "url", baseUrl)
+        return baseUrl, nil
+    }
+
+    return "", errors.New("no ready DSPA found in namespace")
 }
 
 // PipelineTargetOptions specifies where to execute pipeline operations
@@ -759,9 +835,31 @@ package pipelines_test
 func TestPipelinesService_CreatePipelineRun_WithNamespace(t *testing.T) {
     // Mock K8s client for DSPA discovery
     mockK8sClient := &mocks.MockK8sClient{
-        GetReadyDSPAUrlFunc: func(ctx context.Context, namespace string) (string, error) {
+        ListResourcesFunc: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
             assert.Equal(t, "test-namespace", namespace)
-            return "http://dspa-server:8080", nil
+            assert.Equal(t, "datasciencepipelinesapplications", gvr.Resource)
+            
+            // Return a ready DSPA
+            return &unstructured.UnstructuredList{
+                Items: []unstructured.Unstructured{
+                    {
+                        Object: map[string]interface{}{
+                            "metadata": map[string]interface{}{
+                                "name": "test-dspa",
+                            },
+                            "status": map[string]interface{}{
+                                "conditions": []interface{}{
+                                    map[string]interface{}{
+                                        "type":   "Ready",
+                                        "status": "True",
+                                    },
+                                },
+                                "apiServerUrl": "http://dspa-server:8080",
+                            },
+                        },
+                    },
+                },
+            }, nil
         },
     }
 
@@ -827,10 +925,13 @@ func TestPipelinesService_CreatePipelineRun_WithBaseUrl(t *testing.T) {
 }
 
 func TestPipelinesService_DiscoverReadyDSPA_Error(t *testing.T) {
-    // Mock K8s client to return an error
+    // Mock K8s client to return no ready DSPAs
     mockK8sClient := &mocks.MockK8sClient{
-        GetReadyDSPAUrlFunc: func(ctx context.Context, namespace string) (string, error) {
-            return "", errors.New("no ready DSPA found")
+        ListResourcesFunc: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+            // Return empty list (no DSPAs found)
+            return &unstructured.UnstructuredList{
+                Items: []unstructured.Unstructured{},
+            }, nil
         },
     }
 
@@ -901,18 +1002,28 @@ func TestPipelinesClient_CreatePipelineRun(t *testing.T) {
     assert.Equal(t, "Running", run.Status)
 }
 
-func TestK8sTokenClient_GetNamespaces(t *testing.T) {
-    // Mock Kubernetes clientset
-    mockClientset := &mocks.MockClientset{
-        CoreV1Func: func() v1.CoreV1Interface {
-            return &mocks.MockCoreV1{
-                NamespacesFunc: func() v1.NamespaceInterface {
-                    return &mocks.MockNamespaceInterface{
-                        ListFunc: func(ctx context.Context, opts metav1.ListOptions) (*corev1.NamespaceList, error) {
-                            return &corev1.NamespaceList{
-                                Items: []corev1.Namespace{
-                                    {ObjectMeta: metav1.ObjectMeta{Name: "default"}},
-                                    {ObjectMeta: metav1.ObjectMeta{Name: "kube-system"}},
+func TestK8sTokenClient_ListResources(t *testing.T) {
+    // Mock dynamic client
+    mockDynamicClient := &mocks.MockDynamicClient{
+        ResourceFunc: func(gvr schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
+            return &mocks.MockNamespaceableResourceInterface{
+                NamespaceFunc: func(ns string) dynamic.ResourceInterface {
+                    return &mocks.MockResourceInterface{
+                        ListFunc: func(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+                            // Return mock DSPA list
+                            return &unstructured.UnstructuredList{
+                                Items: []unstructured.Unstructured{
+                                    {
+                                        Object: map[string]interface{}{
+                                            "metadata": map[string]interface{}{
+                                                "name":      "test-dspa",
+                                                "namespace": ns,
+                                            },
+                                            "status": map[string]interface{}{
+                                                "apiServerUrl": "http://dspa:8080",
+                                            },
+                                        },
+                                    },
                                 },
                             }, nil
                         },
@@ -922,20 +1033,29 @@ func TestK8sTokenClient_GetNamespaces(t *testing.T) {
         },
     }
 
-    // Create K8s client with mocked clientset
-    client := k8s.NewK8sTokenClient(k8s.K8sTokenClientConfig{
-        GetAuthToken: func(ctx context.Context) (string, error) {
-            return "test-token", nil
+    // Create K8s client with mocked clientset and dynamic client
+    client := k8s.NewK8sTokenClient(
+        k8s.K8sTokenClientConfig{
+            GetAuthToken: func(ctx context.Context) (string, error) {
+                return "test-token", nil
+            },
         },
-    }, mockClientset)
+        nil, // clientset not needed for this test
+        mockDynamicClient,
+    )
 
-    // Test client's Kubernetes API interaction
-    namespaces, err := client.GetNamespaces(context.Background(), &auth.RequestIdentity{
-        UserID: "test-user",
-    })
+    // Test client's generic resource listing
+    dspaGVR := schema.GroupVersionResource{
+        Group:    "datasciencepipelinesapplications.opendatahub.io",
+        Version:  "v1alpha1",
+        Resource: "datasciencepipelinesapplications",
+    }
+
+    list, err := client.ListResources(context.Background(), dspaGVR, "test-namespace")
 
     assert.NoError(t, err)
-    assert.Equal(t, []string{"default", "kube-system"}, namespaces)
+    assert.Len(t, list.Items, 1)
+    assert.Equal(t, "test-dspa", list.Items[0].GetName())
 }
 
 func TestS3Client_UploadFile(t *testing.T) {
@@ -1086,12 +1206,18 @@ func main() {
 - Enables request cancellation and timeout handling
 - Supports distributed tracing and request-scoped values
 
-### 6. Error Handling
+### 6. Client State Management
+- Expensive clients (Kubernetes clientset, dynamic client, HTTP clients) are constructed once and stored as fields
+- Clients are stateless and thread-safe
+- Configuration is immutable after construction
+- Example: K8sTokenClient holds both `Clientset` and `DynamicClient` fields
+
+### 7. Error Handling
 - Errors propagate up through layers
 - Service layer adds logging and business context
 - Handler layer converts to appropriate HTTP responses
 
-### 7. Service Orchestration
+### 8. Service Orchestration
 - Services can depend on multiple clients when orchestration is needed
 - Handlers should not orchestrate across multiple services
 - Business logic and cross-service orchestration belongs in the service layer
@@ -1135,6 +1261,45 @@ transport.MaxIdleConnsPerHost = 100
 ```
 
 This ensures you inherit sensible defaults while allowing customization.
+
+### Client Initialization
+
+Expensive clients should be constructed once during initialization and stored as fields:
+
+```go
+type K8sTokenClient struct {
+    Clientset     ClientsetInterface     // Constructed once in NewDefaultK8sTokenClient
+    DynamicClient DynamicClientInterface // Constructed once in NewDefaultK8sTokenClient
+    GetAuthToken  func(ctx context.Context) (string, error)
+}
+
+func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
+    // Build config once
+    clientsetCfg := &rest.Config{...}
+    
+    // Construct both clients once with the same config
+    clientset, _ := kubernetes.NewForConfig(clientsetCfg)
+    dynamicClient, _ := dynamic.NewForConfig(clientsetCfg)
+    
+    // Store as fields, reuse across all operations
+    return &K8sTokenClient{
+        Clientset:     clientset,
+        DynamicClient: dynamicClient,
+        GetAuthToken:  cfg.GetAuthToken,
+    }
+}
+
+// Methods use the stored clients, never construct new ones
+func (c *K8sTokenClient) ListResources(...) {
+    return c.DynamicClient.Resource(gvr).Namespace(ns).List(...)
+}
+```
+
+Benefits:
+- Avoids repeated client construction overhead
+- Connection pooling and keep-alive work correctly
+- Auth configuration happens once
+- Thread-safe by design (clients are stateless)
 
 ## Future Extensibility
 
