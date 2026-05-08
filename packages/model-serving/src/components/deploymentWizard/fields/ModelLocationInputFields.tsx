@@ -419,9 +419,10 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
 
+  // NIM-specific fields are provided by the nim-serving plugin via WizardField extensions.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.NIM) {
-    return 'NIM';
+    return null;
   }
 
   return <Alert variant="warning" title="There was a problem fetching connections" />;

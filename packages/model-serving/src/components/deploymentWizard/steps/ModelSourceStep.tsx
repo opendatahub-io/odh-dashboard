@@ -17,26 +17,32 @@ const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
   return isValidModelLocationData(val.type, val);
 });
 
-export const modelSourceStepSchema = z
-  .object({
-    modelType: modelTypeSelectFieldSchema,
-    modelLocationData: modelLocationDataSchema,
-    createConnectionData: createConnectionDataSchema.optional(),
-  })
-  .superRefine((data, ctx) => {
-    const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
-    if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
-      const result = createConnectionDataSchema.safeParse(data.createConnectionData);
-      if (!result.success) {
-        result.error.issues.forEach((issue) => {
-          ctx.addIssue({
-            ...issue,
-            path: ['createConnectionData', ...issue.path],
-          });
+export const modelSourceStepBaseSchema = z.object({
+  modelType: modelTypeSelectFieldSchema,
+  modelLocationData: modelLocationDataSchema,
+  createConnectionData: createConnectionDataSchema.optional(),
+});
+
+export const modelSourceStepRefinement = (
+  data: Partial<z.infer<typeof modelSourceStepBaseSchema>> & Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void => {
+  const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
+  if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
+    const result = createConnectionDataSchema.safeParse(data.createConnectionData);
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({
+          ...issue,
+          path: ['createConnectionData', ...issue.path],
         });
-      }
+      });
     }
-  });
+  }
+};
+
+export const modelSourceStepSchema =
+  modelSourceStepBaseSchema.superRefine(modelSourceStepRefinement);
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 

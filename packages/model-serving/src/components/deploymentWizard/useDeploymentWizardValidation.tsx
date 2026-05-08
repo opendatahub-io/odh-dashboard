@@ -5,7 +5,11 @@ import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
-import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
+import {
+  modelSourceStepBaseSchema,
+  modelSourceStepRefinement,
+  type ModelSourceStepData,
+} from './steps/ModelSourceStep';
 import { externalRouteFieldSchema } from './fields/ExternalRouteField';
 import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema } from './fields/NumReplicasField';
@@ -43,14 +47,16 @@ export const useModelDeploymentWizardValidation = (
 
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
-    modelSourceStepSchema.extend(
-      step1Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
-        if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
-        }
-        return acc;
-      }, {}),
-    ),
+    modelSourceStepBaseSchema
+      .extend(
+        step1Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+          if (field.reducerFunctions.validationSchema) {
+            acc[field.id] = field.reducerFunctions.validationSchema;
+          }
+          return acc;
+        }, {}),
+      )
+      .superRefine(modelSourceStepRefinement),
   );
 
   // Step 2: Model Deployment

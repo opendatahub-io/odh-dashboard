@@ -7,6 +7,7 @@ import TypeaheadSelect, {
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
+import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import {
   fetchNIMModelNames,
   getNIMImageName,
@@ -244,7 +245,8 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
   id: 'nim-serving/nimImage',
   step: 'modelSource',
   type: 'addition',
-  isActive: () => true,
+  isActive: (wizardFormData) =>
+    wizardFormData.modelLocationData?.data?.type === NIMModelLocationKey,
   reducerFunctions: {
     setFieldData: (value: NIMImageFieldValue) => value,
     getInitialFieldData: (existingFieldData?: NIMImageFieldValue): NIMImageFieldValue =>
