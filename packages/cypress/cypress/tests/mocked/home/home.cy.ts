@@ -12,10 +12,6 @@ describe('Home page', () => {
     // enabled applications page is still navigable
     enabledPage.visit();
   });
-  it('should intentionally fail', () => {
-    homePage.visit();
-    cy.get('h1').should('have.text', 'This text will never match anything real');
-  });
   it('should be not shown when disabled', () => {
     homePage.initHomeIntercepts({ disableHome: true });
     homePage.visit(false);
