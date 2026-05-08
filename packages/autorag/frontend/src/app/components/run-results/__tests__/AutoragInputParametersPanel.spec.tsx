@@ -265,7 +265,7 @@ describe('AutoragInputParametersPanel', () => {
       );
       const link = screen.getByTestId('parameter-pipeline-definition');
       expect(link).toBeInTheDocument();
-      expect(screen.getByText('Pipeline definition')).toBeInTheDocument();
+      expect(screen.getByText('View pipeline definition')).toBeInTheDocument();
       expect(link.closest('a')).toHaveAttribute(
         'href',
         '/develop-train/pipelines/definitions/test-ns/p1/v1/view',
@@ -293,7 +293,7 @@ describe('AutoragInputParametersPanel', () => {
       );
       const link = screen.getByTestId('parameter-pipeline-run');
       expect(link).toBeInTheDocument();
-      expect(screen.getByText('Pipeline run')).toBeInTheDocument();
+      expect(screen.getByText('View pipeline run')).toBeInTheDocument();
       expect(link.closest('a')).toHaveAttribute(
         'href',
         '/develop-train/pipelines/runs/test-ns/runs/run-456',

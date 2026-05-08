@@ -19,7 +19,6 @@ import {
   Title,
   Tooltip,
 } from '@patternfly/react-core';
-import { ExternalLinkSquareAltIcon } from '@patternfly/react-icons';
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
@@ -192,38 +191,6 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
       <DrawerHead className="odh-autorag-input-parameters-panel__head">
         <Title headingLevel="h2">Run details</Title>
         <DrawerActions>
-          {pipelineRef && (
-            <Button
-              variant="link"
-              icon={<ExternalLinkSquareAltIcon />}
-              iconPosition="end"
-              data-testid="parameter-pipeline-definition"
-              component={(props) => (
-                <Link
-                  {...props}
-                  to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
-                />
-              )}
-            >
-              Pipeline definition
-            </Button>
-          )}
-          {pipelineRun?.run_id && (
-            <Button
-              variant="link"
-              icon={<ExternalLinkSquareAltIcon />}
-              iconPosition="end"
-              data-testid="parameter-pipeline-run"
-              component={(props) => (
-                <Link
-                  {...props}
-                  to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
-                />
-              )}
-            >
-              Pipeline run
-            </Button>
-          )}
           <DrawerCloseButton onClick={onClose} data-testid="run-details-drawer-close" />
         </DrawerActions>
       </DrawerHead>
@@ -268,38 +235,74 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
-            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg">
+            <Divider className="pf-v6-u-mt-lg" />
+            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg pf-v6-u-mb-md">
               Input parameters
             </Title>
             <DescriptionList>
-              {entries.map(([key, value], index) => (
-                <React.Fragment key={key}>
-                  {index > 0 && <Divider />}
-                  <DescriptionListGroup data-testid={`parameter-${key}`}>
-                    <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <Content component="p" className="odh-autorag-input-parameters-panel__value">
-                        {formatValue(key, value)}
-                      </Content>
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                </React.Fragment>
+              {entries.map(([key, value]) => (
+                <DescriptionListGroup key={key} data-testid={`parameter-${key}`}>
+                  <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
+                  <DescriptionListDescription>
+                    <Content component="p" className="odh-autorag-input-parameters-panel__value">
+                      {formatValue(key, value)}
+                    </Content>
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
               ))}
               {hasModelConfig && (
-                <>
-                  {entries.length > 0 && <Divider />}
-                  <DescriptionListGroup data-testid="parameter-model-configuration">
-                    <DescriptionListTerm>Model configuration</DescriptionListTerm>
-                    <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
-                      <ModelConfigurationValue
-                        generationModels={generationModels}
-                        embeddingsModels={embeddingsModels}
-                      />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                </>
+                <DescriptionListGroup data-testid="parameter-model-configuration">
+                  <DescriptionListTerm>Model configuration</DescriptionListTerm>
+                  <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
+                    <ModelConfigurationValue
+                      generationModels={generationModels}
+                      embeddingsModels={embeddingsModels}
+                    />
+                  </DescriptionListDescription>
+                </DescriptionListGroup>
               )}
             </DescriptionList>
+            {(pipelineRef || pipelineRun?.run_id) && (
+              <div>
+                <Divider className="pf-v6-u-mt-lg pf-v6-u-mb-lg" />
+                <Stack hasGutter>
+                  {pipelineRef && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-definition"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
+                          />
+                        )}
+                      >
+                        View pipeline definition
+                      </Button>
+                    </StackItem>
+                  )}
+                  {pipelineRun.run_id && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-run"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
+                          />
+                        )}
+                      >
+                        View pipeline run
+                      </Button>
+                    </StackItem>
+                  )}
+                </Stack>
+              </div>
+            )}
           </>
         )}
       </DrawerPanelBody>
