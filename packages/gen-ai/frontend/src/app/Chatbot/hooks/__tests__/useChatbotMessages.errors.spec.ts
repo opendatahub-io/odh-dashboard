@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { classifyError } from '~/app/utilities/errorClassifier';
@@ -81,7 +80,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should extract error message from mod-arch error format', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG,
+          code: 'invalid_model_config',
           message:
             'The model configuration is invalid. Please check parameters like max_tokens, chat_template, or prompt length.',
         },
@@ -109,7 +108,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle RAG vector store not found error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
+          code: 'rag_vector_store_not_found',
           message:
             'The vector store was not found. Please verify that the vector store exists and you have access to it.',
         },
@@ -137,7 +136,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle guardrails violation error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION,
+          code: 'guardrails_violation',
           message:
             'Content was blocked by guardrails. Please modify your input or adjust guardrails settings.',
         },
@@ -165,7 +164,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle MCP tool errors', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.MCP_ERROR,
+          code: 'mcp_error',
           message:
             'An error occurred while invoking the MCP tool. Please check the tool configuration and try again.',
         },
@@ -193,7 +192,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle model timeout error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.MODEL_TIMEOUT,
+          code: 'model_timeout',
           message:
             'The model request timed out. The model may be overloaded or the request is too complex. Please try again or simplify your request.',
         },
@@ -221,7 +220,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle model overloaded error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.MODEL_OVERLOADED,
+          code: 'model_overloaded',
           message:
             'The model is currently overloaded or out of resources. Please try again in a few moments.',
         },
@@ -249,7 +248,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle unsupported feature error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE,
+          code: 'unsupported_feature',
           message:
             'The selected model does not support this feature (e.g., tools, images, streaming). Please choose a different model or disable the unsupported feature.',
         },
@@ -327,7 +326,7 @@ describe('useChatbotMessages - Error Handling', () => {
 
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.INVALID_PARAMETER,
+          code: 'invalid_parameter',
           message: 'temperature out of range',
         },
       };
@@ -344,7 +343,7 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
-          category: ERROR_CATEGORIES.INVALID_PARAMETER,
+          category: 'invalid_parameter',
           message: 'temperature out of range',
         });
       });
@@ -398,7 +397,7 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should call classifyError with correct context for non-streaming error', async () => {
       const mockError = {
         error: {
-          code: ERROR_CATEGORIES.MODEL_TIMEOUT,
+          code: 'model_timeout',
           message: 'Request timed out',
         },
       };

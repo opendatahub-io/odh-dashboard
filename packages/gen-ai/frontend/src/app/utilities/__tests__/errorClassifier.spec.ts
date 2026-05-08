@@ -1,5 +1,4 @@
 import { ErrorPattern, ErrorVariant } from '~/app/types';
-import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
 describe('errorClassifier', () => {
@@ -698,22 +697,22 @@ describe('errorClassifier', () => {
     });
 
     describe('error category constants integration', () => {
-      it('should recognize ERROR_CATEGORIES constants', () => {
-        // ERROR_CATEGORIES constants map to their respective components
+      it('should recognize error category constants', () => {
+        // Error category constants map to their respective components
         const categoryTests = [
-          { code: ERROR_CATEGORIES.INVALID_MODEL_CONFIG, component: 'llama_stack' as const },
-          { code: ERROR_CATEGORIES.UNSUPPORTED_FEATURE, component: 'llama_stack' as const },
-          { code: ERROR_CATEGORIES.INVALID_PARAMETER, component: 'llama_stack' as const },
-          { code: ERROR_CATEGORIES.RAG_ERROR, component: 'rag' as const },
-          { code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND, component: 'rag' as const },
-          { code: ERROR_CATEGORIES.GUARDRAILS_ERROR, component: 'guardrails' as const },
-          { code: ERROR_CATEGORIES.GUARDRAILS_VIOLATION, component: 'guardrails' as const },
-          { code: ERROR_CATEGORIES.MCP_ERROR, component: 'mcp' as const },
-          { code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND, component: 'mcp' as const },
-          { code: ERROR_CATEGORIES.MCP_AUTH_ERROR, component: 'mcp' as const },
-          { code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR, component: 'model' as const },
-          { code: ERROR_CATEGORIES.MODEL_TIMEOUT, component: 'llama_stack' as const },
-          { code: ERROR_CATEGORIES.MODEL_OVERLOADED, component: 'llama_stack' as const },
+          { code: 'invalid_model_config', component: 'llama_stack' as const },
+          { code: 'unsupported_feature', component: 'llama_stack' as const },
+          { code: 'invalid_parameter', component: 'llama_stack' as const },
+          { code: 'rag_error', component: 'rag' as const },
+          { code: 'rag_vector_store_not_found', component: 'rag' as const },
+          { code: 'guardrails_error', component: 'guardrails' as const },
+          { code: 'guardrails_violation', component: 'guardrails' as const },
+          { code: 'mcp_error', component: 'mcp' as const },
+          { code: 'mcp_tool_not_found', component: 'mcp' as const },
+          { code: 'mcp_auth_error', component: 'mcp' as const },
+          { code: 'model_invocation_error', component: 'model' as const },
+          { code: 'model_timeout', component: 'llama_stack' as const },
+          { code: 'model_overloaded', component: 'llama_stack' as const },
         ];
 
         categoryTests.forEach(({ code, component }) => {
@@ -764,11 +763,11 @@ describe('errorClassifier', () => {
         expect(result.isRetriable).toBe(true);
       });
 
-      it('should handle ERROR_CATEGORIES.INVALID_PARAMETER', () => {
+      it('should handle invalid parameter error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: ERROR_CATEGORIES.INVALID_PARAMETER,
+            code: 'invalid_parameter',
             message: 'Invalid param',
             retriable: false,
           },
@@ -779,11 +778,11 @@ describe('errorClassifier', () => {
         expect(result.isRetriable).toBe(false);
       });
 
-      it('should handle ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND', () => {
+      it('should handle RAG vector store not found error', () => {
         const error = {
           error: {
             component: 'rag' as const,
-            code: ERROR_CATEGORIES.RAG_VECTOR_STORE_NOT_FOUND,
+            code: 'rag_vector_store_not_found',
             message: 'Vector store not found',
             retriable: false,
           },
@@ -793,11 +792,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('No matching knowledge found');
       });
 
-      it('should handle ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND', () => {
+      it('should handle MCP tool not found error', () => {
         const error = {
           error: {
             component: 'mcp' as const,
-            code: ERROR_CATEGORIES.MCP_TOOL_NOT_FOUND,
+            code: 'mcp_tool_not_found',
             message: 'Tool not found',
             retriable: false,
           },
@@ -807,11 +806,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('A tool tool call failed');
       });
 
-      it('should handle ERROR_CATEGORIES.MCP_AUTH_ERROR', () => {
+      it('should handle MCP auth error', () => {
         const error = {
           error: {
             component: 'mcp' as const,
-            code: ERROR_CATEGORIES.MCP_AUTH_ERROR,
+            code: 'mcp_auth_error',
             message: 'Auth failed',
             retriable: false,
           },
@@ -821,11 +820,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('A tool tool call failed');
       });
 
-      it('should handle ERROR_CATEGORIES.MODEL_INVOCATION_ERROR', () => {
+      it('should handle model invocation error', () => {
         const error = {
           error: {
             component: 'model' as const,
-            code: ERROR_CATEGORIES.MODEL_INVOCATION_ERROR,
+            code: 'model_invocation_error',
             message: 'Model error',
             retriable: false,
           },
@@ -835,11 +834,11 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Model server error');
       });
 
-      it('should handle ERROR_CATEGORIES.MODEL_OVERLOADED', () => {
+      it('should handle model overloaded error', () => {
         const error = {
           error: {
             component: 'llama_stack' as const,
-            code: ERROR_CATEGORIES.MODEL_OVERLOADED,
+            code: 'model_overloaded',
             message: 'Model overloaded',
             retriable: true,
           },
