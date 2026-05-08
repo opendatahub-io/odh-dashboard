@@ -7,7 +7,7 @@
 
 ## Design Intent
 
-- **BFF**: Authenticates; resolves current user (Kubernetes RBAC or forwarded token in federated mode); proxies upstream MaaS REST API (`MAAS_API_URL`); reads Kubernetes for gateway and tier configuration; rate limits as Kuadrant `RateLimitPolicy` CRDs.
+- **BFF**: Authenticates; resolves current user (Kubernetes RBAC or forwarded token in federated mode); proxies upstream MaaS REST API (`MAAS_API_URL`); reads Kubernetes for Subscription, Authorization Policies, API Keys, etc.
 - **Local dev without cluster**: `cmd/main.go` supports `--mock-k8s-client` and `--mock-http-client`; `GET /healthcheck` for probes and contract tests.
 - **Federated mode**:
   - Module Federation remote **`maas`**: **`./extensions`** (ODH registrations), **`./extension-points`** (host contracts).
@@ -22,7 +22,6 @@
 | **APIToken** | User-scoped token for a specific model endpoint |
 | **LLMProvider** | External provider whose models are exposed through MaaS |
 | **UsageQuota** | Rate/token limits, stored as Kuadrant `RateLimitPolicy` CRDs |
-| **Tier** | Named quota level mapped to groups via ConfigMap |
 | **MaaS Gateway** | Kuadrant/Envoy ingress enforcing quotas per token |
 
 ## Interactions
