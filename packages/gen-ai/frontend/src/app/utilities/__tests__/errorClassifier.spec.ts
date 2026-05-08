@@ -333,7 +333,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — connection lost');
-        expect(result.description).toBe('{"error": "stream terminated: connection reset by peer"}');
+        expect(result.description).toBe('The connection to the model was lost during generation.');
       });
 
       it('should use BFF-provided context_length code', () => {
@@ -348,7 +348,7 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Streaming error — context length exceeded');
-        expect(result.description).toBe('{"error": "context length 8192 exceeded at token 8191"}');
+        expect(result.description).toBe("The response exceeded the model's context length.");
       });
 
       it('should use generic title for unknown errors', () => {
@@ -379,7 +379,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toBe('Token limit exceeded');
+        expect(result.description).toBe(
+          'Llama 3.1 8B supports a maximum of the maximum tokens. Reduce the token limit in the Build panel.',
+        );
       });
 
       it('should generate description for max_tokens error without model name', () => {
@@ -393,7 +395,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Token limit exceeded');
+        expect(result.description).toBe(
+          'The selected model supports a maximum of the maximum tokens. Reduce the token limit in the Build panel.',
+        );
       });
 
       it('should generate description for invalid_model_config error', () => {
@@ -407,7 +411,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toBe('Invalid template');
+        expect(result.description).toBe(
+          "Llama 3.1 8B doesn't support the current chat template. Check the model's documentation for supported templates.",
+        );
       });
 
       it('should generate description for unsupported_feature error', () => {
@@ -421,7 +427,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
 
-        expect(result.description).toBe('Tools not supported');
+        expect(result.description).toBe(
+          "Llama 3.1 8B doesn't support the tools feature you've enabled. Try selecting a model that supports tool calling, or disable tools in the Build panel.",
+        );
       });
 
       it('should generate description for no_images error', () => {
@@ -435,7 +443,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Images not supported');
+        expect(result.description).toBe(
+          "The selected model can't process images. Try selecting a multimodal model, or remove the image from your message.",
+        );
       });
 
       it('should generate description for model_timeout error', () => {
@@ -449,7 +459,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Request timed out');
+        expect(result.description).toBe(
+          "The model server didn't respond in time. This may be a temporary issue.",
+        );
       });
 
       it('should generate description for generic_error', () => {
@@ -463,7 +475,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Server error');
+        expect(result.description).toBe(
+          "The model server encountered an internal error and couldn't generate a response.",
+        );
       });
 
       it('should generate description for rate_limit error', () => {
@@ -478,7 +492,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Rate limited');
+        expect(result.description).toBe(
+          'An unexpected error occurred. Check the details below for more information.',
+        );
       });
 
       it('should generate description for service_unavailable error', () => {
@@ -493,7 +509,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Service down');
+        expect(result.description).toBe(
+          'An unexpected error occurred. Check the details below for more information.',
+        );
       });
 
       it('should generate description for RAG partial failures', () => {
@@ -507,7 +525,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasResponseGenerated: true });
 
-        expect(result.description).toBe('This response may be incomplete: RAG failed');
+        expect(result.description).toBe(
+          'This response was generated without context from your knowledge sources. Results may be less accurate.',
+        );
         expect(result.pattern).toBe('partial-failure' as ErrorPattern);
       });
 
@@ -522,7 +542,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: Embedding failed');
+        expect(result.description).toBe(
+          "The embedding model couldn't process your query for retrieval. The response doesn't include knowledge source context.",
+        );
       });
 
       it('should generate description for rag_empty error', () => {
@@ -536,7 +558,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: No results');
+        expect(result.description).toBe(
+          "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
+        );
       });
 
       it('should generate description for guardrails_violation error', () => {
@@ -550,7 +574,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: Content flagged');
+        expect(result.description).toBe(
+          'A guardrail flagged this response. Review the output carefully.',
+        );
       });
 
       it('should generate description for guardrail_down error', () => {
@@ -564,7 +590,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: Guardrails down');
+        expect(result.description).toBe(
+          "The safety filter couldn't process this response. Review the output carefully.",
+        );
       });
 
       it('should generate description for mcp_down error', () => {
@@ -578,7 +606,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: MCP server down');
+        expect(result.description).toBe(
+          "The model attempted to use the A tool tool but the server didn't respond. The response was generated without this tool's output.",
+        );
       });
 
       it('should generate description for mcp_auth_error', () => {
@@ -592,7 +622,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: Auth failed');
+        expect(result.description).toBe(
+          "The A tool tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
+        );
       });
 
       it('should generate description for mcp_exec error', () => {
@@ -606,7 +638,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('This response may be incomplete: Execution failed');
+        expect(result.description).toBe(
+          'The A tool tool encountered an error during execution. The response may be incomplete.',
+        );
       });
 
       it('should generate description for stream_lost error', () => {
@@ -620,7 +654,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe('Stream lost');
+        expect(result.description).toBe('The connection to the model was lost during generation.');
       });
 
       it('should generate description for stream_timeout error', () => {
@@ -634,7 +668,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe('Stream timeout');
+        expect(result.description).toBe('The model stopped responding during generation.');
       });
 
       it('should generate description for stream_context error', () => {
@@ -648,7 +682,7 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error, { wasStreamStarted: true });
 
-        expect(result.description).toBe('Context exceeded');
+        expect(result.description).toBe("The response exceeded the model's context length.");
       });
 
       it('should use error message as fallback for unknown errors', () => {
@@ -662,7 +696,9 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        expect(result.description).toBe('Custom error message');
+        expect(result.description).toBe(
+          'An unexpected error occurred. Check the details below for more information.',
+        );
       });
 
       it('should use default message when error message is empty', () => {
@@ -720,7 +756,9 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Something went wrong');
-        expect(result.description).toBe('Service down');
+        expect(result.description).toBe(
+          'An unexpected error occurred. Check the details below for more information.',
+        );
         expect(result.isRetriable).toBe(true);
       });
 
@@ -737,7 +775,9 @@ describe('errorClassifier', () => {
         const result = classifyError(error);
 
         expect(result.title).toBe('Something went wrong');
-        expect(result.description).toBe('Gateway error');
+        expect(result.description).toBe(
+          'An unexpected error occurred. Check the details below for more information.',
+        );
         expect(result.isRetriable).toBe(true);
       });
 

@@ -15,190 +15,14 @@ interface MockScenario {
 
 export const MOCK_SCENARIOS: MockScenario[] = [
   // ── Full failures ──────────────────────────────────────────────
+  // BFF error codes (actual codes from BFF error handling)
   {
-    trigger: 'max_tokens',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'max_tokens',
-        message: '{"error": "max_tokens 16384 exceeds model context length of 8192"}',
-        retriable: false,
-      },
-    },
-    context: { maxTokens: 8192 },
-  },
-  {
-    trigger: 'invalid_model_config',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'invalid_model_config',
-        message: '{"error": "unsupported chat template format"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'chat_template',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'chat_template',
-        message: '{"error": "unsupported chat template format"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'unsupported_feature',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'unsupported_feature',
-        message: '{"error": "tools not supported by model falcon-7b"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'no_tools',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'no_tools',
-        message: '{"error": "tools not supported by model falcon-7b"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'no_images',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'no_images',
-        message: '{"error": "image inputs not supported"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'invalid_parameter',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'invalid_parameter',
-        message: '{"error": "invalid value for temperature: must be between 0 and 2"}',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'model_timeout',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'model_timeout',
-        message: '{"error": "upstream timeout after 30s"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'timeout',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'timeout',
-        message: '{"error": "upstream timeout after 30s"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'model_overloaded',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'model_overloaded',
-        message: '{"error": "rate limit exceeded: 60 requests per minute"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'model_invocation_error',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'model_invocation_error',
-        message: '{"error": "model server returned 500: internal error"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'generic_error',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'generic_error',
-        message: '{"error": "CUDA out of memory. Tried to allocate 2.00 GiB"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'server_error',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'server_error',
-        message: '{"error": "CUDA out of memory. Tried to allocate 2.00 GiB"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'rate_limit',
+    trigger: 'invalid_request',
     apiError: {
       error: {
         component: 'bff',
-        code: 'rate_limit',
-        message: 'Too Many Requests',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'network_error',
-    apiError: {
-      error: {
-        component: 'bff',
-        code: 'network_error',
-        message: 'Bad Gateway',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'unreachable',
-    apiError: {
-      error: {
-        component: 'bff',
-        code: 'unreachable',
-        message: '{"error": "ECONNREFUSED 127.0.0.1:8080"}',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'bad_request',
-    apiError: {
-      error: {
-        component: 'bff',
-        code: 'bad_request',
-        message: 'Bad Request: invalid JSON in request body',
+        code: 'invalid_request',
+        message: 'Invalid request parameters',
         retriable: false,
       },
     },
@@ -209,18 +33,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       error: {
         component: 'bff',
         code: 'unauthorized',
-        message: 'Unauthorized: token expired',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'forbidden',
-    apiError: {
-      error: {
-        component: 'bff',
-        code: 'forbidden',
-        message: 'Forbidden: insufficient permissions',
+        message: 'Unauthorized: authentication required',
         retriable: false,
       },
     },
@@ -231,8 +44,41 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       error: {
         component: 'bff',
         code: 'not_found',
-        message: 'Not Found: resource does not exist',
+        message: 'Resource not found',
         retriable: false,
+      },
+    },
+  },
+  {
+    trigger: 'connection_failed',
+    apiError: {
+      error: {
+        component: 'bff',
+        code: 'connection_failed',
+        message: 'Failed to connect to LlamaStack server',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'timeout',
+    apiError: {
+      error: {
+        component: 'bff',
+        code: 'timeout',
+        message: 'Request timed out',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'server_unavailable',
+    apiError: {
+      error: {
+        component: 'bff',
+        code: 'server_unavailable',
+        message: 'LlamaStack server is unavailable',
+        retriable: true,
       },
     },
   },
@@ -242,20 +88,134 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       error: {
         component: 'bff',
         code: 'internal_error',
-        message: 'Internal Server Error',
+        message: 'Internal server error',
+        retriable: true,
+      },
+    },
+  },
+  // Model error codes (from LlamaStack/OpenAI API responses)
+  {
+    trigger: 'invalid_model',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'invalid_model',
+        message: 'The specified model is invalid or not supported',
+        retriable: false,
+      },
+    },
+  },
+  {
+    trigger: 'model_not_found',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'model_not_found',
+        message: 'The specified model was not found',
+        retriable: false,
+      },
+    },
+  },
+  {
+    trigger: 'model_unavailable',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'model_unavailable',
+        message: 'Model is currently unavailable',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'model_error',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'model_error',
+        message: 'Model encountered an error during inference',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'invalid_parameter',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'invalid_parameter',
+        message: 'Invalid parameter: temperature must be between 0 and 2',
+        retriable: false,
+      },
+    },
+  },
+  {
+    trigger: 'invalid_request_error',
+    apiError: {
+      error: {
+        component: 'model',
+        code: 'invalid_request_error',
+        message: 'Invalid request: missing required field',
+        retriable: false,
+      },
+    },
+  },
+  // Rate limiting errors
+  {
+    trigger: 'rate_limit_exceeded',
+    apiError: {
+      error: {
+        component: 'llama_stack',
+        code: 'rate_limit_exceeded',
+        message: 'Rate limit exceeded: 60 requests per minute',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'insufficient_quota',
+    apiError: {
+      error: {
+        component: 'llama_stack',
+        code: 'insufficient_quota',
+        message: 'Insufficient quota for this operation',
+        retriable: true,
+      },
+    },
+  },
+  // Server errors
+  {
+    trigger: 'server_error',
+    apiError: {
+      error: {
+        component: 'llama_stack',
+        code: 'server_error',
+        message: 'Server encountered an internal error',
+        retriable: true,
+      },
+    },
+  },
+  {
+    trigger: 'service_unavailable',
+    apiError: {
+      error: {
+        component: 'llama_stack',
+        code: 'service_unavailable',
+        message: 'Service is temporarily unavailable',
         retriable: true,
       },
     },
   },
 
   // ── Partial failures (show response + warning) ────────────────
+  // RAG error codes (actual codes from BFF error handling)
   {
-    trigger: 'rag_error',
+    trigger: 'resource_not_found',
     apiError: {
       error: {
         component: 'rag',
-        code: 'rag_error',
-        message: '{"error": "vector store query failed: connection timeout"}',
+        code: 'resource_not_found',
+        message: 'Vector store resource not found',
         retriable: false,
       },
     },
@@ -263,66 +223,26 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       'Based on my general knowledge, the deployment process involves building a container image, pushing it to the registry, and applying the Kubernetes manifests. However, I was unable to retrieve specific documentation from your knowledge sources.',
   },
   {
-    trigger: 'rag_vector_store_not_found',
+    trigger: 'vector_store_not_found',
     apiError: {
       error: {
         component: 'rag',
-        code: 'rag_vector_store_not_found',
-        message:
-          '{"info": "0 chunks returned from collection product-docs, similarity threshold 0.7"}',
+        code: 'vector_store_not_found',
+        message: 'Vector store not found or unavailable',
         retriable: false,
       },
     },
     partialResponse:
       "I didn't find any matching documents in your knowledge sources, so here's what I know generally: the API accepts JSON payloads with a maximum size of 10MB.",
   },
+  // Guardrails error codes (actual codes from BFF constants)
   {
-    trigger: 'rag_down',
-    apiError: {
-      error: {
-        component: 'rag',
-        code: 'unreachable',
-        message: '{"error": "vector store product-docs unreachable at pgvector:5432"}',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'Based on my general knowledge, the deployment process involves building a container image, pushing it to the registry, and applying the Kubernetes manifests. However, I was unable to retrieve specific documentation from your knowledge sources.',
-  },
-  {
-    trigger: 'rag_embed',
-    apiError: {
-      error: {
-        component: 'rag',
-        code: 'embedding_failure',
-        message: '{"error": "embedding model granite-125m returned 503"}',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I can provide a general answer, but note that I couldn't search your knowledge sources for this query. The typical configuration involves setting environment variables in the deployment spec.",
-  },
-  {
-    trigger: 'rag_empty',
-    apiError: {
-      error: {
-        component: 'rag',
-        code: 'no_results',
-        message:
-          '{"info": "0 chunks returned from collection product-docs, similarity threshold 0.7"}',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I didn't find any matching documents in your knowledge sources, so here's what I know generally: the API accepts JSON payloads with a maximum size of 10MB.",
-  },
-  {
-    trigger: 'guardrails_error',
+    trigger: 'guardrail_service_unavailable',
     apiError: {
       error: {
         component: 'guardrails',
-        code: 'guardrails_error',
-        message: '{"error": "guardrail service at localhost:8089 returned 503"}',
+        code: 'guardrail_service_unavailable',
+        message: 'Guardrail service is temporarily unavailable',
         retriable: false,
       },
     },
@@ -330,66 +250,54 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       'This response was generated successfully, but the safety filter was unable to check it. Please review the content carefully.',
   },
   {
-    trigger: 'guardrails_violation',
+    trigger: 'guardrail_input_violation',
     apiError: {
       error: {
         component: 'guardrails',
-        code: 'guardrails_violation',
-        message: '{"flagged_categories": ["violence"], "action": "warn", "confidence": 0.82}',
+        code: 'guardrail_input_violation',
+        message: 'Input blocked by guardrails',
         retriable: false,
       },
     },
     partialResponse:
-      'Here is the response content that was flagged by the guardrail system. The content has been delivered but should be reviewed carefully before use in any production context.',
+      'Your input was blocked by the safety filter. Please review your message for prompt manipulation, harmful content, or sensitive data.',
   },
   {
-    trigger: 'guardrail_flagged',
+    trigger: 'guardrail_output_violation',
     apiError: {
       error: {
         component: 'guardrails',
-        code: 'content_flagged',
-        message: '{"flagged_categories": ["violence"], "action": "warn", "confidence": 0.82}',
+        code: 'guardrail_output_violation',
+        message: 'Output flagged by guardrails',
         retriable: false,
       },
     },
     partialResponse:
-      'Here is the response content that was flagged by the guardrail system. The content has been delivered but should be reviewed carefully before use in any production context.',
+      'The response was flagged by the guardrail system. The content has been delivered but should be reviewed carefully before use in any production context.',
   },
+  // MCP error codes (actual codes from BFF error handling)
   {
-    trigger: 'guardrail_down',
-    apiError: {
-      error: {
-        component: 'guardrails',
-        code: 'service_down',
-        message: '{"error": "guardrail service at localhost:8089 returned 503"}',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'This response was generated successfully, but the safety filter was unable to check it. Please review the content carefully.',
-  },
-  {
-    trigger: 'mcp_error',
+    trigger: 'tool_error',
     apiError: {
       error: {
         component: 'mcp',
-        code: 'mcp_error',
-        message: '{"error": "MCP server jira: connection timeout after 10s"}',
+        code: 'tool_error',
+        message: 'MCP tool execution failed',
         // eslint-disable-next-line camelcase
         tool_name: 'Jira',
         retriable: false,
       },
     },
     partialResponse:
-      "I tried to look up the relevant Jira tickets but the Jira server wasn't available. Based on what I know, the current sprint has 12 story points remaining.",
+      'I tried to look up the relevant Jira tickets but the tool encountered an error. Based on what I know, the current sprint has 12 story points remaining.',
   },
   {
-    trigger: 'mcp_tool_not_found',
+    trigger: 'tool_not_found',
     apiError: {
       error: {
         component: 'mcp',
-        code: 'mcp_tool_not_found',
-        message: '{"error": "MCP tool search_tickets not found on server jira"}',
+        code: 'tool_not_found',
+        message: 'MCP tool not found on server',
         // eslint-disable-next-line camelcase
         tool_name: 'Jira',
         retriable: false,
@@ -399,74 +307,30 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       "I tried to look up the relevant Jira tickets but the tool wasn't available on the server. Based on what I know, the current sprint has 12 story points remaining.",
   },
   {
-    trigger: 'mcp_auth_error',
+    trigger: 'mcp_error',
     apiError: {
       error: {
         component: 'mcp',
-        code: 'mcp_auth_error',
-        message: '{"error": "MCP server kubernetes: 401 Unauthorized"}',
+        code: 'mcp_error',
+        message: 'MCP server connection failed',
         // eslint-disable-next-line camelcase
         tool_name: 'Kubernetes',
         retriable: false,
       },
     },
     partialResponse:
-      'I attempted to query the Kubernetes cluster but the credentials were rejected. You may need to refresh the authentication token.',
-  },
-  {
-    trigger: 'mcp_down',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'unreachable',
-        message: '{"error": "MCP server jira: connection timeout after 10s"}',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Jira',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I tried to look up the relevant Jira tickets but the Jira server wasn't available. Based on what I know, the current sprint has 12 story points remaining.",
-  },
-  {
-    trigger: 'mcp_auth',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'auth_failure',
-        message: '{"error": "MCP server kubernetes: 401 Unauthorized"}',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Kubernetes',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'I attempted to query the Kubernetes cluster but the credentials were rejected. You may need to refresh the authentication token.',
-  },
-  {
-    trigger: 'mcp_exec',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'execution_error',
-        message: '{"error": "MCP tool slack.post_message failed: channel not found"}',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Slack',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I tried to post the summary to Slack but the tool returned an error. Here's the summary I would have posted:\n\n**Sprint 42 Status:** 8 of 12 stories completed, 2 in review, 2 blocked.",
+      'I attempted to query the Kubernetes cluster but the MCP server was unreachable. You may need to check the server configuration.',
   },
 
   // ── Streaming interruptions (dimmed partial text + error) ─────
+  // These use actual timeout/error codes that would occur during streaming
   {
     trigger: 'stream_lost',
     apiError: {
       error: {
-        component: 'llama_stack',
-        code: 'timeout',
-        message: '{"error": "stream terminated: connection reset by peer"}',
+        component: 'bff',
+        code: 'connection_failed',
+        message: 'Stream terminated: connection reset by peer',
         retriable: true,
       },
     },
@@ -479,9 +343,9 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'stream_timeout',
     apiError: {
       error: {
-        component: 'llama_stack',
+        component: 'bff',
         code: 'timeout',
-        message: '{"error": "no tokens received for 30s, stream timed out"}',
+        message: 'No tokens received for 30s, stream timed out',
         retriable: true,
       },
     },
@@ -494,9 +358,9 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'stream_context',
     apiError: {
       error: {
-        component: 'model',
-        code: 'context_length',
-        message: '{"error": "context length 8192 exceeded at token 8191"}',
+        component: 'llama_stack',
+        code: 'context_length_exceeded',
+        message: 'Context length 8192 exceeded at token 8191',
         retriable: false,
       },
     },

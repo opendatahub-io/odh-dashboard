@@ -65,6 +65,37 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: 'Invalid request',
     description: 'The request is invalid. Check your input and try again.',
   },
+  // Model error codes
+  'model:invalid_model': {
+    title: 'Invalid model',
+    description:
+      'The specified model is invalid or not supported. Check the model name and try again.',
+  },
+  'model:model_not_found': {
+    title: 'Model not found',
+    description: 'The specified model was not found. Check the model name and try again.',
+  },
+  'model:model_unavailable': {
+    title: 'Model unavailable',
+    description: 'The model is currently unavailable. Please try again later.',
+  },
+  'model:model_error': {
+    title: 'Model error',
+    description: 'The model encountered an error during inference. Please try again.',
+  },
+  'model:invalid_parameter': {
+    title: 'Invalid parameter',
+    description: 'One or more parameters are invalid. Check your settings and try again.',
+  },
+  'model:invalid_request_error': {
+    title: 'Invalid request',
+    description: 'The request is invalid. Check your input and try again.',
+  },
+  // BFF error codes
+  'bff:invalid_request': {
+    title: 'Invalid request',
+    description: 'The request is invalid. Check your input and try again.',
+  },
   'bff:unauthorized': {
     title: 'Authentication required',
     description: 'Your session is invalid. Please sign in again.',
@@ -81,6 +112,18 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: 'Server error',
     description: 'The server encountered a problem. Please try again.',
   },
+  'bff:connection_failed': {
+    title: "Couldn't reach the server",
+    description: 'Unable to connect to the LlamaStack server. Check that the service is running.',
+  },
+  'bff:timeout': {
+    title: 'Request timed out',
+    description: "The server didn't respond in time. This may be a temporary issue.",
+  },
+  'bff:server_unavailable': {
+    title: 'Server unavailable',
+    description: 'The LlamaStack server is currently unavailable. Please try again later.',
+  },
   'bff:rate_limit': {
     title: 'Request was rate limited',
     description: 'Too many requests to the model server. Wait a moment before trying again.',
@@ -93,9 +136,66 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: "Couldn't reach the server",
     description: 'Unable to connect to the playground backend. Check that the service is running.',
   },
+  'llama_stack:rate_limit_exceeded': {
+    title: 'Request was rate limited',
+    description: 'Too many requests to the model server. Wait a moment before trying again.',
+  },
+  'llama_stack:insufficient_quota': {
+    title: 'Insufficient quota',
+    description: 'You have insufficient quota for this operation. Contact your administrator.',
+  },
+  // Server errors
+  'llama_stack:server_error': {
+    title: 'Server error',
+    description: 'The server encountered an internal error. Please try again.',
+  },
+  'llama_stack:service_unavailable': {
+    title: 'Service unavailable',
+    description: 'The service is temporarily unavailable. Please try again later.',
+  },
 };
 
 const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
+  // RAG error codes (actual BFF codes)
+  'rag:resource_not_found': {
+    title: 'Knowledge source retrieval failed',
+    description:
+      'This response was generated without context from your knowledge sources. Results may be less accurate.',
+  },
+  'rag:vector_store_not_found': {
+    title: 'No matching knowledge found',
+    description:
+      "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
+  },
+  // Guardrails error codes (actual BFF codes)
+  'guardrails:guardrail_service_unavailable': {
+    title: 'Guardrail check was not applied',
+    description: "The safety filter couldn't process this response. Review the output carefully.",
+  },
+  'guardrails:guardrail_input_violation': {
+    title: 'Content was flagged by guardrails',
+    description: 'A guardrail flagged this input. Review the content carefully.',
+  },
+  'guardrails:guardrail_output_violation': {
+    title: 'Content was flagged by guardrails',
+    description: 'A guardrail flagged this response. Review the output carefully.',
+  },
+  // MCP error codes (actual BFF codes)
+  'mcp:tool_error': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
+  },
+  'mcp:tool_not_found': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
+  },
+  'mcp:mcp_error': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
+  },
   'rag:rag_error': {
     title: 'Knowledge source retrieval failed',
     description:

@@ -33,13 +33,14 @@ const STREAMING_ERROR_MAP: Record<string, string> = {
 
 function resolveTemplateKey(error: ApiError): string {
   const { code, component } = error.error;
+  const normalizedCode = code.toLowerCase();
 
   // Check for streaming errors first (they can have component + code)
-  if (Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code)) {
-    return STREAMING_ERROR_MAP[code];
+  if (Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, normalizedCode)) {
+    return STREAMING_ERROR_MAP[normalizedCode];
   }
 
-  return `${component}:${code}`;
+  return `${component}:${normalizedCode}`;
 }
 
 function resolveRetriable(error: ApiError): boolean {
@@ -66,9 +67,13 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
 
   const { code, component } = error.error;
   const rawMessage = error.error.message || '';
+  const normalizedCode = code.toLowerCase();
 
   const isPartial = PARTIAL_COMPONENTS.has(component);
-  const isStreamingError = Object.prototype.hasOwnProperty.call(STREAMING_ERROR_MAP, code);
+  const isStreamingError = Object.prototype.hasOwnProperty.call(
+    STREAMING_ERROR_MAP,
+    normalizedCode,
+  );
 
   const effectiveContext = {
     ...context,
