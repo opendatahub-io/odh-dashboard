@@ -55,6 +55,7 @@ func (app *App) CodeExporterHandler(w http.ResponseWriter, r *http.Request, _ ht
 type codeExportTemplateData struct {
 	models.CodeExportRequest
 	MLflowExternalURL string
+	NemoGuardrailsURL string
 	Namespace         string
 }
 
@@ -69,6 +70,7 @@ func (app *App) generatePythonCode(config models.CodeExportRequest, namespace st
 	result, err := templateRepo.ExecuteTemplate("python", codeExportTemplateData{
 		CodeExportRequest: config,
 		MLflowExternalURL: app.mlflowExternalURL,
+		NemoGuardrailsURL: app.nemoGuardrailsURL,
 		Namespace:         namespace,
 	})
 	if err != nil {

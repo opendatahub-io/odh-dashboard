@@ -6,24 +6,36 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 # This example shows how to configure an assistant using the Llama Stack client.
 # Before using this code, make sure of the following:
 #
-# 1. Required Packages:
+# Required Packages:
 #    - Install the required dependencies using pip:
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+#      pip install llama-stack-client requests
+{{- else }}
 #      pip install llama-stack-client
+{{- end }}
 #    - NOTE: Verify the correct llama-stack-client version for your Llama Stack server instance,
 #      then install that version as needed.
 #
-# 2. Llama Stack Server:
+# Llama Stack Server:
 #    - Your Llama Stack instance must be running and accessible
 #    - Set the LLAMA_STACK_URL variable to the base URL of your Llama Stack server
 #
-# 3. Model Configuration:
+# Model Configuration:
 #    - The selected model (e.g., "llama3.2:3b") must be available in your Llama Stack deployment with the correct API key.
 #
-# 4. Tools (MCP Integration):
+# Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+#
+# NeMo Guardrails:
+#    - Set NEMO_GUARDRAILS_URL to your NeMo Guardrails service URL
+#    - Set NEMO_GUARDRAILS_OC_TOKEN to your OpenShift user token (run: oc whoami -t)
+#    - Set GUARDRAIL_MODEL_ENDPOINT to your guardrail model's inference endpoint URL
+#    - Set GUARDRAIL_API_KEY if your guardrail model endpoint requires authentication
+{{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 #
-# 5. External Vector Store:
+# External Vector Store:
 #    - This script uses an existing vector store (ID: {{.VectorStore.ID}}), which must be registered in your Llama Stack instance.
 #    - The vector store provider "{{.VectorStore.ProviderID}}" must be installed in your Llama Stack instance.
 {{- if .VectorStore.EmbeddingModel }}
@@ -31,27 +43,27 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 {{- else }}
 #    - The embedding model used by this vector store must be registered in your Llama Stack instance.
 {{- end }}
+{{- end }}
 {{- if .Prompt }}
 #
-# 6. Prompt Management (MLflow):
+# Prompt Management (MLflow):
 #    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
 #    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
 #    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
 #    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
-{{- end }}
-{{- else }}
-{{- if .Prompt }}
-#
-# 5. Prompt Management (MLflow):
-#    - Set the MLFLOW_TRACKING_URI variable to your MLflow server URL
-#    - Set the MLFLOW_TRACKING_TOKEN variable to your OpenShift user token
-#    - Set the MLFLOW_WORKSPACE variable to the namespace containing your prompt
-#    - The prompt "{{.Prompt.Name}}" (version {{.Prompt.Version}}) must exist in that workspace
-{{- end }}
 {{- end }}
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+NEMO_GUARDRAILS_URL = "{{if .NemoGuardrailsURL}}{{.NemoGuardrailsURL}}{{end}}"
+NEMO_GUARDRAILS_OC_TOKEN = ""  # Set to your OpenShift user token (oc whoami -t)
+GUARDRAIL_MODEL_ENDPOINT = ""  # Set to your guardrail model's inference endpoint URL
+GUARDRAIL_API_KEY = ""  # Set if your guardrail model endpoint requires authentication
+# Strip provider prefix from model ID (e.g. "endpoint-1/mistral-7b" → "mistral-7b")
+_guardrail_raw_model = "{{.GuardrailConfig.GuardrailModel}}"
+GUARDRAIL_MODEL_NAME = _guardrail_raw_model.split("/", 1)[1] if "/" in _guardrail_raw_model else _guardrail_raw_model
+{{- end }}
 {{- if .Prompt }}
 MLFLOW_TRACKING_URI = "{{if .MLflowExternalURL}}{{.MLflowExternalURL}}{{end}}"
 MLFLOW_WORKSPACE = "{{if .Namespace}}{{.Namespace}}{{end}}"
@@ -85,6 +97,9 @@ files_to_upload = [
 {{- end }}
 
 import os
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+import requests
+{{- end }}
 
 from llama_stack_client import LlamaStackClient
 
@@ -188,6 +203,51 @@ config = {
     "tools": tools{{- end }}
 }
 
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+# Input guardrail check: validate user input before sending to the model
+_guardrail_payload = {
+    "model": GUARDRAIL_MODEL_NAME,
+    "messages": [{"role": "user", "content": input_text}],
+    "guardrails": {
+        "config": {
+            "models": [{
+                "type": "main",
+                "engine": "openai",
+                "parameters": {
+                    "openai_api_base": GUARDRAIL_MODEL_ENDPOINT,
+                    "model_name": GUARDRAIL_MODEL_NAME,
+                    "api_key": GUARDRAIL_API_KEY or "fake",
+                },
+            }],
+            "rails": {
+                "input": {
+                    "flows": ["self check input"],
+                },
+            },
+            "prompts": [{
+                "task": "self_check_input",
+                "content": """{{.GuardrailConfig.InputPrompt}}""",
+            }],
+        },
+    },
+}
+_guardrail_headers = {"Content-Type": "application/json"}
+if NEMO_GUARDRAILS_OC_TOKEN:
+    _guardrail_headers["Authorization"] = f"Bearer {NEMO_GUARDRAILS_OC_TOKEN}"
+
+_guardrail_resp = requests.post(
+    f"{NEMO_GUARDRAILS_URL}/v1/guardrail/checks",
+    json=_guardrail_payload,
+    headers=_guardrail_headers,
+)
+_guardrail_resp.raise_for_status()
+_guardrail_result = _guardrail_resp.json()
+
+if _guardrail_result.get("status") == "blocked":
+    print("Input blocked by safety guardrails:", _guardrail_result.get("guardrails_data", {}).get("error", ""))
+    exit(1)
+
+{{- end }}
 response = client.responses.create(**config)
 
 print("agent>", response.output_text)
