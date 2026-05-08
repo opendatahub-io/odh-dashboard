@@ -54,6 +54,30 @@ export const handleConnectionCreation = async (
     return Promise.resolve(undefined);
   }
 
+  // Preserve existing hidden connections on redeploy/edit — don't recreate the secret.
+  // prefilledModelLocationData converts hidden connections with owner references from
+  // EXISTING to NEW for UI display, but we should not create a new secret for them.
+  if (modelLocationData.connection && selectedConnection) {
+    const isHidden =
+      selectedConnection.metadata.annotations['opendatahub.io/connection-hidden'] === 'true';
+    if (isHidden) {
+      if (!dryRun) {
+        getSecret(project, modelLocationData.connection)
+          .then((secret) => {
+            if (!hasProtocolAnnotation(secret)) {
+              patchSecretWithProtocolAnnotation(secret, protocolType).catch((err) => {
+                console.warn('Failed to patch protocol annotation:', err);
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn('Failed to get secret for protocol annotation:', err);
+          });
+      }
+      return Promise.resolve(undefined);
+    }
+  }
+
   const connectionTypeName = modelLocationData.connectionTypeObject?.metadata.name ?? 'uri-v1';
   const formSecretName = createConnectionData.nameDesc?.k8sName.value;
   const actualSecretName = (() => {
