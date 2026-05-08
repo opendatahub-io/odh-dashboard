@@ -36,7 +36,7 @@ npx mod-arch-installer experiments-ui --flavor default
 ## After running the installer
 
 1. `cd <your-project>/frontend` and run `npm run start:dev` (or `npm run start:default` if you generated the default flavor).
-2. Run the Go BFF locally: `cd <your-project>/bff && make run` (requires Go 1.24+).
+2. Run the Go BFF locally: `cd <your-project>/bff && make run` (requires Go 1.25+).
 3. Update the OpenAPI spec inside `api/openapi/` to describe your module's contract.
 4. Customize namespaces, routes, and branding to match your feature.
 

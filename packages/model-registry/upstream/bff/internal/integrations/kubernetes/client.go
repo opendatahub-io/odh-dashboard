@@ -15,6 +15,9 @@ const CatalogSourceKey = "sources.yaml"
 const CatalogSourceDefaultConfigMapName = "default-catalog-sources"
 const CatalogSourceUserConfigMapName = "model-catalog-sources"
 
+const McpServerAPIGroup = "mcp.x-k8s.io"
+const McpServerResource = "mcpservers"
+
 type KubernetesClientInterface interface {
 	// Service discovery
 	GetServiceNames(ctx context.Context, namespace string) ([]string, error)
@@ -31,6 +34,7 @@ type KubernetesClientInterface interface {
 	CanListServicesInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	CanAccessServiceInNamespace(ctx context.Context, identity *RequestIdentity, namespace, serviceName string) (bool, error)
 	CanNamespaceAccessRegistry(ctx context.Context, identity *RequestIdentity, jobNamespace, registryName, registryNamespace string) (bool, error)
+	CanVerbMcpServersInNamespace(ctx context.Context, identity *RequestIdentity, namespace, verb string) (bool, error)
 	GetSelfSubjectRulesReview(ctx context.Context, identity *RequestIdentity, namespace string) ([]string, error)
 
 	// Meta

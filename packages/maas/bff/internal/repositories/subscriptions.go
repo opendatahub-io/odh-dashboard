@@ -429,6 +429,10 @@ func convertUnstructuredToSubscription(obj *unstructured.Unstructured) (*models.
 		}
 		sub.TokenMetadata = tokenMeta
 	}
+	if dt := obj.GetDeletionTimestamp(); dt != nil {
+		t := dt.Time
+		sub.DeletionTimestamp = &t
+	}
 
 	ct := obj.GetCreationTimestamp()
 	if !ct.IsZero() {
@@ -505,6 +509,11 @@ func convertUnstructuredToAuthPolicy(obj *unstructured.Unstructured) (*models.Ma
 	if !ct.IsZero() {
 		t := ct.Time
 		policy.CreationTimestamp = &t
+	}
+
+	if dt := obj.GetDeletionTimestamp(); dt != nil {
+		t := dt.Time
+		policy.DeletionTimestamp = &t
 	}
 
 	return policy, nil

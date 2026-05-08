@@ -22,7 +22,7 @@ export const createCustomResource = (
     cy.log(`Executing command: ${ocCommand}`);
 
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Error executing command: ${ocCommand}`);
         cy.log(`Error output: ${maskedStderr}`);

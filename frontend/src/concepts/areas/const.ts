@@ -5,6 +5,7 @@ export const techPreviewFlags = {
   genAiStudio: false,
   automl: false,
   autorag: false,
+  guardrails: false,
   modelAsService: true,
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
@@ -22,6 +23,7 @@ export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
   mlflowPipelines: false,
+  nimWizard: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features

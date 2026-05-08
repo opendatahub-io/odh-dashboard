@@ -180,11 +180,13 @@ paths:
         - 'displayName': Extracted from 'openshift.io/display-name' annotation if present
         - 'description': Extracted from 'openshift.io/description' annotation if present
 
-  /api/v1/s3/file:
-    summary: Path used to get or upload a file in S3.
+  /api/v1/s3/files/{key}:
+    summary: Endpoints for working with a specific file from an S3-compatible connection.
     description: >-
       The REST endpoint/path used to retrieve or upload files in S3 storage.
       GET returns an arbitrary file with transfer-encoding: chunked for efficient streaming.
+      When the query parameter view=schema is specified, GET instead returns the CSV column
+      schema with inferred data types (see S3FileSchemaResponse for type inference details).
       POST uploads a CSV file using multipart/form-data (part name `file`) and credentials
       from a required Kubernetes secret; the stored object key may differ from the requested
       `key` when a name collision is resolved (numeric suffix).
@@ -224,8 +226,20 @@ paths:
           schema:
             type: string
           example: my-bucket
-        - name: key
+        - name: view
           in: query
+          required: false
+          description: >-
+            Selects an alternate representation of the file resource.
+            When set to "schema", returns the CSV column schema with inferred types
+            instead of streaming the file contents. Requires the file to be a CSV
+            with at least 100 data rows.
+          schema:
+            type: string
+            enum:
+              - schema
+        - name: key
+          in: path
           required: true
           description: The S3 object key to retrieve
           schema:
@@ -234,13 +248,13 @@ paths:
           example: documents/myfile.pdf
       responses:
         "200":
-          description: File retrieved successfully
+          description: >-
+            File retrieved successfully. When view=schema is specified for a CSV file,
+            returns the column schema as JSON instead of the binary file content.
           content:
             "*/*":
               schema:
-                type: string
-                format: binary
-                description: The binary content of the requested file
+                $ref: "#/components/schemas/S3FileResponse"
           headers:
             Transfer-Encoding:
               description: Set to 'chunked' for streaming large files
@@ -318,7 +332,7 @@ paths:
             pattern: '^\S(.*\S)?$'
           example: my-bucket
         - name: key
-          in: query
+          in: path
           required: true
           description: >-
             Requested S3 object key for the upload. If an object already exists at this key,
@@ -379,185 +393,6 @@ paths:
 
         Returns 409 if the object key chosen after collision resolution still conflicts at upload time
         (e.g. concurrent writer); the client should retry the upload.
-
-  /api/v1/s3/file/schema:
-    summary: Path used to get the schema (column names and types) of a CSV file from S3.
-    description: >-
-      The REST endpoint/path used to retrieve the schema of a CSV file from S3 storage.
-      Reads the header and a minimum of 100 data rows to determine column names and infer data types.
-      The inferred types are for UI display and schema preview purposes only and do not modify
-      the underlying CSV data.
-
-
-      Type Inference Priority (highest to lowest):
-
-      1. bool - Accepts: true/false, t/f, yes/no, y/n, 1/0 (case-insensitive).
-         NOTE: Numeric values "0" and "1" are classified as boolean for schema display. Columns
-         containing only 0 and 1 values will show type "bool" rather than "integer". This is a
-         display classification only - the underlying numeric data remains unchanged and ML
-         processing is not affected. Binary features like is_premium: [0,1,0,1] will display as
-         bool but retain numeric values.
-
-      2. timestamp - Detects ISO8601, common date formats, and Unix timestamps in plausible ranges.
-
-      3. integer - Whole numbers without decimal points. Note: columns with only 0/1 values are
-         classified as bool (see above) for display purposes.
-
-      4. double - Numeric values with decimal points or that don't fit integer/bool.
-
-      5. string - Fallback for all other values.
-
-
-      Integer is assumed before double - columns are typed as integer until a decimal is found.
-      Uses proper CSV parsing to handle quoted values and different line endings (\n, \r\n, \r).
-      Returns an error if the file has fewer than 100 data rows.
-    get:
-      tags:
-        - S3Operation
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          required: true
-          description: The Kubernetes namespace containing the secret
-          schema:
-            type: string
-          example: default
-        - name: secretName
-          in: query
-          required: false
-          description: >-
-            Override: name of the Kubernetes secret containing S3 credentials.
-            When supplied, the secret must use the conventional AWS_* field names
-            (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_S3_ENDPOINT).
-            When omitted, connection details (endpoint, credential field names, region, bucket)
-            are resolved from the DSPipelineApplication spec discovered in the namespace.
-          schema:
-            type: string
-          example: aws-secret-1
-        - name: bucket
-          in: query
-          required: false
-          description: >-
-            The S3 bucket name. Only honored when secretName is supplied (explicit mode).
-            In DSPA mode (secretName omitted), this parameter is ignored and the bucket
-            configured in the DSPipelineApplication spec is used instead; if the DSPA
-            does not specify a bucket the request is rejected with 400.
-          schema:
-            type: string
-          example: my-bucket
-        - name: key
-          in: query
-          required: true
-          description: The S3 object key (CSV file) to retrieve schema from
-          schema:
-            type: string
-            pattern: '^\S(.*\S)?$'
-          example: data/training.csv
-      responses:
-        "200":
-          description: CSV schema retrieved successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      columns:
-                        type: array
-                        items:
-                          type: object
-                          required:
-                            - name
-                            - type
-                          properties:
-                            name:
-                              type: string
-                              description: Column name from the CSV header
-                            type:
-                              type: string
-                              enum: [integer, double, timestamp, bool, string]
-                              description: Inferred data type of the column
-                            values:
-                              type: array
-                              description: For boolean columns, the unique values found in the data
-                              items:
-                                oneOf:
-                                  - type: string
-                                  - type: number
-                                  - type: boolean
-                        description: Array of column definitions with inferred types
-                        example:
-                          - name: "customerID"
-                            type: "string"
-                          - name: "gender"
-                            type: "bool"
-                            values: [0, 1]
-                          - name: "age"
-                            type: "integer"
-                          - name: "price"
-                            type: "double"
-                          - name: "signup_date"
-                            type: "timestamp"
-                      parse_warnings:
-                        type: integer
-                        description: Number of rows that failed CSV parsing and were skipped during schema inference
-                        example: 0
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-        "503":
-          $ref: "#/components/responses/ServiceUnavailable"
-      operationId: getS3FileSchema
-      summary: Get CSV schema with inferred types from S3
-      description: >-
-        Retrieves the column names and inferred data types from a CSV file in S3 storage.
-        Reads the header line plus a minimum of 100 data rows to accurately determine column types.
-
-        Two credential resolution modes are supported (same as /api/v1/s3/file):
-
-        **DSPA mode (default in production)** — when secretName is omitted, the endpoint,
-        region, bucket, and credential field names are read from the DSPipelineApplication
-        (DSPA) spec discovered in the namespace.
-
-        **Explicit mode (override)** — when secretName is supplied, the specified Kubernetes
-        secret must contain AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION,
-        and AWS_S3_ENDPOINT using those exact field names.
-
-
-        Type Inference Priority (highest to lowest):
-
-        1. bool - Matches: true/false, t/f, yes/no, y/n, 1/0 (case-insensitive).
-           NOTE: "0" and "1" are treated as boolean values for UI display purposes. A column
-           containing only 0 and 1 will be classified as bool, not integer. This classification
-           is for schema display only and does not modify the underlying data or affect ML processing.
-           Binary numeric features (e.g., is_premium: [0,1,0,1]) will display as bool type but
-           retain their numeric values.
-
-        2. timestamp - Recognizes ISO8601, common date formats, Unix epoch timestamps.
-
-        3. integer - Whole numbers without decimals (excluding 0/1-only columns, which display as bool).
-
-        4. double - Numbers with decimal points or outside integer range.
-
-        5. string - Default fallback for all other values.
-
-
-        Integer is assumed before double - columns with only whole numbers are typed as integer,
-        but if any decimal value is found, the column becomes double.
-        For boolean columns, returns the unique values found in the data.
-        Supports all common line endings (\n, \r\n, \r) and properly handles quoted CSV fields.
-        Returns a 400 Bad Request error if the file has fewer than 100 data rows.
 
   /api/v1/s3/files:
     summary: Endpoints for dealing with multiple files within an S3-compatible connection
@@ -883,6 +718,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -892,6 +729,42 @@ paths:
       operationId: getPipelineRunById
       summary: Get Pipeline Run by ID
       description: Returns a single pipeline run by its unique identifier
+    delete:
+      tags:
+        - PipelineOperation
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/components/parameters/namespace"
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the pipeline run to delete
+          example: "abc123-def456-ghi789"
+      responses:
+        "200":
+          description: Run deleted successfully
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deletePipelineRun
+      summary: Delete Pipeline Run
+      description: >-
+        Permanently deletes a completed, failed, or canceled AutoML pipeline run. The BFF validates
+        that the run belongs to one of the discovered AutoML managed pipelines in the namespace and
+        that it is in a deletable state (SUCCEEDED, FAILED, or CANCELED) before deleting it.
+        This prevents users from deleting runs from other pipelines in the same namespace.
 
   /api/v1/pipeline-runs/{runId}/terminate:
     summary: Terminate an active pipeline run
@@ -922,6 +795,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -965,6 +840,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -1155,6 +1032,106 @@ components:
             S3 object key where the file was stored. May differ from the requested `key`
             when a collision was resolved (e.g. `data/file-1.csv` if `data/file.csv` existed).
           example: data/training.csv
+
+    S3FileResponse:
+      description: >-
+        Response for file retrieval from S3. The actual content depends on the
+        request parameters:
+
+        - **Default (no view parameter):** Returns raw file bytes with the
+          appropriate Content-Type for the file (e.g. application/pdf, text/csv,
+          application/json). JSON files are streamed as-is — they are not
+          parsed or validated against any schema.
+
+        - **view=schema (CSV files only):** Returns a JSON object containing
+          the CSV column schema with inferred data types
+          (see S3FileSchemaResponse).
+      oneOf:
+        - type: string
+          format: binary
+          description: Raw file bytes (default). Includes JSON files served as-is.
+        - $ref: "#/components/schemas/S3FileSchemaResponse"
+
+    S3FileSchemaResponse:
+      description: >-
+        CSV column schema with inferred types returned when view=schema is requested.
+        Reads the header and a minimum of 100 data rows to determine column names and infer data types.
+        The inferred types are for UI display and schema preview purposes only and do not modify
+        the underlying CSV data.
+
+
+        Type Inference Priority (highest to lowest):
+
+        1. bool - Accepts: true/false, t/f, yes/no, y/n, 1/0 (case-insensitive).
+           NOTE: Numeric values "0" and "1" are classified as boolean for schema display. Columns
+           containing only 0 and 1 values will show type "bool" rather than "integer". This is a
+           display classification only - the underlying numeric data remains unchanged and ML
+           processing is not affected. Binary features like is_premium: [0,1,0,1] will display as
+           bool but retain numeric values.
+
+        2. timestamp - Detects ISO8601, common date formats, and Unix timestamps in plausible ranges.
+
+        3. integer - Whole numbers without decimal points. Note: columns with only 0/1 values are
+           classified as bool (see above) for display purposes.
+
+        4. double - Numeric values with decimal points or that don't fit integer/bool.
+
+        5. string - Fallback for all other values.
+
+
+        Integer is assumed before double - columns are typed as integer until a decimal is found.
+        Uses proper CSV parsing to handle quoted values and different line endings (\n, \r\n, \r).
+        Returns an error if the file has fewer than 100 data rows.
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - columns
+            - parse_warnings
+          properties:
+            columns:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                  - type
+                properties:
+                  name:
+                    type: string
+                    description: Column name from the CSV header
+                  type:
+                    type: string
+                    enum: [integer, double, timestamp, bool, string]
+                    description: Inferred data type of the column
+                  values:
+                    type: array
+                    description: For boolean columns, the unique values found in the data
+                    items:
+                      oneOf:
+                        - type: string
+                        - type: number
+                        - type: boolean
+              description: Array of column definitions with inferred types
+              example:
+                - name: "customerID"
+                  type: "string"
+                - name: "gender"
+                  type: "bool"
+                  values: [0, 1]
+                - name: "age"
+                  type: "integer"
+                - name: "price"
+                  type: "double"
+                - name: "signup_date"
+                  type: "timestamp"
+            parse_warnings:
+              type: integer
+              description: Number of rows that failed CSV parsing and were skipped during schema inference
+              example: 0
 
     S3ListObjectsResult:
       type: object
@@ -1612,6 +1589,20 @@ components:
           type: integer
           description: Total number of runs across all discovered pipelines
           example: 10
+
+    Error:
+      description: Error code and message.
+      required:
+        - code
+        - message
+      type: object
+      properties:
+        code:
+          description: Error code
+          type: string
+        message:
+          description: Error message
+          type: string
 
   parameters:
     namespace:

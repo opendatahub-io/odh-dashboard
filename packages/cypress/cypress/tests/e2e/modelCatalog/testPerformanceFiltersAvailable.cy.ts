@@ -6,6 +6,7 @@ import {
   ensureModelCatalogSourceEnabled,
   waitForModelCatalogCards,
   waitForModelCatalogDeployment,
+  waitForValidatedModelCards,
 } from '../../../utils/oc_commands/modelCatalog';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
@@ -100,6 +101,9 @@ describe('Verify Performance Filters are available on RHOAI', () => {
       modelCatalog.findWorkloadTypeFilter().should('be.visible');
       modelCatalog.findLatencyFilter().should('be.visible');
       modelCatalog.findMaxRpsFilter().should('be.visible');
+
+      cy.step('Wait for validated model cards with performance data to appear');
+      waitForValidatedModelCards();
 
       cy.step('Find a validated model card and verify it shows metrics');
       modelCatalog.findValidatedModelCard().should('have.length.at.least', 1);

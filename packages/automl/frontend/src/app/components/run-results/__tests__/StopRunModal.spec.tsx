@@ -66,4 +66,16 @@ describe('StopRunModal', () => {
 
     expect(screen.queryByTestId('stop-run-modal')).not.toBeInTheDocument();
   });
+
+  it('should display run name in body text when runName is provided', () => {
+    render(<StopRunModal {...defaultProps} runName="My Test Run" />);
+
+    expect(screen.getByText(/Are you sure you want to stop "My Test Run"\?/)).toBeInTheDocument();
+  });
+
+  it('should display generic text when runName is not provided', () => {
+    render(<StopRunModal {...defaultProps} />);
+
+    expect(screen.getByText(/Are you sure you want to stop this run\?/)).toBeInTheDocument();
+  });
 });

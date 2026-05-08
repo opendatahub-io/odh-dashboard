@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "6e18d5aca6de378c66794ae581b9c42d0767aff7"
+    "commit": "8f14aafd67e8be80169d30437d081437023e5c24"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -65,7 +65,7 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/mcpDeploymentTypes": "./upstream/frontend/src/app/mcpDeploymentTypes.ts",
+    "./types/mcpDeploymentTypes": "./upstream/frontend/src/odh/types/mcpDeploymentTypes.ts",
     "./types/types": "./upstream/frontend/src/app/types.ts",
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },

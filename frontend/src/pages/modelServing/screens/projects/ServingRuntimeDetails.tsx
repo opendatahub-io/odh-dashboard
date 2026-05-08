@@ -36,7 +36,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
   // todo: deal with the accelProfile below...
   const { hardwareProfile } = useModelServingPodSpecOptionsState(obj, isvc);
 
-  const resources = isvc?.spec.predictor.model?.resources || obj.spec.containers[0].resources;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const resources = isvc?.spec?.predictor?.model?.resources || obj.spec?.containers?.[0]?.resources;
   const sizes = getModelServingSizes(dashboardConfig);
   const size = sizes.find(
     (currentSize) => getResourceSize(sizes, resources || {}).name === currentSize.name,
@@ -48,7 +50,9 @@ const ServingRuntimeDetails: React.FC<ServingRuntimeDetailsProps> = ({ project, 
       <DescriptionListGroup>
         <DescriptionListTerm>Model server replicas</DescriptionListTerm>
         <DescriptionListDescription>
-          {isvc?.spec.predictor.minReplicas ?? obj.spec.replicas ?? 'Unknown'}
+          {/* K8s resources can arrive without spec at runtime (RHOAIENG-32511) */}
+          {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+          {isvc?.spec?.predictor?.minReplicas ?? obj.spec?.replicas ?? 'Unknown'}
         </DescriptionListDescription>
       </DescriptionListGroup>
       {resources && (

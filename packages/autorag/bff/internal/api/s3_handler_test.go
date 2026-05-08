@@ -184,7 +184,7 @@ func TestGetS3FileHandler_MissingNamespace(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -201,7 +201,7 @@ func TestGetS3FileHandler_MissingSecretName(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -236,7 +236,7 @@ func TestGetS3FileHandler_MissingBucket(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1",
 		nil,
 		factory,
 		identity,
@@ -260,25 +260,7 @@ func TestGetS3FileHandler_MissingKey(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
-
-func TestGetS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
-	_, res, err := setupApiTest[integrations.HTTPError](
-		"GET",
-		path,
-		nil,
-		factory,
-		identity,
-	)
-
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
@@ -289,7 +271,7 @@ func TestGetS3FileHandler_SecretNotFound(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=non-existent-secret&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -320,7 +302,7 @@ func TestGetS3FileHandler_SecretMissingRequiredFields(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=incomplete-secret&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=incomplete-secret&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -347,7 +329,7 @@ func TestGetS3FileHandler_NamespaceNotFound(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -374,7 +356,7 @@ func TestGetS3FileHandler_ForbiddenError(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -401,7 +383,7 @@ func TestGetS3FileHandler_UnauthorizedError(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"GET",
-		"/api/v1/s3/file?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=restricted&secretName=aws-secret-1&bucket=my-bucket",
 		nil,
 		factory,
 		identity,
@@ -730,7 +712,7 @@ func TestGetS3FileHandler_Success(t *testing.T) {
 	t.Run("should stream file content with correct bucket and key", func(t *testing.T) {
 		rr := setupS3ApiTest(
 			"GET",
-			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=docs/file.pdf",
+			"/api/v1/s3/files/docs%2Ffile.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 			k8sFactory, s3Factory, identity,
 		)
 
@@ -743,7 +725,7 @@ func TestGetS3FileHandler_Success(t *testing.T) {
 	t.Run("should fall back to bucket from secret when no query param", func(t *testing.T) {
 		rr := setupS3ApiTest(
 			"GET",
-			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+			"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1",
 			k8sFactory, s3Factory, identity,
 		)
 
@@ -754,7 +736,7 @@ func TestGetS3FileHandler_Success(t *testing.T) {
 	t.Run("should use query bucket over secret bucket", func(t *testing.T) {
 		rr := setupS3ApiTest(
 			"GET",
-			"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=override-bucket&key=file.pdf",
+			"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=override-bucket",
 			k8sFactory, s3Factory, identity,
 		)
 
@@ -773,7 +755,7 @@ func TestGetS3FileHandler_S3Error(t *testing.T) {
 
 	rr := setupS3ApiTest(
 		"GET",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		k8sFactory, s3Factory, identity,
 	)
 
@@ -997,7 +979,7 @@ func TestPostS3FileHandler_MissingNamespace(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?secretName=aws-secret-1&bucket=my-bucket",
 		[]byte("test"),
 		"file.pdf",
 		factory,
@@ -1014,7 +996,7 @@ func TestPostS3FileHandler_MissingSecretName(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?namespace=test-namespace&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&bucket=my-bucket",
 		[]byte("test"),
 		"file.pdf",
 		factory,
@@ -1049,7 +1031,7 @@ func TestPostS3FileHandler_MissingBucket(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1",
 		[]byte("test"),
 		"file.pdf",
 		factory,
@@ -1074,25 +1056,7 @@ func TestPostS3FileHandler_MissingKey(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	defer res.Body.Close()
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
-}
-
-func TestPostS3FileHandler_WhitespaceOnlyKey(t *testing.T) {
-	mockClient := &mockKubernetesClientForSecrets{}
-	factory := &mockKubernetesClientFactoryForSecrets{client: mockClient}
-	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
-
-	path := "/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=" + url.QueryEscape("   ")
-	res, err := setupApiTestPostMultipart(
-		path,
-		[]byte("test"),
-		"file.pdf",
-		factory,
-		identity,
-	)
-	assert.NoError(t, err)
-	defer res.Body.Close()
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 }
 
 func TestPostS3FileHandler_SecretNotFound(t *testing.T) {
@@ -1101,7 +1065,7 @@ func TestPostS3FileHandler_SecretNotFound(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=non-existent&bucket=my-bucket",
 		[]byte("test"),
 		"file.pdf",
 		factory,
@@ -1135,7 +1099,7 @@ func TestPostS3FileHandler_NoFilePart(t *testing.T) {
 
 	_, res, err := setupApiTest[integrations.HTTPError](
 		"POST",
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		map[string]string{},
 		factory,
 		identity,
@@ -1177,7 +1141,7 @@ func TestPostS3FileHandler_MultipartWithoutFilePart(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		&buf,
 		w.FormDataContentType(),
 		factory,
@@ -1207,7 +1171,7 @@ func TestPostS3FileHandler_NamespaceNotFound(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "test-user"}
 
 	res, err := setupApiTestPostMultipart(
-		"/api/v1/s3/file?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=non-existent&secretName=aws-secret-1&bucket=my-bucket",
 		[]byte("test"),
 		"file.pdf",
 		factory,
@@ -1248,7 +1212,7 @@ func TestPostS3FileHandler_FilePartExceedsMaxBytes_Returns413(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.bin",
+		"/api/v1/s3/files/file.bin?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		factory,
@@ -1290,7 +1254,7 @@ func TestPostS3FileHandler_FilePartUnderMaxBytes_Created(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=small.bin",
+		"/api/v1/s3/files/small.bin?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		factory,
@@ -1317,7 +1281,7 @@ func TestPostS3FileHandler_ResolvesCollidingKeyWithNumericSuffix(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.pdf",
+		"/api/v1/s3/files/file.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1352,7 +1316,7 @@ func TestPostS3FileHandler_ResolvesCollidingNumericSuffix(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file-5.pdf",
+		"/api/v1/s3/files/file-5.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1379,7 +1343,7 @@ func TestPostS3FileHandler_CollisionResolutionExhausted_Returns409(t *testing.T)
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=a.pdf",
+		"/api/v1/s3/files/a.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1443,7 +1407,7 @@ func TestPostS3FileHandler_PutConflictAfterHeadReturns409(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=race.pdf",
+		"/api/v1/s3/files/race.pdf?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1521,7 +1485,7 @@ func TestPostS3FileHandler_TotalRequestBodyExceedsCap_Returns413(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=late.bin",
+		"/api/v1/s3/files/late.bin?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		bytes.NewReader(buf.Bytes()),
 		mw.FormDataContentType(),
 		factory,
@@ -1749,7 +1713,7 @@ func TestGetS3FileHandler_ConnectivityError_Returns503(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodGet,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=file.csv",
+		"/api/v1/s3/files/file.csv?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		http.NoBody,
 		"",
 		k8sFactory,
@@ -1812,7 +1776,7 @@ func TestPostS3FileHandler_ConnectivityError_OnResolveKey_Returns503(t *testing.
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		"/api/v1/s3/files/data.csv?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1857,7 +1821,7 @@ func TestPostS3FileHandler_ConnectivityError_OnUpload_Returns503(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		"/api/v1/s3/files/data.csv?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -1951,7 +1915,7 @@ func TestGetS3FileHandler_DoesNotSetMetadataTimeout(t *testing.T) {
 
 	rr := setupS3ApiTestWithBody(
 		http.MethodGet,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=README.md",
+		"/api/v1/s3/files/README.md?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		http.NoBody,
 		"",
 		k8sFactory,
@@ -1984,7 +1948,7 @@ func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
 	requestStart := time.Now()
 	rr := setupS3ApiTestWithBody(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket&key=data.csv",
+		"/api/v1/s3/files/data.csv?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
 		body,
 		contentType,
 		k8sFactory,
@@ -2005,4 +1969,77 @@ func TestPostS3FileHandler_SetsMetadataTimeoutForResolveKey(t *testing.T) {
 	assert.True(t, hasDeadline, "context passed to ObjectExists should have a deadline from s3MetadataTimeout")
 	assert.WithinDuration(t, requestStart.Add(s3MetadataTimeout), deadline, 5*time.Second,
 		"deadline should be approximately s3MetadataTimeout from request time")
+}
+
+// ---------------------------------------------------------------------------
+// preserveRawPath + url.PathUnescape integration
+// ---------------------------------------------------------------------------
+
+// keyCaptureS3Client records the key passed to GetObject so tests can assert
+// that the preserveRawPath middleware + url.PathUnescape pipeline decodes
+// percent-encoded S3 keys exactly once.
+type keyCaptureS3Client struct {
+	s3mocks.MockS3Client
+	capturedKey string
+}
+
+func (c *keyCaptureS3Client) GetObject(ctx context.Context, bucket, key string) (io.ReadCloser, string, error) {
+	c.capturedKey = key
+	return c.MockS3Client.GetObject(ctx, bucket, key)
+}
+
+func TestPreserveRawPath_S3KeyDecoding(t *testing.T) {
+	tests := []struct {
+		name        string
+		encodedKey  string
+		expectedKey string
+	}{
+		{
+			name:        "slash encoded as %2F",
+			encodedKey:  "docs%2Ffile.pdf",
+			expectedKey: "docs/file.pdf",
+		},
+		{
+			name:        "space encoded as %20",
+			encodedKey:  "my%20file.txt",
+			expectedKey: "my file.txt",
+		},
+		{
+			name:        "plain key without encoding",
+			encodedKey:  "simple.txt",
+			expectedKey: "simple.txt",
+		},
+		{
+			name:        "multiple encoded segments",
+			encodedKey:  "path%2Fto%2Fdeep%2Ffile.txt",
+			expectedKey: "path/to/deep/file.txt",
+		},
+		{
+			name:        "double-encoded %252F preserves literal percent-2F",
+			encodedKey:  "docs%252Ffile.pdf",
+			expectedKey: "docs%2Ffile.pdf",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := validS3Secret("aws-secret-1", "test-namespace")
+			k8sClient := &mockKubernetesClientForSecrets{secrets: []corev1.Secret{secret}}
+			k8sFactory := &mockKubernetesClientFactoryForSecrets{client: k8sClient}
+			capture := &keyCaptureS3Client{}
+			s3Factory := s3mocks.NewMockClientFactory()
+			s3Factory.SetMockClient(capture)
+			identity := &kubernetes.RequestIdentity{UserID: "test-user"}
+
+			rr := setupS3ApiTest(
+				http.MethodGet,
+				"/api/v1/s3/files/"+tt.encodedKey+"?namespace=test-namespace&secretName=aws-secret-1&bucket=my-bucket",
+				k8sFactory, s3Factory, identity,
+			)
+
+			assert.Equal(t, http.StatusOK, rr.Code, "handler should succeed for key %q", tt.encodedKey)
+			assert.Equal(t, tt.expectedKey, capture.capturedKey,
+				"key should be decoded exactly once: %q → %q", tt.encodedKey, tt.expectedKey)
+		})
+	}
 }

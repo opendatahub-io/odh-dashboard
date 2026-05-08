@@ -3,7 +3,7 @@
 ## Overview
 
 - Host-side extension that integrates selected pages from the **external** MLflow frontend into ODH Dashboard.
-- Adds the “Experiments (MLflow)” nav entry under “Develop and Train”.
+- Adds the “Experiments” nav entry under “Develop and Train”.
 - Loads the upstream MLflow UI through Module Federation with ODH chrome, project selection, and session passthrough.
 
 ## Design Intent

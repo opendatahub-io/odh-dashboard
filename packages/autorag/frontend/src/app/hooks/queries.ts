@@ -6,12 +6,13 @@ import { getFiles as getS3Files } from '~/app/api/s3';
 import {
   LlamaStackModelsResponse,
   LlamaStackModelType,
-  LlamaStackVectorStoreProvidersResponse,
+  LlamaStackFilteredVectorStoreProvidersResponse,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
 export function useLlamaStackModelsQuery(
   namespace: string,
@@ -64,15 +65,21 @@ export async function fetchS3File(
   key: string,
   options?: FetchS3FileOptions,
 ): Promise<Blob> {
+  if (!key || !key.trim()) {
+    throw new Error('File key must be a non-empty string');
+  }
+
   const { secretName, bucket, signal } = options ?? {};
   const params = new URLSearchParams({
     namespace,
-    key,
     ...(secretName && { secretName }),
     ...(bucket && { bucket }),
   });
 
-  const response = await fetch(`${URL_PREFIX}/api/v1/s3/file?${params.toString()}`, { signal });
+  const response = await fetch(
+    `${URL_PREFIX}/api/v1/s3/files/${encodeURIComponent(key)}?${params.toString()}`,
+    { signal },
+  );
 
   if (!response.ok) {
     let errorMessage = response.statusText;
@@ -118,7 +125,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
   providerTypes?: string[],
-): UseQueryResult<LlamaStackVectorStoreProvidersResponse, Error> {
+): UseQueryResult<LlamaStackFilteredVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
@@ -147,11 +154,14 @@ export function useLlamaStackVectorStoreProvidersQuery(
       }
     },
     // Filter by provider_type when a non-empty providerTypes array is given.
+    // totalProviderCount preserves the unfiltered count so the UI can distinguish
+    // "no providers at all" from "providers exist but none are supported".
     select: (data) => ({
       // eslint-disable-next-line camelcase
       vector_store_providers: data.vector_store_providers.filter(
         (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
       ),
+      totalProviderCount: data.vector_store_providers.length,
     }),
   });
 }
@@ -159,6 +169,8 @@ export function useLlamaStackVectorStoreProvidersQuery(
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
 export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -169,7 +181,24 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      const status = parseErrorStatus(error);
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < MAX_RETRY_ATTEMPTS;
+    },
+    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
+    retryDelay: (attempt) => {
+      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
+      return exp + jitter;
+    },
     refetchInterval: (query) => {
+      // Let the retry backoff handle re-fetching during errors
+      if (query.state.status === 'error') {
+        return false;
+      }
       const state = query.state.data?.state;
       if (!state || isTerminalState(state)) {
         return false;

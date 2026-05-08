@@ -17,7 +17,6 @@ import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { LlamaStackModelType } from '~/app/types';
 
@@ -62,30 +61,18 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
     name: 'llama_stack_secret_name',
   });
 
-  const {
-    data: llmModelsData,
-    isLoading: isLlmLoading,
-    isError: isLlmError,
-  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'llm');
-  const {
-    data: embeddingModelsData,
-    isLoading: isEmbeddingLoading,
-    isError: isEmbeddingError,
-  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'embedding');
+  const { data: llmModelsData, isLoading: isLlmLoading } = useLlamaStackModelsQuery(
+    namespace,
+    llamaStackSecretName,
+    'llm',
+  );
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useLlamaStackModelsQuery(
+    namespace,
+    llamaStackSecretName,
+    'embedding',
+  );
 
   const isLoading = isLlmLoading || isEmbeddingLoading;
-  const isError = isLlmError || isEmbeddingError;
-
-  const notification = useNotification();
-
-  React.useEffect(() => {
-    if (isError) {
-      notification.error(
-        'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
-      );
-    }
-  }, [isError, notification]);
 
   const { field: generationModelField } = useController({
     control: form.control,

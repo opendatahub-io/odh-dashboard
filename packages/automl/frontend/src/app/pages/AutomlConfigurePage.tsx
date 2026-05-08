@@ -13,17 +13,18 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 import classNames from 'classnames';
-import { useNamespaceSelector } from 'mod-arch-core';
 import { ApplicationsPage } from 'mod-arch-shared';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useCreatePipelineRunMutation } from '~/app/hooks/mutations';
 import { useNotification } from '~/app/hooks/useNotification';
+import type { SecretSelection } from '~/app/components/common/SecretSelector';
 import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname, automlResultsPathname } from '~/app/utilities/routes';
 
@@ -32,14 +33,34 @@ const createFields = ['display_name', 'description'] as const satisfies Array<
   FieldPath<ConfigureSchema>
 >;
 
-function AutomlConfigurePage(): React.JSX.Element {
+type AutomlConfigurePageProps = {
+  initialValues?: Partial<ConfigureSchema>;
+  /** Pre-resolved S3 connection secret for reconfigure flows. */
+  initialInputDataSecret?: SecretSelection;
+  /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
+  sourceRunId?: string;
+  /** When reconfiguring, the display name of the source run (used in the page title). */
+  sourceRunName?: string;
+};
+
+function AutomlConfigurePage({
+  initialValues,
+  initialInputDataSecret,
+  sourceRunId,
+  sourceRunName,
+}: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const notification = useNotification();
+  const fromResultsPage =
+    location.state != null &&
+    typeof location.state === 'object' &&
+    'from' in location.state &&
+    location.state.from === 'results';
 
   const { namespace } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
@@ -52,7 +73,7 @@ function AutomlConfigurePage(): React.JSX.Element {
   const form = useForm({
     mode: 'onChange',
     resolver: zodResolver(configureSchema.full),
-    defaultValues: configureSchema.defaults,
+    defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
   const [displayName] = useWatch({
@@ -62,24 +83,22 @@ function AutomlConfigurePage(): React.JSX.Element {
 
   const [step, setStep] = useState<'create' | 'configure'>('create');
 
+  const onCancel = useCallback(() => navigate(-1), [navigate]);
+
   const createActions = (
     <>
       <ActionListItem>
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-next-button"
           isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
         >
           Next
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          component={(props) => (
-            <Link {...props} to={`${automlExperimentsPathname}/${namespace}`} />
-          )}
-          variant="link"
-        >
+        <Button variant="link" onClick={onCancel}>
           Cancel
         </Button>
       </ActionListItem>
@@ -92,9 +111,10 @@ function AutomlConfigurePage(): React.JSX.Element {
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-create-run-button"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
-          Create run
+          {sourceRunId ? 'Create new run' : 'Create run'}
         </Button>
       </ActionListItem>
       <ActionListItem>
@@ -116,7 +136,15 @@ function AutomlConfigurePage(): React.JSX.Element {
       subtext={
         <h2 className="pf-v6-u-mt-sm">
           {step === 'create' ? (
-            'Create AutoML optimization run'
+            sourceRunId && sourceRunName ? (
+              <>
+                Reconfigure &quot;
+                <Truncate content={sourceRunName} />
+                &quot;
+              </>
+            ) : (
+              'Create AutoML optimization run'
+            )
           ) : (
             <span data-testid="configure-step-subtitle">
               &quot;
@@ -128,17 +156,33 @@ function AutomlConfigurePage(): React.JSX.Element {
       }
       description={
         step === 'create' && (
-          <Content>Automatically configure and optimize your machine learning workflows.</Content>
+          <Content>
+            Automatically configure and optimize your machine learning workflows.
+            {sourceRunId && (
+              <>
+                <br />
+                Settings from the previous run have been automatically populated. You can modify any
+                configurations as needed.
+              </>
+            )}
+          </Content>
         )
       }
       breadcrumb={
-        step === 'configure' && (
+        (step === 'configure' || sourceRunId) && (
           <Breadcrumb>
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
             </BreadcrumbItem>
+            {fromResultsPage && sourceRunId && sourceRunName && (
+              <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
+                <Link to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}>
+                  <Truncate content={sourceRunName} />
+                </Link>
+              </BreadcrumbItem>
+            )}
             <BreadcrumbItem isActive data-testid="configure-breadcrumb-name">
-              <Truncate content={displayName || ''} />
+              {sourceRunId ? 'Reconfigure' : <Truncate content={displayName || ''} />}
             </BreadcrumbItem>
           </Breadcrumb>
         )
@@ -189,7 +233,14 @@ function AutomlConfigurePage(): React.JSX.Element {
               )}
               hasBodyWrapper={false}
             >
-              {step === 'create' ? <AutomlCreate /> : <AutomlConfigure />}
+              {step === 'create' ? (
+                <AutomlCreate />
+              ) : (
+                <AutomlConfigure
+                  initialValues={initialValues}
+                  initialInputDataSecret={initialInputDataSecret}
+                />
+              )}
             </PageSection>
           </StackItem>
           <StackItem>

@@ -10,10 +10,8 @@ import {
   SplitItem,
   Truncate,
 } from '@patternfly/react-core';
-import { OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
-import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { Link, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
@@ -23,35 +21,33 @@ import AutomlResults from '~/app/components/run-results/AutomlResults';
 import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInputParametersPanel';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
-import {
-  useRetryPipelineRunMutation,
-  useTerminatePipelineRunMutation,
-} from '~/app/hooks/mutations';
+import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
-import { RuntimeStateKF } from '~/app/types/pipeline';
-import { automlExperimentsPathname } from '~/app/utilities/routes';
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { automlExperimentsPathname, automlReconfigurePathname } from '~/app/utilities/routes';
+import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
 function AutomlResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
-  const { namespaces, namespacesLoaded, namespacesLoadError } = useNamespaceSelector({
-    storeLastNamespace: true,
-  });
+  const { namespaces, namespacesLoaded, namespacesLoadError } =
+    useNamespaceSelectorWithPersistence();
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
-  const queryClient = useQueryClient();
-  const notification = useNotification();
-  const terminateMutation = useTerminatePipelineRunMutation(namespace ?? '', runId ?? '');
-  const retryMutation = useRetryPipelineRunMutation(namespace ?? '', runId ?? '');
+  const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutomlRunActions(
+    namespace ?? '',
+    runId ?? '',
+  );
 
   const noNamespaces = namespacesLoaded && namespaces.length === 0;
   const invalidNamespace =
     namespacesLoaded && !!namespace && !namespaces.map((ns) => ns.name).includes(namespace);
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
+
+  const notification = useNotification();
 
   const {
     data: pipelineRun,
@@ -60,60 +56,73 @@ function AutomlResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
+
+  // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
+  // notification with stale data, while initial load errors (no data yet) show a full error page.
+  const hasPreviousData = !!pipelineRun;
+  const isPollingError = pipelineRunError && hasPreviousData;
+  const isInitialLoadError = pipelineRunError && !hasPreviousData;
+
+  React.useEffect(() => {
+    if (isPollingError) {
+      notification.warning(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    }
+  }, [isPollingError, notification]);
+
   const invalidPipelineRunId =
-    pipelineRunError &&
+    isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
 
   // Fetch and process AutoML results using custom hook
   const {
     models,
+    failedModels,
     isLoading: modelsLoading,
     isError: modelsError,
     error: modelsLoadError,
     modelsBasePath,
+    refetch: refetchModels,
   } = useAutomlResults(runId, namespace, pipelineRun);
 
-  const runState = pipelineRun?.state.toUpperCase();
-  const isRunActive =
-    runState === RuntimeStateKF.RUNNING ||
-    runState === RuntimeStateKF.PENDING ||
-    runState === RuntimeStateKF.CANCELING ||
-    runState === RuntimeStateKF.PAUSED;
-  const isRunRetryable = runState === RuntimeStateKF.FAILED || runState === RuntimeStateKF.CANCELED;
-
-  const handleRetry = React.useCallback(async () => {
-    try {
-      await retryMutation.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
-      notification.success(
-        'Retry submitted successfully',
-        'The process is asynchronous and may take some time to take effect',
-      );
-    } catch (error) {
-      notification.error(
-        'Failed to retry run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
+  const failedModelsNotifiedKey = React.useRef('');
+  React.useEffect(() => {
+    const key = [...failedModels].toSorted().join(',');
+    if (failedModels.length > 0 && failedModelsNotifiedKey.current !== key) {
+      failedModelsNotifiedKey.current = key;
+      const total = failedModels.length + Object.keys(models).length;
+      notification.warning(
+        `${failedModels.length} of ${total} models could not be loaded`,
+        `The following models failed to load: ${failedModels.join(', ')}`,
       );
     }
-  }, [retryMutation, queryClient, runId, namespace, notification]);
+  }, [failedModels, models, notification]);
 
-  const handleConfirmStop = React.useCallback(async () => {
+  const runTerminatable = isRunTerminatable(pipelineRun?.state);
+  const runRetryable = isRunRetryable(pipelineRun?.state);
+
+  const handleStop = React.useCallback(async () => {
     try {
-      await terminateMutation.mutateAsync();
-      notification.success(
-        'Stop submitted successfully',
-        'The process is asynchronous and may take some time to take effect',
-      );
-    } catch (error) {
-      notification.error(
-        'Failed to stop run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
-    } finally {
+      await handleConfirmStop();
       setIsStopModalOpen(false);
+    } catch {
+      // Keep modal open on failure; error notification is shown by the hook.
     }
-  }, [terminateMutation, notification]);
+  }, [handleConfirmStop]);
+
+  const ReconfigureLink = React.useCallback(
+    (props: React.ComponentProps<typeof Link>) => (
+      <Link
+        {...props}
+        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
+    ),
+    [namespace, runId],
+  );
 
   const contextValue = React.useMemo(
     () =>
@@ -123,8 +132,21 @@ function AutomlResultsPage(): React.JSX.Element {
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         modelsLoading,
         modelsBasePath,
+        modelsError,
+        modelsLoadError,
+        onRetryModels: refetchModels,
       }),
-    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading, modelsBasePath],
+    [
+      pipelineRun,
+      models,
+      pipelineRunPending,
+      pipelineRunFetching,
+      modelsLoading,
+      modelsBasePath,
+      modelsError,
+      modelsLoadError,
+      refetchModels,
+    ],
   );
 
   return (
@@ -158,7 +180,7 @@ function AutomlResultsPage(): React.JSX.Element {
               headerAction={
                 <Split hasGutter>
                   <SplitItem>
-                    {isRunActive && (
+                    {runTerminatable && (
                       <Button
                         variant="secondary"
                         icon={<StopCircleIcon />}
@@ -168,19 +190,29 @@ function AutomlResultsPage(): React.JSX.Element {
                         Stop
                       </Button>
                     )}
-                    {isRunRetryable && (
+                    {runRetryable && (
                       <Button
                         variant="secondary"
                         icon={<RedoIcon />}
-                        onClick={handleRetry}
-                        isDisabled={retryMutation.isPending}
-                        isLoading={retryMutation.isPending}
+                        onClick={() => void handleRetry().catch(() => undefined)}
+                        isDisabled={isRetrying}
+                        isLoading={isRetrying}
                         spinnerAriaValueText="Retrying run"
                         data-testid="retry-run-button"
                       >
                         Retry
                       </Button>
                     )}
+                  </SplitItem>
+                  <SplitItem>
+                    <Button
+                      variant="secondary"
+                      icon={<CogIcon />}
+                      component={ReconfigureLink}
+                      data-testid="reconfigure-run-button"
+                    >
+                      Reconfigure
+                    </Button>
                   </SplitItem>
                   <SplitItem>
                     <Button
@@ -213,10 +245,12 @@ function AutomlResultsPage(): React.JSX.Element {
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
               }
-              loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loadError={
+                hasPreviousData ? undefined : (pipelineRunLoadError ?? namespacesLoadError)
+              }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              {!modelsError && <AutomlResults />}
+              <AutomlResults />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
@@ -224,8 +258,9 @@ function AutomlResultsPage(): React.JSX.Element {
       <StopRunModal
         isOpen={isStopModalOpen}
         onClose={() => setIsStopModalOpen(false)}
-        onConfirm={handleConfirmStop}
-        isTerminating={terminateMutation.isPending}
+        onConfirm={handleStop}
+        isTerminating={isTerminating}
+        runName={pipelineRun?.display_name}
       />
     </AutomlResultsContext.Provider>
   );

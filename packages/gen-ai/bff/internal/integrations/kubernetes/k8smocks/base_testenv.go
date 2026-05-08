@@ -89,6 +89,7 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
 			CreateLlamaStackDistributionCRD(),
 			CreateGuardrailsOrchestratorCRD(),
+			CreateNemoGuardrailsCRD(),
 		},
 	}
 
@@ -622,6 +623,43 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 				Singular:   "llamastackdistribution",
 				Kind:       "LlamaStackDistribution",
 				ShortNames: []string{"lsd"},
+			},
+		},
+	}
+}
+
+// CreateNemoGuardrailsCRD creates the CRD for NemoGuardrails.
+// Uses x-kubernetes-preserve-unknown-fields on spec and status so the unstructured CR
+// is accepted without a full typed schema.
+func CreateNemoGuardrailsCRD() *apiextensionsv1.CustomResourceDefinition {
+	preserveUnknown := true
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nemoguardrails.trustyai.opendatahub.io",
+		},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: "trustyai.opendatahub.io",
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+				{
+					Name:    "v1alpha1",
+					Served:  true,
+					Storage: true,
+					Schema: &apiextensionsv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"spec":   {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+								"status": {Type: "object", XPreserveUnknownFields: &preserveUnknown},
+							},
+						},
+					},
+				},
+			},
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{
+				Plural:   "nemoguardrails",
+				Singular: "nemoguardrails",
+				Kind:     "NemoGuardrails",
 			},
 		},
 	}

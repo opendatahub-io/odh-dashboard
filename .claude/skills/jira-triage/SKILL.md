@@ -1069,6 +1069,8 @@ See `jira-project-reference.md` § Project Constants for the Team field ID and v
 
 Run the analysis skills in order **only for issues that passed Step 2a**. Each skill reads the issue data already in session and produces operations. **Read each skill's SKILL.md** before executing it.
 
+**Workspace tools are available during analysis.** Some analysis skills (notably validate-area-label and assign-scrum-team) may use workspace tools like `Glob` to resolve file names mentioned in issues to their full repository paths. This is expected — the codebase is a signal source alongside Jira data, and is especially important for test failure/flake issues where the spec file name is the primary routing signal.
+
 If during Step 2b you determine the issue belongs to **another team** (not RHOAI Dashboard), **stop the pipeline for this issue**: do not run remaining analysis skills, do not run Step 2c or 2d, and **discard any operations already drafted for it in this run**. Produce a single `NO_OP` with reason (e.g., "Late team-gate: not a dashboard issue — {reason}") and write it to the file in Step 2e. Step 2a should prevent most cases; this catches late realizations.
 
 **Pipeline order:**

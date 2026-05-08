@@ -218,16 +218,15 @@ func (app *App) mapMutationError(w http.ResponseWriter, r *http.Request, err err
 
 // terminatableStates lists the run states that are eligible for termination.
 var terminatableStates = map[string]bool{
-	"PENDING":   true,
-	"RUNNING":   true,
-	"PAUSED":    true,
-	"CANCELING": true,
+	"PENDING": true,
+	"RUNNING": true,
+	"PAUSED":  true,
 }
 
 // TerminatePipelineRunHandler handles POST /api/v1/pipeline-runs/:runId/terminate
 //
 // Terminates an active AutoRAG pipeline run. The run must be in an active state
-// (PENDING, RUNNING, PAUSED, or CANCELING) and belong to the discovered AutoRAG
+// (PENDING, RUNNING, or PAUSED) and belong to the discovered AutoRAG
 // pipeline in the namespace. The run transitions to CANCELING and then CANCELED state.
 //
 // Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
@@ -247,13 +246,55 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	// Validate the run is in a terminatable state
 	runState := strings.ToUpper(run.State)
 	if !terminatableStates[runState] {
-		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, PAUSED, or CANCELING runs can be terminated", run.RunID, runState))
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be terminated; only PENDING, RUNNING, or PAUSED runs can be terminated", run.RunID, runState))
 		return
 	}
 
 	// Ownership and state confirmed — terminate the run
 	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, r.Context(), run.RunID); err != nil {
 		app.mapMutationError(w, r, err, "terminate")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// deletableStates lists the run states that are eligible for deletion.
+var deletableStates = map[string]bool{
+	"SUCCEEDED": true,
+	"FAILED":    true,
+	"CANCELED":  true,
+}
+
+// DeletePipelineRunHandler handles DELETE /api/v1/pipeline-runs/:runId
+//
+// Permanently deletes a completed, failed, or canceled AutoRAG pipeline run. The run must belong
+// to the discovered AutoRAG pipeline in the namespace.
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before deleting it. This prevents users from deleting runs from
+// other pipelines that may exist in the same namespace.
+//
+// Only runs in SUCCEEDED, FAILED, or CANCELED state can be deleted.
+//
+// Error Responses:
+//   - 400: Missing runId or run is not in a deletable state
+//   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
+func (app *App) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	client, run, ok := app.resolveOwnedRun(w, r, params)
+	if !ok {
+		return
+	}
+
+	runState := strings.ToUpper(run.State)
+	if !deletableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be deleted; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", run.RunID, runState))
+		return
+	}
+
+	if err := app.repositories.PipelineRuns.DeletePipelineRun(client, r.Context(), run.RunID); err != nil {
+		app.mapMutationError(w, r, err, "delete")
 		return
 	}
 

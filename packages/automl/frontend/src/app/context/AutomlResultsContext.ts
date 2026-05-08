@@ -6,46 +6,29 @@ import { getTaskType } from '~/app/utilities/utils';
 
 const configureSchema = createConfigureSchema();
 
-// Normalized model types after rewriting relative S3 paths to absolute paths.
-// Tabular and timeseries models have different shapes; downstream code should
-// use the `AutomlModel` union and narrow via `isTimeseriesModel()` when needed.
-
-export type AutomlTabularModel = {
+/* eslint-disable camelcase */
+export type AutomlModel = {
   name: string;
   location: {
     model_directory: string;
     predictor: string;
     notebook: string;
+    metrics?: string;
   };
   metrics: {
     test_data: Record<string, number>;
   };
 };
-
-export type AutomlTimeseriesModel = {
-  name: string;
-  base_model: string;
-  location: {
-    model_directory: string;
-    predictor: string;
-    notebook: string;
-    metrics: string;
-  };
-  metrics: {
-    test_data: Record<string, number>;
-  };
-};
-
-export type AutomlModel = AutomlTabularModel | AutomlTimeseriesModel;
-
-export const isTimeseriesModel = (model: AutomlModel): model is AutomlTimeseriesModel =>
-  'base_model' in model;
+/* eslint-enable camelcase */
 
 export type AutomlResultsContextProps = {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   models: Record<string, AutomlModel>;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
   modelsBasePath?: string;
 };
@@ -68,12 +51,18 @@ export function getAutomlContext({
   pipelineRunLoading,
   modelsLoading,
   modelsBasePath,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
 }: {
   pipelineRun?: PipelineRun;
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
   modelsBasePath?: string;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
 }): AutomlResultsContextProps {
   const inputParams = pipelineRun?.runtime_config?.parameters;
 
@@ -99,6 +88,9 @@ export function getAutomlContext({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters,
     modelsBasePath,
   };

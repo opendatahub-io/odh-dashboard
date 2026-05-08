@@ -9,9 +9,9 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 )
 
 type mockMcpServerAvailabilityRepo struct {

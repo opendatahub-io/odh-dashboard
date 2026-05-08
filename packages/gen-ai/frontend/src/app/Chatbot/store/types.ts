@@ -25,6 +25,7 @@ export interface ChatbotConfiguration {
   guardrail: string;
   guardrailUserInputEnabled: boolean;
   guardrailModelOutputEnabled: boolean;
+  guardrailSubscription: string;
   /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
   isRagEnabled: boolean;
   /** Which knowledge source mode is active: inline file upload or an external vector store */
@@ -50,6 +51,7 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrail: '',
   guardrailUserInputEnabled: false,
   guardrailModelOutputEnabled: false,
+  guardrailSubscription: '',
   // RAG default - OFF
   isRagEnabled: false,
   knowledgeMode: 'inline',
@@ -98,6 +100,7 @@ export interface ChatbotConfigStoreActions {
   updateGuardrail: (id: string, value: string) => void;
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
+  updateGuardrailSubscription: (id: string, value: string) => void;
 
   updateSelectedSubscription: (id: string, value: string) => void;
 

@@ -6,6 +6,7 @@ type StopRunModalProps = {
   onClose: () => void;
   onConfirm: () => void;
   isTerminating: boolean;
+  runName?: string;
 };
 
 const StopRunModal: React.FC<StopRunModalProps> = ({
@@ -13,12 +14,13 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
   onClose,
   onConfirm,
   isTerminating,
+  runName,
 }) => (
   <Modal variant="small" isOpen={isOpen} onClose={onClose} data-testid="stop-run-modal">
     <ModalHeader title="Stop pipeline run?" />
     <ModalBody>
-      Are you sure you want to stop this run? All running tasks will be canceled and the run will be
-      marked as canceled. This action cannot be undone.
+      Are you sure you want to stop {runName ? `"${runName}"` : 'this run'}? All running tasks will
+      be canceled and the run will be marked as canceled. This action cannot be undone.
     </ModalBody>
     <ModalFooter>
       <Button

@@ -1,10 +1,11 @@
+import { registerModelUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import { FormFieldSelector } from './registerModelPage';
 
 class RegisterAndStoreFields {
   visit(registryNamespace?: string) {
     const preferredModelRegistry = 'modelregistry-sample';
     const query = registryNamespace ? `?namespace=${encodeURIComponent(registryNamespace)}` : '';
-    cy.visit(`/model-registry/${preferredModelRegistry}/register/model${query}`);
+    cy.visit(`${registerModelUrl(preferredModelRegistry)}${query}`);
   }
 
   findNamespaceFormGroup() {
@@ -48,7 +49,9 @@ class RegisterAndStoreFields {
   }
 
   selectNamespace(name: string) {
-    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
+    this.findNamespaceSelectCombobox().should('not.be.disabled');
+    this.findNamespaceSelectCombobox().scrollIntoView().click();
+    cy.findByRole('listbox').should('be.visible');
     cy.findByRole('option', { name }).click();
   }
 
@@ -66,11 +69,12 @@ class RegisterAndStoreFields {
   }
 
   shouldHaveNamespaceOptions(namespaces: string[]) {
-    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
+    this.findNamespaceSelectCombobox().should('not.be.disabled');
+    this.findNamespaceSelectCombobox().scrollIntoView().click();
     namespaces.forEach((namespace) => {
       cy.findByRole('option', { name: namespace }).should('exist');
     });
-    this.findNamespaceSelectCombobox().scrollIntoView().click({ force: true });
+    this.findNamespaceSelectCombobox().scrollIntoView().click();
     return this;
   }
 
@@ -301,9 +305,18 @@ class RegisterAndStoreFields {
     this.findSourceS3SecretAccessKeyInput().type(secretAccessKey);
   }
 
+  /** Sets model type (required on register page). Uses Predictive by default. */
+  selectModelType(
+    optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
+  ) {
+    cy.get('#register-model-type-toggle').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
+
   // Convenience method to fill all required fields for submission
   fillAllRequiredFields() {
     this.fillModelName('test-model');
+    this.selectModelType();
     this.fillVersionName('v1.0.0');
     this.fillJobName('my-transfer-job');
     this.fillSourceEndpoint('https://s3.amazonaws.com');

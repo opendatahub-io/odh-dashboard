@@ -43,7 +43,7 @@ class TaskDrawer extends Contextual<HTMLElement> {
   }
 
   shouldHaveTaskName(name: string) {
-    return this.find().findByTestId('pipeline-task-name').should('have.text', name);
+    return this.find().findByTestId('pipeline-task-name').should('contain.text', name);
   }
 }
 
@@ -61,6 +61,52 @@ class PipelinesTopology {
 
   findTaskNode(name: string) {
     return cy.get(`[data-id="${name}"][data-kind="node"][data-type="DEFAULT_TASK_NODE"]`);
+  }
+
+  findTaskNodes() {
+    return cy.get('[data-kind="node"][data-type="DEFAULT_TASK_NODE"]');
+  }
+
+  findNodes() {
+    return cy.get('[data-kind="node"]');
+  }
+
+  findEdges() {
+    return cy.get('[data-kind="edge"]');
+  }
+
+  // PF Topology uses data-test-id (hyphenated), not data-testid
+  findVisualizationSurface() {
+    return cy.get('[data-test-id="topology"]');
+  }
+
+  findControlBar() {
+    return cy.findByTestId('pipeline-topology-control-bar');
+  }
+
+  // PF Topology toolbar buttons — third-party components without data-testid support; scoped within control bar
+  findCollapseAllButton() {
+    return this.findControlBar().findByRole('button', { name: /collapse all/i });
+  }
+
+  findExpandAllButton() {
+    return this.findControlBar().findByRole('button', { name: /expand all/i });
+  }
+
+  findZoomInButton() {
+    return this.findControlBar().findByRole('button', { name: /zoom in/i });
+  }
+
+  findZoomOutButton() {
+    return this.findControlBar().findByRole('button', { name: /zoom out/i });
+  }
+
+  findFitToScreenButton() {
+    return this.findControlBar().findByRole('button', { name: /fit to screen/i });
+  }
+
+  findResetViewButton() {
+    return this.findControlBar().findByRole('button', { name: /reset view/i });
   }
 
   findArtifactNode(name: string) {

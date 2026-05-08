@@ -397,6 +397,16 @@ describe('API Keys Page', () => {
     });
   });
 
+  it('should disable revoke all my API keys button when no active keys are present', () => {
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+    apiKeysPage.visit();
+    cy.wait('@emptySearch');
+
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysActionButton().should('be.disabled');
+  });
+
   it('should revoke a specific API key', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.getRow('development-testing').findKebabAction('Revoke').click();
@@ -516,8 +526,9 @@ describe('API Keys Page', () => {
   });
 
   it('should create an API key with a custom expiration and show the correct label in the success view', () => {
+    const created = mockCreateAPIKeyResponse();
     cy.interceptOdh('POST /maas/api/v1/api-keys', {
-      data: mockCreateAPIKeyResponse(),
+      data: created,
     }).as('createApiKey');
 
     apiKeysPage.findCreateApiKeyButton().click();
@@ -537,6 +548,7 @@ describe('API Keys Page', () => {
     });
 
     copyApiKeyModal.shouldBeOpen();
+    copyApiKeyModal.findApiKeyName().should('contain.text', 'my-key');
     copyApiKeyModal.findApiKeyExpirationDate().should('contain.text', '45 days');
   });
 
@@ -685,9 +697,7 @@ describe('API Keys Page (Admin)', () => {
 
   it('should show admin revoke action label', () => {
     apiKeysPage.findActionsToggle().click();
-    apiKeysPage
-      .findRevokeAllAPIKeysAction()
-      .should('contain.text', 'Revoke all keys for a single user');
+    apiKeysPage.findRevokeAllAPIKeysAction().should('contain.text', 'Revoke user API keys');
     apiKeysPage.findRevokeAllAPIKeysAction().should('not.be.disabled');
   });
 

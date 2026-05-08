@@ -1,5 +1,5 @@
 import { act } from 'react';
-import { standardUseFetchState, testHook } from '@odh-dashboard/jest-config/hooks';
+import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
 import axios from '#~/utilities/axios';
 import { mockPrometheusQueryResponse } from '#~/__mocks__/mockPrometheusQueryResponse';
 import usePrometheusQuery from '#~/api/prometheus/usePrometheusQuery';
@@ -18,7 +18,7 @@ describe('usePrometheusQuery', () => {
     const prometheusResponse = { data: { response: mockPrometheusQueryResponse({}) } };
     mockAxios.mockResolvedValue(prometheusResponse);
     const renderResult = await testHook(usePrometheusQuery)(apiPath, query);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(null));
+    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: null }));
     expect(mockAxios).toHaveBeenCalledTimes(1);
     expect(mockAxios).toHaveBeenCalledWith('/api/prometheus/pvc', {
       query: 'namespace=test-project',
@@ -29,17 +29,15 @@ describe('usePrometheusQuery', () => {
     await renderResult.waitForNextUpdate();
     expect(mockAxios).toHaveBeenCalledTimes(1);
     expect(renderResult).hookToStrictEqual(
-      standardUseFetchState(prometheusResponse.data.response, true),
+      standardUseFetchStateObject({ data: prometheusResponse.data.response, loaded: true }),
     );
     expect(renderResult).hookToHaveUpdateCount(2);
-    expect(renderResult).hookToBeStable([false, false, true, true]);
 
     // refresh
     mockAxios.mockResolvedValue(prometheusResponse);
-    await act(() => renderResult.result.current[3]());
+    await act(() => renderResult.result.current.refresh());
     expect(mockAxios).toHaveBeenCalledTimes(2);
     expect(renderResult).hookToHaveUpdateCount(3);
-    expect(renderResult).hookToBeStable([false, true, true, true]);
   });
 
   it('should handle when query is empty string', async () => {
@@ -52,21 +50,23 @@ describe('usePrometheusQuery', () => {
 
     const renderResult = testHook(usePrometheusQuery)(apiPath, query);
     expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(null));
+    expect(renderResult).hookToStrictEqual(standardUseFetchStateObject({ data: null }));
     expect(renderResult).hookToHaveUpdateCount(1);
 
     // wait for update
     await renderResult.waitForNextUpdate();
     expect(mockAxios).toHaveBeenCalledTimes(1);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(null, false, new Error('error1')));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: null, error: new Error('error1') }),
+    );
     expect(renderResult).hookToHaveUpdateCount(2);
-    expect(renderResult).hookToBeStable([true, true, false, true]);
 
     mockAxios.mockRejectedValue(new Error('error2'));
-    await act(() => renderResult.result.current[3]());
+    await act(() => renderResult.result.current.refresh());
     expect(mockAxios).toHaveBeenCalledTimes(2);
-    expect(renderResult).hookToStrictEqual(standardUseFetchState(null, false, new Error('error2')));
+    expect(renderResult).hookToStrictEqual(
+      standardUseFetchStateObject({ data: null, error: new Error('error2') }),
+    );
     expect(renderResult).hookToHaveUpdateCount(3);
-    expect(renderResult).hookToBeStable([true, true, false, true]);
   });
 });

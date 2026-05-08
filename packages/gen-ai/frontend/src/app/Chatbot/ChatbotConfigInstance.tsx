@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
-import { GuardrailModelConfig, MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
 import {
@@ -14,6 +14,7 @@ import {
   selectGuardrail,
   selectGuardrailUserInputEnabled,
   selectGuardrailModelOutputEnabled,
+  selectGuardrailSubscription,
   selectRagEnabled,
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
@@ -33,7 +34,6 @@ interface ChatbotConfigInstanceProps {
   showWelcomePrompt?: boolean;
   welcomeDescription?: string;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
-  guardrailModelConfigs?: GuardrailModelConfig[];
   configIndex?: number;
   isCompareMode?: boolean;
 }
@@ -49,7 +49,6 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   showWelcomePrompt = false,
   welcomeDescription = 'Welcome to the playground',
   onMessagesHookReady,
-  guardrailModelConfigs = [],
   configIndex,
   isCompareMode,
 }) => {
@@ -68,9 +67,17 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   // Keep selectedVectorStoreId in sync with the active knowledge mode:
   // - inline: always the auto-provisioned store ID
-  // - external: cleared to null so the user must pick via the selector
+  // - external: cleared to null only when transitioning FROM inline, not on remount
+  //   (remount occurs when entering compare mode; we must not clobber the user's existing selection)
+  const prevKnowledgeModeRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    updateSelectedVectorStoreId(configId, knowledgeMode === 'inline' ? currentVectorStoreId : null);
+    if (knowledgeMode === 'inline') {
+      updateSelectedVectorStoreId(configId, currentVectorStoreId);
+    } else if (prevKnowledgeModeRef.current === 'inline') {
+      // Only clear when the user explicitly switches from inline → external
+      updateSelectedVectorStoreId(configId, null);
+    }
+    prevKnowledgeModeRef.current = knowledgeMode;
   }, [knowledgeMode, currentVectorStoreId, configId, updateSelectedVectorStoreId]);
 
   // Prompt state from store (for analytics)
@@ -84,6 +91,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const guardrailModelOutputEnabled = useChatbotConfigStore(
     selectGuardrailModelOutputEnabled(configId),
   );
+  const guardrailSubscription = useChatbotConfigStore(selectGuardrailSubscription(configId));
 
   // Build guardrails config for the messages hook
   const guardrailsConfig = React.useMemo(
@@ -92,8 +100,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
       guardrail,
       userInputEnabled: guardrailUserInputEnabled,
       modelOutputEnabled: guardrailModelOutputEnabled,
+      guardrailSubscription,
     }),
-    [guardrail, guardrailUserInputEnabled, guardrailModelOutputEnabled],
+    [guardrail, guardrailUserInputEnabled, guardrailModelOutputEnabled, guardrailSubscription],
   );
 
   const getToolSelections = React.useCallback(
@@ -118,7 +127,6 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     toolSelections: getToolSelections,
     namespace,
     guardrailsConfig,
-    guardrailModelConfigs,
     subscription: selectedSubscription,
     configIndex,
     isCompareMode,

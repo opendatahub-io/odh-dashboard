@@ -13,6 +13,9 @@ export const chatbotConfigurationColumns: SortableData<AIModel>[] = [
     field: 'display_name',
     sortable: (a, b) => a.display_name.localeCompare(b.display_name),
     width: 50,
+    info: {
+      popover: 'The display name of the model endpoint.',
+    },
   },
   {
     label: 'Status',

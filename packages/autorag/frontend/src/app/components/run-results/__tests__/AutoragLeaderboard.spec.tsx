@@ -196,6 +196,9 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   patternsLoading?: boolean;
+  patternsError?: boolean;
+  patternsLoadError?: Error;
+  onRetryPatterns?: () => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
@@ -205,6 +208,9 @@ const renderWithContext = ({
   pipelineRun,
   pipelineRunLoading = false,
   patternsLoading = false,
+  patternsError,
+  patternsLoadError,
+  onRetryPatterns,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
@@ -223,6 +229,9 @@ const renderWithContext = ({
     pipelineRunLoading,
     patterns,
     patternsLoading,
+    patternsError,
+    patternsLoadError,
+    onRetryPatterns,
     parameters: createMockParameters(finalOptimizationMetric),
   };
 
@@ -461,6 +470,93 @@ describe('AutoragLeaderboard component', () => {
     });
   });
 
+  describe('error states', () => {
+    it('should show error empty state when patternsError is true', () => {
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('Failed to list RAG patterns directory'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toBeInTheDocument();
+      expect(within(errorState).getByText('Unable to fetch RAG patterns')).toBeInTheDocument();
+      expect(errorState).toHaveTextContent('An error occurred while loading pattern results.');
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show generic error message when patternsLoadError is undefined', () => {
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toHaveTextContent('An error occurred while loading pattern results.');
+    });
+
+    it('should call onRetryPatterns when Retry button is clicked', () => {
+      const mockRetry = jest.fn();
+
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('S3 failure'),
+        onRetryPatterns: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should display patterns after successful retry', () => {
+      const mockRetry = jest.fn();
+
+      const { rerender } = renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('S3 failure'),
+        onRetryPatterns: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      expect(screen.getByTestId('leaderboard-error')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      // Simulate successful refetch by rerendering with patterns
+      const contextValue = {
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+        pipelineRunLoading: false,
+        patterns: mockStandardPatterns,
+        patternsLoading: false,
+        patternsError: false,
+        onRetryPatterns: mockRetry,
+        parameters: createMockParameters('faithfulness'),
+      };
+
+      rerender(
+        <MemoryRouter initialEntries={['/autorag/test-namespace/results/test-run-123']}>
+          <Routes>
+            <Route
+              path="/autorag/:namespace/results/:runId"
+              element={
+                <AutoragResultsContext.Provider value={contextValue}>
+                  <AutoragLeaderboard />
+                </AutoragResultsContext.Provider>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByTestId('leaderboard-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+    });
+  });
+
   describe('running pipeline state', () => {
     it('should show running state when pipeline is PENDING', () => {
       renderWithContext({
@@ -685,7 +781,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const patternNameHeader = screen.getByTestId('pattern-name-header');
-      const sortButton = within(patternNameHeader).getByRole('button');
+      const sortButton = within(patternNameHeader).getByRole('button', { name: /Pattern name/ });
 
       fireEvent.click(sortButton);
 
@@ -705,7 +801,9 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
-      const sortButton = within(answerCorrectnessHeader).getByRole('button');
+      const sortButton = within(answerCorrectnessHeader).getByRole('button', {
+        name: /Answer correctness/,
+      });
 
       fireEvent.click(sortButton);
 
@@ -724,7 +822,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const rankHeader = screen.getByTestId('rank-header');
-      const sortButton = within(rankHeader).getByRole('button');
+      const sortButton = within(rankHeader).getByRole('button', { name: /Rank/ });
 
       // First click: descending
       fireEvent.click(sortButton);
@@ -830,7 +928,9 @@ describe('AutoragLeaderboard component', () => {
 
       // Click to sort by chunking method
       const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
-      const sortButton = within(chunkingMethodHeader).getByRole('button');
+      const sortButton = within(chunkingMethodHeader).getByRole('button', {
+        name: /Chunking method/,
+      });
       fireEvent.click(sortButton);
 
       // Table should still render without errors
@@ -938,7 +1038,7 @@ describe('AutoragLeaderboard component', () => {
       const modelHeader = screen.getByTestId('model-name-header');
       expect(modelHeader).toBeInTheDocument();
       expect(within(modelHeader).getByText('Model names')).toBeInTheDocument();
-      expect(within(modelHeader).getByRole('button')).toBeInTheDocument();
+      expect(within(modelHeader).getByRole('button', { name: /Model names/ })).toBeInTheDocument();
     });
   });
 

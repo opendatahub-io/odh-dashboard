@@ -37,6 +37,7 @@ type PipelineServerClientInterface interface {
 	CreateRun(ctx context.Context, request models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error)
 	TerminateRun(ctx context.Context, runID string) error
 	RetryRun(ctx context.Context, runID string) error
+	DeleteRun(ctx context.Context, runID string) error
 	ListPipelines(ctx context.Context, filter string) (*models.KFPipelinesResponse, error)
 	ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error)
 	GetPipelineVersion(ctx context.Context, pipelineID, versionID string) (*models.KFPipelineVersion, error)
@@ -363,6 +364,51 @@ func (c *RealPipelineServerClient) RetryRun(ctx context.Context, runID string) e
 		_, _ = io.Copy(io.Discard, resp.Body)
 
 		errorMsg := fmt.Sprintf("failed to retry run %s: %s", runID, string(respBody))
+		if len(respBody) == maxPipelineErrorBodySize {
+			errorMsg += " (truncated)"
+		}
+		return &HTTPError{
+			StatusCode: resp.StatusCode,
+			Message:    errorMsg,
+		}
+	}
+
+	// Drain body to allow connection reuse
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	return nil
+}
+
+// DeleteRun permanently deletes a pipeline run via the KFP v2beta1 API.
+// It calls DELETE /apis/v2beta1/runs/{runID} which removes the run record entirely.
+func (c *RealPipelineServerClient) DeleteRun(ctx context.Context, runID string) error {
+	if runID == "" {
+		return fmt.Errorf("runID is required")
+	}
+
+	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", c.baseURL, url.PathEscape(runID))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if c.authToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+		respBody, _ := io.ReadAll(limitedReader)
+		_, _ = io.Copy(io.Discard, resp.Body)
+
+		errorMsg := fmt.Sprintf("failed to delete run %s: %s", runID, string(respBody))
 		if len(respBody) == maxPipelineErrorBodySize {
 			errorMsg += " (truncated)"
 		}

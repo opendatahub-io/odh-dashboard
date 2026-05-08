@@ -13,7 +13,7 @@ import { getNotebookPVCMountPathMap } from '#~/pages/projects/notebook/utils';
 
 type Status = 'error' | 'warning' | 'info' | null;
 export const getFullStatusFromPercentage = (percentageFull: number): Status => {
-  if (percentageFull === 100) {
+  if (percentageFull >= 100) {
     return 'error';
   }
   if (percentageFull >= 95) {

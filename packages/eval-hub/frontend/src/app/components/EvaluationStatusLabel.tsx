@@ -48,7 +48,7 @@ const statusMap: Record<EvaluationJobState, StatusConfig> = {
   stopping: {
     label: 'Canceling',
     color: 'grey',
-    icon: <InProgressIcon className="odh-u-spin" />,
+    icon: <InProgressIcon className="ai-u-spin" />,
   },
   stopped: {
     label: 'Stopped',
