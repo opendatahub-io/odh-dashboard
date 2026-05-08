@@ -17,9 +17,11 @@ func ListModelsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	response := models.MaaSModelsResponse{
-		Object: "list",
-		Data:   modelsList,
+	response := Envelope[models.MaaSModelsResponse, None]{
+		Data: models.MaaSModelsResponse{
+			Object: "list",
+			Data:   modelsList,
+		},
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {

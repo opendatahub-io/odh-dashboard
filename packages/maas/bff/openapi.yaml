@@ -143,33 +143,39 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ModelListResponse'
+                type: object
+                properties:
+                  data:
+                      $ref: '#/components/schemas/ModelListResponse'
+                required:
+                  - data
               example:
-                object: list
                 data:
-                  - created: 1672531200
-                    id: llama-2-7b-chat
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/llama-2-7b-chat
-                  - created: 1672531200
-                    id: mistral-7b-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/mistral-7b-instruct
-                  - created: 1672531200
-                    id: granite-8b-code-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: false
-                  - created: 1672531200
-                    id: llama-3-8b-instruct
-                    object: model
-                    owned_by: model-namespace
-                    ready: true
-                    url: https://api.example.com/v1/models/llama-3-8b-instruct
+                  object: list
+                  data:
+                    - created: 1672531200
+                      id: llama-2-7b-chat
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/llama-2-7b-chat
+                    - created: 1672531200
+                      id: mistral-7b-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/mistral-7b-instruct
+                    - created: 1672531200
+                      id: granite-8b-code-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: false
+                    - created: 1672531200
+                      id: llama-3-8b-instruct
+                      object: model
+                      owned_by: model-namespace
+                      ready: true
+                      url: https://api.example.com/v1/models/llama-3-8b-instruct
         '401':
           description: Unauthorized
         '500':
