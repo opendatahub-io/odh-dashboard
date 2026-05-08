@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -464,9 +464,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Select a prediction type
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Wait for form to be valid and Run button to be enabled
       const runButton = await screen.findByRole('button', {
@@ -521,9 +521,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Select a prediction type
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -578,9 +578,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Select a prediction type
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -636,9 +636,9 @@ describe('AutomlConfigurePage', () => {
       await user.click(columnOption);
 
       // Select a prediction type
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {

@@ -720,13 +720,24 @@ func allValuesMatchType(rows [][]string, colIndex int, checker func(string) bool
 	return true
 }
 
+func parseFiniteFloat(s string) (float64, error) {
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, err
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, fmt.Errorf("non-finite float: %s", s)
+	}
+	return v, nil
+}
+
 func isNumber(s string) bool {
-	_, err := strconv.ParseFloat(s, 64)
+	_, err := parseFiniteFloat(s)
 	return err == nil
 }
 
 func isInteger(s string) bool {
-	f, err := strconv.ParseFloat(s, 64)
+	f, err := parseFiniteFloat(s)
 	if err != nil {
 		return false
 	}
@@ -790,7 +801,7 @@ func collectUniqueRawValues(rows [][]string, colIndex int) []string {
 		}
 		value := strings.TrimSpace(row[colIndex])
 		key := value
-		if num, err := strconv.ParseFloat(value, 64); err == nil {
+		if num, err := parseFiniteFloat(value); err == nil {
 			key = strconv.FormatFloat(num, 'g', -1, 64)
 		}
 		if !seen[key] {
@@ -807,7 +818,7 @@ func collectUniqueRawValues(rows [][]string, colIndex int) []string {
 func toTypedValues(rawValues []string) []interface{} {
 	result := make([]interface{}, 0, len(rawValues))
 	for _, value := range rawValues {
-		if num, err := strconv.ParseFloat(value, 64); err == nil {
+		if num, err := parseFiniteFloat(value); err == nil {
 			if num == math.Floor(num) && num >= math.MinInt64 && num <= math.MaxInt64 {
 				result = append(result, int64(num))
 			} else {
@@ -824,7 +835,7 @@ func inferTaskType(uniqueValues []string) string {
 	uniqueCount := len(uniqueValues)
 	allNumerical := true
 	for _, value := range uniqueValues {
-		if _, err := strconv.ParseFloat(value, 64); err != nil {
+		if _, err := parseFiniteFloat(value); err != nil {
 			allNumerical = false
 			break
 		}
