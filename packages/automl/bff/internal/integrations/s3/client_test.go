@@ -455,6 +455,11 @@ func TestCollectUniqueRawValues_SecondColumn(t *testing.T) {
 	assert.Equal(t, []string{"1", "2"}, collectUniqueRawValues(rows, 1))
 }
 
+func TestCollectUniqueRawValues_NumericDedup(t *testing.T) {
+	rows := [][]string{{"1"}, {"1.0"}, {"01"}, {"2"}, {"002"}, {"2.0"}}
+	assert.Equal(t, []string{"1", "2"}, collectUniqueRawValues(rows, 0))
+}
+
 func TestToTypedValues_Integers(t *testing.T) {
 	result := toTypedValues([]string{"1", "2", "3"})
 	assert.Equal(t, []interface{}{int64(1), int64(2), int64(3)}, result)

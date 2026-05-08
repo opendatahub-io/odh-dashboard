@@ -1,4 +1,9 @@
-import { findTimestampColumn, getTypeAcronym } from '~/app/utilities/columnUtils';
+/* eslint-disable camelcase -- ColumnSchema.task_type matches BFF API response field name */
+import {
+  findTimestampColumn,
+  getColumnConstraintTooltip,
+  getTypeAcronym,
+} from '~/app/utilities/columnUtils';
 
 describe('findTimestampColumn', () => {
   it('should find a column with type "timestamp"', () => {
@@ -44,6 +49,10 @@ describe('findTimestampColumn', () => {
     'created-at',
     'updated_at',
     'updated-at',
+    'recorded_at',
+    'recorded-at',
+    'event_time',
+    'event-time',
   ])('should match column named "%s" by name pattern', (name) => {
     const columns = [
       { name: 'id', type: 'integer' },
@@ -88,5 +97,95 @@ describe('getTypeAcronym', () => {
   it('should return "STR" for unknown types', () => {
     expect(getTypeAcronym('unknown')).toBe('STR');
     expect(getTypeAcronym('')).toBe('STR');
+  });
+});
+
+describe('getColumnConstraintTooltip', () => {
+  it('should return undefined when no column is selected', () => {
+    expect(getColumnConstraintTooltip('binary', undefined)).toBeUndefined();
+  });
+
+  it('should return undefined for multiclass regardless of column', () => {
+    expect(
+      getColumnConstraintTooltip('multiclass', {
+        name: 'col',
+        type: 'string',
+        task_type: 'multiclass',
+      }),
+    ).toBeUndefined();
+  });
+
+  describe('timeseries', () => {
+    it('should reject string columns', () => {
+      expect(
+        getColumnConstraintTooltip('timeseries', {
+          name: 'col',
+          type: 'string',
+          task_type: 'regression',
+        }),
+      ).toBe('Time series forecasting requires a numerical target column');
+    });
+
+    it('should accept numeric columns', () => {
+      expect(
+        getColumnConstraintTooltip('timeseries', {
+          name: 'col',
+          type: 'double',
+          task_type: 'regression',
+        }),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('binary', () => {
+    it('should reject columns with more than 2 values', () => {
+      expect(
+        getColumnConstraintTooltip('binary', {
+          name: 'col',
+          type: 'string',
+          task_type: 'binary',
+          values: ['a', 'b', 'c'],
+        }),
+      ).toBe('Binary classification requires a target column with at most 2 distinct values');
+    });
+
+    it('should reject columns with no values array', () => {
+      expect(
+        getColumnConstraintTooltip('binary', { name: 'col', type: 'string', task_type: 'binary' }),
+      ).toBe('Binary classification requires a target column with at most 2 distinct values');
+    });
+
+    it('should accept columns with exactly 2 values', () => {
+      expect(
+        getColumnConstraintTooltip('binary', {
+          name: 'col',
+          type: 'string',
+          task_type: 'binary',
+          values: ['yes', 'no'],
+        }),
+      ).toBeUndefined();
+    });
+  });
+
+  describe('regression', () => {
+    it('should reject string columns', () => {
+      expect(
+        getColumnConstraintTooltip('regression', {
+          name: 'col',
+          type: 'string',
+          task_type: 'regression',
+        }),
+      ).toBe('Regression requires a numerical target column');
+    });
+
+    it('should accept numeric columns', () => {
+      expect(
+        getColumnConstraintTooltip('regression', {
+          name: 'col',
+          type: 'integer',
+          task_type: 'regression',
+        }),
+      ).toBeUndefined();
+    });
   });
 });

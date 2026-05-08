@@ -124,16 +124,7 @@ function ConfigureTimeseriesForm({
                         value={column.name}
                         isDisabled={column.name === targetColumnValue}
                       >
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}
@@ -200,16 +191,7 @@ function ConfigureTimeseriesForm({
                         value={column.name}
                         isDisabled={column.name === targetColumnValue}
                       >
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}
@@ -290,16 +272,7 @@ function ConfigureTimeseriesForm({
                         isSelected={field.value?.includes(column.name)}
                         isDisabled={column.name === targetColumnValue}
                       >
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}

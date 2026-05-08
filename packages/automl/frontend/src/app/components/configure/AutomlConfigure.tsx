@@ -57,7 +57,7 @@ import type { File as S3ExplorerFile } from '~/app/components/common/FileExplore
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useS3GetFileSchemaQuery, type ColumnSchema } from '~/app/hooks/queries';
+import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
@@ -75,7 +75,11 @@ import {
   TASK_TYPE_TIMESERIES,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
-import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
+import {
+  getColumnConstraintTooltip,
+  getTypeAcronym,
+  findTimestampColumn,
+} from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import LoadingFormField from './LoadingFormField';
@@ -112,32 +116,6 @@ const PREDICTION_TYPES: {
       'Predict future activity over a specified date/time range. Data must be structured and sequential.',
   },
 ];
-
-const getColumnConstraintTooltip = (
-  taskType: ConfigureSchema['task_type'],
-  selectedColumn: ColumnSchema | undefined,
-): string | undefined => {
-  if (!selectedColumn) {
-    return undefined;
-  }
-
-  const isStringColumn = selectedColumn.type === 'string';
-
-  switch (taskType) {
-    case TASK_TYPE_TIMESERIES:
-      return isStringColumn
-        ? 'Time series forecasting requires a numerical target column'
-        : undefined;
-    case TASK_TYPE_BINARY:
-      return selectedColumn.values == null || selectedColumn.values.length > 2
-        ? 'Binary classification requires a target column with at most 2 distinct values'
-        : undefined;
-    case TASK_TYPE_REGRESSION:
-      return isStringColumn ? 'Regression requires a numerical target column' : undefined;
-    default:
-      return undefined;
-  }
-};
 
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
@@ -329,6 +307,12 @@ function AutomlConfigure({
   );
 
   const selectedColumn = columns.find((c) => c.name === targetColumn);
+
+  useEffect(() => {
+    if (columnsError) {
+      notification.warning('Column schema error', columnsError.message);
+    }
+  }, [columnsError, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -860,19 +844,6 @@ function AutomlConfigure({
                                   field.onChange(value);
                                   setIsTargetColumnOpen(false);
                                   if (typeof value === 'string') {
-                                    if (timestampColumn === value) {
-                                      setValue('timestamp_column', '', { shouldValidate: true });
-                                    }
-                                    if (idColumn === value) {
-                                      setValue('id_column', '', { shouldValidate: true });
-                                    }
-                                    if (knownCovariatesNames?.includes(value)) {
-                                      setValue(
-                                        'known_covariates_names',
-                                        knownCovariatesNames.filter((v: string) => v !== value),
-                                        { shouldValidate: true },
-                                      );
-                                    }
                                     const selected = columns.find((c) => c.name === value);
                                     if (timestampColumn && selected?.type !== 'string') {
                                       setValue('task_type', TASK_TYPE_TIMESERIES, {
@@ -909,16 +880,7 @@ function AutomlConfigure({
                                 <SelectList>
                                   {columns.map((column) => (
                                     <SelectOption key={column.name} value={column.name}>
-                                      <span
-                                        style={{
-                                          fontFamily: 'monospace',
-                                          fontWeight: 700,
-                                          fontSize: '0.75rem',
-                                          display: 'inline-block',
-                                          width: '4rem',
-                                          marginRight: '0.5rem',
-                                        }}
-                                      >
+                                      <span className="automl-configure__column-type-badge">
                                         {getTypeAcronym(column.type)}
                                       </span>
                                       {column.name}
@@ -974,7 +936,16 @@ function AutomlConfigure({
                                           name: 'task_type',
                                           variant: 'single',
                                           isChecked: field.value === type.value,
-                                          onChange: () => field.onChange(type.value),
+                                          onChange: () => {
+                                            field.onChange(type.value);
+                                            // Clear stale timestamp_column so it doesn't force
+                                            // timeseries on the next target column change
+                                            if (type.value !== TASK_TYPE_TIMESERIES) {
+                                              setValue('timestamp_column', '', {
+                                                shouldValidate: true,
+                                              });
+                                            }
+                                          },
                                           isHidden: true,
                                         }}
                                       >

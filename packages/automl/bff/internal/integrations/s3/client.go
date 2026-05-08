@@ -778,7 +778,8 @@ func isBoolean(s string) bool {
 }
 
 // collectUniqueRawValues returns the distinct non-empty trimmed strings for a
-// column, preserving insertion order.
+// column, preserving insertion order. Numeric strings are normalized so that
+// equivalent representations (e.g. "1.0" and "1") are treated as one value.
 func collectUniqueRawValues(rows [][]string, colIndex int) []string {
 	seen := make(map[string]bool)
 	var ordered []string
