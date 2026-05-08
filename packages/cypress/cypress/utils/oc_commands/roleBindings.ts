@@ -18,12 +18,12 @@ export const checkModelRegistryRoleBindings = (
   cy.log(`Checking role binding for subject '***' for model registry '${registryName}'`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code === 0 && result.stdout.trim().length > 0) {
+    if (result.exitCode === 0 && result.stdout.trim().length > 0) {
       cy.log(`✅ Role binding found for subject '***' for model registry '${registryName}'`);
     } else {
       cy.log(`❌ No role binding found for subject '***' for model registry '${registryName}'`);
     }
-    return cy.wrap(result.code === 0 && result.stdout.trim().length > 0);
+    return cy.wrap(result.exitCode === 0 && result.stdout.trim().length > 0);
   });
 };
 
@@ -46,7 +46,7 @@ export const getClusterRoleBinding = (
   );
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+    if (result.exitCode === 0 && result.stdout && result.stdout.trim() !== '') {
       cy.log(`Found ClusterRoleBinding: ${maskedName}`);
     } else {
       cy.log(`ClusterRoleBinding not found: ${maskedName}`);
@@ -74,7 +74,7 @@ export const deleteClusterRoleBinding = (
   );
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code === 0) {
+    if (result.exitCode === 0) {
       cy.log(`Successfully deleted ClusterRoleBinding: ${maskedName}`);
     } else {
       const maskedStderr = maskSensitiveInfo(result.stderr);

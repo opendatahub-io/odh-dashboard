@@ -38,7 +38,6 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-          include-cypress: 'true'
       - name: model-registry node_modules cache
         uses: actions/cache@v4
         with:
@@ -49,7 +48,7 @@ jobs:
 
       - name: Install model-registry dependencies
         working-directory: packages/model-registry/upstream/frontend
-        run: npm install
+        run: npm install && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/model-registry/upstream/frontend

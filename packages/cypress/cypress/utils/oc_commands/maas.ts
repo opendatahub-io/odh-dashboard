@@ -85,11 +85,11 @@ export const checkMaaSSubscriptionState = (
   if (options.expectDeleted === true) {
     cy.log(`Checking MaaSSubscription is absent: ${subscriptionName} in namespace ${namespace}`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-      if (result.code !== 0 && ocGetIndicatesResourceNotFound(result)) {
+      if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
         cy.log(`✅ MaaSSubscription ${subscriptionName} is absent from namespace ${namespace}`);
         return cy.wrap(result);
       }
-      if (result.code === 0) {
+      if (result.exitCode === 0) {
         throw new Error(
           `MaaSSubscription ${subscriptionName} still exists in namespace ${namespace}`,
         );
