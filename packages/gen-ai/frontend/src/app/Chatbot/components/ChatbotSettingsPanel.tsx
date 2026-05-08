@@ -60,11 +60,8 @@ interface ChatbotSettingsPanelProps {
   onMcpServerTokensChange: (tokens: Map<string, TokenInfo>) => void;
   checkMcpServerStatus: (serverUrl: string, mcpBearerToken?: string) => Promise<ServerStatusInfo>;
   // Guardrails props
-  guardrailModels?: string[];
-  guardrailModelsLoaded?: boolean;
   onCloseClick?: () => void;
   onActiveConfigChange?: (configId: string) => void;
-  guardrailModelsError?: Error;
   /** Whether the drawer is in overlay mode (compare mode) - affects background styling */
   isOverlay?: boolean;
   defaultActiveTabKey?: string | number;
@@ -86,11 +83,8 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   mcpServerTokens,
   onMcpServerTokensChange,
   checkMcpServerStatus,
-  guardrailModels = [],
-  guardrailModelsLoaded = false,
   onCloseClick,
   onActiveConfigChange,
-  guardrailModelsError,
   isOverlay = false,
   defaultActiveTabKey,
 }) => {
@@ -366,12 +360,7 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
               title={<TabTitleText>Guardrails</TabTitleText>}
               data-testid="chatbot-settings-page-tab-guardrails"
             >
-              <GuardrailsTabContent
-                configId={configId}
-                guardrailModels={guardrailModels}
-                guardrailModelsLoaded={guardrailModelsLoaded}
-                guardrailModelsError={guardrailModelsError}
-              />
+              <GuardrailsTabContent configId={configId} />
             </Tab>
           ) : null}
         </Tabs>

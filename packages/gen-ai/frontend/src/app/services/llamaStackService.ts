@@ -16,7 +16,6 @@ import {
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
-  GuardrailsStatus,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -28,7 +27,6 @@ import {
   MLflowRegisterPromptRequest,
   OutputItem,
   ResponseMetrics,
-  SafetyConfigResponse,
   NemoGuardrailsStatus,
   SimplifiedResponseData,
   SourceItem,
@@ -52,6 +50,7 @@ import {
   MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
+import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -239,7 +238,6 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
   };
 };
 
-// Non-streaming POST path via mod-arch restCREATE
 const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknown> => ({
   input: r.input,
   model: r.model,
@@ -249,8 +247,7 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   instructions: r.instructions,
   stream: r.stream,
   mcp_servers: r.mcp_servers,
-  input_shield_id: r.input_shield_id,
-  output_shield_id: r.output_shield_id,
+  guardrail_config: r.guardrail_config,
   model_source_type: r.model_source_type,
   subscription: r.subscription,
 });
@@ -261,12 +258,25 @@ const postCreateResponse = (
   request: CreateResponseRequest,
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
-  // Map abortSignal to signal for standard fetch API compatibility
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return modArchRestCREATE<BackendResponseData, Record<string, unknown>>('/lsd/responses')(
+  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
     hostPath,
+    '/lsd/responses',
+    toCreateResponseRecord(request),
     baseQueryParams,
-  )(toCreateResponseRecord(request), fetchOpts).then((data) => transformBackendResponse(data));
+    fetchOpts,
+  ).then((response) => {
+    if (response.error) {
+      const err = Object.assign(new Error(response.error.message), {
+        code: response.error.code,
+      });
+      throw err;
+    }
+    if (response.data) {
+      return transformBackendResponse(response.data);
+    }
+    throw new Error('Invalid response format');
+  });
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -289,14 +299,16 @@ const streamCreateResponse = (
       .then(async (response) => {
         if (!response.ok) {
           let errorMessage = `HTTP error! status: ${response.status}`;
+          let errorCode: string | undefined;
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
             errorMessage = errorData?.error?.message || errorMessage;
+            errorCode = errorData?.error?.code;
           } catch {
             // ignore
           }
-          throw new Error(errorMessage);
+          throw Object.assign(new Error(errorMessage), { code: errorCode });
         }
 
         const reader = response.body?.getReader();
@@ -328,7 +340,10 @@ const streamCreateResponse = (
                     if (data.error) {
                       await reader.cancel('Streaming error');
                       const errMsg = data.error.message || 'An error occurred during streaming';
-                      reject(new Error(errMsg));
+                      if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
                       return;
                     }
 
@@ -336,17 +351,12 @@ const streamCreateResponse = (
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.refusal.delta') {
-                      // Check event type first, then guard content appending on non-empty data.delta
-                      // This ensures receivedRefusal flag and tracking fire on first non-empty delta
                       if (data.delta) {
                         const isFirstRefusal = !receivedRefusal;
                         if (isFirstRefusal) {
                           receivedRefusal = true;
                           fullContent = '';
-                          // Track guardrail violation on first non-empty refusal delta
-                          fireMiscTrackingEvent('Guardrail Activated', {
-                            violationDetected: true,
-                          });
+                          fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                         }
                         fullContent += data.delta;
                         onStreamData(data.delta, isFirstRefusal);
@@ -401,9 +411,7 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to generate streaming response';
-        reject(new Error(errorMessage));
+        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
       });
   });
 
@@ -659,9 +667,6 @@ export const getMaaSModels = modArchRestGET<MaaSModel[]>('/maas/models');
 export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>(
   '/maas/tokens',
 );
-
-export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
-export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
 
 /** NemoGuardrails Endpoints */
 export const getNemoGuardrailsStatus =

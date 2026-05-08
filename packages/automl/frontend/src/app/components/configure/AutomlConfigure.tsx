@@ -519,6 +519,7 @@ function AutomlConfigure({
                             <Button
                               key="browse-bucket"
                               variant="secondary"
+                              data-testid="browse-bucket-button"
                               onClick={() => setIsFileExplorerOpen(true)}
                               isDisabled={!canSelectFiles || formIsSubmitting}
                             >
@@ -581,6 +582,7 @@ function AutomlConfigure({
                               ref={trainingDataNativeInputRef}
                               type="file"
                               hidden
+                              data-testid="automl-upload-file-input"
                               accept={TRAINING_DATA_UPLOAD_NATIVE_ACCEPT}
                               aria-hidden
                               tabIndex={-1}
@@ -633,7 +635,7 @@ function AutomlConfigure({
                                 </Thead>
                                 <Tbody>
                                   <Tr>
-                                    <Td dataLabel="File">
+                                    <Td dataLabel="File" data-testid="uploaded-file-cell">
                                       <Split hasGutter>
                                         {isTrainingDataFileUploading && (
                                           <SplitItem>

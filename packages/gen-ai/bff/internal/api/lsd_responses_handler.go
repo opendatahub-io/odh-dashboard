@@ -15,6 +15,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
+	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -132,19 +133,18 @@ type CreateResponseRequest struct {
 	Input string `json:"input"`
 	Model string `json:"model"`
 
-	VectorStoreIDs     []string             `json:"vector_store_ids,omitempty"`     // Enables RAG
-	ChatContext        []ChatContextMessage `json:"chat_context,omitempty"`         // Conversation history
-	Temperature        *float64             `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
-	TopP               *float64             `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
-	Instructions       string               `json:"instructions,omitempty"`         // System message/behavior
-	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
-	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
-	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
-	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
-	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
-	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
-	ModelSourceType    string               `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
-	Subscription       string               `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
+	VectorStoreIDs     []string                      `json:"vector_store_ids,omitempty"`     // Enables RAG
+	ChatContext        []ChatContextMessage          `json:"chat_context,omitempty"`         // Conversation history
+	Temperature        *float64                      `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
+	TopP               *float64                      `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
+	Instructions       string                        `json:"instructions,omitempty"`         // System message/behavior
+	Stream             bool                          `json:"stream,omitempty"`               // Enable streaming response
+	MCPServers         []MCPServer                   `json:"mcp_servers,omitempty"`          // MCP server configurations
+	PreviousResponseID string                        `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
+	Store              *bool                         `json:"store,omitempty"`                // Store response for later retrieval (default true)
+	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`     // Inline NeMo guardrail configuration
+	ModelSourceType    string                        `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
+	Subscription       string                        `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -337,8 +337,53 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// TODO: Input moderation will be wired here once the guardrail_config request field
-	// is implemented (replaces the deprecated InputShieldID path).
+	// Build inline guardrail options when the request includes a guardrail config.
+	// The BFF resolves the model endpoint URL and API key so the frontend never handles credentials.
+	var guardrailOpts nemo.GuardrailsOptions
+	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
+		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
+		if err != nil {
+			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)
+			app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+			return
+		}
+
+		// NeMo needs the bare model name (e.g. "claude-haiku-4-5-20251001"), not the
+		// LlamaStack-qualified ID (e.g. "endpoint-1/claude-haiku-4-5-20251001").
+		guardrailModelName := createRequest.GuardrailConfig.GuardrailModel
+		if idx := strings.Index(guardrailModelName, "/"); idx != -1 {
+			guardrailModelName = guardrailModelName[idx+1:]
+		}
+		guardrailOpts = buildInlineGuardrailOptions(
+			baseURL,
+			guardrailModelName,
+			apiKey,
+			createRequest.GuardrailConfig.InputPrompt,
+			createRequest.GuardrailConfig.OutputPrompt,
+		)
+
+		if createRequest.GuardrailConfig.InputPrompt != "" {
+			inputMessages := make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
+			for _, msg := range createRequest.ChatContext {
+				if msg.Role == "user" {
+					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content})
+				}
+			}
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
+
+			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+			if modErr != nil {
+				app.logger.Error("Input moderation check failed", "error", modErr)
+				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				return
+			}
+			if result != nil && result.Flagged {
+				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
+				return
+			}
+		}
+	}
 
 	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
 	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
@@ -348,7 +393,6 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
 		Model:              createRequest.Model,
@@ -361,14 +405,13 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		PreviousResponseID: createRequest.PreviousResponseID,
 		Store:              createRequest.Store,
 		ProviderData:       providerData,
-		InputShieldID:      createRequest.InputShieldID,
-		OutputShieldID:     createRequest.OutputShieldID,
+		GuardrailOpts:      guardrailOpts,
 	}
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		// Use async moderation for better streaming performance when output moderation is enabled
-		if createRequest.OutputShieldID != "" {
+		// Use async moderation path when output moderation is configured
+		if hasOutputModeration(guardrailOpts) {
 			app.handleStreamingResponseAsync(w, r, ctx, params)
 		} else {
 			app.handleStreamingResponse(w, r, ctx, params)
@@ -508,8 +551,24 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
 
-	// TODO: Output moderation will be wired here once the guardrail_config request field
-	// is implemented (replaces the deprecated OutputShieldID path).
+	// Output moderation: check the assistant response before returning to the client.
+	if hasOutputModeration(params.GuardrailOpts) {
+		responseText := extractResponseText(&responseData)
+		if responseText != "" {
+			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
+			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			if modErr != nil {
+				app.logger.Error("Output moderation check failed", "error", modErr)
+				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				return
+			}
+			if result != nil && result.Flagged {
+				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
+				return
+			}
+		}
+	}
 
 	// Add previous response ID to response data if provided
 	if params.PreviousResponseID != "" {
@@ -532,116 +591,9 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
-// using the OpenAI standard refusal content type and streaming events.
-// This is used when input moderation flags content and the client requested streaming.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
-func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string) {
-	// Check if ResponseWriter supports streaming
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		// Fallback to JSON if streaming not supported
-		responseData := createGuardrailViolationResponse("", model, true)
-		apiResponse := llamastack.APIResponse{Data: responseData}
-		_ = app.WriteJSON(w, http.StatusCreated, apiResponse, nil) // Best effort - client may have disconnected
-		return
-	}
-
-	// Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	message := constants.InputGuardrailViolationMessage
-
-	// Generate IDs for the response
-	responseID := "resp_guardrail_" + fmt.Sprintf("%d", getCurrentTimestamp())
-	itemID := "msg_guardrail"
-
-	// Send response.created event
-	createdEvent := &StreamingEvent{
-		Type:           "response.created",
-		SequenceNumber: 0,
-		Response: &ResponseData{
-			ID:        responseID,
-			Model:     model,
-			Status:    "in_progress",
-			CreatedAt: getCurrentTimestamp(),
-		},
-	}
-	if eventData, err := json.Marshal(createdEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.refusal.delta with the guardrail message (OpenAI standard)
-	refusalDeltaEvent := &StreamingEvent{
-		Type:           "response.refusal.delta",
-		SequenceNumber: 1,
-		ItemID:         itemID,
-		OutputIndex:    0,
-		ContentIndex:   0,
-		Delta:          message,
-	}
-	if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.refusal.done (OpenAI standard)
-	refusalDoneEvent := &StreamingEvent{
-		Type:           "response.refusal.done",
-		SequenceNumber: 2,
-		ItemID:         itemID,
-		OutputIndex:    0,
-		ContentIndex:   0,
-		Refusal:        message,
-	}
-	if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.completed with refusal content type (OpenAI standard)
-	completedEvent := &StreamingEvent{
-		Type:           "response.completed",
-		SequenceNumber: 3,
-		Response: &ResponseData{
-			ID:        responseID,
-			Model:     model,
-			Status:    "completed",
-			CreatedAt: getCurrentTimestamp(),
-			Output: []OutputItem{
-				{
-					ID:     itemID,
-					Type:   "message",
-					Role:   "assistant",
-					Status: "completed",
-					Content: []ContentItem{
-						{
-							Type:    "refusal",
-							Refusal: message,
-						},
-					},
-				},
-			},
-		},
-	}
-	if eventData, err := json.Marshal(completedEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-}
-
-// getCurrentTimestamp returns the current Unix timestamp.
-// Will be wired in the follow-up PR once guardrail_config request field is implemented.
-//
-//nolint:unused
-func getCurrentTimestamp() int64 {
-	return int64(0) // Use 0 for consistency with other guardrail responses
+// hasOutputModeration returns true when the guardrail options include output rails.
+func hasOutputModeration(opts nemo.GuardrailsOptions) bool {
+	return opts.Config != nil && opts.Config.Rails.Output != nil
 }
 
 // validatePreviousResponse validates that a previous response ID exists and is accessible
@@ -917,6 +869,204 @@ func (app *App) getCustomEndpointSecret(ctx context.Context, modelID string) str
 	apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
 	app.logger.Debug("Resolved custom endpoint secret", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
 	return apiKey
+}
+
+// getCustomEndpointBaseURLAndKey retrieves both the base URL and API key for a
+// provider-qualified custom endpoint model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B").
+// Returns ("", "") when the information cannot be resolved so the caller can skip injection.
+func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID string) (baseURL, apiKey string) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", ""
+	}
+
+	if !strings.Contains(modelID, "/") {
+		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
+		return "", ""
+	}
+
+	parts := strings.SplitN(modelID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", ""
+	}
+
+	providerPrefix := parts[0]
+	actualModelID := parts[1]
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return "", ""
+	}
+
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return "", ""
+	}
+
+	var foundModel *models.RegisteredModel
+	for i := range externalModelsConfig.RegisteredResources.Models {
+		m := &externalModelsConfig.RegisteredResources.Models[i]
+		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
+			foundModel = m
+			break
+		}
+	}
+	if foundModel == nil {
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID)
+		return "", ""
+	}
+
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID)
+		return "", ""
+	}
+
+	baseURL = foundProvider.Config.BaseURL
+	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	return baseURL, apiKey
+}
+
+// getGuardrailModelEndpointAndKey resolves the raw inference endpoint URL and API key
+// for the given guardrail model ID. NeMo Guardrails calls this endpoint directly,
+// bypassing LlamaStack, so the URL must point at the model's native API surface.
+//
+// Resolution mirrors getProviderData for the main model:
+//  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
+//  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
+//  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+	bareID := guardrailModelID
+	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
+		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
+			bareID = guardrailModelID[idx+1:]
+		}
+	}
+
+	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
+	if err != nil {
+		return "", fmt.Errorf("failed to list MaaS models: %w", err)
+	}
+
+	for _, m := range maasModels {
+		if m.ID == bareID {
+			// MaaS catalog returns the raw gateway URL (http, no /v1).
+			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
+			// so NeMo receives the correct openai_api_base.
+			url := strings.TrimSuffix(m.URL, "/")
+			if !strings.HasSuffix(url, "/v1") {
+				url += "/v1"
+			}
+			return url, nil
+		}
+	}
+
+	return "", fmt.Errorf("MaaS model %q not found in MaaS catalog", guardrailModelID)
+}
+
+func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailModelID string, guardrailModelSourceType models.ModelSourceTypeEnum, subscription string) (baseURL, apiKey string, err error) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", fmt.Errorf("missing RequestIdentity in context")
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", "", fmt.Errorf("missing namespace in context")
+	}
+
+	k8sClient, getErr := app.kubernetesClientFactory.GetClient(ctx)
+	if getErr != nil {
+		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", getErr)
+	}
+
+	// Mirrors getProviderData() in the main model: maas- prefix wins, then explicit source type,
+	// then namespace as the default fallback. No K8s auto-detect.
+	var effectiveSourceType models.ModelSourceTypeEnum
+	switch {
+	case strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix):
+		effectiveSourceType = models.ModelSourceTypeMaaS
+	case guardrailModelSourceType == models.ModelSourceTypeMaaS:
+		effectiveSourceType = models.ModelSourceTypeMaaS
+	case guardrailModelSourceType == models.ModelSourceTypeCustomEndpoint:
+		effectiveSourceType = models.ModelSourceTypeCustomEndpoint
+	default:
+		effectiveSourceType = models.ModelSourceTypeNamespace
+	}
+
+	switch effectiveSourceType {
+	case models.ModelSourceTypeCustomEndpoint:
+		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, guardrailModelID)
+		if extURL == "" {
+			return "", "", fmt.Errorf("could not resolve endpoint URL for guardrail model %q", guardrailModelID)
+		}
+		baseURL = extURL
+		apiKey = extKey
+
+	case models.ModelSourceTypeMaaS:
+		if app.resolveMaaSBaseURL() == "" {
+			return "", "", fmt.Errorf("MaaS is not available (no MAAS_URL or cluster domain configured)")
+		}
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, guardrailModelID, subscription)
+		if token == "" {
+			return "", "", fmt.Errorf("failed to obtain MaaS token for guardrail model %q", guardrailModelID)
+		}
+		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, guardrailModelID)
+		if urlErr != nil {
+			return "", "", fmt.Errorf("failed to resolve MaaS inference URL for guardrail model %q: %w", guardrailModelID, urlErr)
+		}
+		baseURL = inferenceURL
+		apiKey = token
+
+	default:
+		// Strip provider prefix (e.g. "vllm-inference-1/qwen3" → "qwen3") then try ISVC
+		// lookup first (Option B); fall back to LlamaStack config (Option A) if not found.
+		bareModelName := guardrailModelID
+		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
+			bareModelName = guardrailModelID[idx+1:]
+		}
+		isvcURL, isvcErr := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
+		if isvcErr != nil {
+			return "", "", fmt.Errorf("failed to get InferenceService URL for guardrail model %q: %w", guardrailModelID, isvcErr)
+		}
+		if isvcURL != "" {
+			app.logger.Debug("Resolved guardrail model URL via InferenceService lookup",
+				"model", guardrailModelID, "url", isvcURL)
+			baseURL = isvcURL
+		} else {
+			app.logger.Debug("InferenceService not found, falling back to LlamaStack config",
+				"model", guardrailModelID)
+			providerInfo, infoErr := k8sClient.GetModelProviderInfo(ctx, identity, namespace, guardrailModelID)
+			if infoErr != nil {
+				return "", "", fmt.Errorf("failed to get provider URL for guardrail model %q: %w", guardrailModelID, infoErr)
+			}
+			baseURL = providerInfo.URL
+		}
+		apiKey = identity.Token
+	}
+
+	if baseURL == "" {
+		return "", "", fmt.Errorf("could not resolve endpoint URL for guardrail model %q", guardrailModelID)
+	}
+
+	app.logger.Debug("Resolved guardrail model endpoint",
+		"model", guardrailModelID,
+		"sourceType", effectiveSourceType,
+		"hasKey", apiKey != "")
+	return baseURL, apiKey, nil
 }
 
 // fetchSecretFromProvider reads the API key referenced by a provider's SecretRef,

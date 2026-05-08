@@ -62,4 +62,9 @@ type KubernetesClientInterface interface {
 	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
 	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
 	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
+
+	// GetInferenceServiceURL returns the internal endpoint URL for an InferenceService or
+	// LLMInferenceService whose K8s resource name matches modelName.
+	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
 }

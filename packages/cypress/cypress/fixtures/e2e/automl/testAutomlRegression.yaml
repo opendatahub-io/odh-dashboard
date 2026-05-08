@@ -1,0 +1,10 @@
+projectNamePrefix: 'cy-e2e-automl-regression'
+dspaSecretName: dashboard-dspa-secret
+secretName: ods-ci-ds-pipelines
+runName: automl-regression-run
+runDescription: 'E2E test regression run'
+trainingDataFile: automl-regression-test-data.csv
+taskType: regression
+topN: 1
+labelColumn: price
+awsBucket: BUCKET_2

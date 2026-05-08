@@ -11,7 +11,7 @@ import (
 // Returns a list of available MaaS models
 func ListModelsHandler(app *App, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	modelsList, err := app.repositories.Models.ListModels(ctx)
+	modelsList, err := app.repositories.Models.ListModels(ctx, r.Header)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

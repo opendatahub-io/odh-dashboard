@@ -134,7 +134,9 @@ paths:
         - models
       summary: List MaaS Models
       operationId: listModels
-      description: Lists available large language models in OpenAI-compatible format
+      description: |
+        Lists available large language models in OpenAI-compatible format.
+        Incoming HTTP headers on this request are forwarded to the upstream MaaS API unchanged (aside from Content-Type and Authorization, which the BFF sets for the outbound call). Callers may send headers understood by maas-api (for example `X-MaaS-Return-All-Models`).
       responses:
         '200':
           description: List of models
@@ -260,6 +262,9 @@ paths:
                 subscription:
                   type: string
                   description: Subscription ID header to scope this API key to a specific subscription.
+                ephemeral:
+                  type: boolean
+                  description: When true, requests an ephemeral key (short-lived); forwarded to maas-api.
             examples:
               permanent_key:
                 summary: Permanent API key (no expiration)
@@ -1526,6 +1531,49 @@ components:
         displayName:
           type: string
 
+    ModelDetails:
+      type: object
+      description: Additional model metadata from MaaSModelRef annotations
+      properties:
+        displayName:
+          type: string
+          description: Human-readable display name (from openshift.io/display-name annotation)
+          example: Llama 2 7B Chat
+        description:
+          type: string
+          description: Model description (from openshift.io/description annotation)
+          example: A large language model optimized for chat use cases
+        genaiUseCase:
+          type: string
+          description: GenAI use case category (from opendatahub.io/genai-use-case annotation)
+          example: chat
+        contextWindow:
+          type: string
+          description: Context window size (from opendatahub.io/context-window annotation)
+          example: "4096"
+
+    SubscriptionInfo:
+      type: object
+      description: |
+        Subscription metadata (maas-api `SubscriptionInfo`).
+        When `X-MaaS-Return-All-Models` is used, models accessible via multiple subscriptions
+        include multiple entries in the model's `subscriptions` array.
+      properties:
+        name:
+          type: string
+          description: The subscription name
+          example: premium-subscription
+        displayName:
+          type: string
+          description: Human-readable display name for the subscription
+          example: Premium Subscription
+        description:
+          type: string
+          description: Description of the subscription
+          example: Premium subscription with higher rate limits
+      required:
+        - name
+
     ModelListResponse:
       type: object
       properties:
@@ -1560,8 +1608,8 @@ components:
           format: int64
         owned_by:
           type: string
-          description: The organization that owns the model
-          example: model-namespace
+          description: 'The namespace and MaaSModelRef name (format: namespace/name)'
+          example: model-namespace/llama-2-7b-chat
         ready:
           type: boolean
           description: Model ready status
@@ -1570,13 +1618,41 @@ components:
           type: string
           description: Model URL (optional)
           example: https://api.example.com/v1/models/llama-2-7b-chat
+        modelDetails:
+          $ref: '#/components/schemas/ModelDetails'
+        kind:
+          type: string
+          description: The model reference kind (e.g., "LLMInferenceService")
+          example: LLMInferenceService
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionInfo'
+          description: |
+            Subscriptions that provide access to this model.
+            When `X-MaaS-Return-All-Models` is used, models accessible via multiple subscriptions
+            include multiple entries in this array.
+          example:
+            - name: premium-subscription
+              displayName: Premium Subscription
+              description: Premium subscription with higher rate limits
       example:
         created: 1672531200
         id: llama-2-7b-chat
         object: model
-        owned_by: model-namespace
+        owned_by: model-namespace/llama-2-7b-chat
         ready: true
         url: https://api.example.com/v1/models/llama-2-7b-chat
+        modelDetails:
+          displayName: Llama 2 7B Chat
+          description: A large language model optimized for chat use cases
+          genaiUseCase: chat
+          contextWindow: "4096"
+        kind: LLMInferenceService
+        subscriptions:
+          - name: premium-subscription
+            displayName: Premium Subscription
+            description: Premium subscription with higher rate limits
       required:
         - id
         - object

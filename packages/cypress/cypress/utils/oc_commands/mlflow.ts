@@ -37,7 +37,7 @@ export const isMlflowOperatorManaged = (): Cypress.Chainable<boolean> =>
       { failOnNonZeroExit: false },
     )
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         throw new Error(`Failed to read mlflowoperator state: ${maskSensitiveInfo(result.stderr)}`);
       }
       return result.stdout.replace(/"/g, '').trim() === 'Managed';
@@ -53,7 +53,7 @@ export const isGenAiEnabled = (): Cypress.Chainable<boolean> =>
       { failOnNonZeroExit: false },
     )
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         throw new Error(
           `Failed to read llamastackoperator state: ${maskSensitiveInfo(result.stderr)}`,
         );
@@ -71,7 +71,7 @@ export const doesMlflowCRExist = (): Cypress.Chainable<boolean> =>
       { failOnNonZeroExit: false },
     )
     .then((result) => {
-      if (result.code !== 0 && !result.stderr.includes('No resources found')) {
+      if (result.exitCode !== 0 && !result.stderr.includes('No resources found')) {
         throw new Error(`Failed to check MLflow CR: ${maskSensitiveInfo(result.stderr)}`);
       }
       return result.stdout.trim().length > 0;
@@ -94,7 +94,7 @@ export const setMlflowOperatorState = (
 ): Cypress.Chainable<CommandLineResult> => {
   const patchSpec = { spec: { components: { mlflowoperator: { managementState: state } } } };
   return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       throw new Error(`Failed to set MLflow operator state to ${state}: ${maskedStderr}`);
     }
@@ -135,7 +135,7 @@ const ensureMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult>
         failOnNonZeroExit: false,
       })
       .then((applyResult) => {
-        if (applyResult.code !== 0) {
+        if (applyResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(applyResult.stderr);
           throw new Error(`Failed to create MLflow CR: ${maskedStderr}`);
         }
@@ -157,11 +157,11 @@ export const deleteMlflowCR = (namespace: string): Cypress.Chainable<CommandLine
       failOnNonZeroExit: false,
     })
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Warning: Failed to delete MLflow CR: ${maskedStderr}`);
       }
-      return result;
+      return cy.wrap(result);
     });
 };
 

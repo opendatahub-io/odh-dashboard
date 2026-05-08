@@ -16,7 +16,7 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutomlHeader from '~/app/components/common/AutomlHeader/AutomlHeader';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import AutomlCreate from '~/app/components/create/AutomlCreate';
@@ -50,7 +50,13 @@ function AutomlConfigurePage({
   sourceRunName,
 }: AutomlConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const notification = useNotification();
+  const fromResultsPage =
+    location.state != null &&
+    typeof location.state === 'object' &&
+    'from' in location.state &&
+    location.state.from === 'results';
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -85,6 +91,7 @@ function AutomlConfigurePage({
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-next-button"
           isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
         >
           Next
@@ -104,6 +111,7 @@ function AutomlConfigurePage({
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-create-run-button"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
           {sourceRunId ? 'Create new run' : 'Create run'}
@@ -166,7 +174,7 @@ function AutomlConfigurePage({
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoML: {namespace}</Link>
             </BreadcrumbItem>
-            {sourceRunId && sourceRunName && (
+            {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
                 <Link to={`${automlResultsPathname}/${namespace}/${sourceRunId}`}>
                   <Truncate content={sourceRunName} />

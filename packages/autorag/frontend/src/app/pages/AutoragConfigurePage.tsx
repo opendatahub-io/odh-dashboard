@@ -16,7 +16,7 @@ import classNames from 'classnames';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React, { useCallback, useState } from 'react';
 import { FieldPath, FormProvider, useForm, useWatch } from 'react-hook-form';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import AutoragCreate from '~/app/components/create/AutoragCreate';
@@ -55,7 +55,13 @@ function AutoragConfigurePage({
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
   const notification = useNotification();
+  const fromResultsPage =
+    location.state != null &&
+    typeof location.state === 'object' &&
+    'from' in location.state &&
+    location.state.from === 'results';
 
   const { namespace } = useParams();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
@@ -179,7 +185,7 @@ function AutoragConfigurePage({
             <BreadcrumbItem>
               <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
             </BreadcrumbItem>
-            {sourceRunId && sourceRunName && (
+            {fromResultsPage && sourceRunId && sourceRunName && (
               <BreadcrumbItem data-testid="configure-breadcrumb-source-run">
                 <Link to={`${autoragResultsPathname}/${namespace}/${sourceRunId}`}>
                   <Truncate content={sourceRunName} />

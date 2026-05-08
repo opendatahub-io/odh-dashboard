@@ -110,11 +110,14 @@ aliases:
     - antowaddle
     - FedeAlonso
     - sridarna
+    - ConorOM1
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
     - FedeAlonso
     - sridarna
+    - nikhils-2
+    - zahra-j6
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:

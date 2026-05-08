@@ -22,6 +22,7 @@ import AutomlInputParametersPanel from '~/app/components/run-results/AutomlInput
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutomlResultsContext, getAutomlContext } from '~/app/context/AutomlResultsContext';
 import { useAutomlRunActions } from '~/app/hooks/useAutomlRunActions';
+import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useAutomlResults } from '~/app/hooks/useAutomlResults';
@@ -46,6 +47,8 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const getRedirectPath = (ns: string) => `${automlExperimentsPathname}/${ns}`;
 
+  const notification = useNotification();
+
   const {
     data: pipelineRun,
     isPending: pipelineRunPending,
@@ -53,18 +56,49 @@ function AutomlResultsPage(): React.JSX.Element {
     isError: pipelineRunError,
     error: pipelineRunLoadError,
   } = usePipelineRunQuery(runId, namespace);
+
+  // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
+  // notification with stale data, while initial load errors (no data yet) show a full error page.
+  const hasPreviousData = !!pipelineRun;
+  const isPollingError = pipelineRunError && hasPreviousData;
+  const isInitialLoadError = pipelineRunError && !hasPreviousData;
+
+  React.useEffect(() => {
+    if (isPollingError) {
+      notification.warning(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    }
+  }, [isPollingError, notification]);
+
   const invalidPipelineRunId =
-    pipelineRunError &&
+    isInitialLoadError &&
     pipelineRunLoadError instanceof Error &&
     parseErrorStatus(pipelineRunLoadError) === 404;
 
   // Fetch and process AutoML results using custom hook
   const {
     models,
+    failedModels,
     isLoading: modelsLoading,
     isError: modelsError,
     error: modelsLoadError,
+    refetch: refetchModels,
   } = useAutomlResults(runId, namespace, pipelineRun);
+
+  const failedModelsNotifiedKey = React.useRef('');
+  React.useEffect(() => {
+    const key = [...failedModels].toSorted().join(',');
+    if (failedModels.length > 0 && failedModelsNotifiedKey.current !== key) {
+      failedModelsNotifiedKey.current = key;
+      const total = failedModels.length + Object.keys(models).length;
+      notification.warning(
+        `${failedModels.length} of ${total} models could not be loaded`,
+        `The following models failed to load: ${failedModels.join(', ')}`,
+      );
+    }
+  }, [failedModels, models, notification]);
 
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
@@ -80,7 +114,11 @@ function AutomlResultsPage(): React.JSX.Element {
 
   const ReconfigureLink = React.useCallback(
     (props: React.ComponentProps<typeof Link>) => (
-      <Link {...props} to={`${automlReconfigurePathname}/${namespace}/${runId}`} />
+      <Link
+        {...props}
+        to={`${automlReconfigurePathname}/${namespace}/${runId}`}
+        state={{ from: 'results' }}
+      />
     ),
     [namespace, runId],
   );
@@ -92,8 +130,20 @@ function AutomlResultsPage(): React.JSX.Element {
         models,
         pipelineRunLoading: pipelineRunPending || pipelineRunFetching,
         modelsLoading,
+        modelsError,
+        modelsLoadError,
+        onRetryModels: refetchModels,
       }),
-    [pipelineRun, models, pipelineRunPending, pipelineRunFetching, modelsLoading],
+    [
+      pipelineRun,
+      models,
+      pipelineRunPending,
+      pipelineRunFetching,
+      modelsLoading,
+      modelsError,
+      modelsLoadError,
+      refetchModels,
+    ],
   );
 
   return (
@@ -192,14 +242,14 @@ function AutomlResultsPage(): React.JSX.Element {
                   <InvalidProject namespace={namespace} getRedirectPath={getRedirectPath} />
                 )
               }
-              loadError={modelsLoadError ?? pipelineRunLoadError ?? namespacesLoadError}
+              loadError={
+                hasPreviousData ? undefined : (pipelineRunLoadError ?? namespacesLoadError)
+              }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              {!modelsError && (
-                <AutomlResultsContext.Provider value={contextValue}>
-                  <AutomlResults />
-                </AutomlResultsContext.Provider>
-              )}
+              <AutomlResultsContext.Provider value={contextValue}>
+                <AutomlResults />
+              </AutomlResultsContext.Provider>
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

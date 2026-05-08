@@ -250,7 +250,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                     }}
                     isDanger
                   >
-                    Remove asset
+                    Delete endpoint
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
@@ -284,7 +284,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           }}
           data-testid="delete-model-modal"
         >
-          <ModalHeader title="Remove asset?" />
+          <ModalHeader title="Delete endpoint?" />
           <ModalBody>
             {deleteError && (
               <Alert
@@ -297,8 +297,8 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                 {deleteError}
               </Alert>
             )}
-            <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
-            list. The endpoint configuration will be deleted.
+            The <strong>{model.display_name}</strong> model endpoint will be deleted, and its
+            associated model will no longer be accessible from this project.
           </ModalBody>
           <ModalFooter>
             <Button
@@ -308,7 +308,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               isDisabled={isDeleting}
               isLoading={isDeleting}
             >
-              {isDeleting ? 'Removing...' : 'Remove'}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
             <Button
               key="cancel"
