@@ -193,6 +193,11 @@ const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
     description:
       "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
   },
+  'mcp:mcp_tool_not_found': {
+    title: '{toolName} tool call failed',
+    description:
+      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
+  },
   'rag:rag_error': {
     title: 'Knowledge source retrieval failed',
     description:
@@ -229,16 +234,6 @@ const partialFailureTemplates: Record<string, MicrocopyTemplate> = {
   'guardrails:service_down': {
     title: 'Guardrail check was not applied',
     description: "The safety filter couldn't process this response. Review the output carefully.",
-  },
-  'mcp:mcp_error': {
-    title: '{toolName} tool call failed',
-    description:
-      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
-  },
-  'mcp:mcp_tool_not_found': {
-    title: '{toolName} tool call failed',
-    description:
-      "The model attempted to use the {toolName} tool but the server didn't respond. The response was generated without this tool's output.",
   },
   'mcp:mcp_auth_error': {
     title: '{toolName} tool call failed',

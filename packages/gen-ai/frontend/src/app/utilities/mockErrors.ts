@@ -328,7 +328,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'stream_lost',
     apiError: {
       error: {
-        component: 'stream',
+        component: 'bff',
         code: 'connection_lost',
         message: 'Stream terminated: connection reset by peer',
         retriable: true,
