@@ -17,6 +17,7 @@ interface FileSelectorProps {
   id: string;
   placeholder?: string;
   selected?: string;
+  isDisabled?: boolean;
   onUpload: (
     file: File,
     setProgress: (progress: number) => void,
@@ -49,6 +50,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
               aria-label="Clear file"
               variant="plain"
               icon={<TimesIcon />}
+              isDisabled={props.isDisabled}
               onClick={props.onClear}
             />
           </TextInputGroupUtilities>
@@ -84,7 +86,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
           }
         }}
         hidden={hideUpload}
-        isDisabled={!!uploadedFile && !uploadStatus}
+        isDisabled={props.isDisabled || (!!uploadedFile && !uploadStatus)}
         filename={uploadedFile?.name}
         dropzoneProps={{
           ...props.fileUploadProps?.dropzoneProps,

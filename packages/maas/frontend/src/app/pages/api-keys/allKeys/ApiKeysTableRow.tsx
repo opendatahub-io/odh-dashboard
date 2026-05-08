@@ -1,7 +1,13 @@
 import * as React from 'react';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { capitalize, Label, LabelProps } from '@patternfly/react-core';
-import { BanIcon, CheckCircleIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { capitalize, Label } from '@patternfly/react-core';
+import type { LabelProps } from '@patternfly/react-core';
+import {
+  BanIcon,
+  CheckCircleIcon,
+  OutlinedClockIcon,
+  OutlinedQuestionCircleIcon,
+} from '@patternfly/react-icons';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import { APIKey, APIKeyStatus, SubscriptionDetail } from '~/app/types/api-key';
 import { ApiKeyColumn } from './columns';
@@ -9,16 +15,16 @@ import SubscriptionCell from './SubscriptionCell';
 
 const getApiKeyStatusProps = (
   status: APIKeyStatus,
-): { icon: React.ReactNode; status?: LabelProps['status']; color?: LabelProps['color'] } => {
+): { icon: React.ReactNode; status?: LabelProps['status'] } => {
   switch (status) {
     case 'active':
       return { icon: <CheckCircleIcon />, status: 'success' };
     case 'expired':
-      return { icon: <ExclamationCircleIcon />, status: 'danger' };
+      return { icon: <OutlinedClockIcon /> };
     case 'revoked':
-      return { icon: <BanIcon />, color: 'grey' };
+      return { icon: <BanIcon />, status: 'danger' };
     default:
-      return { icon: undefined, color: 'grey' };
+      return { icon: <OutlinedQuestionCircleIcon /> };
   }
 };
 
@@ -101,7 +107,7 @@ const ApiKeysTableRow: React.FC<ApiKeysTableRowProps> = ({
         data-testid="api-key-actions"
         items={[
           {
-            title: 'Revoke API key',
+            title: 'Revoke',
             onClick: () => onRevokeApiKey(apiKey),
             isDisabled: apiKey.status !== 'active',
           },

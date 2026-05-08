@@ -60,8 +60,9 @@ const getExtensionItems = (
     .flatMap((section) => section.items) ?? [];
 
 const getStatusSections = (
-  projectName?: string,
-  extensionStatusSections?: StatusSection[],
+  projectName: string | undefined,
+  extensionStatusSections: StatusSection[] | undefined,
+  isGenAiEnabled: boolean,
 ): StatusSection[] => {
   return [
     {
@@ -270,14 +271,16 @@ const getStatusSections = (
           key: 'modelAvailability-aiAssetEndpoint',
           label: 'AI asset endpoint',
           comp: (state) => (state.modelAvailability.data.saveAsAiAsset ? 'Yes' : 'No'),
-          isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
+          isVisible: (wizardState) =>
+            !!wizardState.state.modelAvailability.showField && isGenAiEnabled,
         },
         {
           key: 'modelAvailability-useCase',
           label: 'Use case',
           comp: (state) => state.modelAvailability.data.useCase || undefined,
           optional: true,
-          isVisible: (wizardState) => !!wizardState.state.modelAvailability.showField,
+          isVisible: (wizardState) =>
+            !!wizardState.state.modelAvailability.showField && isGenAiEnabled,
         },
         {
           key: 'externalRoute',
@@ -369,6 +372,8 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   projectName,
   externalData,
 }) => {
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
+
   const extensionSections = React.useMemo((): WizardReviewSection[] => {
     return wizardState.fields.flatMap((field) => {
       if (!field.getReviewSections) {
@@ -402,8 +407,8 @@ export const ReviewStepContent: React.FC<ReviewStepContentProps> = ({
   }, [extensionSections]);
 
   const statusSections = React.useMemo(
-    () => [...getStatusSections(projectName, extensionStatusSections)],
-    [projectName, extensionStatusSections],
+    () => [...getStatusSections(projectName, extensionStatusSections, isGenAiEnabled)],
+    [projectName, extensionStatusSections, isGenAiEnabled],
   );
 
   if (!wizardState.loaded.summaryLoaded) {

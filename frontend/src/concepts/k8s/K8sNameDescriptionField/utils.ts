@@ -33,11 +33,14 @@ export enum LimitNameResourceType {
   /** Model deployments create routes */
   MODEL_DEPLOYMENT,
   PVC,
+  /** Model Registry names are capped at 40 characters */
+  MODEL_REGISTRY,
 }
 /** K8s max DNS subdomain name length */
 const MAX_RESOURCE_NAME_LENGTH = 253;
 
 const MAX_PVC_NAME_LENGTH = 63;
+const MAX_MODEL_REGISTRY_NAME_LENGTH = 40;
 
 /** KServe InferenceService names must start with a lowercase letter */
 export const INFERENCE_SERVICE_NAME_REGEX = /^[a-z]([-a-z0-9]*[a-z0-9])?$/;
@@ -49,6 +52,7 @@ export const resourceTypeLimits: Record<LimitNameResourceType, number> = {
   [LimitNameResourceType.WORKBENCH]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.MODEL_DEPLOYMENT]: ROUTE_BASED_NAME_LENGTH,
   [LimitNameResourceType.PVC]: MAX_PVC_NAME_LENGTH,
+  [LimitNameResourceType.MODEL_REGISTRY]: MAX_MODEL_REGISTRY_NAME_LENGTH,
 };
 
 export const isK8sNameDescriptionType = (

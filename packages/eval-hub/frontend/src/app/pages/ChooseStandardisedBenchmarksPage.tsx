@@ -152,7 +152,7 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
       >
         <DrawerContentBody>
           <ApplicationsPage
-            title="Single benchmark"
+            title="Select benchmark"
             description="Select a benchmark to run on your model, agent or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
@@ -161,10 +161,10 @@ const ChooseStandardisedBenchmarksPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
-                <BreadcrumbItem isActive>Single benchmark</BreadcrumbItem>
+                <BreadcrumbItem isActive>Select benchmark</BreadcrumbItem>
               </Breadcrumb>
             }
             loaded={loaded}

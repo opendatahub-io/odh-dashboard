@@ -27,15 +27,13 @@ const OdhModelCatalogCoreLoader: React.FC = () => {
   };
 
   const catalogSettingsTitle =
-    catalogSettingsUrlExtensions.length > 0
-      ? catalogSettingsUrlExtensions[0].properties.title
-      : '';
+    catalogSettingsUrlExtensions.length > 0 ? catalogSettingsUrlExtensions[0].properties.title : '';
 
   const adminEmptyStateDescription = (
     <>
       There are no models to display. To add models to the catalog, add model sources to the{' '}
-      <b>{catalogSettingsTitle}</b> page. If you've already added sources, ensure that filters are
-      not restricting all models from appearing in the catalog.
+      <b>{catalogSettingsTitle}</b> page. If you&apos;ve already added sources, ensure that filters
+      are not restricting all models from appearing in the catalog.
     </>
   );
 

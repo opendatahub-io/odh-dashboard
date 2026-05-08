@@ -82,6 +82,10 @@ func (c *MaasClient) SearchAPIKeys(ctx context.Context, request models.APIKeySea
 		return nil, err
 	}
 
+	if apiResponse.Data == nil {
+		apiResponse.Data = []models.APIKey{}
+	}
+
 	return &apiResponse, nil
 }
 
@@ -148,6 +152,17 @@ func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.
 
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range apiResponse {
+		if apiResponse[i].ModelRefs == nil {
+			apiResponse[i].ModelRefs = []models.ModelRefInfo{}
+		}
+		for j := range apiResponse[i].ModelRefs {
+			if apiResponse[i].ModelRefs[j].TokenRateLimits == nil {
+				apiResponse[i].ModelRefs[j].TokenRateLimits = []models.TokenRateLimitInfo{}
+			}
+		}
 	}
 
 	return apiResponse, nil

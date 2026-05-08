@@ -754,28 +754,3 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 
 	return nil
 }
-
-// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
-// Returns the SDK type directly for simplicity.
-func (c *LlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
-	if input == "" {
-		return nil, fmt.Errorf("input is required")
-	}
-	if model == "" {
-		return nil, fmt.Errorf("model (shield ID) is required")
-	}
-
-	params := openai.ModerationNewParams{
-		Input: openai.ModerationNewParamsInputUnion{
-			OfString: openai.String(input),
-		},
-		Model: openai.ModerationModel(model),
-	}
-
-	response, err := c.client.Moderations.New(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create moderation: %w", err)
-	}
-
-	return response, nil
-}

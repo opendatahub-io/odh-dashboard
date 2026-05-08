@@ -1,0 +1,22 @@
+projectName: 'mlflow-exp-test'
+experiments:
+  - name: 'e2e-test-experiment'
+    renamedName: 'e2e-renamed-experiment'
+  - name: 'e2e-compare-experiment'
+    renamedName: 'e2e-compare-experiment-renamed'
+runs:
+  - name: 'e2e-test-run-1'
+    parameters:
+      learning_rate: '0.01'
+      batch_size: '32'
+    metrics:
+      accuracy: '0.95'
+      loss: '0.05'
+  - name: 'e2e-test-run-2'
+    parameters:
+      learning_rate: '0.001'
+      batch_size: '64'
+    metrics:
+      accuracy: '0.97'
+      loss: '0.03'
+nonExistentExperiment: 'nonexistent-experiment-xyz-no-results'

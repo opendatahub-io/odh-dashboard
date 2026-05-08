@@ -1889,6 +1889,10 @@ components:
           enum: [Pending, Active, Failed]
           description: Current phase of the subscription (from status)
           example: Active
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+          example: "successfully reconciled"
         priority:
           type: integer
           format: int32
@@ -1909,6 +1913,10 @@ components:
           type: string
           format: date-time
           description: When the resource was created
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the subscription is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace
@@ -1966,6 +1974,10 @@ components:
           enum: [Pending, Active, Failed]
           description: Current phase of the auth policy (from status)
           example: Active
+        statusMessage:
+          type: string
+          description: Human-readable status message from the Ready condition in status.conditions
+          example: "successfully reconciled"
         creationTimestamp:
           type: string
           format: date-time
@@ -1980,6 +1992,10 @@ components:
           $ref: '#/components/schemas/SubjectSpec'
         meteringMetadata:
           $ref: '#/components/schemas/TokenMetadata'
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: When set, the policy is marked for deletion (Kubernetes metadata.deletionTimestamp)
       required:
         - name
         - namespace

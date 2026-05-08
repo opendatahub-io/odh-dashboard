@@ -33,8 +33,8 @@ const useTimeBasedRefresh = (): SetTime => {
     lastDate.setHours(lastDate.getHours() + 1);
     if (lastDate < refreshDateMarker) {
       setNewDateString(refreshDateMarker.toString());
-      console.log('Logging out and refreshing');
-      logout().then(() => window.location.reload());
+      console.log('Logging out and redirecting');
+      logout();
     } else {
       console.error(
         `We should have refreshed but it appears the last time we auto-refreshed was less than an hour ago. '${KEY_NAME}' session storage setting can be cleared for this to refresh again within the hour from the last refresh.`,

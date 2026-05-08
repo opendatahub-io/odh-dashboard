@@ -295,6 +295,9 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
 };
 
 export type NotebookImageData = {
@@ -503,6 +506,42 @@ export type ModelRegistryTestData = {
 
   // Object storage paths
   objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
+
+  // Custom properties retention test configuration
+  modelNamePrefix: string;
+  modelDescription: string;
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelCustomProperties: Array<{ key: string; value: string }>;
+  versionCustomProperties: Array<{ key: string; value: string }>;
+  newVersionPropertyKey: string;
+  newVersionPropertyValue: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -587,6 +626,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId: string;
   sourceName2: string;
   redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
 };
 
 export type TrainJobTestData = {
@@ -634,7 +675,7 @@ export type PipelineTestData = {
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  runGroupName: string;
+  experimentName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };
@@ -673,4 +714,22 @@ export type PromptManagementPromptData = {
 export type PromptManagementTestData = {
   projectName: string;
   prompts: PromptManagementPromptData[];
+};
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
 };

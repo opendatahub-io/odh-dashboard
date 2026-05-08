@@ -289,9 +289,15 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
   customTypeOptions,
   customTypeKey,
 }) => {
-  const filteredConnections = React.useMemo(() => {
-    return connections.filter((c) => c.metadata.labels['opendatahub.io/dashboard'] === 'true');
-  }, [connections]);
+  const filteredConnections = React.useMemo(
+    () =>
+      connections.filter(
+        (c) =>
+          c.metadata.labels['opendatahub.io/dashboard'] === 'true' &&
+          c.metadata.annotations['opendatahub.io/connection-hidden'] !== 'true',
+      ),
+    [connections],
+  );
   const pvcNameFromUri: string | undefined = React.useMemo(() => {
     // Get the PVC name from the URI if it's a PVC URI
     if (modelLocationData?.fieldValues.URI && isPVCUri(String(modelLocationData.fieldValues.URI))) {

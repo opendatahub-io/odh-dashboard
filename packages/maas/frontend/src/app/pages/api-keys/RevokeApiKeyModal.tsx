@@ -50,7 +50,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({ apiKey, onClose }
           </Alert>
         </StackItem>
         <StackItem>
-          Are you sure you want to revoke the API Key <strong>{apiKey.name}</strong>?
+          Are you sure you want to revoke the API key <strong>{apiKey.name}</strong>?
         </StackItem>
         <StackItem>
           The key will remain visible with an Expired status but can no longer be used for

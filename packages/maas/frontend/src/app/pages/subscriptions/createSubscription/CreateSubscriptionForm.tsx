@@ -14,7 +14,6 @@ import {
   PageSection,
   Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   MultiSelection,
   SelectionOptions,
@@ -24,6 +23,7 @@ import K8sNameDescriptionField, {
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { APIOptions } from 'mod-arch-core';
+import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
@@ -113,7 +113,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     editLimitsTarget,
     setEditLimitsTarget,
     editingModel,
-    rateLimitErrorIndices,
     allModelsHaveRateLimits,
     handleAddModels,
     handleRemoveModel,
@@ -273,7 +272,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           dataTestId="subscription-name-desc"
         />
 
-        <FormGroup label="Priority" fieldId="subscription-priority">
+        <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
+                {priorityValidationError || 'Higher numbers indicate higher priority.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <NumberInput
             id="subscription-priority"
             data-testid="subscription-priority"
@@ -309,30 +315,18 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             }}
             validated={priorityValidationError ? 'error' : 'default'}
           />
+        </FormGroup>
+
+        <FormGroup label="Groups" fieldId="subscription-groups" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError ||
-                  'Higher numbers indicate higher priority. Users with access to multiple subscriptions will use the highest priority subscription available to them.'}
+              <HelperTextItem>
+                Select user groups that can access models in this subscription.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
-        </FormGroup>
-
-        <FormGroup
-          label="Groups"
-          fieldId="subscription-groups"
-          isRequired
-          labelHelp={
-            <Popover bodyContent="Select groups that will be able to access this subscription. You can also add the name of an OIDC group.">
-              <Button variant="plain" aria-label="Groups help" style={{ padding: 0 }}>
-                <OutlinedQuestionCircleIcon />
-              </Button>
-            </Popover>
-          }
-        >
           <MultiSelection
-            ariaLabel="Select groups or type to add a new group"
+            ariaLabel="Select groups"
             value={selectedGroups}
             setValue={(newValue) => {
               setGroupsTouched(true);
@@ -341,18 +335,17 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             toggleTestId="subscription-groups"
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
-            placeholder="Select groups or type to add a new group"
+            placeholder="Select groups"
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this subscription. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
+          {groupsValidationError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>{groupsValidationError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {showNoModelsWarning ? (
@@ -375,7 +368,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               tokenRateLimits: m.tokenRateLimits,
             }))}
             editable
-            rateLimitErrorIndices={rateLimitErrorIndices}
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
             onRemoveModel={handleRemoveModel}
@@ -407,7 +399,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         )}
 
         {!isEditing && (
-          <FormGroup fieldId="subscription-create-auth-policy">
+          <FormGroup fieldId="subscription-create-auth-policy" label="Authorization Policy">
             <Checkbox
               id="subscription-create-auth-policy"
               data-testid="subscription-create-auth-policy"
@@ -425,9 +417,9 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                         </p>
                         <br />
                         <p>
-                          A <b>policy</b> (MaaSAuthPolicy) is a separate resource that authorizes
-                          specific groups to be able to access model endpoints through the API
-                          gateway.
+                          An <b>authorization policy</b> (MaaSAuthPolicy) is a separate resource
+                          that authorizes specific groups to be able to access model endpoints
+                          through the API gateway.
                         </p>
                         <br />
                         <p>
@@ -446,6 +438,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
               isChecked={createAuthPolicy}
               onChange={(_event, checked) => setCreateAuthPolicy(checked)}
             />
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem>
+                  To consume model endpoints through the API gateway, users must have both a
+                  subscription and an authorization policy.
+                </HelperTextItem>
+              </HelperText>
+            </FormHelperText>
           </FormGroup>
         )}
 
@@ -453,12 +453,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
           <Alert
             variant="warning"
             isInline
-            title="Authorization policy may need updating"
+            title="Policies are not automatically updated"
             data-testid="policy-change-warning"
           >
-            You may have an associated authorization policy. Changing the groups or models here will
-            not automatically update it. You may need to update it separately on the{' '}
-            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link>.
+            If this subscription has associated authorization policies, you must manually update
+            them from the{' '}
+            <Link to={`${URL_PREFIX}/auth-policies`}>Authorization policies page</Link> after saving{' '}
+            your changes.
           </Alert>
         )}
 

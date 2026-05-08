@@ -24,10 +24,8 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - name: RHOAI Add-on
-            path: manifests/rhoai/addon
-          - name: RHOAI On-Prem
-            path: manifests/rhoai/onprem
+          - name: RHOAI
+            path: manifests/rhoai
           - name: ODH
             path: manifests/odh
     steps:

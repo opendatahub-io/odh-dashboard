@@ -20,7 +20,10 @@ import type {
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object';
 
 const isAPIKey = (v: unknown): v is APIKey =>
-  isRecord(v) && typeof v.id === 'string' && typeof v.name === 'string';
+  isRecord(v) &&
+  typeof v.id === 'string' &&
+  typeof v.name === 'string' &&
+  typeof v.status === 'string';
 
 const isSubscriptionDetail = (v: unknown): v is SubscriptionDetail =>
   isRecord(v) &&
@@ -33,11 +36,11 @@ const isSubscriptionDetails = (v: unknown): v is Record<string, SubscriptionDeta
 
 const isAPIKeyListResponse = (v: unknown): v is APIKeyListResponse =>
   isRecord(v) &&
-  (Array.isArray(v.data) || v.data === null) &&
+  Array.isArray(v.data) &&
   typeof v.has_more === 'boolean' &&
   typeof v.object === 'string' &&
-  (v.data === null || v.data.every(isAPIKey)) &&
-  (v.subscriptionDetails === undefined || isSubscriptionDetails(v.subscriptionDetails));
+  v.data.every(isAPIKey) &&
+  (v.subscriptionDetails == null || isSubscriptionDetails(v.subscriptionDetails));
 
 const isCreateAPIKeyResponse = (v: unknown): v is CreateAPIKeyResponse =>
   isRecord(v) &&
@@ -65,8 +68,7 @@ export const searchApiKeys =
       ),
     ).then((response) => {
       if (isModArchResponse<unknown>(response) && isAPIKeyListResponse(response.data)) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        return { ...response.data, data: response.data.data ?? [] }; // this protects against the case where there are no keys, and the data is null
+        return response.data;
       }
       throw new Error('Invalid response format');
     });

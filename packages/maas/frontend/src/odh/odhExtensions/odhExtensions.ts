@@ -2,13 +2,15 @@ import {
   AreaExtension,
   RouteExtension,
   NavExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
 
-export type ODHExtensions = NavExtension | RouteExtension | AreaExtension;
+export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
 const ADMIN_USER = 'ADMIN_USER';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
 const ODH_EXTENSIONS: ODHExtensions[] = [
   {
@@ -16,6 +18,10 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       id: MODEL_AS_SERVICE_ID,
       featureFlags: ['modelAsService'],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
@@ -23,6 +29,10 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       id: MAAS_AUTH_POLICIES,
       featureFlags: ['maasAuthPolicies'],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
@@ -45,7 +55,7 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       id: 'maas-auth-policies-view',
-      title: 'Policies',
+      title: 'Authorization policies',
       href: '/maas/auth-policies',
       section: 'settings',
       path: '/maas/auth-policies/*',
@@ -114,6 +124,19 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       path: '/maas',
       component: () => import('./MaaSRedirect'),
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID],
+    },
+    properties: {
+      id: 'genai-api-keys',
+      group: 'gen-ai-studio',
+      title: 'Manage API keys',
+      destination: { href: '/maas/tokens' },
+      order: '5_api_keys',
     },
   },
 ];

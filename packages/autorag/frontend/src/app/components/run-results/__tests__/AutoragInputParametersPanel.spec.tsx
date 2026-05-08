@@ -63,7 +63,7 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
-    expect(screen.getByText('Llama Stack instance')).toBeInTheDocument();
+    expect(screen.getByText('Llama Stack connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
@@ -101,6 +101,16 @@ describe('AutoragInputParametersPanel', () => {
   it('should format optimization metric with human-readable label', () => {
     renderPanel();
     expect(screen.getByText('Answer faithfulness')).toBeInTheDocument();
+  });
+
+  it('should format context_correctness metric with human-readable label', () => {
+    renderPanel({
+      parameters: {
+        ...defaultParameters,
+        optimization_metric: 'context_correctness',
+      },
+    });
+    expect(screen.getByText('Context correctness')).toBeInTheDocument();
   });
 
   it('should render model configuration with counts', () => {
@@ -162,7 +172,7 @@ describe('AutoragInputParametersPanel', () => {
     const labels = terms.map((el) => el.textContent);
     expect(labels).toEqual([
       'Description',
-      'Llama Stack instance',
+      'Llama Stack connection',
       'S3 connection',
       'Optimization metric',
     ]);

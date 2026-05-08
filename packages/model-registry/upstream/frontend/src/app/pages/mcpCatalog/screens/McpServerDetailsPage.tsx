@@ -27,8 +27,8 @@ import {
   getMcpCardIconConfig,
 } from '~/app/pages/mcpCatalog/components/McpCatalogCardIcons';
 import { isMcpRemoteDeploymentMode } from '~/app/pages/mcpCatalog/utils/mcpCatalogUtils';
-import McpServerDetailsView from './McpServerDetailsView';
 import McpDeployButton from '~/odh/components/McpDeployButton';
+import McpServerDetailsView from './McpServerDetailsView';
 
 const McpServerDetailsPage: React.FC = () => {
   const { serverId = '' } = useParams<{ serverId: string }>();

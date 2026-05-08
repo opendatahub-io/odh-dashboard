@@ -4,12 +4,40 @@ import {
   useS3ListFilesQuery,
   fetchS3Json,
   AutomlModelSchema,
-  isRawTimeseriesModel,
+  isRawTimeseriesModelV34,
 } from '~/app/hooks/queries';
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { isTabularRun } from '~/app/utilities/utils';
+
+/* eslint-disable camelcase */
+const METRIC_ALIASES: Record<string, string> = {
+  MAE: 'mean_absolute_error',
+  MSE: 'mean_squared_error',
+  RMSE: 'root_mean_squared_error',
+  RMSLE: 'root_mean_squared_logarithmic_error',
+  MAPE: 'mean_absolute_percentage_error',
+  SMAPE: 'symmetric_mean_absolute_percentage_error',
+  MASE: 'mean_absolute_scaled_error',
+  RMSSE: 'root_mean_squared_scaled_error',
+  WAPE: 'weighted_absolute_percentage_error',
+  WQL: 'weighted_quantile_loss',
+  SQL: 'scaled_quantile_loss',
+};
+/* eslint-enable camelcase */
+
+// Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
+// return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
+// is used to normalize keys so downstream code only handles one form. See RHOAIENG-59989.
+function normalizeMetricsToSnakeCase(testData: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(testData)) {
+    const normalized = METRIC_ALIASES[key.toUpperCase()] ?? key;
+    result[normalized] = value;
+  }
+  return result;
+}
 
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
@@ -179,34 +207,31 @@ export function useAutomlResults(
           });
 
           // Rewrite relative location paths to absolute S3 paths.
-          // Timeseries has `notebooks` (directory) + `metrics`; tabular has `notebook` (file path).
-          let model: AutomlModel;
-          if (isRawTimeseriesModel(validated)) {
-            model = {
-              name: validated.name,
+          // Timeseries (3.4) uses `notebooks` (plural, directory); all others use `notebook` (file).
+          // V35 and timeseries have `location.metrics`; legacy tabular does not.
+          const notebook = isRawTimeseriesModelV34(validated)
+            ? `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`
+            : `${artifactDirectory}${validated.location.notebook}`;
+
+          const locationMetrics =
+            'metrics' in validated.location
+              ? `${artifactDirectory}${validated.location.metrics}`
+              : undefined;
+
+          const model: AutomlModel = {
+            name: validated.name,
+            location: {
               // eslint-disable-next-line camelcase
-              base_model: validated.base_model,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebooks}/automl_predictor_notebook.ipynb`,
-                metrics: `${artifactDirectory}${validated.location.metrics}`,
-              },
-              metrics: validated.metrics,
-            };
-          } else {
-            model = {
-              name: validated.name,
-              location: {
-                // eslint-disable-next-line camelcase
-                model_directory: directory,
-                predictor: `${artifactDirectory}${validated.location.predictor}`,
-                notebook: `${artifactDirectory}${validated.location.notebook}`,
-              },
-              metrics: validated.metrics,
-            };
-          }
+              model_directory: directory,
+              predictor: `${artifactDirectory}${validated.location.predictor}`,
+              notebook,
+              ...(locationMetrics != null && { metrics: locationMetrics }),
+            },
+            metrics: {
+              // eslint-disable-next-line camelcase
+              test_data: normalizeMetricsToSnakeCase(validated.metrics.test_data),
+            },
+          };
 
           return { name, model };
         },

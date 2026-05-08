@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"net/url"
+
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
@@ -20,8 +22,7 @@ import (
 )
 
 const (
-	testNamespace     = "test-namespace"
-	testLlamaStackURL = "http://test-llama-stack:8321"
+	testNamespace = "test-namespace"
 )
 
 // CapturingMockClientFactory wraps the standard mock factory to capture URLs
@@ -30,7 +31,7 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) ls.LlamaStackClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ls.LlamaStackClientInterface {
 	f.CapturedURL = baseURL
 	return lsmocks.NewMockLlamaStackClient()
 }
@@ -122,76 +123,6 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-	})
-
-	t.Run("should use LLAMA_STACK_URL when auth is disabled", func(t *testing.T) {
-		mockFactory := &CapturingMockClientFactory{}
-
-		app := App{
-			config: config.EnvConfig{
-				AuthMethod:    config.AuthMethodDisabled,
-				LlamaStackURL: testLlamaStackURL,
-			},
-			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(slog.Default()),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
-			w.WriteHeader(http.StatusOK)
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
-	})
-
-	t.Run("should return 500 when auth is disabled and LLAMA_STACK_URL is not set", func(t *testing.T) {
-		app := App{
-			config: config.EnvConfig{
-				AuthMethod: config.AuthMethodDisabled,
-			},
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
-			logger:                  slog.Default(),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	})
-
-	t.Run("should use LLAMA_STACK_URL as developer override when set", func(t *testing.T) {
-		mockFactory := &CapturingMockClientFactory{}
-
-		app := App{
-			config:                  config.EnvConfig{LlamaStackURL: testLlamaStackURL},
-			llamaStackClientFactory: mockFactory,
-			repositories:            repositories.NewRepositories(slog.Default()),
-		}
-
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &k8s.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
-
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
-			w.WriteHeader(http.StatusOK)
-		})(rr, req, nil)
-
-		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, testLlamaStackURL, mockFactory.CapturedURL)
 	})
 
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
@@ -449,4 +380,74 @@ func TestRequireAccessToService(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.True(t, handlerCalled, "Next handler should be called when user is authorized")
 	})
+}
+
+func TestPreserveRawPath(t *testing.T) {
+	tests := []struct {
+		name           string
+		path           string
+		rawPath        string
+		useStripPrefix bool
+		expectedPath   string
+	}{
+		{
+			name:         "s3 files path with percent-encoded key swaps Path for RawPath",
+			path:         "/api/v1/s3/files/docs/file.csv",
+			rawPath:      "/api/v1/s3/files/docs%2Ffile.csv",
+			expectedPath: "/api/v1/s3/files/docs%2Ffile.csv",
+		},
+		{
+			name:         "s3 files path without encoding is unchanged",
+			path:         "/api/v1/s3/files/simple.csv",
+			rawPath:      "",
+			expectedPath: "/api/v1/s3/files/simple.csv",
+		},
+		{
+			name:         "double-encoded key preserves %25 literal via RawPath",
+			path:         "/api/v1/s3/files/docs%2Ffile.csv",
+			rawPath:      "/api/v1/s3/files/docs%252Ffile.csv",
+			expectedPath: "/api/v1/s3/files/docs%252Ffile.csv",
+		},
+		{
+			name:         "double-encoded key re-encodes when RawPath is empty",
+			path:         "/api/v1/s3/files/docs%2Ffile.csv",
+			rawPath:      "",
+			expectedPath: "/api/v1/s3/files/docs%252Ffile.csv",
+		},
+		{
+			name:         "non-s3 path with RawPath is unchanged",
+			path:         "/api/v1/lsd/models",
+			rawPath:      "/api/v1/lsd/models",
+			expectedPath: "/api/v1/lsd/models",
+		},
+		{
+			name:           "prefixed path is matched after StripPrefix removes prefix",
+			path:           "/autorag/api/v1/s3/files/docs/file.csv",
+			rawPath:        "/autorag/api/v1/s3/files/docs%2Ffile.csv",
+			useStripPrefix: true,
+			expectedPath:   "/api/v1/s3/files/docs%2Ffile.csv",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedPath string
+			inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+				capturedPath = r.URL.Path
+			})
+
+			handler := preserveRawPath(inner)
+			if tt.useStripPrefix {
+				handler = http.StripPrefix(PathPrefix, handler)
+			}
+
+			req := httptest.NewRequest(http.MethodGet, tt.path, nil)
+			req.URL = &url.URL{Path: tt.path, RawPath: tt.rawPath}
+			rr := httptest.NewRecorder()
+
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.expectedPath, capturedPath)
+		})
+	}
 }

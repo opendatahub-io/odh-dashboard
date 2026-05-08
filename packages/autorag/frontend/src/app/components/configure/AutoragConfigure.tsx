@@ -35,6 +35,7 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Skeleton,
   Spinner,
   Split,
   SplitItem,
@@ -72,7 +73,6 @@ import {
   MAX_RAG_PATTERNS,
   MIN_RAG_PATTERNS,
   RAG_METRIC_ANSWER_CORRECTNESS,
-  RAG_METRIC_CONTEXT_CORRECTNESS,
   RAG_METRIC_FAITHFULNESS,
 } from '~/app/schemas/configure.schema';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
@@ -83,7 +83,7 @@ import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
-import './AutoragConfigure.css';
+import './AutoragConfigure.scss';
 
 const AUTORAG_REQUIRED_KEYS: { [type: string]: string[] } = {
   s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
@@ -134,11 +134,6 @@ const OPTIMIZATION_METRICS: {
     value: RAG_METRIC_ANSWER_CORRECTNESS,
     label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_ANSWER_CORRECTNESS],
     description: 'How correct the generated answer is compared to the ground truth.',
-  },
-  {
-    value: RAG_METRIC_CONTEXT_CORRECTNESS,
-    label: OPTIMIZATION_METRIC_LABELS[RAG_METRIC_CONTEXT_CORRECTNESS],
-    description: 'How precisely the retrieval step identifies relevant chunks.',
   },
 ];
 
@@ -202,17 +197,33 @@ function AutoragConfigure(): React.JSX.Element {
 
   const showInputDataUploadDropzone = !isInputDataFileUploading && !inputDataKey.trim();
 
-  const { data: allModelsData } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  const {
+    data: allModelsData,
+    isError: isModelsError,
+    isLoading: isModelsLoading,
+  } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
-  // Reset modelsInitialized when the LlamaStack secret changes so models re-populate
+  useEffect(() => {
+    if (isModelsError) {
+      notification.error(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
+    }
+  }, [isModelsError, notification]);
+
+  // When the secret changes, mark models as needing re-initialization and
+  // immediately clear stale selections so the UI reflects the transition.
   useEffect(() => {
     modelsInitialized.current = false;
-  }, [llamaStackSecretName]);
+    setValue('generation_models', []);
+    setValue('embeddings_models', []);
+  }, [llamaStackSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
-    if (allModelsData?.models && !modelsInitialized.current) {
+    if (allModelsData?.models && !modelsInitialized.current && !isModelsError) {
       modelsInitialized.current = true;
       reset({
         ...getValues(),
@@ -228,7 +239,7 @@ function AutoragConfigure(): React.JSX.Element {
           .toSorted((a, b) => a.localeCompare(b)),
       });
     }
-  }, [allModelsData, getValues, reset]);
+  }, [allModelsData, isModelsError, getValues, reset]);
 
   // set bucket from selected secret
   useEffect(() => {
@@ -329,7 +340,15 @@ function AutoragConfigure(): React.JSX.Element {
         setValue('input_data_key', uploadResult.key, { shouldValidate: true });
       } catch (err) {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
-          notification.error('Failed to upload file', err instanceof Error ? err.message : '');
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          const isConflict = errorMessage.toLowerCase().includes('unique filename');
+
+          notification.error(
+            'Failed to upload file',
+            isConflict
+              ? 'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.'
+              : errorMessage,
+          );
         }
       } finally {
         if (uploadRequestId === inputDataUploadSeqRef.current) {
@@ -380,6 +399,7 @@ function AutoragConfigure(): React.JSX.Element {
                                   namespace={String(namespace)}
                                   type="storage"
                                   additionalRequiredKeys={AUTORAG_REQUIRED_KEYS}
+                                  isDisabled={isSubmitting}
                                   value={selectedSecret?.uuid}
                                   onChange={(secret) => {
                                     if (!secret) {
@@ -412,6 +432,7 @@ function AutoragConfigure(): React.JSX.Element {
                           <Button
                             key="add-new-connection"
                             variant="tertiary"
+                            isDisabled={isSubmitting}
                             onClick={() => setIsConnectionModalOpen(true)}
                           >
                             Add new connection
@@ -428,18 +449,20 @@ function AutoragConfigure(): React.JSX.Element {
                       <StackItem className="pf-v6-u-mt-sm">
                         <ToggleGroup
                           aria-label="Choose how to add documents"
-                          className="autoragConfigureToggleGroupFullWidth pf-v6-u-mb-md"
+                          className="autorag-configure__toggle-group-full-width pf-v6-u-mb-md"
                         >
                           <ToggleGroupItem
                             text="Select file or folder"
                             buttonId="document-input-select"
                             isSelected={inputDataSourceMode === 'select'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('select')}
                           />
                           <ToggleGroupItem
                             text="Upload file"
                             buttonId="document-input-upload"
                             isSelected={inputDataSourceMode === 'upload'}
+                            isDisabled={isSubmitting}
                             onChange={() => setInputDataSourceMode('upload')}
                           />
                         </ToggleGroup>
@@ -489,6 +512,7 @@ function AutoragConfigure(): React.JSX.Element {
                                           variant="plain"
                                           aria-label="Remove selection"
                                           icon={<TimesIcon />}
+                                          isDisabled={isSubmitting}
                                           onClick={() => {
                                             setSelectedInputDataFile(undefined);
                                             setValue('input_data_key', '', {
@@ -614,11 +638,16 @@ function AutoragConfigure(): React.JSX.Element {
                                         popperProps={{ position: 'end', preventOverflow: true }}
                                       >
                                         <DropdownList>
-                                          <DropdownItem key="remove" onClick={clearInputDataUpload}>
+                                          <DropdownItem
+                                            key="remove"
+                                            isDisabled={isSubmitting}
+                                            onClick={clearInputDataUpload}
+                                          >
                                             Remove
                                           </DropdownItem>
                                           <DropdownItem
                                             key="replace"
+                                            isDisabled={isSubmitting}
                                             onClick={openInputDataReplaceFileDialog}
                                           >
                                             Replace
@@ -739,6 +768,7 @@ function AutoragConfigure(): React.JSX.Element {
                                     ref={toggleRef}
                                     onClick={() => setIsMetricSelectOpen((prev) => !prev)}
                                     isExpanded={isMetricSelectOpen}
+                                    isDisabled={isSubmitting}
                                     data-testid="optimization-metric-select"
                                   >
                                     {selected?.label ?? ''}
@@ -781,6 +811,7 @@ function AutoragConfigure(): React.JSX.Element {
                                 value={field.value}
                                 min={MIN_RAG_PATTERNS}
                                 max={MAX_RAG_PATTERNS}
+                                isDisabled={isSubmitting}
                                 validated={fieldState.error ? 'error' : 'default'}
                                 onMinus={() => field.onChange(field.value - 1)}
                                 onPlus={() => field.onChange(field.value + 1)}
@@ -828,7 +859,10 @@ function AutoragConfigure(): React.JSX.Element {
                                       isDisabled={
                                         !inputDataBucketName ||
                                         !inputDataKeyValue ||
-                                        form.formState.isSubmitting
+                                        form.formState.isSubmitting ||
+                                        isModelsLoading ||
+                                        isModelsError ||
+                                        !allModelsData?.models.length
                                       }
                                     >
                                       Edit
@@ -843,70 +877,78 @@ function AutoragConfigure(): React.JSX.Element {
                           <CardBody>
                             <Stack hasGutter>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="generation_models"
-                                  render={(generationModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
-                                      {!!generationModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {generationModels.map((model) => (
-                                                <ListItem key={`generation-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="generation_models"
+                                    render={(generationModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        {!!generationModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {generationModels.map((model) => (
+                                                  <ListItem key={`generation-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                               <StackItem>
-                                <Watch
-                                  control={form.control}
-                                  name="embeddings_models"
-                                  render={(embeddingModels) => (
-                                    <Flex
-                                      alignItems={{ default: 'alignItemsCenter' }}
-                                      spacer={{ default: 'spacerNone' }}
-                                      gap={{ default: 'gapSm' }}
-                                    >
-                                      <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
-                                      {!!embeddingModels.length && (
-                                        <Popover
-                                          bodyContent={
-                                            <List>
-                                              {embeddingModels.map((model) => (
-                                                <ListItem key={`embedding-${model}`}>
-                                                  {model}
-                                                </ListItem>
-                                              ))}
-                                            </List>
-                                          }
-                                        >
-                                          <DashboardPopupIconButton
-                                            icon={<InfoCircleIcon />}
-                                            hasNoPadding
-                                          />
-                                        </Popover>
-                                      )}
-                                    </Flex>
-                                  )}
-                                />
+                                {isModelsLoading ? (
+                                  <Skeleton width="150px" />
+                                ) : (
+                                  <Watch
+                                    control={form.control}
+                                    name="embeddings_models"
+                                    render={(embeddingModels) => (
+                                      <Flex
+                                        alignItems={{ default: 'alignItemsCenter' }}
+                                        spacer={{ default: 'spacerNone' }}
+                                        gap={{ default: 'gapSm' }}
+                                      >
+                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        {!!embeddingModels.length && (
+                                          <Popover
+                                            bodyContent={
+                                              <List>
+                                                {embeddingModels.map((model) => (
+                                                  <ListItem key={`embedding-${model}`}>
+                                                    {model}
+                                                  </ListItem>
+                                                ))}
+                                              </List>
+                                            }
+                                          >
+                                            <DashboardPopupIconButton
+                                              icon={<InfoCircleIcon />}
+                                              hasNoPadding
+                                            />
+                                          </Popover>
+                                        )}
+                                      </Flex>
+                                    )}
+                                  />
+                                )}
                               </StackItem>
                             </Stack>
                           </CardBody>

@@ -1,0 +1,13 @@
+// Ensures the grey background fills the full viewport height
+// when homepage sections are collapsed and content is short.
+.odh-home-page {
+  min-height: 100%;
+  background-color: var(--pf-t--global--background--color--secondary--default);
+}
+
+// Removes the default PF Card border so section cards
+// (Task Assistant, Enable your team) appear as borderless
+// white containers on the grey page background.
+.odh-home-card {
+  --pf-v6-c-card--BorderWidth: 0;
+}

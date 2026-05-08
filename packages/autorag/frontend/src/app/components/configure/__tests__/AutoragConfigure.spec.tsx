@@ -96,6 +96,7 @@ jest.mock('~/app/hooks/queries', () => ({
   useLlamaStackModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
+    isError: false,
   }),
   useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
@@ -268,6 +269,8 @@ describe('AutoragConfigure', () => {
     mockNotificationError.mockClear();
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.txt' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -443,6 +446,30 @@ describe('AutoragConfigure', () => {
       expect(mockNotificationError).not.toHaveBeenCalled();
     });
 
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.txt', { type: 'text/plain' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
+    });
+
     it('should show the newly selected secret name when switching secrets', () => {
       renderComponent();
 
@@ -530,7 +557,7 @@ describe('AutoragConfigure', () => {
       );
     });
 
-    it('should display all metric options when dropdown is opened', async () => {
+    it('should only offer faithfulness and answer_correctness as selectable metrics', async () => {
       const user = userEvent.setup();
       renderComponent();
       selectSecretAndFile();
@@ -540,8 +567,24 @@ describe('AutoragConfigure', () => {
       await waitFor(() => {
         expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
         expect(screen.getByTestId('metric-option-answer_correctness')).toBeInTheDocument();
-        expect(screen.getByTestId('metric-option-context_correctness')).toBeInTheDocument();
       });
+      expect(screen.queryByTestId('metric-option-context_correctness')).not.toBeInTheDocument();
+    });
+
+    it('should offer exactly two optimization metrics', async () => {
+      const user = userEvent.setup();
+      renderComponent();
+      selectSecretAndFile();
+
+      await user.click(screen.getByTestId('optimization-metric-select'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('metric-option-faithfulness')).toBeInTheDocument();
+      });
+
+      const selectList = screen.getByTestId('optimization-metric-select-list');
+      const options = selectList.querySelectorAll('[data-testid^="metric-option-"]');
+      expect(options).toHaveLength(2);
     });
 
     it('should render with a non-default metric when configured', () => {
@@ -649,6 +692,23 @@ describe('AutoragConfigure', () => {
       // The "Selected models" card should show model counts
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
       expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Model error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the LlamaStack secret is valid and try again.',
+      );
     });
   });
 
@@ -782,7 +842,39 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
+    it('should disable "Edit" button when model loading fails', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
+      renderComponent();
+
+      // Select a valid secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Browse and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Edit button should be disabled due to model error
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
+    });
+
     it('should enable "Edit" button when a file/folder is selected', () => {
+      mockUseLlamaStackModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+
       renderComponent();
 
       // Select a valid secret

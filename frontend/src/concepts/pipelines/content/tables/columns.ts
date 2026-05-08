@@ -70,7 +70,7 @@ export const pipelineVersionColumns: SortableData<PipelineVersionKF>[] = [
 export const experimentColumns: SortableData<ExperimentKF>[] = [
   checkboxTableColumn(),
   {
-    label: 'Experiment',
+    label: 'Run group',
     field: 'display_name',
     sortable: true,
     width: 40,

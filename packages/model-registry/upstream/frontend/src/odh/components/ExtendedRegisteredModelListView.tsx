@@ -22,8 +22,8 @@ import {
 } from '~/app/pages/modelRegistry/screens/const';
 import FilterToolbar from '~/app/shared/components/FilterToolbar';
 import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
-import ExtendedRegisteredModelTable from './ExtendedRegisteredModelTable';
 import RegisteredModelsTableToolbar from '~/app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableToolbar';
+import ExtendedRegisteredModelTable from './ExtendedRegisteredModelTable';
 
 type ExtendedRegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
@@ -149,20 +149,17 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
 
   // Wrap with deployments context providers if available
   if (deploymentsContextLoaded && deploymentsContextExtensions.length > 0) {
-    return deploymentsContextExtensions.reduce(
-      (content, extension) => {
-        const DeploymentsProvider = extension.properties.DeploymentsProvider;
-        return (
-          <DeploymentsProvider
-            key={extension.properties.DeploymentsProvider.toString()}
-            mrName={preferredModelRegistry?.name}
-          >
+    return deploymentsContextExtensions.reduce((content, extension) => {
+      const { DeploymentsProvider } = extension.properties;
+      return (
+        <DeploymentsProvider
+          key={extension.properties.DeploymentsProvider.toString()}
+          mrName={preferredModelRegistry?.name}
+        >
           {() => tableContent}
-          </DeploymentsProvider>
-        );
-      },
-      tableContent
-    );
+        </DeploymentsProvider>
+      );
+    }, tableContent);
   }
 
   return tableContent;

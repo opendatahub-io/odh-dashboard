@@ -4,8 +4,106 @@ import (
 	"testing"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestInterpretNemoResponse_Success(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusSuccess}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+	assert.Empty(t, result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_Blocked(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{
+		Status: nemo.StatusBlocked,
+		RailsStatus: map[string]nemo.RailStatus{
+			"self_check_input": {Status: nemo.StatusBlocked},
+		},
+	}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "self_check_input", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_BlockedMultipleRails(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{
+		Status: nemo.StatusBlocked,
+		RailsStatus: map[string]nemo.RailStatus{
+			"jailbreak_check": {Status: nemo.StatusSuccess},
+			"pii_check":       {Status: nemo.StatusBlocked},
+		},
+	}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "pii_check", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_BlockedNoRailsStatus(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusBlocked}
+	result := interpretNemoResponse(resp)
+	assert.True(t, result.Flagged)
+	assert.Equal(t, "guardrail_violation", result.ViolationReason)
+}
+
+func TestInterpretNemoResponse_Error(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: nemo.StatusError}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+}
+
+func TestInterpretNemoResponse_Nil(t *testing.T) {
+	result := interpretNemoResponse(nil)
+	assert.False(t, result.Flagged)
+}
+
+func TestInterpretNemoResponse_UnknownStatus(t *testing.T) {
+	resp := &nemo.GuardrailCheckResponse{Status: "unknown"}
+	result := interpretNemoResponse(resp)
+	assert.False(t, result.Flagged)
+}
+
+func TestExtractBlockedRailName(t *testing.T) {
+	tests := []struct {
+		name        string
+		railsStatus map[string]nemo.RailStatus
+		expected    string
+	}{
+		{
+			name:        "nil map",
+			railsStatus: nil,
+			expected:    "guardrail_violation",
+		},
+		{
+			name:        "empty map",
+			railsStatus: map[string]nemo.RailStatus{},
+			expected:    "guardrail_violation",
+		},
+		{
+			name: "single blocked rail",
+			railsStatus: map[string]nemo.RailStatus{
+				"self_check_output": {Status: nemo.StatusBlocked},
+			},
+			expected: "self_check_output",
+		},
+		{
+			name: "no blocked rails",
+			railsStatus: map[string]nemo.RailStatus{
+				"self_check_input": {Status: nemo.StatusSuccess},
+			},
+			expected: "guardrail_violation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractBlockedRailName(tt.railsStatus)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
 
 func TestEndsWithSentenceBoundary(t *testing.T) {
 	tests := []struct {
@@ -292,4 +390,103 @@ func TestShouldTriggerModeration_RealWorldScenarios(t *testing.T) {
 				tt.description, result, tt.expected)
 		})
 	}
+}
+
+func TestBuildInlineGuardrailOptions_InputOnly(t *testing.T) {
+	opts := buildInlineGuardrailOptions(
+		"http://llama-guard.svc/v1",
+		"llama-guard-3",
+		"test-key",
+		true,
+		false,
+		"Check input: {{ user_input }}",
+		"",
+	)
+
+	require.NotNil(t, opts.Config)
+
+	require.Len(t, opts.Config.Models, 1)
+	model := opts.Config.Models[0]
+	assert.Equal(t, "main", model.Type)
+	assert.Equal(t, "openai", model.Engine)
+	assert.Equal(t, "http://llama-guard.svc/v1", model.Parameters["openai_api_base"])
+	assert.Equal(t, "llama-guard-3", model.Parameters["model_name"])
+	assert.Equal(t, "test-key", model.Parameters["api_key"])
+
+	require.NotNil(t, opts.Config.Rails.Input)
+	assert.Contains(t, opts.Config.Rails.Input.Flows, nemo.FlowSelfCheckInput)
+	assert.Nil(t, opts.Config.Rails.Output)
+
+	require.Len(t, opts.Config.Prompts, 1)
+	assert.Equal(t, nemo.TaskSelfCheckInput, opts.Config.Prompts[0].Task)
+	assert.Equal(t, "Check input: {{ user_input }}", opts.Config.Prompts[0].Content)
+}
+
+func TestBuildInlineGuardrailOptions_OutputOnly(t *testing.T) {
+	opts := buildInlineGuardrailOptions(
+		"http://llama-guard.svc/v1",
+		"llama-guard-3",
+		"test-key",
+		false,
+		true,
+		"",
+		"Check output: {{ bot_response }}",
+	)
+
+	require.NotNil(t, opts.Config)
+	assert.Nil(t, opts.Config.Rails.Input)
+	require.NotNil(t, opts.Config.Rails.Output)
+	assert.Contains(t, opts.Config.Rails.Output.Flows, nemo.FlowSelfCheckOutput)
+
+	require.Len(t, opts.Config.Prompts, 1)
+	assert.Equal(t, nemo.TaskSelfCheckOutput, opts.Config.Prompts[0].Task)
+}
+
+func TestBuildInlineGuardrailOptions_BothEnabled(t *testing.T) {
+	opts := buildInlineGuardrailOptions(
+		"http://llama-guard.svc/v1",
+		"llama-guard-3",
+		"sk-token",
+		true,
+		true,
+		"Input prompt {{ user_input }}",
+		"Output prompt {{ bot_response }}",
+	)
+
+	require.NotNil(t, opts.Config)
+	require.NotNil(t, opts.Config.Rails.Input)
+	require.NotNil(t, opts.Config.Rails.Output)
+	assert.Len(t, opts.Config.Prompts, 2)
+}
+
+func TestBuildInlineGuardrailOptions_NoPrompts(t *testing.T) {
+	opts := buildInlineGuardrailOptions(
+		"http://llama-guard.svc/v1",
+		"llama-guard-3",
+		"",
+		true,
+		true,
+		"",
+		"",
+	)
+
+	require.NotNil(t, opts.Config)
+	assert.Empty(t, opts.Config.Prompts, "empty prompt strings should not add Prompts entries")
+}
+
+func TestBuildInlineGuardrailOptions_NeitherEnabled(t *testing.T) {
+	opts := buildInlineGuardrailOptions(
+		"http://llama-guard.svc/v1",
+		"llama-guard-3",
+		"key",
+		false,
+		false,
+		"",
+		"",
+	)
+
+	require.NotNil(t, opts.Config)
+	assert.Nil(t, opts.Config.Rails.Input)
+	assert.Nil(t, opts.Config.Rails.Output)
+	assert.Empty(t, opts.Config.Prompts)
 }

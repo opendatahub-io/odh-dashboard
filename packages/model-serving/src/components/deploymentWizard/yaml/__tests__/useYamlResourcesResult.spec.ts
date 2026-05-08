@@ -18,8 +18,8 @@ jest.mock('../../useWizardFieldApply');
 const mockUseWizardFieldApply = jest.mocked(useWizardFieldApply);
 
 const mockModel: ModelResourceType = {
-  apiVersion: 'serving.kserve.io/v1beta1',
-  kind: 'InferenceService',
+  apiVersion: 'serving.kserve.io/v1alpha1',
+  kind: 'LLMInferenceService',
   metadata: {
     name: 'test-model',
     namespace: 'test-ns',
@@ -29,8 +29,8 @@ const mockModel: ModelResourceType = {
 const mockDeployment: Deployment = {
   modelServingPlatformId: 'test-platform',
   model: {
-    apiVersion: 'serving.kserve.io/v1beta1',
-    kind: 'InferenceService',
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'LLMInferenceService',
     metadata: {
       name: 'test-model',
       namespace: 'test-ns',
@@ -64,6 +64,29 @@ describe('useFormYamlResources', () => {
 
     expect(renderResult.result.current.resources).toStrictEqual({ model: editedModel });
     expect(renderResult.result.current.resources).not.toBe(resources);
+  });
+
+  it('should include formResources server in resources when in editor mode', () => {
+    const mockServer: DeploymentAssemblyResources['server'] = {
+      apiVersion: 'serving.kserve.io/v1alpha1',
+      kind: 'LLMInferenceServiceConfig',
+      metadata: {
+        name: 'test-server',
+        namespace: 'test-ns',
+      },
+    };
+    const resources: DeploymentAssemblyResources = { model: mockModel, server: mockServer };
+    const renderResult = testHook(useFormYamlResources)(resources);
+
+    const editedModel = { ...mockModel, metadata: { ...mockModel.metadata, name: 'edited' } };
+    act(() => {
+      renderResult.result.current.setYaml(stringify(editedModel));
+    });
+
+    expect(renderResult.result.current.resources).toStrictEqual({
+      model: editedModel,
+      server: mockServer,
+    });
   });
 
   it('should return editor yaml after setYaml is called', () => {

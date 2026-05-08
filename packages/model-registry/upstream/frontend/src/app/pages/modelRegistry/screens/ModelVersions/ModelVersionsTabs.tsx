@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
+import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import ModelDetailsView from '~/app/pages/modelRegistry/screens/ModelVersions/ModelDetailsView';
 import { ModelVersion, RegisteredModel } from '~/app/types';
 import {
@@ -9,7 +10,6 @@ import {
 } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
 import ModelVersionListView from '~/app/pages/modelRegistry/screens/ModelVersions/ModelVersionListView';
 import { isModelRegistryDetailsTabExtension } from '~/odh/extension-points/details';
-import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { DEPLOYMENTS_TAB_EXTENSION_ID } from '~/odh/const';
 
@@ -34,7 +34,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
   const tabExtensions = useExtensions(isModelRegistryDetailsTabExtension);
   const { registeredModelId: rmId } = useParams();
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
-  
+
   const modelDetailsTabs = [
     <Tab
       key={ModelVersionsTab.OVERVIEW}
@@ -44,11 +44,7 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
       data-testid="model-overview-tab"
     >
       <PageSection hasBodyWrapper={false} isFilled data-testid="model-details-tab-content">
-        <ModelDetailsView
-          registeredModel={rm}
-          refresh={refresh}
-          isArchiveModel={isArchiveModel}
-        />
+        <ModelDetailsView registeredModel={rm} refresh={refresh} isArchiveModel={isArchiveModel} />
       </PageSection>
     </Tab>,
     <Tab
@@ -97,7 +93,9 @@ const ModelVersionsTabs: React.FC<ModelVersionsTabProps> = ({
       data-testid="model-versions-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      {isArchiveModel ? modelDetailsTabs.filter((tab) => tab.key !== DEPLOYMENTS_TAB_EXTENSION_ID) : modelDetailsTabs}
+      {isArchiveModel
+        ? modelDetailsTabs.filter((tabItem) => tabItem.key !== DEPLOYMENTS_TAB_EXTENSION_ID)
+        : modelDetailsTabs}
     </Tabs>
   );
 };

@@ -38,6 +38,10 @@ When fetching issues (via the triage Fetch capability or directly), request thes
 
 **Comments (recommended):** If the issue data includes a `comments` field, use them for deeper signal. If comments are not present in the issue data, that means they **were not fetched** — it does NOT mean zero comments exist. When running standalone (not via Full Triage), fetch comments via per-issue `jira_get_issue` calls with `fields=comment` and `comment_limit=20` when the added signal justifies the cost (e.g., small targeted sets, or ambiguous descriptions where comment context could change the assessment).
 
+## Bug Pre-Check: Nightly E2E Test Failures
+
+Before running severity/priority checks on a bug, check whether it is a **nightly E2E test failure** (see `jira-project-reference.md` § Bug Priority, nightly E2E exception). If the bug has the `cypress_found_bug` label or the summary or description references a nightly job (e.g., `dashboard-e2e-tests`), and a valid priority is already set (not `Undefined`), **respect the reporter's priority** — do not lower it. If priority is missing or `Undefined`, apply normal priority-setting logic. Severity assessment still proceeds normally. Priority cascade from severity (Check 1 step 5, Check 3 step 5) may still **raise** priority above the reporter's value if the severity floor demands it, but never lower.
+
 ## Bug Checks
 
 Process each bug through three checks in order. Each check produces zero or more SET_FIELDS operations.

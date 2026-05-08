@@ -7,6 +7,7 @@ import { mockRoleBindingK8sResource } from '@odh-dashboard/internal/__mocks__/mo
 import { enabledPage } from '../../../pages/enabled';
 import { jupyterCard } from '../../../pages/components/JupyterCard';
 import { mlflowCard } from '../../../pages/components/MLflowCard';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 
 describe('Enabled Page', () => {
   beforeEach(() => {
@@ -65,6 +66,7 @@ describe('Enabled Page', () => {
 
   describe('MLflow card', () => {
     it('should show mlflow card with Red Hat managed badge when mlflow component is present', () => {
+      interceptMlflowStatus();
       enabledPage.visit();
       mlflowCard.find().should('be.visible');
       mlflowCard.findCardTitle().should('have.text', 'MLflow');
@@ -83,6 +85,7 @@ describe('Enabled Page', () => {
     });
 
     it('should navigate to mlflow experiments page', () => {
+      interceptMlflowStatus();
       enabledPage.visit();
       mlflowCard.findApplicationLink().click();
       cy.url().should('include', '/develop-train/mlflow/experiments');

@@ -1,5 +1,6 @@
 import { ProjectKind } from '#~/k8sTypes';
 import {
+  ExperimentKF,
   PipelineKF,
   PipelineVersionKF,
   RuntimeConfigParameters,
@@ -80,7 +81,7 @@ export type RunFormData = {
   pipeline: PipelineKF | null;
   version: PipelineVersionKF | null;
   versionToUse: PipelineVersionToUse;
-  runGroup: string;
+  experiment: ExperimentKF | null;
   mlflow: MlflowFormData;
   runType: RunType;
   params?: RuntimeConfigParameters;

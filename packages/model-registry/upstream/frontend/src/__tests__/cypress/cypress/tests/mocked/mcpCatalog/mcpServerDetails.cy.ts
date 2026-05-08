@@ -1,10 +1,7 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
-import {
-  mcpCatalogUrl,
-  mcpServerDetailsUrl,
-} from '~/app/routes/mcpCatalog/mcpCatalog';
+import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import {
   initMcpCatalogIntercepts,
   initServerDetailIntercept,
@@ -256,12 +253,9 @@ describe('MCP Server Details Page', () => {
 
     it('should show loading spinner on deploy button while availability is being checked', () => {
       initServerDetailIntercept(kubernetesServer);
-      cy.intercept(
-        { method: 'GET', pathname: '**/mcp_server_available' },
-        (req) => {
-          req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
-        },
-      );
+      cy.intercept({ method: 'GET', pathname: '**/mcp_server_available' }, (req) => {
+        req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
+      });
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findDeployButton().should('be.visible');
       mcpServerDetails.findDeployButton().find('.pf-v6-c-spinner').should('exist');

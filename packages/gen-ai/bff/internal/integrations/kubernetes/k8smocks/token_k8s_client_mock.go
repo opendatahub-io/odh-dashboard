@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -27,33 +26,6 @@ import (
 const (
 	mockLSDName = "mock-lsd"
 )
-
-// generateMockShieldID creates a unique shield ID based on type and model name
-func generateMockShieldID(shieldType, modelName string, _ int) string {
-	// Sanitize model name for use in shield ID
-	sanitized := strings.ReplaceAll(modelName, "/", "_")
-	sanitized = strings.ReplaceAll(sanitized, " ", "_")
-	sanitized = strings.ReplaceAll(sanitized, "-", "_")
-	sanitized = strings.ToLower(sanitized)
-
-	return fmt.Sprintf("trustyai_%s_%s", shieldType, sanitized)
-}
-
-// formatPoliciesYAML formats a slice of policies as a YAML inline array
-func formatPoliciesYAML(policies []string) string {
-	if len(policies) == 0 {
-		return "[]"
-	}
-	result := "["
-	for i, p := range policies {
-		if i > 0 {
-			result += ", "
-		}
-		result += p
-	}
-	result += "]"
-	return result
-}
 
 type TokenKubernetesClientMock struct {
 	*k8s.TokenKubernetesClient
@@ -384,7 +356,7 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, enableGuardrails bool, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err
@@ -410,90 +382,6 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 	err = m.Client.Create(ctx, ns)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
-	}
-
-	// Check guardrails: feature flag first, then auto-detect infrastructure
-	actuallyEnableGuardrails := false
-	if enableGuardrails {
-		guardrailStatus, err := m.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
-		if err == nil && guardrailStatus.Phase == "Ready" {
-			actuallyEnableGuardrails = true
-		}
-	}
-
-	// Build safety section based on enableGuardrails flag
-	// When enabled, guardrails are automatically added for all selected models
-	safetySection := "  safety: []"
-	shieldsSection := "  shields: []"
-
-	if actuallyEnableGuardrails && len(installModels) > 0 {
-		// Build shields config for each model when guardrails are enabled
-		shieldsConfig := ""
-		shieldsList := ""
-
-		// Default policies for models
-		inputPolicies := models.DefaultInputGuardrailPolicies()
-		outputPolicies := models.DefaultOutputGuardrailPolicies()
-		detectorURL := constants.DefaultDetectorURL
-
-		for i, model := range installModels {
-			modelName := model.ModelName
-			guardrailModelURL := "http://" + modelName + "-predictor." + namespace + ".svc.cluster.local/v1/chat/completions"
-
-			// Generate shield IDs
-			inputShieldID := generateMockShieldID("input", modelName, i)
-			outputShieldID := generateMockShieldID("output", modelName, i)
-
-			// Format policies as YAML array
-			inputPoliciesYAML := formatPoliciesYAML(inputPolicies)
-			outputPoliciesYAML := formatPoliciesYAML(outputPolicies)
-
-			// Add shields config
-			// auth_token uses GUARDRAIL_AUTH_TOKEN from guardrails-service-account secret
-			shieldsConfig += `
-        ` + inputShieldID + `:
-          type: content
-          detector_url: "` + detectorURL + `"
-          message_types: ["user", "completion"]
-          verify_ssl: false
-          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
-          detector_params:
-            custom:
-              input_guardrail:
-                input_policies: ` + inputPoliciesYAML + `
-                guardrail_model: ` + modelName + `
-                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
-                guardrail_model_url: "` + guardrailModelURL + `"
-        ` + outputShieldID + `:
-          type: content
-          detector_url: "` + detectorURL + `"
-          message_types: ["user", "completion"]
-          verify_ssl: false
-          auth_token: "` + constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName) + `"
-          detector_params:
-            custom:
-              output_guardrail:
-                output_policies: ` + outputPoliciesYAML + `
-                guardrail_model: ` + modelName + `
-                guardrail_model_token: "${env.VLLM_API_TOKEN_1:=fake}"
-                guardrail_model_url: "` + guardrailModelURL + `"`
-
-			// Add shield registrations
-			shieldsList += `
-    - shield_id: ` + inputShieldID + `
-      provider_id: trustyai_fms
-    - shield_id: ` + outputShieldID + `
-      provider_id: trustyai_fms`
-		}
-
-		safetySection = `  safety:
-  - provider_id: trustyai_fms
-    provider_type: remote::trustyai_fms
-    module: llama_stack_provider_trustyai_fms==0.3.2
-    config:
-      shields:` + shieldsConfig
-
-		shieldsSection = `  shields:` + shieldsList
 	}
 
 	// Then create the ConfigMap that the LSD will reference
@@ -536,7 +424,7 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-` + safetySection + `
+  safety: []
   eval: []
   responses:
   - provider_id: builtin
@@ -623,7 +511,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-` + shieldsSection + `
+  shields: []
   vector_stores: []
   datasets: []
   scoring_fns: []
@@ -843,19 +731,10 @@ func (m *TokenKubernetesClientMock) GetGuardrailsOrchestratorStatus(ctx context.
 	}, nil
 }
 
-// GetSafetyConfig returns mock safety configuration for testing
-// Returns hardcoded mock data simulating guardrails configuration
-func (m *TokenKubernetesClientMock) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
-	// Return hardcoded mock data for testing
-	return &models.SafetyConfigResponse{
-		GuardrailModels: []models.GuardrailModelConfig{
-			{
-				ModelName:      "llama-guard-3",
-				InputShieldID:  "trustyai_input",
-				OutputShieldID: "trustyai_output",
-			},
-		},
-	}, nil
+// GetNemoGuardrailsServiceURL returns a mock NemoGuardrails in-cluster service URL for testing.
+// Returns a predictable URL so middleware tests can assert correct client creation.
+func (m *TokenKubernetesClientMock) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	return fmt.Sprintf("https://nemoguardrails.%s.svc.cluster.local:443", namespace), nil
 }
 
 // GenerateProviderID generates a mock provider ID for testing
@@ -902,4 +781,14 @@ func (m *TokenKubernetesClientMock) DeleteSecret(ctx context.Context, identity *
 		},
 	}
 	return m.Client.Delete(ctx, secret)
+}
+
+// CreateNemoGuardrailsResources delegates to the real implementation for testing.
+func (m *TokenKubernetesClientMock) CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error) {
+	return m.TokenKubernetesClient.CreateNemoGuardrailsResources(ctx, namespace)
+}
+
+// GetNemoGuardrailsStatus delegates to the real implementation for testing.
+func (m *TokenKubernetesClientMock) GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error) {
+	return m.TokenKubernetesClient.GetNemoGuardrailsStatus(ctx, namespace)
 }

@@ -209,7 +209,7 @@ A user-impact addition/change to the product — e.g., feature work to add parti
 ```python
 project_key="RHOAIENG",
 issue_type="Story",
-summary="STORY: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string including Description of enhancement, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
@@ -258,7 +258,7 @@ A non-user facing change to the product — e.g., add a test, fix a test, or a r
 ```python
 project_key="RHOAIENG",
 issue_type="Task",
-summary="TASK: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string including Description of task, Acceptance Criteria, and Additional info]",
 components="AI Core Dashboard",
 additional_fields={
@@ -293,7 +293,7 @@ A user-impact Story that is part of a larger Epic. Follows Story definition abov
 
 project_key="RHOAIENG",  # Can be inferred if PARENT_EPIC_KEY is for RHOAIENG
 issue_type="Story",
-summary="STORY: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string for Story description, AC, and Additional Info]",
 components="AI Core Dashboard",
 additional_fields={
@@ -331,7 +331,7 @@ A non-user facing Task that is part of a larger Epic. Follows Task definition ab
 
 project_key="RHOAIENG",  # Can be inferred
 issue_type="Task",
-summary="TASK: [User-provided summary]",
+summary="[User-provided summary]",
 description="[Formatted markdown string for Task description, AC, and Additional Info]",
 components="AI Core Dashboard",
 additional_fields={
@@ -385,7 +385,7 @@ additional_fields={
 ```python
 project_key="RHOAIENG",
 issue_type="Epic",
-summary="EPIC: [User-provided Epic Name]",
+summary="[User-provided Epic Name]",
 description="[User-provided concise, high-level description of what the Epic aims to accomplish]",
 components="AI Core Dashboard",  # Or other relevant components for the Epic
 additional_fields={

@@ -40,7 +40,7 @@ const EXCLUDED_KEYS = new Set([
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
-  { key: 'llama_stack_secret_name', label: 'Llama Stack instance' },
+  { key: 'llama_stack_secret_name', label: 'Llama Stack connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },

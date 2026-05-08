@@ -197,6 +197,7 @@ func (app *App) Routes() http.Handler {
 	attachSubscriptionHandlers(apiRouter, app)
 	attachPolicyHandlers(apiRouter, app)
 	attachMaaSModelRefHandlers(apiRouter, app)
+	attachTokenHandlers(apiRouter, app)
 	apiRouter.GET(constants.ApiPathPrefix+"/models", handlerWithApp(app, ListModelsHandler))
 	apiRouter.GET(constants.IsMaasAdminPath, handlerWithApp(app, IsMaasAdminHandler))
 

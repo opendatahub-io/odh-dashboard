@@ -1,13 +1,13 @@
 import * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
-import { ModelVersion, ModelArtifactList, RegisteredModel } from '~/app/types';
-import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
-import ModelVersionDetailsView from './ModelVersionDetailsView';
-import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
+import { ModelVersion, ModelArtifactList, RegisteredModel } from '~/app/types';
+import { isModelRegistryVersionDetailsTabExtension } from '~/odh/extension-points/details';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { DEPLOYMENTS_TAB_EXTENSION_ID } from '~/odh/const';
+import ModelVersionDetailsView from './ModelVersionDetailsView';
+import { ModelVersionDetailsTabTitle, ModelVersionDetailsTab } from './const';
 
 type ModelVersionDetailTabsProps = {
   tab: string;
@@ -84,7 +84,9 @@ const ModelVersionDetailsTabs: React.FC<ModelVersionDetailTabsProps> = ({
       data-testid="model-versions-details-page-tabs"
       onSelect={(_event, eventKey) => navigate(`../${eventKey}`, { relative: 'path' })}
     >
-      {isArchiveVersion ? modelVersionDetails.filter((tab) => tab.key !== DEPLOYMENTS_TAB_EXTENSION_ID) : modelVersionDetails}
+      {isArchiveVersion
+        ? modelVersionDetails.filter((tabItem) => tabItem.key !== DEPLOYMENTS_TAB_EXTENSION_ID)
+        : modelVersionDetails}
     </Tabs>
   );
 };

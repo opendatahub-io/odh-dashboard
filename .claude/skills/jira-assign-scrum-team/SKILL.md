@@ -71,8 +71,9 @@ Follow the resolution path that matches the issue's state:
 When the effective area set is empty (no existing or proposed area labels), attempt resolution via the Team keyword / feature associations table in `jira-project-reference.md`.
 
 1. Read the issue's summary and description.
-2. Match content against each team's keywords in the associations table.
-3. Evaluate the result:
+2. **Resolve file references.** If the summary or description mentions a file name (e.g., `*.cy.ts`, `*.test.ts`, `*.tsx`, `*.go`, or any identifiable source file), search the repository using workspace tools (e.g., `Glob` with `**/<filename>`) to find matching paths. Add each resolved path's intermediate directory names as additional keyword signals. If no matches are found, continue without path signals. This is the same resolution procedure documented in the validate-area-label skill § Signal Dimensions → Code paths. File resolution is especially valuable for test failure/flake issues where the spec file name is the primary content signal.
+3. Match content (including any resolved path signals from step 2) against each team's keywords in the associations table.
+4. Evaluate the result:
    - **One team matches clearly**: Produce an `ADD_LABEL` operation with the corresponding `dashboard-*-scrum` label.
    - **Multiple teams match** or **no match**: Skip the issue.
 

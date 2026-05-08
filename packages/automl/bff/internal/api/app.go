@@ -36,8 +36,7 @@ const (
 	UserPath                = ApiPathPrefix + "/user"
 	NamespacePath           = ApiPathPrefix + "/namespaces"
 	SecretsPath             = ApiPathPrefix + "/secrets"
-	S3FilePath              = ApiPathPrefix + "/s3/file"
-	S3FileSchemaPath        = ApiPathPrefix + "/s3/file/schema"
+	S3FilePath              = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath             = ApiPathPrefix + "/s3/files"
 	PipelineRunsPath        = ApiPathPrefix + "/pipeline-runs"
 	ModelRegistriesPath     = ApiPathPrefix + "/model-registries"
@@ -67,6 +66,8 @@ type App struct {
 	rootCAs *x509.CertPool
 	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
 	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
+	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
+	portForwardManager *k8s.PortForwardManager
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -135,6 +136,30 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
+	// LOCAL DEVELOPMENT ONLY: Enable dynamic port-forwarding when DevMode is true
+	// and a real K8s client is in use. This rewrites in-cluster service URLs
+	// (*.svc.cluster.local) to localhost via SPDY tunnels, eliminating the need
+	// for manual oc port-forward commands and /etc/hosts entries.
+	// Production deployments never set DevMode, so pfManager stays nil and all
+	// ForwardURL call sites in the middleware are no-ops.
+	// Uses the BFF's own kubeconfig credentials (not per-request user tokens)
+	// since port-forwards are long-lived and shared across requests.
+	var pfManager *k8s.PortForwardManager
+	if cfg.DevMode && !cfg.MockK8Client {
+		restCfg, pfErr := helper.GetKubeconfig()
+		if pfErr != nil {
+			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
+		} else {
+			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			if csErr != nil {
+				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
+			} else {
+				pfManager = k8s.NewPortForwardManager(restCfg, clientset, logger)
+				logger.Info("dynamic port-forwarding enabled — in-cluster URLs will be forwarded to localhost")
+			}
+		}
+	}
+
 	// Initialize Pipeline Server client factory
 	var pipelineServerClientFactory ps.PipelineServerClientFactory
 	if cfg.MockPipelineServerClient {
@@ -175,12 +200,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		repositories:                repositories.NewRepositories(logger),
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
+		portForwardManager:          pfManager,
 	}
 	return app, nil
 }
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.portForwardManager != nil {
+		app.portForwardManager.Close()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
@@ -224,14 +253,16 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
 	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
 	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
 
 	// S3 operations — DSPA discovery is skipped when the caller supplies an explicit
 	// secretName (the handler resolves credentials directly in that case).
-	apiRouter.GET(S3FileSchemaPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileSchemaHandler))))
 	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FileHandler))))
 	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.attachPipelineClientIfNeeded(app.GetS3FilesHandler))))
-	// POST /s3/file deliberately omits attachPipelineClientIfNeeded: secretName is required; there is
-	// no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
+	// POST /s3/files/:key deliberately omits attachPipelineClientIfNeeded: secretName is required;
+	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
 
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
@@ -244,9 +275,12 @@ func (app *App) Routes() http.Handler {
 	// App Router
 	appMux := http.NewServeMux()
 
-	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	// handler for api calls — preserveRawPath ensures percent-encoded path parameters
+	// (e.g., S3 keys containing %2F) are forwarded to the router without decoding,
+	// so :key matches the full encoded segment rather than splitting on /.
+	rawPathRouter := preserveRawPath(apiRouter)
+	appMux.Handle(ApiPathPrefix+"/", rawPathRouter)
+	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, rawPathRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

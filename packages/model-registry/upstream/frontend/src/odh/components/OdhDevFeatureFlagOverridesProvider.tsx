@@ -1,5 +1,8 @@
 import * as React from 'react';
-import { OdhDevFeatureFlagOverridesContext, OdhDevFeatureFlagOverrides } from '~/odh/extension-points';
+import {
+  OdhDevFeatureFlagOverridesContext,
+  OdhDevFeatureFlagOverrides,
+} from '~/odh/extension-points';
 
 // The session storage key used by ODH dev feature flags
 const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
@@ -44,7 +47,9 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<OdhDevFeatureFlagOverridesPro
   crdOverrides = null,
 }) => {
   // Read ODH dev feature flags from session storage
-  const [odhDevFlags, setOdhDevFlags] = React.useState<Record<string, boolean> | null>(readOdhDevFlags);
+  const [odhDevFlags, setOdhDevFlags] = React.useState<Record<string, boolean> | null>(
+    readOdhDevFlags,
+  );
 
   // Listen for ODH dev flags changes (custom event dispatched by ODH when flags are updated)
   React.useEffect(() => {
@@ -62,22 +67,22 @@ const OdhDevFeatureFlagOverridesProvider: React.FC<OdhDevFeatureFlagOverridesPro
 
     // Apply CRD-based overrides first (middle priority)
     if (crdOverrides) {
-      Object.entries(crdOverrides).forEach(([technicalKey, value]) => {
+      for (const [technicalKey, value] of Object.entries(crdOverrides)) {
         if (typeof value === 'boolean') {
           result[technicalKey] = value;
           hasOverrides = true;
         }
-      });
+      }
     }
 
     // Apply dev flag overrides on top (highest priority — overrides CRD for testing)
     if (odhDevFlags) {
-      Object.entries(DEV_FLAG_MAPPINGS).forEach(([displayName, technicalKey]) => {
+      for (const [displayName, technicalKey] of Object.entries(DEV_FLAG_MAPPINGS)) {
         if (displayName in odhDevFlags && typeof odhDevFlags[displayName] === 'boolean') {
           result[technicalKey] = odhDevFlags[displayName];
           hasOverrides = true;
         }
-      });
+      }
     }
 
     return hasOverrides ? result : null;

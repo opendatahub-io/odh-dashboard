@@ -42,6 +42,7 @@
     "lint:fix": "cd frontend && npm run lint:fix"
   },
   "exports": {
+    "./utils/api-keys": "./frontend/src/app/pages/api-keys/utils.ts",
     "./types/tier": "./frontend/src/app/types/tier.ts",
     "./types/api-key": "./frontend/src/app/types/api-key.ts",
     "./types/subscriptions": "./frontend/src/app/types/subscriptions.ts",

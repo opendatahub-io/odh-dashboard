@@ -146,6 +146,23 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
+      # BFF Service Discovery for inter-BFF communication (RHOAIENG-49012)
+      - name: POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: BFF_MAAS_SERVICE_NAME
+        value: "odh-dashboard"
+      - name: BFF_MAAS_SERVICE_PORT
+        value: "8243"
+      - name: BFF_MAAS_TLS_ENABLED
+        value: "true"
+      - name: BFF_MAAS_AUTH_METHOD
+        value: "user_token"
+      - name: BFF_MAAS_AUTH_TOKEN_HEADER
+        value: "x-forwarded-access-token"
+      - name: BFF_MAAS_AUTH_TOKEN_PREFIX
+        value: ""
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:

@@ -13,8 +13,7 @@ import { mockClusterSettings } from '@odh-dashboard/internal/__mocks__/mockClust
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { mock200Status } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
-import { mockPrometheusQueryResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryResponse';
-import { PvcModelAnnotation } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/types';
+import { mockPrometheusQueryVectorResponse } from '@odh-dashboard/internal/__mocks__/mockPrometheusQueryVectorResponse';
 import {
   clusterStorage,
   addClusterStorageModal,
@@ -45,7 +44,18 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
   cy.interceptK8s(ProjectModel, mockProjectK8sResource({}));
   cy.interceptOdh('POST /api/prometheus/pvc', {
     code: 200,
-    response: mockPrometheusQueryResponse({}),
+    response: mockPrometheusQueryVectorResponse<{ metric: { __name__: string } }>({
+      result: [
+        {
+          metric: { __name__: 'kubelet_volume_stats_used_bytes' },
+          value: [1704910625, '1073741824'],
+        },
+        {
+          metric: { __name__: 'kubelet_volume_stats_capacity_bytes' },
+          value: [1704910625, '5368709120'],
+        },
+      ],
+    }),
   });
   cy.interceptK8sList(
     { model: PVCModel, ns: 'test-project' },
@@ -88,8 +98,8 @@ const initInterceptors = ({ isEmpty = false, storageClassName }: HandlersProps) 
               storageClassName,
               storage: '5Gi',
               annotations: {
-                [PvcModelAnnotation.MODEL_NAME]: 'name',
-                [PvcModelAnnotation.MODEL_PATH]: 'path/example',
+                'dashboard.opendatahub.io/model-name': 'name',
+                'dashboard.opendatahub.io/model-path': 'path/example',
               },
             }),
           ],
@@ -379,8 +389,8 @@ describe('ClusterStorage', () => {
       expect(interception.request.body).to.containSubset({
         metadata: {
           annotations: {
-            [PvcModelAnnotation.MODEL_NAME]: 'name',
-            [PvcModelAnnotation.MODEL_PATH]: 'path/example',
+            'dashboard.opendatahub.io/model-name': 'name',
+            'dashboard.opendatahub.io/model-path': 'path/example',
           },
         },
       });

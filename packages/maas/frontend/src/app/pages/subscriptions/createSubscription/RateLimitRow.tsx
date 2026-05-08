@@ -25,7 +25,6 @@ export type RateLimitRowProps = {
   onChange: (rateLimit: RateLimit) => void;
   onRemove?: () => void;
   showRemove: boolean;
-  availableUnits: RateLimit['unit'][];
   countError?: string;
   timeError?: string;
   countDigitError?: string;
@@ -40,7 +39,6 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
   onChange,
   onRemove,
   showRemove,
-  availableUnits,
   countError,
   timeError,
   countDigitError,
@@ -51,11 +49,6 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
   // Get the display label for the selected unit, falling back to the raw value
   const selectedUnitLabel =
     UNIT_OPTIONS.find((opt) => opt.value === rateLimit.unit)?.label ?? rateLimit.unit;
-
-  // Show available units plus the currently selected one
-  const selectableOptions = UNIT_OPTIONS.filter(
-    (opt) => availableUnits.includes(opt.value) || opt.value === rateLimit.unit,
-  );
 
   const countMessage = countDigitError ?? countError;
   const timeMessage = timeDigitError ?? timeError;
@@ -153,7 +146,7 @@ export const RateLimitRow: React.FC<RateLimitRowProps> = ({
               )}
             >
               <DropdownList>
-                {selectableOptions.map((option) => (
+                {UNIT_OPTIONS.map((option) => (
                   <DropdownItem
                     key={option.value}
                     onClick={() => {

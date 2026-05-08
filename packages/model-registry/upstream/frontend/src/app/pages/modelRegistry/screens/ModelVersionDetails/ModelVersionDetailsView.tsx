@@ -109,7 +109,7 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
         </StackItem>
       )}
       <StackItem>
-        <Card>
+        <Card data-testid="version-details-card">
           <CardHeader>
             <Title headingLevel="h2">Version details</Title>
           </CardHeader>
