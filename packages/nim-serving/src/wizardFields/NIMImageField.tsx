@@ -5,6 +5,10 @@ import { Link } from 'react-router-dom';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
+import useFetch, {
+  NotReadyError,
+  type FetchStateCallbackPromise,
+} from '@odh-dashboard/internal/utilities/useFetch';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
@@ -37,39 +41,15 @@ export const useNIMImages = (
 } => {
   const project = dependencies?.project;
   const projectName = project?.projectName;
-  const [modelInfos, setModelInfos] = React.useState<ModelInfo[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error | undefined>();
 
-  React.useEffect(() => {
+  const fetchCallback = React.useCallback<FetchStateCallbackPromise<ModelInfo[]>>(() => {
     if (!projectName) {
-      setModelInfos([]);
-      setLoaded(true);
-      return undefined;
+      return Promise.reject(new NotReadyError('No project selected'));
     }
-
-    let cancelled = false;
-    setLoaded(false);
-    setLoadError(undefined);
-
-    fetchNIMModelNames(projectName)
-      .then((infos) => {
-        if (!cancelled) {
-          setModelInfos(infos);
-          setLoaded(true);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError(err instanceof Error ? err : new Error(String(err)));
-          setLoaded(true);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    return fetchNIMModelNames(projectName);
   }, [projectName]);
+
+  const { data: modelInfos, loaded, error: loadError } = useFetch(fetchCallback, []);
 
   return React.useMemo(
     () => ({
@@ -148,22 +128,19 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     if (!value?.imageName) {
       return '';
     }
-    return (
-      options
-        .find((opt) => {
-          const result = extractModelAndVersion(String(opt.value), modelInfos);
-          if (!result) {
-            return false;
-          }
-          const imgName = getNIMImageName(
-            result.modelInfo.namespace,
-            result.modelInfo.name,
-            result.version,
-          );
-          return imgName === value.imageName;
-        })
-        ?.value.toString() ?? ''
-    );
+    const matched = options.find((opt) => {
+      const result = extractModelAndVersion(String(opt.value), modelInfos);
+      if (!result) {
+        return false;
+      }
+      const imgName = getNIMImageName(
+        result.modelInfo.namespace,
+        result.modelInfo.name,
+        result.version,
+      );
+      return imgName === value.imageName;
+    });
+    return matched?.value.toString() ?? value.imageName;
   }, [value?.imageName, options, modelInfos]);
 
   const onSelect = React.useCallback(

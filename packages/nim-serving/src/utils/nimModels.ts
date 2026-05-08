@@ -63,10 +63,10 @@ export const getNIMImageName = (
   version: string,
 ): string => `nvcr.io/${modelNamespace}/${modelName}:${version}`;
 
-export const fetchNIMModelNames = async (dashboardNamespace: string): Promise<ModelInfo[]> => {
+export const fetchNIMModelNames = async (projectNamespace: string): Promise<ModelInfo[]> => {
   const accounts = await k8sListResource<NIMAccountKind>({
     model: NIMAccountModel,
-    queryOptions: { ns: dashboardNamespace },
+    queryOptions: { ns: projectNamespace },
   }).then((result) => result.items);
 
   if (accounts.length === 0) {
@@ -81,7 +81,7 @@ export const fetchNIMModelNames = async (dashboardNamespace: string): Promise<Mo
 
   const configMap = await k8sGetResource<ConfigMapKind>({
     model: ConfigMapModel,
-    queryOptions: { name: configMapName, ns: dashboardNamespace },
+    queryOptions: { name: configMapName, ns: projectNamespace },
   });
 
   if (!configMap.data || Object.keys(configMap.data).length === 0) {
