@@ -1330,11 +1330,11 @@ class ViewAuthPolicyPage {
   }
 
   findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('authorization-policy-models-table');
+    return cy.findByTestId('authorization-policy-models-section');
   }
 
   findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-models-table');
+    return cy.findByTestId('authorization-policy-models-table');
   }
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
