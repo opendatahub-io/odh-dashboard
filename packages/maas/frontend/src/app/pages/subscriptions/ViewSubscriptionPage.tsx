@@ -138,6 +138,7 @@ const ViewSubscriptionPage: React.FC = () => {
               <MaasModelsSection
                 modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
                 modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
+                resourceType="subscription"
               />
             </PageSection>
           </Tab>
