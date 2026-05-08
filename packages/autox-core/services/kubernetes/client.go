@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 // ClientsetInterface wraps kubernetes.Interface for testing
@@ -40,10 +39,6 @@ type K8sClientInterface interface {
 
 	// Generic RBAC check - checks if identity can perform verb on resource in namespace
 	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error)
-
-	// Advanced operations - expose underlying clients
-	GetClientset() any
-	GetRestConfig() *rest.Config
 }
 
 // DefaultK8sClientConfig for creating a K8s client based on auth method

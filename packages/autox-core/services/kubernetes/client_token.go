@@ -188,14 +188,6 @@ func (c *K8sTokenClient) CanAccessResource(ctx context.Context, identity *Reques
 	return resp.Status.Allowed, nil
 }
 
-func (c *K8sTokenClient) GetClientset() any {
-	return c.Clientset
-}
-
-func (c *K8sTokenClient) GetRestConfig() *rest.Config {
-	return c.RestConfig
-}
-
 // getNamespacesViaProjectsAPI uses the OpenShift Projects API to list namespaces accessible to the caller
 func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	dynClient, err := dynamic.NewForConfig(c.RestConfig)

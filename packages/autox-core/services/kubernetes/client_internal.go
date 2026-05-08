@@ -165,14 +165,6 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 	return resp.Status.Allowed, nil
 }
 
-func (c *K8sInternalClient) GetClientset() any {
-	return c.Clientset
-}
-
-func (c *K8sInternalClient) GetRestConfig() *rest.Config {
-	return c.RestConfig
-}
-
 // getNamespacesViaProjectsAPI uses the OpenShift Projects API with impersonation
 func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
 	// Create impersonated config
