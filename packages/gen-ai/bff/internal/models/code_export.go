@@ -46,6 +46,11 @@ type CodeExportGuardrailConfig struct {
 	// Its presence enables input rails in the generated code.
 	// Must contain the {{ user_input }} placeholder.
 	InputPrompt string `json:"input_prompt,omitempty"`
+
+	// OutputPrompt is the policy prompt template for output moderation.
+	// Its presence enables output rails in the generated code.
+	// Must contain the {{ bot_response }} placeholder.
+	OutputPrompt string `json:"output_prompt,omitempty"`
 }
 
 type CodeExportRequest struct {

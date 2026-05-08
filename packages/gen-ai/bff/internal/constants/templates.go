@@ -25,7 +25,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #
 # Tools (MCP Integration):
 #    - Any tools used must be properly pre-configured in your Llama Stack setup.
-{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+{{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 #
 # NeMo Guardrails:
 #    - Set NEMO_GUARDRAILS_URL to your NeMo Guardrails service URL
@@ -55,7 +55,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
-{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+{{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 NEMO_GUARDRAILS_URL = "{{if .NemoGuardrailsURL}}{{.NemoGuardrailsURL}}{{end}}"
 NEMO_GUARDRAILS_OC_TOKEN = ""  # Set to your OpenShift user token (oc whoami -t)
 GUARDRAIL_MODEL_ENDPOINT = ""  # Set to your guardrail model's inference endpoint URL
@@ -97,7 +97,7 @@ files_to_upload = [
 {{- end }}
 
 import os
-{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+{{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 import requests
 {{- end }}
 
@@ -203,52 +203,65 @@ config = {
     "tools": tools{{- end }}
 }
 
-{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
-# Input guardrail check: validate user input before sending to the model
-_guardrail_payload = {
-    "model": GUARDRAIL_MODEL_NAME,
-    "messages": [{"role": "user", "content": input_text}],
-    "guardrails": {
-        "config": {
-            "models": [{
-                "type": "main",
-                "engine": "openai",
-                "parameters": {
-                    "openai_api_base": GUARDRAIL_MODEL_ENDPOINT,
-                    "model_name": GUARDRAIL_MODEL_NAME,
-                    "api_key": GUARDRAIL_API_KEY or "fake",
-                },
-            }],
-            "rails": {
-                "input": {
-                    "flows": ["self check input"],
-                },
+{{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
+
+def _guardrail_check(messages, rails, task, prompt_content):
+    """Send a guardrail check to the NeMo Guardrails service and return the result."""
+    payload = {
+        "model": GUARDRAIL_MODEL_NAME,
+        "messages": messages,
+        "guardrails": {
+            "config": {
+                "models": [{
+                    "type": "main",
+                    "engine": "openai",
+                    "parameters": {
+                        "openai_api_base": GUARDRAIL_MODEL_ENDPOINT,
+                        "model_name": GUARDRAIL_MODEL_NAME,
+                        "api_key": GUARDRAIL_API_KEY or "fake",
+                    },
+                }],
+                "rails": rails,
+                "prompts": [{"task": task, "content": prompt_content}],
             },
-            "prompts": [{
-                "task": "self_check_input",
-                "content": """{{.GuardrailConfig.InputPrompt}}""",
-            }],
         },
-    },
-}
-_guardrail_headers = {"Content-Type": "application/json"}
-if NEMO_GUARDRAILS_OC_TOKEN:
-    _guardrail_headers["Authorization"] = f"Bearer {NEMO_GUARDRAILS_OC_TOKEN}"
+    }
+    headers = {"Content-Type": "application/json"}
+    if NEMO_GUARDRAILS_OC_TOKEN:
+        headers["Authorization"] = f"Bearer {NEMO_GUARDRAILS_OC_TOKEN}"
+    resp = requests.post(f"{NEMO_GUARDRAILS_URL}/v1/guardrail/checks", json=payload, headers=headers)
+    resp.raise_for_status()
+    return resp.json()
 
-_guardrail_resp = requests.post(
-    f"{NEMO_GUARDRAILS_URL}/v1/guardrail/checks",
-    json=_guardrail_payload,
-    headers=_guardrail_headers,
+{{- end }}
+{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+
+_input_result = _guardrail_check(
+    messages=[{"role": "user", "content": input_text}],
+    rails={"input": {"flows": ["self check input"]}},
+    task="self_check_input",
+    prompt_content="""{{.GuardrailConfig.InputPrompt}}""",
 )
-_guardrail_resp.raise_for_status()
-_guardrail_result = _guardrail_resp.json()
-
-if _guardrail_result.get("status") == "blocked":
-    print("Input blocked by safety guardrails:", _guardrail_result.get("guardrails_data", {}).get("error", ""))
+if _input_result.get("status") == "blocked":
+    print("Input blocked by safety guardrails:", _input_result.get("guardrails_data", {}).get("error", ""))
     exit(1)
 
 {{- end }}
+
 response = client.responses.create(**config)
+{{- if and .GuardrailConfig .GuardrailConfig.OutputPrompt }}
+
+_output_result = _guardrail_check(
+    messages=[{"role": "assistant", "content": response.output_text}],
+    rails={"output": {"flows": ["self check output"]}},
+    task="self_check_output",
+    prompt_content="""{{.GuardrailConfig.OutputPrompt}}""",
+)
+if _output_result.get("status") == "blocked":
+    print("Output blocked by safety guardrails:", _output_result.get("guardrails_data", {}).get("error", ""))
+    exit(1)
+
+{{- end }}
 
 print("agent>", response.output_text)
 `

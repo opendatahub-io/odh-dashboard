@@ -291,6 +291,7 @@ export type CodeExportTool = {
 export type CodeExportGuardrailConfig = {
   guardrail_model: string;
   input_prompt?: string;
+  output_prompt?: string;
 };
 
 export type CodeExportRequest = {
