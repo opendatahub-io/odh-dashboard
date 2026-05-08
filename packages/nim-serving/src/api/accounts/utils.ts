@@ -1,14 +1,11 @@
 import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
-import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
   assembleUpdatedSecret,
   createNIMSecret,
   createNIMAccount,
-  deleteNIMAccount,
   deleteSecret,
-  patchSecretOwnerReference,
   fetchExistingSecret,
   replaceNIMSecret,
 } from './k8s';
@@ -88,13 +85,16 @@ export const deriveAccountStatus = (
     const errors = getAccountErrors(account);
     return { status: NIMAccountStatus.ERROR, errorMessages: errors };
   }
+  const errors = getAccountErrors(account);
+  if (errors.length > 0) {
+    return { status: NIMAccountStatus.ERROR, errorMessages: errors };
+  }
   const accountAge = getAccountAgeMs(account);
   if (isApiKeyValidated(account)) {
     if (accountAge > VALIDATION_TIMEOUT_MS) {
-      const errors = getAccountErrors(account);
       return {
         status: NIMAccountStatus.ERROR,
-        errorMessages: errors.length > 0 ? errors : [VALIDATION_TIMEOUT_MESSAGE],
+        errorMessages: [VALIDATION_TIMEOUT_MESSAGE],
       };
     }
     return { status: NIMAccountStatus.PENDING, errorMessages: [] };
@@ -116,25 +116,12 @@ export const createNIMResources = async (
 
   await createNIMSecret(secretData);
 
-  let account: NIMAccountKind;
   try {
-    account = await createNIMAccount(accountData);
+    return await createNIMAccount(accountData);
   } catch (e) {
     await deleteSecret(namespace, NIM_SECRET_NAME);
     throw e;
   }
-
-  try {
-    await patchSecretOwnerReference(namespace, NIM_SECRET_NAME, account);
-  } catch (e) {
-    await allSettledPromises<unknown>([
-      deleteNIMAccount(namespace),
-      deleteSecret(namespace, NIM_SECRET_NAME),
-    ]);
-    throw e;
-  }
-
-  return account;
 };
 
 export const updateNIMSecretAndRevalidate = async (

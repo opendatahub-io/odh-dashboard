@@ -119,7 +119,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
       case NIMAccountStatus.NOT_FOUND:
         return (
           <Button
-            variant="secondary"
+            variant="tertiary"
             onClick={() => setIsApiKeyModalOpen(true)}
             data-testid="nim-enable-button"
           >
@@ -135,7 +135,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             <FlexItem>
               <Tooltip content="Remove the NVIDIA NIM account and API key from this project">
                 <Button
-                  variant="secondary"
+                  variant="tertiary"
                   onClick={() => setIsDeleteModalOpen(true)}
                   data-testid="nim-remove-button"
                 >
