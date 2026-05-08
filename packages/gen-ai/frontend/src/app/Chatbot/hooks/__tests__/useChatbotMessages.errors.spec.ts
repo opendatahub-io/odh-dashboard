@@ -3,12 +3,15 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { classifyError } from '~/app/utilities';
+import { classifyError } from '~/app/utilities/errorClassifier';
 
 // Mock dependencies
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
+}));
+jest.mock('~/app/utilities/errorClassifier', () => ({
+  classifyError: jest.fn(),
 }));
 jest.mock('~/app/utilities', () => {
   const actual = jest.requireActual('~/app/utilities');
@@ -26,7 +29,6 @@ jest.mock('~/app/utilities', () => {
       const id = modelId.substring(slashIndex + 1);
       return { providerId, id };
     }),
-    classifyError: jest.fn(),
   };
 });
 jest.mock('react', () => ({
