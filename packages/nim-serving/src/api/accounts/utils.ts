@@ -1,5 +1,4 @@
 import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
-import { allSettledPromises } from '@odh-dashboard/internal/utilities/allSettledPromises';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
@@ -8,14 +7,11 @@ import {
   createNIMAccount,
   deleteNIMAccount,
   deleteSecret,
-  patchSecretOwnerReference,
   fetchExistingSecret,
   replaceNIMSecret,
 } from './k8s';
 
 import { NIM_SECRET_NAME, VALIDATION_TIMEOUT_MS } from './constants';
-
-export { deleteNIMAccount as deleteNIMResources } from './k8s';
 
 export enum NIMAccountStatus {
   LOADING = 'LOADING',
@@ -119,25 +115,17 @@ export const createNIMResources = async (
 
   await createNIMSecret(secretData);
 
-  let account: NIMAccountKind;
   try {
-    account = await createNIMAccount(accountData);
+    return await createNIMAccount(accountData);
   } catch (e) {
     await deleteSecret(namespace, NIM_SECRET_NAME);
     throw e;
   }
+};
 
-  try {
-    await patchSecretOwnerReference(namespace, NIM_SECRET_NAME, account);
-  } catch (e) {
-    await allSettledPromises<unknown>([
-      deleteNIMAccount(namespace),
-      deleteSecret(namespace, NIM_SECRET_NAME),
-    ]);
-    throw e;
-  }
-
-  return account;
+export const deleteNIMResources = async (namespace: string): Promise<void> => {
+  await deleteNIMAccount(namespace);
+  await deleteSecret(namespace, NIM_SECRET_NAME);
 };
 
 export const updateNIMSecretAndRevalidate = async (

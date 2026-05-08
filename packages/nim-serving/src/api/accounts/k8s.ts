@@ -3,7 +3,6 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sListResource,
-  k8sPatchResource,
   K8sStatusError,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
@@ -97,36 +96,18 @@ export const deleteNIMAccount = async (namespace: string): Promise<void> => {
 };
 
 export const deleteSecret = async (namespace: string, name: string): Promise<void> => {
-  await k8sDeleteResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { name, ns: namespace },
-  });
+  try {
+    await k8sDeleteResource<SecretKind>({
+      model: SecretModel,
+      queryOptions: { name, ns: namespace },
+    });
+  } catch (e) {
+    if (e instanceof K8sStatusError && e.status.code === 404) {
+      return;
+    }
+    throw e;
+  }
 };
-
-export const patchSecretOwnerReference = (
-  namespace: string,
-  secretName: string,
-  account: NIMAccountKind,
-): Promise<SecretKind> =>
-  k8sPatchResource<SecretKind>({
-    model: SecretModel,
-    queryOptions: { name: secretName, ns: namespace },
-    patches: [
-      {
-        op: 'add',
-        path: '/metadata/ownerReferences',
-        value: [
-          {
-            apiVersion: account.apiVersion,
-            kind: account.kind,
-            name: account.metadata.name,
-            uid: account.metadata.uid,
-            blockOwnerDeletion: true,
-          },
-        ],
-      },
-    ],
-  });
 
 export const fetchExistingSecret = (namespace: string, secretName: string): Promise<SecretKind> =>
   getSecret(namespace, secretName);

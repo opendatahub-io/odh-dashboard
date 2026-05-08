@@ -8,7 +8,6 @@ import {
   createNIMAccount,
   deleteNIMAccount,
   deleteSecret,
-  patchSecretOwnerReference,
   fetchExistingSecret,
   replaceNIMSecret,
 } from '../k8s';
@@ -36,7 +35,6 @@ jest.mock('../k8s', () => ({
   createNIMAccount: jest.fn(),
   deleteNIMAccount: jest.fn(),
   deleteSecret: jest.fn(),
-  patchSecretOwnerReference: jest.fn(),
   fetchExistingSecret: jest.fn(),
   replaceNIMSecret: jest.fn(),
 }));
@@ -45,7 +43,6 @@ const mockCreateNIMSecret = jest.mocked(createNIMSecret);
 const mockCreateNIMAccount = jest.mocked(createNIMAccount);
 const mockDeleteNIMAccount = jest.mocked(deleteNIMAccount);
 const mockDeleteSecret = jest.mocked(deleteSecret);
-const mockPatchSecretOwnerReference = jest.mocked(patchSecretOwnerReference);
 const mockFetchExistingSecret = jest.mocked(fetchExistingSecret);
 const mockReplaceNIMSecret = jest.mocked(replaceNIMSecret);
 describe('assembleNIMSecret', () => {
@@ -96,7 +93,7 @@ describe('createNIMResources', () => {
     jest.clearAllMocks();
   });
 
-  it('should dry-run both creates, then create secret, account, and patch ownerReference', async () => {
+  it('should dry-run both creates, then create secret and account', async () => {
     const createdSecret: SecretKind = {
       apiVersion: 'v1',
       kind: 'Secret',
@@ -111,7 +108,6 @@ describe('createNIMResources', () => {
 
     mockCreateNIMSecret.mockResolvedValue(createdSecret);
     mockCreateNIMAccount.mockResolvedValue(createdAccount);
-    mockPatchSecretOwnerReference.mockResolvedValue(createdSecret);
 
     const result = await createNIMResources('test-ns', 'nvapi-key');
 
@@ -128,11 +124,6 @@ describe('createNIMResources', () => {
       }),
     );
 
-    expect(mockPatchSecretOwnerReference).toHaveBeenCalledWith(
-      'test-ns',
-      NIM_SECRET_NAME,
-      createdAccount,
-    );
     expect(result).toBe(createdAccount);
   });
 
@@ -162,28 +153,6 @@ describe('createNIMResources', () => {
     await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow(
       'account creation failed',
     );
-    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
-  });
-
-  it('should clean up both account and secret if ownerReference patch fails', async () => {
-    const createdSecret: SecretKind = {
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns' },
-      type: 'Opaque',
-    };
-    const createdAccount = mockNimAccount({
-      namespace: 'test-ns',
-      uid: 'account-uid-456',
-      apiKeySecretName: NIM_SECRET_NAME,
-    });
-
-    mockCreateNIMSecret.mockResolvedValue(createdSecret);
-    mockCreateNIMAccount.mockResolvedValue(createdAccount);
-    mockPatchSecretOwnerReference.mockRejectedValue(new Error('patch failed'));
-
-    await expect(createNIMResources('test-ns', 'nvapi-key')).rejects.toThrow('patch failed');
-    expect(mockDeleteNIMAccount).toHaveBeenCalledWith('test-ns');
     expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
   });
 });
@@ -238,12 +207,14 @@ describe('deleteNIMResources', () => {
     jest.clearAllMocks();
   });
 
-  it('should delegate to deleteNIMAccount', async () => {
+  it('should delete both the NIM account and the secret', async () => {
     mockDeleteNIMAccount.mockResolvedValue(undefined);
+    mockDeleteSecret.mockResolvedValue(undefined);
 
     await deleteNIMResources('test-ns');
 
     expect(mockDeleteNIMAccount).toHaveBeenCalledWith('test-ns');
+    expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
   });
 });
 
