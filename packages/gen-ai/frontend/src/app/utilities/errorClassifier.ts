@@ -95,10 +95,14 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
 
   let pattern: ClassifiedError['pattern'];
   let variant: ClassifiedError['variant'];
+  let finalIsRetriable = isRetriable;
 
   if (isStreamingError && context.wasResponseGenerated) {
     pattern = 'streaming-interruption';
     variant = 'danger';
+    // Streaming interruptions are never retriable - retry would duplicate the user message
+    // and leave the interrupted partial response in the conversation
+    finalIsRetriable = false;
   } else if (isPartial || context.wasResponseGenerated) {
     pattern = 'partial-failure';
     variant = 'warning';
@@ -117,6 +121,6 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
       errorCode: code || 'UNKNOWN',
       rawMessage,
     },
-    isRetriable,
+    isRetriable: finalIsRetriable,
   };
 }

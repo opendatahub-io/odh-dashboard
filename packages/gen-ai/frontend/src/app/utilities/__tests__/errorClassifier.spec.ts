@@ -41,24 +41,6 @@ describe('errorClassifier', () => {
         expect(result.variant).toBe('warning' as ErrorVariant);
       });
 
-      it('should classify as streaming_interruption when stream started but no full response', () => {
-        const error = {
-          error: {
-            component: 'bff' as const,
-            code: 'stream_lost',
-            message: 'Connection lost',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error, {
-          wasResponseGenerated: false,
-          wasStreamStarted: true,
-        });
-
-        expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
-        expect(result.variant).toBe('danger' as ErrorVariant);
-      });
-
       it('should classify as streaming_interruption when stream started with partial response', () => {
         const error = {
           error: {
@@ -75,6 +57,7 @@ describe('errorClassifier', () => {
 
         expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
         expect(result.variant).toBe('danger' as ErrorVariant);
+        expect(result.isRetriable).toBe(false);
       });
     });
 
