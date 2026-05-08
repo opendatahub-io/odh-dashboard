@@ -87,29 +87,23 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
 
   let pattern: ClassifiedError['pattern'];
   let variant: ClassifiedError['variant'];
-  let description: string;
 
   if (isStreamingError && context.wasStreamStarted) {
     pattern = 'streaming-interruption';
     variant = 'danger';
-    description = rawMessage || microcopy.description;
   } else if (isPartial || context.wasResponseGenerated) {
     pattern = 'partial-failure';
     variant = 'warning';
-    description = rawMessage
-      ? `This response may be incomplete: ${rawMessage}`
-      : microcopy.description;
   } else {
     pattern = 'full-failure';
     variant = 'danger';
-    description = rawMessage || microcopy.description;
   }
 
   return {
     pattern,
     variant,
     title: microcopy.title,
-    description,
+    description: microcopy.description,
     details: {
       component: componentLabel,
       errorCode: code || 'UNKNOWN',
