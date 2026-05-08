@@ -678,8 +678,3 @@ export interface ApiError {
     retriable: boolean;
   };
 }
-
-// Legacy type aliases for backwards compatibility
-export type ErrorSeverity = ErrorVariant;
-export type ErrorClassification = ClassifiedError;
-export type APIErrorDetails = ApiError['error'];

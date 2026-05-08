@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ErrorClassification } from '~/app/types';
+import { ClassifiedError } from '~/app/types';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
 
 describe('ChatbotErrorAlert', () => {
@@ -18,9 +18,7 @@ describe('ChatbotErrorAlert', () => {
     }
   };
 
-  const createErrorClassification = (
-    overrides: Partial<ErrorClassification> = {},
-  ): ErrorClassification => ({
+  const createClassifiedError = (overrides: Partial<ClassifiedError> = {}): ClassifiedError => ({
     pattern: 'full-failure',
     variant: 'danger',
     isRetriable: false,
@@ -36,14 +34,14 @@ describe('ChatbotErrorAlert', () => {
 
   describe('rendering', () => {
     it('should render alert with title', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expect(screen.getByText('Test Error')).toBeInTheDocument();
     });
 
     it('should render with danger variant for danger variant', () => {
-      const errorClassification = createErrorClassification({ variant: 'danger' });
+      const errorClassification = createClassifiedError({ variant: 'danger' });
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       const alert = screen.getByTestId('chatbot-error-alert');
@@ -51,7 +49,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render with warning variant for warning variant', () => {
-      const errorClassification = createErrorClassification({ variant: 'warning' });
+      const errorClassification = createClassifiedError({ variant: 'warning' });
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       const alert = screen.getByTestId('chatbot-error-alert');
@@ -59,7 +57,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render description text', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expandAlert();
@@ -68,7 +66,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render code block with error code and message', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expandAlert();
@@ -77,7 +75,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render code block without code prefix when code is empty', () => {
-      const errorClassification = createErrorClassification({
+      const errorClassification = createClassifiedError({
         details: { component: 'Unknown', errorCode: '', rawMessage: 'Test error message' },
       });
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
@@ -89,7 +87,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render with custom data-testid', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(
         <ChatbotErrorAlert
           classifiedError={errorClassification}
@@ -103,28 +101,28 @@ describe('ChatbotErrorAlert', () => {
 
   describe('retry functionality', () => {
     it('should show retry link when isRetriable is true and onRetry is provided', () => {
-      const errorClassification = createErrorClassification({ isRetriable: true });
+      const errorClassification = createClassifiedError({ isRetriable: true });
       render(<ChatbotErrorAlert classifiedError={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.getByText('Retry')).toBeInTheDocument();
     });
 
     it('should not show retry link when isRetriable is false', () => {
-      const errorClassification = createErrorClassification({ isRetriable: false });
+      const errorClassification = createClassifiedError({ isRetriable: false });
       render(<ChatbotErrorAlert classifiedError={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.queryByText('Retry')).not.toBeInTheDocument();
     });
 
     it('should not show retry link when isRetriable is true but onRetry is not provided', () => {
-      const errorClassification = createErrorClassification({ isRetriable: true });
+      const errorClassification = createClassifiedError({ isRetriable: true });
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expect(screen.queryByText('Retry')).not.toBeInTheDocument();
     });
 
     it('should call onRetry when retry link is clicked', () => {
-      const errorClassification = createErrorClassification({ isRetriable: true });
+      const errorClassification = createClassifiedError({ isRetriable: true });
       render(<ChatbotErrorAlert classifiedError={errorClassification} onRetry={mockOnRetry} />);
 
       const retryLink = screen.getByText('Retry');
@@ -134,7 +132,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should have correct data-testid on retry link', () => {
-      const errorClassification = createErrorClassification({ isRetriable: true });
+      const errorClassification = createClassifiedError({ isRetriable: true });
       render(<ChatbotErrorAlert classifiedError={errorClassification} onRetry={mockOnRetry} />);
 
       expect(screen.getByTestId('chatbot-error-alert-retry-link')).toBeInTheDocument();
@@ -143,7 +141,7 @@ describe('ChatbotErrorAlert', () => {
 
   describe('expandable behavior', () => {
     it('should render as expandable alert', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       const alert = screen.getByTestId('chatbot-error-alert');
@@ -153,7 +151,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render as inline alert', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       const alert = screen.getByTestId('chatbot-error-alert');
@@ -187,7 +185,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render copy button', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expandAlert();
@@ -196,7 +194,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should copy error to clipboard when copy button is clicked', async () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expandAlert();
@@ -208,7 +206,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should copy error without code prefix when code is empty', async () => {
-      const errorClassification = createErrorClassification({
+      const errorClassification = createClassifiedError({
         details: { component: 'Unknown', errorCode: '', rawMessage: 'Test error message' },
       });
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
@@ -225,7 +223,7 @@ describe('ChatbotErrorAlert', () => {
 
   describe('accessibility', () => {
     it('should have proper ARIA label on copy button', () => {
-      const errorClassification = createErrorClassification();
+      const errorClassification = createClassifiedError();
       render(<ChatbotErrorAlert classifiedError={errorClassification} />);
 
       expandAlert();
@@ -237,7 +235,7 @@ describe('ChatbotErrorAlert', () => {
 
   describe('different error patterns', () => {
     it('should render full-failure error', () => {
-      const errorClassification = createErrorClassification({
+      const errorClassification = createClassifiedError({
         pattern: 'full-failure',
         variant: 'danger',
         title: 'Model inference failed',
@@ -250,7 +248,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render partial-failure error', () => {
-      const errorClassification = createErrorClassification({
+      const errorClassification = createClassifiedError({
         pattern: 'partial-failure',
         variant: 'warning',
         title: 'Knowledge source retrieval failed',
@@ -263,7 +261,7 @@ describe('ChatbotErrorAlert', () => {
     });
 
     it('should render streaming-interruption error', () => {
-      const errorClassification = createErrorClassification({
+      const errorClassification = createClassifiedError({
         pattern: 'streaming-interruption',
         variant: 'danger',
         title: 'Streaming error — connection lost',

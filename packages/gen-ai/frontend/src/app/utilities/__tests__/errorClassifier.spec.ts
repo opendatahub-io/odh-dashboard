@@ -1,4 +1,4 @@
-import { ErrorPattern, ErrorSeverity } from '~/app/types';
+import { ErrorPattern, ErrorVariant } from '~/app/types';
 import { ERROR_CATEGORIES } from '~/app/Chatbot/const';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
@@ -20,7 +20,7 @@ describe('errorClassifier', () => {
         });
 
         expect(result.pattern).toBe('full-failure' as ErrorPattern);
-        expect(result.variant).toBe('danger' as ErrorSeverity);
+        expect(result.variant).toBe('danger' as ErrorVariant);
       });
 
       it('should classify as partial-failure when response was generated', () => {
@@ -38,7 +38,7 @@ describe('errorClassifier', () => {
         });
 
         expect(result.pattern).toBe('partial-failure' as ErrorPattern);
-        expect(result.variant).toBe('warning' as ErrorSeverity);
+        expect(result.variant).toBe('warning' as ErrorVariant);
       });
 
       it('should classify as streaming_interruption when stream started but no full response', () => {
@@ -56,7 +56,7 @@ describe('errorClassifier', () => {
         });
 
         expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
-        expect(result.variant).toBe('danger' as ErrorSeverity);
+        expect(result.variant).toBe('danger' as ErrorVariant);
       });
 
       it('should classify as streaming_interruption when stream started with partial response', () => {
@@ -74,7 +74,7 @@ describe('errorClassifier', () => {
         });
 
         expect(result.pattern).toBe('streaming-interruption' as ErrorPattern);
-        expect(result.variant).toBe('danger' as ErrorSeverity);
+        expect(result.variant).toBe('danger' as ErrorVariant);
       });
     });
 
