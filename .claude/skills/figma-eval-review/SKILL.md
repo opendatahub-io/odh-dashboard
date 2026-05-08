@@ -47,7 +47,7 @@ The Atlassian MCP is optional. If unavailable, the skill skips Jira-based scopin
 4. Attempt a lightweight GitHub call (`get_me`) to verify the GitHub MCP is reachable
 5. If it fails, stop and report:
    > GitHub MCP is not available or not authenticated. This skill requires the GitHub MCP to fetch PR diffs. Please configure and authenticate the `user-github` MCP server.
-6. Attempt a reachability check for the Atlassian MCP: call `jira_get_issue` with the dummy key `TEST-1`. Any HTTP response (including 404 "issue not found") means the MCP is reachable — record it as available. Only treat network errors, timeouts, or MCP request failures as unavailable. Log the dummy key, response status, and any error details. This check must not fail the overall flow if the MCP is unreachable.
+6. Attempt a reachability check for the Atlassian MCP: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found" or real issue data) means the MCP is reachable — record it as available. Only treat network errors, timeouts, or MCP request failures as unavailable. This is purely a connectivity check; discard any returned data. This check must not fail the overall flow if the MCP is unreachable.
 
 If the required MCPs succeed, proceed. The screenshot captured in step 2 is carried forward to Phase 2 and Phase 4 — do not call `get_screenshot` again.
 
@@ -79,7 +79,7 @@ Resolve the PR to evaluate. Auto-detection from the current branch is the defaul
    - **If on `main`:** stop and report the following — do not fall back to `git diff` since `main...HEAD` produces no diff on main:
      > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
    - **If on a feature branch with an open PR:** use that PR
-   - **If on a feature branch with no open PR:** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. Report that no PR was found and the evaluation is based on the local branch diff.
+   - **If on a feature branch with no open PR:** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. If the diff is empty (no committed changes ahead of main), stop and report: "No changes to evaluate — the branch has no commits ahead of main." Otherwise, report that no PR was found and the evaluation is based on the local branch diff.
 
 ### Step 3: Extract Jira Ticket Objectives (if available)
 
@@ -114,8 +114,8 @@ If the Figma URL provided by the user points to a **page or top-level frame** (r
 
 1. Call `get_metadata` for the Figma page to get the structure of all child frames/nodes
 2. Match frame names and annotations against the ticket summary and acceptance criteria (e.g., a ticket about "empty state for model list" should match a frame named "Model List / Empty" or similar)
-3. If a clear match is found, use that node's ID for the detailed `get_design_context` call in Step 1 instead of the full page
-4. If multiple frames match (e.g., the ticket covers a flow with several states), evaluate each relevant frame and consolidate findings in the report
+3. If a clear match is found, call `get_design_context` again with the scoped node's ID to get more specific design data (replacing the broader result from Step 1)
+4. If multiple frames match (e.g., the ticket covers a flow with several states), call `get_design_context` for each relevant frame and consolidate findings in the report
 
 If no Jira key was found or the Atlassian MCP is unavailable, evaluate the Figma node exactly as provided by the user.
 
@@ -123,9 +123,9 @@ If no Jira key was found or the Atlassian MCP is unavailable, evaluate the Figma
 
 **If a PR was resolved:**
 
-1. Call `pull_request_read({ method: "get", owner, repo, pull_number })` to get PR metadata (title, body, state, draft status)
-2. Call `pull_request_read({ method: "get_files", owner, repo, pull_number })` to get the list of changed files (paginate if needed)
-3. Call `pull_request_read({ method: "get_diff", owner, repo, pull_number })` to get the full diff
+1. Call `pull_request_read({ method: "get", owner, repo, pullNumber })` to get PR metadata (title, body, state, draft status)
+2. Call `pull_request_read({ method: "get_files", owner, repo, pullNumber })` to get the list of changed files (paginate if needed)
+3. Call `pull_request_read({ method: "get_diff", owner, repo, pullNumber })` to get the full diff
 
 If the PR is in **draft** state, note this in the report header. Use `[NOT_IMPLEMENTED]` for checks that target code not yet written.
 
@@ -162,6 +162,7 @@ Compare the Figma auto-layout properties against the code's layout approach.
 - **Gap & Padding** — do the Figma spacing values map to PatternFly spacing tokens (`--pf-t--global--spacer--*`) or PF component props (`gap`, `hasGutter`)?
 - **Alignment** — does the Figma alignment (top-left, center, space-between, etc.) match the code's `alignItems`/`justifyContent` or PF alignment props?
 - **Sizing** — does the Figma sizing (fixed, hug, fill) match the code's width/height behavior?
+- **Responsive behavior** — if the Figma design shows multiple breakpoints or responsive variants, note them as `[LIMITED]` since verifying responsive behavior requires runtime evaluation
 
 ### Dimension 3: Typography
 
