@@ -624,7 +624,8 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Revert edits');
         promptAssistant.findRevertButton().should('be.enabled').click();
-        cy.findByRole('dialog').findByRole('button', { name: 'Revert' }).click();
+        promptAssistant.findConfirmationModal().should('be.visible');
+        promptAssistant.findConfirmationModalConfirm().click();
 
         cy.step('Verify reverted to original template');
         promptAssistant.findEditButton().should('be.visible');
@@ -640,8 +641,8 @@ describe('Chatbot - Prompt Management (Mocked)', () => {
 
         cy.step('Click Reset and confirm the dialog');
         promptAssistant.findResetButton().should('be.enabled').click();
-        cy.findByTestId('confirmation-modal').should('be.visible');
-        cy.findByTestId('confirmation-modal-confirm').click();
+        promptAssistant.findConfirmationModal().should('be.visible');
+        promptAssistant.findConfirmationModalConfirm().click();
 
         cy.step('Verify reset back to new prompt state');
         promptAssistant.findNameTitle().should('contain.text', 'New Prompt');

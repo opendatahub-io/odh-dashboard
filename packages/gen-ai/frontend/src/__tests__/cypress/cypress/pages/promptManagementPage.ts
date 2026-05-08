@@ -144,6 +144,14 @@ class PromptAssistant {
   findSystemInstructionsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('system-instructions-section');
   }
+
+  findConfirmationModal(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('confirmation-modal');
+  }
+
+  findConfirmationModalConfirm(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('confirmation-modal-confirm');
+  }
 }
 
 export const promptManagementModal = new PromptManagementModal();
