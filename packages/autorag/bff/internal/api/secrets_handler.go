@@ -7,9 +7,10 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
@@ -24,7 +25,7 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*corek8s.RequestIdentity)
 	if !ok || identity == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
 		return
@@ -37,26 +38,16 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Parse query parameters
-	queryParams := r.URL.Query()
-
 	// Parse type (optional, default to empty string which means all secrets)
-	secretType := queryParams.Get("type")
+	secretType := r.URL.Query().Get("type")
 	// Validate type parameter
 	if secretType != "" && secretType != "storage" && secretType != "lls" {
 		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'lls', or omitted"))
 		return
 	}
 
-	// Get Kubernetes client
-	client, err := app.kubernetesClientFactory.GetClient(ctx)
-	if err != nil {
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-		return
-	}
-
-	// Fetch filtered secrets from repository
-	secrets, err := app.repositories.Secret.GetFilteredSecrets(client, ctx, namespace, identity, secretType)
+	// Call autox-core service - single method handles everything (validation, fetching, filtering, type detection)
+	secretInfos, err := app.k8sService.GetFilteredSecrets(ctx, identity, namespace, secretType)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
@@ -94,6 +85,19 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		}
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+
+	// Convert []SecretInfo to []models.SecretListItem
+	secrets := make([]models.SecretListItem, len(secretInfos))
+	for i, info := range secretInfos {
+		secrets[i] = models.SecretListItem{
+			UUID:        info.UUID,
+			Name:        info.Name,
+			Type:        info.Type,
+			Data:        info.Data,
+			DisplayName: info.DisplayName,
+			Description: info.Description,
+		}
 	}
 
 	// Return response with envelope pattern

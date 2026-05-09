@@ -147,35 +147,6 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//skip use headers check if we are not on /api/v1 (i.e. we are on /healthcheck and / (static fe files) )
-		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+ApiPathPrefix) {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		var identity *k8s.RequestIdentity
-		// If authentication is disabled, use a default identity for testing/development
-		if app.config.AuthMethod == config.AuthMethodDisabled {
-			identity = &k8s.RequestIdentity{
-				UserID: "user@example.com",
-				Groups: []string{"system:masters"},
-			}
-		} else {
-			var err error
-			identity, err = app.kubernetesClientFactory.ExtractRequestIdentity(r.Header)
-			if err != nil {
-				app.badRequestResponse(w, r, err)
-				return
-			}
-		}
-
-		ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
 func (app *App) EnableCORS(next http.Handler) http.Handler {
 	if len(app.config.AllowedOrigins) == 0 {
 		// CORS is disabled, this middleware becomes a noop.
