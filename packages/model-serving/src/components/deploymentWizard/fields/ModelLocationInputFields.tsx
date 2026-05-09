@@ -85,7 +85,7 @@ export const useModelLocationData = (
     const values = parseConnectionSecretValues(secret, connectionType);
     const isGeneratedSecret = isGeneratedSecretName(secret.metadata.name);
     const hasOwnerRef = !!secret.metadata.ownerReferences?.length || isGeneratedSecret;
-    const isHidden = secret.metadata.annotations?.['opendatahub.io/connection-hidden'] === 'true';
+    const isHidden = secret.metadata.annotations['opendatahub.io/connection-hidden'] === 'true';
 
     return {
       type: hasOwnerRef && !isHidden ? ModelLocationType.NEW : ModelLocationType.EXISTING,
