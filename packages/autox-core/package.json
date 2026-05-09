@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@odh-dashboard/autox",
+  "name": "@odh-dashboard/autox-core",
   "description": "AutoX shared library package - provides shared BFF and Frontend utilities for AutoML, AutoRAG, and related packages.",
   "version": "0.0.0",
   "scripts": {
