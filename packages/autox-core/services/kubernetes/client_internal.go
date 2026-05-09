@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -206,6 +207,52 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 	}
 
 	return resp.Status.Allowed, nil
+}
+
+// DiscoverResourceGVR discovers the preferred API version for a custom resource
+// by trying known versions in preference order (newer to older).
+// Uses impersonated dynamic client to respect user RBAC permissions.
+func (c *K8sInternalClient) DiscoverResourceGVR(
+	ctx context.Context,
+	identity *RequestIdentity,
+	group, resource, namespace string,
+	knownVersions []string,
+) (schema.GroupVersionResource, error) {
+	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
+	dynamicClient, err := c.getDynamicClientForIdentity(identity)
+	if err != nil {
+		return schema.GroupVersionResource{}, err
+	}
+
+	// Try known versions in preference order
+	for _, version := range knownVersions {
+		gvr := schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: resource,
+		}
+
+		// Test with namespace-scoped query (respects RBAC)
+		_, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
+		if err == nil {
+			// Successfully accessed the resource with this version
+			return gvr, nil
+		}
+
+		// Continue trying other versions if NotFound or Forbidden
+		if k8serrors.IsNotFound(err) || k8serrors.IsForbidden(err) {
+			continue
+		}
+
+		// Return unexpected errors immediately
+		return schema.GroupVersionResource{}, err
+	}
+
+	// No version worked
+	return schema.GroupVersionResource{}, &NotFoundError{
+		Resource: group + "/" + resource,
+		Name:     "no available version found in namespace " + namespace + " (tried: " + strings.Join(knownVersions, ", ") + ")",
+	}
 }
 
 // getNamespacesViaProjectsAPI uses the OpenShift Projects API with impersonation

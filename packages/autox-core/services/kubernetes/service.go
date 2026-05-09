@@ -263,3 +263,58 @@ func ExtractServiceAccountName(username string) string {
 	}
 	return username
 }
+
+// DiscoverResourceGVR discovers the preferred API version for a custom resource
+// by trying known versions in preference order (newer to older).
+// Adds validation, logging, and error handling around the client implementation.
+func (s *K8sService) DiscoverResourceGVR(
+	ctx context.Context,
+	identity *RequestIdentity,
+	group, resource, namespace string,
+	knownVersions []string,
+) (schema.GroupVersionResource, error) {
+	s.Logger.Info("discovering resource GVR",
+		"group", group,
+		"resource", resource,
+		"namespace", namespace,
+		"versions", knownVersions,
+		"user", getLogUser(identity))
+
+	// Validate namespace name
+	if err := ValidateNamespaceName(namespace); err != nil {
+		s.Logger.Error("invalid namespace name", "error", err)
+		return schema.GroupVersionResource{}, err
+	}
+
+	// Validate inputs
+	if group == "" {
+		s.Logger.Error("group cannot be empty")
+		return schema.GroupVersionResource{}, &ValidationError{Field: "group", Message: "group cannot be empty"}
+	}
+	if resource == "" {
+		s.Logger.Error("resource cannot be empty")
+		return schema.GroupVersionResource{}, &ValidationError{Field: "resource", Message: "resource cannot be empty"}
+	}
+	if len(knownVersions) == 0 {
+		s.Logger.Error("knownVersions cannot be empty")
+		return schema.GroupVersionResource{}, &ValidationError{Field: "knownVersions", Message: "at least one version must be specified"}
+	}
+
+	gvr, err := s.Client.DiscoverResourceGVR(ctx, identity, group, resource, namespace, knownVersions)
+	if err != nil {
+		s.Logger.Error("failed to discover GVR",
+			"group", group,
+			"resource", resource,
+			"namespace", namespace,
+			"error", err)
+		return schema.GroupVersionResource{}, err
+	}
+
+	s.Logger.Debug("discovered GVR",
+		"group", group,
+		"resource", resource,
+		"version", gvr.Version,
+		"namespace", namespace)
+
+	return gvr, nil
+}

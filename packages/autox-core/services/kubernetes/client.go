@@ -41,6 +41,12 @@ type K8sClientInterface interface {
 
 	// Generic RBAC check - checks if identity can perform verb on resource in namespace
 	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error)
+
+	// DiscoverResourceGVR discovers the preferred API version for a custom resource
+	// by trying known versions in preference order (newer to older).
+	// Uses namespace-scoped queries to respect RBAC permissions.
+	// Returns the first working GroupVersionResource or an error if none are available.
+	DiscoverResourceGVR(ctx context.Context, identity *RequestIdentity, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
 // DefaultK8sClientConfig for creating a K8s client based on auth method
