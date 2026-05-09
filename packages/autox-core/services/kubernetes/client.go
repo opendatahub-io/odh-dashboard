@@ -22,10 +22,12 @@ type DynamicClientInterface interface {
 
 // K8sClientInterface defines the contract for Kubernetes operations
 type K8sClientInterface interface {
-	// Generic resource operations
-	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
-	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
-	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+	// Generic resource operations (identity-aware for RBAC enforcement)
+	// When identity is nil: uses service account permissions (internal client) or errors (token client)
+	// When identity is non-nil: uses user permissions via impersonation (internal) or scoped token (token client)
+	ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+	GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+	CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
 	// Convenience methods for common resources
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error)

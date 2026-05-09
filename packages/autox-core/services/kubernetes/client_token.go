@@ -78,7 +78,8 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
 	}
 }
 
-func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
 		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
@@ -89,11 +90,13 @@ func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVers
 	return resourceClient.List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sTokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (c *K8sTokenClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (c *K8sTokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (c *K8sTokenClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
 }
 

@@ -67,23 +67,66 @@ func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) *K8sInterna
 	}
 }
 
-func (c *K8sInternalClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (c *K8sInternalClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
+	dynamicClient, err := c.getDynamicClientForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
-		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
+		resourceClient = dynamicClient.Resource(gvr).Namespace(namespace)
 	} else {
-		resourceClient = c.DynamicClient.Resource(gvr)
+		resourceClient = dynamicClient.Resource(gvr)
 	}
 
 	return resourceClient.List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sInternalClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+func (c *K8sInternalClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
+	dynamicClient, err := c.getDynamicClientForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	return dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
+func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
+	dynamicClient, err := c.getDynamicClientForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	return dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
+}
+
+// getDynamicClientForIdentity returns a dynamic client scoped to the given identity.
+// If identity is nil, returns the service account client.
+// If identity is non-nil, creates an impersonated client for user RBAC enforcement.
+func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
+	if identity == nil {
+		// No identity provided - use service account permissions
+		return c.DynamicClient, nil
+	}
+
+	// Create impersonated config for user RBAC
+	userConfig := rest.CopyConfig(c.RestConfig)
+	userConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+	}
+	// Clear client certificates to prevent credential leakage across user boundaries
+	userConfig.CertData = nil
+	userConfig.CertFile = ""
+	userConfig.KeyData = nil
+	userConfig.KeyFile = ""
+
+	// Create dynamic client with impersonated config
+	return dynamic.NewForConfig(userConfig)
 }
 
 func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {

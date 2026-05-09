@@ -141,8 +141,8 @@ func (s *K8sService) CanAccessResource(ctx context.Context, identity *RequestIde
 	return canAccess, nil
 }
 
-func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	s.Logger.Info("listing resources", "gvr", gvr, "namespace", namespace)
+func (s *K8sService) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+	s.Logger.Info("listing resources", "gvr", gvr, "namespace", namespace, "user", getLogUser(identity))
 
 	// Validate namespace name if provided
 	if namespace != "" {
@@ -152,7 +152,7 @@ func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionR
 		}
 	}
 
-	resources, err := s.Client.ListResources(ctx, gvr, namespace)
+	resources, err := s.Client.ListResources(ctx, identity, gvr, namespace)
 	if err != nil {
 		s.Logger.Error("failed to list resources", "gvr", gvr, "namespace", namespace, "error", err)
 		return nil, err
@@ -161,8 +161,8 @@ func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionR
 	return resources, nil
 }
 
-func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	s.Logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
+func (s *K8sService) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+	s.Logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name, "user", getLogUser(identity))
 
 	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -174,7 +174,7 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 		return nil, err
 	}
 
-	resource, err := s.Client.GetResource(ctx, gvr, namespace, name)
+	resource, err := s.Client.GetResource(ctx, identity, gvr, namespace, name)
 	if err != nil {
 		s.Logger.Error("failed to get resource", "gvr", gvr, "namespace", namespace, "name", name, "error", err)
 		return nil, err
@@ -183,8 +183,8 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 	return resource, nil
 }
 
-func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	s.Logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
+func (s *K8sService) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	s.Logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName(), "user", getLogUser(identity))
 
 	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -196,13 +196,21 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 		return nil, err
 	}
 
-	resource, err := s.Client.CreateResource(ctx, gvr, namespace, obj)
+	resource, err := s.Client.CreateResource(ctx, identity, gvr, namespace, obj)
 	if err != nil {
 		s.Logger.Error("failed to create resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName(), "error", err)
 		return nil, err
 	}
 
 	return resource, nil
+}
+
+// getLogUser returns a safe string representation of the user for logging
+func getLogUser(identity *RequestIdentity) string {
+	if identity == nil {
+		return "service-account"
+	}
+	return identity.UserID
 }
 
 // GetAccessibleNamespaces returns namespaces the user can access, with admin optimization
