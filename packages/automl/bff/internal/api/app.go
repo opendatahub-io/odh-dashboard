@@ -17,12 +17,14 @@ import (
 	psmocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	s3int "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3"
 	s3mocks "github.com/opendatahub-io/automl-library/bff/internal/integrations/s3/s3mocks"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -54,6 +56,8 @@ type App struct {
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
+	// k8sService provides business logic for Kubernetes operations using autox-core
+	k8sService *corek8s.K8sService
 	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
 	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
@@ -191,6 +195,26 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		})
 	}
 
+	// Create autox-core Kubernetes client based on auth method
+	// GetAuthToken extracts token from context (injected by InjectRequestIdentity middleware)
+	getAuthTokenFromContext := func(ctx context.Context) (string, error) {
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*corek8s.RequestIdentity)
+		if !ok || identity == nil {
+			return "", fmt.Errorf("no request identity in context")
+		}
+		return identity.Token, nil
+	}
+
+	autoxClient := corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
+		AuthMethod:   cfg.AuthMethod,
+		GetAuthToken: getAuthTokenFromContext,
+	})
+
+	// Create the K8s service using autox-core
+	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{
+		Logger: logger,
+	}, autoxClient)
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
@@ -198,6 +222,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
 		repositories:                repositories.NewRepositories(logger),
+		k8sService:                  k8sService,
 		testEnv:                     testEnv,
 		rootCAs:                     rootCAs,
 		portForwardManager:          pfManager,
@@ -306,11 +331,31 @@ func (app *App) Routes() http.Handler {
 	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
+	// Create identity extractor based on auth method
+	identityExtractor, err := corek8s.NewIdentityExtractor(
+		app.config.AuthMethod,
+		app.config.AuthTokenHeader,
+		app.config.AuthTokenPrefix,
+		constants.KubeflowUserIDHeader,
+		constants.KubeflowUserGroupsIdHeader,
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create identity extractor: %v", err))
+	}
+
+	// Create identity middleware using autox-core
+	identityMiddleware := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
+		Extractor:  identityExtractor,
+		ContextKey: constants.RequestIdentityKey,
+		SkipPaths:  []string{HealthCheckPath},
+		OnError:    app.badRequestResponse,
+	})
+
 	// Combines the healthcheck endpoint with the rest of the routes
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(identityMiddleware(appMux)))))
 
 	return combinedMux
 }
