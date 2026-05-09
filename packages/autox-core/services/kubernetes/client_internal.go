@@ -42,10 +42,11 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterf
 	}
 }
 
-// NewDefaultK8sInternalClient creates an internal client with real Kubernetes clientset and dynamic client
+// NewDefaultK8sInternalClient creates an internal client with real Kubernetes clientset and dynamic client.
+// Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
 func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) *K8sInternalClient {
-	// Use in-cluster config for service account authentication
-	clientCfg, err := rest.InClusterConfig()
+	// Auto-detect in-cluster vs out-of-cluster config
+	clientCfg, err := GetKubernetesConfig()
 	if err != nil {
 		panic(err) // Or return error
 	}

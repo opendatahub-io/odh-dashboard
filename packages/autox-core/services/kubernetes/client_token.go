@@ -47,17 +47,23 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 	}
 }
 
-// NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset and dynamic client
+// NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset and dynamic client.
+// Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
+// Wraps all requests with user token authentication via RoundTripper.
 func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
-	// Configure with token-based auth using RoundTripper
-	clientCfg := &rest.Config{
-		Host: "https://kubernetes.default.svc",
-		WrapTransport: func(rt http.RoundTripper) http.RoundTripper {
-			return &tokenRoundTripper{
-				base:         rt,
-				getAuthToken: cfg.GetAuthToken,
-			}
-		},
+	// Auto-detect in-cluster vs out-of-cluster config
+	baseConfig, err := GetKubernetesConfig()
+	if err != nil {
+		panic(err) // Or return error
+	}
+
+	// Wrap transport to inject user bearer token on every request
+	clientCfg := rest.CopyConfig(baseConfig)
+	clientCfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return &tokenRoundTripper{
+			base:         rt,
+			getAuthToken: cfg.GetAuthToken,
+		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientCfg)
