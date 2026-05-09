@@ -1,4 +1,4 @@
-module github.com/opendatahub-io/odh-dashboard/packages/autox/bff
+module github.com/opendatahub-io/odh-dashboard/packages/autox-core/services
 
 go 1.24.3
 
