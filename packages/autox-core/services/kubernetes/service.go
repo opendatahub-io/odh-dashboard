@@ -39,6 +39,32 @@ func (s *K8sService) GetNamespaces(ctx context.Context, identity *RequestIdentit
 	return namespaces, nil
 }
 
+// GetNamespaceInfos retrieves namespaces with display names
+func (s *K8sService) GetNamespaceInfos(ctx context.Context, identity *RequestIdentity) ([]NamespaceInfo, error) {
+	s.Logger.Info("fetching namespace infos", "user", identity.UserID)
+
+	namespaces, err := s.Client.GetNamespaces(ctx, identity)
+	if err != nil {
+		s.Logger.Error("failed to get namespaces", "error", err)
+		return nil, err
+	}
+
+	infos := make([]NamespaceInfo, 0, len(namespaces))
+	for _, ns := range namespaces {
+		displayName := ns.Name
+		if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
+			displayName = dn
+		}
+
+		infos = append(infos, NamespaceInfo{
+			Name:        ns.Name,
+			DisplayName: displayName,
+		})
+	}
+
+	return infos, nil
+}
+
 func (s *K8sService) GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error) {
 	s.Logger.Info("fetching pods", "namespace", namespace, "user", identity.UserID)
 
@@ -119,6 +145,28 @@ func (s *K8sService) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 	}
 
 	return isAdmin, nil
+}
+
+// GetUserInfo retrieves user identity and admin status in a single call
+func (s *K8sService) GetUserInfo(identity *RequestIdentity) (*UserInfo, error) {
+	s.Logger.Info("getting user info", "user", identity.UserID)
+
+	username, err := s.Client.GetUser(identity)
+	if err != nil {
+		s.Logger.Error("failed to get user identity", "error", err)
+		return nil, err
+	}
+
+	isAdmin, err := s.Client.IsClusterAdmin(identity)
+	if err != nil {
+		s.Logger.Error("failed to check cluster admin status", "error", err)
+		return nil, err
+	}
+
+	return &UserInfo{
+		UserID:       username,
+		ClusterAdmin: isAdmin,
+	}, nil
 }
 
 func (s *K8sService) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {
