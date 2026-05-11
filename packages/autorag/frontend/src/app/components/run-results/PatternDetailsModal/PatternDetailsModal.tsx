@@ -86,7 +86,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
     );
 
   // Reset state when modal opens
-  const prevIsOpen = React.useRef(isOpen);
+  const prevIsOpen = React.useRef(false);
   React.useEffect(() => {
     if (isOpen && !prevIsOpen.current) {
       setActiveTabKey(OVERVIEW_KEY);

@@ -41,7 +41,7 @@ function buildTopLevelFields(pattern: {
   };
 }
 
-const SCORE_TYPE_CONTENT: React.FC<{
+const ScoreTypeContent: React.FC<{
   scoreType: ScoreType;
   onScoreTypeChange?: (type: ScoreType) => void;
 }> = ({ scoreType, onScoreTypeChange }) => (
@@ -69,7 +69,7 @@ const ScoreTypeSelectorGroup: React.FC<{
   <DescriptionListGroup>
     <DescriptionListTerm>Score type</DescriptionListTerm>
     <DescriptionListDescription>
-      <SCORE_TYPE_CONTENT {...props} />
+      <ScoreTypeContent {...props} />
     </DescriptionListDescription>
   </DescriptionListGroup>
 );

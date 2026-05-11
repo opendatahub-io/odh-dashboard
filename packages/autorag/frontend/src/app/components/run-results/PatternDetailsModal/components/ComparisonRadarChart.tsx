@@ -11,14 +11,10 @@ import {
   chart_color_green_100 as chartColorGreen100,
 } from '@patternfly/react-tokens';
 import type { AutoRAGEvaluationScores } from '~/app/types/autoragPattern';
+import { getCSSVar } from '~/app/utilities/utils';
 import { scoreIndicators } from './ScoreRadarChart';
 
 let echartsRegistered = false;
-
-const getCSSVar = (name: string, fallback: string): string => {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
-};
 
 type ComparisonRadarChartProps = {
   primaryScores: AutoRAGEvaluationScores;

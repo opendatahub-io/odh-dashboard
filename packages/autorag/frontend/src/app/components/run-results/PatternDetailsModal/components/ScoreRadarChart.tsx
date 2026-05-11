@@ -9,13 +9,9 @@ import {
   chart_color_blue_100 as chartColorBlue100,
 } from '@patternfly/react-tokens';
 import type { AutoRAGEvaluationScores } from '~/app/types/autoragPattern';
+import { getCSSVar } from '~/app/utilities/utils';
 
 let echartsRegistered = false;
-
-const getCSSVar = (name: string, fallback: string): string => {
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
-};
 
 export const scoreIndicators: { key: keyof AutoRAGEvaluationScores; label: string }[] = [
   { key: 'answer_correctness', label: 'Answer correctness' },

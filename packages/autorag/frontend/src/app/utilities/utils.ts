@@ -202,6 +202,15 @@ export function computePatternRankMap(patterns: AutoragPattern[]): Record<string
 }
 
 /**
+ * Read a CSS custom property from the document root, returning a fallback
+ * when the property is empty or not set (e.g. in canvas/ECharts contexts).
+ */
+export const getCSSVar = (name: string, fallback: string): string => {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
+
+/**
  * Format metric values for display.
  * Uses scientific notation for non-zero values that would round to 0.000.
  */
