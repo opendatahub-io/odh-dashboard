@@ -20,27 +20,23 @@ type DynamicClientInterface interface {
 	dynamic.Interface
 }
 
-// K8sClientInterface defines the contract for Kubernetes operations
+// K8sClientInterface defines the contract for Kubernetes operations.
 //
 // Security: Identity parameter is REQUIRED for all operations (non-nil).
 // Nil identity is rejected to prevent privilege escalation and ensure RBAC enforcement.
 //
 // Identity parameter behavior by implementation:
-//   - K8sInternalClient (internal auth): Creates impersonated clients scoped to user's RBAC permissions.
-//     All operations enforce the user's permissions via Kubernetes impersonation.
-//   - K8sTokenClient (user_token auth): Ignores identity parameter - client is already scoped to
-//     user token via tokenRoundTripper. Identity parameter exists for interface compatibility.
+//   - K8sInternalClient: Creates impersonated clients scoped to user's RBAC permissions.
+//   - K8sTokenClient: Client already scoped to user token via tokenRoundTripper (identity ignored).
 //
 // Always pass identity from request context for user-initiated operations.
-// For system operations, create an explicit system identity with appropriate service account.
 type K8sClientInterface interface {
-	// Generic resource operations (identity-aware for RBAC enforcement)
-	// Identity must be non-nil - nil identity returns an error
+	// Generic resource operations
 	ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
 	CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
 
-	// Convenience methods for common resources
+	// Common resource operations
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error)
 	GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error)
 	GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error)
@@ -49,25 +45,22 @@ type K8sClientInterface interface {
 	// User identity and permissions
 	GetUser(ctx context.Context, identity *RequestIdentity) (string, error)
 	IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
-
-	// Generic RBAC check - checks if identity can perform verb on resource in namespace
 	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error)
 
 	// DiscoverResourceGVR discovers the preferred API version for a custom resource
 	// by trying known versions in preference order (newer to older).
-	// Uses namespace-scoped queries to respect RBAC permissions.
 	// Returns the first working GroupVersionResource or an error if none are available.
 	DiscoverResourceGVR(ctx context.Context, identity *RequestIdentity, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
-// DefaultK8sClientConfig for creating a K8s client based on auth method
+// DefaultK8sClientConfig holds configuration for creating a Kubernetes client.
 type DefaultK8sClientConfig struct {
 	AuthMethod   string
 	GetAuthToken func(ctx context.Context) (string, error)
 }
 
-// NewDefaultK8sClient creates a client based on auth method.
-// Returns an error if client initialization fails.
+// NewDefaultK8sClient creates a Kubernetes client based on the configured auth method.
+// Returns K8sTokenClient for "user_token" auth, K8sInternalClient otherwise.
 func NewDefaultK8sClient(cfg DefaultK8sClientConfig) (K8sClientInterface, error) {
 	if cfg.AuthMethod == "user_token" {
 		return NewDefaultK8sTokenClient(DefaultK8sTokenClientConfig{

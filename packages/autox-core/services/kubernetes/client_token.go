@@ -87,7 +87,6 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient,
 }
 
 func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
 		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
@@ -99,12 +98,10 @@ func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIde
 }
 
 func (c *K8sTokenClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
 func (c *K8sTokenClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
 }
 
@@ -114,8 +111,7 @@ func (c *K8sTokenClient) GetNamespaces(ctx context.Context, identity *RequestIde
 		return nsList.Items, nil
 	}
 
-	// If forbidden, fall back to OpenShift Projects API
-	if !isErrorForbidden(err) {
+	if !k8serrors.IsForbidden(err) {
 		return nil, err
 	}
 
@@ -139,8 +135,6 @@ func (c *K8sTokenClient) GetSecret(ctx context.Context, identity *RequestIdentit
 }
 
 func (c *K8sTokenClient) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
-	// Create timeout context from parent context to respect cancellation
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -159,12 +153,10 @@ func (c *K8sTokenClient) GetUser(ctx context.Context, identity *RequestIdentity)
 }
 
 func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
-	// Create timeout context from parent context to respect cancellation
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Use SelfSubjectAccessReview with wildcard permissions
+	// Check wildcard permissions - the defining characteristic of cluster-admin role
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -205,16 +197,13 @@ func (c *K8sTokenClient) CanAccessResource(ctx context.Context, identity *Reques
 
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
-// DynamicClient already uses the user's token via tokenRoundTripper, so no additional auth needed.
+// Returns the first working GroupVersionResource or an error if none are available.
 func (c *K8sTokenClient) DiscoverResourceGVR(
 	ctx context.Context,
 	identity *RequestIdentity,
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
-	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
-
-	// Try known versions in preference order
 	for _, version := range knownVersions {
 		gvr := schema.GroupVersionResource{
 			Group:    group,
@@ -225,27 +214,24 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 		// Test with namespace-scoped query (respects RBAC)
 		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
 		if err == nil {
-			// Successfully accessed the resource with this version
 			return gvr, nil
 		}
 
-		// Continue trying other versions if NotFound or Forbidden
 		if k8serrors.IsNotFound(err) || k8serrors.IsForbidden(err) {
 			continue
 		}
 
-		// Return unexpected errors immediately
 		return schema.GroupVersionResource{}, err
 	}
 
-	// No version worked
 	return schema.GroupVersionResource{}, &NotFoundError{
 		Resource: group + "/" + resource,
 		Name:     "no available version found in namespace " + namespace + " (tried: " + strings.Join(knownVersions, ", ") + ")",
 	}
 }
 
-// getNamespacesViaProjectsAPI uses the OpenShift Projects API to list namespaces accessible to the caller
+// getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
+// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
 func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	dynClient, err := dynamic.NewForConfig(c.RestConfig)
 	if err != nil {
@@ -269,8 +255,7 @@ func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 
 		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
-			if isErrorForbidden(err) || isErrorNotFound(err) {
-				// Use project metadata if namespace details unavailable
+			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
 				namespaces = append(namespaces, v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        projectName,
@@ -289,16 +274,7 @@ func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 	return namespaces, nil
 }
 
-// Helper functions for error checking
-func isErrorForbidden(err error) bool {
-	return k8serrors.IsForbidden(err)
-}
-
-func isErrorNotFound(err error) bool {
-	return k8serrors.IsNotFound(err)
-}
-
-// tokenRoundTripper injects bearer token into requests
+// tokenRoundTripper injects the user's bearer token into all Kubernetes API requests.
 type tokenRoundTripper struct {
 	base         http.RoundTripper
 	getAuthToken func(ctx context.Context) (string, error)

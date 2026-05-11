@@ -71,7 +71,6 @@ func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sIntern
 }
 
 func (c *K8sInternalClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
 	dynamicClient, err := c.getDynamicClientForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -88,7 +87,6 @@ func (c *K8sInternalClient) ListResources(ctx context.Context, identity *Request
 }
 
 func (c *K8sInternalClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
 	dynamicClient, err := c.getDynamicClientForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -98,7 +96,6 @@ func (c *K8sInternalClient) GetResource(ctx context.Context, identity *RequestId
 }
 
 func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
 	dynamicClient, err := c.getDynamicClientForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -108,7 +105,6 @@ func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *Reques
 }
 
 func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -127,7 +123,6 @@ func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *Request
 }
 
 func (c *K8sInternalClient) GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error) {
-	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -137,7 +132,6 @@ func (c *K8sInternalClient) GetPods(ctx context.Context, identity *RequestIdenti
 }
 
 func (c *K8sInternalClient) GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error) {
-	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -151,7 +145,6 @@ func (c *K8sInternalClient) GetSecrets(ctx context.Context, identity *RequestIde
 }
 
 func (c *K8sInternalClient) GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error) {
-	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -165,19 +158,15 @@ func (c *K8sInternalClient) GetUser(ctx context.Context, identity *RequestIdenti
 }
 
 func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
-	// Create timeout context from parent context to respect cancellation
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Get impersonated clientset for this identity
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return false, err
 	}
 
-	// Check if user has wildcard permissions on all resources
-	// This is the defining characteristic of cluster-admin role
-	// Uses SelfSubjectAccessReview - the impersonated user checks their own permissions
+	// Check wildcard permissions - the defining characteristic of cluster-admin role
 	ssar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -196,14 +185,11 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 }
 
 func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {
-	// Get impersonated clientset for this identity
 	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return false, err
 	}
 
-	// Check if user can perform the requested action
-	// Uses SelfSubjectAccessReview - the impersonated user checks their own permissions
 	ssar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -226,20 +212,18 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
-// Uses impersonated dynamic client to respect user RBAC permissions.
+// Returns the first working GroupVersionResource or an error if none are available.
 func (c *K8sInternalClient) DiscoverResourceGVR(
 	ctx context.Context,
 	identity *RequestIdentity,
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
-	// Get the appropriate dynamic client (impersonated if identity provided, SA otherwise)
 	dynamicClient, err := c.getDynamicClientForIdentity(identity)
 	if err != nil {
 		return schema.GroupVersionResource{}, err
 	}
 
-	// Try known versions in preference order
 	for _, version := range knownVersions {
 		gvr := schema.GroupVersionResource{
 			Group:    group,
@@ -250,20 +234,16 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 		// Test with namespace-scoped query (respects RBAC)
 		_, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
 		if err == nil {
-			// Successfully accessed the resource with this version
 			return gvr, nil
 		}
 
-		// Continue trying other versions if NotFound or Forbidden
 		if k8serrors.IsNotFound(err) || k8serrors.IsForbidden(err) {
 			continue
 		}
 
-		// Return unexpected errors immediately
 		return schema.GroupVersionResource{}, err
 	}
 
-	// No version worked
 	return schema.GroupVersionResource{}, &NotFoundError{
 		Resource: group + "/" + resource,
 		Name:     "no available version found in namespace " + namespace + " (tried: " + strings.Join(knownVersions, ", ") + ")",
@@ -274,19 +254,9 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 // Private Helper Methods
 // ============================================================================
 
-// getDynamicClientForIdentity returns a dynamic client scoped to the given identity.
-//
-// Security: Identity is REQUIRED - nil identity is rejected to prevent privilege escalation.
-// Creates an impersonated client that enforces the user's RBAC permissions.
-//
-// The underlying HTTP transport from RestConfig is shared across all impersonated clients,
-// providing efficient connection pooling without the overhead of creating new transports.
-//
-// For system operations, create an explicit system identity:
-//   systemIdentity := &RequestIdentity{
-//       UserID: "system:serviceaccount:namespace:sa-name",
-//       Groups: []string{"system:serviceaccounts", ...},
-//   }
+// getDynamicClientForIdentity returns a dynamic client scoped to the given identity via impersonation.
+// Identity is REQUIRED - nil is rejected to prevent privilege escalation.
+// The underlying HTTP transport is shared for connection pooling efficiency.
 func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
 	if identity == nil {
 		return nil, &ValidationError{
@@ -295,13 +265,10 @@ func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentit
 		}
 	}
 
-	// Create impersonated config for user RBAC enforcement
-	// rest.CopyConfig creates a shallow copy, so the underlying HTTP transport
-	// is shared across all clients, providing connection pooling benefits
 	userConfig := rest.CopyConfig(c.RestConfig)
 	userConfig.Impersonate = rest.ImpersonationConfig{
 		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+		Groups:   append([]string(nil), identity.Groups...),
 	}
 
 	// Clear client certificates to prevent credential leakage across user boundaries
@@ -310,24 +277,12 @@ func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentit
 	userConfig.KeyData = nil
 	userConfig.KeyFile = ""
 
-	// Create dynamic client with impersonated config
-	// This client inherits the shared transport from RestConfig
 	return dynamic.NewForConfig(userConfig)
 }
 
-// getClientsetForIdentity returns a typed clientset scoped to the given identity.
-//
-// Security: Identity is REQUIRED - nil identity is rejected to prevent privilege escalation.
-// Creates an impersonated clientset that enforces the user's RBAC permissions.
-//
-// The underlying HTTP transport from RestConfig is shared across all impersonated clients,
-// providing efficient connection pooling without the overhead of creating new transports.
-//
-// For system operations, create an explicit system identity:
-//   systemIdentity := &RequestIdentity{
-//       UserID: "system:serviceaccount:namespace:sa-name",
-//       Groups: []string{"system:serviceaccounts", ...},
-//   }
+// getClientsetForIdentity returns a typed clientset scoped to the given identity via impersonation.
+// Identity is REQUIRED - nil is rejected to prevent privilege escalation.
+// The underlying HTTP transport is shared for connection pooling efficiency.
 func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (ClientsetInterface, error) {
 	if identity == nil {
 		return nil, &ValidationError{
@@ -336,13 +291,10 @@ func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (
 		}
 	}
 
-	// Create impersonated config for user RBAC enforcement
-	// rest.CopyConfig creates a shallow copy, so the underlying HTTP transport
-	// is shared across all clients, providing connection pooling benefits
 	userConfig := rest.CopyConfig(c.RestConfig)
 	userConfig.Impersonate = rest.ImpersonationConfig{
 		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+		Groups:   append([]string(nil), identity.Groups...),
 	}
 
 	// Clear client certificates to prevent credential leakage across user boundaries
@@ -351,15 +303,12 @@ func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (
 	userConfig.KeyData = nil
 	userConfig.KeyFile = ""
 
-	// Create clientset with impersonated config
-	// This client inherits the shared transport from RestConfig
 	return kubernetes.NewForConfig(userConfig)
 }
 
-// getNamespacesViaProjectsAPI uses the OpenShift Projects API with impersonation
+// getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
+// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
 func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	// Get impersonated clients for this identity
-	// Both clients share the same underlying HTTP transport for connection pooling
 	dynamicClient, err := c.getDynamicClientForIdentity(identity)
 	if err != nil {
 		return nil, err
@@ -388,7 +337,6 @@ func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, ide
 		ns, err := clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
-				// Use project metadata if namespace details unavailable
 				namespaces = append(namespaces, v1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        projectName,
