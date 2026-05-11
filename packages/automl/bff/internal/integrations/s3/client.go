@@ -800,13 +800,16 @@ func collectUniqueRawValues(rows [][]string, colIndex int) []string {
 			continue
 		}
 		value := strings.TrimSpace(row[colIndex])
+		// Canonicalize numeric strings for dedup ("1.0" and "1" collapse),
+		// but store the original value to avoid float64 precision loss on
+		// large integers (e.g. >2^53) that feed uniqueCount / task_type.
 		key := value
 		if num, err := parseFiniteFloat(value); err == nil {
 			key = strconv.FormatFloat(num, 'g', -1, 64)
 		}
 		if !seen[key] {
 			seen[key] = true
-			ordered = append(ordered, key)
+			ordered = append(ordered, value)
 		}
 	}
 

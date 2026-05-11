@@ -14,7 +14,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/configure.schema';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import { REQUIRED_CONNECTION_SECRET_KEYS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
 import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
@@ -179,13 +179,8 @@ function AutomlReconfigureLoader(): React.JSX.Element {
 
   const parsed = parsedParams?.success ? parsedParams.data : {};
 
-  // Pipeline params use `label_column` (tabular) or `target` (timeseries) but the
-  // form's unified field is `target_column`. Map the legacy keys so the Target
-  // dropdown is pre-populated on reconfigure.
-  const targetColumn =
-    parsed.target_column ||
-    (taskType === TASK_TYPE_TIMESERIES ? parsed.target : parsed.label_column) ||
-    '';
+  // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
+  const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
 
   /* eslint-disable camelcase */
   const initialValues: Partial<ConfigureSchema> = {
