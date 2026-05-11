@@ -8,7 +8,7 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #
 # Required Packages:
 #    - Install the required dependencies using pip:
-{{- if and .GuardrailConfig .GuardrailConfig.InputPrompt }}
+{{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 #      pip install llama-stack-client requests
 {{- else }}
 #      pip install llama-stack-client
