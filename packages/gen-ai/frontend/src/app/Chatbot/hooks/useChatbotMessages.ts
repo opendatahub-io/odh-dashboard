@@ -15,7 +15,7 @@ import {
   TokenInfo,
 } from '~/app/types';
 import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
-import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
+import { ERROR_MESSAGES } from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import {
@@ -99,7 +99,7 @@ const useChatbotMessages = ({
   promptVersion,
   promptName,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
-  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
+  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
@@ -179,15 +179,6 @@ const useChatbotMessages = ({
     [],
   );
 
-  // Update initial message name with the initially selected model (runs once on mount)
-  React.useEffect(() => {
-    setMessages((prev) =>
-      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
-        ? [{ ...prev[0], name: modelDisplayName }]
-        : prev,
-    );
-  }, [modelDisplayName]);
-
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
     if (scrollToBottomRef.current) {
@@ -248,8 +239,7 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
 
-    // Reset everything to initial state (use model display name for consistency)
-    setMessages([{ ...initialBotMessage(), name: modelDisplayName }]);
+    setMessages([]);
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
@@ -261,7 +251,7 @@ const useChatbotMessages = ({
     setTimeout(() => {
       isClearingRef.current = false;
     }, 0);
-  }, [modelDisplayName]);
+  }, []);
 
   const handleMessageSend = async (message: string, compareID?: string) => {
     const userMessage: MessageProps = {
@@ -273,12 +263,7 @@ const useChatbotMessages = ({
       timestamp: new Date().toLocaleString(),
     };
 
-    // On the first user message, drop the placeholder bot message so it doesn't
-    // appear alongside real conversation history.
-    setMessages((prevMessages) => {
-      const hasUserMessage = prevMessages.some((m) => m.role === 'user');
-      return hasUserMessage ? [...prevMessages, userMessage] : [userMessage];
-    });
+    setMessages((prev) => [...prev, userMessage]);
     setIsMessageSendButtonDisabled(true);
     setIsLoading(true);
 

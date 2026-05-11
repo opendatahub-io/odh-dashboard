@@ -147,23 +147,14 @@ describe('ChatbotConfigInstance', () => {
       mockMessages = [];
     });
 
-    it('should show welcome prompt when showWelcomePrompt is true and no user messages exist', () => {
-      mockMessages = [{ id: '1', role: 'bot', content: 'placeholder' }];
-      render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt />);
-      expect(screen.getByTestId('chatbot-welcome-prompt')).toBeInTheDocument();
-    });
-
     it('should show welcome prompt when messages array is empty', () => {
       mockMessages = [];
       render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt />);
       expect(screen.getByTestId('chatbot-welcome-prompt')).toBeInTheDocument();
     });
 
-    it('should hide welcome prompt when a user message exists', () => {
-      mockMessages = [
-        { id: '1', role: 'bot', content: 'placeholder' },
-        { id: '2', role: 'user', content: 'Hello' },
-      ];
+    it('should hide welcome prompt when any messages exist', () => {
+      mockMessages = [{ id: '1', role: 'user', content: 'Hello' }];
       render(<ChatbotConfigInstance {...defaultProps} showWelcomePrompt />);
       expect(screen.queryByTestId('chatbot-welcome-prompt')).not.toBeInTheDocument();
     });

@@ -97,13 +97,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0]).toMatchObject({
-        role: 'bot',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: mockModelId,
-      });
+      expect(result.current.messages).toHaveLength(0);
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.scrollToBottomRef).toBeDefined();
       expect(result.current.handleMessageSend).toBeDefined();
@@ -138,29 +132,6 @@ describe('useChatbotMessages', () => {
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
     });
 
-    it('should remove placeholder bot message when user sends first message', async () => {
-      mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
-
-      const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
-
-      // Initial state: only the placeholder bot message
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0]).toMatchObject({ role: 'bot' });
-
-      await act(async () => {
-        await result.current.handleMessageSend('Hello');
-      });
-
-      // Placeholder is gone; only user + bot response remain
-      expect(result.current.messages[0]).toMatchObject({ role: 'user', content: 'Hello' });
-      expect(result.current.messages[1]).toMatchObject({ role: 'bot' });
-      expect(
-        result.current.messages.some(
-          (m) => m.role === 'bot' && (m.content as string).startsWith('Before you begin'),
-        ),
-      ).toBe(false);
-    });
-
     it('should disable and re-enable send button during message sending', async () => {
       mockCreateResponse.mockResolvedValueOnce(mockSuccessResponse);
 
@@ -192,13 +163,7 @@ describe('useChatbotMessages', () => {
           input: 'Test query',
           model: 'test-model-id',
           vector_store_ids: ['test-vector-db'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -256,13 +221,7 @@ describe('useChatbotMessages', () => {
         {
           input: 'Test message',
           model: 'test-model-id',
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -402,13 +361,7 @@ describe('useChatbotMessages', () => {
           input: 'Test message',
           model: 'test-model-id',
           vector_store_ids: ['vs_current_store_123'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -445,15 +398,7 @@ describe('useChatbotMessages', () => {
 
       const firstCall = mockCreateResponse.mock.calls[0][0];
       expect(firstCall.instructions).toBe('You are a helpful assistant.');
-      expect(firstCall.chat_context).toHaveLength(1);
-      expect(firstCall.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
-
-      // After the first send the placeholder is removed from messages; second call context
-      // reflects actual conversation history only (no placeholder).
+      expect(firstCall.chat_context).toHaveLength(0);
       const secondCall = mockCreateResponse.mock.calls[1][0];
       expect(secondCall.chat_context).toHaveLength(2);
       expect(secondCall.chat_context![0]).toMatchObject({
@@ -477,12 +422,7 @@ describe('useChatbotMessages', () => {
 
       const call = mockCreateResponse.mock.calls[0][0];
       expect(call.instructions).toBe('');
-      expect(call.chat_context).toHaveLength(1);
-      expect(call.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
+      expect(call.chat_context).toHaveLength(0);
     });
 
     it('should maintain conversation context when modelId changes', async () => {
