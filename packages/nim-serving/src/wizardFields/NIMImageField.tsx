@@ -163,7 +163,16 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   );
 
   const projectName = externalData?.data.projectName;
-  const hasNoModels = externalData?.loaded && modelInfos.length === 0 && !externalData.loadError;
+
+  if (!projectName) {
+    return (
+      <Alert variant="info" isInline title="NVIDIA Inference Microservices (NIM image)">
+        Select a project to load available NIM images.
+      </Alert>
+    );
+  }
+
+  const hasNoModels = externalData.loaded && modelInfos.length === 0 && !externalData.loadError;
 
   if (hasNoModels) {
     return (
@@ -199,7 +208,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
           }
         }}
       />
-      {externalData?.loadError && (
+      {externalData.loadError && (
         <HelperText>
           <HelperTextItem variant="error">
             There was a problem fetching the NIM models. Please try again later.
