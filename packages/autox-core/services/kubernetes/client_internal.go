@@ -17,10 +17,16 @@ import (
 )
 
 // K8sInternalClient implements Kubernetes operations using in-cluster service account
+// with user impersonation for RBAC enforcement.
+//
+// All operations require a non-nil RequestIdentity and create impersonated clients
+// scoped to the user's permissions. The underlying HTTP transport is shared across
+// all impersonated clients for efficient connection pooling.
+//
+// Security: Identity is mandatory - operations without identity are rejected to prevent
+// privilege escalation via service account permissions.
 type K8sInternalClient struct {
-	Clientset     ClientsetInterface
-	DynamicClient DynamicClientInterface
-	RestConfig    *rest.Config
+	RestConfig *rest.Config
 }
 
 // K8sInternalClientConfig for injectable constructor (testing)
@@ -33,18 +39,25 @@ type DefaultK8sInternalClientConfig struct {
 	// Could have additional fields like custom transport settings
 }
 
-// NewK8sInternalClient creates an internal client with injectable clientset and dynamic client (for testing)
-func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sInternalClient {
+// NewK8sInternalClient creates an internal client with injectable rest config (for testing).
+// All operations use impersonation based on the provided RequestIdentity.
+// The restConfig's HTTP transport is shared across all impersonated clients for connection pooling.
+func NewK8sInternalClient(cfg K8sInternalClientConfig, restConfig *rest.Config) *K8sInternalClient {
 	return &K8sInternalClient{
-		Clientset:     clientset,
-		DynamicClient: dynamicClient,
-		RestConfig:    restConfig,
+		RestConfig: restConfig,
 	}
 }
 
-// NewDefaultK8sInternalClient creates an internal client with real Kubernetes clientset and dynamic client.
+// NewDefaultK8sInternalClient creates an internal client that uses impersonation for all operations.
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
-// Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
+//
+// The returned client:
+//   - Requires non-nil RequestIdentity for all operations (enforces RBAC)
+//   - Creates impersonated clients per-request scoped to user permissions
+//   - Shares HTTP transport across all impersonated clients (connection pooling)
+//   - Needs only "impersonate" permission for the service account (minimal privilege)
+//
+// Returns an error if Kubernetes configuration cannot be loaded.
 func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sInternalClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
 	clientCfg, err := GetKubernetesConfig()
@@ -52,21 +65,8 @@ func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sIntern
 		return nil, err
 	}
 
-	clientset, err := kubernetes.NewForConfig(clientCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create dynamic client with the same config
-	dynamicClient, err := dynamic.NewForConfig(clientCfg)
-	if err != nil {
-		return nil, err
-	}
-
 	return &K8sInternalClient{
-		Clientset:     clientset,
-		DynamicClient: dynamicClient,
-		RestConfig:    clientCfg,
+		RestConfig: clientCfg,
 	}, nil
 }
 
@@ -105,70 +105,6 @@ func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *Reques
 	}
 
 	return dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
-}
-
-// getDynamicClientForIdentity returns a dynamic client scoped to the given identity.
-//
-// Identity behavior:
-//   - If identity is nil: Returns service account client (elevated permissions)
-//     WARNING: Only use nil for internal system operations, never for user-facing requests
-//   - If identity is non-nil: Creates impersonated client enforcing user's RBAC permissions
-//
-// Security: Always pass identity from request context for user-initiated operations.
-// The service account has elevated cluster permissions and bypasses RBAC checks.
-func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
-	if identity == nil {
-		// No identity provided - use service account permissions
-		// This should only happen for internal system operations
-		return c.DynamicClient, nil
-	}
-
-	// Create impersonated config for user RBAC
-	userConfig := rest.CopyConfig(c.RestConfig)
-	userConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
-	}
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	// Create dynamic client with impersonated config
-	return dynamic.NewForConfig(userConfig)
-}
-
-// getClientsetForIdentity returns a typed clientset scoped to the given identity.
-//
-// Identity behavior:
-//   - If identity is nil: Returns service account clientset (elevated permissions)
-//     WARNING: Only use nil for internal system operations, never for user-facing requests
-//   - If identity is non-nil: Creates impersonated clientset enforcing user's RBAC permissions
-//
-// Security: Always pass identity from request context for user-initiated operations.
-// The service account has elevated cluster permissions and bypasses RBAC checks.
-func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (ClientsetInterface, error) {
-	if identity == nil {
-		// No identity provided - use service account permissions
-		// This should only happen for internal system operations
-		return c.Clientset, nil
-	}
-
-	// Create impersonated config for user RBAC
-	userConfig := rest.CopyConfig(c.RestConfig)
-	userConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
-	}
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	// Create clientset with impersonated config
-	return kubernetes.NewForConfig(userConfig)
 }
 
 func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
@@ -233,13 +169,17 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
+	// Get impersonated clientset for this identity
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return false, err
+	}
+
 	// Check if user has wildcard permissions on all resources
 	// This is the defining characteristic of cluster-admin role
-	// Uses SubjectAccessReview with user's identity, not SA permissions
-	sar := &authorizationv1.SubjectAccessReview{
-		Spec: authorizationv1.SubjectAccessReviewSpec{
-			User:   identity.UserID,
-			Groups: identity.Groups,
+	// Uses SelfSubjectAccessReview - the impersonated user checks their own permissions
+	ssar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:     "*",
 				Resource: "*",
@@ -247,7 +187,7 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 		},
 	}
 
-	resp, err := c.Clientset.AuthorizationV1().SubjectAccessReviews().Create(timeoutCtx, sar, metav1.CreateOptions{})
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(timeoutCtx, ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -256,10 +196,16 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 }
 
 func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {
-	sar := &authorizationv1.SubjectAccessReview{
-		Spec: authorizationv1.SubjectAccessReviewSpec{
-			User:   identity.UserID,
-			Groups: identity.Groups,
+	// Get impersonated clientset for this identity
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if user can perform the requested action
+	// Uses SelfSubjectAccessReview - the impersonated user checks their own permissions
+	ssar := &authorizationv1.SelfSubjectAccessReview{
+		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:      verb,
 				Group:     group,
@@ -270,7 +216,7 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 		},
 	}
 
-	resp, err := c.Clientset.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -324,16 +270,102 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 	}
 }
 
-// getNamespacesViaProjectsAPI uses the OpenShift Projects API with impersonation
-func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	// Create impersonated config
-	impersonatedConfig := rest.CopyConfig(c.RestConfig)
-	impersonatedConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...),
+// ============================================================================
+// Private Helper Methods
+// ============================================================================
+
+// getDynamicClientForIdentity returns a dynamic client scoped to the given identity.
+//
+// Security: Identity is REQUIRED - nil identity is rejected to prevent privilege escalation.
+// Creates an impersonated client that enforces the user's RBAC permissions.
+//
+// The underlying HTTP transport from RestConfig is shared across all impersonated clients,
+// providing efficient connection pooling without the overhead of creating new transports.
+//
+// For system operations, create an explicit system identity:
+//   systemIdentity := &RequestIdentity{
+//       UserID: "system:serviceaccount:namespace:sa-name",
+//       Groups: []string{"system:serviceaccounts", ...},
+//   }
+func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
+	if identity == nil {
+		return nil, &ValidationError{
+			Field:   "identity",
+			Message: "identity is required - nil identity not allowed for security. All operations must be tied to a user or system identity.",
+		}
 	}
 
-	dynClient, err := dynamic.NewForConfig(impersonatedConfig)
+	// Create impersonated config for user RBAC enforcement
+	// rest.CopyConfig creates a shallow copy, so the underlying HTTP transport
+	// is shared across all clients, providing connection pooling benefits
+	userConfig := rest.CopyConfig(c.RestConfig)
+	userConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+	}
+
+	// Clear client certificates to prevent credential leakage across user boundaries
+	userConfig.CertData = nil
+	userConfig.CertFile = ""
+	userConfig.KeyData = nil
+	userConfig.KeyFile = ""
+
+	// Create dynamic client with impersonated config
+	// This client inherits the shared transport from RestConfig
+	return dynamic.NewForConfig(userConfig)
+}
+
+// getClientsetForIdentity returns a typed clientset scoped to the given identity.
+//
+// Security: Identity is REQUIRED - nil identity is rejected to prevent privilege escalation.
+// Creates an impersonated clientset that enforces the user's RBAC permissions.
+//
+// The underlying HTTP transport from RestConfig is shared across all impersonated clients,
+// providing efficient connection pooling without the overhead of creating new transports.
+//
+// For system operations, create an explicit system identity:
+//   systemIdentity := &RequestIdentity{
+//       UserID: "system:serviceaccount:namespace:sa-name",
+//       Groups: []string{"system:serviceaccounts", ...},
+//   }
+func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (ClientsetInterface, error) {
+	if identity == nil {
+		return nil, &ValidationError{
+			Field:   "identity",
+			Message: "identity is required - nil identity not allowed for security. All operations must be tied to a user or system identity.",
+		}
+	}
+
+	// Create impersonated config for user RBAC enforcement
+	// rest.CopyConfig creates a shallow copy, so the underlying HTTP transport
+	// is shared across all clients, providing connection pooling benefits
+	userConfig := rest.CopyConfig(c.RestConfig)
+	userConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+	}
+
+	// Clear client certificates to prevent credential leakage across user boundaries
+	userConfig.CertData = nil
+	userConfig.CertFile = ""
+	userConfig.KeyData = nil
+	userConfig.KeyFile = ""
+
+	// Create clientset with impersonated config
+	// This client inherits the shared transport from RestConfig
+	return kubernetes.NewForConfig(userConfig)
+}
+
+// getNamespacesViaProjectsAPI uses the OpenShift Projects API with impersonation
+func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
+	// Get impersonated clients for this identity
+	// Both clients share the same underlying HTTP transport for connection pooling
+	dynamicClient, err := c.getDynamicClientForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := c.getClientsetForIdentity(identity)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +376,7 @@ func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, ide
 		Resource: "projects",
 	}
 
-	projectList, err := dynClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	projectList, err := dynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +385,7 @@ func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, ide
 	for _, project := range projectList.Items {
 		projectName := project.GetName()
 
-		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		ns, err := clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
 				// Use project metadata if namespace details unavailable

@@ -22,17 +22,20 @@ type DynamicClientInterface interface {
 
 // K8sClientInterface defines the contract for Kubernetes operations
 //
-// Identity parameter behavior varies by implementation:
-//   - K8sInternalClient (internal auth): Uses impersonation when identity is non-nil,
-//     service account when nil. WARNING: nil identity bypasses RBAC - use only for system operations.
+// Security: Identity parameter is REQUIRED for all operations (non-nil).
+// Nil identity is rejected to prevent privilege escalation and ensure RBAC enforcement.
+//
+// Identity parameter behavior by implementation:
+//   - K8sInternalClient (internal auth): Creates impersonated clients scoped to user's RBAC permissions.
+//     All operations enforce the user's permissions via Kubernetes impersonation.
 //   - K8sTokenClient (user_token auth): Ignores identity parameter - client is already scoped to
 //     user token via tokenRoundTripper. Identity parameter exists for interface compatibility.
 //
 // Always pass identity from request context for user-initiated operations.
+// For system operations, create an explicit system identity with appropriate service account.
 type K8sClientInterface interface {
 	// Generic resource operations (identity-aware for RBAC enforcement)
-	// When identity is nil: uses service account permissions (internal client) or errors (token client)
-	// When identity is non-nil: uses user permissions via impersonation (internal) or scoped token (token client)
+	// Identity must be non-nil - nil identity returns an error
 	ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
 	CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
