@@ -44,29 +44,30 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterf
 
 // NewDefaultK8sInternalClient creates an internal client with real Kubernetes clientset and dynamic client.
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
-func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) *K8sInternalClient {
+// Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
+func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sInternalClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
 	clientCfg, err := GetKubernetesConfig()
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientCfg)
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	// Create dynamic client with the same config
 	dynamicClient, err := dynamic.NewForConfig(clientCfg)
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	return &K8sInternalClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
 		RestConfig:    clientCfg,
-	}
+	}, nil
 }
 
 func (c *K8sInternalClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
@@ -107,11 +108,18 @@ func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *Reques
 }
 
 // getDynamicClientForIdentity returns a dynamic client scoped to the given identity.
-// If identity is nil, returns the service account client.
-// If identity is non-nil, creates an impersonated client for user RBAC enforcement.
+//
+// Identity behavior:
+//   - If identity is nil: Returns service account client (elevated permissions)
+//     WARNING: Only use nil for internal system operations, never for user-facing requests
+//   - If identity is non-nil: Creates impersonated client enforcing user's RBAC permissions
+//
+// Security: Always pass identity from request context for user-initiated operations.
+// The service account has elevated cluster permissions and bypasses RBAC checks.
 func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
 	if identity == nil {
 		// No identity provided - use service account permissions
+		// This should only happen for internal system operations
 		return c.DynamicClient, nil
 	}
 
@@ -131,8 +139,46 @@ func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentit
 	return dynamic.NewForConfig(userConfig)
 }
 
+// getClientsetForIdentity returns a typed clientset scoped to the given identity.
+//
+// Identity behavior:
+//   - If identity is nil: Returns service account clientset (elevated permissions)
+//     WARNING: Only use nil for internal system operations, never for user-facing requests
+//   - If identity is non-nil: Creates impersonated clientset enforcing user's RBAC permissions
+//
+// Security: Always pass identity from request context for user-initiated operations.
+// The service account has elevated cluster permissions and bypasses RBAC checks.
+func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (ClientsetInterface, error) {
+	if identity == nil {
+		// No identity provided - use service account permissions
+		// This should only happen for internal system operations
+		return c.Clientset, nil
+	}
+
+	// Create impersonated config for user RBAC
+	userConfig := rest.CopyConfig(c.RestConfig)
+	userConfig.Impersonate = rest.ImpersonationConfig{
+		UserName: identity.UserID,
+		Groups:   append([]string(nil), identity.Groups...), // Copy slice to avoid mutation
+	}
+	// Clear client certificates to prevent credential leakage across user boundaries
+	userConfig.CertData = nil
+	userConfig.CertFile = ""
+	userConfig.KeyData = nil
+	userConfig.KeyFile = ""
+
+	// Create clientset with impersonated config
+	return kubernetes.NewForConfig(userConfig)
+}
+
 func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	nsList, err := c.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	nsList, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		if !k8serrors.IsForbidden(err) {
 			return nil, err
@@ -145,11 +191,23 @@ func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *Request
 }
 
 func (c *K8sInternalClient) GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error) {
-	return c.Clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 }
 
 func (c *K8sInternalClient) GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error) {
-	secretList, err := c.Clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	secretList, err := clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -157,34 +215,44 @@ func (c *K8sInternalClient) GetSecrets(ctx context.Context, identity *RequestIde
 }
 
 func (c *K8sInternalClient) GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error) {
-	return c.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	// Get the appropriate clientset (impersonated if identity provided, SA otherwise)
+	clientset, err := c.getClientsetForIdentity(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	return clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) GetUser(identity *RequestIdentity) (string, error) {
+func (c *K8sInternalClient) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
 	return identity.UserID, nil
 }
 
-func (c *K8sInternalClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
+	// Create timeout context from parent context to respect cancellation
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	crbList, err := c.Clientset.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{})
+	// Check if user has wildcard permissions on all resources
+	// This is the defining characteristic of cluster-admin role
+	// Uses SubjectAccessReview with user's identity, not SA permissions
+	sar := &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
+				Verb:     "*",
+				Resource: "*",
+			},
+		},
+	}
+
+	resp, err := c.Clientset.AuthorizationV1().SubjectAccessReviews().Create(timeoutCtx, sar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
 
-	for _, crb := range crbList.Items {
-		if crb.RoleRef.Kind != "ClusterRole" || crb.RoleRef.Name != "cluster-admin" {
-			continue
-		}
-		for _, subject := range crb.Subjects {
-			if subject.Kind == "User" && subject.Name == identity.UserID {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
+	return resp.Status.Allowed, nil
 }
 
 func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {

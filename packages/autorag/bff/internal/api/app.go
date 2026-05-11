@@ -211,10 +211,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return identity.Token, nil
 	}
 
-	autoxClient := corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
+	autoxClient, err := corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
 		AuthMethod:   cfg.AuthMethod,
 		GetAuthToken: getAuthTokenFromContext,
 	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
+	}
 
 	// Create the K8s service using autox-core
 	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{

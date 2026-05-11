@@ -123,10 +123,10 @@ func (s *K8sService) GetSecret(ctx context.Context, identity *RequestIdentity, n
 	return secret, nil
 }
 
-func (s *K8sService) GetUser(identity *RequestIdentity) (string, error) {
+func (s *K8sService) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
 	s.Logger.Info("getting user identity", "user", identity.UserID)
 
-	user, err := s.Client.GetUser(identity)
+	user, err := s.Client.GetUser(ctx, identity)
 	if err != nil {
 		s.Logger.Error("failed to get user identity", "error", err)
 		return "", err
@@ -135,10 +135,10 @@ func (s *K8sService) GetUser(identity *RequestIdentity) (string, error) {
 	return user, nil
 }
 
-func (s *K8sService) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
+func (s *K8sService) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
 	s.Logger.Info("checking cluster admin status", "user", identity.UserID)
 
-	isAdmin, err := s.Client.IsClusterAdmin(identity)
+	isAdmin, err := s.Client.IsClusterAdmin(ctx, identity)
 	if err != nil {
 		s.Logger.Error("failed to check cluster admin status", "error", err)
 		return false, err
@@ -148,16 +148,16 @@ func (s *K8sService) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
 }
 
 // GetUserInfo retrieves user identity and admin status in a single call
-func (s *K8sService) GetUserInfo(identity *RequestIdentity) (*UserInfo, error) {
+func (s *K8sService) GetUserInfo(ctx context.Context, identity *RequestIdentity) (*UserInfo, error) {
 	s.Logger.Info("getting user info", "user", identity.UserID)
 
-	username, err := s.Client.GetUser(identity)
+	username, err := s.Client.GetUser(ctx, identity)
 	if err != nil {
 		s.Logger.Error("failed to get user identity", "error", err)
 		return nil, err
 	}
 
-	isAdmin, err := s.Client.IsClusterAdmin(identity)
+	isAdmin, err := s.Client.IsClusterAdmin(ctx, identity)
 	if err != nil {
 		s.Logger.Error("failed to check cluster admin status", "error", err)
 		return nil, err
@@ -268,7 +268,7 @@ func (s *K8sService) GetAccessibleNamespaces(ctx context.Context, identity *Requ
 	s.Logger.Info("fetching accessible namespaces", "user", identity.UserID)
 
 	// Optimization: Check if user is cluster admin first
-	isAdmin, err := s.Client.IsClusterAdmin(identity)
+	isAdmin, err := s.Client.IsClusterAdmin(ctx, identity)
 	if err == nil && isAdmin {
 		s.Logger.Debug("user is cluster admin, returning all namespaces", "user", identity.UserID)
 		return s.Client.GetNamespaces(ctx, identity)

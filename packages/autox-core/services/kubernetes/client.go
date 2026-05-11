@@ -21,6 +21,14 @@ type DynamicClientInterface interface {
 }
 
 // K8sClientInterface defines the contract for Kubernetes operations
+//
+// Identity parameter behavior varies by implementation:
+//   - K8sInternalClient (internal auth): Uses impersonation when identity is non-nil,
+//     service account when nil. WARNING: nil identity bypasses RBAC - use only for system operations.
+//   - K8sTokenClient (user_token auth): Ignores identity parameter - client is already scoped to
+//     user token via tokenRoundTripper. Identity parameter exists for interface compatibility.
+//
+// Always pass identity from request context for user-initiated operations.
 type K8sClientInterface interface {
 	// Generic resource operations (identity-aware for RBAC enforcement)
 	// When identity is nil: uses service account permissions (internal client) or errors (token client)
@@ -36,8 +44,8 @@ type K8sClientInterface interface {
 	GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error)
 
 	// User identity and permissions
-	GetUser(identity *RequestIdentity) (string, error)
-	IsClusterAdmin(identity *RequestIdentity) (bool, error)
+	GetUser(ctx context.Context, identity *RequestIdentity) (string, error)
+	IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
 
 	// Generic RBAC check - checks if identity can perform verb on resource in namespace
 	CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error)
@@ -55,8 +63,9 @@ type DefaultK8sClientConfig struct {
 	GetAuthToken func(ctx context.Context) (string, error)
 }
 
-// NewDefaultK8sClient creates a client based on auth method
-func NewDefaultK8sClient(cfg DefaultK8sClientConfig) K8sClientInterface {
+// NewDefaultK8sClient creates a client based on auth method.
+// Returns an error if client initialization fails.
+func NewDefaultK8sClient(cfg DefaultK8sClientConfig) (K8sClientInterface, error) {
 	if cfg.AuthMethod == "user_token" {
 		return NewDefaultK8sTokenClient(DefaultK8sTokenClientConfig{
 			GetAuthToken: cfg.GetAuthToken,

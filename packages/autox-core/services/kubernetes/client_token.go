@@ -50,11 +50,12 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 // NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset and dynamic client.
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
 // Wraps all requests with user token authentication via RoundTripper.
-func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
+// Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
+func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
 	baseConfig, err := GetKubernetesConfig()
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	// Wrap transport to inject user bearer token on every request
@@ -68,13 +69,13 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
 
 	clientset, err := kubernetes.NewForConfig(clientCfg)
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	// Create dynamic client with the same config
 	dynamicClient, err := dynamic.NewForConfig(clientCfg)
 	if err != nil {
-		panic(err) // Or return error
+		return nil, err
 	}
 
 	return &K8sTokenClient{
@@ -82,7 +83,7 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) *K8sTokenClient {
 		DynamicClient: dynamicClient,
 		GetAuthToken:  cfg.GetAuthToken,
 		RestConfig:    clientCfg,
-	}
+	}, nil
 }
 
 func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
@@ -137,12 +138,14 @@ func (c *K8sTokenClient) GetSecret(ctx context.Context, identity *RequestIdentit
 	return c.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 }
 
-func (c *K8sTokenClient) GetUser(identity *RequestIdentity) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (c *K8sTokenClient) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
+	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
+	// Create timeout context from parent context to respect cancellation
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	ssr := &authenticationv1.SelfSubjectReview{}
-	resp, err := c.Clientset.AuthenticationV1().SelfSubjectReviews().Create(ctx, ssr, metav1.CreateOptions{})
+	resp, err := c.Clientset.AuthenticationV1().SelfSubjectReviews().Create(timeoutCtx, ssr, metav1.CreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -155,8 +158,10 @@ func (c *K8sTokenClient) GetUser(identity *RequestIdentity) (string, error) {
 	return username, nil
 }
 
-func (c *K8sTokenClient) IsClusterAdmin(identity *RequestIdentity) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
+	// Identity parameter ignored - client is already scoped to user token via tokenRoundTripper
+	// Create timeout context from parent context to respect cancellation
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	// Use SelfSubjectAccessReview with wildcard permissions
@@ -169,7 +174,7 @@ func (c *K8sTokenClient) IsClusterAdmin(identity *RequestIdentity) (bool, error)
 		},
 	}
 
-	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(timeoutCtx, sar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}

@@ -21,7 +21,7 @@ func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 	}
 
 	// Call autox-core service - single method handles everything
-	userInfo, err := app.k8sService.GetUserInfo(identity)
+	userInfo, err := app.k8sService.GetUserInfo(r.Context(), identity)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
