@@ -45,7 +45,7 @@ func NewPipelineRunsRepository() *PipelineRunsRepository {
 func (r *PipelineRunsRepository) GetPipelineRuns(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
-	pipelineVersionID string,
+	pipelineID string,
 	pageSize int32,
 	pageToken string,
 	pipelineType string,
@@ -55,8 +55,14 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 		return nil, fmt.Errorf("pipeline server client is nil")
 	}
 
+	// Collect all version IDs for this pipeline so runs from every version are returned.
+	versionIDs, err := collectVersionIDs(client, ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
+	}
+
 	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
-	filter := buildFilter(pipelineVersionID)
+	filter := buildFilter(versionIDs)
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -92,10 +98,30 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}, nil
 }
 
-// buildFilter creates a Kubeflow Pipelines API filter string for pipeline version ID
-// The filter follows the format: {"predicates": [{"key": "...", "operation": "EQUALS", "string_value": "..."}]}
-// Always filters for storage_state: AVAILABLE to exclude archived runs
-func buildFilter(pipelineVersionID string) string {
+// collectVersionIDs returns all pipeline version IDs for the given pipeline.
+// If the pipeline has no versions or the client call fails, it returns an error.
+func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Context, pipelineID string) ([]string, error) {
+	if pipelineID == "" {
+		return nil, nil
+	}
+	versionsResp, err := client.ListPipelineVersions(ctx, pipelineID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list pipeline versions: %w", err)
+	}
+	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
+		return nil, nil
+	}
+	ids := make([]string, 0, len(versionsResp.PipelineVersions))
+	for _, v := range versionsResp.PipelineVersions {
+		ids = append(ids, v.PipelineVersionID)
+	}
+	return ids, nil
+}
+
+// buildFilter creates a Kubeflow Pipelines API filter string.
+// Always filters for storage_state: AVAILABLE to exclude archived runs.
+// When versionIDs are provided, adds an IN predicate to scope runs to those versions.
+func buildFilter(versionIDs []string) string {
 	// Always include storage_state filter to exclude archived runs
 	predicates := []map[string]interface{}{
 		{
@@ -105,12 +131,20 @@ func buildFilter(pipelineVersionID string) string {
 		},
 	}
 
-	// Add pipeline version ID filter if provided
-	if pipelineVersionID != "" {
+	// Scope to the given pipeline versions
+	if len(versionIDs) == 1 {
 		predicates = append(predicates, map[string]interface{}{
 			"key":          "pipeline_version_id",
 			"operation":    "EQUALS",
-			"string_value": pipelineVersionID,
+			"string_value": versionIDs[0],
+		})
+	} else if len(versionIDs) > 1 {
+		predicates = append(predicates, map[string]interface{}{
+			"key":       "pipeline_version_id",
+			"operation": "IN",
+			"string_values": map[string]interface{}{
+				"values": versionIDs,
+			},
 		})
 	}
 
@@ -120,13 +154,9 @@ func buildFilter(pipelineVersionID string) string {
 
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
-		// Log the marshal error with context
 		slog.Error("Failed to marshal filter in buildFilter",
 			"error", err,
-			"pipelineVersionID", pipelineVersionID)
-
-		// Return a minimal safe JSON filter that excludes archived runs
-		// This ensures archived runs are never returned even if marshaling fails
+			"versionIDs", versionIDs)
 		return `{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}`
 	}
 

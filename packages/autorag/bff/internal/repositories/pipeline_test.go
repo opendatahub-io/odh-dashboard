@@ -26,6 +26,7 @@ func (m *conflictVersionMockClient) UploadPipelineVersion(_ context.Context, _ s
 
 func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
 	if m.versionName != "" {
+		// After upload attempt, return the version that was uploaded (simulates concurrent creation)
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{
@@ -38,7 +39,18 @@ func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipe
 			TotalSize: 1,
 		}, nil
 	}
-	return m.MockPipelineServerClient.ListPipelineVersions(context.Background(), pipelineID)
+	// Before upload: return only an old version so discovery misses the current version
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "old-version-id",
+				DisplayName:       "documents-rag-optimization-pipeline-3.4.0",
+				CreatedAt:         "2026-01-01T10:00:00Z",
+			},
+		},
+		TotalSize: 1,
+	}, nil
 }
 
 func TestDiscoverNamedPipelines(t *testing.T) {

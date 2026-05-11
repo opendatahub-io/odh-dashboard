@@ -30,19 +30,16 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 		assert.Equal(t, int32(5), runsData.TotalSize)
 	})
 
-	t.Run("should pass pipeline version ID filter to the client", func(t *testing.T) {
-		// Use the derived version ID for the empty namespace (matching how mock generates IDs)
+	t.Run("should filter by all versions of the given pipeline ID", func(t *testing.T) {
 		ids := psmocks.DeriveMockIDs(mockNamespace)
-		pipelineVersionID := ids.LatestVersionID
+		pipelineID := ids.PipelineID
 
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineVersionID, 20, "", constants.PipelineTypeTimeSeries)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, pipelineID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Verify the filter was forwarded to the client with the requested version ID
+		// Verify the filter was forwarded to the client with pipeline_version_id predicate
 		assert.NotNil(t, mockClient.LastListRunsParams, "GetPipelineRuns should have called ListRuns")
-		assert.Contains(t, mockClient.LastListRunsParams.Filter, pipelineVersionID,
-			"filter should include the requested pipeline version ID")
 		assert.Contains(t, mockClient.LastListRunsParams.Filter, "pipeline_version_id",
 			"filter should include the pipeline_version_id key")
 	})
@@ -92,20 +89,34 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 }
 
 func TestBuildFilter(t *testing.T) {
-	t.Run("should build filter with pipeline version ID", func(t *testing.T) {
-		pipelineVersionID := "v1-version-id-12345"
+	t.Run("should build filter with single version ID", func(t *testing.T) {
+		versionID := "v1-version-id-12345"
 
-		filter := buildFilter(pipelineVersionID)
+		filter := buildFilter([]string{versionID})
 		assert.NotEmpty(t, filter)
-		assert.Contains(t, filter, pipelineVersionID)
+		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
+		assert.Contains(t, filter, "EQUALS")
 		assert.Contains(t, filter, "predicates")
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
 	})
 
+	t.Run("should build filter with multiple version IDs", func(t *testing.T) {
+		versionIDs := []string{"version-1", "version-2"}
+
+		filter := buildFilter(versionIDs)
+		assert.NotEmpty(t, filter)
+		assert.Contains(t, filter, "version-1")
+		assert.Contains(t, filter, "version-2")
+		assert.Contains(t, filter, "pipeline_version_id")
+		assert.Contains(t, filter, "IN")
+		assert.Contains(t, filter, "storage_state")
+		assert.Contains(t, filter, "AVAILABLE")
+	})
+
 	t.Run("should always include storage_state filter", func(t *testing.T) {
-		filter := buildFilter("")
+		filter := buildFilter(nil)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -113,10 +124,7 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
-		pipelineVersionID := "test-version-id"
-
-		filter := buildFilter(pipelineVersionID)
-		// Should be valid JSON
+		filter := buildFilter([]string{"test-version-id"})
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")
 	})

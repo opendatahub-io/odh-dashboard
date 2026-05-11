@@ -82,11 +82,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 
 	pageToken := query.Get("nextPageToken")
 
-	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version.
+	// Call repository to get pipeline runs across all versions of the discovered AutoRAG pipeline.
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
-		discovered.PipelineVersionID,
+		discovered.PipelineID,
 		pageSize,
 		pageToken,
 		constants.PipelineTypeAutoRAG,
@@ -189,8 +189,7 @@ func (app *App) resolveOwnedRun(
 	}
 
 	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		run.PipelineVersionReference.PipelineID != discovered.PipelineID {
 		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}

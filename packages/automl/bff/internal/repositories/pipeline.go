@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/pipelines"
@@ -58,8 +59,8 @@ type DiscoveredPipeline struct {
 }
 
 // DefaultPipelineVersion is the release version suffix appended to pipeline version names.
-// Override via PIPELINE_VERSION_SUFFIX env var, otherwise defaults to "3.4.0".
-var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", "3.4.0")
+// Override via PIPELINE_VERSION_SUFFIX env var, otherwise defaults to constants.DefaultPipelineVersionSuffix.
+var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constants.DefaultPipelineVersionSuffix)
 
 // PipelineDefinition describes a managed pipeline type for discovery and auto-creation.
 type PipelineDefinition struct {
@@ -217,7 +218,12 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 	result := make(map[string]*DiscoveredPipeline)
 
 	for pipelineType, namePrefix := range definitions {
-		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix, "")
+		effectivePrefix := namePrefix
+		if effectivePrefix == "" {
+			effectivePrefix = defaultPipelineNamePrefix
+		}
+		versionName := fmt.Sprintf("%s-%s", effectivePrefix, DefaultPipelineVersion)
+		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix, versionName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
 		}
