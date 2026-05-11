@@ -1,28 +1,38 @@
 import React from 'react';
 import {
+  Button,
   Card,
   CardBody,
   Content,
   ContentVariants,
   ExpandableSection,
+  Flex,
+  FlexItem,
   Grid,
   GridItem,
   Skeleton,
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { SyncAltIcon } from '@patternfly/react-icons';
 import type { AutoRAGEvaluationResult, TabContentProps } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
 import SampleQAEntry from '~/app/components/run-results/PatternDetailsModal/components/SampleQAEntry';
 import ComparisonRadarChart from '~/app/components/run-results/PatternDetailsModal/components/ComparisonRadarChart';
-import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
 
 const ComparisonQAEntry: React.FC<{
   primaryResult: AutoRAGEvaluationResult;
   comparisonResult?: AutoRAGEvaluationResult;
   primaryLabel: string;
   comparisonLabel: string;
-}> = ({ primaryResult, comparisonResult, primaryLabel, comparisonLabel }) => {
+  onChangeComparisonPattern?: () => void;
+}> = ({
+  primaryResult,
+  comparisonResult,
+  primaryLabel,
+  comparisonLabel,
+  onChangeComparisonPattern,
+}) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
 
   return (
@@ -51,7 +61,7 @@ const ComparisonQAEntry: React.FC<{
             <Grid hasGutter>
               <GridItem span={6} data-testid={`qa-primary-answer-${primaryResult.question_id}`}>
                 <Content component={ContentVariants.small}>
-                  <strong>Answer</strong>
+                  <strong>Answer ({primaryLabel})</strong>
                 </Content>
                 <Content component={ContentVariants.p} className="autorag-pre-wrap">
                   {primaryResult.answer}
@@ -59,7 +69,24 @@ const ComparisonQAEntry: React.FC<{
               </GridItem>
               <GridItem span={6} data-testid={`qa-comparison-answer-${primaryResult.question_id}`}>
                 <Content component={ContentVariants.small}>
-                  <strong>Answer</strong>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                    <FlexItem>
+                      <strong>Answer ({comparisonLabel})</strong>
+                    </FlexItem>
+                    {onChangeComparisonPattern && (
+                      <FlexItem>
+                        <Button
+                          variant="link"
+                          isInline
+                          icon={<SyncAltIcon />}
+                          onClick={onChangeComparisonPattern}
+                          data-testid="change-comparison-pattern-qa"
+                        >
+                          Change
+                        </Button>
+                      </FlexItem>
+                    )}
+                  </Flex>
                 </Content>
                 <Content component={ContentVariants.p} className="autorag-pre-wrap">
                   {comparisonResult?.answer ?? '\u2014'}
@@ -127,26 +154,6 @@ const SampleQATab: React.FC<TabContentProps> = ({
 
   return (
     <Stack hasGutter>
-      <StackItem>
-        <Grid hasGutter>
-          <GridItem span={6}>
-            <ComparisonColumnHeader
-              patternName={primaryPattern.pattern.name}
-              rank={primaryPattern.rank}
-              label="selected pattern"
-              data-testid="comparison-column-header-primary"
-            />
-          </GridItem>
-          <GridItem span={6}>
-            <ComparisonColumnHeader
-              patternName={comparisonPattern.pattern.name}
-              rank={comparisonPattern.rank}
-              onChangeClick={onChangeComparisonPattern}
-              data-testid="comparison-column-header-comparison"
-            />
-          </GridItem>
-        </Grid>
-      </StackItem>
       {primaryResults.map((primaryResult, index) => (
         <StackItem key={`qa-${primaryResult.question_id || index}`}>
           <ComparisonQAEntry
@@ -154,6 +161,7 @@ const SampleQATab: React.FC<TabContentProps> = ({
             comparisonResult={comparisonResults[index]}
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
+            onChangeComparisonPattern={onChangeComparisonPattern}
           />
         </StackItem>
       ))}

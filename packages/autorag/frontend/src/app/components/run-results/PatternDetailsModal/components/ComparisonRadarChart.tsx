@@ -47,6 +47,9 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
         data: [primaryLabel, comparisonLabel],
         bottom: 0,
         textStyle: { color: labelColor },
+        formatter: (name: string) => name,
+        itemGap: 30,
+        selectedMode: false,
       },
       radar: {
         indicator: scoreIndicators.map(({ label }) => ({ name: label, max: 1 })),
@@ -95,7 +98,7 @@ const ComparisonRadarChart: React.FC<ComparisonRadarChartProps> = ({
       themeColor="blue"
       nodeSelector="html"
       height={320}
-      width={420}
+      width={600}
       option={option}
       data-testid="comparison-radar-chart"
     />
