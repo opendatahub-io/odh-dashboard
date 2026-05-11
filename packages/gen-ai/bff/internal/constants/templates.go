@@ -240,7 +240,7 @@ _input_result = _guardrail_check(
     messages=[{"role": "user", "content": input_text}],
     rails={"input": {"flows": ["self check input"]}},
     task="self_check_input",
-    prompt_content="""{{.GuardrailConfig.InputPrompt}}""",
+    prompt_content={{printf "%q" .GuardrailConfig.InputPrompt}},
 )
 if _input_result.get("status") == "blocked":
     print("Input blocked by safety guardrails:", _input_result.get("guardrails_data", {}).get("error", ""))
@@ -255,7 +255,7 @@ _output_result = _guardrail_check(
     messages=[{"role": "assistant", "content": response.output_text}],
     rails={"output": {"flows": ["self check output"]}},
     task="self_check_output",
-    prompt_content="""{{.GuardrailConfig.OutputPrompt}}""",
+    prompt_content={{printf "%q" .GuardrailConfig.OutputPrompt}},
 )
 if _output_result.get("status") == "blocked":
     print("Output blocked by safety guardrails:", _output_result.get("guardrails_data", {}).get("error", ""))
