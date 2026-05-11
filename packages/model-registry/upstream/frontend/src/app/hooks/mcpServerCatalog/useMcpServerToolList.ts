@@ -9,7 +9,7 @@ export const useMcpServerToolList = (serverId: string): FetchState<McpToolList> 
   const call = React.useCallback<FetchStateCallbackPromise<McpToolList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       if (!serverId) {
         return Promise.reject(new NotReadyError('No server id'));

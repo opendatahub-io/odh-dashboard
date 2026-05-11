@@ -1,5 +1,5 @@
 import React from 'react';
-import { FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
+import { FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
 import { McpServer, McpServerList, McpServerListParams } from '~/app/mcpServerCatalogTypes';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import type { ModelCatalogAPIState } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
@@ -87,7 +87,7 @@ export function useMcpServersBySourceLabelWithAPI(
   const fetchMcpServers = React.useCallback<FetchStateCallbackPromise<McpServerList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
 
       return api.getMcpServerList(opts, buildMcpServerListParams());

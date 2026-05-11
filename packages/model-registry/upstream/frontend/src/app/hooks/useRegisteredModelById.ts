@@ -9,7 +9,7 @@ const useRegisteredModelById = (registeredModel?: string): FetchState<Registered
   const call = React.useCallback<FetchStateCallbackPromise<RegisteredModel | null>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       if (!registeredModel) {
         return Promise.reject(new NotReadyError('No registered model id'));

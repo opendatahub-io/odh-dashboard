@@ -14,7 +14,7 @@ export const useCatalogModelArtifacts = (
   const call = React.useCallback<FetchStateCallbackPromise<CatalogArtifactList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       if (!sourceId) {
         return Promise.reject(new NotReadyError('No source id'));

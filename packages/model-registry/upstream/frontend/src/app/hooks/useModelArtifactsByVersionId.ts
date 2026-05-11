@@ -8,7 +8,7 @@ const useModelArtifactsByVersionId = (modelVersionId?: string): FetchState<Model
   const callback = React.useCallback<FetchStateCallbackPromise<ModelArtifactList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       if (!modelVersionId) {
         return Promise.reject(new NotReadyError('No model registeredModel id'));

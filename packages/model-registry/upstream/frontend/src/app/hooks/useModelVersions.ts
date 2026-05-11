@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useFetchState, FetchState, FetchStateCallbackPromise } from 'mod-arch-core';
+import { useFetchState, FetchState, FetchStateCallbackPromise, NotReadyError } from 'mod-arch-core';
 import { ModelVersionList } from '~/app/types';
 import { useModelRegistryAPI } from '~/app/hooks/useModelRegistryAPI';
 
@@ -8,7 +8,7 @@ const useModelVersions = (): FetchState<ModelVersionList> => {
   const callback = React.useCallback<FetchStateCallbackPromise<ModelVersionList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       return api.listModelVersions(opts).then((r) => r);
     },

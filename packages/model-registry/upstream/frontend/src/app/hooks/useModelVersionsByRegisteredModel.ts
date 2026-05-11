@@ -11,7 +11,7 @@ const useModelVersionsByRegisteredModel = (
   const call = React.useCallback<FetchStateCallbackPromise<ModelVersionList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new Error('API not yet available'));
+        return Promise.reject(new NotReadyError('API not yet available'));
       }
       if (!registeredModelId) {
         return Promise.reject(new NotReadyError('No model registeredModel id'));
