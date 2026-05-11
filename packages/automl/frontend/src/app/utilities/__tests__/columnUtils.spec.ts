@@ -90,7 +90,7 @@ describe('getTypeAcronym', () => {
     ['double', 'DBL'],
     ['timestamp', 'TMSTP'],
     ['string', 'STR'],
-  ])('should return "%s" for type "%s"', (type, expected) => {
+  ])('should return acronym for type "%s" as "%s"', (type, expected) => {
     expect(getTypeAcronym(type)).toBe(expected);
   });
 
