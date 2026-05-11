@@ -104,10 +104,16 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 }
 
 // collectVersionIDs returns all pipeline version IDs for the given pipeline.
+// It first checks the pipeline cache for pre-fetched version IDs before calling the API.
 func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Context, pipelineID string) ([]string, error) {
 	if pipelineID == "" {
 		return nil, nil
 	}
+
+	if ids := getCachedVersionIDs(pipelineID); ids != nil {
+		return ids, nil
+	}
+
 	versionsResp, err := client.ListPipelineVersions(ctx, pipelineID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pipeline versions: %w", err)

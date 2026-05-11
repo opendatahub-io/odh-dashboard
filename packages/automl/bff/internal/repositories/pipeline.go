@@ -55,6 +55,7 @@ type DiscoveredPipeline struct {
 	PipelineVersionID string
 	PipelineName      string
 	Namespace         string
+	AllVersionIDs     []string
 	DiscoveredAt      time.Time
 }
 
@@ -158,6 +159,25 @@ func (c *pipelineCache) evictOldest() {
 	if oldestKey != "" {
 		delete(c.entries, oldestKey)
 	}
+}
+
+// getCachedVersionIDs looks up the pipeline cache for pre-fetched version IDs.
+// Returns nil on cache miss, letting the caller fall back to an API call.
+func getCachedVersionIDs(pipelineID string) []string {
+	globalPipelineCache.mu.RLock()
+	defer globalPipelineCache.mu.RUnlock()
+
+	for _, entry := range globalPipelineCache.entries {
+		if time.Now().After(entry.expiresAt) {
+			continue
+		}
+		for _, dp := range entry.pipelines {
+			if dp.PipelineID == pipelineID && len(dp.AllVersionIDs) > 0 {
+				return dp.AllVersionIDs
+			}
+		}
+	}
+	return nil
 }
 
 // PipelineRepository handles pipeline discovery logic
@@ -319,11 +339,17 @@ func (r *PipelineRepository) discoverOnePipeline(
 		return nil, nil
 	}
 
+	allIDs := make([]string, 0, len(versionsResp.PipelineVersions))
+	for _, v := range versionsResp.PipelineVersions {
+		allIDs = append(allIDs, v.PipelineVersionID)
+	}
+
 	return &DiscoveredPipeline{
 		PipelineID:        matchedPipeline.PipelineID,
 		PipelineVersionID: matchedVersion.PipelineVersionID,
 		PipelineName:      matchedPipeline.DisplayName,
 		Namespace:         namespace,
+		AllVersionIDs:     allIDs,
 		DiscoveredAt:      time.Now(),
 	}, nil
 }
