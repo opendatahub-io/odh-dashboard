@@ -102,7 +102,8 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should build filter with single version ID", func(t *testing.T) {
 		versionID := "v1-version-id-12345"
 
-		filter := buildFilter([]string{versionID})
+		filter, err := buildFilter([]string{versionID})
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
@@ -115,7 +116,8 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should build filter with multiple version IDs", func(t *testing.T) {
 		versionIDs := []string{"version-1", "version-2"}
 
-		filter := buildFilter(versionIDs)
+		filter, err := buildFilter(versionIDs)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "version-1")
 		assert.Contains(t, filter, "version-2")
@@ -126,7 +128,8 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should always include storage_state filter", func(t *testing.T) {
-		filter := buildFilter(nil)
+		filter, err := buildFilter(nil)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -134,9 +137,60 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
-		filter := buildFilter([]string{"test-version-id"})
+		filter, err := buildFilter([]string{"test-version-id"})
+		assert.NoError(t, err)
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")
+	})
+}
+
+func TestCollectVersionIDs(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("should return nil for empty pipeline ID", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ids, err := collectVersionIDs(mockClient, ctx, "")
+		assert.NoError(t, err)
+		assert.Nil(t, ids)
+	})
+
+	t.Run("should return cached IDs on cache hit without calling API", func(t *testing.T) {
+		cachedPipelineID := "cached-pipeline-id"
+		expectedVersionIDs := []string{"cached-v1", "cached-v2"}
+
+		cacheKey := "test-cache:test-ns"
+		globalPipelineCache.set(cacheKey, map[string]*DiscoveredPipeline{
+			"test": {
+				PipelineID:    cachedPipelineID,
+				AllVersionIDs: expectedVersionIDs,
+			},
+		})
+		defer globalPipelineCache.invalidate(cacheKey)
+
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ids, err := collectVersionIDs(mockClient, ctx, cachedPipelineID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedVersionIDs, ids)
+	})
+
+	t.Run("should fall back to API on cache miss", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://collect-test")
+		derivedIDs := psmocks.DeriveMockIDs("collect-test")
+
+		ids, err := collectVersionIDs(mockClient, ctx, derivedIDs.PipelineID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, ids)
+		assert.Contains(t, ids, derivedIDs.LatestVersionID)
+	})
+
+	t.Run("should return nil for unknown pipeline ID with no versions", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		ids, err := collectVersionIDs(mockClient, ctx, "nonexistent-pipeline-id")
+
+		assert.NoError(t, err)
+		assert.Nil(t, ids)
 	})
 }
 

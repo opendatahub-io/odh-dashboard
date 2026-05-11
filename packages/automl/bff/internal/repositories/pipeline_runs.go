@@ -67,7 +67,10 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 	}
 
 	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
-	filter := buildFilter(versionIDs)
+	filter, err := buildFilter(versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error building filter: %w", err)
+	}
 
 	params := &ps.ListRunsParams{
 		PageSize:  pageSize,
@@ -131,7 +134,7 @@ func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Cont
 // buildFilter creates a Kubeflow Pipelines API filter string.
 // Always filters for storage_state: AVAILABLE to exclude archived runs.
 // When versionIDs are provided, adds a predicate to scope runs to those versions.
-func buildFilter(versionIDs []string) string {
+func buildFilter(versionIDs []string) (string, error) {
 	// Always include storage_state filter to exclude archived runs
 	predicates := []map[string]interface{}{
 		{
@@ -164,13 +167,10 @@ func buildFilter(versionIDs []string) string {
 
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
-		slog.Error("Failed to marshal filter in buildFilter",
-			"error", err,
-			"versionIDs", versionIDs)
-		return `{"predicates":[{"key":"storage_state","operation":"EQUALS","string_value":"AVAILABLE"}]}`
+		return "", fmt.Errorf("failed to marshal filter: %w", err)
 	}
 
-	return string(filterJSON)
+	return string(filterJSON), nil
 }
 
 // toPipelineRun transforms a Kubeflow pipeline run to our stable API format.
@@ -573,11 +573,15 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
 	}
 
+	filter, err := buildFilter(versionIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error building filter: %w", err)
+	}
+
 	var allRuns []models.PipelineRun
 	pageToken := ""
 
 	for {
-		filter := buildFilter(versionIDs)
 		params := &ps.ListRunsParams{
 			PageSize:  100, // max page size to minimize round trips
 			PageToken: pageToken,

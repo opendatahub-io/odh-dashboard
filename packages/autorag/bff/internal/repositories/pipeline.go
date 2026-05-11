@@ -173,7 +173,9 @@ func getCachedVersionIDs(pipelineID string) []string {
 		}
 		for _, dp := range entry.pipelines {
 			if dp.PipelineID == pipelineID && len(dp.AllVersionIDs) > 0 {
-				return dp.AllVersionIDs
+				result := make([]string, len(dp.AllVersionIDs))
+				copy(result, dp.AllVersionIDs)
+				return result
 			}
 		}
 	}

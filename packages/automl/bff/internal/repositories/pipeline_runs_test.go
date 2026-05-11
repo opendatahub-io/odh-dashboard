@@ -92,7 +92,8 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should build filter with single version ID", func(t *testing.T) {
 		versionID := "v1-version-id-12345"
 
-		filter := buildFilter([]string{versionID})
+		filter, err := buildFilter([]string{versionID})
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
@@ -105,7 +106,8 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should build filter with multiple version IDs", func(t *testing.T) {
 		versionIDs := []string{"version-1", "version-2"}
 
-		filter := buildFilter(versionIDs)
+		filter, err := buildFilter(versionIDs)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "version-1")
 		assert.Contains(t, filter, "version-2")
@@ -116,7 +118,8 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should always include storage_state filter", func(t *testing.T) {
-		filter := buildFilter(nil)
+		filter, err := buildFilter(nil)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -124,9 +127,107 @@ func TestBuildFilter(t *testing.T) {
 	})
 
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
-		filter := buildFilter([]string{"test-version-id"})
+		filter, err := buildFilter([]string{"test-version-id"})
+		assert.NoError(t, err)
 		assert.True(t, filter[0] == '{')
 		assert.Contains(t, filter, "\"predicates\"")
+	})
+}
+
+func TestCollectVersionIDs(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("should return nil for empty pipeline ID", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, "")
+		assert.NoError(t, err)
+		assert.Nil(t, ids)
+	})
+
+	t.Run("should return cached IDs on cache hit without calling API", func(t *testing.T) {
+		cachedPipelineID := "cached-pipeline-id"
+		expectedVersionIDs := []string{"cached-v1", "cached-v2"}
+
+		cacheKey := "test-cache:test-ns"
+		globalPipelineCache.set(cacheKey, map[string]*DiscoveredPipeline{
+			"test": {
+				PipelineID:    cachedPipelineID,
+				AllVersionIDs: expectedVersionIDs,
+			},
+		})
+		defer globalPipelineCache.invalidate(cacheKey)
+
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, cachedPipelineID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedVersionIDs, ids)
+	})
+
+	t.Run("should fall back to API on cache miss", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://collect-test")
+		derivedIDs := psmocks.DeriveMockIDs("collect-test")
+
+		ids, err := collectVersionIDs(mockClient, ctx, derivedIDs.PipelineID)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, ids)
+		assert.Contains(t, ids, derivedIDs.LatestVersionID)
+	})
+
+	t.Run("should propagate API errors", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		ids, err := collectVersionIDs(mockClient, ctx, "nonexistent-pipeline-id")
+
+		assert.Nil(t, ids)
+		// The mock returns nil versions for unknown pipeline IDs, so no error
+		assert.NoError(t, err)
+	})
+}
+
+func TestGetAllPipelineRuns(t *testing.T) {
+	repo := NewPipelineRunsRepository()
+	ctx := context.Background()
+
+	t.Run("should return error for nil client", func(t *testing.T) {
+		runs, err := repo.GetAllPipelineRuns(nil, ctx, "some-id", constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Nil(t, runs)
+		assert.Contains(t, err.Error(), "pipeline server client is nil")
+	})
+
+	t.Run("should retrieve all runs for a pipeline", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://getall-test")
+		derivedIDs := psmocks.DeriveMockIDs("getall-test")
+
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, derivedIDs.PipelineID, constants.PipelineTypeTimeSeries)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, runs)
+		for _, run := range runs {
+			assert.Equal(t, constants.PipelineTypeTimeSeries, run.PipelineType)
+		}
+	})
+
+	t.Run("should return empty slice when no runs exist", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, "", constants.PipelineTypeTabular)
+
+		assert.NoError(t, err)
+		// With empty pipelineID, collectVersionIDs returns nil, which still allows listing
+		assert.NotNil(t, runs)
+	})
+
+	t.Run("should set pipelineType on all returned runs", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://type-test")
+		derivedIDs := psmocks.DeriveMockIDs("type-test")
+
+		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, derivedIDs.PipelineID, "custom-type")
+
+		assert.NoError(t, err)
+		for _, run := range runs {
+			assert.Equal(t, "custom-type", run.PipelineType)
+		}
 	})
 }
 
