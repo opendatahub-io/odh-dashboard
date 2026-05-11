@@ -110,10 +110,10 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     const seen = new Set<string>();
     return modelInfos
       .flatMap((modelInfo) =>
-        modelInfo.tags.map((tag): TypeaheadSelectOption | null => {
+        (modelInfo.tags ?? []).map((tag): TypeaheadSelectOption | null => {
           const normalizedTag = normalizeVersion(tag);
           const optionValue = `${modelInfo.name}-${normalizedTag}`;
-          const content = `${modelInfo.displayName} - ${normalizedTag}`;
+          const content = `${modelInfo.displayName ?? modelInfo.name} - ${normalizedTag}`;
           if (seen.has(optionValue)) {
             return null;
           }
@@ -130,7 +130,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     }
     const matched = options.find((opt) => {
       const result = extractModelAndVersion(String(opt.value), modelInfos);
-      if (!result) {
+      if (!result || !result.modelInfo.namespace) {
         return false;
       }
       const imgName = getNIMImageName(
@@ -149,7 +149,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         return;
       }
       const result = extractModelAndVersion(key, modelInfos);
-      if (result) {
+      if (result && result.modelInfo.namespace) {
         onChange({
           imageName: getNIMImageName(
             result.modelInfo.namespace,

@@ -38,12 +38,12 @@ type ConfigMapKind = {
 
 export type ModelInfo = {
   name: string;
-  displayName: string;
-  shortDescription: string;
-  namespace: string;
-  tags: string[];
-  latestTag: string;
-  updatedDate: string;
+  displayName?: string;
+  shortDescription?: string;
+  namespace?: string;
+  tags?: string[];
+  latestTag?: string;
+  updatedDate?: string;
 };
 
 export const normalizeVersion = (tag: string): string => {
@@ -92,6 +92,9 @@ export const fetchNIMModelNames = async (projectNamespace: string): Promise<Mode
   for (const [key, value] of Object.entries(configMap.data)) {
     try {
       const modelData = JSON.parse(value);
+      if (typeof modelData.namespace !== 'string' || !Array.isArray(modelData.tags)) {
+        continue;
+      }
       modelInfos.push({
         name: key,
         displayName: modelData.displayName,
