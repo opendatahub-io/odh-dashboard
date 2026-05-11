@@ -130,6 +130,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           // Use PatternFly's native clearAllFilters - it automatically shows/hides based on ToolbarFilter labels
           // When performance view is OFF, show reset button for basic filters
           // When performance view is ON, the HardwareConfigurationFilterToolbar handles resetting
