@@ -1,6 +1,6 @@
 import React from 'react';
 import { z } from 'zod';
-import { Alert, FormGroup, HelperText, HelperTextItem } from '@patternfly/react-core';
+import { Alert, FormGroup, HelperText, HelperTextItem, Spinner } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
@@ -9,6 +9,7 @@ import useFetch, {
   NotReadyError,
   type FetchStateCallbackPromise,
 } from '@odh-dashboard/internal/utilities/useFetch';
+import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
@@ -164,6 +165,16 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const projectName = externalData?.data.projectName;
 
+  const [canViewSettings, rbacLoaded] = useAccessReview(
+    {
+      group: 'rbac.authorization.k8s.io',
+      resource: 'rolebindings',
+      namespace: projectName ?? '',
+      verb: 'list',
+    },
+    !!projectName,
+  );
+
   if (!projectName) {
     return (
       <Alert variant="info" isInline title="NVIDIA Inference Microservices (NIM image)">
@@ -173,14 +184,25 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   }
 
   const hasNoModels = externalData.loaded && modelInfos.length === 0 && !externalData.loadError;
+  // TODO: after PR #7436 merges and we rebase, use useNIMAccountStatus to distinguish
+  // "no key configured" (NOT_FOUND) from "invalid key" (ERROR) and show different messages.
+  const hasLoadError = externalData.loaded && !!externalData.loadError;
 
-  if (hasNoModels) {
+  if (hasNoModels || hasLoadError) {
+    const settingsAction = !rbacLoaded ? (
+      <Spinner size="sm" />
+    ) : canViewSettings ? (
+      <Link to={`/projects/${projectName}?section=settings`}>Configure in project settings</Link>
+    ) : (
+      'Ask your project administrator to configure NVIDIA NIM.'
+    );
+
     return (
-      <Alert variant="warning" isInline title="NVIDIA Inference Microservices (NIM image)">
-        NVIDIA NIM key is required in project to deploy NVIDIA NIM models.{' '}
-        {projectName && (
-          <Link to={`/projects/${projectName}?section=settings`}>Enable in project settings</Link>
-        )}
+      <Alert variant="danger" isInline title="NVIDIA Inference Microservices (NIM image)">
+        {hasLoadError
+          ? 'The NVIDIA NIM key for this project is invalid and needs to be replaced. '
+          : 'No NVIDIA NIM key has been configured for this project. '}
+        {settingsAction}
       </Alert>
     );
   }
