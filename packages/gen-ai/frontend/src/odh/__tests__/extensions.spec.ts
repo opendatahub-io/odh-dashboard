@@ -97,4 +97,17 @@ describe('modelAsService area extension', () => {
 
     expect(result).toBe(false);
   });
+
+  it('should return false when dscStatus has no conditions', () => {
+    const area = findMaaSArea();
+    const dscStatus = { components: {} } as never;
+
+    const result = area.properties.customCondition!({
+      dashboardConfigSpec: {} as never,
+      dscStatus,
+      dsciStatus: null,
+    });
+
+    expect(result).toBe(false);
+  });
 });
