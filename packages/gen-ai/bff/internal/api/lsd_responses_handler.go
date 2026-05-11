@@ -16,6 +16,8 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -261,6 +263,15 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
+
+	// Set input on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input}})
+		span.SetAttributes(
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("mlflow.spanType", "CHAIN"),
+		)
+	}
 
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
@@ -561,6 +572,14 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+	}
+
+	// Set output on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		if outputText := extractResponseText(&responseData); outputText != "" {
+			outputJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": outputText}})
+			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+		}
 	}
 
 	apiResponse := llamastack.APIResponse{
