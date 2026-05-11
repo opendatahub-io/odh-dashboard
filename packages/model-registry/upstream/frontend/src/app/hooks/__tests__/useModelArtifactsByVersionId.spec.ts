@@ -28,6 +28,16 @@ jest.mock('~/app/hooks/useModelRegistryAPI', () => ({
 const mockUseModelRegistryAPI = jest.mocked(useModelRegistryAPI);
 const mockUseFetchState = jest.mocked(useFetchState);
 
+const captureCallback = (): ((opts: unknown) => Promise<unknown>) => {
+  mockUseFetchState.mockReturnValue([
+    { items: [], size: 0, pageSize: 0, nextPageToken: '' },
+    false,
+    undefined,
+    jest.fn(),
+  ]);
+  return mockUseFetchState.mock.calls[0][0] as (opts: unknown) => Promise<unknown>;
+};
+
 const mockModelRegistryAPIs: ModelRegistryAPIs = {
   createRegisteredModel: jest.fn(),
   createModelVersionForRegisteredModel: jest.fn(),
@@ -54,29 +64,18 @@ describe('useModelArtifactsByVersionId', () => {
     jest.clearAllMocks();
   });
 
-  it('should return NotReadyError if API is not available', async () => {
+  it('should reject with NotReadyError if API is not available', async () => {
     mockUseModelRegistryAPI.mockReturnValue({
       api: mockModelRegistryAPIs,
       apiAvailable: false,
       refreshAllAPI: jest.fn(),
     });
 
-    // Mock useFetchState to return error state
-    const mockError = new Error('API not yet available');
-    mockUseFetchState.mockReturnValue([
-      { items: [], size: 0, pageSize: 0, nextPageToken: '' },
-      false,
-      mockError,
-      jest.fn(),
-    ]);
+    testHook(useModelArtifactsByVersionId)('version-id');
+    const callback = captureCallback();
 
-    const { result } = testHook(useModelArtifactsByVersionId)('version-id');
-
-    await waitFor(() => {
-      const [, , error] = result.current;
-      expect(error?.message).toBe('API not yet available');
-      expect(error).toBeInstanceOf(Error);
-    });
+    await expect(callback({})).rejects.toThrow('API not yet available');
+    await expect(callback({})).rejects.toMatchObject({ name: 'NotReadyError' });
   });
 
   it('should silently fail if modelVersionId is not provided', async () => {
