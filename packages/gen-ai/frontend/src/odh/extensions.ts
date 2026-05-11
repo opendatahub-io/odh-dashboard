@@ -45,7 +45,8 @@ const extensions: (
     properties: {
       id: GUARDRAILS,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: [GUARDRAILS],
+      featureFlags: [GUARDRAILS],
+      requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
     },
   },
   {

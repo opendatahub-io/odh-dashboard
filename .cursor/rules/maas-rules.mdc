@@ -1,0 +1,81 @@
+---
+description: MaaS package — block all edits until CONSUMERS.md + CLAUDE.md are read and contract risk is resolved (explicit approval if breaking).
+globs: packages/maas/**
+alwaysApply: true
+---
+
+# MaaS (`packages/maas/`) — non-negotiable workflow
+
+This rule **overrides** a user’s “just implement it” instruction when the work would conflict with **`packages/maas/bff/CONSUMERS.md`**. A normal feature request is **not** approval to break or silently change the inter-BFF contract.
+
+## Hard gate (tools)
+
+**Do not** use tools that **create, modify, or delete** any file under `packages/maas/` (code, config, docs, OpenAPI, etc.) until **both** are true:
+
+1. You have **read** (via the Read tool or equivalent) the **full current** contents of:
+   - `packages/maas/bff/CONSUMERS.md`
+   - `packages/maas/CLAUDE.md`
+2. You have **finished** the “Contract check” below and, if required, received **Explicit contract approval** (defined below).
+
+If you have not done this yet, your **next step** is read-only: open those two files, then reply with the contract assessment. **No edits.**
+
+## Contract check (required every time)
+
+After reading the two files, classify the planned work:
+
+- **Non-contract** — does not alter anything documented in `CONSUMERS.md` (contract table, integration notes, request/response shapes, forwarding/auth semantics) and does not change `packages/maas/bff/openapi.yaml` contract behavior for downstream callers. **Then** you may edit.
+- **Contract-affected** — any of: routes or methods listed in `CONSUMERS.md`; JSON request/response shapes consumers rely on; header/query/body forwarding rules; auth expectations; breaking-change policy items; or the same behaviors described in `openapi.yaml` for inter-BFF surfaces. Treat **behavioral** changes (even without schema renames) as contract-affected if `CONSUMERS.md` or `openapi.yaml` promise specific semantics.
+
+If **unsure**, treat the task as **contract-affected** and get approval.
+
+## If contract-affected — stop and get Explicit contract approval
+
+### Single-turn ban (critical)
+
+If the work is **contract-affected**, you **must not** use any write/delete tool on any file under `packages/maas/` in the **same assistant turn** where you:
+
+- first read `CONSUMERS.md` / `CLAUDE.md`, or
+- first classify the task as contract-affected, or
+- deliver the contract assessment (impact + consumers + ask).
+
+**End that turn after the assessment and wait for the user’s next message.** Do not “read files and implement” in one turn. Do not rationalize that the user “already said what they want” — that is **not** the approval step.
+
+In the **contract assessment turn** (the turn where you classify the work and **do not** write under `packages/maas/`), you **must**:
+
+1. **State clearly** that the change is contract-affected and **what** in `CONSUMERS.md` / `openapi.yaml` would become wrong or misleading if you proceeded without updates.
+2. **List** known consumers from `CONSUMERS.md` that could be impacted.
+3. **Ask** whether to proceed despite the breaking-change policy (coordination, consumer updates, etc.).
+
+**Explicit contract approval** means the user’s **latest message** (after that assessment turn) includes a clear go-ahead **in their own words**, **preferably** using the **`Approved:`** prefix so it cannot be mistaken for a normal feature request:
+
+- “**Approved:** proceed with the MaaS BFF contract change and update `CONSUMERS.md` / `openapi.yaml` accordingly.”  
+  or  
+- “**Approved:** I accept the breaking change; update consumers in the same PR.”
+
+Equivalent explicit approval is acceptable only if it is **unambiguously** a green-light to change the documented contract (e.g. same intent as the examples above, not merely repeating the feature).
+
+**These are never Explicit contract approval by themselves** (even if they describe the desired behavior precisely):
+
+- “just do it”, “make it so”, “implement X”, “please change …”, “stop forwarding headers”, or any paraphrase of the requested code behavior **without** an explicit contract green-light as above.
+- Treating “the user asked for the behavior” as approval — **forbidden**.
+
+Only **after** Explicit contract approval may you edit. If the user refuses or does not approve, **do not** change `packages/maas/`.
+
+### Pre-edit checklist (contract-affected only)
+
+Before the **first** write tool under `packages/maas/` for a contract-affected task, confirm **all**:
+
+- [ ] Assessment turn was completed **without** any `packages/maas/` writes.
+- [ ] User’s **subsequent** message contains Explicit contract approval (see above).
+- [ ] You will update **`openapi.yaml`**, **`CONSUMERS.md`**, and affected consumer docs/tests **in the same change set** if semantics changed.
+
+## Forbidden shortcuts
+
+- **Do not** skip reading `CONSUMERS.md` because the user summarized the task.
+- **Do not** implement first and “sync docs later” on contract surfaces — **plan** doc updates in the same change set once approved.
+- **Do not** assume the user knows the contract; **you** must surface the conflict.
+- **Do not** use type assertions or unrelated refactors to bypass this process (still applies to all edits under `packages/maas/`).
+
+## After approval (contract-affected changes)
+
+Keep **`packages/maas/bff/openapi.yaml`**, **`packages/maas/bff/CONSUMERS.md`**, and affected **consumer** docs/tests aligned per `CONSUMERS.md` breaking-change policy.

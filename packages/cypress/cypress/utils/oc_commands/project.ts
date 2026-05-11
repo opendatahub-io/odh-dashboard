@@ -19,22 +19,21 @@ export const createOpenShiftProject = (
     : `oc new-project ${projectName}`;
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR provisioning ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     // Add dashboard label immediately after project creation
     const labelCommand = `oc label namespace ${projectName} opendatahub.io/dashboard=true --overwrite`;
     return cy.exec(labelCommand, { failOnNonZeroExit: false }).then((labelResult) => {
-      if (labelResult.code !== 0) {
+      if (labelResult.exitCode !== 0) {
         cy.log(`WARNING: Failed to add dashboard label to ${projectName}
                   stdout: ${labelResult.stdout}
                   stderr: ${labelResult.stderr}`);
-        // Don't fail the entire operation if labeling fails, but log it
       }
-      return result; // Return the original creation result
+      return cy.wrap(result);
     });
   });
 };
@@ -65,11 +64,11 @@ export const deleteOpenShiftProject = (
   };
 
   return cy.exec(ocCommand, execOptions).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR deleting ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -90,11 +89,11 @@ export const addUserToProject = (
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc adm policy add-role-to-user ${role} ${userName} -n ${projectName}`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR Assigning role ${role} to user *** in ${projectName} Project
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -146,7 +145,7 @@ export const getOpenShiftProject = (projectName: string): Cypress.Chainable<stri
     // Use the utility function to handle command result
     handleOCCommandResult(result);
     // Use cy.wrap to ensure we're returning a Cypress chainable
-    return cy.wrap(result.code === 0 ? result.stdout.trim() : null);
+    return cy.wrap(result.exitCode === 0 ? result.stdout.trim() : null);
   });
 };
 
@@ -177,7 +176,7 @@ export const getDashboardConfig = (key?: string): Cypress.Chainable<unknown> => 
   const command = `oc get OdhDashboardConfig -A -o json | jq '.items[].spec'`;
 
   return cy.exec(command).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr || '');
       throw new Error(`Failed to get DashboardConfig: ${maskedStderr}`);
     }
@@ -202,7 +201,7 @@ export const getNotebookControllerConfig = (key?: string): Cypress.Chainable<unk
   const command = `oc get configmaps -l app=notebook-controller -A -o jsonpath='{.items[0].data}' | jq .`;
 
   return cy.exec(command).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr || '');
       throw new Error(`Failed to get Notebook Controller Config: ${maskedStderr}`);
     }
@@ -235,7 +234,7 @@ export const getNotebookControllerCullerConfig = (key?: string): Cypress.Chainab
     const maskedStderr = maskSensitiveInfo(result.stderr || '');
     cy.log('Command stderr:', maskedStderr);
 
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       return Cypress.Promise.resolve(`Error: ${maskedStderr.trim()}`);
     }
 
@@ -265,7 +264,7 @@ export const getOdhDashboardConfigGroupsConfig = (): Cypress.Chainable<CommandLi
   cy.log(`Getting OdhDashboardConfig groupsConfig: ${command}`);
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR getting OdhDashboardConfig groupsConfig
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);

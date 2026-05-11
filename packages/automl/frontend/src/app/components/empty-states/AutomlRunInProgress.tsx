@@ -23,6 +23,7 @@ function AutomlRunInProgress({ namespace }: AutomlRunInProgressProps): React.JSX
       titleText="Your AutoML run is currently in progress"
       headingLevel="h4"
       icon={EmptyStateImageIcon}
+      data-testid="automl-run-in-progress"
     >
       <EmptyStateBody>
         Please check back soon for your run results. Runs can take some time to complete.

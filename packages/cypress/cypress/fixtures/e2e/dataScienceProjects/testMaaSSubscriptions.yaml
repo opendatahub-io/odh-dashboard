@@ -1,0 +1,11 @@
+# testMaaSSubscriptions.cy.ts Test Data #
+modelLocationURI: 'hf://openai-community/gpt2'
+projectResourceName: 'maas-subs-project'
+hardwareProfileName: 'cypress-llmd-hardware-profile-model'
+singleModelName: 'gpt2'
+connectionNameSuffix: '-connection'
+subscriptionName: 'a-test-maas-subscription'
+subscriptionDisplayName: 'A Test MaaS Subscription'
+llmInferenceServiceConfigDisplayName: 'vLLM CPU LLMInferenceServiceConfig'
+llmInferenceServiceConfigName: 'kserve-config-llm-template-cpu'
+llmInferenceServiceConfigContainerImage: 'quay.io/pierdipi/vllm-cpu:latest'

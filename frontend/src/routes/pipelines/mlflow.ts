@@ -32,3 +32,10 @@ export const globPromptManagementAll = `${promptManagementPath}/*`;
 
 export const mlflowPromptManagementBaseRoute = (namespace?: string): string =>
   withWorkspace(promptManagementPath, namespace);
+
+export const mlflowLaunchRoute = (namespace?: string): string => {
+  if (!namespace) {
+    return MLFLOW_PROXY_BASE_PATH;
+  }
+  return `${MLFLOW_PROXY_BASE_PATH}/#/?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+};

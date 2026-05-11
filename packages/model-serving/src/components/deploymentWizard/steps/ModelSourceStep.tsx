@@ -1,27 +1,40 @@
 import React from 'react';
 import { z } from 'zod';
-import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
+import { Form, FormSection, Spinner } from '@patternfly/react-core';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
-import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
 import { modelTypeSelectFieldSchema, ModelTypeSelectField } from '../fields/ModelTypeSelectField';
 import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
-import { ModelLocationData } from '../types';
-import {
-  createConnectionDataSchema,
-  CreateConnectionInputFields,
-} from '../fields/CreateConnectionInputFields';
+import { ModelLocationData, ModelLocationType } from '../types';
+import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
 
 // Schema
-export const modelSourceStepSchema = z.object({
-  modelType: modelTypeSelectFieldSchema,
-  modelLocationData: z.custom<ModelLocationData>((val) => {
-    if (!val) return false;
-    return isValidModelLocationData(val.type, val);
-  }),
-  createConnectionData: createConnectionDataSchema,
+const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
+  if (!val) return false;
+  return isValidModelLocationData(val.type, val);
 });
+
+export const modelSourceStepSchema = z
+  .object({
+    modelType: modelTypeSelectFieldSchema,
+    modelLocationData: modelLocationDataSchema,
+    createConnectionData: createConnectionDataSchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
+    if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
+      const result = createConnectionDataSchema.safeParse(data.createConnectionData);
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          ctx.addIssue({
+            ...issue,
+            path: ['createConnectionData', ...issue.path],
+          });
+        });
+      }
+    }
+  });
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
@@ -34,20 +47,16 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
 }) => {
-  const isNimWizardEnabled = useIsAreaAvailable(SupportedArea.NIM_WIZARD).status;
-
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
   }
 
   return (
     <Form>
-      {isNimWizardEnabled && (
-        <Alert variant="info" isInline title="(TODO replace me) NIM serving extension is enabled" />
-      )}
       <FormSection title="Model details">
         <p style={{ marginTop: '-8px' }}>Provide information about the model you want to deploy.</p>
         <ModelLocationSelectField
+          wizardState={wizardState}
           modelLocation={wizardState.state.modelLocationData.data?.type}
           validationProps={validation.getFieldValidationProps([
             'modelLocation',
@@ -61,13 +70,6 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           setSelectedConnection={wizardState.state.modelLocationData.setSelectedConnection}
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
-        />
-        <CreateConnectionInputFields
-          createConnectionData={wizardState.state.createConnectionData.data}
-          setCreateConnectionData={wizardState.state.createConnectionData.setData}
-          projectName={wizardState.state.project.projectName}
-          modelLocationData={wizardState.state.modelLocationData.data}
-          setModelLocationData={wizardState.state.modelLocationData.setData}
         />
         <ModelTypeSelectField
           modelType={wizardState.state.modelType.data}
