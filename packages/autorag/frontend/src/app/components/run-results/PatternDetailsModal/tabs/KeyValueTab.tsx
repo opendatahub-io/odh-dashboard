@@ -1,8 +1,7 @@
 import React from 'react';
-import { Grid, GridItem } from '@patternfly/react-core';
 import type { AutoragPatternSettings, TabContentProps } from '~/app/types/autoragPattern';
 import KeyValueList from '~/app/components/run-results/PatternDetailsModal/components/KeyValueList';
-import ComparisonColumnHeader from '~/app/components/run-results/PatternDetailsModal/components/ComparisonColumnHeader';
+import ComparisonKeyValueList from '~/app/components/run-results/PatternDetailsModal/components/ComparisonKeyValueList';
 
 /**
  * Extracts a named section from pattern settings as a generic record.
@@ -26,7 +25,7 @@ export { settingsSectionEntries };
  * Generation, and Agent tabs.
  *
  * Single mode: renders a flat DescriptionList of key-value pairs.
- * Comparison mode: renders two side-by-side columns with column headers.
+ * Comparison mode: renders a unified list with one label column and two value columns.
  *
  * Components created by this factory are cached in tabConfig.ts to preserve
  * React component identity across renders.
@@ -49,34 +48,13 @@ export function createKeyValueTab(sectionKey: string): React.FC<TabContentProps>
     );
 
     return (
-      <>
-        <Grid hasGutter>
-          <GridItem span={6}>
-            <ComparisonColumnHeader
-              patternName={primaryPattern.pattern.name}
-              rank={primaryPattern.rank}
-              label="selected pattern"
-              data-testid="comparison-column-header-primary"
-            />
-          </GridItem>
-          <GridItem span={6}>
-            <ComparisonColumnHeader
-              patternName={comparisonPattern.pattern.name}
-              rank={comparisonPattern.rank}
-              onChangeClick={onChangeComparisonPattern}
-              data-testid="comparison-column-header-comparison"
-            />
-          </GridItem>
-        </Grid>
-        <Grid hasGutter className="pf-v6-u-mt-md">
-          <GridItem span={6}>
-            <KeyValueList entries={primaryEntries} />
-          </GridItem>
-          <GridItem span={6}>
-            <KeyValueList entries={comparisonEntries} />
-          </GridItem>
-        </Grid>
-      </>
+      <ComparisonKeyValueList
+        primaryPattern={primaryPattern}
+        comparisonPattern={comparisonPattern}
+        primaryEntries={primaryEntries}
+        comparisonEntries={comparisonEntries}
+        onChangeComparisonPattern={onChangeComparisonPattern}
+      />
     );
   };
 

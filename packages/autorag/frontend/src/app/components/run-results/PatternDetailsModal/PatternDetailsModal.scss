@@ -8,6 +8,11 @@
   align-items: center;
 }
 
+// In comparison mode, give more space to the value columns
+.autorag-comparison-list.pf-v6-c-description-list {
+  --pf-v6-c-description-list--m-horizontal__term--width: 12ch;
+}
+
 // Comparison pattern scores use green bars to distinguish from primary (blue)
 .autorag-scores-list--comparison {
   --pf-v6-c-progress__indicator--BackgroundColor: var(--pf-t--global--color--status--success--default);
