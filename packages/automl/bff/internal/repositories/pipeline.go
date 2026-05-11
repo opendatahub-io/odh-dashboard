@@ -198,11 +198,17 @@ func NewPipelineRepository() *PipelineRepository {
 // DiscoverNamedPipelines discovers multiple managed pipelines in the given namespace,
 // one per entry in the definitions map (pipeline type key → pipeline name).
 //
+// Used for listing runs: the returned DiscoveredPipeline includes AllVersionIDs so that
+// callers can query runs across every version of the pipeline, not just the default one.
+// If the default version (DefaultPipelineVersion) is not present, discovery falls back to
+// any available version — contrast with EnsurePipeline which requires the exact version.
+//
 // This method:
 //  1. Checks the in-memory cache (5-minute TTL) for a previously discovered result
 //  2. For each definition, calls discoverOnePipeline with exact name matching
-//  3. Builds a partial result map — missing keys mean the pipeline was not found
-//  4. Caches the partial result for future requests
+//  3. Falls back to any available version if the default version is not found
+//  4. Builds a partial result map — missing keys mean the pipeline was not found
+//  5. Caches the partial result for future requests
 //
 // Parameters:
 //   - client: Pipeline Server client interface
@@ -248,6 +254,14 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix, versionName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
+		}
+		if discovered == nil {
+			// Exact version not found — fall back to any available version so runs
+			// from older pipeline versions are still discoverable.
+			discovered, err = r.discoverOnePipeline(client, ctx, namespace, namePrefix, "")
+			if err != nil {
+				return nil, fmt.Errorf("failed to discover pipeline %q (fallback): %w", pipelineType, err)
+			}
 		}
 		if discovered != nil {
 			result[pipelineType] = discovered
@@ -392,7 +406,9 @@ func (r *PipelineRepository) InvalidateCache(pipelineServerBaseURL, namespace st
 }
 
 // EnsurePipeline discovers a pipeline by definition, creating it if it does not exist.
-// This is called at experiment submission time so pipelines are created lazily.
+// This is called at run creation time so pipelines are created lazily.
+// Unlike DiscoverNamedPipelines, this requires the exact DefaultPipelineVersion — if the
+// specific version is missing it creates it rather than falling back to an older version.
 func (r *PipelineRepository) EnsurePipeline(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,

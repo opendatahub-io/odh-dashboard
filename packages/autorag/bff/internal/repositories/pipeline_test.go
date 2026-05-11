@@ -443,6 +443,52 @@ func TestDiscoverNamedPipelines_NoVersions(t *testing.T) {
 	})
 }
 
+// mismatchedVersionClient returns a pipeline with versions whose names don't match DefaultPipelineVersion
+type mismatchedVersionClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *mismatchedVersionClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "version-old-1",
+				DisplayName:       "documents-rag-optimization-pipeline-1.0.0",
+				CreatedAt:         "2026-02-23T10:00:00Z",
+			},
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "version-old-2",
+				DisplayName:       "documents-rag-optimization-pipeline-2.0.0",
+				CreatedAt:         "2026-02-20T10:00:00Z",
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+func TestDiscoverNamedPipelines_VersionNameMismatch(t *testing.T) {
+	repo := NewPipelineRepository()
+	ctx := context.Background()
+
+	t.Run("should fall back to first version when default version name is not found", func(t *testing.T) {
+		namespace := "test-ns-mismatch"
+		client := &mismatchedVersionClient{}
+
+		pipelineName := "documents-rag-optimization-pipeline"
+		definitions := map[string]string{"autorag": pipelineName}
+		pipelines, err := repo.DiscoverNamedPipelines(client, ctx, namespace, "http://mock-ps-mismatch", definitions)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, pipelines)
+		assert.Contains(t, pipelines, "autorag")
+		assert.Equal(t, "version-old-1", pipelines["autorag"].PipelineVersionID)
+		assert.Len(t, pipelines["autorag"].AllVersionIDs, 2)
+	})
+}
+
 func TestBuildPipelineNameFilter(t *testing.T) {
 	t.Run("should return empty string when prefix is empty", func(t *testing.T) {
 		result := buildPipelineNameFilter("")
