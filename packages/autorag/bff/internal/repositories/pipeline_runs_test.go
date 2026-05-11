@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -191,6 +192,18 @@ func TestCollectVersionIDs(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, ids)
+	})
+
+	t.Run("should propagate ListPipelineVersions API errors", func(t *testing.T) {
+		mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		mockClient.ListPipelineVersionsErr = fmt.Errorf("connection refused")
+
+		ids, err := collectVersionIDs(mockClient, ctx, "any-pipeline-id")
+
+		assert.Nil(t, ids)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to list pipeline versions")
+		assert.Contains(t, err.Error(), "connection refused")
 	})
 }
 

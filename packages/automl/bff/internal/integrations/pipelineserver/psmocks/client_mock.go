@@ -90,6 +90,9 @@ type MockPipelineServerClient struct {
 	LastRetryRunID string
 	// LastDeleteRunID records the last runID passed to DeleteRun for test assertions
 	LastDeleteRunID string
+	// ListPipelineVersionsErr, when non-nil, is returned by ListPipelineVersions
+	// instead of the normal mock response.
+	ListPipelineVersionsErr error
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
@@ -782,6 +785,9 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 // matching the sort order requested by the real pipeline server client.
 // When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
 func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.ListPipelineVersionsErr != nil {
+		return nil, m.ListPipelineVersionsErr
+	}
 	if len(m.PipelineNames) > 0 {
 		for _, name := range m.PipelineNames {
 			ids := DeriveMockIDsFromName(m.Namespace, name)
