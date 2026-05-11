@@ -66,6 +66,16 @@ func (r *PipelineRunsRepository) GetPipelineRuns(
 		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
 	}
 
+	// A pipeline with no versions cannot have runs; return empty rather than
+	// issuing an unscoped ListRuns that would return runs from all pipelines.
+	if len(versionIDs) == 0 {
+		return &models.PipelineRunsData{
+			Runs:          []models.PipelineRun{},
+			TotalSize:     0,
+			NextPageToken: "",
+		}, nil
+	}
+
 	// Build filter (always includes storage_state: AVAILABLE to exclude archived runs)
 	filter, err := buildFilter(versionIDs)
 	if err != nil {
@@ -145,13 +155,7 @@ func buildFilter(versionIDs []string) (string, error) {
 	}
 
 	// Scope to the given pipeline versions
-	if len(versionIDs) == 1 {
-		predicates = append(predicates, map[string]interface{}{
-			"key":          "pipeline_version_id",
-			"operation":    "EQUALS",
-			"string_value": versionIDs[0],
-		})
-	} else if len(versionIDs) > 1 {
+	if len(versionIDs) > 0 {
 		predicates = append(predicates, map[string]interface{}{
 			"key":       "pipeline_version_id",
 			"operation": "IN",
@@ -571,6 +575,10 @@ func (r *PipelineRunsRepository) GetAllPipelineRuns(
 	versionIDs, err := collectVersionIDs(client, ctx, pipelineID)
 	if err != nil {
 		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
+	}
+
+	if len(versionIDs) == 0 {
+		return nil, nil
 	}
 
 	filter, err := buildFilter(versionIDs)

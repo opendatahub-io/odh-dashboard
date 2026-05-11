@@ -67,7 +67,7 @@ var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constant
 type PipelineDefinition struct {
 	Name        string // Exact pipeline display name for discovery and creation
 	PipelineDir string // Directory name containing pipeline.yaml (matches upstream repo structure)
-	Version     string // Release version suffix for the version name (e.g. "3.4.0")
+	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.1")
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
@@ -251,14 +251,14 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 			effectivePrefix = defaultPipelineNamePrefix
 		}
 		versionName := fmt.Sprintf("%s-%s", effectivePrefix, DefaultPipelineVersion)
-		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix, versionName)
+		discovered, err := r.discoverOnePipeline(client, ctx, namespace, effectivePrefix, versionName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
 		}
 		if discovered == nil {
 			// Exact version not found — fall back to any available version so runs
 			// from older pipeline versions are still discoverable.
-			discovered, err = r.discoverOnePipeline(client, ctx, namespace, namePrefix, "")
+			discovered, err = r.discoverOnePipeline(client, ctx, namespace, effectivePrefix, "")
 			if err != nil {
 				return nil, fmt.Errorf("failed to discover pipeline %q (fallback): %w", pipelineType, err)
 			}
@@ -291,10 +291,6 @@ func (r *PipelineRepository) discoverOnePipeline(
 	namePrefix string,
 	versionName string,
 ) (*DiscoveredPipeline, error) {
-	if namePrefix == "" {
-		namePrefix = defaultPipelineNamePrefix
-	}
-
 	// Build a server-side filter to reduce the result set. The Go-side HasPrefix check
 	// below remains the authoritative gate for correctness.
 	nameFilter := buildPipelineNameFilter(namePrefix)

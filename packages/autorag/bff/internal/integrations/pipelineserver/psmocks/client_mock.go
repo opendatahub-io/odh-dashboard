@@ -769,8 +769,15 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 							Description:       "Pipeline version",
 							CreatedAt:         "2026-02-23T10:00:00Z",
 						},
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.OldVersionID,
+							DisplayName:       fmt.Sprintf("%s-3.4.0", name),
+							Description:       "Initial pipeline version",
+							CreatedAt:         "2026-02-20T10:00:00Z",
+						},
 					},
-					TotalSize:     1,
+					TotalSize:     2,
 					NextPageToken: "",
 				}, nil
 			}

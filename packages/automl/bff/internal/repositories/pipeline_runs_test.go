@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -21,14 +22,13 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 	ctx := context.Background()
 
-	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
+	t.Run("should return empty when pipelineID is empty (no versions to scope)", func(t *testing.T) {
 		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		// Mock with empty namespace returns 5 runs (default count for unknown namespace)
-		assert.Len(t, runsData.Runs, 5)
-		assert.Equal(t, int32(5), runsData.TotalSize)
+		assert.Empty(t, runsData.Runs)
+		assert.Equal(t, int32(0), runsData.TotalSize)
 	})
 
 	t.Run("should filter by all versions of the given pipeline ID", func(t *testing.T) {
@@ -46,14 +46,16 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeTimeSeries)
+		ids := psmocks.DeriveMockIDs(mockNamespace)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 10, "page-token-123", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeTimeSeries)
+		ids := psmocks.DeriveMockIDs(mockNamespace)
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 20, "", constants.PipelineTypeTimeSeries)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -98,7 +100,7 @@ func TestBuildFilter(t *testing.T) {
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
-		assert.Contains(t, filter, "EQUALS")
+		assert.Contains(t, filter, "IN")
 		assert.Contains(t, filter, "predicates")
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -130,7 +132,7 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
 		filter, err := buildFilter([]string{"test-version-id"})
 		assert.NoError(t, err)
-		assert.True(t, filter[0] == '{')
+		assert.True(t, json.Valid([]byte(filter)))
 		assert.Contains(t, filter, "\"predicates\"")
 	})
 }
@@ -221,13 +223,12 @@ func TestGetAllPipelineRuns(t *testing.T) {
 		}
 	})
 
-	t.Run("should return empty slice when no runs exist", func(t *testing.T) {
+	t.Run("should return nil when pipelineID is empty (no versions to scope)", func(t *testing.T) {
 		mockClient := psmocks.NewMockPipelineServerClient("http://mock-ps")
 		runs, err := repo.GetAllPipelineRuns(mockClient, ctx, "", constants.PipelineTypeTabular)
 
 		assert.NoError(t, err)
-		// With empty pipelineID, collectVersionIDs returns nil, which still allows listing
-		assert.NotNil(t, runs)
+		assert.Nil(t, runs)
 	})
 
 	t.Run("should set pipelineType on all returned runs", func(t *testing.T) {

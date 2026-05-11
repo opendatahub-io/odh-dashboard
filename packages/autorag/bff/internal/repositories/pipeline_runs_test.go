@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -22,13 +23,13 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 	ctx := context.Background()
 
-	t.Run("should retrieve pipeline runs successfully", func(t *testing.T) {
+	t.Run("should return empty when pipelineID is empty (no versions to scope)", func(t *testing.T) {
 		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
-		assert.Len(t, runsData.Runs, 3)
-		assert.Equal(t, int32(3), runsData.TotalSize)
+		assert.Empty(t, runsData.Runs)
+		assert.Equal(t, int32(0), runsData.TotalSize)
 	})
 
 	t.Run("should handle pipeline ID filtering across all versions", func(t *testing.T) {
@@ -56,14 +57,16 @@ func TestPipelineRunsRepository_GetPipelineRuns(t *testing.T) {
 	})
 
 	t.Run("should handle pagination parameters", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 10, "page-token-123", constants.PipelineTypeAutoRAG)
+		ids := psmocks.DeriveMockIDs("test-namespace")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 10, "page-token-123", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
 	})
 
 	t.Run("should transform Kubeflow format to stable API format", func(t *testing.T) {
-		runsData, err := repo.GetPipelineRuns(mockClient, ctx, "", 20, "", constants.PipelineTypeAutoRAG)
+		ids := psmocks.DeriveMockIDs("test-namespace")
+		runsData, err := repo.GetPipelineRuns(mockClient, ctx, ids.PipelineID, 20, "", constants.PipelineTypeAutoRAG)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, runsData)
@@ -108,7 +111,7 @@ func TestBuildFilter(t *testing.T) {
 		assert.NotEmpty(t, filter)
 		assert.Contains(t, filter, versionID)
 		assert.Contains(t, filter, "pipeline_version_id")
-		assert.Contains(t, filter, "EQUALS")
+		assert.Contains(t, filter, "IN")
 		assert.Contains(t, filter, "predicates")
 		assert.Contains(t, filter, "storage_state")
 		assert.Contains(t, filter, "AVAILABLE")
@@ -140,7 +143,7 @@ func TestBuildFilter(t *testing.T) {
 	t.Run("should format filter as valid JSON", func(t *testing.T) {
 		filter, err := buildFilter([]string{"test-version-id"})
 		assert.NoError(t, err)
-		assert.True(t, filter[0] == '{')
+		assert.True(t, json.Valid([]byte(filter)))
 		assert.Contains(t, filter, "\"predicates\"")
 	})
 }

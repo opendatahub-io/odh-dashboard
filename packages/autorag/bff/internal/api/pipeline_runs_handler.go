@@ -20,8 +20,9 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 //
-// Returns pipeline runs for the auto-discovered AutoRAG pipeline version.
-// The pipeline is discovered via the AttachDiscoveredPipeline middleware.
+// Returns pipeline runs across all versions of the auto-discovered AutoRAG
+// managed pipeline. The pipeline is discovered via the AttachDiscoveredPipeline
+// middleware; runs are aggregated by repositories.PipelineRuns.GetPipelineRuns.
 //
 // Query Parameters:
 //   - namespace: Kubernetes namespace (required, validated by middleware)
@@ -114,10 +115,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 // in the namespace before returning it. This prevents users from accessing runs from other
 // pipelines that may exist in the same namespace.
 //
-// Validation includes:
+// Validation is performed by resolveOwnedRun, which checks:
 //   - PipelineVersionReference must exist (defense-in-depth for data integrity)
-//   - Pipeline ID must match discovered AutoRAG pipeline
-//   - Pipeline version ID must match discovered AutoRAG pipeline version
+//   - PipelineID must match the discovered AutoRAG pipeline (version is intentionally
+//     not checked, so runs from older pipeline versions remain accessible after a
+//     version bump)
 //
 // Error Responses:
 //   - 400: Missing runId
