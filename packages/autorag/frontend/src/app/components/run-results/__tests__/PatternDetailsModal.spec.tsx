@@ -601,6 +601,37 @@ describe('PatternDetailsModal', () => {
       expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
     });
 
+    it('should disable confirm button when the already-compared pattern is still selected', async () => {
+      const user = userEvent.setup();
+      const thirdPattern: AutoragPattern = {
+        ...mockPattern,
+        name: 'pattern2',
+        iteration: 2,
+        final_score: 0.3,
+      };
+      const threePatternProps = {
+        ...defaultProps,
+        patterns: [mockPattern, comparisonPattern, thirdPattern],
+      };
+
+      render(<PatternDetailsModal {...threePatternProps} />);
+
+      // Enable comparison with pattern1
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Open the "Change" modal — pattern1 is pre-selected
+      await user.click(screen.getByTestId('change-comparison-pattern'));
+
+      // Confirm button should be disabled since the same pattern is still selected
+      expect(screen.getByTestId('compare-pattern-confirm')).toBeDisabled();
+
+      // Select a different pattern — confirm should become enabled
+      await user.click(screen.getByTestId('comparison-pattern-row-2'));
+      expect(screen.getByTestId('compare-pattern-confirm')).toBeEnabled();
+    });
+
     it('should cancel comparison select modal without enabling comparison', async () => {
       const user = userEvent.setup();
       render(<PatternDetailsModal {...twoPatternProps} />);

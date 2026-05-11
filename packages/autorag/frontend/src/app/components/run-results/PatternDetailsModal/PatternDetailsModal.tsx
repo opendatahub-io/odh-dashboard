@@ -213,12 +213,12 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                       justifyContent={{ default: 'justifyContentSpaceBetween' }}
                       alignItems={{ default: 'alignItemsCenter' }}
                     >
-                      <FlexItem>
+                      <FlexItem className="autorag-pattern-details-modal__tab-title">
                         <Title headingLevel="h3" data-testid="pattern-details-tab-title">
                           {activeTab.label}
                         </Title>
                       </FlexItem>
-                      <FlexItem>
+                      <FlexItem flex={{ default: 'flex_1' }}>
                         <Switch
                           id="compare-patterns-toggle"
                           label={

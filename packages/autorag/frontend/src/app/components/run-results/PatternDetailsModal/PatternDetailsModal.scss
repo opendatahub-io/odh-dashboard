@@ -2,6 +2,48 @@
   --pf-v6-c-modal-box--MaxWidth: 1300px;
   --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
   height: 80vh;
+
+  &__tab-title {
+    flex: 4;
+  }
+}
+
+// Comparison select modal: PF thead truncates cells (MaxWidth:1px,
+// overflow:hidden, text-overflow:ellipsis) and modal body clips overflow.
+// Override both so the table sizes to content and scrolls horizontally.
+.autorag-comparison-select-modal.pf-v6-c-modal-box {
+  .pf-v6-c-modal-box__body {
+    overflow-x: auto;
+  }
+
+  .pf-v6-c-table {
+    width: max-content;
+    min-width: 100%;
+
+    thead {
+      --pf-v6-c-table--cell--MaxWidth: none;
+      --pf-v6-c-table--cell--Overflow: visible;
+      --pf-v6-c-table--cell--TextOverflow: clip;
+      --pf-v6-c-table--cell--WhiteSpace: nowrap;
+    }
+
+    // PF sticky cell styles from table-scrollable.css don't apply reliably
+    // inside a modal portal. Reapply position, background, and z-index directly.
+    td.pf-v6-c-table__sticky-cell,
+    th.pf-v6-c-table__sticky-cell {
+      position: sticky;
+      z-index: 1;
+      background-color: var(--pf-t--global--background--color--primary--default);
+    }
+
+    tr:hover td.pf-v6-c-table__sticky-cell {
+      background-color: var(--pf-t--global--background--color--primary--hover);
+    }
+
+    tr.pf-m-selected td.pf-v6-c-table__sticky-cell {
+      background-color: var(--pf-t--global--background--color--primary--clicked);
+    }
+  }
 }
 
 .autorag-pattern-details-modal .pf-v6-c-description-list__group {
