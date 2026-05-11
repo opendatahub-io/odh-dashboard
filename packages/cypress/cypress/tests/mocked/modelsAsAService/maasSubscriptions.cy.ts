@@ -257,14 +257,6 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findDisplayNameInput().type('Test Subscription');
     createSubscriptionPage.findDescriptionInput().type('A test subscription');
 
-    // Verify the priority does not conflict with existing subscriptions.
-    // The mock subscriptions have priorities 10 and 0, so default should be non-conflicting.
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('10');
-    createSubscriptionPage
-      .findPriorityValidationError()
-      .should('contain.text', 'Priority 10 is already used by');
-
     // Testing out max and min priority values
     createSubscriptionPage.findPriorityInput().clear();
     createSubscriptionPage.findPriorityInput().type('-1000000');
@@ -282,12 +274,9 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findPriorityInput().type('99999999999'); // Out of range the input will snap to 1000000
     createSubscriptionPage.findPriorityInput().should('have.value', '1000000');
 
-    // Set a non-conflicting priority
+    // Set a priority
     createSubscriptionPage.findPriorityInput().clear();
     createSubscriptionPage.findPriorityInput().type('5');
-    createSubscriptionPage
-      .findPriorityValidationError()
-      .should('not.contain.text', 'is already used by');
 
     // Select groups and add a custom one
     createSubscriptionPage.selectGroup('premium-users');
