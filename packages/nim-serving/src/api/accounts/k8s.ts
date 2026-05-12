@@ -3,11 +3,11 @@ import {
   k8sCreateResource,
   k8sDeleteResource,
   k8sListResource,
-  K8sStatusError,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { NIMAccountKind, SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import { SecretModel } from '@odh-dashboard/internal/api/models';
 import { createSecret, getSecret, replaceSecret } from '@odh-dashboard/internal/api/k8s/secrets';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
   NIM_SECRET_NAME,
   NIM_ACCOUNT_NAME,
@@ -88,7 +88,7 @@ export const deleteNIMAccount = async (namespace: string): Promise<void> => {
       queryOptions: { name: NIM_ACCOUNT_NAME, ns: namespace },
     });
   } catch (e) {
-    if (e instanceof K8sStatusError && e.status.code === 404) {
+    if (getGenericErrorCode(e) === 404) {
       return;
     }
     throw e;
@@ -102,7 +102,7 @@ export const deleteSecret = async (namespace: string, name: string): Promise<voi
       queryOptions: { name, ns: namespace },
     });
   } catch (e) {
-    if (e instanceof K8sStatusError && e.status.code === 404) {
+    if (getGenericErrorCode(e) === 404) {
       return;
     }
     throw e;

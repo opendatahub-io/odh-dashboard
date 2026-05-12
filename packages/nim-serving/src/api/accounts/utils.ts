@@ -1,10 +1,12 @@
-import { NIMAccountKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import { NIMAccountKind, SecretKind, K8sCondition } from '@odh-dashboard/internal/k8sTypes';
+import { getGenericErrorCode } from '@odh-dashboard/internal/api/errorUtils';
 import {
   assembleNIMSecret,
   assembleNIMAccount,
   assembleUpdatedSecret,
   createNIMSecret,
   createNIMAccount,
+  getNIMAccount,
   deleteNIMAccount,
   deleteSecret,
   fetchExistingSecret,
@@ -104,19 +106,64 @@ export const deriveAccountStatus = (
   return { status: NIMAccountStatus.PENDING, errorMessages: [] };
 };
 
+const isConflict = (e: unknown): boolean => getGenericErrorCode(e) === 409;
+
+export const createOrReplaceSecret = async (
+  namespace: string,
+  apiKey: string,
+  dryRun?: boolean,
+): Promise<SecretKind> => {
+  const secretData = assembleNIMSecret(namespace, apiKey);
+  try {
+    return await createNIMSecret(secretData, dryRun);
+  } catch (e) {
+    if (isConflict(e)) {
+      const existingSecret = await fetchExistingSecret(namespace, NIM_SECRET_NAME);
+      const updatedSecret = assembleUpdatedSecret(existingSecret, apiKey);
+      if (dryRun) {
+        await replaceNIMSecret(updatedSecret, true);
+        return updatedSecret;
+      }
+      return replaceNIMSecret(updatedSecret);
+    }
+    throw e;
+  }
+};
+
+export const createOrReturnAccount = async (
+  namespace: string,
+  dryRun?: boolean,
+): Promise<NIMAccountKind> => {
+  const accountData = assembleNIMAccount(namespace, NIM_SECRET_NAME);
+  try {
+    return await createNIMAccount(accountData, dryRun);
+  } catch (e) {
+    if (isConflict(e)) {
+      if (dryRun) {
+        return accountData;
+      }
+      const existing = await getNIMAccount(namespace);
+      if (existing) {
+        return existing;
+      }
+    }
+    throw e;
+  }
+};
+
 export const createNIMResources = async (
   namespace: string,
   apiKey: string,
 ): Promise<NIMAccountKind> => {
-  const secretData = assembleNIMSecret(namespace, apiKey);
-  const accountData = assembleNIMAccount(namespace, NIM_SECRET_NAME);
+  await Promise.all([
+    createOrReplaceSecret(namespace, apiKey, true),
+    createOrReturnAccount(namespace, true),
+  ]);
 
-  await Promise.all([createNIMSecret(secretData, true), createNIMAccount(accountData, true)]);
-
-  await createNIMSecret(secretData);
+  await createOrReplaceSecret(namespace, apiKey);
 
   try {
-    return await createNIMAccount(accountData);
+    return await createOrReturnAccount(namespace);
   } catch (e) {
     await deleteSecret(namespace, NIM_SECRET_NAME);
     throw e;
@@ -126,15 +173,4 @@ export const createNIMResources = async (
 export const deleteNIMResources = async (namespace: string): Promise<void> => {
   await deleteNIMAccount(namespace);
   await deleteSecret(namespace, NIM_SECRET_NAME);
-};
-
-export const updateNIMSecretAndRevalidate = async (
-  namespace: string,
-  secretName: string,
-  apiKey: string,
-): Promise<void> => {
-  const existingSecret = await fetchExistingSecret(namespace, secretName);
-  const updatedSecret = assembleUpdatedSecret(existingSecret, apiKey);
-  await replaceNIMSecret(updatedSecret, true);
-  await replaceNIMSecret(updatedSecret);
 };

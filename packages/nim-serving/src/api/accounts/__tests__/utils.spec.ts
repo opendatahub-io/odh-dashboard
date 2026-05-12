@@ -1,4 +1,6 @@
 import { mockNimAccount } from '@odh-dashboard/internal/__mocks__/mockNimAccount';
+import { mock409Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import { K8sStatusError } from '@odh-dashboard/internal/api/errorUtils';
 import { SecretKind } from '@odh-dashboard/internal/k8sTypes';
 import {
   assembleNIMSecret,
@@ -6,6 +8,7 @@ import {
   assembleUpdatedSecret,
   createNIMSecret,
   createNIMAccount,
+  getNIMAccount,
   deleteNIMAccount,
   deleteSecret,
   fetchExistingSecret,
@@ -13,7 +16,6 @@ import {
 } from '../k8s';
 import {
   createNIMResources,
-  updateNIMSecretAndRevalidate,
   deleteNIMResources,
   isAccountReady,
   isApiKeyValidationFailed,
@@ -33,6 +35,7 @@ jest.mock('../k8s', () => ({
   ...jest.requireActual('../k8s'),
   createNIMSecret: jest.fn(),
   createNIMAccount: jest.fn(),
+  getNIMAccount: jest.fn(),
   deleteNIMAccount: jest.fn(),
   deleteSecret: jest.fn(),
   fetchExistingSecret: jest.fn(),
@@ -41,6 +44,7 @@ jest.mock('../k8s', () => ({
 
 const mockCreateNIMSecret = jest.mocked(createNIMSecret);
 const mockCreateNIMAccount = jest.mocked(createNIMAccount);
+const mockGetNIMAccount = jest.mocked(getNIMAccount);
 const mockDeleteNIMAccount = jest.mocked(deleteNIMAccount);
 const mockDeleteSecret = jest.mocked(deleteSecret);
 const mockFetchExistingSecret = jest.mocked(fetchExistingSecret);
@@ -113,7 +117,7 @@ describe('createNIMResources', () => {
 
     expect(mockCreateNIMSecret).toHaveBeenCalledTimes(2);
     expect(mockCreateNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
-    expect(mockCreateNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
+    expect(mockCreateNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object), undefined);
 
     expect(mockCreateNIMAccount).toHaveBeenCalledTimes(2);
     expect(mockCreateNIMAccount).toHaveBeenNthCalledWith(1, expect.any(Object), true);
@@ -122,6 +126,7 @@ describe('createNIMResources', () => {
       expect.objectContaining({
         spec: { apiKeySecret: { name: NIM_SECRET_NAME } },
       }),
+      undefined,
     );
 
     expect(result).toBe(createdAccount);
@@ -136,6 +141,52 @@ describe('createNIMResources', () => {
     expect(mockCreateNIMSecret).toHaveBeenCalledTimes(1);
     expect(mockCreateNIMAccount).toHaveBeenCalledTimes(1);
     expect(mockDeleteSecret).not.toHaveBeenCalled();
+  });
+
+  it('should replace existing secret if create returns 409', async () => {
+    const existingSecret: SecretKind = {
+      apiVersion: 'v1',
+      kind: 'Secret',
+      metadata: { name: NIM_SECRET_NAME, namespace: 'test-ns', resourceVersion: '999' },
+      type: 'Opaque',
+      data: { [NIM_API_KEY_DATA_KEY]: btoa('old-key') },
+    };
+    const createdAccount = mockNimAccount({
+      namespace: 'test-ns',
+      apiKeySecretName: NIM_SECRET_NAME,
+    });
+
+    mockCreateNIMSecret.mockRejectedValue(new K8sStatusError(mock409Error({}))); // both dry-run and actual create: 409
+    mockCreateNIMAccount.mockResolvedValue(createdAccount);
+    mockFetchExistingSecret.mockResolvedValue(existingSecret);
+    mockReplaceNIMSecret.mockResolvedValue({} as SecretKind);
+
+    const result = await createNIMResources('test-ns', 'nvapi-key');
+
+    expect(mockFetchExistingSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
+    expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(2);
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
+    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
+    expect(result).toBe(createdAccount);
+  });
+
+  it('should return existing account if create returns 409', async () => {
+    const existingAccount = mockNimAccount({
+      namespace: 'test-ns',
+      apiKeySecretName: NIM_SECRET_NAME,
+    });
+
+    mockCreateNIMSecret.mockResolvedValue({} as SecretKind);
+    mockCreateNIMAccount
+      .mockResolvedValueOnce(mockNimAccount({})) // dry-run succeeds
+      .mockRejectedValueOnce(new K8sStatusError(mock409Error({}))); // actual create: 409
+    mockGetNIMAccount.mockResolvedValue(existingAccount);
+
+    const result = await createNIMResources('test-ns', 'nvapi-key');
+
+    expect(mockGetNIMAccount).toHaveBeenCalledWith('test-ns');
+    expect(mockDeleteSecret).not.toHaveBeenCalled();
+    expect(result).toBe(existingAccount);
   });
 
   it('should clean up secret if account creation fails', async () => {
@@ -154,51 +205,6 @@ describe('createNIMResources', () => {
       'account creation failed',
     );
     expect(mockDeleteSecret).toHaveBeenCalledWith('test-ns', NIM_SECRET_NAME);
-  });
-});
-
-describe('updateNIMSecretAndRevalidate', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should dry-run replace before committing', async () => {
-    const existingSecret: SecretKind = {
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: {
-        name: 'nvidia-nim-access-abc',
-        namespace: 'test-ns',
-        resourceVersion: '12345',
-      },
-      type: 'Opaque',
-      data: { [NIM_API_KEY_DATA_KEY]: btoa('old-key'), [NGC_API_KEY_DATA_KEY]: btoa('old-key') },
-    };
-    mockFetchExistingSecret.mockResolvedValue(existingSecret);
-    mockReplaceNIMSecret.mockResolvedValue({} as SecretKind);
-
-    await updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'nvapi-new-key');
-
-    expect(mockFetchExistingSecret).toHaveBeenCalledWith('test-ns', 'nvidia-nim-access-abc');
-    expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(2);
-    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(1, expect.any(Object), true);
-    expect(mockReplaceNIMSecret).toHaveBeenNthCalledWith(2, expect.any(Object));
-  });
-
-  it('should not replace if dry-run fails', async () => {
-    const existingSecret: SecretKind = {
-      apiVersion: 'v1',
-      kind: 'Secret',
-      metadata: { name: 'nvidia-nim-access-abc', namespace: 'test-ns' },
-      type: 'Opaque',
-    };
-    mockFetchExistingSecret.mockResolvedValue(existingSecret);
-    mockReplaceNIMSecret.mockRejectedValueOnce(new Error('dry-run failed'));
-
-    await expect(
-      updateNIMSecretAndRevalidate('test-ns', 'nvidia-nim-access-abc', 'bad-key'),
-    ).rejects.toThrow('dry-run failed');
-    expect(mockReplaceNIMSecret).toHaveBeenCalledTimes(1);
   });
 });
 

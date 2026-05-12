@@ -38,8 +38,7 @@ type NIMSettingsCardProps = {
 };
 
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
-  const { status, nimAccount, errorMessages, refresh, startRevalidation } =
-    useNIMAccountStatus(namespace);
+  const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
 
   const [canCreateAccount, accessReviewLoaded] = useAccessReview({
     group: NIMAccountModel.apiGroup,
@@ -52,8 +51,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<Error>();
-
-  const existingSecretName = nimAccount?.spec.apiKeySecret.name;
 
   const deleteStatusIntervalRef = React.useRef<ReturnType<typeof setInterval>>();
   const stopPollingDeleteStatus = React.useCallback((error?: Error) => {
@@ -202,7 +199,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         <NIMApiKeyModal
           onClose={() => setIsApiKeyModalOpen(false)}
           namespace={namespace}
-          existingSecretName={existingSecretName}
           refresh={refresh}
           startRevalidation={startRevalidation}
           accountStatus={status}

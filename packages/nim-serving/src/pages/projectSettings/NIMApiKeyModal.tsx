@@ -20,12 +20,11 @@ import {
 } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
-import { createNIMResources, updateNIMSecretAndRevalidate } from '../../api/accounts/utils';
+import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/utils';
 
 type NIMApiKeyModalProps = {
   onClose: () => void;
   namespace: string;
-  existingSecretName?: string;
   refresh: () => Promise<unknown>;
   startRevalidation: () => void;
   accountStatus: NIMAccountStatus;
@@ -34,7 +33,6 @@ type NIMApiKeyModalProps = {
 const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
   onClose,
   namespace,
-  existingSecretName,
   refresh,
   startRevalidation,
   accountStatus,
@@ -55,10 +53,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
 
     try {
       if (accountExists) {
-        if (!existingSecretName) {
-          throw new Error('Cannot replace API key: existing secret is missing.');
-        }
-        await updateNIMSecretAndRevalidate(namespace, existingSecretName, trimmedKey);
+        await createOrReplaceSecret(namespace, trimmedKey);
         startRevalidation();
       } else {
         await createNIMResources(namespace, trimmedKey);
@@ -70,7 +65,7 @@ const NIMApiKeyModal: React.FC<NIMApiKeyModalProps> = ({
     } finally {
       setIsCreating(false);
     }
-  }, [apiKey, accountStatus, existingSecretName, namespace, startRevalidation, refresh]);
+  }, [apiKey, accountStatus, namespace, startRevalidation, refresh]);
 
   const handleClose = React.useCallback(() => {
     onClose();
