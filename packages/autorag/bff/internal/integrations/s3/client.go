@@ -253,11 +253,10 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 
 	for _, obj := range output.Contents {
 		key := aws.ToString(obj.Key)
-		// Skip the folder marker that represents the queried prefix itself.
-		// S3 returns zero-byte objects whose key equals the prefix (e.g.
-		// "folder/") as content items; surfacing them causes the UI to
-		// render the current folder as a child of itself.
-		if key == prefix {
+		// Skip zero-byte folder markers: objects whose key ends with "/"
+		// and size is 0. These are S3 placeholders for "folders" and
+		// should never appear as browsable files in the UI.
+		if strings.HasSuffix(key, "/") && aws.ToInt64(obj.Size) == 0 {
 			continue
 		}
 		info := models.S3ObjectInfo{
