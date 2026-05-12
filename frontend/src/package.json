@@ -38,7 +38,8 @@
   },
   "dependencies": {
     "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "protobufjs": "^7.5.6"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
