@@ -1,11 +1,5 @@
 import * as React from 'react';
-import {
-  useFetchState,
-  FetchState,
-  FetchStateCallbackPromise,
-  POLL_INTERVAL,
-  NotReadyError,
-} from 'mod-arch-core';
+import { useFetchState, FetchState, FetchStateCallbackPromise, POLL_INTERVAL } from 'mod-arch-core';
 import { ModelTransferJobList, ModelTransferJobStatus } from '~/app/types';
 import { useModelRegistryAPI } from '~/app/hooks/useModelRegistryAPI';
 
@@ -16,7 +10,7 @@ const useModelTransferJobs = (jobNamespace?: string): FetchState<ModelTransferJo
   const callback = React.useCallback<FetchStateCallbackPromise<ModelTransferJobList>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
       return api.listModelTransferJobs(opts, jobNamespace).then((result) => {
         const active = result.items.some(

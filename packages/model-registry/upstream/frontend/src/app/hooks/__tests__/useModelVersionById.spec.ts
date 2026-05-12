@@ -57,7 +57,7 @@ describe('useModelVersionById', () => {
     jest.clearAllMocks();
   });
 
-  it('should reject with NotReadyError when the API is not available', async () => {
+  it('should reject with an error when the API is not available', async () => {
     mockUseModelRegistryAPI.mockReturnValue({
       api: mockModelRegistryAPIs,
       apiAvailable: false,
@@ -68,7 +68,6 @@ describe('useModelVersionById', () => {
     const callback = captureCallback();
 
     await expect(callback({})).rejects.toThrow('API not yet available');
-    await expect(callback({})).rejects.toMatchObject({ name: 'NotReadyError' });
   });
 
   it('should reject with NotReadyError when modelVersionId is not provided', async () => {

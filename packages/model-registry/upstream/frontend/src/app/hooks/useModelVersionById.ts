@@ -9,7 +9,7 @@ const useModelVersionById = (modelVersionId?: string): FetchState<ModelVersion |
   const call = React.useCallback<FetchStateCallbackPromise<ModelVersion | null>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
       if (!modelVersionId) {
         return Promise.reject(new NotReadyError('No model version id'));

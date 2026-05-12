@@ -15,7 +15,7 @@ export const useMcpServerWithAPI = (
   const call = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
       if (!serverId) {
         return Promise.reject(new NotReadyError('No server id'));

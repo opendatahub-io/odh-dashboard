@@ -11,7 +11,7 @@ export const useCatalogModel = (sourceId: string, modelName: string): FetchState
   const call = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
       if (!sourceId) {
         return Promise.reject(new NotReadyError('No source id'));

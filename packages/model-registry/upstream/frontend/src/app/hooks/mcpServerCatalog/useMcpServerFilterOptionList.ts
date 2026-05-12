@@ -1,4 +1,4 @@
-import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
+import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import React from 'react';
 import { CatalogFilterOptionsList } from '~/app/modelCatalogTypes';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
@@ -47,7 +47,7 @@ export const useMcpServerFilterOptionListWithAPI = (
   const call = React.useCallback<FetchStateCallbackPromise<State>>(
     (opts) => {
       if (!apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
 
       return api.getMcpServerFilterOptionList(opts).then(mapBackendFilterOptions);

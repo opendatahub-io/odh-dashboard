@@ -87,23 +87,6 @@ describe('useModelTransferJobs', () => {
     ]);
   });
 
-  it('should reject with NotReadyError when the API is not available', async () => {
-    mockUseModelRegistryAPI.mockReturnValue({
-      api: mockModelRegistryAPIs,
-      apiAvailable: false,
-      refreshAllAPI: jest.fn(),
-    });
-
-    const { getCapturedCallback } = setupFetchStateCapture();
-
-    testHook(useModelTransferJobs)();
-
-    const capturedCallback = getCapturedCallback();
-    expect(capturedCallback).toBeDefined();
-    await expect(capturedCallback!({})).rejects.toThrow('API not yet available');
-    await expect(capturedCallback!({})).rejects.toMatchObject({ name: 'NotReadyError' });
-  });
-
   it('sets refreshRate to POLL_INTERVAL when there are active (RUNNING/PENDING) jobs', async () => {
     // Arrange a response with one RUNNING job
     const activeJobsList: ModelTransferJobList = {

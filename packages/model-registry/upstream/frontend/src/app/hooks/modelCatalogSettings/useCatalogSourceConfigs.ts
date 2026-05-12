@@ -1,4 +1,4 @@
-import { FetchState, FetchStateCallbackPromise, NotReadyError, useFetchState } from 'mod-arch-core';
+import { FetchState, FetchStateCallbackPromise, useFetchState } from 'mod-arch-core';
 import React from 'react';
 import { CatalogSourceConfigList } from '~/app/modelCatalogTypes';
 import { ModelCatalogSettingsAPIState } from './useModelCatalogSettingsAPIState';
@@ -9,7 +9,7 @@ export const useCatalogSourceConfigs = (
   const call = React.useCallback<FetchStateCallbackPromise<CatalogSourceConfigList>>(
     (opts) => {
       if (!apiState.apiAvailable) {
-        return Promise.reject(new NotReadyError('API not yet available'));
+        return Promise.reject(new Error('API not yet available'));
       }
 
       return apiState.api.getCatalogSourceConfigs(opts);
