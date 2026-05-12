@@ -342,7 +342,6 @@ func (app *App) Routes() http.Handler {
 	// Create identity middleware using autox-core
 	injectRequestIdentity := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
 		Extractor:  identityExtractor,
-		SkipPaths:  []string{HealthCheckPath},
 		OnError:    app.badRequestResponse,
 		ContextKey: constants.RequestIdentityKey,
 	})
