@@ -7,7 +7,7 @@
 [Module Federation]: module-federation.md
 [Workspace Dockerfiles]: workspace-dockerfiles.md
 [Dashboard environment variables]: dashboard-environment-variables.md
-[Large Tasks with AI Agents]: ai-agent-large-tasks.md
+[Large Tasks with Claude Code Goals]: ai-agent-large-tasks.md
 
 # Dashboard Documentation
 
@@ -29,4 +29,4 @@ This is the general documentation of the Dashboard component.
 * [Module Federation]
 * [Workspace Dockerfiles]
 * [Dashboard environment variables]
-* [Large Tasks with AI Agents]
+* [Large Tasks with Claude Code Goals]
