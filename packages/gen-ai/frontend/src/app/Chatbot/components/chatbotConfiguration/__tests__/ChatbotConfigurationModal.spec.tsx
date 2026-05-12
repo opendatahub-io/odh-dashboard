@@ -342,6 +342,37 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
       );
     });
   });
+
+  it('swallows a conflict error from initNemoGuardrails and completes submit', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    mockInitNemoGuardrails.mockRejectedValue(
+      Object.assign(new Error('already initialized'), { code: 'conflict' }),
+    );
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/Error configuring playground/i)).not.toBeInTheDocument();
+  });
+
+  it('surfaces non-conflict errors from initNemoGuardrails', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    mockInitNemoGuardrails.mockRejectedValue(
+      Object.assign(new Error('internal server error'), { code: 'server_error' }),
+    );
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Error configuring playground/i)).toBeInTheDocument();
+    });
+  });
 });
 
 // ─── Step navigation ──────────────────────────────────────────────────────────
