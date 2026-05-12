@@ -28,6 +28,7 @@
     "@odh-dashboard/internal": "*",
     "@odh-dashboard/llmd-serving": "*",
     "@odh-dashboard/maas": "*",
+    "@odh-dashboard/nim-serving": "*",
     "@odh-dashboard/model-registry": "*",
     "@odh-dashboard/model-serving": "*",
     "@odh-dashboard/model-training": "*",
