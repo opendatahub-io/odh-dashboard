@@ -13,6 +13,7 @@ import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
+import useNIMAccountStatus, { NIMAccountStatus } from '../api/accounts/hooks';
 import {
   fetchNIMModelNames,
   getNIMImageName,
@@ -165,6 +166,8 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const projectName = externalData?.data.projectName;
 
+  const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName ?? '');
+
   const [canViewSettings, rbacLoaded] = useAccessReview(
     {
       group: 'rbac.authorization.k8s.io',
@@ -183,12 +186,14 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     );
   }
 
-  const hasNoModels = externalData.loaded && modelInfos.length === 0 && !externalData.loadError;
-  // TODO: after PR #7436 merges and we rebase, use useNIMAccountStatus to distinguish
-  // "no key configured" (NOT_FOUND) from "invalid key" (ERROR) and show different messages.
-  const hasLoadError = externalData.loaded && !!externalData.loadError;
+  const isNIMUnconfigured =
+    accountLoaded &&
+    (accountStatus === NIMAccountStatus.NOT_FOUND || accountStatus === NIMAccountStatus.ERROR) &&
+    modelInfos.length === 0;
 
-  if (hasNoModels || hasLoadError) {
+  if (isNIMUnconfigured) {
+    const isInvalidKey = accountStatus === NIMAccountStatus.ERROR;
+
     const settingsAction = !rbacLoaded ? (
       <Spinner size="sm" />
     ) : canViewSettings ? (
@@ -199,7 +204,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
     return (
       <Alert variant="danger" isInline title="NVIDIA Inference Microservices (NIM image)">
-        {hasLoadError
+        {isInvalidKey
           ? 'The NVIDIA NIM key for this project is invalid and needs to be replaced. '
           : 'No NVIDIA NIM key has been configured for this project. '}
         {settingsAction}
