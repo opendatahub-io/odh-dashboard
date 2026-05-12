@@ -13,7 +13,7 @@ import type {
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
-import type { NIMImageFieldType } from './src/wizardFields/NIMImageField';
+import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
 
 export const NIM_ID = 'nvidia-nim';
 
@@ -91,7 +91,9 @@ const extensions: (
     type: 'model-serving.deployment/wizard-field2',
     properties: {
       field: () =>
-        import('./src/wizardFields/NIMImageField').then((m) => m.NIMImageFieldWizardField),
+        import('./src/pages/deploymentWizard/fields/NIMImageField').then(
+          (m) => m.NIMImageFieldWizardField,
+        ),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],

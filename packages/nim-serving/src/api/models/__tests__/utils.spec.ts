@@ -1,4 +1,4 @@
-import { normalizeVersion, getNIMImageName } from '../nimModels';
+import { normalizeVersion, getNIMImageName } from '../utils';
 
 describe('normalizeVersion', () => {
   it('should pad single number to three parts', () => {

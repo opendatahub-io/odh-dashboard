@@ -3,14 +3,14 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
-import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
-import type { NIMImagesData } from '../NIMImageField';
+import useNIMAccountStatus, { NIMAccountStatus } from '../../../../api/accounts/hooks';
+import type { NIMImagesData } from '../../../../api/models/hooks';
 
 jest.mock('@odh-dashboard/internal/api/useAccessReview', () => ({
   useAccessReview: jest.fn(),
 }));
 
-jest.mock('../../api/accounts/hooks', () => ({
+jest.mock('../../../../api/accounts/hooks', () => ({
   __esModule: true,
   default: jest.fn(),
   NIMAccountStatus: {

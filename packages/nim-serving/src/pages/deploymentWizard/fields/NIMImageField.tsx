@@ -5,65 +5,18 @@ import { Link } from 'react-router-dom';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
-import useFetch, {
-  NotReadyError,
-  type FetchStateCallbackPromise,
-} from '@odh-dashboard/internal/utilities/useFetch';
 import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
-import useNIMAccountStatus, { NIMAccountStatus } from '../api/accounts/hooks';
-import {
-  fetchNIMModelNames,
-  getNIMImageName,
-  normalizeVersion,
-  type ModelInfo,
-} from '../utils/nimModels';
-
-// --- Dependencies ---
+import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
+import { useNIMImages, type NIMImagesData } from '../../../api/models/hooks';
+import type { NIMModelInfo } from '../../../api/models/types';
+import { getNIMImageName, normalizeVersion } from '../../../api/models/utils';
 
 export type NIMImageDependencies = {
   project: ProjectSectionType;
 };
-
-// --- External data hook ---
-
-export type NIMImagesData = {
-  modelInfos: ModelInfo[];
-  projectName?: string;
-};
-
-export const useNIMImages = (
-  dependencies?: NIMImageDependencies,
-): {
-  data: NIMImagesData;
-  loaded: boolean;
-  loadError?: Error;
-} => {
-  const project = dependencies?.project;
-  const projectName = project?.projectName;
-
-  const fetchCallback = React.useCallback<FetchStateCallbackPromise<ModelInfo[]>>(() => {
-    if (!projectName) {
-      return Promise.reject(new NotReadyError('No project selected'));
-    }
-    return fetchNIMModelNames(projectName);
-  }, [projectName]);
-
-  const { data: modelInfos, loaded, error: loadError } = useFetch(fetchCallback, []);
-
-  return React.useMemo(
-    () => ({
-      data: { modelInfos, projectName },
-      loaded,
-      loadError,
-    }),
-    [modelInfos, projectName, loaded, loadError],
-  );
-};
-
-// --- Component ---
 
 export type NIMImageFieldValue = {
   imageName: string;
@@ -83,8 +36,8 @@ type NIMImageFieldComponentProps = {
 
 const extractModelAndVersion = (
   key: string,
-  modelInfos: ModelInfo[],
-): { modelInfo: ModelInfo; version: string } | null => {
+  modelInfos: NIMModelInfo[],
+): { modelInfo: NIMModelInfo; version: string } | null => {
   const matchedModels = modelInfos.filter((model) => key.startsWith(`${model.name}-`));
   if (matchedModels.length === 0) {
     return null;
@@ -245,8 +198,6 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     </FormGroup>
   );
 };
-
-// --- Field definition ---
 
 export type NIMImageFieldType = WizardField<
   NIMImageFieldValue,

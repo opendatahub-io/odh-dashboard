@@ -1,17 +1,8 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
-import { NIMAccountModel } from '../api/accounts/k8s';
-
-export type ModelInfo = {
-  name: string;
-  displayName?: string;
-  shortDescription?: string;
-  namespace?: string;
-  tags?: string[];
-  latestTag?: string;
-  updatedDate?: string;
-};
+import type { NIMModelInfo } from './types';
+import { NIMAccountModel } from '../accounts/k8s';
 
 export const normalizeVersion = (tag: string): string => {
   if (/^\d+(\.\d+)*$/.test(tag)) {
@@ -30,7 +21,7 @@ export const getNIMImageName = (
   version: string,
 ): string => `nvcr.io/${modelNamespace}/${modelName}:${version}`;
 
-export const fetchNIMModelNames = async (projectNamespace: string): Promise<ModelInfo[]> => {
+export const fetchNIMModelNames = async (projectNamespace: string): Promise<NIMModelInfo[]> => {
   const accounts = await k8sListResource<NIMAccountKind>({
     model: NIMAccountModel,
     queryOptions: { ns: projectNamespace },
@@ -55,7 +46,7 @@ export const fetchNIMModelNames = async (projectNamespace: string): Promise<Mode
     return [];
   }
 
-  const modelInfos: ModelInfo[] = [];
+  const modelInfos: NIMModelInfo[] = [];
   for (const [key, value] of Object.entries(configMap.data)) {
     try {
       const modelData = JSON.parse(value);
