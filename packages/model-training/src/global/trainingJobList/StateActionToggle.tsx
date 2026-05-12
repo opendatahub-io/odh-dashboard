@@ -6,6 +6,7 @@ export type StateActionToggleProps = {
   onPause: () => void;
   onResume: () => void;
   isLoading?: boolean;
+  isDisabled?: boolean;
 };
 
 const StateActionToggle: React.FC<StateActionToggleProps> = ({
@@ -13,6 +14,7 @@ const StateActionToggle: React.FC<StateActionToggleProps> = ({
   onPause,
   onResume,
   isLoading = false,
+  isDisabled = false,
 }) => {
   return (
     <Button
@@ -20,7 +22,7 @@ const StateActionToggle: React.FC<StateActionToggleProps> = ({
       variant="link"
       onClick={isPaused ? onResume : onPause}
       isInline
-      isDisabled={isLoading}
+      isDisabled={isLoading || isDisabled}
       isLoading={isLoading}
     >
       {isPaused ? 'Resume' : 'Pause'}

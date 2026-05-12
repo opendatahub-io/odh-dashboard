@@ -20,7 +20,9 @@ const useModelFramework = (
     setLoadedFrameworksForRuntimeName(null);
     getServingRuntime(name, namespace)
       .then((servingRuntime) => {
-        setModels(servingRuntime.spec.supportedModelFormats || []);
+        // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        setModels(servingRuntime.spec?.supportedModelFormats || []);
         setLoadedFrameworksForRuntimeName(name);
       })
       .catch((e) => {

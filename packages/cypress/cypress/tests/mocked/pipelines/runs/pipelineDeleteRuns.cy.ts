@@ -164,7 +164,6 @@ describe('Test deleting runs', () => {
       expect(interception.request.query).to.eql({
         sort_by: 'created_at desc',
         page_size: '10',
-        filter: encodeURIComponent('{"predicates":[]}'),
       });
 
       pipelineRecurringRunTable.findEmptyState().should('not.exist');
@@ -219,7 +218,6 @@ describe('Test deleting runs', () => {
       expect(interception.request.query).to.eql({
         sort_by: 'created_at desc',
         page_size: '10',
-        filter: encodeURIComponent('{"predicates":[]}'),
       });
     });
     pipelineRecurringRunTable.findEmptyState().should('exist');

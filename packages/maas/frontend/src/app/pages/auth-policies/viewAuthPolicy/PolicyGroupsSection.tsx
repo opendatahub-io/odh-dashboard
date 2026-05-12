@@ -17,14 +17,16 @@ const PolicyGroupsSection: React.FC<PolicyGroupsSectionProps> = ({ groups }) => 
           </Title>
         </FlexItem>
         <FlexItem>
-          <Content component="p">Users in these groups are able to access this policy.</Content>
+          <Content component="p">
+            Users in these groups are able to access this authorization policy.
+          </Content>
         </FlexItem>
       </Flex>
     </StackItem>
     <StackItem>
       {groups.length === 0 ? (
         <Bullseye>
-          <Content component="p">No groups assigned to this policy.</Content>
+          <Content component="p">No groups assigned to this authorization policy.</Content>
         </Bullseye>
       ) : (
         <Table aria-label="Policy groups" variant="compact" data-testid="policy-groups-table">

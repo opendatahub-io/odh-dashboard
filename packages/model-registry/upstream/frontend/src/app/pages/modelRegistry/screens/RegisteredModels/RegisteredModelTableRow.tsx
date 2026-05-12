@@ -48,7 +48,8 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
     {
       title: 'View model information',
       isDisabled: true,
-      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
+      className:
+        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
     },
     {
       title: 'Overview',
@@ -86,7 +87,8 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
     {
       title: 'Latest version actions',
       isDisabled: true,
-      className: 'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
+      className:
+        'pf-v6-u-font-size-sm pf-v6-u-color-200 pf-v6-u-text-transform-uppercase pf-v6-u-p-xs',
     },
   ];
 
@@ -104,9 +106,10 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
             title: 'Archive model',
             onClick: () => setIsArchiveModalOpen(true),
             isAriaDisabled: !loaded || hasDeploys,
-            tooltipProps: loaded && hasDeploys
-              ? { content: 'Models with deployed versions cannot be archived.' }
-              : undefined,
+            tooltipProps:
+              loaded && hasDeploys
+                ? { content: 'Models with deployed versions cannot be archived.' }
+                : undefined,
           },
         ]),
   ];
@@ -185,7 +188,9 @@ const RegisteredModelTableRow: React.FC<RegisteredModelTableRowProps> = ({
                       ),
                       onClick: onOpenModal,
                       isAriaDisabled: !buttonState.enabled,
-                      tooltipProps: buttonState.tooltip ? { content: buttonState.tooltip } : undefined,
+                      tooltipProps: buttonState.tooltip
+                        ? { content: buttonState.tooltip }
+                        : undefined,
                     },
                     ...archiveRestoreActions,
                   ]}

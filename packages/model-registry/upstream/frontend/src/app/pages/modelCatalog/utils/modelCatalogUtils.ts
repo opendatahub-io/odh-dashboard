@@ -35,7 +35,11 @@ import {
   ModelType,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
-import { ModelRegistryMetadataType } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
+import {
+  buildCustomPropertiesWithModelType,
+  getModelTypeStoredValueFromCustomProperties,
+} from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -180,8 +184,7 @@ export const isModelValidated = (model: CatalogModel): boolean => {
 };
 
 // Utility function to check if a model is from Red Hat
-export const isRedHatModel = (model: CatalogModel): boolean =>
-  model.provider === 'Red Hat';
+export const isRedHatModel = (model: CatalogModel): boolean => model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
@@ -754,6 +757,21 @@ export const orderLabelsByPriority = (
   return orderedLabels;
 };
 
+export const getActiveSourceLabels = (
+  catalogSources: CatalogSourceList | null,
+  catalogLabels: CatalogLabelList | null,
+): string[] => {
+  const enabledSources = filterEnabledCatalogSources(catalogSources);
+  const uniqueLabels = getUniqueSourceLabels(enabledSources);
+  const orderedLabels = orderLabelsByPriority(uniqueLabels, catalogLabels);
+
+  if (hasSourcesWithoutLabels(enabledSources)) {
+    return [...orderedLabels, SourceLabel.other];
+  }
+
+  return orderedLabels;
+};
+
 /**
  * Formats model type value for display in the UI.
  * Converts raw API values (generative, predictive, unknown) to user-friendly display labels.
@@ -777,4 +795,16 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
   }
   // Fallback: capitalize whatever value we got
   return capitalize(modelTypeRaw.trim());
+};
+
+/**
+ * Returns model registry customProperties entries to prefill `model_type` when registering
+ * from the catalog. Recognized values (generative, predictive, unknown) are copied;
+ * unrecognized or missing values yield {}.
+ */
+export const getCatalogModelTypePropertyForRegistration = (
+  customProperties?: ModelRegistryCustomProperties,
+): ModelRegistryCustomProperties => {
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  return buildCustomPropertiesWithModelType(undefined, stored);
 };

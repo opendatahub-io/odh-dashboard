@@ -2,6 +2,7 @@ import {
   Alert,
   Bullseye,
   Button,
+  Content,
   EmptyState,
   EmptyStateVariant,
   Flex,
@@ -22,9 +23,12 @@ import {
   getActiveLatencyFieldName,
   getSortParams,
   generateCategoryName,
+  getLabelDisplayName,
+  getLabelDescription,
   hasFiltersApplied,
   isValueDifferentFromDefault,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
 import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
 import {
@@ -38,11 +42,15 @@ import {
 type ModelCatalogPageProps = {
   searchTerm: string;
   handleFilterReset: () => void;
+  isSingleCategory?: boolean;
+  singleCategoryLabel?: string;
 };
 
 const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   searchTerm,
   handleFilterReset,
+  isSingleCategory = false,
+  singleCategoryLabel,
 }) => {
   const {
     selectedSourceLabel,
@@ -51,6 +59,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     filterOptionsLoaded,
     filterOptionsLoadError,
     catalogSources,
+    catalogLabels,
     catalogLabelsLoaded,
     catalogLabelsLoadError,
     setPerformanceViewEnabled,
@@ -212,25 +221,35 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     return (
       <EmptyModelCatalogState
         testid="performance-empty-state"
-        title="No performance data available in selected category"
+        title={
+          isSingleCategory
+            ? 'No performance data available'
+            : 'No performance data available in selected category'
+        }
         headerIcon={ChartBarIcon}
         variant={EmptyStateVariant.lg}
         description={
-          <>
-            No models in the{' '}
-            <strong>
-              {selectedSourceLabel === 'null'
-                ? CategoryName.otherModels
-                : generateCategoryName(selectedSourceLabel || '')}
-            </strong>{' '}
-            category have performance data. Select another model category, or turn off model
-            performance view to see models in the selected category.
-          </>
+          isSingleCategory ? (
+            'No models have performance data available. Turn off model performance view to see all models.'
+          ) : (
+            <>
+              No models in the{' '}
+              <strong>
+                {selectedSourceLabel === 'null'
+                  ? CategoryName.otherModels
+                  : generateCategoryName(selectedSourceLabel || '')}
+              </strong>{' '}
+              category have performance data. Select another model category, or turn off model
+              performance view to see models in the selected category.
+            </>
+          )
         }
         primaryAction={
-          <Button variant="primary" onClick={handleSelectAllModels}>
-            View all models with performance data
-          </Button>
+          isSingleCategory ? undefined : (
+            <Button variant="primary" onClick={handleSelectAllModels}>
+              View all models with performance data
+            </Button>
+          )
         }
         secondaryAction={
           <Button variant="link" onClick={handleDisablePerformanceView}>
@@ -247,7 +266,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
         testid="empty-model-catalog-state"
         title="No models available"
         headerIcon={SearchIcon}
-        description="No models are available in this category."
+        description="No models are available in this category"
       />
     );
   }
@@ -270,9 +289,37 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     );
   }
 
+  const effectiveCategoryLabel = singleCategoryLabel || selectedSourceLabel || '';
+  const categoryTitle = isSingleCategory
+    ? getLabelDisplayName(effectiveCategoryLabel, catalogLabels)
+    : undefined;
+  const categoryDescription = isSingleCategory
+    ? getLabelDescription(effectiveCategoryLabel, catalogLabels)
+    : undefined;
+
   return (
     <>
       <ScrollViewOnMount shouldScroll scrollToTop />
+      {isSingleCategory && categoryTitle && (
+        <div className="pf-v6-u-mb-lg" data-testid="single-category-header">
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <Title headingLevel="h3" size="lg">
+              {categoryTitle}
+            </Title>
+            {performanceViewEnabled && (
+              <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+            )}
+          </Flex>
+          {categoryDescription && (
+            <Content component="p" className="pf-v6-u-color-200 pf-v6-u-mt-sm">
+              {categoryDescription}
+            </Content>
+          )}
+        </div>
+      )}
       <Grid hasGutter>
         {catalogModels.items.map((model: CatalogModel) => (
           <GridItem key={`${model.name}/${model.source_id}`} sm={6} md={6} lg={6} xl={6} xl2={3}>

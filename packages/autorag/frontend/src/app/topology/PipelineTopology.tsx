@@ -6,6 +6,7 @@ import {
 } from '@patternfly/react-topology';
 import { Bullseye, Spinner, EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { computePipelineRankSep } from './const';
 import useTopologyController from './useTopologyController';
 import PipelineVisualizationSurface from './PipelineVisualizationSurface';
 
@@ -22,7 +23,14 @@ const PipelineTopology: React.FC<PipelineTopologyProps> = ({
   onSelectionChange,
   className,
 }) => {
-  const controller = useTopologyController('autorag-graph');
+  const maxWidth = React.useMemo(
+    () => nodes.reduce((max, n) => (typeof n.width === 'number' ? Math.max(max, n.width) : max), 0),
+    [nodes],
+  );
+
+  const horizontalRankSep = React.useMemo(() => computePipelineRankSep(maxWidth), [maxWidth]);
+
+  const controller = useTopologyController('autorag-graph', horizontalRankSep);
 
   React.useEffect(() => {
     if (controller && onSelectionChange) {

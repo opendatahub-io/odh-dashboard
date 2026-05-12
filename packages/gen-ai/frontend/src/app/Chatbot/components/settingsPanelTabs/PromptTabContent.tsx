@@ -51,6 +51,7 @@ function PromptTabContent({
     }
     return (
       <Button
+        data-testid="load-prompt-button"
         variant="link"
         icon={<AddCircleOIcon aria-hidden="true" />}
         onClick={handleLoadPromptClick}

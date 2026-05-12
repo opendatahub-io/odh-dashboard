@@ -2,10 +2,10 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
-import useMlflowExperiments from '#~/concepts/mlflow/useMlflowExperiments';
+import useMlflowExperiments from '#~/concepts/mlflow/hooks/useMlflowExperiments';
 import useTableColumnSort from '#~/components/table/useTableColumnSort';
 
-jest.mock('#~/concepts/mlflow/useMlflowExperiments');
+jest.mock('#~/concepts/mlflow/hooks/useMlflowExperiments');
 jest.mock('#~/components/table/useTableColumnSort');
 jest.mock('#~/concepts/mlflow/MlflowExperimentTable', () => {
   const MockMlflowExperimentTable = (props: { data: unknown[] }) => (

@@ -374,6 +374,7 @@ Labels that assign issues to a scrum team. Format: `dashboard-{team}-scrum`.
 | `dashboard-razzmatazz-scrum` | Razzmatazz |
 | `dashboard-tangerine-scrum` | Tangerine |
 | `dashboard-purple-scrum` | Purple |
+| `dashboard-onyx-scrum` | Onyx |
 
 ## Area Labels
 
@@ -416,6 +417,7 @@ Labels that categorize issues by functional area. Format: `dashboard-area-{area}
 | `dashboard-area-documentation` | Documentation |
 | `dashboard-area-automl` | AutoML |
 | `dashboard-area-autorag` | AutoRAG |
+| `dashboard-area-observability` | Observability |
 | `dashboard-area-applications` | Applications |
 
 ## Area Label Signal Mapping
@@ -462,6 +464,7 @@ Matched against issue summary, description text, and **Jira labels** (non-area l
 | `dashboard-area-documentation` | documentation, docs, README, ADR | |
 | `dashboard-area-automl` | AutoML, AutoX, automl experiment, tabular pipeline, timeseries pipeline, binary classification, multiclass classification, regression pipeline, AutoGluon, automl leaderboard, automl model details, confusion matrix, feature importance, prediction type, label column, automl configure, register model (in AutoML context), S3 file explorer (in AutoML context) | |
 | `dashboard-area-autorag` | AutoRAG, AutoX, autorag experiment, RAG pattern evaluation, autorag leaderboard, pattern details, optimization metric, faithfulness, answer correctness, context correctness, RAG patterns, vector store provider, Milvus (in AutoRAG context), chunking, embedding model, retrieval method, generation model, autorag configure, S3 file explorer (in AutoRAG context), Docling, text extraction (in AutoRAG context), test data file | |
+| `dashboard-area-observability` | observability, observability dashboard, Perses, PersesDashboard, PersesBoard, metrics dashboard, time range selector, Prometheus datasource | |
 | `dashboard-area-applications` | application, enabled application, explore application, ISV | |
 | `dashboard-area-consistencies` | consistency, shared pattern, common component, UX consistency | |
 
@@ -497,6 +500,7 @@ Matched against file paths from linked PRs, code references in descriptions, or 
 | `dashboard-area-cypress` | `packages/cypress/` |
 | `dashboard-area-automl` | `packages/automl/` |
 | `dashboard-area-autorag` | `packages/autorag/` |
+| `dashboard-area-observability` | `packages/observability/`, `manifests/observability/` |
 | `dashboard-area-applications` | `frontend/src/pages/enabledApplications/`, `frontend/src/pages/exploreApplication/` |
 | `dashboard-area-bff` | *(cross-cutting -- shared patterns span `packages/*/bff/`)* |
 | `dashboard-area-security` | *(cross-cutting -- no dedicated directory)* |
@@ -569,6 +573,7 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-cluster-settings` | Monarch |
 | `dashboard-area-cypress` | Monarch |
 | `dashboard-area-applications` | Monarch |
+| `dashboard-area-observability` | Monarch |
 | `dashboard-area-workbenches` | Razzmatazz |
 | `dashboard-area-jupyter` | Razzmatazz |
 | `dashboard-area-notebooks` | Razzmatazz |
@@ -579,7 +584,7 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-performance` | Razzmatazz |
 | `dashboard-area-e2e` | Razzmatazz |
 | `dashboard-area-model-serving` | Zaffre |
-| `dashboard-area-maas` | Zaffre |
+| `dashboard-area-maas` | Onyx |
 | `dashboard-area-connection-types` | Zaffre |
 | `dashboard-area-manifests` | Monarch |
 | `dashboard-area-genai` | Crimson |
@@ -596,7 +601,7 @@ The `dashboard-area-manifests` label covers **Kubernetes/OLM/kustomize YAML in t
 
 **Feature-specific deployment assets:** Many paths under `manifests/` are **owned by the feature** that ships those resources (model serving, MaaS, pipelines, gen-ai, etc.). When an issue cites **concrete paths, overlays, or resource kinds** that clearly belong to a feature (examples: KServe/serving runtime deployment YAML, `packages/maas` operator assets, pipeline/EvalHub-related deployment slices, gen-ai/LlamaStack operator resources), **prefer assigning the feature’s `dashboard-area-*` label** (e.g. `dashboard-area-model-serving`, `dashboard-area-maas`, `dashboard-area-genai`, `dashboard-area-pipelines`) — either **instead of** or **in addition to** `dashboard-area-manifests`, per confidence. Scrum routing then follows **that** feature area’s mapping (see assign-scrum-team: generic `dashboard-area-manifests` is dropped when it conflicts with a feature area’s team).
 
-**Zaffre and “manifests” in keywords:** Zaffre’s association with kustomize/OLM refers to **deployment and operator artifacts for model serving, MaaS, and connection types** — not every change under `manifests/`. Generic odh-dashboard manifest hygiene and shared base YAML default to **Monarch** unless the issue is clearly scoped to Zaffre-owned features.
+**Zaffre and “manifests” in keywords:** Zaffre’s association with kustomize/OLM refers to **deployment and operator artifacts for model serving and connection types** — not every change under `manifests/`. Generic odh-dashboard manifest hygiene and shared base YAML default to **Monarch** unless the issue is clearly scoped to a feature team's owned area. MaaS-related operator/deployment assets under `manifests/` route to **Onyx** (via `dashboard-area-maas`). For deterministic routing from path evidence alone, if a path matches `manifests/**` and includes MaaS-specific tokens (for example `maas`, `maas-operator`, `maas-deployment`, `dashboard-area-maas`), treat that as a direct signal for `dashboard-area-maas` (Onyx), not generic `dashboard-area-manifests`.
 
 ### Areas without a default team
 
@@ -612,13 +617,14 @@ When an issue lacks area labels, these keywords and feature associations can hel
 
 | Team | Scrum label | Keywords / features | Reasoning |
 |---|---|---|---|
-| **Monarch** | `dashboard-monarch-scrum` | PatternFly, PF6, home page, projects page, navigation, infrastructure, cluster settings, shared UI, consistencies, BFF shared infrastructure (not feature-specific BFF), Go backend shared patterns, common middleware, shared auth, plugin-core, app-config, common libraries, cross-package utilities, applications, **generic `manifests/` / install-base / cross-cutting operator YAML** | Monarch owns app shell, shared infrastructure, cross-cutting UI foundations, cross-cutting BFF/Go backend patterns, and **default ownership of repo-wide manifest and install layout** when no feature-specific path dominates. "applications" refers to the enabled/explore applications pages (ISV integrations). |
+| **Monarch** | `dashboard-monarch-scrum` | PatternFly, PF6, home page, projects page, navigation, infrastructure, cluster settings, shared UI, consistencies, BFF shared infrastructure (not feature-specific BFF), Go backend shared patterns, common middleware, shared auth, plugin-core, app-config, common libraries, cross-package utilities, applications, observability, Perses, PersesDashboard, metrics dashboard, **generic manifests, install-base, cross-cutting operator YAML** | Monarch owns app shell, shared infrastructure, cross-cutting UI foundations, cross-cutting BFF/Go backend patterns, the observability/Perses dashboard integration (`packages/observability/`), and **default ownership of repo-wide manifest and install layout** when no feature-specific path dominates. "applications" refers to the enabled/explore applications pages (ISV integrations). |
 | **Razzmatazz** | `dashboard-razzmatazz-scrum` | workbenches, spawner, notebook server, notebooks, BYON image, Jupyter, JupyterLab, pipelines, pipeline server, DSPA, pipeline run, hardware profiles, accelerator profiles, tolerations, node selector, storage classes, user management, RBAC, permissions, group settings | Razzmatazz owns the core DS project experience: workbenches, notebooks, pipelines, hardware profiles, storage classes, and user management. |
-| **Zaffre** | `dashboard-zaffre-scrum` | model serving, inference, KServe, ModelMesh, serving runtime, model deploy, NIM, vLLM, connections, connection types, MaaS admin (subscriptions, API keys, auth policies), operator bundles, kustomize overlays, OLM resources for serving, MaaS, and connection types | Zaffre owns model serving infrastructure, the MaaS admin package (`packages/maas/`, `dashboard-area-maas` — subscriptions, API keys, auth policies), connection types, and the operator and deployment layers that ship those capabilities. Gen AI Studio's consumption of MaaS models/tokens is Crimson (`dashboard-area-genai`). |
+| **Zaffre** | `dashboard-zaffre-scrum` | model serving, inference, KServe, ModelMesh, serving runtime, model deploy, NIM, vLLM, connection types, operator bundles, kustomize overlays, OLM resources for serving and connection types | Zaffre owns model serving infrastructure, connection types, and the operator and deployment layers that ship those capabilities. Gen AI Studio's consumption of MaaS models/tokens is Crimson (`dashboard-area-genai`); MaaS admin (subscriptions, API keys, auth policies) is Onyx (`dashboard-area-maas`). |
 | **Green** | `dashboard-green-scrum` | model catalog, catalog card, model registry, registered model, model version, model artifact, distributed workloads, Kueue, cluster queue, local queue, workload metrics, Ray (when related to DW queue management), MCP, MCP server, MCP catalog | Green owns model catalog, model registry, distributed workloads (queue management side), and MCP. |
 | **Crimson** | `dashboard-crimson-scrum` | Gen AI Studio, gen-ai package, playground, chatbot, compare mode, chat session, AI Asset Endpoints, AAE, endpoint modal, Llamastack, LlamaStack Distribution, LSD install, vector store, RAG, knowledge tab, knowledge sources, EvalHub, evaluation run, lmEval, benchmark evaluation, prompt management, prompt versioning, save prompt, MaaS subscription, ephemeral API key, InstructLab, fine-tuning, teacher model, judge model, guardrails, NeMo Guardrails, code export | Crimson owns the Gen AI Studio experience (`packages/gen-ai/`, `dashboard-area-genai`): playground/chatbot, AAE, Llamastack integration, RAG/vector stores, guardrails, evaluation, prompt management, and MaaS subscriptions within the Gen AI context. |
 | **Tangerine** | `dashboard-tangerine-scrum` | RayJob, RayCluster, Ray dashboard URL, training job, TrainJob, model training, model-training package, checkpointing, Feature Store, Feast, feature view, feature store repository, lineage graph, Kubeflow Pipelines frontend, KFP frontend, MLMD, ML Metadata, artifact details, execution details, pipeline run routing | Tangerine owns model training (RayJob/RayCluster/TrainJob lifecycle), Feature Store (Feast UI), and Kubeflow Pipelines upstream frontend. |
 | **Purple** | `dashboard-purple-scrum` | AutoRAG, AutoML, AutoX, autorag experiment, automl experiment, RAG pattern evaluation, autorag leaderboard, automl leaderboard, pattern details, automl model details, experiment evaluation, tabular pipeline, timeseries pipeline, binary classification, multiclass classification, regression pipeline, AutoGluon, confusion matrix, feature importance, optimization metric, faithfulness, answer correctness, context correctness, vector store provider, Milvus (in AutoRAG context), chunking, embedding model (in AutoRAG context), retrieval method, generation model (in AutoRAG context), Docling, text extraction (in AutoRAG context), S3 file browser (in AutoRAG/AutoML context), AutoRAG configure, AutoML configure, model registration (in AutoML context) | Purple owns the AutoRAG (`packages/autorag/`, `dashboard-area-autorag`) and AutoML (`packages/automl/`, `dashboard-area-automl`) — collectively AutoX — automated experiment experiences: configuration, evaluation, leaderboards, and S3 storage browsing for experiment data. |
+| **Onyx** | `dashboard-onyx-scrum` | MaaS, MaaS admin, subscription management, subscription CRUD, API key management, auth policy, rate limit, packages/maas/, operator assets | Onyx owns the MaaS admin package (`packages/maas/`, `dashboard-area-maas`): subscription CRUD, API key management, auth policies, and the operator/deployment layers for MaaS capabilities. Gen AI Studio's consumption of MaaS models/tokens (e.g., selecting a subscription in the playground) is Crimson (`dashboard-area-genai`), not Onyx. |
 
 ## Future Additions
 

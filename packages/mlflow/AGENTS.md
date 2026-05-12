@@ -99,7 +99,7 @@ mlflow/
 
 ### BFF
 
-- **Go**: >= 1.24.3
+- **Go**: >= 1.25.0
 
 ---
 
@@ -175,12 +175,13 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path                                 | Description                          |
-| ------ | ------------------------------------ | ------------------------------------ |
-| GET    | `/healthcheck`                       | Liveness probe                       |
-| GET    | `/api/v1/user`                       | Returns authenticated user info      |
-| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only) |
-| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments              |
+| Method | Path                                 | Description                                    |
+| ------ | ------------------------------------ | ---------------------------------------------- |
+| GET    | `/healthcheck`                       | Liveness probe                                 |
+| GET    | `/api/v1/status`                     | MLflow availability status                     |
+| GET    | `/api/v1/user`                       | Returns authenticated user info                |
+| GET    | `/api/v1/namespaces`                 | List namespaces (dev/mock mode only)           |
+| GET    | `/api/v1/experiments?workspace=<ns>` | List MLflow experiments                        |
 
 ---
 
@@ -360,7 +361,7 @@ make test   # Run tests
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 22+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 22+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Use **PatternFly components** for all federated-mode UI
 4. Run tests before pushing:

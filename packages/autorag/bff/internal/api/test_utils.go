@@ -51,10 +51,9 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		config: config.EnvConfig{
 			AllowedOrigins: []string{"*"},
 			AuthMethod:     config.AuthMethodInternal,
-			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
-			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
-			// DSPAObjectStorageKey will NOT be set in context for these tests.
-			PipelineServerURL: "http://test-pipeline-server",
+			// MockPipelineServerClient bypasses DSPA discovery in AttachPipelineServerClient
+			// so tests using custom k8s mocks that don't implement the DSPA CRD still work.
+			MockPipelineServerClient: true,
 		},
 		logger:                      logger,
 		kubernetesClientFactory:     k8Factory,
@@ -159,10 +158,9 @@ func setupApiTestPostMultipart(
 		config: config.EnvConfig{
 			AllowedOrigins: []string{"*"},
 			AuthMethod:     config.AuthMethodInternal,
-			// PipelineServerURL bypasses DSPA discovery in AttachPipelineServerClient so
-			// tests using custom k8s mocks that don't implement the DSPA CRD still work.
-			// DSPAObjectStorageKey will NOT be set in context for these tests.
-			PipelineServerURL: "http://test-pipeline-server",
+			// MockPipelineServerClient bypasses DSPA discovery in AttachPipelineServerClient
+			// so tests using custom k8s mocks that don't implement the DSPA CRD still work.
+			MockPipelineServerClient: true,
 		},
 		logger:                      logger,
 		kubernetesClientFactory:     k8Factory,

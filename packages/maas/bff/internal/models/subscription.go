@@ -41,7 +41,7 @@ type GroupReference struct {
 
 // OwnerSpec defines who owns a subscription.
 type OwnerSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // TokenRateLimit defines a token-based rate limit.
@@ -77,16 +77,18 @@ type MaaSSubscription struct {
 	Description       string                 `json:"description,omitempty"`
 	Namespace         string                 `json:"namespace"`
 	Phase             string                 `json:"phase,omitempty"`
+	StatusMessage     string                 `json:"statusMessage,omitempty"`
 	Priority          int32                  `json:"priority"`
 	Owner             OwnerSpec              `json:"owner"`
 	ModelRefs         []ModelSubscriptionRef `json:"modelRefs"`
 	TokenMetadata     *TokenMetadata         `json:"tokenMetadata,omitempty"`
 	CreationTimestamp *time.Time             `json:"creationTimestamp,omitempty"`
+	DeletionTimestamp *time.Time             `json:"deletionTimestamp,omitempty"`
 }
 
 // SubjectSpec defines subjects (groups) that have access.
 type SubjectSpec struct {
-	Groups []GroupReference `json:"groups,omitempty"`
+	Groups []GroupReference `json:"groups"`
 }
 
 // ModelRef is a simple reference to a MaaSModelRef by name and namespace.
@@ -102,10 +104,12 @@ type MaaSAuthPolicy struct {
 	DisplayName       string         `json:"displayName,omitempty"`
 	Description       string         `json:"description,omitempty"`
 	Phase             string         `json:"phase,omitempty"`
+	StatusMessage     string         `json:"statusMessage,omitempty"`
 	CreationTimestamp *time.Time     `json:"creationTimestamp,omitempty"`
 	ModelRefs         []ModelRef     `json:"modelRefs"`
 	Subjects          SubjectSpec    `json:"subjects"`
 	MeteringMetadata  *TokenMetadata `json:"meteringMetadata,omitempty"`
+	DeletionTimestamp *time.Time     `json:"deletionTimestamp,omitempty"`
 }
 
 // ModelReference references a model endpoint.

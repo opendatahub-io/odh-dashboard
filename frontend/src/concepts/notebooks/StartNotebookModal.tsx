@@ -132,7 +132,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
     localQueueName ?? undefined,
     notebook != null ? notebook.metadata.name : undefined,
   );
-  const quotaSource = clusterQueue?.spec.cohort ?? '-';
+  const quotaSource = clusterQueue?.spec.cohortName ?? '-';
   const consumedResources = clusterQueue
     ? getAllConsumedResources(clusterQueue, assignedFlavorName)
     : [];
@@ -203,7 +203,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         <Flex gap={{ default: 'gapSm' }}>
           {(!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
             <FlexItem>
-              <InProgressIcon style={{ color: BrandIconColor.var }} className="odh-u-spin" />
+              <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
             </FlexItem>
           ) : null}
           <FlexItem>

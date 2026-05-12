@@ -123,7 +123,9 @@ describe('A model can be deployed with token auth', () => {
       // Verify the model created
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       // Verify the model is not accessible without a token
       cy.step('Verify the model is not accessible without a token');
@@ -187,7 +189,9 @@ describe('A model can be deployed with token auth', () => {
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
       cy.step('Verify that the Model is running');
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, { checkReady: true });
+      });
 
       // Verify the model is accessible without a token
       cy.step('Verify the model is accessible without a token.');

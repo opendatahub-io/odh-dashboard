@@ -14,6 +14,8 @@ aliases:
     - YuliaKrimerman
     - manaswinidas
     - ederign
+    - dpanshug
+    - claudialphonse78
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -108,11 +110,19 @@ aliases:
     - antowaddle
     - FedeAlonso
     - sridarna
+    - ConorOM1
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
     - FedeAlonso
     - sridarna
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
+    - zahra-j6
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
@@ -189,6 +199,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   autorag-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -206,6 +217,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   automl-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -216,7 +228,7 @@ aliases:
     - MatthewAThompson
     - jkyaw
     - NickGagan
-  
+
   # Eval Hub
   eval-hub-approvers:
     - ikeola13

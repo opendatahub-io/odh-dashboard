@@ -231,7 +231,12 @@ const EvaluationResultsPage: React.FC = () => {
               <FlexItem>
                 <LabelHelpPopover
                   ariaLabel="About evaluation score"
-                  content="The overall score aggregated across all benchmarks in this evaluation run."
+                  title="Evaluation score"
+                  content={
+                    job.collection
+                      ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
+                      : 'Normalised score based on the primary metric score of the benchmark run.'
+                  }
                 />
               </FlexItem>
             </Flex>

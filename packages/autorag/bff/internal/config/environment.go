@@ -81,7 +81,6 @@ type EnvConfig struct {
 	MockLSClient             bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
-	PipelineServerURL        string
 	DevMode                  bool
 	DeploymentMode           DeploymentMode
 	DevModeClientPort        int
@@ -107,11 +106,6 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
-
-	// ─── SERVICE URLS ───────────────────────────────────────────
-	// LlamaStack service URL configuration
-	// If set, overrides the automatic service discovery from LlamaStackDistribution resource
-	LlamaStackURL string
 
 	// ─── PIPELINE DISCOVERY ─────────────────────────────────────
 	// AutoRAGPipelineNamePrefix is the prefix used to identify AutoRAG managed pipelines

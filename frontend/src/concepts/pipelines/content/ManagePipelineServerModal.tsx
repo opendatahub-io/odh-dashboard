@@ -12,6 +12,8 @@ import {
   Button,
   ActionGroup,
   Spinner,
+  Stack,
+  StackItem,
 } from '@patternfly/react-core';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import PasswordHiddenText from '#~/components/PasswordHiddenText';
@@ -95,88 +97,92 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
           </>
         )}
         {pipelineNamespaceCR && (
-          <DescriptionList termWidth="20ch" isHorizontal>
+          <Stack hasGutter>
             {!!pipelineNamespaceCR.spec.objectStorage.externalStorage?.s3CredentialsSecret
               .secretName && (
-              <>
+              <StackItem>
                 <Title headingLevel="h2">Object storage connection</Title>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Access key</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="access-key-field">
-                    {pipelineSecret[
-                      pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
-                        .accessKey
-                    ] || ''}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Secret key</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="secret-key-field">
-                    <PasswordHiddenText
-                      password={
-                        pipelineSecret[
-                          pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
-                            .secretKey
-                        ] ?? ''
-                      }
-                    />
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Endpoint</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="endpoint-field">
-                    {pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme &&
-                    pipelineNamespaceCR.spec.objectStorage.externalStorage.host
-                      ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage.host}`
-                      : ''}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-                <DescriptionListGroup>
-                  <DescriptionListTerm>Bucket</DescriptionListTerm>
-                  <DescriptionListDescription data-testid="bucket-field">
-                    {pipelineNamespaceCR.spec.objectStorage.externalStorage.bucket}
-                  </DescriptionListDescription>
-                </DescriptionListGroup>
-              </>
+                <DescriptionList termWidth="20ch" isHorizontal>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Access key</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="access-key-field">
+                      {pipelineSecret[
+                        pipelineNamespaceCR.spec.objectStorage.externalStorage.s3CredentialsSecret
+                          .accessKey
+                      ] || ''}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Secret key</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="secret-key-field">
+                      <PasswordHiddenText
+                        password={
+                          pipelineSecret[
+                            pipelineNamespaceCR.spec.objectStorage.externalStorage
+                              .s3CredentialsSecret.secretKey
+                          ] ?? ''
+                        }
+                      />
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Endpoint</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="endpoint-field">
+                      {pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme &&
+                      pipelineNamespaceCR.spec.objectStorage.externalStorage.host
+                        ? `${pipelineNamespaceCR.spec.objectStorage.externalStorage.scheme}://${pipelineNamespaceCR.spec.objectStorage.externalStorage.host}`
+                        : ''}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <DescriptionListGroup>
+                    <DescriptionListTerm>Bucket</DescriptionListTerm>
+                    <DescriptionListDescription data-testid="bucket-field">
+                      {pipelineNamespaceCR.spec.objectStorage.externalStorage.bucket}
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                </DescriptionList>
+              </StackItem>
             )}
             {!!pipelineNamespaceCR.spec.database &&
               !!pipelineNamespaceCR.spec.database.externalDB &&
               !!databaseSecret[ExternalDatabaseSecret.KEY] && (
-                <>
+                <StackItem>
                   <Title headingLevel="h2">Database</Title>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Host</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {pipelineNamespaceCR.spec.database.externalDB.host}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Port</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {pipelineNamespaceCR.spec.database.externalDB.port}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Username</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {pipelineNamespaceCR.spec.database.externalDB.username}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Password</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      <PasswordHiddenText password={databaseSecret[ExternalDatabaseSecret.KEY]} />
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                  <DescriptionListGroup>
-                    <DescriptionListTerm>Database</DescriptionListTerm>
-                    <DescriptionListDescription>
-                      {pipelineNamespaceCR.spec.database.externalDB.pipelineDBName}
-                    </DescriptionListDescription>
-                  </DescriptionListGroup>
-                </>
+                  <DescriptionList termWidth="20ch" isHorizontal>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Host</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.host}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Port</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.port}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Username</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.username}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Password</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        <PasswordHiddenText password={databaseSecret[ExternalDatabaseSecret.KEY]} />
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                    <DescriptionListGroup>
+                      <DescriptionListTerm>Database</DescriptionListTerm>
+                      <DescriptionListDescription>
+                        {pipelineNamespaceCR.spec.database.externalDB.pipelineDBName}
+                      </DescriptionListDescription>
+                    </DescriptionListGroup>
+                  </DescriptionList>
+                </StackItem>
               )}
-            <>
+            <StackItem>
               <Title headingLevel="h2" data-testid="additionalConfig-headerText">
                 Additional configurations
               </Title>
@@ -199,8 +205,8 @@ const ManagePipelineServerModal: React.FC<ManagePipelineServerModalProps> = ({
                   variant="description"
                 />
               </DescriptionList>
-            </>
-          </DescriptionList>
+            </StackItem>
+          </Stack>
         )}
       </ModalBody>
       <ModalFooter>

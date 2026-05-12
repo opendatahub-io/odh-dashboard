@@ -12,7 +12,7 @@ import {
   decodeParams,
   getModelArtifactUri,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
-import { getDeployButtonState } from '../utils';
+import { getDeployButtonState } from '~/odh/utils';
 
 type ModelCatalogDeployWrapperProps = {
   model: CatalogModel;
@@ -63,9 +63,10 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
     }
   }, [navigateToWizard]);
 
-  const isWizardAvailable = React.useMemo(() => {
-    return navigateExtensionsLoaded && navigateExtensions.length > 0;
-  }, [navigateExtensions, navigateExtensionsLoaded]);
+  const isWizardAvailable = React.useMemo(
+    () => navigateExtensionsLoaded && navigateExtensions.length > 0,
+    [navigateExtensions, navigateExtensionsLoaded],
+  );
 
   const canInitializeWizardNavigation =
     navigateExtensionsLoaded &&
@@ -84,36 +85,27 @@ const ModelCatalogDeployWrapper: React.FC<ModelCatalogDeployWrapperProps> = ({ m
 
   return (
     <>
-      {navigateExtensions.map((extension) => {
-        return (
-          extension.properties.useAvailablePlatformIds && (
-            <HookNotify
-              key={extension.uid}
-              useHook={extension.properties.useAvailablePlatformIds}
-              onNotify={(value) => setAvailablePlatformIds(value ?? [])}
-            />
-          )
-        );
-      })}
+      {navigateExtensions.map((extension) => (
+        <HookNotify
+          key={extension.uid}
+          useHook={extension.properties.useAvailablePlatformIds}
+          onNotify={(value) => setAvailablePlatformIds(value ?? [])}
+        />
+      ))}
       {/* Get navigation function only when we have all the prefill data */}
       {canInitializeWizardNavigation &&
-        navigateExtensions.map((extension) => {
-          if (!extension.properties.useNavigateToDeploymentWizardWithData) {
-            return null;
-          }
-          return (
-            <HookNotify
-              key={extension.uid}
-              useHook={extension.properties.useNavigateToDeploymentWizardWithData}
-              args={[catalogDeployPrefillData]}
-              onNotify={(fn) => {
-                if (fn && typeof fn === 'function') {
-                  setNavigateToWizard(() => fn);
-                }
-              }}
-            />
-          );
-        })}
+        navigateExtensions.map((extension) => (
+          <HookNotify
+            key={extension.uid}
+            useHook={extension.properties.useNavigateToDeploymentWizardWithData}
+            args={[catalogDeployPrefillData]}
+            onNotify={(fn) => {
+              if (fn && typeof fn === 'function') {
+                setNavigateToWizard(() => fn);
+              }
+            }}
+          />
+        ))}
       {render(buttonState, onOpenWizard, isWizardAvailable)}
     </>
   );

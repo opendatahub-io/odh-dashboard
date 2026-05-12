@@ -1088,6 +1088,17 @@ describe('RayJob Pause/Resume - Table Toggle', () => {
     trainingJobTable.getTableRow('ray-completed-job').findPauseResumeToggle().should('not.exist');
     trainingJobTable.getTableRow('ray-failed-job').findPauseResumeToggle().should('not.exist');
   });
+
+  it('should disable Pause toggle and kebab action for clusterSelector RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-workspace-job');
+
+    const row = trainingJobTable.getTableRow('ray-workspace-job');
+    row.findPauseResumeToggle().should('be.disabled');
+
+    row.findKebabButton().click();
+    row.findKebabMenuItem('Pause job').should('have.attr', 'aria-disabled', 'true');
+  });
 });
 
 describe('RayJob Pause/Resume - Pause Modal', () => {
@@ -1259,6 +1270,18 @@ describe('RayJob Pause/Resume - Drawer Kebab Menu', () => {
     rayJobDetailsDrawer.findKebabMenuItem('Pause job').click();
 
     pauseRayJobModal.shouldBeOpen();
+  });
+
+  it('should show Pause job as aria-disabled in drawer kebab for clusterSelector RayJob', () => {
+    modelTrainingGlobal.visit(projectName);
+    trainingJobTable.filterByName('ray-workspace-job');
+
+    const row = trainingJobTable.getTableRow('ray-workspace-job');
+    row.findNameLink().click();
+
+    rayJobDetailsDrawer.shouldBeOpen();
+    rayJobDetailsDrawer.clickKebabMenu();
+    rayJobDetailsDrawer.findKebabMenuItem('Pause job').should('have.attr', 'aria-disabled', 'true');
   });
 });
 

@@ -26,9 +26,19 @@ const usePipelineRecurringRuns = (
   return usePipelineQuery<PipelineRecurringRunKF>(
     React.useCallback(
       async (opts, params) => {
+        const versionIdPredicate = params?.filter?.predicates?.find(
+          (p) => p.key === 'pipeline_version_id',
+        )?.string_value;
+        const predicatesWithoutVersion = params?.filter?.predicates?.filter(
+          (p) => p.key !== 'pipeline_version_id',
+        );
+
         const response = await api.listPipelineRecurringRuns(opts, {
           ...params,
           ...(experimentId && { experimentId }),
+          filter: predicatesWithoutVersion
+            ? { predicates: predicatesWithoutVersion }
+            : params?.filter,
         });
 
         if (!response.recurringRuns) {
@@ -55,7 +65,19 @@ const usePipelineRecurringRuns = (
             };
           }),
         );
-        return { ...response, items: completeRecurringRuns };
+
+        const filteredRuns = versionIdPredicate
+          ? completeRecurringRuns.filter(
+              (r) => r.pipeline_version_reference.pipeline_version_id === versionIdPredicate,
+            )
+          : completeRecurringRuns;
+
+        return {
+          ...response,
+          items: filteredRuns,
+          // eslint-disable-next-line camelcase
+          total_size: versionIdPredicate ? filteredRuns.length : response.total_size,
+        };
       },
       [api, experimentId, fetchLatestVersionId],
     ),

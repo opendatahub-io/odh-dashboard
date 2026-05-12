@@ -189,7 +189,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
-	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.RequireAccessToService(app.EvalHubCRStatusHandler)))
+	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))
 
 	// EvalHub service health endpoint: performs per-request CR discovery in the dashboard
 	// namespace (no ?namespace= needed) and pings the EvalHub service if a URL is found.

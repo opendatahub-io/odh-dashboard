@@ -11,7 +11,12 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { DSPipelineKind, DSPipelineManagedPipelinesKind, ProjectKind } from '#~/k8sTypes';
+import {
+  DSPAMlflowIntegrationMode,
+  DSPipelineKind,
+  DSPipelineManagedPipelinesKind,
+  ProjectKind,
+} from '#~/k8sTypes';
 import { byName, ProjectsContext } from '#~/concepts/projects/ProjectsContext';
 import DeletePipelineServerModal from '#~/concepts/pipelines/content/DeletePipelineServerModal';
 import { ConfigurePipelinesServerModal } from '#~/concepts/pipelines/content/configurePipelinesServer/ConfigurePipelinesServerModal';
@@ -50,6 +55,7 @@ type PipelineContext = {
   apiState: PipelineAPIState;
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
   isStarting?: boolean;
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
   /** Error from loading pipeline CR or route */
@@ -77,6 +83,7 @@ const PipelinesContext = React.createContext<PipelineContext>({
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   metadataStoreServiceClient: null as unknown as MetadataStoreServicePromiseClient,
   managedPipelines: undefined,
+  mlflowIntegrationMode: undefined,
   isStarting: false,
   startingStatusModalOpenRef: { current: null },
   pipelineLoadError: undefined,
@@ -164,6 +171,7 @@ export const PipelineContextProvider = conditionalArea<PipelineContextProviderPr
         getRecurringRunInformation,
         metadataStoreServiceClient,
         managedPipelines: pipelineNamespaceCR?.spec.apiServer?.managedPipelines,
+        mlflowIntegrationMode: pipelineNamespaceCR?.spec.mlflow?.integrationMode,
         isStarting,
         startingStatusModalOpenRef,
         pipelineLoadError,
@@ -206,6 +214,7 @@ type UsePipelinesAPI = PipelineAPIState & {
   metadataStoreServiceClient: MetadataStoreServicePromiseClient;
   refreshState: () => void;
   managedPipelines: DSPipelineManagedPipelinesKind | undefined;
+  mlflowIntegrationMode: DSPAMlflowIntegrationMode | undefined;
 
   startingStatusModalOpenRef?: React.MutableRefObject<string | null>;
 };
@@ -224,6 +233,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     getRecurringRunInformation,
     metadataStoreServiceClient,
     managedPipelines,
+    mlflowIntegrationMode,
     refreshState,
     crStatus,
     isStarting,
@@ -249,6 +259,7 @@ export const usePipelinesAPI = (): UsePipelinesAPI => {
     getRecurringRunInformation,
     metadataStoreServiceClient,
     managedPipelines,
+    mlflowIntegrationMode,
     refreshState,
     startingStatusModalOpenRef,
     pipelineLoadError,

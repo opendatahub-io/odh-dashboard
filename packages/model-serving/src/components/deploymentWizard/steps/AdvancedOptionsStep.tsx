@@ -5,6 +5,7 @@ import {
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import {
   Form,
@@ -94,6 +95,16 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     }
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
+
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
+  const hasModelPlaygroundExtensionFields = React.useMemo(
+    () => wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
+    [wizardState.fields],
+  );
+  const showModelPlaygroundAvailabilitySection =
+    wizardState.state.modelAvailability.showField &&
+    (isGenAiEnabled || hasModelPlaygroundExtensionFields);
+
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -117,7 +128,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {wizardState.state.modelAvailability.showField && (
+            {showModelPlaygroundAvailabilitySection && (
               <StackItem>
                 <FormGroup
                   label="Model availability"
@@ -135,6 +146,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
+                    isGenAiEnabled={isGenAiEnabled}
                     wizardState={wizardState}
                     externalData={externalData}
                   />

@@ -4,11 +4,13 @@ export type MaaSSubscription = {
   description?: string;
   namespace: string;
   phase?: string;
+  statusMessage?: string;
   priority?: number;
   owner: OwnerSpec;
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
   creationTimestamp?: string;
+  deletionTimestamp?: string;
 };
 
 export type ModelSubscriptionRef = {
@@ -107,10 +109,12 @@ export type MaaSAuthPolicy = {
   name: string;
   namespace: string;
   phase?: string;
+  statusMessage?: string;
   creationTimestamp?: string;
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;
+  deletionTimestamp?: string;
 };
 
 export type SubscriptionInfoResponse = {
@@ -155,5 +159,5 @@ export type UserSubscription = {
 export type RateLimit = {
   count: number;
   time: number;
-  unit: 'day' | 'hour' | 'minute' | 'second';
+  unit: 'hour' | 'minute' | 'second';
 };

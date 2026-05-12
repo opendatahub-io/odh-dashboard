@@ -263,6 +263,26 @@ describe('AutoragEvaluationSelect', () => {
     });
   });
 
+  it('should show human-readable error for max collision attempts (409)', async () => {
+    const user = userEvent.setup();
+    const file = new File(['test content'], 'test.json', { type: 'application/json' });
+    const error = new Error('unable to find unique filename after 10 attempts');
+
+    mockUploadMutateAsync.mockRejectedValue(error);
+
+    const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+
+    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(uploadInput, file);
+
+    await waitFor(() => {
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to upload file',
+        'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+      );
+    });
+  });
+
   it('should not open S3FileExplorer initially', () => {
     renderWithProviders(<AutoragEvaluationSelect />);
 

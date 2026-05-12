@@ -42,6 +42,7 @@ describe('MaaS Deployment Wizard', () => {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
     cy.interceptOdh(
@@ -218,6 +219,10 @@ describe('MaaS Deployment Wizard', () => {
           namespace: 'openshift-ingress',
         },
       ]);
+
+      expect(interception.request.body.metadata.annotations).to.not.have.property(
+        'security.opendatahub.io/enable-auth',
+      );
     });
 
     cy.wait('@createLLMInferenceService');

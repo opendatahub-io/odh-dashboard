@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
 
 	// Import redhat handlers to register handler overrides via init()
-	_ "github.com/kubeflow/model-registry/ui/bff/internal/redhat/handlers"
+	_ "github.com/kubeflow/hub/ui/bff/internal/redhat/handlers"
 
 	"log/slog"
 	"net/http"

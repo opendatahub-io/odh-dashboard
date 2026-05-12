@@ -11,9 +11,7 @@ import {
   HelperText,
   HelperTextItem,
   PageSection,
-  Popover,
 } from '@patternfly/react-core';
-import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import {
   MultiSelection,
   SelectionOptions,
@@ -128,7 +126,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
     }
   };
 
-  const primaryLabel = initialPolicy ? 'Save changes' : 'Create policy';
+  const primaryLabel = initialPolicy ? 'Save changes' : 'Create authorization policy';
   const primaryLoadingLabel = initialPolicy ? 'Saving...' : 'Creating...';
 
   return (
@@ -140,18 +138,15 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
           dataTestId="policy-name-desc"
         />
 
-        <FormGroup
-          label="Groups"
-          fieldId="policy-groups"
-          isRequired
-          labelHelp={
-            <Popover bodyContent="Select existing groups from the list, or type the name of an OpenID Connect (OIDC) group and press Enter to add it. Groups correspond to OIDC group claims from your identity provider. Any group name that matches an OIDC group claim can be used, even if it does not appear in the list.">
-              <Button variant="plain" aria-label="Groups help" className="pf-v6-u-p-0">
-                <OutlinedQuestionCircleIcon />
-              </Button>
-            </Popover>
-          }
-        >
+        <FormGroup label="Groups" fieldId="policy-groups" isRequired>
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
+                {groupsValidationError ||
+                  'Select user groups that can access models in this authorization policy.'}
+              </HelperTextItem>
+            </HelperText>
+          </FormHelperText>
           <MultiSelection
             ariaLabel="Select groups or type to add a new group"
             value={selectedGroups}
@@ -166,14 +161,6 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             selectionRequired={groupsTouched}
             noSelectedOptionsMessage="One or more groups must be selected"
           />
-          <FormHelperText>
-            <HelperText>
-              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
-                {groupsValidationError ||
-                  'Select groups that will be able to access this policy. You can also add the name of an OIDC group.'}
-              </HelperTextItem>
-            </HelperText>
-          </FormHelperText>
         </FormGroup>
 
         {formData.modelRefs.length === 0 ? (
@@ -184,7 +171,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             data-testid="policy-no-models-warning"
           >
             There are no model endpoints available on the cluster. Deploy a model and create a
-            MaaSModelRef before creating a policy.
+            MaaSModelRef before creating an authorization policy.
           </Alert>
         ) : (
           <>
@@ -196,7 +183,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               onRemoveModel={handleRemoveModelAt}
               helperText={
                 <Content>
-                  Add models that subjects of this policy will be granted access to.
+                  Add models that subjects of this authorization policy will be granted access to.
                 </Content>
               }
               formGroupFieldId="policy-models"
@@ -204,7 +191,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               tableTestId="policy-models-table"
               tableAriaLabel="Policy models"
               addModelsButtonTestId="policy-add-models-button"
-              addModelsButtonAriaLabel="Add models to policy"
+              addModelsButtonAriaLabel="Add models to authorization policy"
+              resourceType="authorization policy"
             />
             {isAddModelsModalOpen && (
               <AddModelsModal
@@ -216,16 +204,16 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
                 onAdd={handleAddModels}
                 onRemove={handleRemoveModelsByRef}
                 onClose={() => setIsAddModelsModalOpen(false)}
-                ariaLabel="Add models to policy"
-                title="Add models to policy"
-                description="Select model endpoints to grant access to through this policy."
+                ariaLabel="Add models to authorization policy"
+                title="Add models to authorization policy"
+                description="Select model endpoints to grant access to through this authorization policy."
               />
             )}
           </>
         )}
 
         {submitError && (
-          <Alert variant="danger" isInline title="Failed to save policy">
+          <Alert variant="danger" isInline title="Failed to save authorization policy">
             {submitError}
           </Alert>
         )}

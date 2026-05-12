@@ -23,7 +23,7 @@
     "branch": "main",
     "src": "clients/ui",
     "target": "upstream",
-    "commit": "5ea29b0d7d1638634880651f10c48d368af84344"
+    "commit": "8c96833a2b8d86cbd1a6961480644c90116584ba"
   },
   "module-federation": {
     "name": "modelRegistry",
@@ -65,7 +65,7 @@
       "./upstream/frontend/src/__mocks__/*.ts"
     ],
     "./types/modelCatalogTypes": "./upstream/frontend/src/app/modelCatalogTypes.ts",
-    "./types/mcpDeploymentTypes": "./upstream/frontend/src/app/mcpDeploymentTypes.ts",
+    "./types/mcpDeploymentTypes": "./upstream/frontend/src/odh/types/mcpDeploymentTypes.ts",
     "./types/types": "./upstream/frontend/src/app/types.ts",
     "./routeUtils": "./upstream/frontend/src/app/pages/modelRegistry/screens/routeUtils.ts"
   },
@@ -74,8 +74,11 @@
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
+    "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/tsconfig": "*",
     "@odh-dashboard/contract-tests": "*",
+    "@openshift/dynamic-plugin-sdk": "*",
+    "@patternfly/react-code-editor": "*",
     "cross-env": "^10.1.0"
   }
 }

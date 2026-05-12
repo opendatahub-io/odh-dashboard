@@ -13,6 +13,7 @@ type ApiKeysActionsProps = {
 const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, isMaasAdmin, onRefresh }) => {
   const [open, setOpen] = React.useState(false);
   const [revokeAllOpen, setRevokeAllOpen] = React.useState(false);
+  const isRevokeDisabled = !isMaasAdmin && apiKeyCount === 0;
 
   const handleRevokeClose = React.useCallback(
     (revoked: boolean) => {
@@ -46,10 +47,10 @@ const ApiKeysActions: React.FC<ApiKeysActionsProps> = ({ apiKeyCount, isMaasAdmi
           <DropdownItem
             data-testid="revoke-all-api-keys-action"
             onClick={() => setRevokeAllOpen(true)}
-            isDisabled={!isMaasAdmin && apiKeyCount === 0}
-            isDanger
+            isDisabled={isRevokeDisabled}
+            isDanger={!isRevokeDisabled}
           >
-            {isMaasAdmin ? 'Revoke all keys for a single user' : 'Revoke all my keys'}
+            {isMaasAdmin ? 'Revoke user API keys' : 'Revoke all my keys'}
           </DropdownItem>
         </DropdownList>
       </Dropdown>

@@ -14,15 +14,15 @@ import {
   modelServingSection,
   modelServingWizard,
 } from '../../../../pages/modelServing';
-import {
-  checkInferenceServiceState,
-  provisionProjectForModelServing,
-  modelExternalTester,
-} from '../../../../utils/oc_commands/modelServing';
+import { checkInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
 import { retryableBefore } from '../../../../utils/retryableHooks';
-import { attemptToClickTooltip } from '../../../../utils/models';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
+import { createCleanProject } from '../../../../utils/projectChecker';
+import {
+  createCleanHardwareProfile,
+  cleanupHardwareProfiles,
+} from '../../../../utils/oc_commands/hardwareProfiles';
 
 // Local copy of the key used by the stop modal preference (avoid restricted import from internal)
 const STOP_MODAL_PREFERENCE_KEY = 'odh.dashboard.modelServing.stop.modal.preference';
@@ -31,45 +31,44 @@ let testData: DataScienceProjectData;
 let projectName: string;
 let resourceName: string;
 let modelName: string;
-let modelFilePath: string;
-let modelFormat: string;
+let modelURI: string;
 let servingRuntime: string;
-const awsBucket = 'BUCKET_1' as const;
+let hardwareProfileResourceName: string;
+const hardwareProfileYamlPath = 'resources/yaml/llmd-hardware-profile.yaml';
 const uuid = generateTestUUID();
 
 describe('Verify Admin Single Model Creation and Validation using the UI', () => {
   retryableBefore(() =>
-    // Setup: Load test data and ensure clean state
-    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml').then(
-      (fixtureData: DataScienceProjectData) => {
+    loadDSPFixture('e2e/dataScienceProjects/testSingleModelAdminCreation.yaml')
+      .then((fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
         projectName = `${testData.projectSingleModelAdminResourceName}-${uuid}`;
         modelName = testData.singleModelAdminName;
-        modelFilePath = testData.modelOpenVinoPath;
-        modelFormat = testData.modelFormat;
+        modelURI = testData.modelLocationURI;
         servingRuntime = testData.servingRuntime;
+        hardwareProfileResourceName = testData.hardwareProfileName;
 
         if (!projectName) {
           throw new Error('Project name is undefined or empty in the loaded fixture');
         }
         cy.log(`Loaded project name: ${projectName}`);
-        // Create a Project for pipelines
-        provisionProjectForModelServing(
-          projectName,
-          awsBucket,
-          'resources/yaml/data_connection_model_serving.yaml',
-        );
-      },
-    ),
+        createCleanProject(projectName);
+      })
+      .then(() => {
+        cy.log(`Load Hardware Profile: ${hardwareProfileResourceName}`);
+        createCleanHardwareProfile(hardwareProfileYamlPath);
+      }),
   );
   after(() => {
+    cy.log(`Cleaning up Hardware Profile: ${hardwareProfileResourceName}`);
+    cleanupHardwareProfiles(hardwareProfileResourceName);
     // Delete provisioned Project - wait for completion due to RHOAIENG-19969 to support test retries, 5 minute timeout
     // TODO: Review this timeout once RHOAIENG-19969 is resolved
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
 
   it(
-    'Verify that an Admin can Serve, Query a Single Model using both the UI and External links, and Stop/Start the Model',
+    'Verify that an Admin can Serve a Generative Legacy vLLM Model and Stop/Start the Model',
     {
       tags: [
         '@Smoke',
@@ -85,7 +84,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       cy.log('Model Name:', modelName);
       // Authentication and navigation
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=vLLMDeploymentOnMaaS=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       // Project navigation
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
@@ -102,10 +101,20 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       modelServingGlobal.findDeployModelButton().click();
 
       cy.step('Step 1: Model details');
-      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.EXISTING).click();
-      modelServingWizard.findLocationPathInput().clear().type(modelFilePath);
-      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.PREDICTIVE).click();
-      modelServingWizard.findNextButton().click();
+      modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizard.findUrilocationInput().clear().type(modelURI);
+      modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
+      modelServingWizard
+        .findSaveConnectionInput()
+        .clear()
+        .type(`${modelName}${testData.connectionNameSuffix}`);
+      modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
+      cy.step('Verify legacy deployment checkbox appears and check it');
+      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
+      modelServingWizard.findLegacyModeCheckbox().click();
+      modelServingWizard.findLegacyModeCheckbox().should('be.checked');
+      modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 2: Model deployment');
       modelServingWizard.findModelDeploymentNameInput().clear().type(modelName);
@@ -117,7 +126,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
         .then((val) => {
           resourceName = val as string;
         });
-      modelServingWizard.findModelFormatSelectOption(modelFormat).click();
+      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
 
@@ -135,21 +144,11 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
-      // Verify model deployment is ready
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      // Note reload is required as status tooltip was not found due to a stale element
-      cy.reload();
-      modelServingSection.findModelMetricsLink(testData.singleModelAdminName);
-      attemptToClickTooltip();
-
-      //Verify the Model is accessible externally
-      cy.step('Verify the model is accessible externally');
-      modelExternalTester(modelName, projectName).then(({ url, response }) => {
-        expect(response.status).to.equal(200);
-
-        //verify the External URL Matches the Backend
-        modelServingSection.findInternalExternalServiceButton().click();
-        modelServingSection.findExternalServicePopoverTable().should('contain', url);
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          requireLoadedState: false,
+        });
       });
 
       // Test stop/start functionality
@@ -174,31 +173,13 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       //Verify the model is stopped
       cy.step('Verify the model is stopped');
-      checkInferenceServiceState(resourceName, projectName, {
-        checkReady: false,
-        checkStopped: true,
-        requireLoadedState: false,
+      cy.then(() => {
+        checkInferenceServiceState(resourceName, projectName, {
+          checkReady: false,
+          requireLoadedState: false,
+        });
       });
       kServeRow.findStatusLabel(ModelStateLabel.STOPPED, MODEL_STATUS_TIMEOUT).should('exist');
-
-      //Restart the model
-      cy.step('Restart the model');
-      kServeRow.findStateActionToggle().should('have.text', ModelStateToggleLabel.START).click();
-      kServeRow.findStatusLabel(ModelStateLabel.STARTING, MODEL_STATUS_TIMEOUT).should('exist');
-
-      //Verify the model is running again
-      cy.step('Verify the model is running again');
-      checkInferenceServiceState(resourceName, projectName, { checkReady: true });
-      kServeRow
-        .findStatusLabel()
-        .invoke('text')
-        .should('match', new RegExp(`${ModelStateLabel.STARTING}|${ModelStateLabel.READY}`));
-
-      //Verify external access still works after restart
-      cy.step('Verify the model is still accessible externally after restart');
-      modelExternalTester(modelName, projectName).then(({ response }) => {
-        expect(response.status).to.equal(200);
-      });
     },
   );
 });

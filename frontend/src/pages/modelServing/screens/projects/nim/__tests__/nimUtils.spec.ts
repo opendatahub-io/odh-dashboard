@@ -2,8 +2,10 @@ import { ServingRuntimeKind } from '#~/k8sTypes';
 import { fetchInferenceServiceCount } from '#~/pages/modelServing/screens/projects/utils';
 import { deletePvc, deleteSecret, listNIMAccounts, listServingRuntimes, getPvc } from '#~/api';
 import {
+  checkPVCUsage,
   fetchNIMAccountTemplateName,
   getNIMResourcesToDelete,
+  updateServingRuntimeTemplate,
 } from '#~/pages/modelServing/screens/projects/nim/nimUtils';
 import { mockNimAccount } from '#~/__mocks__/mockNimAccount';
 import { mockServingRuntimeK8sResource } from '#~/__mocks__';
@@ -198,5 +200,51 @@ describe('fetchNIMAccountTemplateName', () => {
     );
 
     consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('spec-less ServingRuntime handling', () => {
+  const speclessRuntime = {
+    apiVersion: 'serving.kserve.io/v1alpha1',
+    kind: 'ServingRuntime',
+    metadata: { name: 'no-spec', namespace: 'test-project' },
+  } as unknown as ServingRuntimeKind;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('getNIMResourcesToDelete', () => {
+    it('should return empty array for a spec-less serving runtime', async () => {
+      jest.mocked(fetchInferenceServiceCount).mockResolvedValue(0);
+
+      const result = await getNIMResourcesToDelete('test-project', speclessRuntime);
+
+      expect(result).toEqual([]);
+      expect(deletePvc).not.toHaveBeenCalled();
+      expect(deleteSecret).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('checkPVCUsage', () => {
+    it('should not crash when serving runtimes have no spec', async () => {
+      (listServingRuntimes as jest.Mock).mockResolvedValue([speclessRuntime]);
+
+      const result = await checkPVCUsage('nim-pvc-abc12', 'test-project');
+
+      expect(result).toEqual({ count: 0, servingRuntimes: [] });
+    });
+  });
+
+  describe('updateServingRuntimeTemplate', () => {
+    it('should not crash for a spec-less serving runtime', () => {
+      expect(() => updateServingRuntimeTemplate(speclessRuntime, 'new-pvc')).not.toThrow();
+    });
+
+    it('should return the runtime unchanged for a spec-less runtime', () => {
+      const result = updateServingRuntimeTemplate(speclessRuntime, 'new-pvc');
+      expect(result.metadata.name).toBe('no-spec');
+      expect((result as unknown as Record<string, unknown>).spec).toBeUndefined();
+    });
   });
 });

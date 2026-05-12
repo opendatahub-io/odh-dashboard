@@ -121,7 +121,12 @@ describe('Evaluations Page - Empty state', () => {
   it('should display the empty state when no evaluations exist', () => {
     evaluationsPage.visit(NAMESPACE);
     evaluationsPage.findEmptyState().should('exist');
-    evaluationsPage.findEmptyStateBody().should('contain.text', 'No evaluation runs have been');
+    evaluationsPage
+      .findEmptyStateBody()
+      .should(
+        'contain.text',
+        'Start an evaluation run, or select a different project to view its runs.',
+      );
   });
 
   it('should navigate to create when clicking the empty state action', () => {

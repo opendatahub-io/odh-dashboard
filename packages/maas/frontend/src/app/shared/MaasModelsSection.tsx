@@ -3,12 +3,14 @@ import {
   Bullseye,
   Button,
   Content,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownList,
   Flex,
   FlexItem,
   FormGroup,
+  FormHelperText,
   HelperText,
   HelperTextItem,
   MenuToggle,
@@ -37,7 +39,6 @@ export type MaasModelsSectionProps = {
   titleHeadingLevel?: React.ComponentProps<typeof Title>['headingLevel'];
   titleSize?: React.ComponentProps<typeof Title>['size'];
   editable?: boolean;
-  rateLimitErrorIndices?: Set<number>;
   onAddModels?: () => void;
   onEditLimits?: (index: number) => void;
   onRemoveModel?: (index: number) => void;
@@ -48,6 +49,7 @@ export type MaasModelsSectionProps = {
   tableAriaLabel?: string;
   addModelsButtonTestId?: string;
   addModelsButtonAriaLabel?: string;
+  resourceType?: string;
 };
 
 const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
@@ -57,15 +59,15 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   titleHeadingLevel = 'h2',
   titleSize = 'xl',
   editable = false,
-  rateLimitErrorIndices,
   onAddModels,
   onEditLimits,
   onRemoveModel,
   helperText,
-  formGroupFieldId = 'subscription-models',
-  sectionTestId = 'subscription-models-section',
-  tableTestId = 'subscription-models-table',
-  tableAriaLabel = 'Subscription models',
+  resourceType = 'subscription',
+  formGroupFieldId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models`,
+  sectionTestId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models-section`,
+  tableTestId = `${resourceType.trim().toLowerCase().replace(/\s+/g, '-')}-models-table`,
+  tableAriaLabel = `${resourceType} models`,
   addModelsButtonTestId = 'add-models-button',
   addModelsButtonAriaLabel,
 }) => {
@@ -135,13 +137,13 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                         </Button>
                       </StackItem>
                       <StackItem>
-                        <HelperText>
-                          <HelperTextItem
-                            variant={rateLimitErrorIndices?.has(index) ? 'error' : 'indeterminate'}
-                          >
-                            At least one token limit is required
-                          </HelperTextItem>
-                        </HelperText>
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem variant="error">
+                              At least one token limit is required
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
                       </StackItem>
                     </Stack>
                   )
@@ -185,6 +187,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                           Edit token limits
                         </DropdownItem>
                       )}
+                      {onRemoveModel && <Divider component="li" />}
                       <DropdownItem
                         key="remove"
                         isDanger
@@ -193,7 +196,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
                           setOpenKebabIndex(null);
                         }}
                       >
-                        Remove model
+                        Remove
                       </DropdownItem>
                     </DropdownList>
                   </Dropdown>
@@ -211,7 +214,12 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
       <FormGroup label="Models" fieldId={formGroupFieldId} isRequired data-testid={sectionTestId}>
         <Stack hasGutter>
           <StackItem>
-            {helperText ?? <Content>Add models that subscribers will be able to use.</Content>}
+            {helperText ?? (
+              <Content>
+                Select models to make available to members of this {resourceType}, then set token
+                limits for each one.
+              </Content>
+            )}
           </StackItem>
           {table && <StackItem>{table}</StackItem>}
           <StackItem>
@@ -240,14 +248,14 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
             </Title>
           </FlexItem>
           <FlexItem>
-            <Content component="p">Models that subscribers will be able to use.</Content>
+            <Content component="p">Models available to members of this {resourceType}.</Content>
           </FlexItem>
         </Flex>
       </StackItem>
       <StackItem>
         {modelRefSummaries.length === 0 ? (
           <Bullseye>
-            <Content component="p">No models assigned to this subscription.</Content>
+            <Content component="p">No models assigned to this {resourceType}.</Content>
           </Bullseye>
         ) : (
           table

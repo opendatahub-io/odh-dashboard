@@ -54,7 +54,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
       return {
         label: 'Stopping',
         color: 'grey',
-        icon: <InProgressIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="ai-u-spin" />,
       };
     }
     if (kueueStatus?.status && KUEUE_STATUSES_OVERRIDE_WORKBENCH.includes(kueueStatus.status)) {
@@ -70,7 +70,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
       return {
         label: 'Starting',
         color: 'blue',
-        icon: <InProgressIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="ai-u-spin" />,
       };
     }
     if (isRunning) {

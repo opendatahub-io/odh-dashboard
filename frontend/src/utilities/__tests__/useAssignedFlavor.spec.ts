@@ -19,7 +19,7 @@ const listWorkloadsMock = jest.mocked(listWorkloads);
 const getAssignedFlavorFromWorkloadMock = jest.mocked(getAssignedFlavorFromWorkload);
 
 const mockWorkloadWithFlavor = {
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'Workload',
   metadata: { name: WORKLOAD_NAME, namespace: NAMESPACE },
   spec: { queueName: LOCAL_QUEUE_NAME, podSets: [] },

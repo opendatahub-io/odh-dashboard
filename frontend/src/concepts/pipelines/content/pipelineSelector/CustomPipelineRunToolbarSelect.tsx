@@ -160,9 +160,9 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
 
 export const ExperimentFilterSelector: React.FC<FilterSelectorProps<ExperimentKF>> = (props) => (
   <InnerCustomPipelineRunToolbarSelect
-    resourceName="experiments"
-    toggleTestId="experiment-toggle-button"
-    tableTestId="experiment-selector-table-list"
+    resourceName="run groups"
+    toggleTestId="run-group-toggle-button"
+    tableTestId="run-group-selector-table-list"
     columns={experimentSelectorColumns}
     {...props}
   />

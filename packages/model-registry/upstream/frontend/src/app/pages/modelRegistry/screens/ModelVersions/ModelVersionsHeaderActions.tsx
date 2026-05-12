@@ -17,6 +17,7 @@ import { ArchiveRegisteredModelModal } from '~/app/pages/modelRegistry/screens/c
 import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 import DeployModalExtension from '~/odh/components/DeployModalExtension';
 import ArchiveButtonDropdownItem from '~/odh/components/ArchiveButtonDropdownItem';
+
 interface ModelVersionsHeaderActionsProps {
   rm: RegisteredModel;
   latestModelVersion?: ModelVersion;
@@ -59,19 +60,23 @@ const ModelVersionsHeaderActions: React.FC<ModelVersionsHeaderActionsProps> = ({
                   )}
                 >
                   <DropdownList>
-                  {isModalAvailable && (<DropdownGroup label="Latest version actions">
-                      <DropdownItem
-                        onClick={() => {
-                          setOpen(false);
-                          onOpenModal();
-                        }}
-                        isAriaDisabled={!buttonState?.enabled}
-                        tooltipProps={buttonState?.tooltip ? { content: buttonState.tooltip } : undefined}
-                      >
-                        Deploy <strong>{latestModelVersion.name}</strong>
-                      </DropdownItem>
-                    {isModalAvailable && <Divider />}
-                    </DropdownGroup>)}
+                    {isModalAvailable && (
+                      <DropdownGroup label="Latest version actions">
+                        <DropdownItem
+                          onClick={() => {
+                            setOpen(false);
+                            onOpenModal();
+                          }}
+                          isAriaDisabled={!buttonState.enabled}
+                          tooltipProps={
+                            buttonState.tooltip ? { content: buttonState.tooltip } : undefined
+                          }
+                        >
+                          Deploy <strong>{latestModelVersion.name}</strong>
+                        </DropdownItem>
+                        <Divider />
+                      </DropdownGroup>
+                    )}
                     <ArchiveButtonDropdownItem setIsArchiveModalOpen={setIsArchiveModalOpen} />
                   </DropdownList>
                 </Dropdown>

@@ -40,7 +40,6 @@ import {
 } from '#~/pages/pipelines/global/modelCustomization/utils';
 import { genRandomChars } from '#~/utilities/string';
 import { RunTypeOption } from '#~/concepts/pipelines/content/createRun/types';
-import { DEFAULT_RUN_GROUP } from '#~/concepts/pipelines/content/createRun/const';
 import { ValidationContext } from '#~/utilities/useValidation';
 import { FineTunedModelNewConnectionContext } from '#~/pages/pipelines/global/modelCustomization/fineTunedModelSection/FineTunedModelNewConnectionContext';
 import { InferenceServiceStorageType } from '#~/pages/modelServing/screens/types';
@@ -103,7 +102,6 @@ const FineTunePageFooter: React.FC<FineTunePageFooterProps> = ({
     runType: { type: RunTypeOption.ONE_TRIGGER },
     pipeline: ilabPipeline,
     version: ilabPipelineVersion,
-    runGroup: DEFAULT_RUN_GROUP,
     mlflow: { isExperimentTrackingEnabled: false },
   });
 

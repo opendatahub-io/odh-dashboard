@@ -45,6 +45,7 @@ import {
   TemplateModel,
 } from '../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -115,6 +116,7 @@ const initIntercepts = ({
         [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MLFLOW]: { managementState: 'Managed' },
       },
     }),
   );
@@ -551,6 +553,7 @@ describe('Project Details', () => {
     });
 
     it('should show experiment tracking card with correct actions', () => {
+      interceptMlflowStatus();
       projectDetails.visitSection('test-project', 'overview');
 
       cy.contains('Experiment tracking').should('be.visible');

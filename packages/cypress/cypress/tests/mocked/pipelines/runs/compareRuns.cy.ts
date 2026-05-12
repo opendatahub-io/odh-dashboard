@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { PluginStateKF } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { DSPAMlflowIntegrationMode } from '@odh-dashboard/internal/k8sTypes';
 import {
   buildMockExperimentKF,
   mockDashboardConfig,
@@ -29,6 +30,10 @@ import {
   compareRunsMetricsContent,
 } from '../../../../pages/pipelines/compareRuns';
 import { initMlmdIntercepts } from '../mlmdUtils';
+import {
+  interceptDSPAMlflowIntegration,
+  interceptMlflowStatus,
+} from '../../../../utils/mlflowUtils';
 
 const projectName = 'test-project-name';
 const initialMockPipeline = buildMockPipeline({ display_name: 'Test pipeline' });
@@ -161,16 +166,27 @@ describe('Compare runs', () => {
       compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
       cy.wait('@validRun');
 
-      compareRunsListTable.find().find('thead th').should('not.contain', 'MLflow experiment');
+      compareRunsListTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
     });
 
     it('shows the MLflow experiment column when MLflow is enabled', () => {
       cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+      interceptMlflowStatus();
       compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
       cy.wait('@validRun');
 
-      compareRunsListTable.find().find('thead th').should('contain', 'MLflow experiment');
+      compareRunsListTable.findColumnHeaders().should('contain', 'MLflow experiment');
+    });
+
+    it('hides the MLflow experiment column when DSPA has MLflow integration disabled', () => {
+      cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+      interceptMlflowStatus();
+      interceptDSPAMlflowIntegration(projectName, DSPAMlflowIntegrationMode.DISABLED);
+      compareRunsGlobal.visit(projectName, [mockRun.run_id, mockRun2.run_id]);
+      cy.wait('@validRun');
+
+      compareRunsListTable.findColumnHeaders().should('not.contain', 'MLflow experiment');
     });
 
     it('shows the MLflow experiment link in the run list when MLflow is enabled', () => {
@@ -195,6 +211,7 @@ describe('Compare runs', () => {
 
       cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
       cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
+      interceptMlflowStatus();
       cy.interceptOdh(
         'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
         {

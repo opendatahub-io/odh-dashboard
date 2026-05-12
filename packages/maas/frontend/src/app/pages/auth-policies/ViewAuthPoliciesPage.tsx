@@ -11,7 +11,8 @@ import {
 } from '@patternfly/react-core';
 import SimpleMenuActions from '@odh-dashboard/internal/components/SimpleMenuActions';
 import { useGetPolicyInfo } from '~/app/hooks/useGetPolicyInfo';
-import { MaaSAuthPolicy } from '~/app/types/subscriptions';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
+import { PolicyInfoResponse } from '~/app/types/auth-policies';
 import { URL_PREFIX } from '~/app/utilities/const';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import DeleteAuthPolicyModal from './DeleteAuthPolicyModal';
@@ -20,6 +21,24 @@ import PolicyGroupsSection from './viewAuthPolicy/PolicyGroupsSection';
 
 type PolicyActionsProps = {
   policy: MaaSAuthPolicy;
+};
+
+const viewModelRefSummaries = (info: PolicyInfoResponse): MaaSModelRefSummary[] => {
+  const policyRefs = Array.isArray(info.policy.modelRefs) ? info.policy.modelRefs : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return policyRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return (
+      summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: ref.name },
+      }
+    );
+  });
 };
 
 const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
@@ -33,15 +52,17 @@ const PolicyActions: React.FC<PolicyActionsProps> = ({ policy }) => {
         dropdownItems={[
           {
             key: 'edit',
-            label: 'Edit policy',
+            label: 'Edit',
             onClick: () =>
               navigate(`${URL_PREFIX}/auth-policies/edit/${encodeURIComponent(policy.name)}`),
+            isDisabled: !!policy.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
-            label: 'Delete policy',
+            label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
+            isDisabled: !!policy.deletionTimestamp,
           },
         ]}
       />
@@ -69,7 +90,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
     <Breadcrumb>
       <BreadcrumbItem>
         <Link to={`${URL_PREFIX}/auth-policies`} data-testid="breadcrumb-policies-link">
-          Policies
+          Authorization policies
         </Link>
       </BreadcrumbItem>
       <BreadcrumbItem isActive>{policyInfo?.policy.displayName ?? authPolicyName}</BreadcrumbItem>
@@ -107,8 +128,9 @@ const ViewAuthPoliciesPage: React.FC = () => {
             </PageSection>
             <PageSection hasBodyWrapper={false} className="pf-v6-u-pb-xl">
               <MaasModelsSection
-                modelRefSummaries={policyInfo.modelRefs}
+                modelRefSummaries={viewModelRefSummaries(policyInfo)}
                 hideColumns={['tokenLimits']}
+                resourceType="authorization policy"
               />
             </PageSection>
           </Tab>

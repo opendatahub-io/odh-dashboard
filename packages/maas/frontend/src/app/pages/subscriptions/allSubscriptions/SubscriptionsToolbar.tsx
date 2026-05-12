@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
-import { PlusIcon } from '@patternfly/react-icons';
 import { useNavigate } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import {
@@ -31,8 +30,9 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
         [SubscriptionsFilterOptions.keyword]: ({ onChange, ...props }) => (
           <SearchInput
             {...props}
-            aria-label="Filter by keyword"
-            placeholder="Filter by keyword"
+            style={{ minWidth: '300px' }}
+            aria-label="Filter by name or description"
+            placeholder="Filter by name or description"
             onChange={(_event, value) => onChange(value)}
             data-testid="subscriptions-filter-input"
           />
@@ -45,13 +45,12 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
         <ToolbarItem>
           <Button
             variant="primary"
-            icon={<PlusIcon />}
             onClick={() => {
               navigate(`${URL_PREFIX}/subscriptions/create`);
             }}
             data-testid="create-subscription-button"
           >
-            Create Subscription
+            Create subscription
           </Button>
         </ToolbarItem>
       </ToolbarGroup>

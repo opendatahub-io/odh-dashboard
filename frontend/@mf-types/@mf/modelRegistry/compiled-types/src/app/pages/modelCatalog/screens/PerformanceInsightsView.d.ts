@@ -1,3 +1,7 @@
 import * as React from 'react';
-declare const PerformanceInsightsView: () => React.JSX.Element;
+import { CatalogModel } from '~/app/modelCatalogTypes';
+type PerformanceInsightsViewProps = {
+    model: CatalogModel;
+};
+declare const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps>;
 export default PerformanceInsightsView;

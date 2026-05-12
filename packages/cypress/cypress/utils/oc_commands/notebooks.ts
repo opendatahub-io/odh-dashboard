@@ -53,7 +53,7 @@ export const checkNotebookTolerations = (
 
         cy.exec(getPodCommand, { failOnNonZeroExit: false }).then(
           (podResult: CommandLineResult) => {
-            if (podResult.code !== 0) {
+            if (podResult.exitCode !== 0) {
               const maskedStderr = maskSensitiveInfo(podResult.stderr);
               throw new Error(`Failed to get pod details: ${maskedStderr}`);
             }

@@ -1,6 +1,4 @@
-import { MessageProps, WelcomePrompt } from '@patternfly/chatbot';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId } from '~/app/utilities/utils';
+import { WelcomePrompt } from '@patternfly/chatbot';
 
 // Alert and notification constants
 export const ALERT_TIMEOUT_MS = 8000;
@@ -18,16 +16,8 @@ export const SAMPLING_STRATEGY = {
   TYPE: 'greedy',
 } as const;
 
-// Initial bot message
-export const initialBotMessage = (): MessageProps => ({
-  id: getId(),
-  role: 'bot',
-  content:
-    'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-  name: 'Bot',
-  avatar: botAvatar,
-  timestamp: new Date().toLocaleString(),
-});
+export const PLACEHOLDER_BOT_CONTENT =
+  'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.';
 
 export const sampleWelcomePrompts: WelcomePrompt[] = [
   {
@@ -67,6 +57,18 @@ export const ERROR_MESSAGES = {
   FILE_UPLOAD_REJECTED: 'File upload rejected',
   FILE_TOO_LARGE: 'File size exceeds 10MB',
   TOO_MANY_FILES: 'Maximum number of files exceeded',
+} as const;
+
+export const GUARDRAIL_ERROR_CODES = {
+  INPUT_VIOLATION: 'guardrail_input_violation',
+  OUTPUT_VIOLATION: 'guardrail_output_violation',
+} as const;
+
+export const GUARDRAIL_MESSAGES = {
+  INPUT_VIOLATION:
+    'I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII).',
+  OUTPUT_VIOLATION:
+    'The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII).',
 } as const;
 
 export const DEFAULT_SYSTEM_INSTRUCTIONS = `You are a helpful AI assistant. You are designed to answer questions in a concise and professional manner.
