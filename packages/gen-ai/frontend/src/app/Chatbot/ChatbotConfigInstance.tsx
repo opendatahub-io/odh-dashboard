@@ -21,7 +21,7 @@ import {
   selectActivePrompt,
 } from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
-import { sampleWelcomePrompts } from './const';
+import { sampleWelcomePrompts, PLACEHOLDER_BOT_CONTENT } from './const';
 
 interface ChatbotConfigInstanceProps {
   configId: string;
@@ -144,7 +144,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && (
+      {showWelcomePrompt && messagesHook.messages.length === 0 && (
         <ChatbotWelcomePrompt
           title={username ? `Hello, ${username}` : 'Hello'}
           description={welcomeDescription}
@@ -162,6 +162,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         isLoading={messagesHook.isLoading}
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
+        placeholderContent={PLACEHOLDER_BOT_CONTENT}
       />
     </MessageBox>
   );

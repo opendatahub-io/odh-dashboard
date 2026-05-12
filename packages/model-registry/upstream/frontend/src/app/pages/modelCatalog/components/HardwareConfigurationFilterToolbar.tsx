@@ -98,6 +98,7 @@ const HardwareConfigurationFilterToolbar: React.FC<HardwareConfigurationFilterTo
 
   return (
     <Toolbar
+      className="pf-v6-u-pb-0"
       {...(onResetAllFilters && hasVisibleChips
         ? { clearAllFilters: onResetAllFilters, clearFiltersButtonText: 'Reset all defaults' }
         : {})}
