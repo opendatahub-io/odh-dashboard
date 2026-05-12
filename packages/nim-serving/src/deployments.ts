@@ -62,7 +62,7 @@ export const useWatchDeployments = (
           modelServingPlatformId: NIM_ID,
           model: nimService,
           server: associatedIS,
-          status: getNIMDeploymentStatus(associatedIS, deploymentPods),
+          status: getNIMDeploymentStatus(associatedIS, deploymentPods, nimService.metadata.name),
           endpoints: associatedIS ? getKServeDeploymentEndpoints(associatedIS) : [],
           apiProtocol: 'REST',
         };

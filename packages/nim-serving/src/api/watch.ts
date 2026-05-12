@@ -51,12 +51,7 @@ export const useWatchNIMDeploymentPods = (
       groupVersionKind: groupVersionKind(PodModel),
       namespace: project?.metadata.name,
       selector: {
-        matchExpressions: [
-          {
-            key: 'serving.kserve.io/inferenceservice',
-            operator: 'Exists',
-          },
-        ],
+        'app.kubernetes.io/managed-by': 'k8s-nim-operator',
       },
     },
     PodModel,

@@ -5,7 +5,7 @@ import { getNIMDeploymentStatus } from '../deploymentStatus';
 
 describe('getNIMDeploymentStatus', () => {
   it('should return LOADING when InferenceService is undefined', () => {
-    const result = getNIMDeploymentStatus(undefined, []);
+    const result = getNIMDeploymentStatus(undefined, [], 'test-nim');
 
     expect(result.state).toBe(ModelDeploymentState.LOADING);
     expect(result.message).toBe('Waiting for NIM Operator to provision InferenceService');
@@ -18,13 +18,13 @@ describe('getNIMDeploymentStatus', () => {
       namespace: 'test-project',
     });
 
-    const result = getNIMDeploymentStatus(is, []);
+    const result = getNIMDeploymentStatus(is, [], 'test-nim');
 
     expect(result.state).toBeDefined();
     expect(typeof result.state).toBe('string');
   });
 
-  it('should match pod to InferenceService by label', () => {
+  it('should match pod by app.kubernetes.io/name label', () => {
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
@@ -32,10 +32,11 @@ describe('getNIMDeploymentStatus', () => {
 
     const matchingPod = {
       metadata: {
-        name: 'test-nim-predictor-pod',
+        name: 'test-nim-pod',
         namespace: 'test-project',
         labels: {
-          'serving.kserve.io/inferenceservice': 'test-nim',
+          'app.kubernetes.io/name': 'test-nim',
+          'app.kubernetes.io/managed-by': 'k8s-nim-operator',
         },
       },
       spec: {},
@@ -56,39 +57,69 @@ describe('getNIMDeploymentStatus', () => {
         name: 'other-pod',
         namespace: 'test-project',
         labels: {
-          'serving.kserve.io/inferenceservice': 'other-service',
+          'app.kubernetes.io/name': 'other-service',
         },
       },
       spec: {},
       status: { phase: 'Running' },
     } as unknown as PodKind;
 
-    const result = getNIMDeploymentStatus(is, [unmatchedPod, matchingPod]);
+    const result = getNIMDeploymentStatus(is, [unmatchedPod, matchingPod], 'test-nim');
 
     expect(result.state).toBeDefined();
   });
 
-  it('should handle InferenceService with no matching pods', () => {
+  it('should prefer Running pod over Pending during re-rollout', () => {
     const is = mockInferenceServiceK8sResource({
       name: 'test-nim',
       namespace: 'test-project',
     });
 
-    const unrelatedPod = {
+    const pendingPod = {
       metadata: {
-        name: 'unrelated-pod',
+        name: 'test-nim-new-pod',
         namespace: 'test-project',
         labels: {
-          'serving.kserve.io/inferenceservice': 'different-service',
+          'app.kubernetes.io/name': 'test-nim',
         },
       },
       spec: {},
-      status: { phase: 'Running' },
+      status: {
+        phase: 'Pending',
+        conditions: [
+          {
+            type: 'PodScheduled',
+            status: 'False',
+            reason: 'Unschedulable',
+          },
+        ],
+      },
     } as unknown as PodKind;
 
-    const result = getNIMDeploymentStatus(is, [unrelatedPod]);
+    const runningPod = {
+      metadata: {
+        name: 'test-nim-old-pod',
+        namespace: 'test-project',
+        labels: {
+          'app.kubernetes.io/name': 'test-nim',
+        },
+      },
+      spec: {},
+      status: {
+        phase: 'Running',
+        containerStatuses: [
+          {
+            name: 'kserve-container',
+            ready: true,
+            state: { running: {} },
+          },
+        ],
+      },
+    } as unknown as PodKind;
 
-    expect(result.state).toBeDefined();
+    const result = getNIMDeploymentStatus(is, [pendingPod, runningPod], 'test-nim');
+
+    expect(result.state).not.toBe(ModelDeploymentState.FAILED_TO_LOAD);
   });
 
   it('should handle empty pods array', () => {
@@ -97,7 +128,7 @@ describe('getNIMDeploymentStatus', () => {
       namespace: 'test-project',
     });
 
-    const result = getNIMDeploymentStatus(is, []);
+    const result = getNIMDeploymentStatus(is, [], 'test-nim');
 
     expect(result.state).toBeDefined();
     expect(result).toHaveProperty('message');

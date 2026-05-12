@@ -19,6 +19,7 @@ import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/ut
 export const getNIMDeploymentStatus = (
   inferenceService: InferenceServiceKind | undefined,
   deploymentPods: PodKind[],
+  nimServiceName: string,
 ): DeploymentStatus => {
   if (!inferenceService) {
     return {
@@ -27,11 +28,16 @@ export const getNIMDeploymentStatus = (
     };
   }
 
-  const deploymentPod = deploymentPods.find(
-    (pod) =>
-      pod.metadata.labels?.['serving.kserve.io/inferenceservice'] ===
-      inferenceService.metadata.name,
+  const matchingPods = deploymentPods.filter(
+    (pod) => pod.metadata.labels?.['app.kubernetes.io/name'] === nimServiceName,
   );
+
+  // During re-rollouts there can be multiple pods (old + new).
+  // Prefer a Running pod to avoid flickering to FAILED_TO_LOAD when a
+  // newly-scheduled pod is temporarily Unschedulable.
+  const deploymentPod =
+    matchingPods.find((pod) => pod.status?.phase === 'Running') ??
+    (matchingPods.length > 0 ? matchingPods[0] : undefined);
   const modelPodStatus = deploymentPod ? checkModelPodStatus(deploymentPod) : null;
 
   const state = getInferenceServiceModelState(inferenceService, modelPodStatus);
