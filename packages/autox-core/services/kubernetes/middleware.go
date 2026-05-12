@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"net/http"
+	"path"
+	"strings"
 )
 
 // InjectRequestIdentityConfig configures the identity injection middleware
@@ -37,9 +39,11 @@ type InjectRequestIdentityConfig struct {
 func InjectRequestIdentity(cfg InjectRequestIdentityConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Clean the path to prevent traversal attacks (e.g., /./healthcheck, //healthcheck)
+			cleanPath := path.Clean(r.URL.Path)
 			// Check if path should be skipped
 			for _, prefix := range cfg.SkipPaths {
-				if len(r.URL.Path) >= len(prefix) && r.URL.Path[:len(prefix)] == prefix {
+				if strings.HasPrefix(cleanPath, prefix) {
 					next.ServeHTTP(w, r)
 					return
 				}
