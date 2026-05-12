@@ -29,6 +29,10 @@ import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServ
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '../../../utils/oc_commands/hardwareProfiles';
 
 describe('Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
@@ -42,6 +46,8 @@ describe('Verify models can be deployed from model registry', () => {
   let deploymentName: string;
   let modelFormat: string;
   let servingRuntime: string;
+  let hardwareProfileName: string;
+  let hardwareProfileYamlPath: string;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
@@ -55,6 +61,8 @@ describe('Verify models can be deployed from model registry', () => {
       deploymentName = testData.operatorDeploymentName;
       modelFormat = testData.modelFormat;
       servingRuntime = testData.servingRuntime;
+      hardwareProfileName = testData.hardwareProfileName;
+      hardwareProfileYamlPath = testData.hardwareProfileYamlPath;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
@@ -69,6 +77,9 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
+
+      cy.step('Create hardware profile for model deployment');
+      createCleanHardwareProfile(hardwareProfileYamlPath);
     });
   });
 
@@ -93,6 +104,9 @@ describe('Verify models can be deployed from model registry', () => {
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase(databaseName).should('be.true');
+
+    cy.step('Clean up hardware profile');
+    cleanupHardwareProfiles(hardwareProfileName);
   });
 
   it(
@@ -200,6 +214,7 @@ describe('Verify models can be deployed from model registry', () => {
         .then((val) => {
           resourceName = val as string;
         });
+      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileName);
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();

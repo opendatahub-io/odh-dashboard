@@ -54,7 +54,7 @@ func TestCheckGuardrails_Success(t *testing.T) {
 	defer server.Close()
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	resp, err := client.CheckGuardrails(context.Background(), "hello world", minimalInlineConfig(), RoleUser)
+	resp, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello world"}}, minimalInlineConfig())
 
 	require.NoError(t, err)
 	assert.Equal(t, StatusSuccess, resp.Status)
@@ -74,7 +74,7 @@ func TestCheckGuardrails_Blocked(t *testing.T) {
 	defer server.Close()
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	resp, err := client.CheckGuardrails(context.Background(), "malicious input", minimalInlineConfig(), RoleUser)
+	resp, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "malicious input"}}, minimalInlineConfig())
 
 	require.NoError(t, err)
 	assert.Equal(t, StatusBlocked, resp.Status)
@@ -118,22 +118,22 @@ func TestCheckGuardrails_InlineConfig(t *testing.T) {
 	}
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	resp, err := client.CheckGuardrails(context.Background(), "assistant response text", opts, RoleAssistant)
+	resp, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleAssistant, Content: "assistant response text"}}, opts)
 
 	require.NoError(t, err)
 	assert.Equal(t, StatusSuccess, resp.Status)
 }
 
-func TestCheckGuardrails_EmptyInput(t *testing.T) {
+func TestCheckGuardrails_EmptyMessages(t *testing.T) {
 	client := NewNemoGuardrailsClient("http://unused", "", true, nil)
-	_, err := client.CheckGuardrails(context.Background(), "", minimalInlineConfig(), RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{}, minimalInlineConfig())
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "input is required")
+	assert.Contains(t, err.Error(), "messages are required")
 }
 
 func TestCheckGuardrails_NilConfig(t *testing.T) {
 	client := NewNemoGuardrailsClient("http://unused", "", true, nil)
-	_, err := client.CheckGuardrails(context.Background(), "hello", GuardrailsOptions{Config: nil}, RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, GuardrailsOptions{Config: nil})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "inline guardrail config")
 }
@@ -141,7 +141,7 @@ func TestCheckGuardrails_NilConfig(t *testing.T) {
 func TestCheckGuardrails_EmptyModels(t *testing.T) {
 	client := NewNemoGuardrailsClient("http://unused", "", true, nil)
 	opts := GuardrailsOptions{Config: &InlineGuardrailConfig{}} // no models
-	_, err := client.CheckGuardrails(context.Background(), "hello", opts, RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, opts)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "inline guardrail config")
 }
@@ -154,7 +154,7 @@ func TestCheckGuardrails_ServerError(t *testing.T) {
 	defer server.Close()
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	_, err := client.CheckGuardrails(context.Background(), "hello", minimalInlineConfig(), RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "status 500")
 }
@@ -167,14 +167,14 @@ func TestCheckGuardrails_InvalidJSON(t *testing.T) {
 	defer server.Close()
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	_, err := client.CheckGuardrails(context.Background(), "hello", minimalInlineConfig(), RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to parse response")
 }
 
 func TestCheckGuardrails_ConnectionRefused(t *testing.T) {
 	client := NewNemoGuardrailsClient("http://localhost:1", "test-token", true, nil)
-	_, err := client.CheckGuardrails(context.Background(), "hello", minimalInlineConfig(), RoleUser)
+	_, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "guardrail check request failed")
 }
@@ -189,7 +189,7 @@ func TestCheckGuardrails_NoAuthToken(t *testing.T) {
 	defer server.Close()
 
 	client := NewNemoGuardrailsClient(server.URL, "", true, nil)
-	resp, err := client.CheckGuardrails(context.Background(), "hello", minimalInlineConfig(), RoleUser)
+	resp, err := client.CheckGuardrails(context.Background(), []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	require.NoError(t, err)
 	assert.Equal(t, StatusSuccess, resp.Status)
 }
@@ -206,6 +206,35 @@ func TestCheckGuardrails_CancelledContext(t *testing.T) {
 	cancel()
 
 	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
-	_, err := client.CheckGuardrails(ctx, "hello", minimalInlineConfig(), RoleUser)
+	_, err := client.CheckGuardrails(ctx, []Message{{Role: RoleUser, Content: "hello"}}, minimalInlineConfig())
 	assert.Error(t, err)
+}
+
+func TestCheckGuardrails_MultipleMessages(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req GuardrailCheckRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		require.NoError(t, err)
+		assert.Len(t, req.Messages, 3)
+		assert.Equal(t, RoleUser, req.Messages[0].Role)
+		assert.Equal(t, RoleUser, req.Messages[1].Role)
+		assert.Equal(t, RoleUser, req.Messages[2].Role)
+
+		resp := GuardrailCheckResponse{Status: StatusSuccess}
+		w.Header().Set("Content-Type", "application/json")
+		require.NoError(t, json.NewEncoder(w).Encode(resp))
+	}))
+	defer server.Close()
+
+	messages := []Message{
+		{Role: RoleUser, Content: "first message"},
+		{Role: RoleUser, Content: "second message"},
+		{Role: RoleUser, Content: "current message"},
+	}
+
+	client := NewNemoGuardrailsClient(server.URL, "test-token", true, nil)
+	resp, err := client.CheckGuardrails(context.Background(), messages, minimalInlineConfig())
+
+	require.NoError(t, err)
+	assert.Equal(t, StatusSuccess, resp.Status)
 }

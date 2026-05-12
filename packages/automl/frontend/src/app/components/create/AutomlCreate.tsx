@@ -25,6 +25,7 @@ function AutomlCreate(): React.JSX.Element {
             <TextInput
               {...field}
               id={field.name}
+              data-testid="automl-name-input"
               type="text"
               isRequired
               validated={fieldState.invalid ? 'error' : undefined}
@@ -44,7 +45,7 @@ function AutomlCreate(): React.JSX.Element {
         name="description"
         render={({ field }) => (
           <FormGroup fieldId={field.name} label="Description">
-            <TextArea {...field} id={field.name} />
+            <TextArea {...field} id={field.name} data-testid="automl-description-input" />
           </FormGroup>
         )}
       />

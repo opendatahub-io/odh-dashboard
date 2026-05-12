@@ -27,8 +27,6 @@ Backend runs on port `4000`, frontend dev server on port `4010`.
 
 Config in `turbo.jsonc`. Key tasks: `build`, `lint`, `test-unit`, `type-check`, `test:contract`, `start:dev`, `install:module`.
 
-`postinstall` runs `turbo run install:module --ui=stream` for packages needing extra setup.
-
 ## Environment
 
 ### Env files (loaded in priority order)

@@ -40,7 +40,7 @@ describe('Prompt Management page wrapper', () => {
       promptManagement
         .findLaunchMlflowButton()
         .should('be.visible')
-        .should('have.attr', 'href', '/mlflow')
+        .should('have.attr', 'href', `/mlflow/#/?workspace=${PROJECT_A}`)
         .should('have.attr', 'target', '_blank');
     });
   });

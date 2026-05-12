@@ -1,0 +1,10 @@
+projectNamePrefix: 'cy-e2e-automl-binary'
+dspaSecretName: dashboard-dspa-secret
+secretName: ods-ci-ds-pipelines
+runName: automl-binary-run
+runDescription: 'E2E test binary classification run'
+trainingDataFile: automl-test-data.csv
+taskType: binary
+topN: 1
+labelColumn: target
+awsBucket: BUCKET_2

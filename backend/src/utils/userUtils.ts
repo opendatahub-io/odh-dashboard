@@ -44,23 +44,6 @@ export type OpenShiftUser = {
   groups: string[];
 };
 
-export const getOpenshiftUser = async (
-  fastify: KubeFastifyInstance,
-  username: string,
-): Promise<OpenShiftUser> => {
-  try {
-    const userResponse = await fastify.kube.customObjectsApi.getClusterCustomObject(
-      'user.openshift.io',
-      'v1',
-      'users',
-      username,
-    );
-    return userResponse.body as OpenShiftUser;
-  } catch (e) {
-    throw new Error(`Error retrieving user, ${errorHandler(e)}`);
-  }
-};
-
 export const getUser = async (
   fastify: KubeFastifyInstance,
   request: FastifyRequest,
