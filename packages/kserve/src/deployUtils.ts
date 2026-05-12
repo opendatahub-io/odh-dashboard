@@ -310,22 +310,22 @@ export const applyConnectionData = (
       result.metadata.annotations[MetadataAnnotation.ConnectionName] =
         secretName ?? createConnectionData.nameDesc?.name ?? '';
     }
-    // Apply connection path to the annotations if the connection type is S3ObjectStorage
-    if (
-      modelLocationData.additionalFields.modelPath &&
-      isModelServingCompatible(
-        modelLocationData.connectionTypeObject ?? [],
-        ModelServingCompatibleTypes.S3ObjectStorage,
-      )
-    ) {
-      result.metadata.annotations = {
-        ...result.metadata.annotations,
-        'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
-      };
-    } else {
-      // Delete connection path from the annotations if it's not present or the connection type is not S3ObjectStorage
-      delete result.metadata.annotations['opendatahub.io/connection-path'];
-    }
+  }
+  // Apply connection path to the annotations if the connection type is S3ObjectStorage
+  if (
+    modelLocationData.additionalFields.modelPath &&
+    isModelServingCompatible(
+      modelLocationData.connectionTypeObject ?? [],
+      ModelServingCompatibleTypes.S3ObjectStorage,
+    )
+  ) {
+    result.metadata.annotations = {
+      ...result.metadata.annotations,
+      'opendatahub.io/connection-path': modelLocationData.additionalFields.modelPath,
+    };
+  } else {
+    // Delete connection path from the annotations if it's not present or the connection type is not S3ObjectStorage
+    delete result.metadata.annotations?.['opendatahub.io/connection-path'];
   }
   if (
     modelLocationData.additionalFields.modelUri &&
