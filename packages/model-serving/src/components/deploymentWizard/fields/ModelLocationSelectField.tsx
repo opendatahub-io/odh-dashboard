@@ -82,10 +82,27 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const [showCustomTypeSelect, setShowCustomTypeSelect] = React.useState(false);
   const [typeOptions, setTypeOptions] = React.useState<ConnectionTypeConfigMapObj[]>([]);
 
-  // Preserve initial prefilled model location data to restore when user switches back
-  const initialModelLocationDataRef = React.useRef<ModelLocationData | undefined>(undefined);
-  if (initialModelLocationDataRef.current == null && modelLocationData != null) {
-    initialModelLocationDataRef.current = modelLocationData;
+  // Cache the latest NEW model location data per connection family to restore when user switches back
+  const cachedNewModelLocationDataRef = React.useRef<
+    Partial<Record<ModelServingCompatibleTypes, ModelLocationData>>
+  >({});
+  if (modelLocationData?.type === ModelLocationType.NEW) {
+    if (modelLocationData.connectionTypeObject) {
+      for (const compatType of Object.values(ModelServingCompatibleTypes)) {
+        if (isModelServingCompatible(modelLocationData.connectionTypeObject, compatType)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    } else if (modelLocationData.connection) {
+      const matchedConnection = connections.find(
+        (c) => c.metadata.name === modelLocationData.connection,
+      );
+      if (matchedConnection) {
+        for (const compatType of getModelServingCompatibility(matchedConnection)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    }
   }
 
   // Compute selectedKey from connectionTypeObject when available (for prefilled data)
@@ -306,19 +323,10 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   });
                   setUserSelectedOption(newOption);
                 } else {
-                  const initialData = initialModelLocationDataRef.current;
                   const getRestoredData = (
                     compatibleType: ModelServingCompatibleTypes,
-                  ): ModelLocationData | undefined => {
-                    if (
-                      initialData?.type === ModelLocationType.NEW &&
-                      initialData.connectionTypeObject &&
-                      isModelServingCompatible(initialData.connectionTypeObject, compatibleType)
-                    ) {
-                      return initialData;
-                    }
-                    return undefined;
-                  };
+                  ): ModelLocationData | undefined =>
+                    cachedNewModelLocationDataRef.current[compatibleType];
 
                   switch (key) {
                     case s3Option.key: {
