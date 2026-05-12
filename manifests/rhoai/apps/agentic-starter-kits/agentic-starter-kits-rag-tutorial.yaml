@@ -11,5 +11,5 @@ spec:
     Build a retrieval-augmented generation agent that autonomously decides
     when to query a Milvus vector store. Uses a three-node LangGraph
     workflow for intelligent document retrieval and context-aware generation.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/langgraph/agentic_rag'
+  url: 'https://red.ht/agentic-starter-kits-langgraph-rag'
   appName: agentic-starter-kits

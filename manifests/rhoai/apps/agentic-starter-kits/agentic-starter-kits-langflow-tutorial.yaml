@@ -11,5 +11,5 @@ spec:
     Build an outdoor activity planning agent with Langflow that reasons
     across weather forecasts, air quality, and National Park Service data
     using a visual flow-based interface.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/langflow/simple_tool_calling_agent'
+  url: 'https://red.ht/agentic-starter-kits-langflow-tool-calling'
   appName: agentic-starter-kits

@@ -11,5 +11,5 @@ spec:
     Build an event-driven agent using LlamaIndex Workflows with explicit
     step transitions, memory buffer, and tool abstraction for web search
     and other integrations.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/llamaindex/websearch_agent'
+  url: 'https://red.ht/agentic-starter-kits-llamaindex-websearch'
   appName: agentic-starter-kits

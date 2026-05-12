@@ -11,5 +11,5 @@ spec:
     Create a lightweight agent using only the OpenAI Python client and
     an Action/Observation loop with tools. No framework dependencies --
     works with OpenAI or any compatible API including Llama Stack.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/vanilla_python/openai_responses_agent'
+  url: 'https://red.ht/agentic-starter-kits-vanilla-python-openai'
   appName: agentic-starter-kits

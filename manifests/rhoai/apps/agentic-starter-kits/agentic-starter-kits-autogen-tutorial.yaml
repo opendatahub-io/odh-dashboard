@@ -11,5 +11,5 @@ spec:
     Build an AutoGen AssistantAgent that connects to MCP servers over
     SSE to load tools dynamically. Exposes a FastAPI endpoint for
     chat completions with tool-augmented reasoning.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/autogen/mcp_agent'
+  url: 'https://red.ht/agentic-starter-kits-autogen-mcp'
   appName: agentic-starter-kits

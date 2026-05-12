@@ -11,5 +11,5 @@ spec:
     Agent with human-in-the-loop approval that pauses execution before
     running sensitive tools and waits for human review. Simple questions
     are answered directly without triggering the approval loop.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/langgraph/human_in_the_loop'
+  url: 'https://red.ht/agentic-starter-kits-langgraph-hitl'
   appName: agentic-starter-kits

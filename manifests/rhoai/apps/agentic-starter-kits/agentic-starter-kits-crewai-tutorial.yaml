@@ -11,5 +11,5 @@ spec:
     Build a ReAct-style web search agent using the CrewAI framework.
     Uses a web search tool to query the internet and answer user
     questions with any OpenAI-compatible API.
-  url: 'https://github.com/red-hat-data-services/agentic-starter-kits/tree/rhoai-3.5/agents/crewai/websearch_agent'
+  url: 'https://red.ht/agentic-starter-kits-crewai-websearch'
   appName: agentic-starter-kits
