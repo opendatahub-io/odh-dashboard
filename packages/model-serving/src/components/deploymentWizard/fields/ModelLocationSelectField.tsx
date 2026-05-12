@@ -66,6 +66,29 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
   const { s3ConnectionTypes, ociConnectionTypes, uriConnectionTypes } =
     useEnabledModelServingConnectionTypes(modelServingConnectionTypes);
 
+  // Cache the latest NEW model location data per connection family to restore when user switches back
+  const cachedNewModelLocationDataRef = React.useRef<
+    Partial<Record<ModelServingCompatibleTypes, ModelLocationData>>
+  >({});
+  if (modelLocationData?.type === ModelLocationType.NEW) {
+    if (modelLocationData.connectionTypeObject) {
+      for (const compatType of Object.values(ModelServingCompatibleTypes)) {
+        if (isModelServingCompatible(modelLocationData.connectionTypeObject, compatType)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    } else if (modelLocationData.connection) {
+      const matchedConnection = connections.find(
+        (c) => c.metadata.name === modelLocationData.connection,
+      );
+      if (matchedConnection) {
+        for (const compatType of getModelServingCompatibility(matchedConnection)) {
+          cachedNewModelLocationDataRef.current[compatType] = modelLocationData;
+        }
+      }
+    }
+  }
+
   // Compute selectedKey from connectionTypeObject when available (for prefilled data)
   const computeSelectedOption = React.useMemo<{ key: string; label: string } | undefined>(() => {
     if (modelLocationData?.connectionTypeObject && modelLocation === ModelLocationType.NEW) {
@@ -224,22 +247,46 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
                   setUserSelectedOption(newOption);
                 } else {
                   const optionToTypes: Partial<
-                    Record<string, { option: typeof s3Option; types: ConnectionTypeConfigMapObj[] }>
+                    Record<
+                      string,
+                      {
+                        option: typeof s3Option;
+                        types: ConnectionTypeConfigMapObj[];
+                        compatibleType: ModelServingCompatibleTypes;
+                      }
+                    >
                   > = {
-                    [s3Option.key]: { option: s3Option, types: s3ConnectionTypes },
-                    [ociOption.key]: { option: ociOption, types: ociConnectionTypes },
-                    [uriOption.key]: { option: uriOption, types: uriConnectionTypes },
+                    [s3Option.key]: {
+                      option: s3Option,
+                      types: s3ConnectionTypes,
+                      compatibleType: ModelServingCompatibleTypes.S3ObjectStorage,
+                    },
+                    [ociOption.key]: {
+                      option: ociOption,
+                      types: ociConnectionTypes,
+                      compatibleType: ModelServingCompatibleTypes.OCI,
+                    },
+                    [uriOption.key]: {
+                      option: uriOption,
+                      types: uriConnectionTypes,
+                      compatibleType: ModelServingCompatibleTypes.URI,
+                    },
                   };
 
                   const match = optionToTypes[key];
                   if (match) {
                     setUserSelectedOption({ key: match.option.key, label: match.option.label });
-                    setModelLocationData({
-                      type: ModelLocationType.NEW,
-                      connectionTypeObject: match.types.length > 1 ? undefined : match.types[0],
-                      fieldValues: {},
-                      additionalFields: {},
-                    });
+                    const restored =
+                      cachedNewModelLocationDataRef.current[match.compatibleType];
+                    setModelLocationData(
+                      restored ?? {
+                        type: ModelLocationType.NEW,
+                        connectionTypeObject:
+                          match.types.length > 1 ? undefined : match.types[0],
+                        fieldValues: {},
+                        additionalFields: {},
+                      },
+                    );
                   }
                 }
               }}
