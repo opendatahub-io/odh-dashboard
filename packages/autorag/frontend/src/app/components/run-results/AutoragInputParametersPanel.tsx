@@ -112,11 +112,7 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   if (generationModels.length > 0) {
     parts.push(
       <Tooltip key="generation" content={generationModels.join(', ')}>
-        <span
-          className="odh-autorag-input-parameters-panel__tooltip-text"
-          tabIndex={0}
-          role="button"
-        >
+        <span className="odh-autorag-input-parameters-panel__tooltip-text">
           {generationModels.length} foundation model{generationModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
@@ -129,11 +125,7 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     }
     parts.push(
       <Tooltip key="embeddings" content={embeddingsModels.join(', ')}>
-        <span
-          className="odh-autorag-input-parameters-panel__tooltip-text"
-          tabIndex={0}
-          role="button"
-        >
+        <span className="odh-autorag-input-parameters-panel__tooltip-text">
           {embeddingsModels.length} embedding model{embeddingsModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
@@ -212,7 +204,12 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   <DescriptionListGroup data-testid="parameter-run-id">
                     <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                      <ClipboardCopy
+                        isReadOnly
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        data-testid="clipboard-run-id"
+                      >
                         {pipelineRun.run_id}
                       </ClipboardCopy>
                     </DescriptionListDescription>
@@ -226,7 +223,12 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   {patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
                     <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
                   ) : ragPatternsBasePath ? (
-                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      data-testid="clipboard-output-directory"
+                    >
                       {ragPatternsBasePath}
                     </ClipboardCopy>
                   ) : (
@@ -283,7 +285,8 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                       </Button>
                     </StackItem>
                   )}
-                  {pipelineRun.run_id && (
+                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                  {pipelineRun?.run_id && (
                     <StackItem>
                       <Button
                         variant="link"

@@ -170,7 +170,12 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                   <DescriptionListGroup data-testid="parameter-run-id">
                     <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
                     <DescriptionListDescription>
-                      <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                      <ClipboardCopy
+                        isReadOnly
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        data-testid="clipboard-run-id"
+                      >
                         {pipelineRun.run_id}
                       </ClipboardCopy>
                     </DescriptionListDescription>
@@ -184,7 +189,12 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                   {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
                     <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
                   ) : modelsBasePath ? (
-                    <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied">
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      data-testid="clipboard-output-directory"
+                    >
                       {modelsBasePath}
                     </ClipboardCopy>
                   ) : (
@@ -230,7 +240,8 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                       </Button>
                     </StackItem>
                   )}
-                  {pipelineRun.run_id && (
+                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                  {pipelineRun?.run_id && (
                     <StackItem>
                       <Button
                         variant="link"
