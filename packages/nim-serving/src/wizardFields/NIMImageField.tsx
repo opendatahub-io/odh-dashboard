@@ -166,7 +166,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const projectName = externalData?.data.projectName;
 
-  const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName ?? '');
+  const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName);
 
   const [canViewSettings, rbacLoaded] = useAccessReview(
     {
