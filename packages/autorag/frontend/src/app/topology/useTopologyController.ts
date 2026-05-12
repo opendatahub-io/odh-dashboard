@@ -1,14 +1,17 @@
 import * as React from 'react';
 import {
   Graph,
-  GRAPH_LAYOUT_END_EVENT,
   Layout,
   pipelineElementFactory,
   PipelineDagreGroupsLayout,
   Visualization,
 } from '@patternfly/react-topology';
 import { pipelineComponentFactory } from './factories';
-import { PIPELINE_LAYOUT, PIPELINE_NODE_SEPARATION_VERTICAL } from './const';
+import {
+  PIPELINE_LAYOUT,
+  PIPELINE_NODE_SEPARATION_VERTICAL,
+  PIPELINE_TOPOLOGY_FIT_PADDING,
+} from './const';
 
 const useTopologyController = (
   graphId: string,
@@ -23,7 +26,8 @@ const useTopologyController = (
   React.useEffect(() => {
     const visualizationController = new Visualization();
     visualizationRef.current = visualizationController;
-    visualizationController.setFitToScreenOnLayout(true);
+    // Second arg is padding passed to `graph.fit` (default 80 zooms out too much for dense pipelines).
+    visualizationController.setFitToScreenOnLayout(true, PIPELINE_TOPOLOGY_FIT_PADDING);
     visualizationController.registerElementFactory(pipelineElementFactory);
     visualizationController.registerComponentFactory(pipelineComponentFactory);
     // Layout factory reads `rankSepRef` when layout runs so `horizontalRankSep` can change without rebuilding Visualization.
@@ -49,17 +53,11 @@ const useTopologyController = (
       },
       false,
     );
-    const onLayoutEnd = () => {
-      requestAnimationFrame(() => {
-        visualizationController.getGraph().fit(75);
-      });
-    };
-    visualizationController.addEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
 
     setController(visualizationController);
 
     return () => {
-      visualizationController.removeEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
+      visualizationController.setFitToScreenOnLayout(false);
       visualizationRef.current = null;
     };
   }, [graphId]);
