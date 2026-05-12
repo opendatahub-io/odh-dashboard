@@ -57,7 +57,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   validation,
   externalData,
 }) => {
-  const modelSourceFields = React.useMemo(
+  const modelSourceExtensionFields = React.useMemo(
     () => wizardState.fields.filter((f) => f.step === 'modelSource'),
     [wizardState.fields],
   );
@@ -86,7 +86,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
         />
-        {modelSourceFields.map((field) => (
+        {modelSourceExtensionFields.map((field) => (
           <GenericFieldRenderer
             key={field.id}
             fieldId={field.id}
