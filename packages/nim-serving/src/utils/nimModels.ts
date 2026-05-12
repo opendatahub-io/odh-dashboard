@@ -1,40 +1,7 @@
 import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-utils';
-
-const NIMAccountModel = {
-  apiVersion: 'v1',
-  apiGroup: 'nim.opendatahub.io',
-  kind: 'Account',
-  plural: 'accounts',
-};
-
-const ConfigMapModel = {
-  apiVersion: 'v1',
-  kind: 'ConfigMap',
-  plural: 'configmaps',
-};
-
-type NIMAccountKind = {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-    namespace: string;
-  };
-  status?: {
-    nimConfig?: {
-      name: string;
-    };
-  };
-};
-
-type ConfigMapKind = {
-  apiVersion: string;
-  kind: string;
-  metadata: {
-    name: string;
-  };
-  data?: Record<string, string>;
-};
+import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
+import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
+import { NIMAccountModel } from '../api/accounts/k8s';
 
 export type ModelInfo = {
   name: string;
