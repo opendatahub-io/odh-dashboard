@@ -486,6 +486,8 @@ func TestDiscoverNamedPipelines_VersionNameMismatch(t *testing.T) {
 		assert.Contains(t, pipelines, "autorag")
 		assert.Equal(t, "version-old-1", pipelines["autorag"].PipelineVersionID)
 		assert.Len(t, pipelines["autorag"].AllVersionIDs, 2)
+		assert.Contains(t, pipelines["autorag"].AllVersionIDs, "version-old-1")
+		assert.Contains(t, pipelines["autorag"].AllVersionIDs, "version-old-2")
 	})
 }
 

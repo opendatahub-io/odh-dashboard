@@ -157,6 +157,32 @@ func TestListPipelineVersions_ErrorOnSecondPage(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, httpErr.StatusCode)
 }
 
+func TestListPipelineVersions_ExceedsMaxPages(t *testing.T) {
+	t.Parallel()
+	var callCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		callCount.Add(1)
+		resp := models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{PipelineVersionID: "v1", PipelineID: "pipe-1"},
+			},
+			TotalSize:     9999,
+			NextPageToken: "always-more",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewRealPipelineServerClient(server.URL, "", nil)
+	_, err := client.ListPipelineVersions(context.Background(), "pipe-1")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "pagination limit reached")
+	assert.Equal(t, int32(maxPaginationPages), callCount.Load())
+}
+
 func TestListPipelineVersions_AuthTokenForwarded(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
