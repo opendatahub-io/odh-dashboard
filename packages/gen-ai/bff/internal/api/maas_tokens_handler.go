@@ -1,13 +1,19 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// MaaSIssueTokenHandler handles POST /maas/tokens
+// MaaSIssueTokenHandler handles POST /api/v1/maas/tokens.
+// Uses inter-BFF communication to call MaaS BFF POST /api/v1/api-keys.
+// Auto-generates ephemeral key name and always sets ephemeral: true.
 func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -22,16 +28,65 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 			return
 		}
 	}
-	// If no body, tokenRequest remains empty; the client enforces ephemeral=true and defaults TTL to 1h
 
-	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, tokenRequest)
-	if err != nil {
-		app.handleMaaSClientError(w, r, err)
+	// Get MaaS BFF client from context (set by AttachBFFMaaSClient middleware)
+	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
+	if maasClient == nil {
+		app.errorResponse(w, r, &integrations.HTTPError{
+			StatusCode: http.StatusServiceUnavailable,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    "service_unavailable",
+				Message: "MaaS BFF is not available",
+			},
+		})
 		return
 	}
 
+	// Validate required fields
+	if tokenRequest.Subscription == "" {
+		app.badRequestResponse(w, r, fmt.Errorf("subscription is required"))
+		return
+	}
+
+	// Auto-generate ephemeral key name if not provided
+	keyName := tokenRequest.Name
+	if keyName == "" {
+		keyName = fmt.Sprintf("genai-ephemeral-%d", time.Now().Unix())
+	}
+
+	// Build MaaS BFF API key request envelope
+	// MaaS BFF expects: {"data": {"name": "...", "subscription": "...", "ephemeral": true}}
+	bffRequest := models.MaaSBFFAPIKeyRequest{
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         keyName,
+			Description:  tokenRequest.Description,
+			Subscription: tokenRequest.Subscription,
+			Ephemeral:    true, // Always ephemeral for playground sessions
+		},
+	}
+
+	// Call MaaS BFF to create API key
+	// MaaS BFF returns response wrapped in envelope: {"data": {"key": "...", "expiresAt": "...", ...}}
+	var bffResponse models.MaaSBFFAPIKeyResponse
+	err := maasClient.Call(ctx, "POST", "/api/v1/api-keys", bffRequest, &bffResponse)
+	if err != nil {
+		app.handleBFFClientError(w, r, err)
+		return
+	}
+
+	// Map MaaS BFF response to Gen AI format
+	genAIResponse := models.MaaSTokenResponse{
+		Key: bffResponse.Data.Key,
+	}
+
+	// Map expiresAt from pointer to string
+	if bffResponse.Data.ExpiresAt != nil {
+		genAIResponse.ExpiresAt = *bffResponse.Data.ExpiresAt
+	}
+
+	// Return response in Gen AI envelope format
 	tokenResponseEnvelope := Envelope[models.MaaSTokenResponse, None]{
-		Data: *tokenResponse,
+		Data: genAIResponse,
 	}
 
 	err = app.WriteJSON(w, http.StatusCreated, tokenResponseEnvelope, nil)
@@ -40,16 +95,3 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	}
 }
 
-// MaaSRevokeAllTokensHandler handles DELETE /maas/tokens
-func (app *App) MaaSRevokeAllTokensHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ctx := r.Context()
-
-	err := app.repositories.MaaSModels.RevokeAllTokens(ctx)
-	if err != nil {
-		app.handleMaaSClientError(w, r, err)
-		return
-	}
-
-	// Return 204 No Content for successful deletion
-	w.WriteHeader(http.StatusNoContent)
-}

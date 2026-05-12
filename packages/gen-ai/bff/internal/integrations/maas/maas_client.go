@@ -141,36 +141,3 @@ func (c *HTTPMaaSClient) IssueToken(ctx context.Context, request models.MaaSToke
 
 	return &response, nil
 }
-
-// RevokeAllTokens invalidates all tokens for the current user
-func (c *HTTPMaaSClient) RevokeAllTokens(ctx context.Context) error {
-	url := fmt.Sprintf("%s/v1/tokens", c.baseURL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	c.setAuthHeaders(req)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		// Handle connection failures gracefully
-		return NewConnectionError(c.baseURL, fmt.Sprintf("failed to connect to MaaS service: %v", err))
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("failed to read response body: %v", err))
-	}
-
-	if resp.StatusCode != http.StatusNoContent {
-		if resp.StatusCode >= 500 {
-			return NewServerUnavailableError(c.baseURL)
-		}
-		return NewInvalidResponseError(c.baseURL, fmt.Sprintf("API request failed with status %d: %s", resp.StatusCode, string(body)))
-	}
-
-	return nil
-}

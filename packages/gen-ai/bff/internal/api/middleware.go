@@ -483,8 +483,8 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 			logger.Debug("Using user_token auth mode for MaaS BFF")
 		}
 
-		// Always forward X-MaaS-Return-All-Models so the MaaS BFF passes it through
-		// to the MaaS API when listing models, returning all available models for the user.
+		// Always forward X-MaaS-Return-All-Models header to get enriched model details
+		// This ensures MaaS BFF returns models with modelDetails, subscriptions, and kind fields
 		forwardHeaders["X-MaaS-Return-All-Models"] = "true"
 
 		// Create BFF client for MaaS target with forwarded headers
