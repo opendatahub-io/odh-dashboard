@@ -17,8 +17,6 @@ jest.mock('mod-arch-core', () => ({
   },
 }));
 
-global.fetch = jest.fn();
-
 jest.mock('~/app/hooks/useModelRegistryAPI', () => ({
   useModelRegistryAPI: jest.fn(),
 }));
@@ -54,12 +52,23 @@ const captureCallback = (): ((opts: unknown) => Promise<unknown>) => {
     undefined,
     jest.fn(),
   ]);
-  return mockUseFetchState.mock.calls[0][0] as (opts: unknown) => Promise<unknown>;
+  const latestCall = mockUseFetchState.mock.calls.at(-1);
+  if (!latestCall) {
+    throw new Error('useFetchState was not called');
+  }
+  return latestCall[0] as (opts: unknown) => Promise<unknown>;
 };
+
+const originalFetch = global.fetch;
 
 describe('useModelVersionsByRegisteredModel', () => {
   beforeEach(() => {
+    global.fetch = jest.fn() as typeof fetch;
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
   it('should reject with NotReadyError if API is not available', async () => {
