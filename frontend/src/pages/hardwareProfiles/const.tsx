@@ -27,13 +27,13 @@ export const hardwareProfileColumns: SortableData<HardwareProfileKind>[] = [
   },
   {
     field: 'visibility',
-    label: 'Visibility',
+    label: 'Workload type',
     sortable: false,
     info: {
       popover: (
         <>
-          Visible features indicate where the hardware profile can be used: in <b>workbenches</b>{' '}
-          and during <b>model deployment</b>.
+          Workload type indicates which workloads this hardware profile is available for:{' '}
+          <b>workbenches</b> and <b>model deployment</b>.
         </>
       ),
       popoverProps: {
@@ -75,13 +75,13 @@ export enum HardwareProfileEnableType {
 export enum HardwareProfileFilterOptions {
   name = 'Name',
   enabled = 'Enabled',
-  visibility = 'Visibility',
+  visibility = 'Workload type',
 }
 
 export const hardwareProfileFilterOptions = {
   [HardwareProfileFilterOptions.name]: 'Name',
   [HardwareProfileFilterOptions.enabled]: 'Enabled',
-  [HardwareProfileFilterOptions.visibility]: 'Visibility',
+  [HardwareProfileFilterOptions.visibility]: 'Workload type',
 };
 
 export type HardwareProfileFilterDataType = Record<
@@ -97,7 +97,7 @@ export const initialHardwareProfileFilterData: HardwareProfileFilterDataType = {
 
 export const ManageHardwareProfileSectionTitles: ManageHardwareProfileSectionTitlesType = {
   [ManageHardwareProfileSectionID.DETAILS]: 'Details',
-  [ManageHardwareProfileSectionID.VISIBILITY]: 'Visibility',
+  [ManageHardwareProfileSectionID.VISIBILITY]: 'Workload type',
   [ManageHardwareProfileSectionID.IDENTIFIERS]: 'Resource requests and limits',
   [ManageHardwareProfileSectionID.SCHEDULING]: 'Resource allocation',
   [ManageHardwareProfileSectionID.ALLOCATION_STRATEGY]: 'Workload allocation strategy',
