@@ -22,7 +22,8 @@
         "pathRewrite": "",
         "tls": false,
         "service": {
-          "name": "data-science-perses",
+          "name": "perses",
+          "namespace": "openshift-cluster-observability-operator",
           "port": 8080
         },
         "localService": {
