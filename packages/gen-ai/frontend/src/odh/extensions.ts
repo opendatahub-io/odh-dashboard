@@ -81,7 +81,7 @@ const extensions: (
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [MODEL_AS_SERVICE_CAMEL],
       customCondition: ({ dscStatus }) =>
-        !!dscStatus?.conditions?.some(
+        !!dscStatus?.conditions.some(
           (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
         ),
     },

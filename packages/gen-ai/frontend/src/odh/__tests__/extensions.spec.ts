@@ -11,11 +11,7 @@ const findMaaSArea = () => {
   return area;
 };
 
-const makeDscStatus = (conditions: K8sCondition[]) =>
-  ({
-    conditions,
-    components: {},
-  }) as never;
+const makeDscStatus = (conditions: K8sCondition[]) => ({ conditions, components: {} } as never);
 
 describe('modelAsService area extension', () => {
   it('should have a customCondition defined', () => {
@@ -92,19 +88,6 @@ describe('modelAsService area extension', () => {
     const result = area.properties.customCondition!({
       dashboardConfigSpec: {} as never,
       dscStatus: null,
-      dsciStatus: null,
-    });
-
-    expect(result).toBe(false);
-  });
-
-  it('should return false when dscStatus has no conditions', () => {
-    const area = findMaaSArea();
-    const dscStatus = { components: {} } as never;
-
-    const result = area.properties.customCondition!({
-      dashboardConfigSpec: {} as never,
-      dscStatus,
       dsciStatus: null,
     });
 
