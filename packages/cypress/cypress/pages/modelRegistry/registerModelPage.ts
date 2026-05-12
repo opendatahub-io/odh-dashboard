@@ -124,6 +124,13 @@ class RegisterModelPage {
   findDestinationLocationSection(timeout?: number) {
     return cy.findByTestId('model-destination-location-section', { timeout });
   }
+
+  selectModelType(
+    optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
+  ) {
+    cy.get('#register-model-type-toggle').click();
+    cy.findByRole('option', { name: optionName }).click();
+  }
 }
 
 export const registerModelPage = new RegisterModelPage();

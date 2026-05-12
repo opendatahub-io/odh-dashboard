@@ -116,6 +116,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion1_0);
+      registerModelPage.selectModelType();
 
       // Configure object storage location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
@@ -160,6 +161,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion2_0);
+      registerModelPage.selectModelType();
 
       // Configure URI location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_URI).click();
@@ -295,6 +297,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.ociModelFormatVersion);
+      registerModelPage.selectModelType();
 
       cy.step('Fill in transfer job name');
       registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(testData.ociJobName);
@@ -410,6 +413,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.ociModelFormatVersion);
+      registerModelPage.selectModelType();
 
       cy.step('Fill in transfer job name');
       registerModelPage.findFormField(FormFieldSelector.JOB_NAME).type(testData.ociUriJobName);

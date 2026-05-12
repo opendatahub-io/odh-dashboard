@@ -100,6 +100,7 @@ describe('Verify that models and versions can be archived and restored via model
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.formatVersion1_0);
+      registerModelPage.selectModelType();
 
       // Configure object storage location
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();

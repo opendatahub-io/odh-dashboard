@@ -108,6 +108,7 @@ describe('Verify custom properties and labels are retained during Model Registry
       registerModelPage
         .findFormField(FormFieldSelector.SOURCE_MODEL_FORMAT_VERSION)
         .type(testData.sourceModelFormatVersion);
+      registerModelPage.selectModelType();
 
       cy.step('Configure object storage location');
       registerModelPage.findFormField(FormFieldSelector.LOCATION_TYPE_OBJECT_STORAGE).click();
