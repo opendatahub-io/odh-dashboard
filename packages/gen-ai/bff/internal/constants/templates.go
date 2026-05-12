@@ -229,7 +229,12 @@ def _guardrail_check(messages, rails, task, prompt_content):
     headers = {"Content-Type": "application/json"}
     if NEMO_GUARDRAILS_OC_TOKEN:
         headers["Authorization"] = f"Bearer {NEMO_GUARDRAILS_OC_TOKEN}"
-    resp = requests.post(f"{NEMO_GUARDRAILS_URL}/v1/guardrail/checks", json=payload, headers=headers)
+    resp = requests.post(
+        f"{NEMO_GUARDRAILS_URL}/v1/guardrail/checks",
+        json=payload,
+        headers=headers,
+        timeout=30,
+    )
     resp.raise_for_status()
     return resp.json()
 
