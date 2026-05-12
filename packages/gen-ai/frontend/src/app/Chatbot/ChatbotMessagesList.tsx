@@ -11,6 +11,8 @@ type ChatbotMessagesListProps = {
   isStreamingWithoutContent: boolean;
   /** Display name of the selected model (shown in loading state and message headers) */
   modelDisplayName?: string;
+  /** Shown as a bot message when the conversation is empty and not loading */
+  placeholderContent?: string;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -19,6 +21,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isLoading = false,
   isStreamingWithoutContent = false,
   modelDisplayName = 'Bot',
+  placeholderContent,
 }) => {
   // Show loading dots only for non-streaming requests
   // During streaming, loading dots are handled within the bot message itself
@@ -26,6 +29,17 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
 
   return (
     <>
+      {messageList.length === 0 && !isLoading && placeholderContent && (
+        <Message
+          // eslint-disable-next-line jsx-a11y/aria-role
+          role="bot"
+          name={modelDisplayName}
+          avatar={botAvatar}
+          content={placeholderContent}
+          data-testid="chatbot-placeholder-message"
+          style={{ cursor: 'default', pointerEvents: 'none' }}
+        />
+      )}
       {messageList.map((message, index) => {
         // Destructure metrics from message to avoid passing it to PatternFly Message component
         const { metrics, ...messageProps } = message;
