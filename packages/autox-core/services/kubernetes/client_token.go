@@ -84,6 +84,9 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient,
 }
 
 func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
 		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
@@ -91,19 +94,28 @@ func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVers
 		resourceClient = c.DynamicClient.Resource(gvr)
 	}
 
-	return resourceClient.List(ctx, metav1.ListOptions{})
+	return resourceClient.List(timeoutCtx, metav1.ListOptions{})
 }
 
 func (c *K8sTokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(timeoutCtx, name, metav1.GetOptions{})
 }
 
 func (c *K8sTokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(timeoutCtx, obj, metav1.CreateOptions{})
 }
 
 func (c *K8sTokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
-	nsList, err := c.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	nsList, err := c.Clientset.CoreV1().Namespaces().List(timeoutCtx, metav1.ListOptions{})
 	if err == nil {
 		return nsList.Items, nil
 	}
@@ -112,15 +124,21 @@ func (c *K8sTokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, err
 		return nil, err
 	}
 
-	return c.getNamespacesViaProjectsAPI(ctx)
+	return c.getNamespacesViaProjectsAPI(timeoutCtx)
 }
 
 func (c *K8sTokenClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
-	return c.Clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	return c.Clientset.CoreV1().Pods(namespace).List(timeoutCtx, metav1.ListOptions{})
 }
 
 func (c *K8sTokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
-	secretList, err := c.Clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secretList, err := c.Clientset.CoreV1().Secrets(namespace).List(timeoutCtx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +146,10 @@ func (c *K8sTokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1
 }
 
 func (c *K8sTokenClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
-	return c.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	return c.Clientset.CoreV1().Secrets(namespace).Get(timeoutCtx, secretName, metav1.GetOptions{})
 }
 
 func (c *K8sTokenClient) GetUser(ctx context.Context) (string, error) {
@@ -172,6 +193,9 @@ func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 }
 
 func (c *K8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -184,7 +208,7 @@ func (c *K8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb,
 		},
 	}
 
-	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(timeoutCtx, sar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -200,6 +224,9 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	defer cancel()
+
 	for _, version := range knownVersions {
 		gvr := schema.GroupVersionResource{
 			Group:    group,
@@ -208,7 +235,7 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 		}
 
 		// Test with namespace-scoped query (respects RBAC)
-		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
+		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(timeoutCtx, metav1.ListOptions{Limit: 1})
 		if err == nil {
 			return gvr, nil
 		}
@@ -228,6 +255,7 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 
 // getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
 // namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
+// This method expects the caller to have already set an appropriate timeout on the context.
 func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	dynClient, err := dynamic.NewForConfig(c.RestConfig)
 	if err != nil {
