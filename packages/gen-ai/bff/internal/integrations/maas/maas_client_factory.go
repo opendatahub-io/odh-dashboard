@@ -7,11 +7,12 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-// MaaSClientInterface defines the interface for MaaS (Model as a Service) client operations
+// MaaSClientInterface defines the interface for MaaS (Model as a Service) client operations.
+// NOTE: This interface is deprecated and will be removed once all LlamaStack paths
+// (POST /api/v1/lsd/responses, POST /api/v1/lsd/install) are migrated to use inter-BFF communication.
 type MaaSClientInterface interface {
 	ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error)
 	IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error)
-	RevokeAllTokens(ctx context.Context) error
 }
 
 // MaaSClientFactory interface for creating MaaS clients
