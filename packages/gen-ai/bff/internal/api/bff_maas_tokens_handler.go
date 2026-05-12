@@ -49,24 +49,24 @@ func (app *App) BFFMaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request,
 		name = fmt.Sprintf("gen-ai-%d", time.Now().Unix())
 	}
 
+	// MaaS BFF expects requests in a mod-arch envelope: {"data": {...}}
 	apiKeyReq := models.MaaSBFFAPIKeyRequest{
-		Name:         name,
-		Description:  tokenRequest.Description,
-		ExpiresIn:    tokenRequest.ExpiresIn,
-		Subscription: tokenRequest.Subscription,
-		Ephemeral:    true, // always ephemeral for gen-ai playground keys
+		Data: models.MaaSBFFAPIKeyRequestData{
+			Name:         name,
+			Description:  tokenRequest.Description,
+			ExpiresIn:    tokenRequest.ExpiresIn,
+			Subscription: tokenRequest.Subscription,
+			Ephemeral:    true, // always ephemeral for gen-ai playground keys
+		},
 	}
 
-	// MaaS BFF expects requests in a mod-arch envelope: {"data": {...}}
-	reqEnvelope := Envelope[models.MaaSBFFAPIKeyRequest, None]{Data: apiKeyReq}
-
 	var bffResponse models.MaaSBFFAPIKeyResponse
-	if err := maasClient.Call(ctx, "POST", "/api-keys", reqEnvelope, &bffResponse); err != nil {
+	if err := maasClient.Call(ctx, "POST", "/api-keys", apiKeyReq, &bffResponse); err != nil {
 		app.handleBFFClientError(w, r, err)
 		return
 	}
 
-	responseEnvelope := Envelope[models.MaaSBFFAPIKeyCreateData, None]{
+	responseEnvelope := Envelope[models.MaaSBFFAPIKeyResponseData, None]{
 		Data: bffResponse.Data,
 	}
 

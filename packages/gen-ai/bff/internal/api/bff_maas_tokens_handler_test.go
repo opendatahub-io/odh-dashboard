@@ -48,7 +48,7 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		body, err := io.ReadAll(rr.Result().Body)
 		assert.NoError(t, err)
 
-		var responseEnvelope Envelope[models.MaaSBFFAPIKeyCreateData, None]
+		var responseEnvelope Envelope[models.MaaSBFFAPIKeyResponseData, None]
 		err = json.Unmarshal(body, &responseEnvelope)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, responseEnvelope.Data.Key)
@@ -105,6 +105,8 @@ func TestBFFMaaSIssueTokenHandler(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 }
+
+// TestBFFMaaSRevokeAllTokensHandler removed - DELETE /bff/maas/tokens endpoint dropped per RHOAIENG-60574
 
 func TestHandleBFFClientError(t *testing.T) {
 	app := App{

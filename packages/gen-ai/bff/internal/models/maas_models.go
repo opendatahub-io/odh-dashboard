@@ -44,30 +44,66 @@ type MaaSTokenResponse struct {
 	ExpiresAt string `json:"expiresAt,omitempty"`
 }
 
-// MaaSBFFAPIKeyRequest matches the MaaS BFF POST /api-keys endpoint contract (APIKeyCreateRequest).
-// Used for inter-BFF communication: gen-ai BFF → MaaS BFF → MaaS API.
-// Ephemeral must always be set to true for gen-ai playground keys.
-type MaaSBFFAPIKeyRequest struct {
+// --- Types for inter-BFF communication with MaaS BFF ---
+
+// MaaSBFFModelDetails contains model metadata from MaaS BFF
+type MaaSBFFModelDetails struct {
+	DisplayName   string `json:"displayName,omitempty"`
+	Description   string `json:"description,omitempty"`
+	GenAIUseCase  string `json:"genaiUseCase,omitempty"`
+	ContextWindow int    `json:"contextWindow,omitempty"`
+}
+
+// MaaSBFFModel represents a model from MaaS BFF with nested modelDetails
+type MaaSBFFModel struct {
+	ID            string               `json:"id"`
+	Object        string               `json:"object"`
+	Created       int64                `json:"created"`
+	OwnedBy       string               `json:"owned_by"`
+	Ready         bool                 `json:"ready"`
+	URL           string               `json:"url"`
+	ModelType     string               `json:"model_type,omitempty"`
+	ModelDetails  *MaaSBFFModelDetails `json:"modelDetails,omitempty"`
+	Subscriptions []SubscriptionInfo   `json:"subscriptions,omitempty"`
+	Kind          string               `json:"kind,omitempty"`
+}
+
+// MaaSBFFModelsData represents the data field in MaaS BFF models response
+type MaaSBFFModelsData struct {
+	Object string         `json:"object"`
+	Data   []MaaSBFFModel `json:"data"`
+}
+
+// MaaSBFFModelsResponse represents the full MaaS BFF models response envelope
+type MaaSBFFModelsResponse struct {
+	Data MaaSBFFModelsData `json:"data"`
+}
+
+// MaaSBFFAPIKeyRequestData represents the data field for MaaS BFF API key creation
+type MaaSBFFAPIKeyRequestData struct {
 	Name         string `json:"name"`
 	Description  string `json:"description,omitempty"`
 	ExpiresIn    string `json:"expiresIn,omitempty"`
 	Subscription string `json:"subscription"`
-	Ephemeral    bool   `json:"ephemeral,omitempty"`
+	Ephemeral    bool   `json:"ephemeral"`
 }
 
-// MaaSBFFAPIKeyCreateData holds the one-time plaintext key returned by the MaaS BFF
-// when creating an API key via POST /api-keys. The key value is only available at creation time.
-type MaaSBFFAPIKeyCreateData struct {
-	Key       string `json:"key"`
-	KeyPrefix string `json:"keyPrefix"`
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	CreatedAt string `json:"createdAt"`
-	ExpiresAt string `json:"expiresAt,omitempty"`
+// MaaSBFFAPIKeyRequest represents the full MaaS BFF API key request envelope
+type MaaSBFFAPIKeyRequest struct {
+	Data MaaSBFFAPIKeyRequestData `json:"data"`
 }
 
-// MaaSBFFAPIKeyResponse wraps the API key creation response as returned by MaaS BFF.
-// MaaS BFF returns responses in an envelope: {"data": {...}}
+// MaaSBFFAPIKeyResponseData represents the data field in MaaS BFF API key response
+type MaaSBFFAPIKeyResponseData struct {
+	Key       string  `json:"key"`
+	KeyPrefix string  `json:"keyPrefix,omitempty"`
+	ID        string  `json:"id,omitempty"`
+	Name      string  `json:"name,omitempty"`
+	CreatedAt *string `json:"createdAt,omitempty"`
+	ExpiresAt *string `json:"expiresAt,omitempty"`
+}
+
+// MaaSBFFAPIKeyResponse represents the full MaaS BFF API key response envelope
 type MaaSBFFAPIKeyResponse struct {
-	Data MaaSBFFAPIKeyCreateData `json:"data"`
+	Data MaaSBFFAPIKeyResponseData `json:"data"`
 }

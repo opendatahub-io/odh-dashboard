@@ -467,16 +467,14 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS API routes
 
-	// Models (MaaS)
-	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
+	// Models (MaaS) - via inter-BFF communication with MaaS BFF
+	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS) - direct calls to MaaS controller
-	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
-	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
+	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
 
 	// Inter-BFF Communication routes - calls to MaaS BFF service
 	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
-	apiRouter.GET(constants.BFFMaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSModelsHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
