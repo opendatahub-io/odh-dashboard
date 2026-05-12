@@ -25,9 +25,11 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	maasmocks "github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
+	gentypes "github.com/opendatahub-io/gen-ai/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -1540,4 +1542,155 @@ func (c *customEndpointMockClient) GetVectorStoresConfig(ctx context.Context, na
 
 func (c *customEndpointMockClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
 	return c.secretValue, c.secretErr
+}
+
+// ─── Helpers for TestGetGuardrailModelEndpointAndKey ──────────────────────────
+
+// guardrailTestK8sClient is a minimal K8s mock that satisfies the two methods called
+// by getGuardrailModelEndpointAndKey: GetUser (for token caching) and
+// GetModelProviderInfo (for auto-detect).
+type guardrailTestK8sClient struct {
+	k8s.KubernetesClientInterface
+	// providerInfoURL is the URL returned by GetModelProviderInfo (simulates ConfigMap URL).
+	providerInfoURL string
+}
+
+func (c *guardrailTestK8sClient) GetUser(_ context.Context, _ *integrations.RequestIdentity) (string, error) {
+	return "test-user", nil
+}
+
+func (c *guardrailTestK8sClient) GetModelProviderInfo(_ context.Context, _ *integrations.RequestIdentity, _ string, modelID string) (*gentypes.ModelProviderInfo, error) {
+	return &gentypes.ModelProviderInfo{
+		ModelID:      modelID,
+		ProviderID:   "maas-vllm-inference-1",
+		ProviderType: "remote::vllm",
+		URL:          c.providerInfoURL,
+	}, nil
+}
+
+type guardrailTestK8sFactory struct {
+	client k8s.KubernetesClientInterface
+}
+
+func (f *guardrailTestK8sFactory) GetClient(_ context.Context) (k8s.KubernetesClientInterface, error) {
+	return f.client, nil
+}
+
+func (f *guardrailTestK8sFactory) ExtractRequestIdentity(_ http.Header) (*integrations.RequestIdentity, error) {
+	return &integrations.RequestIdentity{Token: "test-token"}, nil
+}
+
+func (f *guardrailTestK8sFactory) ValidateRequestIdentity(_ *integrations.RequestIdentity) error {
+	return nil
+}
+
+// TestGetGuardrailModelEndpointAndKey_MaaS verifies that both the explicit
+// (guardrail_model_source_type: "maas") and auto-detect paths resolve the NeMo
+// openai_api_base to the model-specific inference URL from the live MaaS catalog,
+// not to the MaaS management API (resolveMaaSBaseURL).
+func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	llamaStackClientFactory := lsmocks.NewMockClientFactory()
+	memStore := cache.NewMemoryStore()
+
+	// The mock MaaS catalog contains "llama-2-7b-chat" with a model-specific inference URL.
+	// The ConfigMap (providerInfo.URL) intentionally uses a different URL to prove the
+	// implementation does not use the stale ConfigMap value.
+	const (
+		maasModelID         = "llama-2-7b-chat"
+		maasModelCatalogURL = "https://llama-2-7b-chat.apps.example.openshift.com/v1"
+		staleConfigmapURL   = "https://stale-configmap.example.com/v1"
+		maasControllerURL   = "https://maas.example.com/maas-api"
+	)
+
+	newApp := func() *App {
+		k8sClient := &guardrailTestK8sClient{providerInfoURL: staleConfigmapURL}
+		return &App{
+			config: config.EnvConfig{
+				Port:    4000,
+				MaaSURL: maasControllerURL,
+			},
+			logger:                  logger,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			kubernetesClientFactory: &guardrailTestK8sFactory{client: k8sClient},
+			memoryStore:             memStore,
+		}
+	}
+
+	newCtx := func() context.Context {
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "test-token"})
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		return ctx
+	}
+
+	t.Run("explicit maas source type resolves inference URL from MaaS catalog", func(t *testing.T) {
+		app := newApp()
+		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(
+			newCtx(),
+			"maas-vllm-inference-1/"+maasModelID,
+			models.ModelSourceTypeMaaS,
+			"basic-subscription",
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, maasModelCatalogURL, baseURL, "should use MaaS catalog URL, not the management API URL")
+		assert.NotEmpty(t, apiKey, "ephemeral token should be populated")
+		assert.NotEqual(t, maasControllerURL, baseURL, "must not return the MaaS management API URL")
+	})
+
+	t.Run("explicit maas source type with bare model ID resolves inference URL", func(t *testing.T) {
+		app := newApp()
+		baseURL, _, err := app.getGuardrailModelEndpointAndKey(
+			newCtx(),
+			maasModelID, // no LlamaStack provider prefix
+			models.ModelSourceTypeMaaS,
+			"",
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, maasModelCatalogURL, baseURL)
+	})
+
+	t.Run("auto-detect maas path resolves same inference URL as explicit path", func(t *testing.T) {
+		app := newApp()
+
+		// Explicit path
+		explicitURL, _, err := app.getGuardrailModelEndpointAndKey(
+			newCtx(),
+			"maas-vllm-inference-1/"+maasModelID,
+			models.ModelSourceTypeMaaS,
+			"basic-subscription",
+		)
+		require.NoError(t, err)
+
+		// Auto-detect path — model ID starts with "maas-" so it is classified as MaaS.
+		// GetModelProviderInfo returns staleConfigmapURL to prove it is not used.
+		autoURL, _, err := app.getGuardrailModelEndpointAndKey(
+			newCtx(),
+			"maas-vllm-inference-1/"+maasModelID,
+			"", // auto-detect
+			"basic-subscription",
+		)
+		require.NoError(t, err)
+
+		assert.Equal(t, explicitURL, autoURL, "explicit and auto-detect paths must return the same URL")
+		assert.Equal(t, maasModelCatalogURL, autoURL, "auto-detect must use catalog URL, not stale ConfigMap URL")
+		assert.NotEqual(t, staleConfigmapURL, autoURL, "must not use the ConfigMap URL returned by GetModelProviderInfo")
+	})
+
+	t.Run("unknown model in MaaS catalog returns error", func(t *testing.T) {
+		app := newApp()
+		_, _, err := app.getGuardrailModelEndpointAndKey(
+			newCtx(),
+			"maas-vllm-inference-1/unknown-guardrail-model",
+			models.ModelSourceTypeMaaS,
+			"",
+		)
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not found in MaaS catalog")
+	})
 }

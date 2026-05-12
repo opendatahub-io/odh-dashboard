@@ -1,15 +1,15 @@
 name: Module caches
-description: Restores and saves root, per-module node_modules, and Cypress binary caches. Runs npm install when cache is not an exact hit.
+description: Restores and saves root and per-module node_modules caches, including the shared Cypress binary cache. Runs npm install when cache is not an exact hit.
 inputs:
   node-version:
+    description: Node.js version used for cache key generation.
     required: true
-  include-cypress:
-    required: false
-    default: 'false'
   include-modules:
+    description: Whether to restore and install per-module dependency caches.
     required: false
     default: 'false'
   force-install:
+    description: Whether to run installs even when caches are exact hits.
     required: false
     default: 'false'
 runs:
@@ -25,27 +25,14 @@ runs:
           frontend/node_modules
           frontend/src/node_modules
           packages/*/node_modules
-        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-root-${{ hashFiles('package-lock.json') }}
+          ~/.cache/Cypress
+        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-${{ inputs.node-version }}-modules-root-
+          ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
     - name: Install root dependencies
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm install
-
-    - name: Cypress binary cache
-      id: cypress-cache
-      if: inputs.include-cypress == 'true'
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/Cypress
-        key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-cypress-bin-
-    - name: Install Cypress binaries
-      if: inputs.include-cypress == 'true' && (inputs.force-install == 'true' || steps.cypress-cache.outputs.cache-hit != 'true')
-      shell: bash
-      run: npx cypress install
 
     - name: automl node_modules cache
       id: automl-cache

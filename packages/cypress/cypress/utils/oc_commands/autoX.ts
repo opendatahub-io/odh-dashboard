@@ -33,7 +33,7 @@ const isFeatureFlagEnabled = (flag: string): Cypress.Chainable<boolean> =>
       `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.${flag} == true'`,
       { failOnNonZeroExit: false },
     )
-    .then((result) => result.code === 0);
+    .then((result) => result.exitCode === 0);
 
 /**
  * Set a dashboard feature flag and optionally poll until it is confirmed.
@@ -50,7 +50,7 @@ const setFeatureFlag = (
   return cy
     .exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace))
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to set ${label} feature flag to ${enabled}: ${maskedStderr}`);
       }

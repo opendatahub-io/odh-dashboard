@@ -5,6 +5,7 @@ export const techPreviewFlags = {
   genAiStudio: false,
   automl: false,
   autorag: false,
+  guardrails: false,
   modelAsService: true,
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,

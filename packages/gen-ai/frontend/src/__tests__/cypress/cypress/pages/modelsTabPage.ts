@@ -80,7 +80,7 @@ class DeleteModelModal {
   }
 
   findRemoveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /^remove$/i });
+    return this.find().findByRole('button', { name: /^delete$/i });
   }
 
   findCancelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -88,11 +88,11 @@ class DeleteModelModal {
   }
 
   findRemovingButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('button', { name: /removing/i });
+    return this.find().findByRole('button', { name: /deleting/i });
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByRole('heading', { name: /remove asset/i });
+    return this.find().findByRole('heading', { name: /delete endpoint/i });
   }
 
   findDangerAlert(): Cypress.Chainable<JQuery<HTMLElement>> {

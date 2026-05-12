@@ -6,7 +6,7 @@ import {
 
 export const createAndVerifyProject = (projectName: string): void => {
   createOpenShiftProject(projectName).then((result) => {
-    expect(result.code).to.equal(0);
+    expect(result.exitCode).to.equal(0);
   });
 
   verifyOpenShiftProjectExists(projectName).then((exists) => {
