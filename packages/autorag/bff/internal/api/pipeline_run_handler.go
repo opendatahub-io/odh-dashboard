@@ -87,6 +87,10 @@ func (app *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
+	if pipelineServerBaseURL == "" {
+		app.serverErrorResponse(w, r, fmt.Errorf("missing pipeline server base URL in context - ensure AttachDSPAApiServerBase middleware is used"))
+		return
+	}
 	def := repositories.PipelineDefinition{
 		Name:        app.config.AutoRAGPipelineNamePrefix,
 		PipelineDir: "documents_rag_optimization_pipeline",

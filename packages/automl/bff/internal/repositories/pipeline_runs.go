@@ -16,6 +16,11 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
 
+// maxVersionIDs caps the number of version IDs used in KFP filter predicates.
+// ListPipelineVersions returns versions sorted by created_at desc, so keeping
+// only the first N entries retains the most recent versions.
+const maxVersionIDs = 100
+
 // ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
 var ErrPipelineRunNotFound = errors.New("pipeline run not found")
 
@@ -134,8 +139,12 @@ func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Cont
 	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
 		return nil, nil
 	}
-	ids := make([]string, 0, len(versionsResp.PipelineVersions))
-	for _, v := range versionsResp.PipelineVersions {
+	versions := versionsResp.PipelineVersions
+	if len(versions) > maxVersionIDs {
+		versions = versions[:maxVersionIDs]
+	}
+	ids := make([]string, 0, len(versions))
+	for _, v := range versions {
 		ids = append(ids, v.PipelineVersionID)
 	}
 	return ids, nil

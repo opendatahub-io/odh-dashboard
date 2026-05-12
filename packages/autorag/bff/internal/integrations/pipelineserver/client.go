@@ -53,6 +53,10 @@ const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 // Pipeline server success responses are capped at 10 MB.
 const maxSuccessBodySize = 10 << 20 // 10 MB
 
+// maxPaginationPages limits the number of pages fetched during paginated listing
+// to prevent unbounded loops from causing memory exhaustion.
+const maxPaginationPages = 100
+
 // ListRunsParams contains parameters for listing pipeline runs
 type ListRunsParams struct {
 	PageSize  int32
@@ -443,7 +447,11 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	var totalSize int32
 	pageToken := ""
 
-	for {
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
+		}
+
 		queryParams := url.Values{}
 		if filter != "" {
 			queryParams.Set("filter", filter)
@@ -491,7 +499,7 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 		}
 
 		allPipelines = append(allPipelines, page.Pipelines...)
-		totalSize = page.TotalSize // KFP reports the total across all pages on every page
+		totalSize = page.TotalSize
 
 		if page.NextPageToken == "" {
 			break
@@ -527,7 +535,11 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 	var totalSize int32
 	pageToken := ""
 
-	for {
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
+		}
+
 		queryParams := url.Values{}
 		queryParams.Set("sort_by", "created_at desc")
 		if pageToken != "" {
