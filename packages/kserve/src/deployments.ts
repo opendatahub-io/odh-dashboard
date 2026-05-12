@@ -5,7 +5,10 @@ import {
   ProjectKind,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
-import { Deployment, isModelServingExcludeDeployment } from '@odh-dashboard/model-serving/extension-points';
+import {
+  Deployment,
+  isModelServingExcludeDeployment,
+} from '@odh-dashboard/model-serving/extension-points';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import {
   deleteInferenceService,
