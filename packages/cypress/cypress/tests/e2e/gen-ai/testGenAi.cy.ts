@@ -127,9 +127,18 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   });
 
   it(
-    'Create custom serving runtime for Gen AI',
+    'Gen AI: serving runtime, model deployment (URI), and playground',
     {
-      tags: ['@Tier1', '@Tier1Set1', '@GenAI', '@ServingRuntime', '@NonConcurrent'],
+      tags: [
+        '@Tier1',
+        '@Tier1Set1',
+        '@GenAI',
+        '@ServingRuntime',
+        '@ModelServing',
+        '@Deployment',
+        '@Playground',
+        '@NonConcurrent',
+      ],
     },
     () => {
       if (skipTest) {
@@ -140,6 +149,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+      cy.step('Phase 1 — Create custom serving runtime for Gen AI');
       cy.step('Navigate to Serving Runtimes settings');
       cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
 
@@ -178,7 +188,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Deploy Gen AI model using URI',
     {
-      tags: ['@Tier1', '@Tier1Set1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
@@ -203,7 +213,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       // Select URI as model location and enter the model URI
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
-      // Uncheck "Create a connection to this location" since connection was already created in previous test
+      // Uncheck "Create a connection to this location" — serving runtime phase did not create a saved connection here
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
       modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
       modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
@@ -260,7 +270,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   it(
     'Create and verify Gen AI Playground functionality',
     {
-      tags: ['@Tier1', '@Tier1Set1', '@GenAI', '@Playground', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
     },
     () => {
       if (skipTest) {
