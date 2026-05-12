@@ -38,6 +38,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       dataTestId="feature-store-project-selector"
       isFullWidth
       minWidth="250px"
+      toggleLabelledBy="feature-store-project-selector-label"
       searchFocusOnOpen
       searchPlaceholder="Feature store name"
       onSearchChange={(value) => setSearchText(value)}
@@ -75,9 +76,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
-        <label className="pf-v6-c-form__label" htmlFor="feature-store-project-selector">
-          <span className="pf-v6-c-form__label-text">Feature store</span>
-        </label>
+        <span id="feature-store-project-selector-label">Feature store</span>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
     </Flex>
