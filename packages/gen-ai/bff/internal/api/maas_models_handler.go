@@ -47,7 +47,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Map MaaS BFF models (with modelDetails) to Gen AI model format (flat fields)
-	genAIModels := make([]models.MaaSModel, len(bffResponse.Data.Data))
+	maasModels := make([]models.MaaSModel, len(bffResponse.Data.Data))
 	for i, bffModel := range bffResponse.Data.Data {
 		genAIModel := models.MaaSModel{
 			ID:            bffModel.ID,
@@ -67,13 +67,13 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 			genAIModel.Usecase = bffModel.ModelDetails.GenAIUseCase
 		}
 
-		genAIModels[i] = genAIModel
+		maasModels[i] = genAIModel
 	}
 
 	// Return response in Gen AI format
 	response := models.MaaSModelsResponse{
 		Object: bffResponse.Data.Object,
-		Data:   genAIModels,
+		Data:   maasModels,
 	}
 
 	err = app.WriteJSON(w, http.StatusOK, response, nil)
