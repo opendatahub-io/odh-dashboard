@@ -33,7 +33,8 @@ const getApplicationsNamespace = (): string => {
  */
 const buildPatchCommand = (resource: string, patchJson: object, namespace?: string): string => {
   const namespaceFlag = namespace ? ` -n ${namespace}` : '';
-  return `oc patch ${resource}${namespaceFlag} --type=merge -p '${JSON.stringify(patchJson)}'`;
+  const escaped = JSON.stringify(patchJson).replace(/"/g, '\\"');
+  return `oc patch ${resource}${namespaceFlag} --type=merge -p "${escaped}"`;
 };
 
 /**
