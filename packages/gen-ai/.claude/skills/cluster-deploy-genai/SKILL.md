@@ -25,7 +25,7 @@ Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Only rep
 
 **This skill** — fast iteration on gen-ai package changes:
 - Only replaces the gen-ai sidecar container, not the full dashboard
-- Builds from local with Podman — changes don't need to be pushed to a branch
+- Builds from local — changes don't need to be pushed to a branch
 - Faster redeploy cycle after initial setup
 
 **Jenkins (rhoai-test-flow)** — full dashboard rebuild:
@@ -37,12 +37,9 @@ Staged under `packages/gen-ai/.claude/skills/` for gen-ai team testing. Only rep
 
 The gen-ai package runs as a sidecar container (`gen-ai-ui`) in the `odh-dashboard` deployment. To test branch changes in a real cluster, we build a custom image and patch the deployment to use it.
 
-**Why not just `podman build --platform linux/amd64` with the full Dockerfile?**
-On ARM Macs, QEMU emulation of amd64 causes Go's networking goroutines to deadlock during `go mod download`. The workaround is to build artifacts locally (natively) and use a minimal Dockerfile that only COPYs them — no emulated `RUN` steps.
+**Why local cross-compile instead of `podman build --platform linux/amd64` or `docker buildx`?** On ARM Macs, Podman's QEMU emulation deadlocks Go's networking goroutines during `go mod download`. Docker buildx may avoid that bug, but it requires installing/running Docker Engine separately (Docker Desktop has licensing restrictions). Both approaches are slower for development as they compile inside the container through emulation. Building natively and using a COPY-only Dockerfile is faster and requires no extra runtime.
 
-**Docker alternative**: This skill assumes Podman since that's what the team uses by default. If you have Docker with buildx installed, you may be able to skip the local cross-compile workaround and build directly with `docker buildx build --file ./packages/gen-ai/Dockerfile.workspace --platform linux/amd64 -t <image> .` — Docker's buildx/BuildKit handles cross-platform Go builds more reliably than Podman's QEMU emulation.
-
-**Dev build vs production build**: This drops `-tags strictfipsruntime` and `CGO_ENABLED=1` from the production build. Acceptable for dev/test — not for production images.
+**Not a substitute for CI Docker builds** — this skill cross-compiles Go locally with `CGO_ENABLED=0` (no FIPS flags) and uses a minimal COPY-only Dockerfile, not the production `Dockerfile.workspace`. It's faster for iteration but won't catch issues in the real multi-stage Docker build (e.g., broken Dockerfile steps, missing build args, CGo/FIPS-related failures). Rely on CI for production build validation.
 
 ## Phase 1: Check prerequisites and gather parameters
 
@@ -192,7 +189,7 @@ Use `$OPERATOR_DEPLOY`, `$OPERATOR_NS`, and `$APPS_NS` from the auto-detect step
 
 ### Initial deploy
 
-The operator continuously reconciles the `odh-dashboard` deployment. Patch the image without stopping the operator and it will revert within seconds.
+The operator continuously reconciles the `odh-dashboard` deployment. Patch the image without stopping the operator and it will revert within seconds, therefore we must scale down the operator to prevent it from interfering with our manual image change.
 
 Before scaling down the operator, capture its current replica count so it can be restored later:
 
@@ -283,10 +280,6 @@ podman machine stop
 podman machine set --memory 8192
 podman machine start
 ```
-
-### Go DNS deadlock under QEMU
-
-If goroutines get stuck in `net.(*netFD).connect` during `podman build --platform linux/amd64`, this is the QEMU emulation issue. The skill already works around this by cross-compiling Go locally instead of building inside the container.
 
 ### Image pull errors on cluster (`ImagePullBackOff` / `unauthorized`)
 
