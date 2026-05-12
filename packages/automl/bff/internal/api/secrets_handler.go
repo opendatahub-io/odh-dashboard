@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
@@ -25,11 +24,6 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*corek8s.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
 
 	// Get namespace from context (set by AttachNamespace middleware)
 	namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
@@ -47,7 +41,7 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	}
 
 	// Call autox-core service - single method handles everything (validation, fetching, filtering, type detection)
-	secretInfos, err := app.k8sService.GetFilteredSecrets(ctx, identity, namespace, secretType)
+	secretInfos, err := app.k8sService.GetFilteredSecrets(ctx, namespace, secretType)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError

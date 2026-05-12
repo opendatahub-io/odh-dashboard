@@ -202,18 +202,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Create autox-core Kubernetes client based on auth method
-	// GetAuthToken extracts token from context (injected by InjectRequestIdentity middleware)
-	getAuthTokenFromContext := func(ctx context.Context) (string, error) {
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*corek8s.RequestIdentity)
-		if !ok || identity == nil {
-			return "", fmt.Errorf("no request identity in context")
-		}
-		return identity.Token, nil
-	}
-
+	// Identity is extracted from context automatically by the client
 	autoxClient, err := corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
-		AuthMethod:   cfg.AuthMethod,
-		GetAuthToken: getAuthTokenFromContext,
+		AuthMethod: cfg.AuthMethod,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
@@ -349,18 +340,18 @@ func (app *App) Routes() http.Handler {
 	}
 
 	// Create identity middleware using autox-core
-	identityMiddleware := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
+	injectRequestIdentity := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
 		Extractor:  identityExtractor,
-		ContextKey: constants.RequestIdentityKey,
 		SkipPaths:  []string{HealthCheckPath},
 		OnError:    app.badRequestResponse,
+		ContextKey: constants.RequestIdentityKey,
 	})
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
-	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(identityMiddleware(appMux)))))
+	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(injectRequestIdentity(appMux)))))
 
 	return combinedMux
 }

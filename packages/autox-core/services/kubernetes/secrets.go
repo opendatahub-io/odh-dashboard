@@ -37,10 +37,15 @@ var allowedSecretKeys = map[string]bool{
 // GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType
 func (s *K8sService) GetFilteredSecrets(
 	ctx context.Context,
-	identity *RequestIdentity,
 	namespace string,
 	secretType string,
 ) ([]SecretInfo, error) {
+	identity, err := IdentityFromContext(ctx)
+	if err != nil {
+		s.Logger.Error("missing identity in context", "error", err)
+		return nil, err
+	}
+
 	s.Logger.Info("fetching filtered secrets", "namespace", namespace, "type", secretType, "user", identity.UserID)
 
 	// Validate namespace name
@@ -50,7 +55,7 @@ func (s *K8sService) GetFilteredSecrets(
 	}
 
 	// Fetch all secrets from the namespace
-	secrets, err := s.Client.GetSecrets(ctx, identity, namespace)
+	secrets, err := s.Client.GetSecrets(ctx, namespace)
 	if err != nil {
 		s.Logger.Error("failed to get secrets", "namespace", namespace, "error", err)
 		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)

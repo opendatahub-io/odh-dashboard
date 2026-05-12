@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -22,18 +23,16 @@ import (
 type K8sTokenClient struct {
 	Clientset     ClientsetInterface
 	DynamicClient DynamicClientInterface
-	GetAuthToken  func(ctx context.Context) (string, error)
 	RestConfig    *rest.Config
 }
 
 // K8sTokenClientConfig for injectable constructor (testing)
 type K8sTokenClientConfig struct {
-	GetAuthToken func(ctx context.Context) (string, error)
+	// Configuration for testing - empty for now
 }
 
 // DefaultK8sTokenClientConfig for default constructor (production)
 type DefaultK8sTokenClientConfig struct {
-	GetAuthToken func(ctx context.Context) (string, error)
 	// Could have additional fields like custom transport settings
 }
 
@@ -42,7 +41,6 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 	return &K8sTokenClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		GetAuthToken:  cfg.GetAuthToken,
 		RestConfig:    restConfig,
 	}
 }
@@ -50,6 +48,7 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 // NewDefaultK8sTokenClient creates a token client with real Kubernetes clientset and dynamic client.
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
 // Wraps all requests with user token authentication via RoundTripper.
+// The user token is extracted from the request context via IdentityFromContext.
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
 func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
@@ -62,8 +61,7 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient,
 	clientCfg := rest.CopyConfig(baseConfig)
 	clientCfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return &tokenRoundTripper{
-			base:         rt,
-			getAuthToken: cfg.GetAuthToken,
+			base: rt,
 		}
 	}
 
@@ -81,12 +79,11 @@ func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient,
 	return &K8sTokenClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		GetAuthToken:  cfg.GetAuthToken,
 		RestConfig:    clientCfg,
 	}, nil
 }
 
-func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (c *K8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
 		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
@@ -97,15 +94,15 @@ func (c *K8sTokenClient) ListResources(ctx context.Context, identity *RequestIde
 	return resourceClient.List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sTokenClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (c *K8sTokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (c *K8sTokenClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (c *K8sTokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
 }
 
-func (c *K8sTokenClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
+func (c *K8sTokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	nsList, err := c.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err == nil {
 		return nsList.Items, nil
@@ -118,11 +115,11 @@ func (c *K8sTokenClient) GetNamespaces(ctx context.Context, identity *RequestIde
 	return c.getNamespacesViaProjectsAPI(ctx)
 }
 
-func (c *K8sTokenClient) GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error) {
+func (c *K8sTokenClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	return c.Clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sTokenClient) GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error) {
+func (c *K8sTokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	secretList, err := c.Clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -130,11 +127,11 @@ func (c *K8sTokenClient) GetSecrets(ctx context.Context, identity *RequestIdenti
 	return secretList.Items, nil
 }
 
-func (c *K8sTokenClient) GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error) {
+func (c *K8sTokenClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	return c.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 }
 
-func (c *K8sTokenClient) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
+func (c *K8sTokenClient) GetUser(ctx context.Context) (string, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -152,7 +149,7 @@ func (c *K8sTokenClient) GetUser(ctx context.Context, identity *RequestIdentity)
 	return username, nil
 }
 
-func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
+func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -174,7 +171,7 @@ func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context, identity *RequestId
 	return resp.Status.Allowed, nil
 }
 
-func (c *K8sTokenClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {
+func (c *K8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -200,7 +197,6 @@ func (c *K8sTokenClient) CanAccessResource(ctx context.Context, identity *Reques
 // Returns the first working GroupVersionResource or an error if none are available.
 func (c *K8sTokenClient) DiscoverResourceGVR(
 	ctx context.Context,
-	identity *RequestIdentity,
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
@@ -275,16 +271,23 @@ func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 }
 
 // tokenRoundTripper injects the user's bearer token into all Kubernetes API requests.
+// The token is extracted from the RequestIdentity stored in the request context.
 type tokenRoundTripper struct {
-	base         http.RoundTripper
-	getAuthToken func(ctx context.Context) (string, error)
+	base http.RoundTripper
 }
 
 func (t *tokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	token, err := t.getAuthToken(req.Context())
+	identity, err := IdentityFromContext(req.Context())
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	return t.base.RoundTrip(req)
+
+	if identity.Token == "" {
+		return nil, errors.New("identity token is empty")
+	}
+
+	// Clone the request to avoid modifying the original (required by http.RoundTripper contract)
+	req2 := req.Clone(req.Context())
+	req2.Header.Set("Authorization", "Bearer "+identity.Token)
+	return t.base.RoundTrip(req2)
 }

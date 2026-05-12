@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"time"
 
@@ -19,14 +20,16 @@ import (
 // K8sInternalClient implements Kubernetes operations using in-cluster service account
 // with user impersonation for RBAC enforcement.
 //
-// All operations require a non-nil RequestIdentity and create impersonated clients
-// scoped to the user's permissions. The underlying HTTP transport is shared across
-// all impersonated clients for efficient connection pooling.
+// Impersonation is handled via a custom RoundTripper that reads RequestIdentity from
+// the request context and sets impersonation headers. Clients are created once during
+// initialization for efficiency.
 //
 // Security: Identity is mandatory - operations without identity are rejected to prevent
 // privilege escalation via service account permissions.
 type K8sInternalClient struct {
-	RestConfig *rest.Config
+	Clientset     ClientsetInterface
+	DynamicClient DynamicClientInterface
+	RestConfig    *rest.Config
 }
 
 // K8sInternalClientConfig for injectable constructor (testing)
@@ -39,12 +42,12 @@ type DefaultK8sInternalClientConfig struct {
 	// Could have additional fields like custom transport settings
 }
 
-// NewK8sInternalClient creates an internal client with injectable rest config (for testing).
-// All operations use impersonation based on the provided RequestIdentity.
-// The restConfig's HTTP transport is shared across all impersonated clients for connection pooling.
-func NewK8sInternalClient(cfg K8sInternalClientConfig, restConfig *rest.Config) *K8sInternalClient {
+// NewK8sInternalClient creates an internal client with injectable clientset and dynamic client (for testing).
+func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sInternalClient {
 	return &K8sInternalClient{
-		RestConfig: restConfig,
+		Clientset:     clientset,
+		DynamicClient: dynamicClient,
+		RestConfig:    restConfig,
 	}
 }
 
@@ -52,119 +55,104 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, restConfig *rest.Config) 
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
 //
 // The returned client:
-//   - Requires non-nil RequestIdentity for all operations (enforces RBAC)
-//   - Creates impersonated clients per-request scoped to user permissions
-//   - Shares HTTP transport across all impersonated clients (connection pooling)
+//   - Requires RequestIdentity in context for all operations (enforces RBAC)
+//   - Uses a custom RoundTripper to inject impersonation headers from context
+//   - Creates clients once at initialization (efficient)
 //   - Needs only "impersonate" permission for the service account (minimal privilege)
 //
-// Returns an error if Kubernetes configuration cannot be loaded.
+// Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
 func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sInternalClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
-	clientCfg, err := GetKubernetesConfig()
+	baseConfig, err := GetKubernetesConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap transport to inject impersonation headers from context
+	clientCfg := rest.CopyConfig(baseConfig)
+	clientCfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return &impersonationRoundTripper{
+			base: rt,
+		}
+	}
+
+	clientset, err := kubernetes.NewForConfig(clientCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &K8sInternalClient{
-		RestConfig: clientCfg,
+		Clientset:     clientset,
+		DynamicClient: dynamicClient,
+		RestConfig:    clientCfg,
 	}, nil
 }
 
-func (c *K8sInternalClient) ListResources(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	dynamicClient, err := c.getDynamicClientForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *K8sInternalClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	var resourceClient dynamic.ResourceInterface
 	if namespace != "" {
-		resourceClient = dynamicClient.Resource(gvr).Namespace(namespace)
+		resourceClient = c.DynamicClient.Resource(gvr).Namespace(namespace)
 	} else {
-		resourceClient = dynamicClient.Resource(gvr)
+		resourceClient = c.DynamicClient.Resource(gvr)
 	}
 
 	return resourceClient.List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sInternalClient) GetResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	dynamicClient, err := c.getDynamicClientForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	return dynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+func (c *K8sInternalClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) CreateResource(ctx context.Context, identity *RequestIdentity, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	dynamicClient, err := c.getDynamicClientForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	return dynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
+func (c *K8sInternalClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(ctx, obj, metav1.CreateOptions{})
 }
 
-func (c *K8sInternalClient) GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	nsList, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+func (c *K8sInternalClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+	nsList, err := c.Clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		if !k8serrors.IsForbidden(err) {
 			return nil, err
 		}
 		// Fall back to OpenShift Projects API when cluster-wide list is forbidden
-		return c.getNamespacesViaProjectsAPI(ctx, identity)
+		return c.getNamespacesViaProjectsAPI(ctx)
 	}
 
 	return nsList.Items, nil
 }
 
-func (c *K8sInternalClient) GetPods(ctx context.Context, identity *RequestIdentity, namespace string) (*v1.PodList, error) {
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+func (c *K8sInternalClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+	return c.Clientset.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 }
 
-func (c *K8sInternalClient) GetSecrets(ctx context.Context, identity *RequestIdentity, namespace string) ([]v1.Secret, error) {
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	secretList, err := clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+func (c *K8sInternalClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+	secretList, err := c.Clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	return secretList.Items, nil
 }
 
-func (c *K8sInternalClient) GetSecret(ctx context.Context, identity *RequestIdentity, namespace, secretName string) (*v1.Secret, error) {
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	return clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
+func (c *K8sInternalClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+	return c.Clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) GetUser(ctx context.Context, identity *RequestIdentity) (string, error) {
+func (c *K8sInternalClient) GetUser(ctx context.Context) (string, error) {
+	identity, err := IdentityFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	return identity.UserID, nil
 }
 
-func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error) {
+func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return false, err
-	}
 
 	// Check wildcard permissions - the defining characteristic of cluster-admin role
 	ssar := &authorizationv1.SelfSubjectAccessReview{
@@ -176,7 +164,7 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 		},
 	}
 
-	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(timeoutCtx, ssar, metav1.CreateOptions{})
+	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(timeoutCtx, ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -184,12 +172,7 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context, identity *Reques
 	return resp.Status.Allowed, nil
 }
 
-func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *RequestIdentity, namespace, verb, group, resource, name string) (bool, error) {
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return false, err
-	}
-
+func (c *K8sInternalClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	ssar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -202,7 +185,7 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 		},
 	}
 
-	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, ssar, metav1.CreateOptions{})
+	resp, err := c.Clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, ssar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -215,15 +198,9 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, identity *Req
 // Returns the first working GroupVersionResource or an error if none are available.
 func (c *K8sInternalClient) DiscoverResourceGVR(
 	ctx context.Context,
-	identity *RequestIdentity,
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
-	dynamicClient, err := c.getDynamicClientForIdentity(identity)
-	if err != nil {
-		return schema.GroupVersionResource{}, err
-	}
-
 	for _, version := range knownVersions {
 		gvr := schema.GroupVersionResource{
 			Group:    group,
@@ -232,7 +209,7 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 		}
 
 		// Test with namespace-scoped query (respects RBAC)
-		_, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
+		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{Limit: 1})
 		if err == nil {
 			return gvr, nil
 		}
@@ -254,78 +231,16 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 // Private Helper Methods
 // ============================================================================
 
-// getDynamicClientForIdentity returns a dynamic client scoped to the given identity via impersonation.
-// Identity is REQUIRED - nil is rejected to prevent privilege escalation.
-// The underlying HTTP transport is shared for connection pooling efficiency.
-func (c *K8sInternalClient) getDynamicClientForIdentity(identity *RequestIdentity) (DynamicClientInterface, error) {
-	if identity == nil {
-		return nil, &ValidationError{
-			Field:   "identity",
-			Message: "identity is required - nil identity not allowed for security. All operations must be tied to a user or system identity.",
-		}
-	}
-
-	userConfig := rest.CopyConfig(c.RestConfig)
-	userConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...),
-	}
-
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	return dynamic.NewForConfig(userConfig)
-}
-
-// getClientsetForIdentity returns a typed clientset scoped to the given identity via impersonation.
-// Identity is REQUIRED - nil is rejected to prevent privilege escalation.
-// The underlying HTTP transport is shared for connection pooling efficiency.
-func (c *K8sInternalClient) getClientsetForIdentity(identity *RequestIdentity) (ClientsetInterface, error) {
-	if identity == nil {
-		return nil, &ValidationError{
-			Field:   "identity",
-			Message: "identity is required - nil identity not allowed for security. All operations must be tied to a user or system identity.",
-		}
-	}
-
-	userConfig := rest.CopyConfig(c.RestConfig)
-	userConfig.Impersonate = rest.ImpersonationConfig{
-		UserName: identity.UserID,
-		Groups:   append([]string(nil), identity.Groups...),
-	}
-
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	return kubernetes.NewForConfig(userConfig)
-}
-
 // getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
 // namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
-func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, identity *RequestIdentity) ([]v1.Namespace, error) {
-	dynamicClient, err := c.getDynamicClientForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
-	clientset, err := c.getClientsetForIdentity(identity)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	projectGVR := schema.GroupVersionResource{
 		Group:    "project.openshift.io",
 		Version:  "v1",
 		Resource: "projects",
 	}
 
-	projectList, err := dynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	projectList, err := c.DynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +249,7 @@ func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, ide
 	for _, project := range projectList.Items {
 		projectName := project.GetName()
 
-		ns, err := clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
 		if err != nil {
 			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
 				namespaces = append(namespaces, v1.Namespace{
@@ -353,4 +268,42 @@ func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context, ide
 	}
 
 	return namespaces, nil
+}
+
+// impersonationRoundTripper injects impersonation headers from the RequestIdentity in context.
+// This allows a single client to handle requests for multiple users efficiently.
+type impersonationRoundTripper struct {
+	base http.RoundTripper
+}
+
+func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	identity, err := IdentityFromContext(req.Context())
+	if err != nil {
+		return nil, err
+	}
+
+	if identity.UserID == "" {
+		return nil, &ValidationError{
+			Field:   "identity.UserID",
+			Message: "identity UserID is required for impersonation",
+		}
+	}
+
+	// Clone the request to avoid modifying the original (required by http.RoundTripper contract)
+	req2 := req.Clone(req.Context())
+
+	// Set impersonation headers on the cloned request
+	req2.Header.Set("Impersonate-User", identity.UserID)
+	req2.Header.Del("Impersonate-Group")
+	req2.Header.Del("Impersonate-Uid")
+
+	// Clear any existing group headers
+	req2.Header.Del("Impersonate-Group")
+
+	// Add group headers
+	for _, group := range identity.Groups {
+		req2.Header.Add("Impersonate-Group", group)
+	}
+
+	return t.base.RoundTrip(req2)
 }
