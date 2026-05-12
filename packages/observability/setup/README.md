@@ -134,7 +134,7 @@ oc get pods -n redhat-ods-monitoring -w
 
 Expected pods (all Running):
 
-```
+```text
 alertmanager-data-science-monitoringstack-*    2/2  Running
 data-science-collector-collector-*             1/1  Running
 prometheus-data-science-monitoringstack-*      3/3  Running

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
-const { execSync, spawn } = require('child_process');
+const { execFileSync, execSync, spawn } = require('child_process');
 const path = require('path');
 const { merge } = require('webpack-merge');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
@@ -223,90 +223,90 @@ module.exports = smp.wrap(
               headers['x-forwarded-access-token'] = token;
             }
 
-            // Build per-service proxy entries for proxyService configs that have localService.
-            // Port-forward tunnels raw TCP so we connect via HTTPS.
-            const localProxyEntries = moduleFederationConfig.flatMap((config) =>
+            // Collect proxyService entries that have a localService AND whose
+            // cluster service actually exists, so we don't create dead proxy
+            // routes or remove gateway fallbacks for absent services.
+            const availableLocalServices = moduleFederationConfig.flatMap((config) =>
               (config.proxyService || [])
                 .filter((ps) => ps.localService)
-                .map((ps) => ({
-                  context: [ps.path],
-                  target: `https://${ps.localService.host || 'localhost'}:${ps.localService.port}`,
-                  secure: false,
-                  changeOrigin: true,
-                  pathRewrite: { [`^${ps.path}`]: ps.pathRewrite ?? '' },
-                  headers,
-                  onProxyReq: (proxyReq) => {
-                    const currentToken = getCurrentToken();
-                    proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
-                  },
-                })),
-            );
-
-            // Auto-spawn port-forwards for proxyService entries with localService
-            moduleFederationConfig.forEach((config) => {
-              (config.proxyService || [])
-                .filter((ps) => ps.localService)
-                .forEach((ps) => {
-                  const localPort = ps.localService.port;
-                  const remotePort = ps.service.port;
+                .filter((ps) => {
                   const namespace = ps.service.namespace || odhProject;
                   const svcName = ps.service.name;
-
                   try {
-                    execSync(`oc get svc ${svcName} -n ${namespace}`, { stdio: 'ignore' });
+                    execFileSync('oc', ['get', 'svc', svcName, '-n', namespace], {
+                      stdio: 'ignore',
+                    });
+                    return true;
                   } catch {
                     console.info(`Skipping port-forward: svc/${svcName} not found in ${namespace}`);
-                    return;
+                    return false;
                   }
+                }),
+            );
 
-                  let current;
-                  let stopping = false;
+            // Build per-service proxy entries only for verified services.
+            // Port-forward tunnels raw TCP so we connect via HTTPS.
+            const localProxyEntries = availableLocalServices.map((ps) => ({
+              context: [ps.path],
+              target: `https://${ps.localService.host || 'localhost'}:${ps.localService.port}`,
+              secure: false,
+              changeOrigin: true,
+              pathRewrite: { [`^${ps.path}`]: ps.pathRewrite ?? '' },
+              headers,
+              onProxyReq: (proxyReq) => {
+                const currentToken = getCurrentToken();
+                proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+              },
+            }));
 
-                  const startPortForward = () => {
+            // Auto-spawn port-forwards for the verified services
+            availableLocalServices.forEach((ps) => {
+              const localPort = ps.localService.port;
+              const remotePort = ps.service.port;
+              const namespace = ps.service.namespace || odhProject;
+              const svcName = ps.service.name;
+
+              let current;
+              let stopping = false;
+
+              const startPortForward = () => {
+                console.info(
+                  `Port-forwarding svc/${svcName} ${localPort}:${remotePort} -n ${namespace}`,
+                );
+                current = spawn(
+                  'oc',
+                  ['port-forward', `svc/${svcName}`, `${localPort}:${remotePort}`, '-n', namespace],
+                  { stdio: ['ignore', 'pipe', 'pipe'] },
+                );
+                current.stderr.on('data', (data) =>
+                  console.warn(`[port-forward ${svcName}]`, data.toString().trim()),
+                );
+                current.on('error', (err) =>
+                  console.warn(`Port-forward for ${svcName} failed: ${err.message}`),
+                );
+                current.on('exit', (code) => {
+                  if (!stopping) {
                     console.info(
-                      `Port-forwarding svc/${svcName} ${localPort}:${remotePort} -n ${namespace}`,
+                      `Port-forward for ${svcName} dropped (code ${code}), restarting...`,
                     );
-                    current = spawn(
-                      'oc',
-                      [
-                        'port-forward',
-                        `svc/${svcName}`,
-                        `${localPort}:${remotePort}`,
-                        '-n',
-                        namespace,
-                      ],
-                      { stdio: ['ignore', 'pipe', 'pipe'] },
-                    );
-                    current.stderr.on('data', (data) =>
-                      console.warn(`[port-forward ${svcName}]`, data.toString().trim()),
-                    );
-                    current.on('error', (err) =>
-                      console.warn(`Port-forward for ${svcName} failed: ${err.message}`),
-                    );
-                    current.on('exit', (code) => {
-                      if (!stopping) {
-                        console.info(
-                          `Port-forward for ${svcName} dropped (code ${code}), restarting...`,
-                        );
-                        setTimeout(() => !stopping && startPortForward(), 1000);
-                      }
-                    });
-                  };
-
-                  startPortForward();
-
-                  const cleanup = () => {
-                    stopping = true;
-                    try {
-                      current?.kill();
-                    } catch {
-                      // already exited
-                    }
-                  };
-                  process.on('exit', cleanup);
-                  process.on('SIGINT', cleanup);
-                  process.on('SIGTERM', cleanup);
+                    setTimeout(() => !stopping && startPortForward(), 1000);
+                  }
                 });
+              };
+
+              startPortForward();
+
+              const cleanup = () => {
+                stopping = true;
+                try {
+                  current?.kill();
+                } catch {
+                  // already exited
+                }
+              };
+              process.on('exit', cleanup);
+              process.on('SIGINT', cleanup);
+              process.on('SIGTERM', cleanup);
             });
 
             // Remove locally-proxied paths from the gateway proxy
