@@ -41,6 +41,7 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
 }) => {
   const primaryFlat = flattenEntries(primaryEntries);
   const comparisonFlat = flattenEntries(comparisonEntries);
+  const comparisonMap = new Map(comparisonFlat);
 
   return (
     <DescriptionList isHorizontal className="autorag-comparison-list">
@@ -67,13 +68,13 @@ const ComparisonKeyValueList: React.FC<ComparisonKeyValueListProps> = ({
           </Flex>
         </DescriptionListDescription>
       </DescriptionListGroup>
-      {primaryFlat.map(([label, primaryValue], i) => (
+      {primaryFlat.map(([label, primaryValue]) => (
         <DescriptionListGroup key={label}>
           <DescriptionListTerm>{label}</DescriptionListTerm>
           <DescriptionListDescription>
             <Grid hasGutter>
               <GridItem span={6}>{primaryValue}</GridItem>
-              <GridItem span={6}>{comparisonFlat[i]?.[1]}</GridItem>
+              <GridItem span={6}>{comparisonMap.get(label) ?? '\u2014'}</GridItem>
             </Grid>
           </DescriptionListDescription>
         </DescriptionListGroup>

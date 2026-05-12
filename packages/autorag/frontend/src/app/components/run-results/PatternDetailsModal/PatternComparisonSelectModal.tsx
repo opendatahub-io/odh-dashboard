@@ -88,10 +88,12 @@ const PatternComparisonSelectModal: React.FC<PatternComparisonSelectModalProps> 
     currentPatternIndex >= 0 ? currentPatternIndex : null,
   );
 
+  const prevIsOpen = React.useRef(false);
   React.useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpen.current) {
       setSelectedIndex(currentPatternIndex >= 0 ? currentPatternIndex : null);
     }
+    prevIsOpen.current = isOpen;
   }, [isOpen, currentPatternIndex]);
 
   const sortedIndices = React.useMemo(

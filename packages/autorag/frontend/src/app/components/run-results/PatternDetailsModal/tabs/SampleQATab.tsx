@@ -149,6 +149,11 @@ const SampleQATab: React.FC<TabContentProps> = ({
   }
 
   const comparisonResults = comparisonPattern.evaluationResults ?? [];
+  const comparisonByQuestionId = new Map(
+    comparisonResults
+      .filter((r): r is typeof r & { question_id: string } => !!r.question_id)
+      .map((r) => [r.question_id, r]),
+  );
   const primaryLabel = formatPatternName(primaryPattern.pattern.name);
   const comparisonLabel = formatPatternName(comparisonPattern.pattern.name);
 
@@ -158,7 +163,11 @@ const SampleQATab: React.FC<TabContentProps> = ({
         <StackItem key={`qa-${primaryResult.question_id || index}`}>
           <ComparisonQAEntry
             primaryResult={primaryResult}
-            comparisonResult={comparisonResults[index]}
+            comparisonResult={
+              primaryResult.question_id
+                ? comparisonByQuestionId.get(primaryResult.question_id)
+                : comparisonResults[index]
+            }
             primaryLabel={primaryLabel}
             comparisonLabel={comparisonLabel}
             onChangeComparisonPattern={onChangeComparisonPattern}
