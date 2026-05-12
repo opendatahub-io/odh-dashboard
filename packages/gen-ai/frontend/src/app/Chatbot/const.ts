@@ -1,6 +1,4 @@
-import { MessageProps, WelcomePrompt } from '@patternfly/chatbot';
-import botAvatar from '~/app/bgimages/bot_avatar.svg';
-import { getId } from '~/app/utilities/utils';
+import { WelcomePrompt } from '@patternfly/chatbot';
 
 // Alert and notification constants
 export const ALERT_TIMEOUT_MS = 8000;
@@ -18,16 +16,8 @@ export const SAMPLING_STRATEGY = {
   TYPE: 'greedy',
 } as const;
 
-// Initial bot message
-export const initialBotMessage = (): MessageProps => ({
-  id: getId(),
-  role: 'bot',
-  content:
-    'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-  name: 'Bot',
-  avatar: botAvatar,
-  timestamp: new Date().toLocaleString(),
-});
+export const PLACEHOLDER_BOT_CONTENT =
+  'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.';
 
 export const sampleWelcomePrompts: WelcomePrompt[] = [
   {
