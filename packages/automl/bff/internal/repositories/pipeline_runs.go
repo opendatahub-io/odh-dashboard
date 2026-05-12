@@ -145,7 +145,12 @@ func collectVersionIDs(client ps.PipelineServerClientInterface, ctx context.Cont
 	}
 	ids := make([]string, 0, len(versions))
 	for _, v := range versions {
-		ids = append(ids, v.PipelineVersionID)
+		if strings.TrimSpace(v.PipelineVersionID) != "" {
+			ids = append(ids, v.PipelineVersionID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, nil
 	}
 	return ids, nil
 }

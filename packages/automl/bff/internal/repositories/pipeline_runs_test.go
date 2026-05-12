@@ -165,6 +165,15 @@ func TestCollectVersionIDs(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedVersionIDs, ids)
+
+		// Verify returned slice is a defensive copy — mutating it must not affect the cache.
+		if len(ids) > 0 {
+			ids[0] = "mutated-value"
+			cached, err2 := collectVersionIDs(mockClient, ctx, cachedPipelineID)
+			assert.NoError(t, err2)
+			assert.Equal(t, expectedVersionIDs, cached,
+				"cache must be unaffected by mutation of the returned slice")
+		}
 	})
 
 	t.Run("should fall back to API on cache miss", func(t *testing.T) {
