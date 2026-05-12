@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/types"
 	"gopkg.in/yaml.v2"
@@ -13,15 +12,17 @@ import (
 
 // LlamaStackConfig represents the main configuration structure
 type LlamaStackConfig struct {
-	Version             string              `json:"version" yaml:"version"`
-	DistroName          string              `json:"distro_name" yaml:"distro_name"`
-	APIs                []string            `json:"apis" yaml:"apis"`
-	Providers           Providers           `json:"providers" yaml:"providers"`
-	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
-	Storage             Storage             `json:"storage" yaml:"storage"`
-	VectorStores        VectorStores        `json:"vector_stores" yaml:"vector_stores"`
-	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
-	Server              Server              `json:"server" yaml:"server"`
+	Version              string              `json:"version" yaml:"version"`
+	DistroName           string              `json:"distro_name" yaml:"distro_name"`
+	APIs                 []string            `json:"apis" yaml:"apis"`
+	Providers            Providers           `json:"providers" yaml:"providers"`
+	MetadataStore        MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
+	Storage              Storage             `json:"storage" yaml:"storage"`
+	VectorStores         VectorStores        `json:"vector_stores" yaml:"vector_stores"`
+	RegisteredResources  RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
+	ExternalProvidersDir string              `json:"external_providers_dir,omitempty" yaml:"external_providers_dir,omitempty"`
+	Connectors           []ConnectorInput    `json:"connectors,omitempty" yaml:"connectors,omitempty"`
+	Server               Server              `json:"server" yaml:"server"`
 }
 
 // VectorStores configures the default vector store behavior for Llama Stack.
@@ -37,16 +38,12 @@ type VectorStoreModelReference struct {
 }
 
 type Providers struct {
-	Inference      []Provider `json:"inference" yaml:"inference"`
-	VectorIO       []Provider `json:"vector_io" yaml:"vector_io"`
-	Responses      []Provider `json:"responses" yaml:"responses"`
-	Eval           []Provider `json:"eval" yaml:"eval"`
-	FileProcessors []Provider `json:"file_processors" yaml:"file_processors"`
-	Files          []Provider `json:"files" yaml:"files"`
-	DatasetIO      []Provider `json:"datasetio" yaml:"datasetio"`
-	Scoring        []Provider `json:"scoring" yaml:"scoring"`
-	ToolRuntime    []Provider `json:"tool_runtime" yaml:"tool_runtime"`
-	Safety         []Provider `json:"safety" yaml:"safety"`
+	Inference      []Provider `json:"inference,omitempty" yaml:"inference,omitempty"`
+	VectorIO       []Provider `json:"vector_io,omitempty" yaml:"vector_io,omitempty"`
+	Responses      []Provider `json:"responses,omitempty" yaml:"responses,omitempty"`
+	FileProcessors []Provider `json:"file_processors,omitempty" yaml:"file_processors,omitempty"`
+	Files          []Provider `json:"files,omitempty" yaml:"files,omitempty"`
+	ToolRuntime    []Provider `json:"tool_runtime,omitempty" yaml:"tool_runtime,omitempty"`
 }
 
 type Provider struct {
@@ -63,16 +60,19 @@ type MetadataStore struct {
 
 type RegisteredResources struct {
 	Models       []Model       `json:"models" yaml:"models"`
-	Shields      []Shield      `json:"shields" yaml:"shields"`
 	VectorStores []VectorStore `json:"vector_stores" yaml:"vector_stores"`
-	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
-	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
 }
 
 type Storage struct {
 	Backends map[string]interface{} `json:"backends" yaml:"backends"`
 	Stores   map[string]interface{} `json:"stores" yaml:"stores"`
+}
+
+type ConnectorInput struct {
+	ConnectorType string `json:"connector_type,omitempty" yaml:"connector_type,omitempty"`
+	ConnectorID   string `json:"connector_id" yaml:"connector_id"`
+	URL           string `json:"url" yaml:"url"`
+	ServerLabel   string `json:"server_label,omitempty" yaml:"server_label,omitempty"`
 }
 
 type Model struct {
@@ -205,13 +205,8 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			},
 		},
 		RegisteredResources: RegisteredResources{
-			// Ensure these serialize as `[]` (not `null`) when no values exist.
 			Models:       []Model{},
-			Shields:      []Shield{},
 			VectorStores: []VectorStore{},
-			Datasets:     []Dataset{},
-			ScoringFns:   []ScoringFn{},
-			Benchmarks:   []Benchmark{},
 		},
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
@@ -250,6 +245,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
 			},
 		},
+		ExternalProvidersDir: "/opt/app-root/.llama/providers.d",
 		Server: Server{
 			Port: 8321,
 		},
@@ -531,16 +527,6 @@ func (c *LlamaStackConfig) AddResponsesProvider(provider Provider) {
 	c.Providers.Responses = append(c.Providers.Responses, provider)
 }
 
-// AddDatasetIOProvider adds a new dataset IO provider to the config
-func (c *LlamaStackConfig) AddDatasetIOProvider(provider Provider) {
-	c.Providers.DatasetIO = append(c.Providers.DatasetIO, provider)
-}
-
-// AddScoringProvider adds a new scoring provider to the config
-func (c *LlamaStackConfig) AddScoringProvider(provider Provider) {
-	c.Providers.Scoring = append(c.Providers.Scoring, provider)
-}
-
 // AddToolRuntimeProvider adds a new tool runtime provider to the config
 func (c *LlamaStackConfig) AddToolRuntimeProvider(provider Provider) {
 	c.Providers.ToolRuntime = append(c.Providers.ToolRuntime, provider)
@@ -554,16 +540,6 @@ func (c *LlamaStackConfig) AddFileProcessorsProvider(provider Provider) {
 // AddFilesProvider adds a new files provider to the config
 func (c *LlamaStackConfig) AddFilesProvider(provider Provider) {
 	c.Providers.Files = append(c.Providers.Files, provider)
-}
-
-// AddSafetyProvider adds a new safety provider to the config
-func (c *LlamaStackConfig) AddSafetyProvider(provider Provider) {
-	c.Providers.Safety = append(c.Providers.Safety, provider)
-}
-
-// RegisterShield adds a shield to the registered resources
-func (c *LlamaStackConfig) RegisterShield(shield Shield) {
-	c.RegisteredResources.Shields = append(c.RegisteredResources.Shields, shield)
 }
 
 // RegisterVectorStore adds a vector store to the registered resources.
@@ -614,7 +590,7 @@ func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelPro
 	for _, provider := range c.Providers.Inference {
 		if provider.ProviderID == providerID {
 			url := ""
-			// Try base_url first (llama-stack v0.4.0+), fallback to url for backward compatibility
+			// vLLM uses base_url; other providers (e.g. watsonx) use url
 			if urlVal, ok := provider.Config["base_url"]; ok {
 				if urlStr, ok := urlVal.(string); ok {
 					url = cleanEnvVar(urlStr)
@@ -648,15 +624,6 @@ func cleanEnvVar(value string) string {
 	return value
 }
 
-// Shield represents a safety and security configuration
-type Shield struct {
-	ShieldID   string                 `json:"shield_id" yaml:"shield_id"`
-	ShieldType string                 `json:"shield_type" yaml:"shield_type"`
-	ProviderID string                 `json:"provider_id" yaml:"provider_id"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
 // VectorStore represents a vector store configuration in registered_resources
 type VectorStore struct {
 	VectorStoreID         string                 `json:"vector_store_id" yaml:"vector_store_id"`
@@ -668,46 +635,6 @@ type VectorStore struct {
 	Metadata              map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
-// Dataset represents a dataset configuration
-type Dataset struct {
-	DatasetID   string                 `json:"dataset_id" yaml:"dataset_id"`
-	Name        string                 `json:"name" yaml:"name"`
-	ProviderID  string                 `json:"provider_id" yaml:"provider_id"`
-	DatasetType string                 `json:"dataset_type" yaml:"dataset_type"`
-	Config      map[string]interface{} `json:"config" yaml:"config"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// ScoringFn represents a scoring function configuration
-type ScoringFn struct {
-	FunctionID   string                 `json:"function_id" yaml:"function_id"`
-	Name         string                 `json:"name" yaml:"name"`
-	ProviderID   string                 `json:"provider_id" yaml:"provider_id"`
-	FunctionType string                 `json:"function_type" yaml:"function_type"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// Benchmark represents a benchmark configuration
-type Benchmark struct {
-	BenchmarkID   string                 `json:"benchmark_id" yaml:"benchmark_id"`
-	Name          string                 `json:"name" yaml:"name"`
-	BenchmarkType string                 `json:"benchmark_type" yaml:"benchmark_type"`
-	Config        map[string]interface{} `json:"config" yaml:"config"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// NewShield creates a new Shield instance
-func NewShield(shieldID, shieldType, providerID string, config map[string]interface{}) Shield {
-	return Shield{
-		ShieldID:   shieldID,
-		ShieldType: shieldType,
-		ProviderID: providerID,
-		Config:     config,
-		Metadata:   EmptyConfig(),
-	}
-}
-
 // NewVectorStore creates a new VectorStore instance
 func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int) VectorStore {
 	return VectorStore{
@@ -715,189 +642,6 @@ func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int
 		EmbeddingModel:     embeddingModel,
 		EmbeddingDimension: embeddingDimension,
 	}
-}
-
-// NewDataset creates a new Dataset instance
-func NewDataset(datasetID, name, providerID, datasetType string, config map[string]interface{}) Dataset {
-	return Dataset{
-		DatasetID:   datasetID,
-		Name:        name,
-		ProviderID:  providerID,
-		DatasetType: datasetType,
-		Config:      config,
-		Metadata:    EmptyConfig(),
-	}
-}
-
-// NewScoringFn creates a new ScoringFn instance
-func NewScoringFn(functionID, name, providerID, functionType string, config map[string]interface{}) ScoringFn {
-	return ScoringFn{
-		FunctionID:   functionID,
-		Name:         name,
-		ProviderID:   providerID,
-		FunctionType: functionType,
-		Config:       config,
-		Metadata:     EmptyConfig(),
-	}
-}
-
-// NewBenchmark creates a new Benchmark instance
-func NewBenchmark(benchmarkID, name, benchmarkType string, config map[string]interface{}) Benchmark {
-	return Benchmark{
-		BenchmarkID:   benchmarkID,
-		Name:          name,
-		BenchmarkType: benchmarkType,
-		Config:        config,
-		Metadata:      EmptyConfig(),
-	}
-}
-
-// CreateSafetyProvider creates a safety provider configuration from guardrails array
-// This generates the TrustyAI FMS provider with shields for each guardrail model
-func CreateSafetyProvider(guardrails []models.GuardrailInput) Provider {
-	shields := make(map[string]interface{})
-
-	for _, guardrail := range guardrails {
-		// Default policies if not provided (input includes jailbreak, output does not)
-		inputPolicies := guardrail.InputPolicies
-		if len(inputPolicies) == 0 {
-			inputPolicies = models.DefaultInputGuardrailPolicies()
-		}
-		outputPolicies := guardrail.OutputPolicies
-		if len(outputPolicies) == 0 {
-			outputPolicies = models.DefaultOutputGuardrailPolicies()
-		}
-
-		// Generate shield IDs based on model name or index
-		inputShieldID := generateShieldID("input", guardrail.ModelName)
-		outputShieldID := generateShieldID("output", guardrail.ModelName)
-
-		// Construct guardrail_model in format: provider_id/model_name
-		guardrailModel := fmt.Sprintf("%s/%s", guardrail.ProviderID, guardrail.ModelName)
-
-		// Use provided detector URL or fall back to default
-		detectorURL := guardrail.DetectorURL
-		if detectorURL == "" {
-			detectorURL = constants.DefaultDetectorURL
-		}
-
-		// Create input shield config
-		// auth_token: Token from guardrails-service-account for kube-rbac-proxy authentication
-		// guardrail_model_token: model API token for calling the LLM
-		shields[inputShieldID] = map[string]interface{}{
-			"type":          "content",
-			"detector_url":  detectorURL,
-			"message_types": []string{"user"},
-			"verify_ssl":    false,
-			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
-			"detector_params": map[string]interface{}{
-				"custom": map[string]interface{}{
-					"input_guardrail": map[string]interface{}{
-						"input_policies":        inputPolicies,
-						"guardrail_model":       guardrailModel,
-						"guardrail_model_token": guardrail.TokenEnvVar,
-						"guardrail_model_url":   guardrail.ModelURL,
-					},
-				},
-			},
-		}
-
-		// Create output shield config
-		// auth_token: Token from guardrails-service-account for kube-rbac-proxy authentication
-		// guardrail_model_token: model API token for calling the LLM
-		shields[outputShieldID] = map[string]interface{}{
-			"type":          "content",
-			"detector_url":  detectorURL,
-			"message_types": []string{"completion"},
-			"verify_ssl":    false,
-			"auth_token":    constants.FormatEnvVar(constants.GuardrailAuthTokenEnvName),
-			"detector_params": map[string]interface{}{
-				"custom": map[string]interface{}{
-					"output_guardrail": map[string]interface{}{
-						"output_policies":       outputPolicies,
-						"guardrail_model":       guardrailModel,
-						"guardrail_model_token": guardrail.TokenEnvVar,
-						"guardrail_model_url":   guardrail.ModelURL,
-					},
-				},
-			},
-		}
-	}
-
-	return Provider{
-		ProviderID:   constants.SafetyProviderID,
-		ProviderType: constants.SafetyProviderType,
-		Module:       constants.SafetyProviderModule,
-		Config: map[string]interface{}{
-			"shields": shields,
-		},
-	}
-}
-
-// generateShieldID creates a unique shield ID based on type and model name
-func generateShieldID(shieldType, modelName string) string {
-	// Sanitize model name for use in shield ID
-	sanitized := strings.ReplaceAll(modelName, "/", "_")
-	sanitized = strings.ReplaceAll(sanitized, " ", "_")
-	sanitized = strings.ReplaceAll(sanitized, "-", "_")
-	sanitized = strings.ToLower(sanitized)
-
-	return fmt.Sprintf("trustyai_%s_%s", shieldType, sanitized)
-}
-
-// CreateShieldsFromGuardrails creates shield registrations for the registered_resources section
-func CreateShieldsFromGuardrails(guardrails []models.GuardrailInput) []Shield {
-	var shields []Shield
-
-	for _, guardrail := range guardrails {
-		inputShieldID := generateShieldID("input", guardrail.ModelName)
-		outputShieldID := generateShieldID("output", guardrail.ModelName)
-
-		// Register input shield
-		shields = append(shields, Shield{
-			ShieldID:   inputShieldID,
-			ProviderID: constants.SafetyProviderID,
-		})
-
-		// Register output shield
-		shields = append(shields, Shield{
-			ShieldID:   outputShieldID,
-			ProviderID: constants.SafetyProviderID,
-		})
-	}
-
-	return shields
-}
-
-// AddGuardrailsToConfig adds safety providers and shields based on the guardrails configuration.
-// It also ensures the "safety" API is in the APIs list (it is not included by default
-// since the upstream 1.0.0 distribution removed safety from the default config).
-func (c *LlamaStackConfig) AddGuardrailsToConfig(guardrails []models.GuardrailInput) {
-	if len(guardrails) == 0 {
-		return
-	}
-
-	c.ensureAPI("safety")
-
-	// Create and add safety provider
-	safetyProvider := CreateSafetyProvider(guardrails)
-	c.AddSafetyProvider(safetyProvider)
-
-	// Create and register shields
-	shields := CreateShieldsFromGuardrails(guardrails)
-	for _, shield := range shields {
-		c.RegisterShield(shield)
-	}
-}
-
-// ensureAPI adds an API to the APIs list if not already present.
-func (c *LlamaStackConfig) ensureAPI(api string) {
-	for _, a := range c.APIs {
-		if a == api {
-			return
-		}
-	}
-	c.APIs = append(c.APIs, api)
 }
 
 // EnableRBACAuth enables RBAC authentication using the Kubernetes auth provider.

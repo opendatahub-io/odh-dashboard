@@ -1,6 +1,7 @@
 # Python dependencies for the Llama Stack test server.
 # Prevent upgrading to versions that could break the test server.
 # Versions may be updated when the Llama Stack test server is upgraded for compatibility.
+aiohttp>=3.9
 milvus-lite==2.5.1
 pymilvus==2.6.9
 chardet==7.1.0

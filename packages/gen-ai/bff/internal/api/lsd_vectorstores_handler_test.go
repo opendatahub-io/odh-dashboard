@@ -54,7 +54,7 @@ func uploadTestFile(baseURL string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("marshal provider data: %w", err)
 		}
-		req.Header.Set("X-LlamaStack-Provider-Data", string(headerBytes))
+		req.Header.Set("X-OGX-Provider-Data", string(headerBytes))
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}

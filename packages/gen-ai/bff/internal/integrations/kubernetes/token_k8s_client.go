@@ -1543,7 +1543,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("250m"),
@@ -1555,7 +1555,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 						},
 					},
 					Env: append(envVars, corev1.EnvVar{
-						Name:  "LLAMA_STACK_CONFIG_DIR",
+						Name:  "OGX_CONFIG_DIR",
 						Value: "/opt/app-root/src/.llama/distributions/rh/",
 					}),
 					Name: "llama-stack",

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -106,13 +105,6 @@ func TestProviderCreationUtilities(t *testing.T) {
 	config.AddResponsesProvider(provider1)
 	assert.Equal(t, 2, len(config.Providers.Responses))
 
-	// datasetio/scoring not in defaults (removed in 1.0.0); adding one
-	config.AddDatasetIOProvider(provider1)
-	assert.Equal(t, 1, len(config.Providers.DatasetIO))
-
-	config.AddScoringProvider(provider1)
-	assert.Equal(t, 1, len(config.Providers.Scoring))
-
 	// default tool runtime providers already added; adding one more
 	config.AddToolRuntimeProvider(provider1)
 	assert.Equal(t, 3, len(config.Providers.ToolRuntime))
@@ -139,16 +131,6 @@ func TestDefaultConfig_Validation(t *testing.T) {
 }
 
 func TestNewTypes(t *testing.T) {
-	// Test Shield creation
-	shieldConfig := EmptyConfig()
-	shieldConfig["threshold"] = 0.8
-	shield := NewShield("toxicity", "content-filter", "safety-provider", shieldConfig)
-	assert.Equal(t, "toxicity", shield.ShieldID)
-	assert.Equal(t, "content-filter", shield.ShieldType)
-	assert.Equal(t, "safety-provider", shield.ProviderID)
-	assert.Equal(t, float64(0.8), shield.Config["threshold"])
-	assert.NotNil(t, shield.Metadata)
-
 	// Test VectorStore creation
 	vectorStore := NewVectorStore("test-db", "ibm-granite/granite-embedding-125m-english", 768)
 	assert.Equal(t, "test-db", vectorStore.VectorStoreID)
@@ -156,38 +138,6 @@ func TestNewTypes(t *testing.T) {
 	assert.Equal(t, 768, vectorStore.EmbeddingDimension)
 	assert.Empty(t, vectorStore.VectorStoreName)
 	assert.Nil(t, vectorStore.Metadata)
-
-	// Test Dataset creation
-	datasetConfig := EmptyConfig()
-	datasetConfig["source"] = "huggingface"
-	dataset := NewDataset("test-dataset", "Test Dataset", "huggingface", "text", datasetConfig)
-	assert.Equal(t, "test-dataset", dataset.DatasetID)
-	assert.Equal(t, "Test Dataset", dataset.Name)
-	assert.Equal(t, "huggingface", dataset.ProviderID)
-	assert.Equal(t, "text", dataset.DatasetType)
-	assert.Equal(t, "huggingface", dataset.Config["source"])
-	assert.NotNil(t, dataset.Metadata)
-
-	// Test ScoringFn creation
-	scoringConfig := EmptyConfig()
-	scoringConfig["metric"] = "accuracy"
-	scoringFn := NewScoringFn("test-fn", "Test Function", "basic", "classification", scoringConfig)
-	assert.Equal(t, "test-fn", scoringFn.FunctionID)
-	assert.Equal(t, "Test Function", scoringFn.Name)
-	assert.Equal(t, "basic", scoringFn.ProviderID)
-	assert.Equal(t, "classification", scoringFn.FunctionType)
-	assert.Equal(t, "accuracy", scoringFn.Config["metric"])
-	assert.NotNil(t, scoringFn.Metadata)
-
-	// Test Benchmark creation
-	benchConfig := EmptyConfig()
-	benchConfig["iterations"] = 100
-	benchmark := NewBenchmark("test-bench", "Test Benchmark", "performance", benchConfig)
-	assert.Equal(t, "test-bench", benchmark.BenchmarkID)
-	assert.Equal(t, "Test Benchmark", benchmark.Name)
-	assert.Equal(t, "performance", benchmark.BenchmarkType)
-	assert.Equal(t, 100, benchmark.Config["iterations"])
-	assert.NotNil(t, benchmark.Metadata)
 }
 
 func TestGetModelProviderInfo(t *testing.T) {
@@ -1327,13 +1277,6 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	}
 	assert.Equal(t, expectedAPIs, config.APIs)
 
-	assert.Empty(t, config.Providers.DatasetIO, "datasetio providers should be empty by default (removed in 1.0.0)")
-	assert.Empty(t, config.Providers.Scoring, "scoring providers should be empty by default (removed in 1.0.0)")
-	assert.Empty(t, config.Providers.Safety, "safety providers should be empty by default (added conditionally via AddGuardrailsToConfig)")
-	assert.NotContains(t, config.APIs, "datasetio")
-	assert.NotContains(t, config.APIs, "scoring")
-	assert.NotContains(t, config.APIs, "safety")
-
 	require.Len(t, config.Providers.FileProcessors, 1)
 	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
 	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
@@ -1355,50 +1298,6 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
 	assert.Equal(t, "inline::sentence-transformers", config.Providers.Inference[0].ProviderType)
-}
-
-func TestAddGuardrailsToConfig_InjectsSafetyAPI(t *testing.T) {
-	config := NewDefaultLlamaStackConfig()
-
-	assert.NotContains(t, config.APIs, "safety", "safety should not be in APIs before guardrails are added")
-	assert.Empty(t, config.Providers.Safety)
-
-	guardrails := []models.GuardrailInput{
-		{
-			ModelName:      "llama-guard-3",
-			ProviderID:     "vllm-inference-1",
-			TokenEnvVar:    "${env.VLLM_API_TOKEN:=fake}",
-			ModelURL:       "http://localhost:8000/v1",
-			DetectorURL:    "https://detector:8480",
-			InputPolicies:  []string{"jailbreak"},
-			OutputPolicies: []string{"content-moderation"},
-		},
-	}
-
-	config.AddGuardrailsToConfig(guardrails)
-
-	assert.Contains(t, config.APIs, "safety", "safety API should be added when guardrails are configured")
-	assert.NotEmpty(t, config.Providers.Safety, "safety provider should be added")
-
-	// Verify idempotency: calling again should not duplicate the "safety" entry
-	config.AddGuardrailsToConfig(guardrails)
-
-	safetyCount := 0
-	for _, api := range config.APIs {
-		if api == "safety" {
-			safetyCount++
-		}
-	}
-	assert.Equal(t, 1, safetyCount, "safety API should appear exactly once even after multiple AddGuardrailsToConfig calls")
-}
-
-func TestAddGuardrailsToConfig_EmptyGuardrails(t *testing.T) {
-	config := NewDefaultLlamaStackConfig()
-
-	config.AddGuardrailsToConfig([]models.GuardrailInput{})
-
-	assert.NotContains(t, config.APIs, "safety", "safety should not be added for empty guardrails")
-	assert.Empty(t, config.Providers.Safety)
 }
 
 func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
@@ -1532,25 +1431,13 @@ func TestDefaultConfig_RegisteredResourcesShape(t *testing.T) {
 	config := NewDefaultLlamaStackConfig()
 
 	assert.NotNil(t, config.RegisteredResources.Models)
-	assert.NotNil(t, config.RegisteredResources.Shields)
 	assert.NotNil(t, config.RegisteredResources.VectorStores)
-	assert.NotNil(t, config.RegisteredResources.Datasets)
-	assert.NotNil(t, config.RegisteredResources.ScoringFns)
-	assert.NotNil(t, config.RegisteredResources.Benchmarks)
 
 	assert.Empty(t, config.RegisteredResources.Models)
-	assert.Empty(t, config.RegisteredResources.Shields)
 	assert.Empty(t, config.RegisteredResources.VectorStores)
-	assert.Empty(t, config.RegisteredResources.Datasets)
-	assert.Empty(t, config.RegisteredResources.ScoringFns)
-	assert.Empty(t, config.RegisteredResources.Benchmarks)
 
 	jsonStr, err := config.ToJSON()
 	require.NoError(t, err)
 	assert.Contains(t, jsonStr, "\"models\":[]")
-	assert.Contains(t, jsonStr, "\"shields\":[]")
 	assert.Contains(t, jsonStr, "\"vector_stores\":[]")
-	assert.Contains(t, jsonStr, "\"datasets\":[]")
-	assert.Contains(t, jsonStr, "\"scoring_fns\":[]")
-	assert.Contains(t, jsonStr, "\"benchmarks\":[]")
 }

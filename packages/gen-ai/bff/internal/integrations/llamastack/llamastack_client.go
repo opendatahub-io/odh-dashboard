@@ -578,7 +578,7 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 
 	headerValue := string(jsonBytes)
 	return []option.RequestOption{
-		option.WithHeader("x-llamastack-provider-data", headerValue),
+		option.WithHeader("x-ogx-provider-data", headerValue),
 	}
 }
 

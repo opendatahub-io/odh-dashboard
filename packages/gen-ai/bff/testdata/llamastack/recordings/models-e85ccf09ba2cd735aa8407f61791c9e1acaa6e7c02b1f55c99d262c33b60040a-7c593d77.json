@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.32.0"
+      "openai_sdk_version": "2.36.0"
     }
   },
   "response": {
@@ -91,66 +91,6 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 2.5 Pro Preview TTS"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-1b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 1B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-4b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 4B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-12b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 12B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-27b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 27B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3n-e4b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3n E4B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3n-e2b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3n E2B"
         }
       },
       {
@@ -271,6 +211,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 3.1 Flash Lite Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-3.1-flash-lite",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash Lite"
         }
       },
       {

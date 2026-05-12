@@ -384,15 +384,6 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
-	safetySection := "  safety: []"
-	shieldsSection := "  shields: []"
-	apisSection := `- file_processors
-- files
-- inference
-- responses
-- tool_runtime
-- vector_io`
-
 	// Then create the ConfigMap that the LSD will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -404,7 +395,12 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 version: "2"
 distro_name: rh
 apis:
-` + apisSection + `
+- file_processors
+- files
+- inference
+- responses
+- tool_runtime
+- vector_io
 providers:
   inference:
   - provider_id: vllm-inference-1
@@ -425,8 +421,6 @@ providers:
       persistence:
         namespace: vector_io::milvus
         backend: kv_default
-` + safetySection + `
-  eval: []
   file_processors:
   - provider_id: pypdf
     provider_type: inline::pypdf
@@ -452,8 +446,6 @@ providers:
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio: []
-  scoring: []
   tool_runtime:
   - provider_id: file-search
     provider_type: inline::file-search
@@ -496,11 +488,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-` + shieldsSection + `
   vector_stores: []
-  datasets: []
-  scoring_fns: []
-  benchmarks: []
 server:
   port: 8321`,
 		},
@@ -533,7 +521,7 @@ server:
 			},
 			Server: lsdapi.ServerSpec{
 				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							corev1.ResourceCPU:    resource.MustParse("250m"),

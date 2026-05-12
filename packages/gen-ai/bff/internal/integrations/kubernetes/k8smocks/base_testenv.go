@@ -472,11 +472,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-  shields: []
   vector_stores: []
-  datasets: []
-  scoring_fns: []
-  benchmarks: []
 server:
   port: 8321`,
 		},

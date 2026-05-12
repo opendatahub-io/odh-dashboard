@@ -16,18 +16,18 @@
           "content": "",
           "tool_calls": [
             {
-              "id": "function-call-11858820744251561694",
+              "id": "function-call-9213641390864895757",
               "type": "function",
               "function": {
                 "name": "file_search",
-                "arguments": "{\"query\":\"machine learning\"}"
+                "arguments": "{\"query\":\"what is machine learning\"}"
               }
             }
           ]
         },
         {
           "role": "tool",
-          "tool_call_id": "function-call-11858820744251561694",
+          "tool_call_id": "function-call-9213641390864895757",
           "content": [
             {
               "type": "text",
@@ -39,7 +39,7 @@
             },
             {
               "type": "text",
-              "text": "The above results were retrieved to help answer the user's query: \"machine learning\". Use them as supporting information only in answering this query. \n"
+              "text": "The above results were retrieved to help answer the user's query: \"what is machine learning\". Use them as supporting information only in answering this query. \n"
             }
           ]
         }
@@ -75,7 +75,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.32.0"
+      "openai_sdk_version": "2.36.0"
     }
   },
   "response": {
@@ -83,11 +83,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9484212516e2",
+          "id": "rec-33c3f028b104",
           "choices": [
             {
               "delta": {
-                "content": "I",
+                "content": "I cannot provide a",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -104,9 +104,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 1,
-            "prompt_tokens": 139,
-            "total_tokens": 140,
+            "completion_tokens": 4,
+            "prompt_tokens": 143,
+            "total_tokens": 147,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -115,11 +115,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9484212516e2",
+          "id": "rec-33c3f028b104",
           "choices": [
             {
               "delta": {
-                "content": " don't have enough information to define machine learning based on my current knowledge. Would",
+                "content": " specific definition of machine learning based on the information available to me. However, I can tell",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -136,9 +136,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 18,
-            "prompt_tokens": 139,
-            "total_tokens": 157,
+            "completion_tokens": 22,
+            "prompt_tokens": 143,
+            "total_tokens": 165,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -147,11 +147,11 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-9484212516e2",
+          "id": "rec-33c3f028b104",
           "choices": [
             {
               "delta": {
-                "content": " you like me to try and find some resources for you?",
+                "content": " you that machine learning is a field of artificial intelligence that focuses on enabling computers to learn from data without being explicitly programmed. It involves developing algorithms that can identify patterns in data, make predictions, and improve their performance over time.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -168,9 +168,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 30,
-            "prompt_tokens": 139,
-            "total_tokens": 169,
+            "completion_tokens": 67,
+            "prompt_tokens": 143,
+            "total_tokens": 210,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
