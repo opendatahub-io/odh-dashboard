@@ -20,7 +20,17 @@ type ForbiddenError struct {
 }
 
 func (e *ForbiddenError) Error() string {
-	return fmt.Sprintf("user %s is not authorized to %s %s", e.UserID, e.Action, e.Resource)
+	return fmt.Sprintf("not authorized to %s %s", e.Action, e.Resource)
+}
+
+// LogContext returns structured logging data for the error
+// UserID should only be logged server-side, not exposed in user-facing errors
+func (e *ForbiddenError) LogContext() map[string]any {
+	return map[string]any{
+		"user":     e.UserID,
+		"action":   e.Action,
+		"resource": e.Resource,
+	}
 }
 
 // ValidationError represents an input validation error
