@@ -575,6 +575,10 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
 			}
