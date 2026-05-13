@@ -5,11 +5,11 @@ import type {
   InferenceServiceKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
+import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
+import { getNIMDeploymentStatus } from './status';
 import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
 import { isNIMServiceRef } from '../nimservices/utils';
 import { useWatchNIMServices } from '../nimservices/watch';
-import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
-import { getNIMDeploymentStatus } from './status';
 import { NIM_ID } from '../../../extensions';
 
 export type { NIMDeployment };

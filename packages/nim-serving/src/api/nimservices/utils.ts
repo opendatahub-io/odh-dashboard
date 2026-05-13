@@ -1,7 +1,7 @@
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { NIM_ID } from '../../../extensions';
 import { NIMServiceModel, type NIMDeployment } from './types';
+import { NIM_ID } from '../../../extensions';
 
 export const isNIMDeployment = (deployment: Deployment): deployment is NIMDeployment =>
   deployment.modelServingPlatformId === NIM_ID;
