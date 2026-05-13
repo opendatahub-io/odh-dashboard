@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -564,6 +565,13 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
+	// Heartbeat keeps the connection alive through proxies (e.g., OpenShift HAProxy
+	// 30s idle timeout) during slow inference, tool calls, or vector DB retrieval.
+	var writeMu sync.Mutex
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
+
 	// Stream events to client
 	for stream.Next() {
 		// Check if client disconnected
@@ -611,12 +619,15 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		}
 
 		// Write SSE format
+		writeMu.Lock()
 		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {
+			writeMu.Unlock()
 			app.logger.Error("Failed to write streaming event", "error", err)
 			return
 		}
 		flusher.Flush()
+		writeMu.Unlock()
 	}
 
 	// Check for stream errors
@@ -630,7 +641,9 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			},
 		}
 		errorJSON, _ := json.Marshal(errorData)
+		writeMu.Lock()
 		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		writeMu.Unlock()
 	}
 
 	// Send metrics event after stream completes
@@ -648,8 +661,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		app.logger.Error("failed to marshal metrics event", "error", err)
 		return
 	}
+	writeMu.Lock()
 	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()
+	writeMu.Unlock()
 }
 
 // handleNonStreamingResponse handles regular (non-streaming) response creation

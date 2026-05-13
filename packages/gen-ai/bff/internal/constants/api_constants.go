@@ -1,7 +1,15 @@
 package constants
 
+import "time"
+
 const (
 	Version = "1.0.0"
+
+	// SSEHeartbeatInterval is the interval between SSE keep-alive comments.
+	// OpenShift's HAProxy router closes idle connections after 30s by default;
+	// sending a heartbeat every 15s keeps the connection alive through proxies
+	// during slow inference (CPU models, tool calls, vector DB retrieval).
+	SSEHeartbeatInterval = 15 * time.Second
 
 	PathPrefix    = "/gen-ai"
 	ApiPathPrefix = "/api/v1"

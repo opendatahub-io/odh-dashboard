@@ -312,6 +312,10 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Mutex for thread-safe writes to response writer
 	var writeMu sync.Mutex
 
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
+
 	// Helper to send SSE event (thread-safe)
 	sendEvent := func(eventData []byte) error {
 		writeMu.Lock()
@@ -501,7 +505,14 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 
 // streamWithoutModeration handles streaming when moderation is disabled
 func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream llamastack.ResponseStreamIterator, ctx context.Context) {
+	var writeMu sync.Mutex
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
+
 	sendEvent := func(eventData []byte) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
 		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {
 			return err
@@ -545,6 +556,8 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 			},
 		}
 		errorJSON, _ := json.Marshal(errorData)
+		writeMu.Lock()
 		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		writeMu.Unlock()
 	}
 }
