@@ -29,8 +29,47 @@ class EvaluationsPage {
     this.findEvaluationsTable().should('contain', evaluationName);
   }
 
-  findEvaluationsTable() {
-    return cy.findByTestId('evaluations-table');
+  findEvaluationsTable(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('evaluations-table', options);
+  }
+
+  /** Waits for the evaluation row to reach "Complete" status (polls via reload). */
+  assertEvaluationComplete(evaluationName: string, timeoutMs = 900000) {
+    const pollIntervalMs = 10000;
+    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+
+    const checkStatus = (attempt: number): void => {
+      this.findEvaluationsTable({ timeout: 30000 })
+        .contains('tr', evaluationName, { timeout: 30000 })
+        .then(($row) => {
+          const hasComplete = $row.find('[data-testid="status-label-completed"]').length > 0;
+          const hasFailed = $row.find('[data-testid="status-label-failed"]').length > 0;
+
+          if (hasComplete) {
+            const elapsedSeconds = (attempt * pollIntervalMs) / 1000;
+            cy.log(`Evaluation "${evaluationName}" completed after ${elapsedSeconds}s`);
+            return;
+          }
+          if (hasFailed) {
+            throw new Error(`Evaluation "${evaluationName}" failed`);
+          }
+          if (attempt >= maxAttempts) {
+            throw new Error(
+              `Evaluation "${evaluationName}" did not complete within ${timeoutMs / 1000}s`,
+            );
+          }
+
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(pollIntervalMs);
+          cy.reload();
+          // eslint-disable-next-line cypress/no-unnecessary-waiting
+          cy.wait(2000);
+          this.findPageTitle().should('be.visible', { timeout: 30000 });
+          checkStatus(attempt + 1);
+        });
+    };
+
+    checkStatus(0);
   }
 }
 

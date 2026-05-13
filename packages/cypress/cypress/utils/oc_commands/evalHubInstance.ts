@@ -46,7 +46,7 @@ export const ensureEvalHubCrReady = (
 
     cy.log(`Applying EvalHub CR ${crName} in ${ns} (operator will create service)`);
     return createCustomResource(ns, fixturePathRelativeToFixtures).then((applyResult) => {
-      if (applyResult.code !== 0) {
+      if (applyResult.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
         throw new Error(`oc apply EvalHub failed: ${maskedStderr}`);
       }

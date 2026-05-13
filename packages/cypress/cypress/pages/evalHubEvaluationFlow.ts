@@ -13,8 +13,18 @@ class EvalHubEvaluationFlow {
     cy.findByTestId('benchmarks-gallery').should('be.visible', { timeout: 120000 });
   }
 
-  /** Clicks the card footer (or drawer) action to start the run form for a benchmark visible in the gallery. */
+  /** Switches the filter toolbar to "Name" and types the search term to narrow the gallery. */
+  searchBenchmarkByName(name: string) {
+    cy.findByTestId('filter-toolbar-dropdown').click();
+    cy.findByText('Name').click();
+    cy.findByPlaceholderText('Filter by name').clear();
+    cy.findByPlaceholderText('Filter by name').type(name);
+  }
+
+  /** Searches for the benchmark by name, then clicks "Select benchmark" on the matching card. */
   startRunForBenchmarkCardContaining(displayTitle: string) {
+    this.searchBenchmarkByName(displayTitle);
+
     const cardRoot = '[data-testid^="benchmark-card-"]';
     cy.findByTestId('benchmarks-gallery')
       .find(cardRoot)

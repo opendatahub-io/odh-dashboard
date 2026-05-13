@@ -38,7 +38,7 @@ export const ensureMlflowCrReady = (
 
         cy.log(`Applying cluster-scoped MLflow CR from ${fixturePathRelativeToFixtures}`);
         return applyOpenShiftYaml(yamlContent).then((applyResult) => {
-          if (applyResult.code !== 0) {
+          if (applyResult.exitCode !== 0) {
             const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
             throw new Error(`oc apply MLflow failed: ${maskedStderr}`);
           }

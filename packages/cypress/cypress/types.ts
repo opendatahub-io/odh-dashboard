@@ -634,33 +634,25 @@ export type GenAiTestData = {
 
 /** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
 export type EvalHubTestData = {
-  /**
-   * `metadata.name` of the EvalHub CR in `APPLICATIONS_NAMESPACE` (must match the instance manifest).
-   * When absent, tests default to `evalhub`.
-   */
   evalHubCrName?: string;
-  /**
-   * Fixture path (under `cypress/fixtures/`) for the EvalHub CR applied on fresh clusters when missing.
-   */
   evalHubInstanceResourceYamlPath?: string;
-  /**
-   * Fixture path (under `cypress/fixtures/`) for a cluster-scoped `MLflow` CR (applied when missing).
-   */
   mlflowInstanceResourceYamlPath?: string;
   /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
   benchmarkCardTitle?: string;
-  /** OpenAI-compatible inference base URL for the evaluation job. */
-  inferenceEndpointUrl?: string;
-  /** Model name sent to the inference API (verbatim). */
+  /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
   inferenceModelName?: string;
   /** JSON object string merged into benchmark parameters (valid JSON object). */
   additionalBenchmarkParams?: string;
-  /** OpenShift Secret name holding Gemini API key (default `geminiapikey`). */
-  geminiApiKeySecretName?: string;
-  /** Secret data key (default `api-key`, as in `oc create secret generic ... --from-literal=api-key=...`). */
-  geminiApiKeySecretKey?: string;
-  /** Namespace for that Secret; defaults to `APPLICATIONS_NAMESPACE`. */
-  geminiApiKeySecretNamespace?: string;
+  /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
+  modelOciUri?: string;
+  /** Name of the InferenceService CR created in the tenant namespace. */
+  inferenceServiceName?: string;
+  /** Fixture path for the vLLM ServingRuntime YAML applied to the tenant namespace. */
+  servingRuntimeYamlPath?: string;
+  /** Fixture path for the HardwareProfile CR. */
+  hardwareProfileResourceYamlPath?: string;
+  /** `metadata.name` of the HardwareProfile (used for cleanup). */
+  hardwareProfileName?: string;
 };
 
 export type ModelCatalogSourceTestData = {

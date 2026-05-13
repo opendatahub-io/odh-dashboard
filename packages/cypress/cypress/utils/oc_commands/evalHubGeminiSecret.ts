@@ -20,7 +20,7 @@ export const readOpaqueSecretDataKey = (
 ): Cypress.Chainable<string> => {
   const cmd = `oc get secret "${secretName}" -n "${namespace}" -o json`;
   return cy.exec(cmd, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const detail = result.stderr.trim() || result.stdout;
       throw new Error(
         `Could not read Secret "${secretName}" in namespace "${namespace}": ${detail}`,

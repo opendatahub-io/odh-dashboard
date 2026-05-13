@@ -1,16 +1,18 @@
-# Eval Hub E2E — the suite creates an ephemeral OpenShift project `eval-hub-e2e-<uuid>` for Evaluations + RBAC.
+# Eval Hub E2E — the suite creates an ephemeral OpenShift project `eval-hub-e2e-<uuid>`,
+# deploys a vLLM model for inference, then runs an evaluation against it.
 # EvalHub CR + cluster MLflow CR are ensured when missing (see test `retryableBefore`).
 evalHubCrName: evalhub
 evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
 mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-rhoai-ea2-minimal.yaml
-# Single-benchmark + Gemini inference flow (see second `it` in testEvalHub.cy.ts).
-# API key is read from the cluster (not test-variables): Secret below in APPLICATIONS_NAMESPACE.
-#   oc create secret generic geminiapikey --from-literal=api-key='<value>' -n <APPLICATIONS_NAMESPACE>
-benchmarkCardTitle: Everyday activity completion
-geminiApiKeySecretName: geminiapikey
-geminiApiKeySecretKey: api-key
-inferenceEndpointUrl: https://generativelanguage.googleapis.com/v1beta/openai
-inferenceModelName: gemini-2.5-flash
+# vLLM model deployment
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct
+inferenceServiceName: evalhub-llm
+servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+hardwareProfileName: cypress-gen-ai-hardware-profile
+# Benchmark + evaluation config
+benchmarkCardTitle: Basic science Q&A
+inferenceModelName: evalhub-llm
 additionalBenchmarkParams: |
   {
     "num_examples": 10,
