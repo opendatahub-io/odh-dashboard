@@ -106,7 +106,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit a full AutoRAG optimization run',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
+    { tags: ['@Smoke', '@SmokeSet4', '@AutoRAG', '@AutoRAGCI'] },
     () => {
       autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
