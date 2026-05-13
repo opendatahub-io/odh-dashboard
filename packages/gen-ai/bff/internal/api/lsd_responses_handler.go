@@ -382,7 +382,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			}
 			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
 
-			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-input-check", inputMessages, guardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Input moderation check failed", "error", modErr)
 				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -567,7 +567,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		responseText := extractResponseText(&responseData)
 		if responseText != "" {
 			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
-			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-output-check", outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
 				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
