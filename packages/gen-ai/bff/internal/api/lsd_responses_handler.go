@@ -594,8 +594,8 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 
 	// Set output on the BFF root span for MLflow trace display
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
-		if outputText := extractResponseText(&responseData); outputText != "" {
-			outputJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": outputText}})
+		if len(responseData.Output) > 0 {
+			outputJSON, _ := json.Marshal(responseData.Output)
 			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
 		}
 	}
