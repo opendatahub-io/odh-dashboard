@@ -10,6 +10,7 @@ import TruncatedText from '#~/components/TruncatedText.tsx';
 import {
   DEFAULT_PRIORITY_CLASS,
   HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP,
+  NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
 } from '#~/pages/hardwareProfiles/nodeResource/const.ts';
 
 type ManageWorkloadPrioritySectionProps = {
@@ -26,7 +27,13 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
   const [workloadPriorityClasses, loaded, error] = useWorkloadPriorityClasses();
 
   const priorityOptions: SimpleSelectOption[] = React.useMemo(() => {
-    const noneOption = {
+    const noneOptionWhenEmptyOrLoading = {
+      key: DEFAULT_PRIORITY_CLASS,
+      label: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
+      dropdownLabel: NO_PRIORITY_OPTIONS_CONFIGURED_LABEL,
+    };
+
+    const noneOptionWhenClassesExist = {
       key: DEFAULT_PRIORITY_CLASS,
       label: DEFAULT_PRIORITY_CLASS,
       dropdownLabel: DEFAULT_PRIORITY_CLASS,
@@ -37,7 +44,7 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
       // This prevents SimpleSelect from auto-calling onChange when the real options haven't loaded yet
       if (priorityClass && priorityClass !== DEFAULT_PRIORITY_CLASS) {
         return [
-          noneOption,
+          noneOptionWhenEmptyOrLoading,
           {
             key: priorityClass,
             label: priorityClass,
@@ -46,8 +53,13 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
         ];
       }
 
-      return [noneOption];
+      return [noneOptionWhenEmptyOrLoading];
     }
+
+    const noneOption =
+      workloadPriorityClasses.length > 0
+        ? noneOptionWhenClassesExist
+        : noneOptionWhenEmptyOrLoading;
 
     const options = [
       noneOption,
@@ -70,13 +82,19 @@ const ManageWorkloadPrioritySection: React.FC<ManageWorkloadPrioritySectionProps
 
     return options;
   }, [workloadPriorityClasses, loaded, error, priorityClass]);
+
   return (
     <FormGroup
       label={ManageHardwareProfileSectionTitles[ManageHardwareProfileSectionID.WORKLOAD_PRIORITY]}
       fieldId={ManageHardwareProfileSectionID.WORKLOAD_PRIORITY}
       labelHelp={
         <DashboardHelpTooltip
-          content={HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriority}
+          content={
+            <>
+              <p>{HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriority}</p>
+              <p>{HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP.workloadPriorityOptions}</p>
+            </>
+          }
         />
       }
     >

@@ -335,9 +335,11 @@ describe('ManageResourceAllocationSection', () => {
         expect(screen.getByTestId('workload-priority-select')).toBeInTheDocument();
       });
 
-      // Should not show node sections
-      expect(screen.queryByText(/add node selector/i)).not.toBeInTheDocument();
-      expect(screen.queryByText(/add toleration/i)).not.toBeInTheDocument();
+      // Should not show node sections (use button role — radio label text also mentions node selectors)
+      expect(
+        screen.queryByRole('button', { name: /^add node selector$/i }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^add toleration$/i })).not.toBeInTheDocument();
     });
 
     it('should show node sections when scheduling type is NODE', () => {
@@ -352,8 +354,8 @@ describe('ManageResourceAllocationSection', () => {
       render(<ManageResourceAllocationSection {...defaultProps} scheduling={nodeScheduling} />);
 
       // Should show node selector and toleration sections
-      expect(screen.getByText(/add node selector/i)).toBeInTheDocument();
-      expect(screen.getByText(/add toleration/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^add node selector$/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^add toleration$/i })).toBeInTheDocument();
 
       // Should not show queue sections
       expect(screen.queryByTestId('workload-priority-select')).not.toBeInTheDocument();
