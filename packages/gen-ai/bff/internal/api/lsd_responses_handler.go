@@ -390,6 +390,10 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
 				return
 			}
