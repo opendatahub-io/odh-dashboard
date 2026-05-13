@@ -16,7 +16,7 @@ metadata:
     appstudio.openshift.io/application: opendatahub-builds
     appstudio.openshift.io/component: odh-mod-arch-eval-hub
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-eval-hub-release-on-push
+  name: odh-mod-arch-eval-hub-on-release-push
   namespace: open-data-hub-tenant
 spec:
   params:

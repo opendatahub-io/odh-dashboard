@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main" && ( "packages/gen-ai/**".pathChanged()
+      == "odh-release" && ( "packages/gen-ai/**".pathChanged()
       || ".tekton/odh-mod-arch-gen-ai-push.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
       )
   creationTimestamp: null
@@ -25,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-gen-ai:odh-stable
+    value: quay.io/opendatahub/odh-mod-arch-gen-ai:v3.4.3-odh
   - name: dockerfile
     value: packages/gen-ai/Dockerfile.workspace
   - name: path-context
