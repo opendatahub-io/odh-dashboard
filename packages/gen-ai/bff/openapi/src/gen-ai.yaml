@@ -371,9 +371,11 @@ paths:
   /gen-ai/api/v1/aaa/models:
     summary: List AI Available Assets models
     description: >-
-      Lists all available AI Available Assets models from Kubernetes InferenceServices.
+      Lists all available AI Available Assets models from various sources including
+      Kubernetes InferenceServices, custom endpoints, and MaaS (Model as a Service).
       Returns models with their serving runtime, API protocol, version, and status information.
       Requires namespace parameter for proper multi-tenant isolation.
+      The sources parameter controls which model types are included in the response.
     get:
       tags:
         - AIAssets
@@ -387,6 +389,27 @@ paths:
           schema:
             type: string
             example: 'genai-lls'
+        - name: sources
+          in: query
+          description: >-
+            Comma-separated list of model source types to include in the response.
+            Valid values: namespace, custom_endpoint, maas.
+            Defaults to 'namespace,custom_endpoint' if not specified.
+            Use 'namespace,custom_endpoint,maas' to include all model types.
+          required: false
+          schema:
+            type: string
+            example: 'namespace,custom_endpoint,maas'
+          examples:
+            default:
+              value: 'namespace,custom_endpoint'
+              summary: Default sources (namespace and custom endpoints)
+            withMaas:
+              value: 'namespace,custom_endpoint,maas'
+              summary: Include MaaS models
+            onlyMaas:
+              value: 'maas'
+              summary: Only MaaS models
       responses:
         '200':
           $ref: '#/components/responses/AAModelsResponse'
@@ -398,7 +421,7 @@ paths:
           $ref: '#/components/responses/InternalServerError'
       operationId: listAAModels
       summary: List AI Available Assets Models
-      description: Gets a list of all available AI Available Assets models from Kubernetes InferenceServices.
+      description: Gets a list of all available AI Available Assets models from selected sources.
 
   /gen-ai/api/v1/models/external:
     summary: Manage external model endpoints

@@ -426,8 +426,9 @@ func (app *App) Routes() http.Handler {
 
 	// Kubernetes routes
 
-	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	// AI Assets Models (Kubernetes + MaaS)
+	// AttachBFFMaaSClient middleware enables MaaS model fetching when sources=maas query param is used
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.AttachBFFMaaSClient(app.ModelsAAHandler)))
 	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
 	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
@@ -472,9 +473,6 @@ func (app *App) Routes() http.Handler {
 
 	// Tokens (MaaS) - via inter-BFF communication with MaaS BFF
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.MaaSIssueTokenHandler))))
-
-	// Inter-BFF Communication routes - calls to MaaS BFF service
-	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
