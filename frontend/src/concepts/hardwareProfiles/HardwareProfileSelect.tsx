@@ -141,13 +141,31 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                 <Truncate
                   content={profile.spec.identifiers
                     .map((identifier) => {
-                      const resourceValue = formatResourceValue(
+                      const defaultVal = formatResourceValue(
                         identifier.defaultCount,
                         identifier.resourceType,
                       ).toString();
-                      return formatResource(identifier.displayName, resourceValue, resourceValue);
+                      const maxVal =
+                        identifier.maxCount === undefined
+                          ? 'unrestricted'
+                          : formatResourceValue(
+                              identifier.maxCount,
+                              identifier.resourceType,
+                            ).toString();
+                      return formatResource(identifier.displayName, defaultVal, maxVal);
                     })
                     .join('; ')}
+                />
+              </StackItem>
+            )}
+            {profile.spec.scheduling?.kueue?.localQueueName && (
+              <StackItem>
+                <Truncate
+                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
+                    profile.spec.scheduling.kueue.priorityClass
+                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      : ''
+                  }`}
                 />
               </StackItem>
             )}
@@ -210,14 +228,32 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               <StackItem>
                 <Truncate
                   content={profile.spec.identifiers
-                    .map((identifier) =>
-                      formatResource(
-                        identifier.displayName,
-                        identifier.defaultCount.toString(),
-                        identifier.defaultCount.toString(),
-                      ),
-                    )
+                    .map((identifier) => {
+                      const defaultVal = formatResourceValue(
+                        identifier.defaultCount,
+                        identifier.resourceType,
+                      ).toString();
+                      const maxVal =
+                        identifier.maxCount === undefined
+                          ? 'unrestricted'
+                          : formatResourceValue(
+                              identifier.maxCount,
+                              identifier.resourceType,
+                            ).toString();
+                      return formatResource(identifier.displayName, defaultVal, maxVal);
+                    })
                     .join('; ')}
+                />
+              </StackItem>
+            )}
+            {profile.spec.scheduling?.kueue?.localQueueName && (
+              <StackItem>
+                <Truncate
+                  content={`Local queue: ${profile.spec.scheduling.kueue.localQueueName}${
+                    profile.spec.scheduling.kueue.priorityClass
+                      ? `; Priority: ${profile.spec.scheduling.kueue.priorityClass}`
+                      : ''
+                  }`}
                 />
               </StackItem>
             )}
@@ -317,17 +353,38 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
                           getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) ||
                           (hardwareProfileConfig.selectedProfile.spec.identifiers &&
                             hardwareProfileConfig.selectedProfile.spec.identifiers
-                              .map((identifier) =>
-                                formatResource(
-                                  identifier.displayName,
-                                  identifier.defaultCount.toString(),
-                                  identifier.defaultCount.toString(),
-                                ),
-                              )
+                              .map((identifier) => {
+                                const defaultVal = formatResourceValue(
+                                  identifier.defaultCount,
+                                  identifier.resourceType,
+                                ).toString();
+                                const maxVal =
+                                  identifier.maxCount === undefined
+                                    ? 'unrestricted'
+                                    : formatResourceValue(
+                                        identifier.maxCount,
+                                        identifier.resourceType,
+                                      ).toString();
+                                return formatResource(identifier.displayName, defaultVal, maxVal);
+                              })
                               .join('; '))
                         }
                       />
                     </HelperTextItem>
+                    {!getHardwareProfileDescription(hardwareProfileConfig.selectedProfile) &&
+                      (() => {
+                        const kueue = hardwareProfileConfig.selectedProfile.spec.scheduling?.kueue;
+                        if (!kueue?.localQueueName) {
+                          return null;
+                        }
+                        return (
+                          <HelperTextItem>
+                            {`Local queue: ${kueue.localQueueName}${
+                              kueue.priorityClass ? `; Priority: ${kueue.priorityClass}` : ''
+                            }`}
+                          </HelperTextItem>
+                        );
+                      })()}
                   </HelperText>
                 </FormHelperText>
               ) : hardwareProfileConfig.useExistingSettings ? (
@@ -394,7 +451,6 @@ const HardwareProfileSelect: React.FC<HardwareProfileSelectProps> = ({
               nodeSelector={
                 hardwareProfileConfig.selectedProfile?.spec.scheduling?.node?.nodeSelector
               }
-              resources={hardwareProfileConfig.resources}
             />
           )}
         </FlexItem>
