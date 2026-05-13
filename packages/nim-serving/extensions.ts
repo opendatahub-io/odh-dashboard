@@ -69,7 +69,7 @@ const extensions: (
       filter: () => import('./src/nimOwnership').then((m) => m.isNIMOwned),
     },
     flags: {
-      required: [SupportedArea.NIM_MODEL],
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
 ];
