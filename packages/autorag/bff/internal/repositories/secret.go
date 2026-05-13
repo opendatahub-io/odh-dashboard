@@ -5,9 +5,8 @@ import (
 	"fmt"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	corev1 "k8s.io/api/core/v1"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // storageTypeRequiredKeys defines the required keys for each supported storage type.
@@ -40,51 +39,49 @@ func NewSecretRepository() *SecretRepository {
 	return &SecretRepository{}
 }
 
-// GetFilteredSecrets retrieves secrets from a namespace and filters them based on the secretType.
+// GetFilteredSecrets retrieves secrets from a namespace via autox-core and filters them based on the secretType.
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "lls": filter for secrets matching LLS (Llama Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
-	client k8s.KubernetesClientInterface,
+	k8sService *corek8s.K8sService,
 	ctx context.Context,
 	namespace string,
-	identity *k8s.RequestIdentity,
 	secretType string,
 ) ([]models.SecretListItem, error) {
-	// Fetch all secrets from the namespace
-	secrets, err := client.GetSecrets(ctx, namespace, identity)
+	// Fetch all secrets from the namespace via autox-core (raw, unredacted)
+	secretInfos, err := k8sService.GetSecretInfos(ctx, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
 	}
 
 	// Apply filtering based on secretType
-	var filteredSecrets []corev1.Secret
+	var filteredSecrets []corek8s.SecretInfo
 	switch secretType {
 	case "":
 		// No type specified - return all secrets
-		filteredSecrets = secrets
+		filteredSecrets = secretInfos
 	case "storage":
 		// Filter secrets that match any configured storage type
-		filteredSecrets = filterStorageSecrets(secrets)
+		filteredSecrets = filterStorageSecrets(secretInfos)
 	case "lls":
 		// Filter secrets that match LLS requirements
-		filteredSecrets = filterLLSSecrets(secrets)
+		filteredSecrets = filterLLSSecrets(secretInfos)
 	default:
 		// This should be caught by handler validation, but handle it here as well
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
-	// Convert to response models with type information
+	// Convert to response models with type information and redaction
 	// Initialize as empty slice instead of nil to ensure JSON serialization returns [] instead of null
 	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
-	for _, secret := range filteredSecrets {
+	for _, secretInfo := range filteredSecrets {
 		// Determine the type for this secret
-		// First, check if the secret has the opendatahub.io/connection-type annotation
 		var responseType string
-		if annotationType, hasAnnotation := secret.Annotations["opendatahub.io/connection-type"]; hasAnnotation && annotationType != "" {
-			// Use the annotation value as the type
-			responseType = annotationType
+		if secretInfo.Type != "" {
+			// Use the type from autox-core (from annotation)
+			responseType = secretInfo.Type
 		} else {
 			// Fallback to key-based type detection
 			switch secretType {
@@ -92,29 +89,23 @@ func (r *SecretRepository) GetFilteredSecrets(
 				responseType = "lls"
 			case "storage":
 				// For storage type, determine which storage type it matches
-				responseType = getStorageType(secret)
+				responseType = getStorageType(secretInfo)
 			default:
 				// For all secrets (no type filter), check if it matches a storage or LLS type
-				responseType = getSecretType(secret)
+				responseType = getSecretType(secretInfo)
 			}
 		}
 
-		// Extract available keys from the secret and build map with actual/sanitized values
-		availableKeys := buildAvailableKeysMap(secret)
-
-		// Extract display name from annotation if it exists
-		displayName := secret.Annotations["openshift.io/display-name"]
-
-		// Extract description from annotation if it exists
-		description := secret.Annotations["openshift.io/description"]
+		// Apply redaction based on allowed keys
+		redactedData := redactSecretKeys(secretInfo.Data)
 
 		secretListItems = append(secretListItems, models.NewSecretListItem(
-			string(secret.UID),
-			secret.Name,
+			secretInfo.UUID,
+			secretInfo.Name,
 			responseType,
-			availableKeys,
-			displayName,
-			description,
+			redactedData,
+			secretInfo.DisplayName,
+			secretInfo.Description,
 		))
 	}
 
@@ -123,8 +114,8 @@ func (r *SecretRepository) GetFilteredSecrets(
 
 // filterStorageSecrets filters secrets that match any configured storage type.
 // A secret matches if it contains ALL required keys for at least one storage type.
-func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
-	var filtered []corev1.Secret
+func filterStorageSecrets(secrets []corek8s.SecretInfo) []corek8s.SecretInfo {
+	var filtered []corek8s.SecretInfo
 	for _, secret := range secrets {
 		if matchesAnyStorageType(secret) {
 			filtered = append(filtered, secret)
@@ -135,8 +126,8 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 
 // filterLLSSecrets filters secrets that match LLS (Llama Stack) requirements.
 // A secret matches if it contains ALL required LLS keys (case-sensitive, uppercase).
-func filterLLSSecrets(secrets []corev1.Secret) []corev1.Secret {
-	var filtered []corev1.Secret
+func filterLLSSecrets(secrets []corek8s.SecretInfo) []corek8s.SecretInfo {
+	var filtered []corek8s.SecretInfo
 	for _, secret := range secrets {
 		if isLLSSecret(secret) {
 			filtered = append(filtered, secret)
@@ -146,7 +137,7 @@ func filterLLSSecrets(secrets []corev1.Secret) []corev1.Secret {
 }
 
 // matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-sensitive).
-func matchesAnyStorageType(secret corev1.Secret) bool {
+func matchesAnyStorageType(secret corek8s.SecretInfo) bool {
 	for _, requiredKeys := range storageTypeRequiredKeys {
 		if hasAllKeys(secret, requiredKeys) {
 			return true
@@ -156,14 +147,14 @@ func matchesAnyStorageType(secret corev1.Secret) bool {
 }
 
 // isLLSSecret checks if a secret contains all required LLS keys (case-sensitive, uppercase).
-func isLLSSecret(secret corev1.Secret) bool {
+func isLLSSecret(secret corek8s.SecretInfo) bool {
 	return hasAllKeys(secret, llsTypeRequiredKeys)
 }
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
 // Returns the first matching storage type if the secret matches multiple types.
 // Key matching is case-sensitive; keys must be uppercase.
-func getStorageType(secret corev1.Secret) string {
+func getStorageType(secret corek8s.SecretInfo) string {
 	for storageType, requiredKeys := range storageTypeRequiredKeys {
 		if hasAllKeys(secret, requiredKeys) {
 			return storageType
@@ -174,7 +165,7 @@ func getStorageType(secret corev1.Secret) string {
 
 // getSecretType determines the type of a secret by checking all known secret type patterns.
 // Returns the first matching type, prioritizing LLS over storage types.
-func getSecretType(secret corev1.Secret) string {
+func getSecretType(secret corek8s.SecretInfo) string {
 	// Check LLS first
 	if isLLSSecret(secret) {
 		return "lls"
@@ -184,56 +175,28 @@ func getSecretType(secret corev1.Secret) string {
 }
 
 // hasAllKeys checks if a secret contains all specified keys in its data (case-sensitive).
-func hasAllKeys(secret corev1.Secret, keys []string) bool {
-	// Create a map of keys from the secret
-	secretKeys := make(map[string]bool)
-	for key := range secret.Data {
-		secretKeys[key] = true
-	}
-	for key := range secret.StringData {
-		secretKeys[key] = true
-	}
-
-	// Check if all required keys exist (case-sensitive)
+func hasAllKeys(secret corek8s.SecretInfo, keys []string) bool {
+	// Check if all required keys exist in the secret's Data map (case-sensitive)
 	for _, requiredKey := range keys {
-		if !secretKeys[requiredKey] {
+		if _, exists := secret.Data[requiredKey]; !exists {
 			return false
 		}
 	}
 	return true
 }
 
-// buildAvailableKeysMap extracts all keys from a secret's Data and StringData fields
-// and builds a map where:
-// - Keys in the allowed list have their actual values
-// - All other keys have the value "[REDACTED]"
-// Allowed-key matching is case-sensitive (via constants.IsAllowedSecretKey).
-func buildAvailableKeysMap(secret corev1.Secret) map[string]string {
-	result := make(map[string]string)
-
-	// Process Data field
-	for key, value := range secret.Data {
+// redactSecretKeys applies redaction to secret data based on allowed keys list.
+// Keys in the allowed list retain their actual values, others are redacted.
+func redactSecretKeys(data map[string]string) map[string]string {
+	result := make(map[string]string, len(data))
+	for key, value := range data {
 		if constants.IsAllowedSecretKey(key) {
 			// Return actual value for allowed keys
-			result[key] = string(value)
+			result[key] = value
 		} else {
-			// Sanitize other keys
+			// Redact sensitive keys
 			result[key] = "[REDACTED]"
 		}
 	}
-
-	// Process StringData field (avoiding duplicates)
-	for key, value := range secret.StringData {
-		if _, exists := result[key]; !exists {
-			if constants.IsAllowedSecretKey(key) {
-				// Return actual value for allowed keys
-				result[key] = value
-			} else {
-				// Sanitize other keys
-				result[key] = "[REDACTED]"
-			}
-		}
-	}
-
 	return result
 }

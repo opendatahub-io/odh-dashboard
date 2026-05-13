@@ -40,8 +40,8 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	// Call autox-core service - single method handles everything (validation, fetching, filtering, type detection)
-	secretInfos, err := app.k8sService.GetFilteredSecrets(ctx, namespace, secretType)
+	// Call repository which uses autox-core for fetching and applies module-specific filtering
+	secrets, err := app.repositories.Secret.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
 	if err != nil {
 		// Check if it's a Kubernetes API error and handle accordingly
 		var statusErr *apierrors.StatusError
@@ -79,19 +79,6 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 		}
 		app.serverErrorResponse(w, r, err)
 		return
-	}
-
-	// Convert []SecretInfo to []models.SecretListItem
-	secrets := make([]models.SecretListItem, len(secretInfos))
-	for i, info := range secretInfos {
-		secrets[i] = models.SecretListItem{
-			UUID:        info.UUID,
-			Name:        info.Name,
-			Type:        info.Type,
-			Data:        info.Data,
-			DisplayName: info.DisplayName,
-			Description: info.Description,
-		}
 	}
 
 	// Return response with envelope pattern

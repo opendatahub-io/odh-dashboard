@@ -101,6 +101,54 @@ func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Sec
 	return secrets, nil
 }
 
+// GetSecretInfos retrieves all secrets from a namespace with raw key data.
+// Returns SecretInfo with type information from annotations and unredacted data.
+// Filtering and redaction are the responsibility of the caller.
+func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
+	s.loggerWithIdentity(ctx).Info("fetching secret infos", "namespace", namespace)
+
+	// Validate namespace name
+	if err := ValidateNamespaceName(namespace); err != nil {
+		s.Logger.Error("invalid namespace name", "error", err)
+		return nil, err
+	}
+
+	// Fetch all secrets from the namespace
+	secrets, err := s.Client.GetSecrets(ctx, namespace)
+	if err != nil {
+		s.Logger.Error("failed to get secrets", "namespace", namespace, "error", err)
+		return nil, err
+	}
+
+	// Convert to SecretInfo with type information from annotations
+	secretInfos := make([]SecretInfo, 0, len(secrets))
+	for _, secret := range secrets {
+		// Get type from annotation if present, otherwise empty string
+		var responseType string
+		if annotationType, hasAnnotation := secret.Annotations["opendatahub.io/connection-type"]; hasAnnotation && annotationType != "" {
+			responseType = annotationType
+		}
+
+		// Extract all keys without redaction
+		availableKeys := buildKeysMap(secret)
+
+		// Extract metadata
+		displayName := secret.Annotations["openshift.io/display-name"]
+		description := secret.Annotations["openshift.io/description"]
+
+		secretInfos = append(secretInfos, SecretInfo{
+			UUID:        string(secret.UID),
+			Name:        secret.Name,
+			Type:        responseType,
+			Data:        availableKeys,
+			DisplayName: displayName,
+			Description: description,
+		})
+	}
+
+	return secretInfos, nil
+}
+
 func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	s.loggerWithIdentity(ctx).Info("fetching secret", "namespace", namespace, "secretName", secretName)
 
@@ -370,4 +418,24 @@ func (s *K8sService) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	}
 	// Return a logger with user field already attached
 	return s.Logger.With("user", identity.UserID)
+}
+
+// buildKeysMap extracts all keys from a secret's Data and StringData fields
+// and returns them as string values without redaction
+func buildKeysMap(secret v1.Secret) map[string]string {
+	result := make(map[string]string)
+
+	// Process Data field
+	for key, value := range secret.Data {
+		result[key] = string(value)
+	}
+
+	// Process StringData field (avoiding duplicates)
+	for key, value := range secret.StringData {
+		if _, exists := result[key]; !exists {
+			result[key] = value
+		}
+	}
+
+	return result
 }
