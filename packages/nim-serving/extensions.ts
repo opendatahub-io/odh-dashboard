@@ -46,7 +46,7 @@ const extensions: (
         import('./src/api/deployments/useWatchDeployments').then((m) => m.useWatchDeployments),
     },
     flags: {
-      required: [SupportedArea.NIM_MODEL],
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
   {
@@ -56,7 +56,7 @@ const extensions: (
       ServingDetailsComponent: () => import('./src/pages/deployments/NIMServingDetails'),
     },
     flags: {
-      required: [SupportedArea.NIM_MODEL],
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
 ];
