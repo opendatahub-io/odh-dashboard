@@ -31,10 +31,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Static file serving (production mode)
-  const requestPath = new URL(req.url || '/', 'http://localhost').pathname;
-  const safePath = path.posix.normalize(requestPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const relativePath = safePath.replace(/^[/\\]+/, '');
-  const filePath = path.resolve(PUBLIC_DIR, relativePath || 'index.html');
+  const safePath = path.normalize(req.url).replace(/^(\.\.[/\\])+/, '');
+  const filePath = path.join(PUBLIC_DIR, safePath === '/' ? 'index.html' : safePath);
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
@@ -45,24 +43,16 @@ const server = http.createServer((req, res) => {
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      const isNavigationRequest =
-        req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
-
-      if (err.code === 'ENOENT' && isNavigationRequest) {
-        fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-          if (_err) {
-            res.writeHead(404);
-            res.end('Not found');
-            return;
-          }
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(fallback);
-        });
-        return;
-      }
-
-      res.writeHead(err.code === 'ENOENT' ? 404 : 500);
-      res.end(err.code === 'ENOENT' ? 'Not found' : 'Internal server error');
+      // SPA fallback
+      fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
+        if (_err) {
+          res.writeHead(404);
+          res.end('Not found');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(fallback);
+      });
       return;
     }
     res.writeHead(200, { 'Content-Type': contentType });

@@ -17,16 +17,16 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     this.setState({ hasError: true, error, errorInfo });
-    // eslint-disable-next-line no-console
-    console.error('ErrorBoundary caught:', error, errorInfo);
+    console.error('Caught error:', error, errorInfo);
   }
 
   render(): React.ReactNode {
     if (this.state.hasError) {
+      const { error } = this.state;
       return (
         <PageSection hasBodyWrapper={false}>
-          <Alert variant="danger" isInline title="Something went wrong">
-            An unexpected error occurred. Please try again or contact support.
+          <Alert variant="danger" isInline title={error.name}>
+            {error.message}
           </Alert>
         </PageSection>
       );
