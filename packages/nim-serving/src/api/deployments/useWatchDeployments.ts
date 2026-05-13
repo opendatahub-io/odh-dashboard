@@ -1,15 +1,11 @@
 import React from 'react';
-import type {
-  K8sAPIOptions,
-  ProjectKind,
-  InferenceServiceKind,
-} from '@odh-dashboard/internal/k8sTypes';
+import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
+import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
+import { isNIMOwned } from '../nimservices/utils';
+import { useWatchNIMServices } from '../nimservices/watch';
 import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
 import { getNIMDeploymentStatus } from './status';
-import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
-import { isNIMServiceRef } from '../nimservices/utils';
-import { useWatchNIMServices } from '../nimservices/watch';
 import { NIM_ID } from '../../../extensions';
 
 export type { NIMDeployment };
@@ -39,22 +35,17 @@ export const useWatchDeployments = (
     [nimServices, filterFn],
   );
 
-  const inferenceServiceByNIMName = React.useMemo(() => {
-    const byName = new Map<string, InferenceServiceKind>();
-    inferenceServices.forEach((is) => {
-      is.metadata.ownerReferences?.forEach((ref) => {
-        if (isNIMServiceRef(ref)) {
-          byName.set(ref.name, is);
-        }
-      });
-    });
-    return byName;
-  }, [inferenceServices]);
+  const nimOwnedInferenceServices = React.useMemo(
+    () => inferenceServices.filter(isNIMOwned),
+    [inferenceServices],
+  );
 
   const deployments: NIMDeployment[] = React.useMemo(
     () =>
       filteredNIMServices.map((nimService) => {
-        const associatedIS = inferenceServiceByNIMName.get(nimService.metadata.name);
+        const associatedIS = nimOwnedInferenceServices.find((is) =>
+          is.metadata.ownerReferences?.some((ref) => ref.name === nimService.metadata.name),
+        );
 
         return {
           modelServingPlatformId: NIM_ID,
@@ -65,7 +56,7 @@ export const useWatchDeployments = (
           apiProtocol: 'REST',
         };
       }),
-    [filteredNIMServices, inferenceServiceByNIMName, deploymentPods],
+    [filteredNIMServices, nimOwnedInferenceServices, deploymentPods],
   );
 
   const effectivelyLoaded = Boolean(
