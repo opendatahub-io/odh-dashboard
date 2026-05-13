@@ -52,8 +52,9 @@ type InlineGuardrailRailFlows struct {
 //   - self_check_input:  must include {{ user_input }}
 //   - self_check_output: must include {{ bot_response }}
 type InlineGuardrailPrompt struct {
-	Task    string `json:"task"`    // "self_check_input" or "self_check_output"
-	Content string `json:"content"` // prompt template
+	Task      string `json:"task"`                 // "self_check_input" or "self_check_output"
+	Content   string `json:"content"`              // prompt template
+	MaxTokens int    `json:"max_tokens,omitempty"` // max tokens for the guardrail LLM call (NeMo defaults to 3 if unset)
 }
 
 // GuardrailCheckResponse is the response from POST /v1/guardrail/checks
