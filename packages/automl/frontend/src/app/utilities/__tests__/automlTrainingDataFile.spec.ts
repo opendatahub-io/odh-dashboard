@@ -55,6 +55,18 @@ describe('automlTrainingDataFile', () => {
       });
     });
 
+    it('maps too-many-files', () => {
+      const file = new File(['a,b'], 'a.csv', { type: 'text/csv' });
+      expect(
+        getTrainingDataDropRejectedNotification([
+          rejection(file, [{ code: 'too-many-files', message: 'too many' }]),
+        ]),
+      ).toEqual({
+        title: 'Too many files',
+        description: 'Only one file can be uploaded at a time.',
+      });
+    });
+
     it('falls back for unknown codes', () => {
       const file = new File(['x'], 'x.csv', { type: 'text/csv' });
       expect(
