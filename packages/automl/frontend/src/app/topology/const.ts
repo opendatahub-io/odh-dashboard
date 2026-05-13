@@ -27,4 +27,4 @@ export const NODE_PADDING = 40;
 export const NODE_HEIGHT = 50;
 
 // Must match canvas measurement to the effective pill label font (see AutomlResults.scss overrides).
-export const NODE_FONT = '1.3125rem RedHatText, RedHatText, sans-serif';
+export const NODE_FONT = '1.3125rem RedHatText, sans-serif';
