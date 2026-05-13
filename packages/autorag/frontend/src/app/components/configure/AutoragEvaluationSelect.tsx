@@ -10,24 +10,14 @@ import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-
-/** Matches BFF upload limit and knowledge-document dropzone (`32 MiB`). */
-const EVAL_JSON_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-const EVAL_UPLOAD_MAX_SIZE_MIB = EVAL_JSON_UPLOAD_MAX_BYTES / (1024 * 1024);
-const EVAL_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${EVAL_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
-
-/**
- * Client-side hint for UX only; file extensions and browser-reported MIME types can be spoofed.
- * The BFF must enforce limits and validate evaluation payloads independently (see upload/storage handlers).
- */
-function isAllowedEvaluationJsonFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext === '.json') {
-    return true;
-  }
-  return file.type === 'application/json' || file.type === 'text/json';
-}
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
+import {
+  getEvaluationDropRejectedNotification,
+  isAllowedEvaluationJsonFile,
+} from '~/app/utilities/autoragEvaluationFile';
 
 function AutoragEvaluationSelect(): React.JSX.Element {
   const { namespace } = useParams();
@@ -50,28 +40,10 @@ function AutoragEvaluationSelect(): React.JSX.Element {
 
   const handleEvaluationDropRejected = useCallback(
     (fileRejections: FileRejection[]) => {
-      if (fileRejections.length === 0) {
-        return;
+      const payload = getEvaluationDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
       }
-      const { file, errors } = fileRejections[0];
-      const codes = new Set(errors.map((e) => e.code));
-      if (codes.has('file-too-large')) {
-        notification.error('File too large', EVAL_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (codes.has('too-many-files')) {
-        notification.error('Too many files', 'Only one file can be uploaded at a time.');
-        return;
-      }
-      if (codes.has('file-invalid-type')) {
-        notification.error('Invalid file type', 'Evaluation dataset must be a JSON file (.json).');
-        return;
-      }
-      // Fallback: future react-dropzone codes or composite rejections use native messages (when present).
-      notification.error(
-        'File not accepted',
-        errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
-      );
     },
     [notification],
   );
@@ -83,8 +55,8 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         selected={field.value}
         isDisabled={isSubmitting}
         onUpload={async (file, setProgress, setStatus) => {
-          if (file.size > EVAL_JSON_UPLOAD_MAX_BYTES) {
-            notification.error('File too large', EVAL_UPLOAD_TOO_LARGE_DETAIL);
+          if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
+            notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
             setStatus('danger');
             return;
           }
@@ -123,7 +95,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           dropzoneProps: {
             accept: { 'application/json': ['.json'] },
             maxFiles: 1,
-            maxSize: EVAL_JSON_UPLOAD_MAX_BYTES,
+            maxSize: AUTORAG_UPLOAD_MAX_BYTES,
             multiple: false,
             onDropRejected: handleEvaluationDropRejected,
           },

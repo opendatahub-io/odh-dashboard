@@ -10,6 +10,7 @@ import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluatio
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_UPLOAD_MAX_BYTES } from '~/app/utilities/dropzoneFileUpload';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -78,9 +79,6 @@ const mockUseSecretsQuery = jest.mocked(useSecretsQuery);
 const mockUseUploadToStorageMutation = jest.mocked(useUploadToStorageMutation);
 
 const configureSchema = createConfigureSchema();
-
-/** Matches `EVAL_JSON_UPLOAD_MAX_BYTES` in AutoragEvaluationSelect. */
-const EVAL_JSON_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
 
 /**
  * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
@@ -286,7 +284,7 @@ describe('AutoragEvaluationSelect', () => {
     it('should show a notification when an oversized file is dropped', async () => {
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
       const largeFile = new File(['x'], 'big.json', { type: 'application/json' });
-      Object.defineProperty(largeFile, 'size', { value: EVAL_JSON_UPLOAD_MAX_BYTES + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
       mockUploadMutateAsync.mockClear();
       dropFilesOnEvaluationFileUpload(container, [largeFile]);
 
@@ -334,7 +332,7 @@ describe('AutoragEvaluationSelect', () => {
 
     it('should not upload an oversized file from the file input and should notify', async () => {
       const file = new File(['x'], 'big.json', { type: 'application/json' });
-      Object.defineProperty(file, 'size', { value: EVAL_JSON_UPLOAD_MAX_BYTES + 1 });
+      Object.defineProperty(file, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
       mockUploadMutateAsync.mockClear();

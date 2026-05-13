@@ -10,6 +10,7 @@ import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
+import { AUTOML_TRAINING_UPLOAD_MAX_BYTES } from '~/app/utilities/automlTrainingDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -235,9 +236,6 @@ const renderWithInitialValues = (
   );
 };
 
-/** Matches `TRAINING_DATA_UPLOAD_MAX_BYTES` in AutomlConfigure (32 MiB). */
-const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
 /**
  * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
  */
@@ -371,7 +369,7 @@ describe('AutomlConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
-      Object.defineProperty(largeFile, 'size', { value: TRAINING_DATA_UPLOAD_MAX_BYTES + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });
@@ -427,7 +425,7 @@ describe('AutomlConfigure', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
         const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
-        Object.defineProperty(largeFile, 'size', { value: TRAINING_DATA_UPLOAD_MAX_BYTES + 1 });
+        Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
         getMockS3MutateAsync().mockClear();
         dropFilesOnTrainingDataUploadZone([largeFile]);
 

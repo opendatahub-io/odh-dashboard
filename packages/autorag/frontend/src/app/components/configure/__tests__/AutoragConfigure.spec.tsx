@@ -11,6 +11,7 @@ import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import { AUTORAG_UPLOAD_MAX_BYTES } from '~/app/utilities/dropzoneFileUpload';
 
 const mockNotificationError = jest.fn();
 
@@ -283,9 +284,6 @@ const renderWithInitialValues = (
   );
 };
 
-/** Matches `INPUT_DATA_UPLOAD_MAX_BYTES` in AutoragConfigure (32 MiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
 /**
  * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
  */
@@ -453,7 +451,7 @@ describe('AutoragConfigure', () => {
       expect(fileInput).not.toBeNull();
 
       const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-      Object.defineProperty(largeFile, 'size', { value: INPUT_DATA_UPLOAD_MAX_BYTES + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
       fireEvent.change(fileInput!, { target: { files: [largeFile] } });
@@ -509,7 +507,7 @@ describe('AutoragConfigure', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
         const largeFile = new File(['x'], 'big.pdf', { type: 'application/pdf' });
-        Object.defineProperty(largeFile, 'size', { value: INPUT_DATA_UPLOAD_MAX_BYTES + 1 });
+        Object.defineProperty(largeFile, 'size', { value: AUTORAG_UPLOAD_MAX_BYTES + 1 });
         getMockS3MutateAsync().mockClear();
         dropFilesOnKnowledgeUploadZone([largeFile]);
 

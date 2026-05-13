@@ -81,44 +81,22 @@ import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/a
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_SIZE_MIB,
+  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
+import {
+  getInputDataDropRejectedNotification,
+  INPUT_DATA_FILE_ACCEPT,
+  INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
+  isAllowedInputDataUploadFile,
+} from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.scss';
-
-/** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
-const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-  'text/markdown': ['.md', '.markdown'],
-  'text/html': ['.html', '.htm'],
-  'text/plain': ['.txt'],
-};
-
-const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-const INPUT_DATA_UPLOAD_MAX_SIZE_MIB = INPUT_DATA_UPLOAD_MAX_BYTES / (1024 * 1024);
-const INPUT_DATA_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${INPUT_DATA_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedInputDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(INPUT_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
-}
 
 const OPTIMIZATION_METRICS: {
   value: ConfigureSchema['optimization_metric'];
@@ -331,8 +309,8 @@ function AutoragConfigure({
       if (!file || !namespace) {
         return;
       }
-      if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', INPUT_DATA_UPLOAD_TOO_LARGE_DETAIL);
+      if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -381,31 +359,10 @@ function AutoragConfigure({
 
   const handleInputDataDropRejected = useCallback(
     (fileRejections: FileRejection[]) => {
-      if (fileRejections.length === 0) {
-        return;
+      const payload = getInputDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
       }
-      const { file, errors } = fileRejections[0];
-      const codes = new Set(errors.map((e) => e.code));
-      if (codes.has('file-too-large')) {
-        notification.error('File too large', INPUT_DATA_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (codes.has('too-many-files')) {
-        notification.error('Too many files', 'Only one file can be uploaded at a time.');
-        return;
-      }
-      if (codes.has('file-invalid-type')) {
-        notification.error(
-          'Invalid file type',
-          'File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
-        );
-        return;
-      }
-      // Fallback: future react-dropzone codes or composite rejections use native messages (when present).
-      notification.error(
-        'File not accepted',
-        errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
-      );
     },
     [notification],
   );
@@ -623,7 +580,7 @@ function AutoragConfigure({
                                   accept: INPUT_DATA_FILE_ACCEPT,
                                   disabled: isSubmitting || isInputDataFileUploading,
                                   maxFiles: 1,
-                                  maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
+                                  maxSize: AUTORAG_UPLOAD_MAX_BYTES,
                                   multiple: false,
                                   onDropRejected: handleInputDataDropRejected,
                                 }}
@@ -632,7 +589,7 @@ function AutoragConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${INPUT_DATA_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>

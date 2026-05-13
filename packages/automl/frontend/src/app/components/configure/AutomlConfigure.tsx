@@ -75,6 +75,15 @@ import {
 } from '~/app/utilities/const';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
+  AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
+  getTrainingDataDropRejectedNotification,
+  isAllowedTrainingDataUploadFile,
+  TRAINING_DATA_FILE_ACCEPT,
+  TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
+} from '~/app/utilities/automlTrainingDataFile';
 import ConfigureTabularForm from './ConfigureTabularForm';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import './AutomlConfigure.scss';
@@ -109,34 +118,6 @@ const PREDICTION_TYPES: {
       'Predict future activity over a specified date/time range. Data must be structured and sequential.',
   },
 ];
-
-/** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
-const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'text/csv': ['.csv'],
-};
-
-const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(TRAINING_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-const TRAINING_DATA_UPLOAD_MAX_SIZE_MIB = TRAINING_DATA_UPLOAD_MAX_BYTES / (1024 * 1024);
-const TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${TRAINING_DATA_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedTrainingDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(TRAINING_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
-}
 
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -340,8 +321,8 @@ function AutomlConfigure({
       if (!file || !namespace) {
         return;
       }
-      if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL);
+      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedTrainingDataUploadFile(file)) {
@@ -387,28 +368,10 @@ function AutomlConfigure({
 
   const handleTrainingDataDropRejected = useCallback(
     (fileRejections: FileRejection[]) => {
-      if (fileRejections.length === 0) {
-        return;
+      const payload = getTrainingDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
       }
-      const { file, errors } = fileRejections[0];
-      const codes = new Set(errors.map((e) => e.code));
-      if (codes.has('file-too-large')) {
-        notification.error('File too large', TRAINING_DATA_UPLOAD_TOO_LARGE_DETAIL);
-        return;
-      }
-      if (codes.has('too-many-files')) {
-        notification.error('Too many files', 'Only one file can be uploaded at a time.');
-        return;
-      }
-      if (codes.has('file-invalid-type')) {
-        notification.error('Invalid file type', 'File type must be CSV.');
-        return;
-      }
-      // Fallback: future react-dropzone codes or composite rejections use native messages (when present).
-      notification.error(
-        'File not accepted',
-        errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,
-      );
     },
     [notification],
   );
@@ -639,7 +602,7 @@ function AutomlConfigure({
                                   accept: TRAINING_DATA_FILE_ACCEPT,
                                   disabled: formIsSubmitting || isTrainingDataFileUploading,
                                   maxFiles: 1,
-                                  maxSize: TRAINING_DATA_UPLOAD_MAX_BYTES,
+                                  maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
                                   multiple: false,
                                   onDropRejected: handleTrainingDataDropRejected,
                                 }}
@@ -648,7 +611,7 @@ function AutomlConfigure({
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText={`Accepted file types: CSV. Maximum file size: ${TRAINING_DATA_UPLOAD_MAX_SIZE_MIB} MiB`}
+                                  infoText={`Accepted file types: CSV. Maximum file size: ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>
