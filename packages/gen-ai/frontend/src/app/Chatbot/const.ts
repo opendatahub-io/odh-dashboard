@@ -103,7 +103,7 @@ export const GUARDRAIL_ERROR_CODES = {
 
 export const GUARDRAIL_MESSAGES = {
   INPUT_VIOLATION:
-    'I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII).',
+    'I cannot process that request as it conflicts with my active safety guidelines. Please review your input for prompt manipulation, harmful content, or sensitive data (PII). To reset this guardrail, start a new chat.',
   OUTPUT_VIOLATION:
     'The response to your request was intercepted by safety guardrails. The output was found to contain potential harmful content or sensitive data (PII).',
 } as const;
