@@ -28,6 +28,7 @@ const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const SKIP_DIRS = new Set([
   'node_modules',
   '.git',
+  '.venv',
   'dist',
   'build',
   'coverage',

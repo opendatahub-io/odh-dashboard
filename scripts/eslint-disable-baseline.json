@@ -1,18 +1,18 @@
 {
-  "timestamp": "2026-04-02T15:16:10.836Z",
-  "commit": "660aec16c",
+  "timestamp": "2026-05-13T20:58:41.702Z",
+  "commit": "ce651bedc",
   "summary": {
-    "totalDirectives": 1439,
-    "totalFiles": 785,
-    "withDescription": 82,
-    "withoutDescription": 1357
+    "totalDirectives": 1514,
+    "totalFiles": 853,
+    "withDescription": 99,
+    "withoutDescription": 1415
   },
   "byType": {
-    "eslint-disable-next-line-scoped": 847,
+    "eslint-disable-next-line-scoped": 946,
     "eslint-disable-next-line-bare": 2,
-    "eslint-disable-block-scoped": 409,
+    "eslint-disable-block-scoped": 450,
     "eslint-disable-block-bare": 1,
-    "eslint-disable-line-scoped": 133,
+    "eslint-disable-line-scoped": 68,
     "eslint-disable-line-bare": 1,
     "ts-ignore": 32,
     "ts-expect-error": 9,
@@ -21,27 +21,27 @@
   "byRule": [
     {
       "rule": "camelcase",
-      "count": 651
+      "count": 620
     },
     {
       "rule": "no-console",
-      "count": 153
+      "count": 161
+    },
+    {
+      "rule": "@typescript-eslint/no-unnecessary-condition",
+      "count": 93
     },
     {
       "rule": "@typescript-eslint/consistent-type-assertions",
-      "count": 79
+      "count": 84
+    },
+    {
+      "rule": "react-hooks/exhaustive-deps",
+      "count": 67
     },
     {
       "rule": "@typescript-eslint/no-explicit-any",
       "count": 57
-    },
-    {
-      "rule": "react-hooks/exhaustive-deps",
-      "count": 56
-    },
-    {
-      "rule": "@typescript-eslint/no-unnecessary-condition",
-      "count": 55
     },
     {
       "rule": "@typescript-eslint/ban-ts-comment",
@@ -49,30 +49,30 @@
     },
     {
       "rule": "@typescript-eslint/no-namespace",
-      "count": 37
+      "count": 38
     },
     {
       "rule": "@odh-dashboard/no-restricted-imports",
-      "count": 31
+      "count": 32
     },
     {
       "rule": "no-restricted-syntax",
+      "count": 31
+    },
+    {
+      "rule": "cypress/no-unnecessary-waiting",
       "count": 28
     },
     {
       "rule": "@typescript-eslint/no-unused-vars",
-      "count": 24
-    },
-    {
-      "rule": "cypress/no-unnecessary-waiting",
-      "count": 22
-    },
-    {
-      "rule": "@typescript-eslint/naming-convention",
-      "count": 19
+      "count": 25
     },
     {
       "rule": "no-barrel-files/no-barrel-files",
+      "count": 19
+    },
+    {
+      "rule": "@typescript-eslint/naming-convention",
       "count": 18
     },
     {
@@ -84,12 +84,24 @@
       "count": 14
     },
     {
+      "rule": "@typescript-eslint/no-empty-function",
+      "count": 12
+    },
+    {
+      "rule": "import/first",
+      "count": 12
+    },
+    {
       "rule": "no-param-reassign",
       "count": 10
     },
     {
       "rule": "no-restricted-properties",
       "count": 10
+    },
+    {
+      "rule": "@typescript-eslint/no-require-imports",
+      "count": 9
     },
     {
       "rule": "no-restricted-imports",
@@ -100,23 +112,23 @@
       "count": 8
     },
     {
-      "rule": "@cspell/spellchecker",
-      "count": 7
-    },
-    {
-      "rule": "@typescript-eslint/no-empty-function",
-      "count": 7
+      "rule": "no-relative-import-paths/no-relative-import-paths",
+      "count": 8
     },
     {
       "rule": "@typescript-eslint/restrict-template-expressions",
       "count": 7
     },
     {
-      "rule": "@typescript-eslint/no-require-imports",
+      "rule": "@cspell/spellchecker",
       "count": 6
     },
     {
-      "rule": "no-relative-import-paths/no-relative-import-paths",
+      "rule": "@typescript-eslint/no-non-null-assertion",
+      "count": 6
+    },
+    {
+      "rule": "cypress/unsafe-to-chain-command",
       "count": 5
     },
     {
@@ -128,8 +140,12 @@
       "count": 4
     },
     {
-      "rule": "import/first",
-      "count": 4
+      "rule": "@typescript-eslint/no-shadow",
+      "count": 3
+    },
+    {
+      "rule": "@typescript-eslint/no-unused-expressions",
+      "count": 3
     },
     {
       "rule": "@typescript-eslint/prefer-nullish-coalescing",
@@ -152,19 +168,15 @@
       "count": 2
     },
     {
-      "rule": "@typescript-eslint/no-shadow",
-      "count": 2
-    },
-    {
       "rule": "@typescript-eslint/no-unsafe-declaration-merging",
       "count": 2
     },
     {
-      "rule": "@typescript-eslint/no-unused-expressions",
+      "rule": "@typescript-eslint/no-var-requires",
       "count": 2
     },
     {
-      "rule": "@typescript-eslint/no-var-requires",
+      "rule": "jsx-a11y/aria-role",
       "count": 2
     },
     {
@@ -180,10 +192,6 @@
       "count": 1
     },
     {
-      "rule": "@typescript-eslint/no-non-null-assertion",
-      "count": 1
-    },
-    {
       "rule": "arrow-body-style",
       "count": 1
     },
@@ -192,7 +200,7 @@
       "count": 1
     },
     {
-      "rule": "jsx-a11y/aria-role",
+      "rule": "import/order",
       "count": 1
     },
     {
@@ -218,35 +226,31 @@
   ],
   "byFile": [
     {
-      "file": "packages/autorag/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
-      "count": 39
-    },
-    {
-      "file": "packages/automl/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
-      "count": 35
-    },
-    {
       "file": "frontend/src/api/prometheus/__tests__/distributedWorkloads.spec.ts",
       "count": 32
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragConfigure.spec.tsx",
-      "count": 24
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/nimUtils.ts",
+      "count": 19
     },
     {
       "file": "packages/model-registry/upstream/frontend/src/app/api/__tests__/updateTimestamps.test.ts",
       "count": 16
     },
     {
-      "file": "frontend/src/api/pipelines/custom.ts",
-      "count": 13
-    },
-    {
-      "file": "frontend/src/pages/modelServing/screens/projects/nim/nimUtils.ts",
-      "count": 13
-    },
-    {
       "file": "packages/autorag/frontend/src/app/hooks/useAutoragResults.ts",
+      "count": 13
+    },
+    {
+      "file": "packages/cypress/cypress/utils/maasUtils.ts",
+      "count": 13
+    },
+    {
+      "file": "frontend/src/api/pipelines/custom.ts",
+      "count": 12
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/useAutomlResults.ts",
       "count": 12
     },
     {
@@ -254,8 +258,12 @@
       "count": 11
     },
     {
-      "file": "packages/autorag/frontend/src/__mocks__/mockSecretListItem.ts",
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/tests/mocked/workspaces/secretsAttach.cy.ts",
       "count": 10
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/PipelineRunTableRowMlflowExperiment.spec.tsx",
+      "count": 9
     },
     {
       "file": "packages/automl/frontend/src/__tests__/cypress/cypress.config.ts",
@@ -267,6 +275,10 @@
     },
     {
       "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress.config.ts",
+      "count": 9
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
       "count": 9
     },
     {
@@ -290,11 +302,15 @@
       "count": 9
     },
     {
-      "file": "packages/automl/frontend/src/__mocks__/mockSecretListItem.ts",
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragEvaluationSelect.spec.tsx",
       "count": 8
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragEvaluationSelect.spec.tsx",
+      "file": "packages/cypress/cypress/utils/oc_commands/modelCatalog.ts",
+      "count": 8
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utilities/__tests__/evaluationUtils.spec.ts",
       "count": 8
     },
     {
@@ -304,10 +320,6 @@
     {
       "file": "packages/jest-config/config/jest.setup.ts",
       "count": 8
-    },
-    {
-      "file": "packages/automl/frontend/src/app/hooks/useAutomlResults.ts",
-      "count": 7
     },
     {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress.config.ts",
@@ -322,7 +334,27 @@
       "count": 6
     },
     {
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMCompatiblePVCs.ts",
+      "count": 6
+    },
+    {
+      "file": "frontend/src/pages/modelServing/utils.ts",
+      "count": 6
+    },
+    {
       "file": "packages/automl/frontend/src/app/components/run-results/AutomlLeaderboard.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/__tests__/queries.spec.tsx",
+      "count": 6
+    },
+    {
+      "file": "packages/automl/frontend/src/app/topology/__tests__/utils.spec.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragConfigure.spec.tsx",
       "count": 6
     },
     {
@@ -334,15 +366,19 @@
       "count": 6
     },
     {
-      "file": "packages/cypress/cypress/utils/oc_commands/modelCatalog.ts",
+      "file": "packages/autorag/frontend/src/app/pages/AutoragReconfigureLoader.tsx",
       "count": 6
     },
     {
-      "file": "packages/eval-hub/frontend/src/app/utilities/__tests__/evaluationUtils.spec.ts",
+      "file": "packages/autorag/frontend/src/app/topology/__tests__/utils.spec.ts",
       "count": 6
     },
     {
-      "file": "packages/eval-hub/frontend/src/app/utils/buildEvaluationRequest.ts",
+      "file": "packages/cypress/cypress/tests/mocked/pipelines/pipelineGraphEdgeCases.cy.ts",
+      "count": 6
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/mlflow.ts",
       "count": 6
     },
     {
@@ -362,10 +398,6 @@
       "count": 6
     },
     {
-      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/tests/mocked/workspaces/secretsAttach.cy.ts",
-      "count": 6
-    },
-    {
       "file": "packages/notebooks/upstream/workspaces/frontend/src/shared/api/__tests__/apiUtils.spec.ts",
       "count": 6
     },
@@ -374,7 +406,15 @@
       "count": 5
     },
     {
+      "file": "packages/automl/frontend/src/app/pages/AutomlReconfigureLoader.tsx",
+      "count": 5
+    },
+    {
       "file": "packages/automl/frontend/src/app/topology/PipelineVisualizationSurface.tsx",
+      "count": 5
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragVectorStoreSelector.spec.tsx",
       "count": 5
     },
     {
@@ -406,6 +446,10 @@
       "count": 4
     },
     {
+      "file": "frontend/src/concepts/pipelines/content/createRun/submitUtils.ts",
+      "count": 4
+    },
+    {
       "file": "frontend/src/concepts/pipelines/content/tables/__tests__/utils.spec.ts",
       "count": 4
     },
@@ -414,11 +458,31 @@
       "count": 4
     },
     {
-      "file": "packages/automl/frontend/src/app/hooks/__tests__/queries.spec.tsx",
+      "file": "packages/automl/frontend/src/app/context/AutomlResultsContext.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/automl/frontend/src/app/hooks/queries.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlResultsPage.spec.tsx",
+      "count": 4
+    },
+    {
+      "file": "packages/automl/frontend/src/app/schemas/configure.schema.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragResultsPage.spec.tsx",
       "count": 4
     },
     {
       "file": "packages/cypress/cypress/pages/modelServing.ts",
+      "count": 4
+    },
+    {
+      "file": "packages/cypress/cypress/support/commands/application.ts",
       "count": 4
     },
     {
@@ -450,6 +514,10 @@
       "count": 4
     },
     {
+      "file": "packages/mlflow-embedded/extensions.ts",
+      "count": 4
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/__tests__/cypress/cypress/tests/mocked/modelCatalog/tensorTypeComparisonCard.cy.ts",
       "count": 4
     },
@@ -478,7 +546,7 @@
       "count": 3
     },
     {
-      "file": "frontend/src/concepts/pipelines/content/createRun/submitUtils.ts",
+      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRecurringRuns.ts",
       "count": 3
     },
     {
@@ -487,6 +555,10 @@
     },
     {
       "file": "frontend/src/concepts/pipelines/content/tables/usePipelineFilter.ts",
+      "count": 3
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/utils.ts",
       "count": 3
     },
     {
@@ -518,10 +590,6 @@
       "count": 3
     },
     {
-      "file": "packages/automl/frontend/src/app/components/configure/__tests__/AutomlConfigure.spec.tsx",
-      "count": 3
-    },
-    {
       "file": "packages/automl/frontend/src/app/components/configure/__tests__/ConfigureTimeseriesForm.spec.tsx",
       "count": 3
     },
@@ -534,22 +602,6 @@
       "count": 3
     },
     {
-      "file": "packages/automl/frontend/src/app/context/AutomlResultsContext.ts",
-      "count": 3
-    },
-    {
-      "file": "packages/automl/frontend/src/app/hooks/queries.ts",
-      "count": 3
-    },
-    {
-      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlResultsPage.spec.tsx",
-      "count": 3
-    },
-    {
-      "file": "packages/automl/frontend/src/app/schemas/configure.schema.ts",
-      "count": 3
-    },
-    {
       "file": "packages/autorag/frontend/src/__tests__/cypress/cypress/support/commands/application.ts",
       "count": 3
     },
@@ -558,11 +610,7 @@
       "count": 3
     },
     {
-      "file": "packages/autorag/frontend/src/app/components/configure/__tests__/AutoragVectorStoreSelector.spec.tsx",
-      "count": 3
-    },
-    {
-      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragResultsPage.spec.tsx",
+      "file": "packages/autorag/frontend/src/app/pages/__tests__/AutoragReconfigureLoader.spec.tsx",
       "count": 3
     },
     {
@@ -579,10 +627,6 @@
     },
     {
       "file": "packages/cypress/cypress/pages/pipelines/experiments.ts",
-      "count": 3
-    },
-    {
-      "file": "packages/cypress/cypress/support/commands/application.ts",
       "count": 3
     },
     {
@@ -603,6 +647,10 @@
     },
     {
       "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useCollections.spec.ts",
+      "count": 3
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/utilities/evaluationUtils.ts",
       "count": 3
     },
     {
@@ -638,10 +686,6 @@
       "count": 3
     },
     {
-      "file": "packages/mlflow-embedded/extensions.ts",
-      "count": 3
-    },
-    {
       "file": "packages/mlflow-embedded/shared/WorkspaceRouteLoader.tsx",
       "count": 3
     },
@@ -671,6 +715,10 @@
     },
     {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/modelCatalog/screens/RegisterCatalogModelForm.tsx",
+      "count": 3
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/RegisterModel/__tests__/registerModelTypeUtils.spec.ts",
       "count": 3
     },
     {
@@ -718,6 +766,10 @@
       "count": 2
     },
     {
+      "file": "frontend/src/app/ThemeContext.tsx",
+      "count": 2
+    },
+    {
       "file": "frontend/src/app/useApplicationSettings.tsx",
       "count": 2
     },
@@ -750,6 +802,10 @@
       "count": 2
     },
     {
+      "file": "frontend/src/concepts/mlflow/hooks/useMLflowStatus.ts",
+      "count": 2
+    },
+    {
       "file": "frontend/src/concepts/notificationWatcher/NotificationWatcherContext.tsx",
       "count": 2
     },
@@ -763,10 +819,6 @@
     },
     {
       "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRecurringRunById.ts",
-      "count": 2
-    },
-    {
-      "file": "frontend/src/concepts/pipelines/apiHooks/usePipelineRecurringRuns.ts",
       "count": 2
     },
     {
@@ -791,6 +843,14 @@
     },
     {
       "file": "frontend/src/pages/connectionTypes/manage/ConnectionTypeDataFieldModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/kServeModal/ManageKServeModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/ServingRuntimeDetails.tsx",
       "count": 2
     },
     {
@@ -830,7 +890,23 @@
       "count": 2
     },
     {
+      "file": "packages/automl/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlInputParametersPanel.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModal.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/AutomlModelDetailsModalHeader.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlReconfigureLoader.spec.tsx",
       "count": 2
     },
     {
@@ -854,6 +930,10 @@
       "count": 2
     },
     {
+      "file": "packages/autorag/frontend/src/app/components/common/__tests__/SecretSelector.spec.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/autorag/frontend/src/app/components/common/S3FileExplorer/webpack.playground.ts",
       "count": 2
     },
@@ -863,6 +943,10 @@
     },
     {
       "file": "packages/autorag/frontend/src/app/components/configure/AutoragEvaluationSelect.tsx",
+      "count": 2
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/AutoragInputParametersPanel.tsx",
       "count": 2
     },
     {
@@ -890,6 +974,10 @@
       "count": 2
     },
     {
+      "file": "packages/cypress/cypress/tests/mocked/mcpCatalog/mcpDeployments.cy.ts",
+      "count": 2
+    },
+    {
       "file": "packages/cypress/cypress/tests/mocked/projects/tabs/connections.cy.ts",
       "count": 2
     },
@@ -899,10 +987,6 @@
     },
     {
       "file": "packages/cypress/cypress/utils/moduleFederationMock.ts",
-      "count": 2
-    },
-    {
-      "file": "packages/cypress/cypress/utils/oc_commands/genAi.ts",
       "count": 2
     },
     {
@@ -922,7 +1006,7 @@
       "count": 2
     },
     {
-      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useEvaluationSelection.spec.ts",
+      "file": "packages/eval-hub/frontend/src/app/components/BenchmarkDrawerPanel.tsx",
       "count": 2
     },
     {
@@ -954,6 +1038,10 @@
       "count": 2
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMessagesList.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/PromptAssistantFormGroup.tsx",
       "count": 2
     },
@@ -975,10 +1063,6 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel.tsx",
-      "count": 2
-    },
-    {
-      "file": "packages/gen-ai/frontend/src/app/hooks/__tests__/useFetchGuardrailModels.spec.ts",
       "count": 2
     },
     {
@@ -1026,6 +1110,10 @@
       "count": 2
     },
     {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/RegisterModel/__tests__/utils.spec.ts",
+      "count": 2
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/settings/ModelRegistrySettings.tsx",
       "count": 2
     },
@@ -1042,11 +1130,19 @@
       "count": 2
     },
     {
+      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationInputFields.tsx",
+      "count": 2
+    },
+    {
       "file": "packages/model-serving/src/ServeModelsSection.tsx",
       "count": 2
     },
     {
       "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/support/commands/api.ts",
+      "count": 2
+    },
+    {
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/pages/Workspaces/Form/WorkspaceForm.tsx",
       "count": 2
     },
     {
@@ -1238,19 +1334,11 @@
       "count": 1
     },
     {
-      "file": "frontend/src/app/HeaderTools.tsx",
-      "count": 1
-    },
-    {
       "file": "frontend/src/app/navigation/NavItemHref.tsx",
       "count": 1
     },
     {
       "file": "frontend/src/app/status-provider/StatusReportLoader.tsx",
-      "count": 1
-    },
-    {
-      "file": "frontend/src/app/ThemeContext.tsx",
       "count": 1
     },
     {
@@ -1354,6 +1442,10 @@
       "count": 1
     },
     {
+      "file": "frontend/src/concepts/pipelines/apiHooks/__tests__/useAllExperiments.spec.ts",
+      "count": 1
+    },
+    {
       "file": "frontend/src/concepts/pipelines/apiHooks/__tests__/useArtifactStorage.spec.ts",
       "count": 1
     },
@@ -1379,6 +1471,14 @@
     },
     {
       "file": "frontend/src/concepts/pipelines/content/__tests__/ManagePipelineServerModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/__tests__/PipelineDetailsTitle.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/__tests__/PipelineRunTypeLabel.spec.tsx",
       "count": 1
     },
     {
@@ -1435,6 +1535,14 @@
     },
     {
       "file": "frontend/src/concepts/pipelines/content/pipelineSelector/utils.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/columns.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/concepts/pipelines/content/tables/pipelineRun/__tests__/utils.spec.ts",
       "count": 1
     },
     {
@@ -1578,6 +1686,10 @@
       "count": 1
     },
     {
+      "file": "frontend/src/pages/modelServing/customServingRuntimes/utils.ts",
+      "count": 1
+    },
+    {
       "file": "frontend/src/pages/modelServing/screens/metrics/bias/useBiasChartSelections.ts",
       "count": 1
     },
@@ -1590,11 +1702,23 @@
       "count": 1
     },
     {
-      "file": "frontend/src/pages/modelServing/screens/projects/kServeModal/ManageKServeModal.tsx",
+      "file": "frontend/src/pages/modelServing/screens/projects/InferenceServiceModal/useModelFramework.ts",
       "count": 1
     },
     {
       "file": "frontend/src/pages/modelServing/screens/projects/nim/NIMServiceModal/__tests__/ManageNIMServingModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/nim/NIMServiceModal/useNIMPVC.ts",
+      "count": 1
+    },
+    {
+      "file": "frontend/src/pages/modelServing/screens/projects/useServingAcceleratorProfileFormState.ts",
       "count": 1
     },
     {
@@ -1710,6 +1834,10 @@
       "count": 1
     },
     {
+      "file": "frontend/src/plugins/extensions/tasks.ts",
+      "count": 1
+    },
+    {
       "file": "frontend/src/redux/context.ts",
       "count": 1
     },
@@ -1782,6 +1910,10 @@
       "count": 1
     },
     {
+      "file": "packages/automl/frontend/src/__tests__/cypress/cypress/tests/mocked/run-results/automlResults.cy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/automl/frontend/src/__tests__/unit/jest.d.ts",
       "count": 1
     },
@@ -1822,7 +1954,23 @@
       "count": 1
     },
     {
+      "file": "packages/automl/frontend/src/app/components/configure/__tests__/AutomlConfigure.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/configure/__tests__/AutomlExperimentSettings.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/configure/AutomlConfigure.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/automl/frontend/src/app/components/experiments/__tests__/AutomlExperiments.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/components/run-results/__tests__/AutomlInputParametersPanel.spec.tsx",
       "count": 1
     },
     {
@@ -1862,6 +2010,10 @@
       "count": 1
     },
     {
+      "file": "packages/automl/frontend/src/app/components/run-results/AutomlModelDetailsModal/tabs/ModelEvaluationTab.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/automl/frontend/src/app/context/__tests__/AutomlResultsContext.spec.tsx",
       "count": 1
     },
@@ -1886,11 +2038,23 @@
       "count": 1
     },
     {
+      "file": "packages/automl/frontend/src/app/hooks/useReconfigureSafeEffect.ts",
+      "count": 1
+    },
+    {
       "file": "packages/automl/frontend/src/app/mocks/mockAutomlResultsContext.ts",
       "count": 1
     },
     {
       "file": "packages/automl/frontend/src/app/pages/__tests__/AutomlConfigurePage.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/schemas/__tests__/configure.schema.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/automl/frontend/src/app/topology/useAutoMLTaskTopology.ts",
       "count": 1
     },
     {
@@ -1958,6 +2122,18 @@
       "count": 1
     },
     {
+      "file": "packages/autorag/frontend/src/app/components/AutoragRunsTable/__tests__/AutoragRunsTableRow.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/__tests__/CodeSnippetModal.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/common/CodeSnippetModal.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/autorag/frontend/src/app/components/common/FileExplorer/FileExplorer.playground.tsx",
       "count": 1
     },
@@ -1975,6 +2151,10 @@
     },
     {
       "file": "packages/autorag/frontend/src/app/components/experiments/__tests__/AutoragExperiments.spec.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/components/run-results/__tests__/AutoragInputParametersPanel.spec.tsx",
       "count": 1
     },
     {
@@ -2026,6 +2206,10 @@
       "count": 1
     },
     {
+      "file": "packages/autorag/frontend/src/app/hooks/useReconfigureSafeEffect.ts",
+      "count": 1
+    },
+    {
       "file": "packages/autorag/frontend/src/app/mocks/mockAutoRAGPatterns.ts",
       "count": 1
     },
@@ -2034,7 +2218,15 @@
       "count": 1
     },
     {
+      "file": "packages/autorag/frontend/src/app/topology/useAutoRAGTaskTopology.ts",
+      "count": 1
+    },
+    {
       "file": "packages/autorag/frontend/src/app/utilities/__tests__/utils.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/autorag/frontend/src/app/utilities/const.ts",
       "count": 1
     },
     {
@@ -2055,6 +2247,10 @@
     },
     {
       "file": "packages/contract-tests/src/openapi-validator.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/pages/automl/index.ts",
       "count": 1
     },
     {
@@ -2094,6 +2290,10 @@
       "count": 1
     },
     {
+      "file": "packages/cypress/cypress/tests/e2e/automl/testAutomlBinaryClassification.cy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/cypress/cypress/tests/e2e/dataScienceProjects/clusterStorage/testClusterStorageCreation.cy.ts",
       "count": 1
     },
@@ -2107,10 +2307,6 @@
     },
     {
       "file": "packages/cypress/cypress/tests/e2e/settings/clusterSettings/testAdminClusterSettings.cy.ts",
-      "count": 1
-    },
-    {
-      "file": "packages/cypress/cypress/tests/e2e/storageClasses/storageClasses.cy.ts",
       "count": 1
     },
     {
@@ -2150,6 +2346,10 @@
       "count": 1
     },
     {
+      "file": "packages/cypress/cypress/tests/mocked/modelRegistry/modelDetailsEditing.cy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/cypress/cypress/tests/mocked/modelsAsAService/maasApiKeys.cy.ts",
       "count": 1
     },
@@ -2171,10 +2371,6 @@
     },
     {
       "file": "packages/cypress/cypress/tests/mocked/pipelines/executions.cy.ts",
-      "count": 1
-    },
-    {
-      "file": "packages/cypress/cypress/tests/mocked/pipelines/experiments.cy.ts",
       "count": 1
     },
     {
@@ -2222,10 +2418,6 @@
       "count": 1
     },
     {
-      "file": "packages/cypress/cypress/utils/maasUtils.ts",
-      "count": 1
-    },
-    {
       "file": "packages/cypress/cypress/utils/mixin.ts",
       "count": 1
     },
@@ -2234,7 +2426,15 @@
       "count": 1
     },
     {
+      "file": "packages/cypress/cypress/utils/oc_commands/genAi.ts",
+      "count": 1
+    },
+    {
       "file": "packages/cypress/cypress/utils/oc_commands/imageStreams.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/maas.ts",
       "count": 1
     },
     {
@@ -2247,6 +2447,10 @@
     },
     {
       "file": "packages/cypress/cypress/utils/oc_commands/storageClass.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/cypress/cypress/utils/oc_commands/trainingJobs.ts",
       "count": 1
     },
     {
@@ -2302,6 +2506,14 @@
       "count": 1
     },
     {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/createFlow/chooseBenchmark.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/createFlow/startEvaluationRun.cy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/eval-hub/frontend/src/__tests__/cypress/cypress/tests/mocked/evaluationResults/evaluationResults.cy.ts",
       "count": 1
     },
@@ -2334,11 +2546,19 @@
       "count": 1
     },
     {
+      "file": "packages/eval-hub/frontend/src/app/components/EvaluationsTableRow.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/eval-hub/frontend/src/app/context/AppContext.ts",
       "count": 1
     },
     {
       "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useEvaluationJobs.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/eval-hub/frontend/src/app/hooks/__tests__/useEvaluationSelection.spec.ts",
       "count": 1
     },
     {
@@ -2574,6 +2794,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/contract-tests/__tests__/testMLflowContract.test.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/__mocks__/mockGenAiContext.ts",
       "count": 1
     },
@@ -2606,7 +2830,15 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockMLflowPrompts.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/__mocks__/mockNamespaces.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/support/commands/axe.ts",
       "count": 1
     },
     {
@@ -2630,6 +2862,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/aiAssets/modelTabKebabActions.cy.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/compareMode.cy.ts",
       "count": 1
     },
@@ -2639,6 +2875,10 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/newChatFeature.cy.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/__tests__/cypress/cypress/tests/mocked/chatbot/promptManagement.cy.ts",
       "count": 1
     },
     {
@@ -2702,10 +2942,6 @@
       "count": 1
     },
     {
-      "file": "packages/gen-ai/frontend/src/app/Chatbot/ChatbotMessagesList.tsx",
-      "count": 1
-    },
-    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/__tests__/ChatbotPaneHeader.spec.tsx",
       "count": 1
     },
@@ -2754,6 +2990,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/components/guardrails/GuardrailsPanel.tsx",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/components/promptManagementModal/__tests__/promptDrawer.spec.tsx",
       "count": 1
     },
@@ -2794,6 +3034,10 @@
       "count": 1
     },
     {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/usePromptEdited.spec.ts",
+      "count": 1
+    },
+    {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/hooks/__tests__/useSourceManagement.rag-auto-enable.spec.ts",
       "count": 1
     },
@@ -2827,6 +3071,18 @@
     },
     {
       "file": "packages/gen-ai/frontend/src/app/Chatbot/mcp/MCPServerConfigModal.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/store/__tests__/useChatbotConfigStore.test.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/store/__tests__/usePlaygroundStore.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/gen-ai/frontend/src/app/Chatbot/store/__tests__/utils.spec.ts",
       "count": 1
     },
     {
@@ -2954,11 +3210,11 @@
       "count": 1
     },
     {
-      "file": "packages/maas/frontend/src/app/api/__tests__/subscriptions.spec.ts",
+      "file": "packages/maas/frontend/src/app/api/__tests__/api-keys.spec.ts",
       "count": 1
     },
     {
-      "file": "packages/maas/frontend/src/app/api/api-keys.ts",
+      "file": "packages/maas/frontend/src/app/api/__tests__/subscriptions.spec.ts",
       "count": 1
     },
     {
@@ -3019,6 +3275,10 @@
     },
     {
       "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockMcpCatalogTestData.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/__mocks__/mockMcpDeployment.ts",
       "count": 1
     },
     {
@@ -3134,6 +3394,14 @@
       "count": 1
     },
     {
+      "file": "packages/model-registry/upstream/frontend/src/app/hooks/__tests__/useModelVersionById.spec.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/model-registry/upstream/frontend/src/app/modelCatalogTypes.ts",
+      "count": 1
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/mcpCatalog/hooks/useMcpUrlSync.ts",
       "count": 1
     },
@@ -3194,6 +3462,10 @@
       "count": 1
     },
     {
+      "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils.ts",
+      "count": 1
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/app/pages/modelRegistrySettings/__tests__/useModelRegistryRoleBindings.spec.ts",
       "count": 1
     },
@@ -3206,6 +3478,10 @@
       "count": 1
     },
     {
+      "file": "packages/model-registry/upstream/frontend/src/app/types.ts",
+      "count": 1
+    },
+    {
       "file": "packages/model-registry/upstream/frontend/src/concepts/modelCatalog/const.ts",
       "count": 1
     },
@@ -3214,7 +3490,7 @@
       "count": 1
     },
     {
-      "file": "packages/model-registry/upstream/frontend/src/odh/hooks/__tests__/useNotificationListener.spec.ts",
+      "file": "packages/model-registry/upstream/frontend/src/odh/hooks/useNotificationListener.ts",
       "count": 1
     },
     {
@@ -3254,19 +3530,15 @@
       "count": 1
     },
     {
-      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationInputFields.tsx",
-      "count": 1
-    },
-    {
-      "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelLocationSelectField.tsx",
-      "count": 1
-    },
-    {
       "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelServerTemplateSelectField.tsx",
       "count": 1
     },
     {
       "file": "packages/model-serving/src/components/deploymentWizard/fields/ModelTypeSelectField.tsx",
+      "count": 1
+    },
+    {
+      "file": "packages/model-serving/src/components/deploymentWizard/steps/AdvancedOptionsStep.tsx",
       "count": 1
     },
     {
@@ -3302,7 +3574,11 @@
       "count": 1
     },
     {
-      "file": "packages/notebooks/upstream/workspaces/frontend/src/__tests__/cypress/cypress/pages/workspaces/workspaceForm.ts",
+      "file": "packages/nim-serving/extensions.ts",
+      "count": 1
+    },
+    {
+      "file": "packages/nim-serving/src/pages/projectSettings/NIMSettingsCard.tsx",
       "count": 1
     },
     {
@@ -3334,7 +3610,7 @@
       "count": 1
     },
     {
-      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/pages/WorkspaceKinds/Form/EditableLabels.tsx",
+      "file": "packages/notebooks/upstream/workspaces/frontend/src/app/pages/WorkspaceKinds/Form/EditableRowsTable.tsx",
       "count": 1
     },
     {
@@ -3350,6 +3626,10 @@
       "count": 1
     },
     {
+      "file": "packages/observability/src/utils/transformDashboardVariables.ts",
+      "count": 1
+    },
+    {
       "file": "packages/plugin-core/src/core/plugin-store.ts",
       "count": 1
     },
@@ -3361,27 +3641,27 @@
   "byPackage": [
     {
       "package": "frontend",
-      "count": 351
-    },
-    {
-      "package": "packages/autorag",
-      "count": 200
+      "count": 398
     },
     {
       "package": "packages/gen-ai",
-      "count": 166
+      "count": 175
     },
     {
-      "package": "packages/automl",
-      "count": 154
+      "package": "packages/autorag",
+      "count": 163
     },
     {
       "package": "packages/cypress",
-      "count": 119
+      "count": 150
+    },
+    {
+      "package": "packages/automl",
+      "count": 147
     },
     {
       "package": "packages/model-registry",
-      "count": 117
+      "count": 127
     },
     {
       "package": "packages/feature-store",
@@ -3389,11 +3669,11 @@
     },
     {
       "package": "packages/eval-hub",
-      "count": 62
+      "count": 74
     },
     {
       "package": "packages/notebooks",
-      "count": 43
+      "count": 48
     },
     {
       "package": "packages/maas",
@@ -3405,7 +3685,7 @@
     },
     {
       "package": "packages/model-serving",
-      "count": 18
+      "count": 19
     },
     {
       "package": "packages/plugin-core",
@@ -3417,7 +3697,7 @@
     },
     {
       "package": "packages/mlflow-embedded",
-      "count": 10
+      "count": 11
     },
     {
       "package": "backend",
@@ -3440,11 +3720,15 @@
       "count": 3
     },
     {
-      "package": "packages/llmd-serving",
-      "count": 1
+      "package": "packages/nim-serving",
+      "count": 2
     },
     {
       "package": "packages/observability",
+      "count": 2
+    },
+    {
+      "package": "packages/llmd-serving",
       "count": 1
     }
   ],
@@ -3484,7 +3768,9 @@
       "frontend/src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb.js",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/Healthcheck.ts",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/Namespaces.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Persistentvolumeclaims.ts",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/Secrets.ts",
+      "packages/notebooks/upstream/workspaces/frontend/src/generated/Storageclasses.ts",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/Workspacekinds.ts",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/Workspaces.ts",
       "packages/notebooks/upstream/workspaces/frontend/src/generated/data-contracts.ts",
