@@ -4,25 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// storageTypeRequiredKeys defines the required keys for each supported storage type.
-// A secret must have ALL required keys for a storage type to be considered a match.
-// Key matching is case-sensitive; keys must be uppercase.
 var storageTypeRequiredKeys = map[string][]string{
 	"s3": {
 		"AWS_ACCESS_KEY_ID",
-		// Region is currently not enforced by common connections ui so we need to handle it as an additionalRequiredKeys in frontend
-		// "AWS_DEFAULT_REGION",
 		"AWS_SECRET_ACCESS_KEY",
 		"AWS_S3_ENDPOINT",
 	},
-	// Future storage types can be added here:
-	// "azure": {"AZURE_STORAGE_ACCOUNT", "AZURE_STORAGE_KEY"},
-	// "gcp": {"GCP_SERVICE_ACCOUNT_KEY"},
+}
+
+var allowedSecretKeys = map[string]bool{
+	"AWS_S3_BUCKET": true,
 }
 
 type SecretRepository struct{}
@@ -31,7 +26,7 @@ func NewSecretRepository() *SecretRepository {
 	return &SecretRepository{}
 }
 
-// GetFilteredSecrets retrieves secrets from a namespace via autox-core and filters them based on the secretType.
+// GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
@@ -41,127 +36,35 @@ func (r *SecretRepository) GetFilteredSecrets(
 	namespace string,
 	secretType string,
 ) ([]models.SecretListItem, error) {
-	// Fetch all secrets from the namespace via autox-core (raw, unredacted)
 	secretInfos, err := k8sService.GetSecretInfos(ctx, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
 	}
 
-	// Apply filtering based on secretType
-	var filteredSecrets []corek8s.SecretInfo
+	var filtered []corek8s.SecretInfo
 	switch secretType {
 	case "":
-		// No type specified - return all secrets
-		filteredSecrets = secretInfos
+		filtered = secretInfos
 	case "storage":
-		// Filter secrets that match any configured storage type
-		filteredSecrets = filterStorageSecrets(secretInfos)
+		filtered = corek8s.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	default:
-		// This should be caught by handler validation, but handle it here as well
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
-	// Convert to response models with type information and redaction
-	// Initialize as empty slice instead of nil to ensure JSON serialization returns [] instead of null
-	secretListItems := make([]models.SecretListItem, 0, len(filteredSecrets))
-	for _, secretInfo := range filteredSecrets {
-		// Determine the type for this secret
-		var responseType string
-		if secretInfo.Type != "" {
-			// Use the type from autox-core (from annotation)
-			responseType = secretInfo.Type
-		} else {
-			// Fallback to key-based type detection
-			switch secretType {
-			case "storage":
-				// For storage type, determine which storage type it matches
-				responseType = getStorageType(secretInfo)
-			default:
-				// For all secrets (no type filter), check if it matches a storage type
-				responseType = getSecretType(secretInfo)
-			}
-		}
+	result := make([]models.SecretListItem, 0, len(filtered))
+	for _, secret := range filtered {
+		responseType := corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
+		redactedData := corek8s.RedactSecretData(secret.Data, allowedSecretKeys)
 
-		// Apply redaction based on allowed keys
-		redactedData := redactSecretKeys(secretInfo.Data)
-
-		secretListItems = append(secretListItems, models.NewSecretListItem(
-			secretInfo.UUID,
-			secretInfo.Name,
+		result = append(result, models.NewSecretListItem(
+			secret.UUID,
+			secret.Name,
 			responseType,
 			redactedData,
-			secretInfo.DisplayName,
-			secretInfo.Description,
+			secret.DisplayName,
+			secret.Description,
 		))
 	}
 
-	return secretListItems, nil
-}
-
-// filterStorageSecrets filters secrets that match any configured storage type.
-// A secret matches if it contains ALL required keys for at least one storage type.
-func filterStorageSecrets(secrets []corek8s.SecretInfo) []corek8s.SecretInfo {
-	var filtered []corek8s.SecretInfo
-	for _, secret := range secrets {
-		if matchesAnyStorageType(secret) {
-			filtered = append(filtered, secret)
-		}
-	}
-	return filtered
-}
-
-// matchesAnyStorageType checks if a secret contains all required keys for any storage type (case-sensitive).
-func matchesAnyStorageType(secret corek8s.SecretInfo) bool {
-	for _, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeys(secret, requiredKeys) {
-			return true
-		}
-	}
-	return false
-}
-
-// getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
-// Returns the first matching storage type if the secret matches multiple types.
-// Key matching is case-sensitive; keys must be uppercase.
-func getStorageType(secret corek8s.SecretInfo) string {
-	for storageType, requiredKeys := range storageTypeRequiredKeys {
-		if hasAllKeys(secret, requiredKeys) {
-			return storageType
-		}
-	}
-	return ""
-}
-
-// getSecretType determines the type of a secret by checking all known secret type patterns.
-// Returns the first matching storage type.
-func getSecretType(secret corek8s.SecretInfo) string {
-	// Check storage types
-	return getStorageType(secret)
-}
-
-// hasAllKeys checks if a secret contains all specified keys in its data (case-sensitive).
-func hasAllKeys(secret corek8s.SecretInfo, keys []string) bool {
-	// Check if all required keys exist in the secret's Data map (case-sensitive)
-	for _, requiredKey := range keys {
-		if _, exists := secret.Data[requiredKey]; !exists {
-			return false
-		}
-	}
-	return true
-}
-
-// redactSecretKeys applies redaction to secret data based on allowed keys list.
-// Keys in the allowed list retain their actual values, others are redacted.
-func redactSecretKeys(data map[string]string) map[string]string {
-	result := make(map[string]string, len(data))
-	for key, value := range data {
-		if constants.IsAllowedSecretKey(key) {
-			// Return actual value for allowed keys
-			result[key] = value
-		} else {
-			// Redact sensitive keys
-			result[key] = "[REDACTED]"
-		}
-	}
-	return result
+	return result, nil
 }
