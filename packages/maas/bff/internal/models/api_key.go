@@ -9,6 +9,7 @@ type APIKeyCreateRequest struct {
 	Description  string `json:"description,omitempty"`
 	ExpiresIn    string `json:"expiresIn,omitempty"`
 	Subscription string `json:"subscription"`
+	Ephemeral    bool   `json:"ephemeral,omitempty"`
 }
 
 // APIKeyCreateResponse is the one-time response when an API key is created.

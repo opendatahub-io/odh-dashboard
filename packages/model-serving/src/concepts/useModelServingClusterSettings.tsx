@@ -8,10 +8,10 @@ export type ModelServingClusterSettings = {
 };
 
 export const useModelServingClusterSettings = (): FetchStateObject<
-  ModelServingClusterSettings | undefined
+  ModelServingClusterSettings | null | undefined
 > => {
   const fetchCallbackPromise = React.useCallback(async () => {
-    return fetchDashboardConfig().then((config) => config.spec.modelServing);
+    return fetchDashboardConfig().then((config) => config.spec.modelServing ?? null);
   }, []);
 
   return useFetch(fetchCallbackPromise, undefined);

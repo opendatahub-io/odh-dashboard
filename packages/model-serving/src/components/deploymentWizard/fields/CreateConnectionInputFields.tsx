@@ -36,14 +36,11 @@ export const useCreateConnectionData = (
     existingData?.saveConnection,
   );
 
-  const defaultSaveConnection =
-    modelLocationData?.type !== ModelLocationType.EXISTING &&
-    modelLocationData?.type !== ModelLocationType.PVC &&
-    !(
-      modelLocationData?.type === ModelLocationType.NEW &&
-      !!modelLocationData.connection &&
-      isGeneratedSecretName(modelLocationData.connection)
-    );
+  const defaultSaveConnection = !(
+    modelLocationData?.type === ModelLocationType.NEW &&
+    !!modelLocationData.connection &&
+    isGeneratedSecretName(modelLocationData.connection)
+  );
 
   const saveConnection = userSaveConnection ?? defaultSaveConnection;
 
@@ -60,7 +57,7 @@ export const useCreateConnectionData = (
   }, []);
 
   return {
-    data: connectionData,
+    data: modelLocationData?.type === ModelLocationType.NEW ? connectionData : {},
     setData,
     projectName,
   };

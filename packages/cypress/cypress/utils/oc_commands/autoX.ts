@@ -33,7 +33,7 @@ export const isAutomlEnabled = (): Cypress.Chainable<boolean> =>
       `oc get OdhDashboardConfig -A -o json | jq -e '.items[].spec.dashboardConfig.automl == true'`,
       { failOnNonZeroExit: false },
     )
-    .then((result) => result.code === 0);
+    .then((result) => result.exitCode === 0);
 
 /**
  * Set the AutoML feature flag in OdhDashboardConfig.
@@ -47,7 +47,7 @@ export const setAutomlEnabled = (enabled: boolean): Cypress.Chainable<Cypress.Ex
   return cy
     .exec(buildPatchCommand(DASHBOARD_CONFIG, patchSpec, namespace))
     .then((result) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         const maskedStderr = maskSensitiveInfo(result.stderr);
         throw new Error(`Failed to set AutoML feature flag to ${enabled}: ${maskedStderr}`);
       }

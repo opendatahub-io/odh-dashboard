@@ -38,7 +38,6 @@ jobs:
         uses: ./.github/actions/module-caches
         with:
           node-version: ${{ env.NODE_VERSION }}
-          include-cypress: 'true'
       - name: eval-hub node_modules cache
         uses: actions/cache@v4
         with:
@@ -49,7 +48,7 @@ jobs:
 
       - name: Install eval-hub dependencies
         working-directory: packages/eval-hub/frontend
-        run: npm install
+        run: npm install && npx --no-install cypress install
 
       - name: Lint
         working-directory: packages/eval-hub/frontend

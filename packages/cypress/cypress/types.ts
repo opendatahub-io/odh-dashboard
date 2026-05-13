@@ -228,7 +228,7 @@ export type StandaloneNotebookTestData = {
 };
 
 export type CommandLineResult = {
-  code: number;
+  exitCode: number;
   stdout: string;
   stderr: string;
 };
@@ -548,6 +548,10 @@ export type ModelRegistryTestData = {
   versionCustomProperties: Array<{ key: string; value: string }>;
   newVersionPropertyKey: string;
   newVersionPropertyValue: string;
+
+  // Hardware profile configuration
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
 };
 
 export type ManageRegistryPermissionsTestData = {

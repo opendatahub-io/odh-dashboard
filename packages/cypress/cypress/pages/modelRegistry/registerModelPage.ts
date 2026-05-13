@@ -54,6 +54,16 @@ class RegisterModelPage {
     return cy.get(selector);
   }
 
+  findModelTypeSelect() {
+    return cy.findByTestId('register-model-type-select');
+  }
+
+  selectModelType(
+    optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
+  ) {
+    this.findModelTypeSelect().findSelectOption(optionName).click();
+  }
+
   findObjectStorageAutofillButton() {
     return cy.findByTestId('object-storage-autofill-button');
   }
