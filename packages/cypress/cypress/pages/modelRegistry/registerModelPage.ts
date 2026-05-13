@@ -128,7 +128,7 @@ class RegisterModelPage {
   selectModelType(
     optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
   ) {
-    cy.get('#register-model-type-toggle').click();
+    cy.findByTestId('register-model-type-select').click();
     cy.findByRole('option', { name: optionName }).click();
   }
 }
