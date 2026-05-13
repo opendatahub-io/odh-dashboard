@@ -11,5 +11,5 @@ spec:
     Build a LangGraph ReAct agent with PostgreSQL-backed conversation
     memory. Full chat history is persisted in the database while a FIFO
     sliding window keeps only the last N messages in the LLM context.
-  url: 'https://red.ht/agentic-starter-kits-langgraph-memory'
+  url: 'https://red.ht/4drobSV'
   appName: agentic-starter-kits

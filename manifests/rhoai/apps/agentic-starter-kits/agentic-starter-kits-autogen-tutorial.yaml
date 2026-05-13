@@ -11,5 +11,5 @@ spec:
     Build an AutoGen AssistantAgent that connects to MCP servers over
     SSE to load tools dynamically. Exposes a FastAPI endpoint for
     chat completions with tool-augmented reasoning.
-  url: 'https://red.ht/agentic-starter-kits-autogen-mcp'
+  url: 'https://red.ht/4nrsFx9'
   appName: agentic-starter-kits

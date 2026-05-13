@@ -11,5 +11,5 @@ spec:
     General-purpose agent using Google Agent Development Kit (ADK) 2.0 with
     web search. Uses LiteLLM to route inference through a Llama Stack
     server's OpenAI-compatible API endpoint.
-  url: 'https://red.ht/agentic-starter-kits-google-adk'
+  url: 'https://red.ht/4nqHaBi'
   appName: agentic-starter-kits
