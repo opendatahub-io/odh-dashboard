@@ -3,6 +3,7 @@ import { Button } from '@patternfly/react-core';
 import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowLaunchRoute } from '@odh-dashboard/internal/routes/pipelines/mlflow';
+import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 
 const LaunchMlflowButton: React.FC<{
   testId: string;
@@ -23,7 +24,7 @@ const LaunchMlflowButton: React.FC<{
       iconPosition="end"
       aria-label="Launch MLflow"
       onClick={() =>
-        fireLinkTrackingEvent('Launch MLflow clicked', {
+        fireLinkTrackingEvent(MlflowTrackingEvents.LAUNCH_CLICKED, {
           from: window.location.pathname,
           href,
           section,

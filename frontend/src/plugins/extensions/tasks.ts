@@ -9,13 +9,6 @@ import { SupportedArea } from '#~/concepts/areas/types';
 
 const extensions: (AreaExtension | TaskGroupExtension | TaskItemExtension)[] = [
   {
-    type: 'app.area',
-    properties: {
-      id: 'task-assistant',
-      devFlags: ['Task assistant'],
-    },
-  },
-  {
     type: 'app.task/group',
     properties: {
       id: 'ai-hub',

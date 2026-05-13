@@ -418,6 +418,7 @@ func TestBuildInlineGuardrailOptions_InputOnly(t *testing.T) {
 	require.Len(t, opts.Config.Prompts, 1)
 	assert.Equal(t, nemo.TaskSelfCheckInput, opts.Config.Prompts[0].Task)
 	assert.Equal(t, "Check input: {{ user_input }}", opts.Config.Prompts[0].Content)
+	assert.Equal(t, 200, opts.Config.Prompts[0].MaxTokens)
 }
 
 func TestBuildInlineGuardrailOptions_OutputOnly(t *testing.T) {
