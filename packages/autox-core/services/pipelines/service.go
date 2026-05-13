@@ -50,7 +50,7 @@ type PipelineTargetOptions struct {
 // Provide either Namespace (to discover DSPA) or BaseURL (to use directly)
 func (s *PipelinesService) CreatePipelineRun(ctx context.Context, opts PipelineTargetOptions, req *CreatePipelineRunRequest) (*PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("creating pipeline run", "pipeline_id", req.PipelineID)
+	logger.Info("creating pipeline run", "display_name", req.DisplayName)
 
 	baseURL, err := s.resolveBaseURL(ctx, opts)
 	if err != nil {
@@ -292,7 +292,8 @@ func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, baseURL, 
 	var matchedPipeline *Pipeline
 	for i := range pipelinesResp.Pipelines {
 		p := &pipelinesResp.Pipelines[i]
-		if strings.EqualFold(p.DisplayName, pipelineName) {
+		if (p.Namespace == "" || p.Namespace == namespace) &&
+			strings.EqualFold(p.DisplayName, pipelineName) {
 			matchedPipeline = p
 			break
 		}
@@ -667,14 +668,15 @@ func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, opts Pipe
 		return nil, ErrPipelineRunNotFound
 	}
 
-	if run.PipelineID != "" && run.PipelineVersionID != "" {
-		version, vErr := s.Client.GetPipelineVersion(ctx, baseURL, run.PipelineID, run.PipelineVersionID)
+	ref := run.PipelineVersionReference
+	if ref != nil && ref.PipelineID != "" && ref.PipelineVersionID != "" {
+		version, vErr := s.Client.GetPipelineVersion(ctx, baseURL, ref.PipelineID, ref.PipelineVersionID)
 		if vErr != nil {
 			logger.Warn("failed to fetch pipeline version for spec enrichment",
-				"pipelineID", run.PipelineID,
-				"versionID", run.PipelineVersionID,
+				"pipelineID", ref.PipelineID,
+				"versionID", ref.PipelineVersionID,
 				"error", vErr)
-		} else if version != nil && version.PipelineSpec != nil {
+		} else if version != nil && len(version.PipelineSpec) > 0 {
 			run.PipelineSpec = version.PipelineSpec
 		}
 	}

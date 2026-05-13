@@ -1,81 +1,128 @@
 package pipelines
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
-// PipelineRun represents a Kubeflow Pipelines run
+// PipelineRun represents a Kubeflow Pipelines v2beta1 run.
 type PipelineRun struct {
-	RunID             string
-	DisplayName       string
-	PipelineID        string
-	PipelineVersionID string
-	Status            string
-	CreatedAt         *time.Time
-	FinishedAt        *time.Time
-	RuntimeConfig     *RuntimeConfig
-	Error             *RunError
-	PipelineSpec      *string
+	RunID                    string                    `json:"run_id"`
+	DisplayName              string                    `json:"display_name"`
+	Description              string                    `json:"description,omitempty"`
+	ExperimentID             string                    `json:"experiment_id,omitempty"`
+	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
+	State                    string                    `json:"state,omitempty"`
+	StorageState             string                    `json:"storage_state,omitempty"`
+	ServiceAccount           string                    `json:"service_account,omitempty"`
+	CreatedAt                string                    `json:"created_at,omitempty"`
+	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
+	FinishedAt               string                    `json:"finished_at,omitempty"`
+	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
+	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
+	Error                    *ErrorInfo                `json:"error,omitempty"`
+	RunDetails               *RunDetails               `json:"run_details,omitempty"`
 }
 
-// RuntimeConfig holds runtime parameters for a pipeline run
+// PipelineVersionReference identifies a pipeline and version.
+type PipelineVersionReference struct {
+	PipelineID        string `json:"pipeline_id,omitempty"`
+	PipelineVersionID string `json:"pipeline_version_id,omitempty"`
+}
+
+// RuntimeConfig holds runtime parameters for a pipeline run.
 type RuntimeConfig struct {
-	Parameters   map[string]any
-	PipelineRoot string
+	Parameters   map[string]any `json:"parameters,omitempty"`
+	PipelineRoot string         `json:"pipeline_root,omitempty"`
 }
 
-// RunError captures error details from a failed pipeline run
-type RunError struct {
-	Code    string
-	Message string
+// RuntimeStatus represents a state transition in a run's history.
+type RuntimeStatus struct {
+	UpdateTime string     `json:"update_time,omitempty"`
+	State      string     `json:"state,omitempty"`
+	Error      *ErrorInfo `json:"error,omitempty"`
 }
 
-// CreatePipelineRunRequest is the request payload for creating a pipeline run
+// ErrorInfo captures error details from a failed pipeline run or task.
+type ErrorInfo struct {
+	Code    int32  `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// RunDetails contains task-level execution details.
+type RunDetails struct {
+	TaskDetails []TaskDetail `json:"task_details,omitempty"`
+}
+
+// TaskDetail represents a single task's execution within a pipeline run.
+type TaskDetail struct {
+	RunID        string          `json:"run_id,omitempty"`
+	TaskID       string          `json:"task_id"`
+	DisplayName  string          `json:"display_name,omitempty"`
+	CreateTime   string          `json:"create_time,omitempty"`
+	StartTime    string          `json:"start_time,omitempty"`
+	EndTime      string          `json:"end_time,omitempty"`
+	State        string          `json:"state,omitempty"`
+	StateHistory []RuntimeStatus `json:"state_history,omitempty"`
+	ChildTasks   []ChildTask     `json:"child_tasks,omitempty"`
+	Error        *ErrorInfo      `json:"error,omitempty"`
+}
+
+// ChildTask identifies a child task pod.
+type ChildTask struct {
+	PodName string `json:"pod_name,omitempty"`
+}
+
+// CreatePipelineRunRequest is the request payload for creating a pipeline run.
 type CreatePipelineRunRequest struct {
-	DisplayName       string
-	PipelineID        string
-	PipelineVersionID string
-	RuntimeConfig     *RuntimeConfig
+	DisplayName              string                    `json:"display_name"`
+	Description              string                    `json:"description,omitempty"`
+	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
+	RuntimeConfig            *RuntimeConfig            `json:"runtime_config,omitempty"`
 }
 
-// PipelineRunResponse wraps a list of pipeline runs with pagination
+// PipelineRunResponse wraps a list of pipeline runs with pagination.
 type PipelineRunResponse struct {
-	Runs          []PipelineRun
-	TotalSize     int32
-	NextPageToken string
+	Runs          []PipelineRun `json:"runs,omitempty"`
+	TotalSize     int32         `json:"total_size,omitempty"`
+	NextPageToken string        `json:"next_page_token,omitempty"`
 }
 
-// Pipeline represents a Kubeflow Pipeline
+// Pipeline represents a Kubeflow Pipeline.
 type Pipeline struct {
-	PipelineID  string
-	DisplayName string
-	Description string
-	CreatedAt   time.Time
+	PipelineID  string `json:"pipeline_id"`
+	DisplayName string `json:"display_name"`
+	Description string `json:"description,omitempty"`
+	CreatedAt   string `json:"created_at,omitempty"`
+	Namespace   string `json:"namespace,omitempty"`
 }
 
-// PipelineVersion represents a version of a pipeline
+// PipelineVersion represents a version of a pipeline.
 type PipelineVersion struct {
-	PipelineVersionID string
-	PipelineID        string
-	DisplayName       string
-	Description       string
-	CreatedAt         time.Time
-	PipelineSpec      *string
+	PipelineVersionID string          `json:"pipeline_version_id"`
+	PipelineID        string          `json:"pipeline_id"`
+	DisplayName       string          `json:"display_name"`
+	Description       string          `json:"description,omitempty"`
+	CreatedAt         string          `json:"created_at,omitempty"`
+	PipelineSpec      json.RawMessage `json:"pipeline_spec,omitempty"`
 }
 
-// PipelinesResponse wraps a list of pipelines
+// PipelinesResponse wraps a list of pipelines.
 type PipelinesResponse struct {
-	Pipelines     []Pipeline
-	TotalSize     int32
-	NextPageToken string
+	Pipelines     []Pipeline `json:"pipelines,omitempty"`
+	TotalSize     int32      `json:"total_size,omitempty"`
+	NextPageToken string     `json:"next_page_token,omitempty"`
 }
 
-// PipelineVersionsResponse wraps a list of pipeline versions
+// PipelineVersionsResponse wraps a list of pipeline versions.
 type PipelineVersionsResponse struct {
-	PipelineVersions []PipelineVersion
-	TotalSize        int32
-	NextPageToken    string
+	PipelineVersions []PipelineVersion `json:"pipeline_versions,omitempty"`
+	TotalSize        int32             `json:"total_size,omitempty"`
+	NextPageToken    string            `json:"next_page_token,omitempty"`
 }
 
-// ListRunsParams contains parameters for listing pipeline runs
+// ListRunsParams contains parameters for listing pipeline runs.
 type ListRunsParams struct {
 	PageSize  int32
 	PageToken string
@@ -108,7 +155,7 @@ type PaginatedRuns struct {
 
 // DSPA (Data Science Pipelines Application) models
 
-// DSPAStatus represents the status of a DSPA instance
+// DSPAStatus represents the status of a DSPA instance.
 type DSPAStatus struct {
 	Ready        bool
 	APIServerURL string
@@ -116,7 +163,7 @@ type DSPAStatus struct {
 	Conditions   []DSPACondition
 }
 
-// DSPACondition represents a condition in DSPA status
+// DSPACondition represents a condition in DSPA status.
 type DSPACondition struct {
 	Type    string
 	Status  string
@@ -124,12 +171,12 @@ type DSPACondition struct {
 	Message string
 }
 
-// DSPAObjectStorage holds the resolved object storage configuration from a DSPA
+// DSPAObjectStorage holds the resolved object storage configuration from a DSPA.
 type DSPAObjectStorage struct {
-	SecretName     string // name of the Kubernetes Secret holding the credentials
-	AccessKeyField string // key inside SecretName that holds the access key ID
-	SecretKeyField string // key inside SecretName that holds the secret access key
-	EndpointURL    string // fully constructed endpoint: scheme://host[:port]
-	Bucket         string // default bucket from the DSPA spec
-	Region         string // S3-compatible region
+	SecretName     string
+	AccessKeyField string
+	SecretKeyField string
+	EndpointURL    string
+	Bucket         string
+	Region         string
 }

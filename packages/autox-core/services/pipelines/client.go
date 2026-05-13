@@ -56,13 +56,8 @@ type PipelinesClientConfig struct {
 
 // DefaultPipelinesClientConfig for default constructor (production)
 type DefaultPipelinesClientConfig struct {
-	// InsecureSkipVerify controls whether the client verifies the server's certificate chain and host name.
-	// If true, accepts any certificate presented by the server and any host name in that certificate.
-	// Should only be used for local development/testing, never in production.
 	InsecureSkipVerify bool
-	// RootCAs defines the set of root certificate authorities that clients use when verifying server certificates.
-	// If nil, the default system root CAs are used.
-	RootCAs *x509.CertPool
+	RootCAs            *x509.CertPool
 }
 
 // NewPipelinesClient creates a client with injectable HTTP client (for testing)
@@ -80,7 +75,6 @@ func NewDefaultPipelinesClient(cfg DefaultPipelinesClientConfig) *PipelinesClien
 	transport.MaxIdleConns = 100
 	transport.MaxIdleConnsPerHost = 100
 
-	// Configure TLS settings if provided
 	if cfg.InsecureSkipVerify || cfg.RootCAs != nil {
 		if transport.TLSClientConfig == nil {
 			transport.TLSClientConfig = &tls.Config{}
@@ -120,21 +114,7 @@ func (t *pipelinesRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 
 // CreatePipelineRun creates a new pipeline run
 func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, reqData *CreatePipelineRunRequest) (*PipelineRun, error) {
-	// Marshal request to KFP JSON format
-	kfpReq := map[string]any{
-		"display_name": reqData.DisplayName,
-	}
-	if reqData.PipelineID != "" {
-		kfpReq["pipeline_id"] = reqData.PipelineID
-	}
-	if reqData.PipelineVersionID != "" {
-		kfpReq["pipeline_version_id"] = reqData.PipelineVersionID
-	}
-	if reqData.RuntimeConfig != nil {
-		kfpReq["runtime_config"] = reqData.RuntimeConfig
-	}
-
-	body, err := json.Marshal(kfpReq)
+	body, err := json.Marshal(reqData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -156,13 +136,12 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 		return nil, readHTTPError(resp)
 	}
 
-	// Parse KFP JSON response to domain model
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var run PipelineRun
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&run); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPRun(kfpResp), nil
+	return &run, nil
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID
@@ -187,12 +166,12 @@ func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var run PipelineRun
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&run); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPRun(kfpResp), nil
+	return &run, nil
 }
 
 // ListPipelineRuns queries the Kubeflow Pipelines API for runs
@@ -231,12 +210,12 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var response PipelineRunResponse
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPRunsResponse(kfpResp), nil
+	return &response, nil
 }
 
 // TerminateRun terminates a running pipeline
@@ -346,14 +325,13 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 			return nil, err
 		}
 
-		var kfpResp map[string]any
-		err = json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp)
+		var page PipelinesResponse
+		err = json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&page)
 		resp.Body.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
 
-		page := parseKFPPipelinesResponse(kfpResp)
 		allPipelines = append(allPipelines, page.Pipelines...)
 		totalSize = page.TotalSize
 
@@ -364,9 +342,8 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 	}
 
 	return &PipelinesResponse{
-		Pipelines:     allPipelines,
-		TotalSize:     totalSize,
-		NextPageToken: "",
+		Pipelines: allPipelines,
+		TotalSize: totalSize,
 	}, nil
 }
 
@@ -393,12 +370,12 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var version PipelineVersion
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&version); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPPipelineVersion(kfpResp), nil
+	return &version, nil
 }
 
 // ListPipelineVersions retrieves all versions for a pipeline
@@ -423,12 +400,12 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var response PipelineVersionsResponse
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPVersionsResponse(kfpResp), nil
+	return &response, nil
 }
 
 // CreatePipeline creates a new pipeline
@@ -460,12 +437,12 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var pipeline Pipeline
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&pipeline); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPPipeline(kfpResp), nil
+	return &pipeline, nil
 }
 
 // UploadPipelineVersion uploads a new pipeline version from file content
@@ -511,12 +488,12 @@ func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL str
 		return nil, readHTTPError(resp)
 	}
 
-	var kfpResp map[string]any
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&kfpResp); err != nil {
+	var version PipelineVersion
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&version); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	return parseKFPPipelineVersion(kfpResp), nil
+	return &version, nil
 }
 
 // readHTTPError reads an HTTP error response and translates known status codes
@@ -556,116 +533,4 @@ type HTTPError struct {
 
 func (e *HTTPError) Error() string {
 	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
-}
-
-// Helper functions to parse KFP JSON responses to domain models
-// These handle the JSON unmarshaling internally - no business logic
-
-func parseKFPRun(data map[string]any) *PipelineRun {
-	run := &PipelineRun{}
-	if v, ok := data["run_id"].(string); ok {
-		run.RunID = v
-	}
-	if v, ok := data["display_name"].(string); ok {
-		run.DisplayName = v
-	}
-	if v, ok := data["pipeline_id"].(string); ok {
-		run.PipelineID = v
-	}
-	if v, ok := data["pipeline_version_id"].(string); ok {
-		run.PipelineVersionID = v
-	}
-	if v, ok := data["status"].(string); ok {
-		run.Status = v
-	}
-	// Parse timestamps, runtime_config, error if needed
-	return run
-}
-
-func parseKFPRunsResponse(data map[string]any) *PipelineRunResponse {
-	resp := &PipelineRunResponse{}
-	if v, ok := data["total_size"].(float64); ok {
-		resp.TotalSize = int32(v)
-	}
-	if v, ok := data["next_page_token"].(string); ok {
-		resp.NextPageToken = v
-	}
-	if runs, ok := data["runs"].([]any); ok {
-		for _, r := range runs {
-			if runMap, ok := r.(map[string]any); ok {
-				resp.Runs = append(resp.Runs, *parseKFPRun(runMap))
-			}
-		}
-	}
-	return resp
-}
-
-func parseKFPPipeline(data map[string]any) *Pipeline {
-	p := &Pipeline{}
-	if v, ok := data["pipeline_id"].(string); ok {
-		p.PipelineID = v
-	}
-	if v, ok := data["display_name"].(string); ok {
-		p.DisplayName = v
-	}
-	if v, ok := data["description"].(string); ok {
-		p.Description = v
-	}
-	return p
-}
-
-func parseKFPPipelinesResponse(data map[string]any) *PipelinesResponse {
-	resp := &PipelinesResponse{}
-	if v, ok := data["total_size"].(float64); ok {
-		resp.TotalSize = int32(v)
-	}
-	if v, ok := data["next_page_token"].(string); ok {
-		resp.NextPageToken = v
-	}
-	if pipelines, ok := data["pipelines"].([]any); ok {
-		for _, p := range pipelines {
-			if pMap, ok := p.(map[string]any); ok {
-				resp.Pipelines = append(resp.Pipelines, *parseKFPPipeline(pMap))
-			}
-		}
-	}
-	return resp
-}
-
-func parseKFPPipelineVersion(data map[string]any) *PipelineVersion {
-	v := &PipelineVersion{}
-	if val, ok := data["pipeline_version_id"].(string); ok {
-		v.PipelineVersionID = val
-	}
-	if val, ok := data["pipeline_id"].(string); ok {
-		v.PipelineID = val
-	}
-	if val, ok := data["display_name"].(string); ok {
-		v.DisplayName = val
-	}
-	if val, ok := data["description"].(string); ok {
-		v.Description = val
-	}
-	if val, ok := data["pipeline_spec"].(string); ok {
-		v.PipelineSpec = &val
-	}
-	return v
-}
-
-func parseKFPVersionsResponse(data map[string]any) *PipelineVersionsResponse {
-	resp := &PipelineVersionsResponse{}
-	if v, ok := data["total_size"].(float64); ok {
-		resp.TotalSize = int32(v)
-	}
-	if v, ok := data["next_page_token"].(string); ok {
-		resp.NextPageToken = v
-	}
-	if versions, ok := data["pipeline_versions"].([]any); ok {
-		for _, ver := range versions {
-			if vMap, ok := ver.(map[string]any); ok {
-				resp.PipelineVersions = append(resp.PipelineVersions, *parseKFPPipelineVersion(vMap))
-			}
-		}
-	}
-	return resp
 }
