@@ -52,11 +52,7 @@ const captureCallback = (): ((opts: unknown) => Promise<unknown>) => {
     undefined,
     jest.fn(),
   ]);
-  const latestCall = mockUseFetchState.mock.calls.at(-1);
-  if (!latestCall) {
-    throw new Error('useFetchState was not called');
-  }
-  return latestCall[0] as (opts: unknown) => Promise<unknown>;
+  return mockUseFetchState.mock.calls[0][0] as (opts: unknown) => Promise<unknown>;
 };
 
 const originalFetch = global.fetch;
