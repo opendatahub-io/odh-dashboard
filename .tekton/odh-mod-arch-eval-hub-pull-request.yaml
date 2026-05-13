@@ -9,7 +9,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main" && ( "packages/eval-hub/**".pathChanged()
+      == "odh-release" && ( "packages/eval-hub/**".pathChanged()
       || ".tekton/odh-mod-arch-eval-hub-pull-request.yaml".pathChanged() || "Dockerfile.workspace".pathChanged()
       )
   creationTimestamp: null

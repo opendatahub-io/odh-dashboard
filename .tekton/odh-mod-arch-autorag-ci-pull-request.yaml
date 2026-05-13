@@ -10,7 +10,7 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
       event == "pull_request" 
-      && target_branch == "main"
+      && target_branch == "odh-release"
       && ( "packages/autorag/**".pathChanged()
             || ".tekton/odh-mod-arch-autorag-ci-pull-request.yaml".pathChanged() )
   creationTimestamp: null
