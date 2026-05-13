@@ -1369,8 +1369,8 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Value: "false",
 		},
 		{
-			Name:  "MILVUS_DB_PATH",
-			Value: "~/.llama/milvus.db",
+			Name:  "FAISS_STORE_DIR",
+			Value: "~/.llama/faiss",
 		},
 		{
 			Name:  "VLLM_MAX_TOKENS",
@@ -1379,18 +1379,6 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 		{
 			Name:  "SENTENCE_TRANSFORMERS_HOME",
 			Value: "/opt/app-root/src/.cache/huggingface/hub",
-		},
-		{
-			Name:  "HF_HUB_OFFLINE",
-			Value: "1",
-		},
-		{
-			Name:  "TRANSFORMERS_OFFLINE",
-			Value: "1",
-		},
-		{
-			Name:  "HF_DATASETS_OFFLINE",
-			Value: "1",
 		},
 	}
 
@@ -1562,7 +1550,7 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx stack run /etc/llama-stack/config.yaml"},
 					Env: append(envVars, corev1.EnvVar{
 						Name:  "OGX_CONFIG_DIR",
 						Value: "/opt/app-root/src/.ogx/distributions/rh/",

@@ -504,7 +504,7 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 		var cfg LlamaStackConfig
 		require.NoError(t, cfg.FromYAML(result))
 
-		require.Len(t, cfg.Providers.VectorIO, 2) // default milvus + pg-provider
+		require.Len(t, cfg.Providers.VectorIO, 2) // default faiss + pg-provider
 		var pgProv *Provider
 		for i := range cfg.Providers.VectorIO {
 			if cfg.Providers.VectorIO[i].ProviderID == "pg-provider" {
@@ -705,24 +705,24 @@ func TestGenerateLlamaStackConfig_VectorStoreProviderConfig(t *testing.T) {
 	})
 
 	t.Run("error when external provider_id collides with built-in provider", func(t *testing.T) {
-		// "milvus" is pre-registered by NewDefaultLlamaStackConfig; using the same ID for an
+		// "faiss" is pre-registered by NewDefaultLlamaStackConfig; using the same ID for an
 		// external provider must be rejected, not silently produce a duplicate provider entry.
 		vs := ValidatedVectorStore{
 			Provider: models.VectorIOProvider{
-				ProviderID:   "milvus", // same as the built-in default
+				ProviderID:   "faiss", // same as the built-in default
 				ProviderType: "remote::milvus",
 				Config:       models.VectorIOProviderConfig{Extra: map[string]interface{}{"uri": "http://external-milvus:19530"}},
 			},
 			RegisteredStore: models.RegisteredVectorStore{
 				VectorStoreID:  "vs-conflict",
-				ProviderID:     "milvus",
+				ProviderID:     "faiss",
 				EmbeddingModel: defaultEmbeddingProviderModelID,
 			},
 		}
 
 		_, err := newTestClient().generateLlamaStackConfig(ctx, "ns", nil, []ValidatedVectorStore{vs}, nil, "")
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "milvus")
+		assert.Contains(t, err.Error(), "faiss")
 		assert.Contains(t, err.Error(), "conflicts")
 	})
 

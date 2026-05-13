@@ -28,7 +28,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, yamlStr, "version: \"2\"")
 	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
-	assert.Contains(t, yamlStr, "default_provider_id: milvus")
+	assert.Contains(t, yamlStr, "default_provider_id: faiss")
 
 	// Test JSON conversion
 	jsonStr, err := config.ToJSON()
@@ -36,7 +36,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
 	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
-	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+	assert.Contains(t, jsonStr, "\"default_provider_id\":\"faiss\"")
 
 	// Test parsing YAML
 	var parsedConfig LlamaStackConfig
@@ -44,7 +44,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
 	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
-	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "faiss", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 
@@ -54,7 +54,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
 	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
-	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "faiss", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 }
@@ -79,7 +79,7 @@ func TestProviderCreationUtilities(t *testing.T) {
 	provider3 := NewSentenceTransformerProvider()
 	assert.Equal(t, "sentence-transformers", provider3.ProviderID)
 	assert.Equal(t, "inline::sentence-transformers", provider3.ProviderType)
-	assert.Equal(t, EmptyConfig(), provider3.Config)
+	assert.Equal(t, map[string]interface{}{"trust_remote_code": false}, provider3.Config)
 
 	// Test NewVLLMProvider
 	provider4 := NewVLLMProvider("vllm-1", "http://vllm.example.com")
@@ -1278,8 +1278,8 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, expectedAPIs, config.APIs)
 
 	require.Len(t, config.Providers.FileProcessors, 1)
-	assert.Equal(t, "pypdf", config.Providers.FileProcessors[0].ProviderID)
-	assert.Equal(t, "inline::pypdf", config.Providers.FileProcessors[0].ProviderType)
+	assert.Equal(t, "auto", config.Providers.FileProcessors[0].ProviderID)
+	assert.Equal(t, "inline::auto", config.Providers.FileProcessors[0].ProviderType)
 
 	require.Len(t, config.Providers.Responses, 1)
 	assert.Equal(t, "builtin", config.Providers.Responses[0].ProviderID)
@@ -1292,8 +1292,8 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
 
 	require.Len(t, config.Providers.VectorIO, 1)
-	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
-	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
+	assert.Equal(t, "faiss", config.Providers.VectorIO[0].ProviderID)
+	assert.Equal(t, "inline::faiss", config.Providers.VectorIO[0].ProviderType)
 
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
@@ -1307,17 +1307,15 @@ func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
 	persistence, ok := config.Providers.Responses[0].Config["persistence"].(map[string]interface{})
 	require.True(t, ok, "persistence should be a map")
 
-	agentState, ok := persistence["agent_state"].(map[string]interface{})
-	require.True(t, ok, "agent_state should be a map")
-	assert.Equal(t, "agents", agentState["namespace"])
-	assert.Equal(t, "kv_default", agentState["backend"])
-
 	responses, ok := persistence["responses"].(map[string]interface{})
 	require.True(t, ok, "responses should be a map")
 	assert.Equal(t, "responses", responses["table_name"])
 	assert.Equal(t, "sql_default", responses["backend"])
 	assert.Equal(t, 10000, responses["max_write_queue_size"])
 	assert.Equal(t, 4, responses["num_writers"])
+
+	_, hasAgentState := persistence["agent_state"]
+	assert.False(t, hasAgentState, "agent_state should not be present in upstream 1.0.0 config")
 
 	t.Run("round-trip preserves persistence fields", func(t *testing.T) {
 		yamlStr, err := config.ToYAML()
@@ -1329,11 +1327,6 @@ func TestDefaultConfig_ResponsesProviderPersistence(t *testing.T) {
 		require.Len(t, parsed.Providers.Responses, 1)
 		pPersistence, ok := parsed.Providers.Responses[0].Config["persistence"].(map[interface{}]interface{})
 		require.True(t, ok, "persistence should survive round-trip")
-
-		pAgentState, ok := pPersistence["agent_state"].(map[interface{}]interface{})
-		require.True(t, ok)
-		assert.Equal(t, "agents", pAgentState["namespace"])
-		assert.Equal(t, "kv_default", pAgentState["backend"])
 
 		pResponses, ok := pPersistence["responses"].(map[interface{}]interface{})
 		require.True(t, ok)
@@ -1353,9 +1346,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "responses:")
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
-		assert.Contains(t, yamlStr, "inline::milvus")
-		assert.Contains(t, yamlStr, "inline::pypdf")
-		assert.Contains(t, yamlStr, "default_provider_id: milvus")
+		assert.Contains(t, yamlStr, "inline::faiss")
+		assert.Contains(t, yamlStr, "inline::auto")
+		assert.Contains(t, yamlStr, "default_provider_id: faiss")
 	})
 
 	t.Run("JSON contains expected keys", func(t *testing.T) {
@@ -1365,9 +1358,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "\"responses\"")
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
-		assert.Contains(t, jsonStr, "inline::milvus")
-		assert.Contains(t, jsonStr, "inline::pypdf")
-		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
+		assert.Contains(t, jsonStr, "inline::faiss")
+		assert.Contains(t, jsonStr, "inline::auto")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"faiss\"")
 	})
 }
 

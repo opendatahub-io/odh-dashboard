@@ -441,20 +441,20 @@ providers:
   inference:
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
-    config: {}
-  vector_io:
-  - provider_id: milvus
-    provider_type: inline::milvus
     config:
-      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+      trust_remote_code: false
+  vector_io:
+  - provider_id: faiss
+    provider_type: inline::faiss
+    config:
+      persistence:
+        namespace: vector_io::faiss
+        backend: kv_default
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
     config:
       persistence:
-        agent_state:
-          namespace: agents
-          backend: kv_default
         responses:
           table_name: responses
           backend: sql_default

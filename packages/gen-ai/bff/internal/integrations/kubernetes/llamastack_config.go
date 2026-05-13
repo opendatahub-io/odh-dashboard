@@ -27,8 +27,14 @@ type LlamaStackConfig struct {
 
 // VectorStores configures the default vector store behavior for Llama Stack.
 type VectorStores struct {
-	DefaultProviderID     string                    `json:"default_provider_id" yaml:"default_provider_id"`
-	DefaultEmbeddingModel VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+	DefaultProviderID      string                    `json:"default_provider_id" yaml:"default_provider_id"`
+	DefaultEmbeddingModel  VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+	FileSearchParams       map[string]interface{}    `json:"file_search_params,omitempty" yaml:"file_search_params,omitempty"`
+	ContextPromptParams    map[string]interface{}    `json:"context_prompt_params,omitempty" yaml:"context_prompt_params,omitempty"`
+	AnnotationPromptParams map[string]interface{}    `json:"annotation_prompt_params,omitempty" yaml:"annotation_prompt_params,omitempty"`
+	FileIngestionParams    map[string]interface{}    `json:"file_ingestion_params,omitempty" yaml:"file_ingestion_params,omitempty"`
+	ChunkRetrievalParams   map[string]interface{}    `json:"chunk_retrieval_params,omitempty" yaml:"chunk_retrieval_params,omitempty"`
+	FileBatchParams        map[string]interface{}    `json:"file_batch_params,omitempty" yaml:"file_batch_params,omitempty"`
 }
 
 // VectorStoreModelReference references an embedding model by provider and model ID.
@@ -163,10 +169,9 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
 			VectorIO: []Provider{
-				NewProvider("milvus", "inline::milvus", map[string]interface{}{
-					"db_path": "/opt/app-root/src/.llama/distributions/rh/milvus.db",
+				NewProvider("faiss", "inline::faiss", map[string]interface{}{
 					"persistence": map[string]interface{}{
-						"namespace": "vector_io::milvus",
+						"namespace": "vector_io::faiss",
 						"backend":   "kv_default",
 					},
 				}),
@@ -174,10 +179,6 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
-						"agent_state": map[string]interface{}{
-							"namespace": "agents",
-							"backend":   "kv_default",
-						},
 						"responses": map[string]interface{}{
 							"table_name":           "responses",
 							"backend":              "sql_default",
@@ -188,7 +189,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				}),
 			},
 			FileProcessors: []Provider{
-				NewProvider("pypdf", "inline::pypdf", EmptyConfig()),
+				NewProvider("auto", "inline::auto", EmptyConfig()),
 			},
 			Files: []Provider{
 				NewProvider("localfs-files", "inline::localfs", map[string]interface{}{
@@ -229,20 +230,60 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					"backend":   "kv_default",
 				},
 				"inference": map[string]interface{}{
-					"table_name": "inference_store",
-					"backend":    "sql_default",
+					"table_name":           "inference_store",
+					"backend":              "sql_default",
+					"max_write_queue_size": 10000,
+					"num_writers":          4,
 				},
 				"conversations": map[string]interface{}{
 					"table_name": "openai_conversations",
 					"backend":    "sql_default",
 				},
+				"prompts": map[string]interface{}{
+					"table_name": "prompts",
+					"backend":    "sql_default",
+				},
+				"connectors": map[string]interface{}{
+					"table_name": "connectors",
+					"backend":    "sql_default",
+				},
 			},
 		},
 		VectorStores: VectorStores{
-			DefaultProviderID: "milvus",
+			DefaultProviderID: "faiss",
 			DefaultEmbeddingModel: VectorStoreModelReference{
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
+			},
+			FileSearchParams: map[string]interface{}{
+				"header_template": "file_search tool found {num_chunks} chunks:\nBEGIN of file_search tool results.\n",
+				"footer_template": "END of file_search tool results.\n",
+			},
+			ContextPromptParams: map[string]interface{}{
+				"chunk_annotation_template": "Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n",
+				"context_template":          "The above results were retrieved to help answer the user's query: \"{query}\". Use them as supporting information only in answering this query. {annotation_instruction}\n",
+			},
+			AnnotationPromptParams: map[string]interface{}{
+				"enable_annotations":              true,
+				"annotation_instruction_template": "Cite sources immediately at the end of sentences before punctuation, using `<|file-id|>` format like 'This is a fact <|file-Cn3MSNn72ENTiiq11Qda4A|>.'. Do not add extra punctuation. Use only the file IDs provided, do not invent new ones.",
+				"chunk_annotation_template":       "[{index}] {metadata_text} cite as <|{file_id}|>\n{chunk_text}\n",
+			},
+			FileIngestionParams: map[string]interface{}{
+				"default_chunk_size_tokens":    512,
+				"default_chunk_overlap_tokens": 128,
+			},
+			ChunkRetrievalParams: map[string]interface{}{
+				"chunk_multiplier":          5,
+				"max_tokens_in_context":     4000,
+				"default_reranker_strategy": "rrf",
+				"rrf_impact_factor":         60.0,
+				"weighted_search_alpha":     0.5,
+				"default_search_mode":       "vector",
+			},
+			FileBatchParams: map[string]interface{}{
+				"max_concurrent_files_per_batch": 3,
+				"file_batch_chunk_size":          10,
+				"cleanup_interval_seconds":       86400,
 			},
 		},
 		ExternalProvidersDir: "/opt/app-root/.llama/providers.d",
@@ -377,7 +418,9 @@ func NewSentenceTransformerProvider() Provider {
 	return Provider{
 		ProviderID:   "sentence-transformers",
 		ProviderType: "inline::sentence-transformers",
-		Config:       EmptyConfig(),
+		Config: map[string]interface{}{
+			"trust_remote_code": false,
+		},
 	}
 }
 
