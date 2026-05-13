@@ -94,7 +94,7 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 	// The pipeline type key is passed through so each run carries its pipeline_type field.
 	var allRuns []models.PipelineRun
 	for pipelineType, discovered := range discoveredPipelines {
-		runs, err := app.repositories.PipelineRuns.GetAllPipelineRuns(client, ctx, discovered.PipelineVersionID, pipelineType)
+		runs, err := app.repositories.PipelineRuns.GetAllPipelineRuns(client, ctx, discovered.PipelineID, pipelineType)
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to get pipeline runs: %w", err))
 			return
@@ -212,8 +212,7 @@ func (app *App) resolveOwnedRun(
 	}
 	matchedPipelineType := ""
 	for pipelineType, discovered := range discoveredPipelines {
-		if run.PipelineVersionReference.PipelineID == discovered.PipelineID &&
-			run.PipelineVersionReference.PipelineVersionID == discovered.PipelineVersionID {
+		if run.PipelineVersionReference.PipelineID == discovered.PipelineID {
 			matchedPipelineType = pipelineType
 			break
 		}
