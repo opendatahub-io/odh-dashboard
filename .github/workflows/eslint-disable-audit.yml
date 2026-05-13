@@ -2,8 +2,7 @@ name: Test / ESLint Disable Audit
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [RHOAIENG-56189/eslint-disable-audit]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
