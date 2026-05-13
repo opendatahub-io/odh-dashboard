@@ -12,7 +12,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type LlamaStackDistributionInstallEnvelope Envelope[*models.LlamaStackDistributionInstallModel, None]
+type OGXServerInstallEnvelope Envelope[*models.OGXServerInstallModel, None]
 
 func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
@@ -39,7 +39,7 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	var installRequest models.LlamaStackDistributionInstallRequest
+	var installRequest models.OGXServerInstallRequest
 	if r.Body == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("request body is required"))
 		return
@@ -93,17 +93,17 @@ func (app *App) LlamaStackDistributionInstallHandler(w http.ResponseWriter, r *h
 	}
 
 	// Pass the InstallModel structs directly to the repository
-	response, err := app.repositories.LlamaStackDistribution.InstallLlamaStackDistribution(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, maasClient)
+	response, err := app.repositories.OGXServer.InstallOGXServer(client, ctx, identity, namespace, installRequest.Models, installRequest.VectorStores, maasClient)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	lsdEnvelope := LlamaStackDistributionInstallEnvelope{
+	ogxEnvelope := OGXServerInstallEnvelope{
 		Data: response,
 	}
 
-	if err := app.WriteJSON(w, http.StatusOK, lsdEnvelope, nil); err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, ogxEnvelope, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}

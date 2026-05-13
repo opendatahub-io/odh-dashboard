@@ -671,7 +671,7 @@ var _ = Describe("LlamaStackDeleteVectorStoreHandler", func() {
 	It("missing LlamaStack client in context", func() {
 		t := GinkgoT()
 		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoresDeletePath+"?namespace=default&vector_store_id=vs-test123", nil)
-		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		// Simulate AttachNamespace middleware but skip AttachOGXClient
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		req = req.WithContext(ctx)
 
@@ -917,7 +917,7 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 	It("missing LlamaStack client in context", func() {
 		t := GinkgoT()
 		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoreFilesDeletePath+"?namespace=default&vector_store_id=vs-test123&file_id=file-test456", nil)
-		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		// Simulate AttachNamespace middleware but skip AttachOGXClient
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		req = req.WithContext(ctx)
 

@@ -19,7 +19,7 @@ func NewResponsesRepository() *ResponsesRepository {
 }
 
 // CreateResponse creates an AI response and transforms the result for BFF use.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *ResponsesRepository) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)

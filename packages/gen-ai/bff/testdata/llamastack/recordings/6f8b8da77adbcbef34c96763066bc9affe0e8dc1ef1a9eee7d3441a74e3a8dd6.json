@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there!\n\nGreat",
+                "content": "Hello there! Great to hear from you.\n\nAh, Mobility as a Service \u2013 a truly transformative concept that's revolutionizing how people think about and experience",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 5,
+            "completion_tokens": 32,
             "prompt_tokens": 5,
-            "total_tokens": 811,
+            "total_tokens": 802,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": " to hear from the world of Mobility as a Service! MaaS is such a fascinating and crucial concept for the future of urban transport and sustainable living.\n\nIt's all about integrating various modes of transport for seamless, user-centric journeys",
+                "content": " urban travel. It's fascinating how MaaS integrates various transport options into a single, seamless, and often more sustainable journey.\n\nHow can I assist you today? Are you looking to discuss specific aspects of MaaS, explore its challenges",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 53,
+            "completion_tokens": 80,
             "prompt_tokens": 5,
-            "total_tokens": 859,
+            "total_tokens": 850,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -96,7 +96,7 @@
           "choices": [
             {
               "delta": {
-                "content": ".\n\nWhat's new or on your mind today from the MaaS perspective?",
+                "content": " or opportunities, or do you have a particular question in mind?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -113,9 +113,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 70,
+            "completion_tokens": 93,
             "prompt_tokens": 5,
-            "total_tokens": 876,
+            "total_tokens": 863,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

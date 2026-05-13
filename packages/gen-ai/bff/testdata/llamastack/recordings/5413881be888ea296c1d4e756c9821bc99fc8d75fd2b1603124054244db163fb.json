@@ -1,0 +1,168 @@
+{
+  "test_id": "bff/testdata/llamastack/test.py::record",
+  "request": {
+    "method": "POST",
+    "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+    "headers": {},
+    "body": {
+      "model": "models/gemini-2.5-flash",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First message in conversation"
+        },
+        {
+          "role": "assistant",
+          "content": "The best first message depends entirely on the **context** of the conversation. Who are you talking to? What's the purpose? Where are you communicating?\n\nHere are various options based on common scenarios:\n\n---\n\n### General / Casual (Friends, Acquaintances, New Contacts)\n\n1.  **Simple & Direct:**\n    *   \"Hey [Name]!\"\n    *   \"Hi there!\"\n    *   \"Hello!\"\n\n2.  **Checking In:**\n    *   \"Hey [Name], how are you doing?\"\n    *   \"What's up, [Name]?\"\n    *   \"How's your week going?\"\n\n3.  **After Meeting Someone (e.g., at an event):**\n    *   \"Hey [Name], it was great meeting you at [event] earlier!\"\n    *   \"Nice chatting with you at [event/place]! Hope you got home okay.\"\n\n4.  **After Getting Someone's Number:**\n    *   \"Hey, it's [Your Name] from [where you met]. Good to connect!\"\n    *   \"Hi [Name], [Your Name] here! Just wanted to send a quick message so you have my number.\"\n\n5.  **With a Specific Purpose (Friendly):**\n    *   \"Hey [Name], I had a quick question about [topic].\"\n    *   \"Hi [Name], just wanted to share [link/photo/info] with you \u2013 thought you might like it!\"\n    *   \"Hey, I was thinking about [event/activity] and it made me think of you.\"\n\n---\n\n### Professional / Work (Email, Slack, Teams)\n\n1.  **Formal Introduction:**\n    *   \"Dear [Name],\" (Email)\n    *   \"Hello [Name],\" (Email/Chat)\n    *   \"Good morning/afternoon [Name],\"\n\n2.  **With a Clear Purpose/Request:**\n    *   \"I hope you're having a productive week. I'm reaching out about [topic].\"\n    *   \"I wanted to follow up on our discussion regarding [topic].\"\n    *   \"Could I get a moment of your time to discuss [X]?\"\n    *   \"My name is [Your Name] from [Your Company], and I'm writing to inquire about [topic].\"\n\n3.  **Internal Team Message:**\n    *   \"Hi [Team Member's Name], quick question regarding [project].\"\n    *   \"Morning [Name], just wanted to check in on [task].\"\n    *   \"Hey team, just wanted to share an update on [X].\"\n\n---\n\n### Dating Apps\n\n1.  **Reference Their Profile (Best Option!):**\n    *   \"Hey [Name], I saw you're into [hobby] \u2013 what's your favorite part about it?\"\n    *   \"Love your photo at [location]! Have you traveled anywhere else cool recently?\"\n    *   \"Your bio mentioned [interest] \u2013 that's really cool! What made you get into it?\"\n    *   \"That's a great [dog/cat/plant] in your picture! What's their name?\"\n\n2.  **Open-Ended Question (General):**\n    *   \"Hey [Name], how's your week going so far?\"\n    *   \"What's one thing that always makes you laugh?\"\n\n3.  **Light & Playful:**\n    *   \"Alright, convince me: coffee or tea?\"\n    *   \"Worst pick-up line you've ever received, go!\" (Use with caution!)\n\n---\n\n### Customer Service / Support\n\n1.  **When You Need Help:**\n    *   \"I am writing to inquire about an issue with my [product/service].\"\n    *   \"Hello, I'm experiencing a problem with [brief description].\"\n    *   \"My order number is [X], and I have a question regarding its status.\"\n    *   \"Could you please provide information on [topic]?\"\n\n---\n\n### Key Principles for ANY First Message:\n\n*   **Be Clear & Concise:** Get to the point, especially in professional settings.\n*   **Personalize:** Use their name and reference something specific if possible.\n*   **Ask a Question:** This invites a response and keeps the conversation going.\n*   **Proofread:** Avoid typos!\n*   **Be Polite & Respectful:** Always.\n\n**To give you the best advice, tell me:**\n*   **Who are you messaging?** (Friend, colleague, new acquaintance, potential date, customer service)\n*   **What is the goal of the message?** (Say hello, ask a question, make plans, introduce yourself, resolve an issue)\n*   **What platform are you using?** (Text, email, social media DM, dating app)"
+        },
+        {
+          "role": "user",
+          "content": "Continue our conversation"
+        }
+      ],
+      "stream": true,
+      "stream_options": {
+        "include_usage": true
+      }
+    },
+    "endpoint": "/v1/chat/completions",
+    "model": "models/gemini-2.5-flash",
+    "provider_metadata": {
+      "openai_sdk_version": "2.36.0"
+    }
+  },
+  "response": {
+    "body": [
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5413881be888",
+          "choices": [
+            {
+              "delta": {
+                "content": "Okay, perfect! To continue our conversation,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 9,
+            "prompt_tokens": 1068,
+            "total_tokens": 1228,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5413881be888",
+          "choices": [
+            {
+              "delta": {
+                "content": " I need a little more information from you.\n\nMy last message ended with me asking:\n\n\"To give you the best advice, tell me:\n*   **Who are you messaging?** (Friend, colleague, new acquaintance,",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 57,
+            "prompt_tokens": 1068,
+            "total_tokens": 1276,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5413881be888",
+          "choices": [
+            {
+              "delta": {
+                "content": " potential date, customer service)\n*   **What is the goal of the message?** (Say hello, ask a question, make plans, introduce yourself, resolve an issue)\n*   **What platform are you using?**",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": null,
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 105,
+            "prompt_tokens": 1068,
+            "total_tokens": 1324,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      },
+      {
+        "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
+        "__data__": {
+          "id": "rec-5413881be888",
+          "choices": [
+            {
+              "delta": {
+                "content": " (Text, email, social media DM, dating app)\"\n\nOnce you tell me those details, I can help you craft the *best* first message for your specific situation!",
+                "function_call": null,
+                "refusal": null,
+                "role": "assistant",
+                "tool_calls": null
+              },
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null
+            }
+          ],
+          "created": 0,
+          "model": "models/gemini-2.5-flash",
+          "object": "chat.completion.chunk",
+          "service_tier": null,
+          "system_fingerprint": null,
+          "usage": {
+            "completion_tokens": 141,
+            "prompt_tokens": 1068,
+            "total_tokens": 1360,
+            "completion_tokens_details": null,
+            "prompt_tokens_details": null
+          }
+        }
+      }
+    ],
+    "is_streaming": true
+  },
+  "id_normalization_mapping": {}
+}

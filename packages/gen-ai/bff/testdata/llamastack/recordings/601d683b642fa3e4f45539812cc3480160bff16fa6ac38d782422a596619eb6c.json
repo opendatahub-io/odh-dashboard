@@ -61,9 +61,9 @@
                 "tool_calls": [
                   {
                     "index": null,
-                    "id": "function-call-9213641390864895757",
+                    "id": "function-call-11746507478655389584",
                     "function": {
-                      "arguments": "{\"query\":\"what is machine learning\"}",
+                      "arguments": "{\"query\":\"machine learning\"}",
                       "name": "file_search"
                     },
                     "type": "function"
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 18,
+            "completion_tokens": 16,
             "prompt_tokens": 45,
-            "total_tokens": 127,
+            "total_tokens": 128,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

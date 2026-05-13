@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! As an AI, I don't experience feelings, but I'm",
+                "content": "Hello! I'm functioning perfectly and ready to assist, so I'd say I'",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 17,
+            "completion_tokens": 19,
             "prompt_tokens": 7,
-            "total_tokens": 318,
+            "total_tokens": 659,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": " operating perfectly and ready to help.\n\nHow are you today?",
+                "content": "m doing great. Thank you for asking!\n\nHow are you doing today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 30,
+            "completion_tokens": 35,
             "prompt_tokens": 7,
-            "total_tokens": 331,
+            "total_tokens": 675,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
