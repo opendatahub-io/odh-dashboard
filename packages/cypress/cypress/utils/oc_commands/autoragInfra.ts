@@ -399,12 +399,18 @@ export const createLlamaStackConfigMap = (
 };
 
 /**
- * Get the LlamaStack core image from the operator's relatedImages.
+ * Get the LlamaStack core image using a multi-step discovery:
+ *   1. CYPRESS_AUTORAG_LLAMASTACK_IMAGE env var (explicit override)
+ *   2. Operator CSV relatedImages (RHOAI clusters that ship the image)
+ *   3. LlamaStack operator controller-manager env vars (fallback for clusters
+ *      where the CSV doesn't include the image yet)
+ *
  * Works on both ODH and RHOAI clusters.
  */
 const getLlamaStackImage = (): Cypress.Chainable<string> => {
   const envOverride = Cypress.env('AUTORAG_LLAMASTACK_IMAGE') as string;
   if (envOverride) {
+    cy.log(`LlamaStack image (env override): ${envOverride}`);
     return cy.wrap(envOverride);
   }
 
@@ -414,15 +420,36 @@ const getLlamaStackImage = (): Cypress.Chainable<string> => {
       `oc get csv -n ${operatorNs} -o jsonpath='{.items[*].spec.relatedImages[?(@.name=="odh_llama_stack_core_image")].image}'`,
     )
     .then((result) => {
-      const image = result.stdout.trim().replace(/'/g, '');
-      if (!image) {
-        throw new Error(
-          'Could not find LlamaStack core image in operator CSV. ' +
-            'Set CYPRESS_AUTORAG_LLAMASTACK_IMAGE env var.',
-        );
+      const csvImage = result.stdout.trim().replace(/'/g, '');
+      if (csvImage) {
+        cy.log(`LlamaStack image (CSV): ${csvImage}`);
+        return cy.wrap(csvImage);
       }
-      cy.log(`LlamaStack image: ${image}`);
-      return cy.wrap(image);
+
+      // Fallback: discover from the LlamaStack operator's controller-manager deployment.
+      // The operator stores its managed image in the RELATED_IMAGE_RH_DISTRIBUTION env var.
+      cy.log(
+        'LlamaStack image not found in operator CSV, checking LlamaStack operator deployment...',
+      );
+      const appsNs = (Cypress.env('APPLICATIONS_NAMESPACE') as string) || 'redhat-ods-applications';
+      return cy
+        .exec(
+          `oc get deployment llama-stack-k8s-operator-controller-manager -n ${appsNs} ` +
+            `-o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="RELATED_IMAGE_RH_DISTRIBUTION")].value}'`,
+          { failOnNonZeroExit: false },
+        )
+        .then((deployResult) => {
+          const deployImage = deployResult.stdout.trim().replace(/'/g, '');
+          if (deployImage) {
+            cy.log(`LlamaStack image (operator deployment): ${deployImage}`);
+            return cy.wrap(deployImage);
+          }
+
+          throw new Error(
+            'Could not find LlamaStack core image from operator CSV or LlamaStack operator deployment. ' +
+              'Set CYPRESS_AUTORAG_LLAMASTACK_IMAGE env var.',
+          );
+        });
     });
 };
 
@@ -535,7 +562,12 @@ export const provisionAutoragInfrastructure = (
   cy.step('Discover LSD service URL and create credentials secret');
   getLlamaStackServiceURL(namespace).then((lsdUrl) => {
     cy.log(`LlamaStack service URL: ${lsdUrl}`);
-    createLlamaStackSecret(namespace, llamaStackSecretName, lsdUrl, '');
+    // Use a non-empty placeholder for the API key. The upstream pipeline's Python
+    // code gates LlamaStack usage on `if base_url and api_key:` — an empty string
+    // is falsy in Python, causing it to fall into the in-memory code path which
+    // requires chat_model_url/embedding_model_url params we don't set.
+    // LlamaStack accepts any token when auth is disabled, so "no-auth" is safe.
+    createLlamaStackSecret(namespace, llamaStackSecretName, lsdUrl, 'no-auth');
   });
 
   cy.step('Create NetworkPolicy for LlamaStack access');
