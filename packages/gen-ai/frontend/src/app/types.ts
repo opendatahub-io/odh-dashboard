@@ -288,6 +288,12 @@ export type CodeExportTool = {
   vector_store_ids: string[];
 };
 
+export type CodeExportGuardrailConfig = {
+  guardrail_model: string;
+  input_prompt?: string;
+  output_prompt?: string;
+};
+
 export type CodeExportRequest = {
   input: string;
   instructions?: string;
@@ -309,6 +315,7 @@ export type CodeExportRequest = {
     name: string;
     version: number;
   };
+  guardrail_config?: CodeExportGuardrailConfig;
 };
 
 export type CodeExportData = {

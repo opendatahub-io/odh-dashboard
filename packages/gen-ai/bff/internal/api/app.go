@@ -50,6 +50,7 @@ type App struct {
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
+	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
@@ -305,6 +306,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
+		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
