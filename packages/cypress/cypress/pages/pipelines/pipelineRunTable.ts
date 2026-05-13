@@ -60,6 +60,10 @@ class PipelineRunsTable {
     return cy.findByTestId(this.testId);
   }
 
+  findColumnHeaders() {
+    return this.find().find('thead th');
+  }
+
   shouldRowNotExist(name: string) {
     this.find().parents().find('tr').find(`[data-label=Name]`).contains(name).should('not.exist');
     return this;

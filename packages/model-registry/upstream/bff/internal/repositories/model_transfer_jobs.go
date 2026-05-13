@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,10 +11,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,7 +24,7 @@ import (
 
 const (
 	// DefaultAsyncUploadImage is the default container image for async-upload jobs.
-	DefaultAsyncUploadImage  = "ghcr.io/kubeflow/model-registry/job/async-upload:latest"
+	DefaultAsyncUploadImage  = "ghcr.io/kubeflow/hub/job/async-upload:latest"
 	asyncUploadConfigMapName = "model-registry-ui-config"
 	asyncUploadConfigMapKey  = "images-jobs-async-upload"
 )
@@ -971,8 +972,7 @@ func buildSourceSecret(generateNamePrefix string, payload models.ModelTransferJo
 }
 
 func buildDestinationSecret(generateNamePrefix string, payload models.ModelTransferJob, jobID string) (*corev1.Secret, error) {
-	// NOTE: Due to async-upload bug, auth is NOT base64 encoded here
-	auth := fmt.Sprintf("%s:%s", payload.Destination.Username, payload.Destination.Password)
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", payload.Destination.Username, payload.Destination.Password)))
 
 	registry := payload.Destination.Registry
 	if registry == "" {
@@ -1166,7 +1166,28 @@ func registryOriginOnly(serverAddress string) string {
 	if scheme == "" {
 		scheme = "http"
 	}
-	return scheme + "://" + host
+
+	// Ensure port is explicit so the Python ModelRegistry client (which uses
+	// urlparse) does not append it after the path, producing a malformed URL.
+	port := u.Port()
+	if port == "" {
+		if scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+	hostPort := host + ":" + port
+
+	// Preserve any routing prefix (e.g. /model-registry/<name>) that the
+	// gateway needs, but strip the MR API path suffix (/api/...).
+	path := u.Path
+	if idx := strings.Index(path, "/api/"); idx >= 0 {
+		path = path[:idx]
+	}
+	path = strings.TrimRight(path, "/")
+
+	return scheme + "://" + hostPort + path
 }
 
 func cloneDestSecretFromExisting(generateNamePrefix, namespace, jobID string, oldSecret *corev1.Secret) *corev1.Secret {

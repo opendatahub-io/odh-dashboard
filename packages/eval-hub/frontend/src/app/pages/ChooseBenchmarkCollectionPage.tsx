@@ -8,6 +8,7 @@ import {
   Card,
   CardBody,
   CardFooter,
+  CardHeader,
   CardTitle,
   Content,
   Drawer,
@@ -36,7 +37,7 @@ import { Collection } from '~/app/types';
 import { evaluationCreateRoute, evaluationStartRoute, evaluationsBaseRoute } from '~/app/routes';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import CollectionDrawerPanel from '~/app/components/CollectionDrawerPanel';
-import { getCategoryColor } from '~/app/components/benchmarkUtils';
+import { capitalizeFirst, getCategoryColor } from '~/app/components/benchmarkUtils';
 
 const ChooseBenchmarkCollectionPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -115,7 +116,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
         <DrawerContentBody>
           <ApplicationsPage
             title="Select benchmark suite"
-            description="Select a benchmark suite to run on your model or agent."
+            description="Select a benchmark suite to evaluate your model, agent, or pre-recorded responses."
             breadcrumb={
               <Breadcrumb>
                 <BreadcrumbItem
@@ -123,7 +124,7 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                 />
                 <BreadcrumbItem
                   render={() => (
-                    <Link to={evaluationCreateRoute(namespace)}>Create evaluation run</Link>
+                    <Link to={evaluationCreateRoute(namespace)}>Select evaluation type</Link>
                   )}
                 />
                 <BreadcrumbItem isActive>Select benchmark suite</BreadcrumbItem>
@@ -222,16 +223,14 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                         isSelected={isSelected}
                         data-testid={`collection-card-${collection.resource.id}`}
                       >
-                        <CardTitle>
-                          {collection.category && (
-                            <Label
-                              color={getCategoryColor(collection.category)}
-                              isCompact
-                              style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
-                            >
-                              {collection.category}
+                        {collection.category && (
+                          <CardHeader>
+                            <Label color={getCategoryColor(collection.category)} isCompact>
+                              {capitalizeFirst(collection.category)}
                             </Label>
-                          )}
+                          </CardHeader>
+                        )}
+                        <CardTitle>
                           <Button
                             variant="link"
                             isInline
@@ -263,9 +262,10 @@ const ChooseBenchmarkCollectionPage: React.FC = () => {
                           <Button
                             variant="secondary"
                             isInline
+                            data-testid="use-benchmark-suite-button"
                             onClick={() => handleRunCollection(collection)}
                           >
-                            Use this collection
+                            Select benchmark suite
                           </Button>
                         </CardFooter>
                       </Card>

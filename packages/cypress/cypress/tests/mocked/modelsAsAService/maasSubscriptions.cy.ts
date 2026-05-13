@@ -6,14 +6,17 @@ import {
   addModelsToSubscriptionModal,
   deleteSubscriptionModal,
   editRateLimitsModal,
+  editSubscriptionPage,
   subscriptionsPage,
   viewSubscriptionPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockSubscriptions,
   mockSubscriptionInfo,
+  mockSubscriptionInfoMissingModelSummaries,
   mockSubscriptionFormData,
   mockCreateSubscriptionResponse,
+  mockUpdateSubscriptionResponse,
 } from '../../../utils/maasUtils';
 
 const setupCommonIntercepts = () => {
@@ -27,6 +30,7 @@ const setupCommonIntercepts = () => {
       components: {
         [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
+      conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
   );
 };
@@ -53,34 +57,86 @@ describe('Subscriptions Page', () => {
       .findDescription()
       .should(
         'contain.text',
-        'Subscriptions control access and entitlements to AI model endpoints that are available as a service.',
+        'Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model.',
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 6);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
-    const premiumRow = subscriptionsPage.getRow('premium-team-sub');
-    premiumRow.findName().should('contain.text', 'premium-team-sub');
+    const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
+    premiumRow.findPhase().should('contain.text', 'Active');
+    premiumRow.findName().should('contain.text', 'Premium Team Subscription');
     premiumRow.findGroups().should('contain.text', '1 Group');
     premiumRow.findModels().should('contain.text', '2 Models');
     premiumRow.findPriority().should('contain.text', '10');
 
-    const basicRow = subscriptionsPage.getRow('basic-team-sub');
-    basicRow.findName().should('contain.text', 'basic-team-sub');
+    const basicRow = subscriptionsPage.getRow('Basic Team Subscription');
+    basicRow.findName().should('contain.text', 'Basic Team Subscription');
+    basicRow.findPhase().should('contain.text', 'Active');
     basicRow.findGroups().should('contain.text', '1 Group');
     basicRow.findModels().should('contain.text', '1 Model');
     basicRow.findPriority().should('contain.text', '0');
 
+    const negativePriorityRow = subscriptionsPage.getRow('negative-priority-sub');
+    negativePriorityRow.findName().should('contain.text', 'negative-priority-sub');
+    negativePriorityRow.findPhase().should('contain.text', 'Active');
+    negativePriorityRow.findGroups().should('contain.text', '1 Group');
+    negativePriorityRow.findModels().should('contain.text', '1 Model');
+    negativePriorityRow.findPriority().should('contain.text', '-10000');
+
+    const failedRow = subscriptionsPage.getRow('failed-sub');
+    failedRow.findPhase().should('contain.text', 'Failed');
+    failedRow.findPhaseLabel().click();
+    failedRow.findPhasePopover().should('contain.text', 'Failed');
+
+    const pendingRow = subscriptionsPage.getRow('pending-sub');
+    pendingRow.findPhase().should('contain.text', 'Pending');
+
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     premiumRow.findKebabAction('View details').should('exist');
-    premiumRow.findKebabAction('Edit subscription').should('exist');
-    premiumRow.findKebabAction('Delete subscription').should('exist');
+    premiumRow.findKebabAction('Edit').should('exist');
+    premiumRow.findKebabAction('Delete').should('exist');
   });
+
+  it('should filter subscriptions by display name and description', () => {
+    subscriptionsPage.findFilterInput().type('Team Subscription');
+    subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+
+    subscriptionsPage.findFilterInput().type('enterprise');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+
+    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 6);
+  });
+
+  it('should disable the action buttons for a deleting subscription in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: 'deleting-sub' } },
+      { data: mockSubscriptionInfo('deleting-sub') },
+    );
+    subscriptionsPage.visit();
+    subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
+    cy.visit(`/maas/subscriptions/view/deleting-sub`);
+    viewSubscriptionPage.findActionsToggle().click();
+    viewSubscriptionPage.findDeleteActionButton().should('be.disabled');
+    viewSubscriptionPage.findEditActionButton().should('be.disabled');
+  });
+
   it('should delete a subscription', () => {
     cy.interceptOdh(
       'DELETE /maas/api/v1/subscription/:name',
@@ -88,7 +144,7 @@ describe('Subscriptions Page', () => {
       { data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" } },
     ).as('deleteSubscription');
 
-    subscriptionsPage.getRow('premium-team-sub').findKebabAction('Delete subscription').click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
     deleteSubscriptionModal.findInput().type('premium-team-sub');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
@@ -101,7 +157,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -121,16 +177,18 @@ describe('View Subscription Page', () => {
   it('should display the page content with title, breadcrumb, details, groups, and models', () => {
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', { data: mockSubscriptions() });
     subscriptionsPage.visit();
-    subscriptionsPage.getRow(subscriptionName).findKebabAction('View details').click();
+    subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('View details').click();
     cy.url().should('include', `/maas/subscriptions/view/${subscriptionName}`);
 
-    viewSubscriptionPage.findTitle().should('contain.text', subscriptionName);
+    viewSubscriptionPage.findTitle().should('contain.text', 'Premium Team Subscription');
 
     viewSubscriptionPage
       .findDetailsSection()
-      .should('contain.text', subscriptionName)
+      .and('contain.text', 'Phase')
+      .and('contain.text', 'Active')
+      .should('contain.text', 'Premium Team Subscription')
       .and('contain.text', 'Name')
-      .and('contain.text', 'Date created');
+      .and('contain.text', 'Created');
 
     viewSubscriptionPage.findGroupsSection().should('exist');
     viewSubscriptionPage.findGroupsTable().should('contain.text', 'premium-users');
@@ -145,6 +203,22 @@ describe('View Subscription Page', () => {
 
     viewSubscriptionPage.findBreadcrumbSubscriptionsLink().click();
     cy.url().should('include', '/maas/subscriptions');
+  });
+
+  it("should list models from the subscription when model ref doesn't exist", () => {
+    const orphanSubName = 'missing-model-summary-sub';
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: orphanSubName } },
+      { data: mockSubscriptionInfoMissingModelSummaries() },
+    );
+    viewSubscriptionPage.visit(orphanSubName);
+    viewSubscriptionPage.findModelsSection().should('exist');
+    viewSubscriptionPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models')
+      .and('contain.text', '50,000');
   });
 
   it('should show error state when the subscription-info API fails', () => {
@@ -191,6 +265,23 @@ describe('Subscription Create Page', () => {
       .findPriorityValidationError()
       .should('contain.text', 'Priority 10 is already used by');
 
+    // Testing out max and min priority values
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-1000000');
+    createSubscriptionPage.findPriorityMinusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('-99999999999'); // Out of range the input will snap to -1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '-1000000');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('1000000');
+    createSubscriptionPage.findPriorityPlusButton().should('be.disabled');
+
+    createSubscriptionPage.findPriorityInput().clear();
+    createSubscriptionPage.findPriorityInput().type('99999999999'); // Out of range the input will snap to 1000000
+    createSubscriptionPage.findPriorityInput().should('have.value', '1000000');
+
     // Set a non-conflicting priority
     createSubscriptionPage.findPriorityInput().clear();
     createSubscriptionPage.findPriorityInput().type('5');
@@ -217,7 +308,19 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findModelsTable().findByTestId('add-token-limit-0').click();
     editRateLimitsModal.shouldBeOpen();
     editRateLimitsModal.findCountInput(0).clear();
+    editRateLimitsModal.findCountInput(0).type('100000');
+    editRateLimitsModal.findSaveButton().should('be.disabled');
+    editRateLimitsModal
+      .findHelperText(0)
+      .should('contain.text', 'Token count exceeds maximum allowed value');
+    editRateLimitsModal.findCountInput(0).clear();
     editRateLimitsModal.findCountInput(0).type('5000');
+    editRateLimitsModal.findTimeInput(0).clear();
+    editRateLimitsModal.findTimeInput(0).type('100000');
+    editRateLimitsModal.findSaveButton().should('be.disabled');
+    editRateLimitsModal
+      .findHelperText(0)
+      .should('contain.text', 'Time value exceeds maximum allowed value');
     editRateLimitsModal.findTimeInput(0).clear();
     editRateLimitsModal.findTimeInput(0).type('1');
     editRateLimitsModal.findSaveButton().click();
@@ -257,6 +360,69 @@ describe('Subscription Create Page', () => {
       });
 
     // Verify we navigate back to the subscriptions list
+    cy.url().should('include', '/subscriptions');
+  });
+});
+
+describe('Edit Subscription Page', () => {
+  const subscriptionName = 'basic-team-sub';
+
+  beforeEach(() => {
+    setupCommonIntercepts();
+    cy.interceptOdh('GET /maas/api/v1/subscription-policy-form-data', {
+      data: mockSubscriptionFormData(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: subscriptionName } },
+      { data: mockSubscriptionInfo(subscriptionName) },
+    );
+  });
+
+  it('should prefill the form with existing subscription data', () => {
+    editSubscriptionPage.visit(subscriptionName);
+    editSubscriptionPage.findTitle().should('contain.text', 'Edit subscription');
+
+    editSubscriptionPage.findNameInput().should('have.value', 'Basic Team Subscription');
+    editSubscriptionPage.findPriorityInput().should('have.value', '0');
+    editSubscriptionPage.findGroupsSelect().should('contain.text', 'system:authenticated');
+    editSubscriptionPage.findModelsTable().should('contain.text', 'flan-t5-small');
+  });
+
+  it('should save an updated subscription', () => {
+    cy.interceptOdh(
+      'PUT /maas/api/v1/update-subscription/:name',
+      { path: { name: subscriptionName } },
+      { data: mockUpdateSubscriptionResponse(subscriptionName) },
+    ).as('updateSubscription');
+
+    editSubscriptionPage.visit(subscriptionName);
+
+    editSubscriptionPage.findNameInput().clear().type('Updated Subscription');
+    editSubscriptionPage.findDescriptionInput().clear().type('Updated description');
+
+    editSubscriptionPage.findSaveButton().click();
+
+    cy.wait('@updateSubscription');
+    cy.url().should('include', '/subscriptions');
+  });
+
+  it('should show policy warning when groups are changed', () => {
+    editSubscriptionPage.visit(subscriptionName);
+
+    editSubscriptionPage.findPolicyChangeWarning().should('not.exist');
+
+    editSubscriptionPage.selectGroup('premium-users');
+
+    editSubscriptionPage.findPolicyChangeWarning().should('exist');
+    editSubscriptionPage
+      .findPolicyChangeWarning()
+      .should('contain.text', 'Authorization policies are not automatically updated');
+  });
+
+  it('should navigate to subscriptions list on cancel', () => {
+    editSubscriptionPage.visit(subscriptionName);
+    editSubscriptionPage.findCancelButton().click();
     cy.url().should('include', '/subscriptions');
   });
 });

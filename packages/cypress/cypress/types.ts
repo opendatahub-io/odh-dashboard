@@ -228,13 +228,14 @@ export type StandaloneNotebookTestData = {
 };
 
 export type CommandLineResult = {
-  code: number;
+  exitCode: number;
   stdout: string;
   stderr: string;
 };
 
 export type TestConfig = {
   ODH_DASHBOARD_URL: string;
+  TEST_USER: UserAuthConfig;
   TEST_USER_3: UserAuthConfig;
   TEST_USER_5: UserAuthConfig;
   OCP_ADMIN_USER: UserAuthConfig;
@@ -295,6 +296,14 @@ export type DataScienceProjectData = {
   userSubjectKind: string;
   groupSubjectKind: string;
   yamlEditorModelName: string;
+  legacyServingRuntime?: string;
+  legacyModelLocationURI?: string;
+  legacyHardwareProfileName?: string;
+  subscriptionDisplayName: string;
+  subscriptionName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigContainerImage: string;
 };
 
 export type NotebookImageData = {
@@ -363,7 +372,6 @@ export type HardwareProfilesData = {
   projectDescription: string;
   workbenchName: string;
   hardwareProfileDeploymentSize: string;
-  workbenchRunningStatus: string;
   notebookImageName: string;
   editWorkbenchAction: string;
   settingsHardwareProfilesUrl: string;
@@ -504,6 +512,46 @@ export type ModelRegistryTestData = {
 
   // Object storage paths
   objectStoragePathV2: string;
+
+  // OCI Register and Store
+  ociModelName: string;
+  ociModelDescription: string;
+  ociVersionName: string;
+  ociVersionDescription: string;
+  ociModelFormat: string;
+  ociModelFormatVersion: string;
+  ociJobName: string;
+  ociSourceEndpoint: string;
+  ociSourceBucket: string;
+  ociSourceRegion: string;
+  ociSourcePath: string;
+  ociTransferJobStartedNotification: string;
+  ociTransferJobFailedNotification: string;
+  ociDestinationRegistry: string;
+  ociDestinationUri: string;
+  ociDestinationUsername: string;
+  ociDestinationPassword: string;
+
+  // OCI Register and Store — URI origin variant
+  ociUriModelName: string;
+  ociUriJobName: string;
+  ociUriOriginUri: string;
+
+  // Custom properties retention test configuration
+  modelNamePrefix: string;
+  modelDescription: string;
+  versionName: string;
+  versionDescription: string;
+  sourceModelFormat: string;
+  sourceModelFormatVersion: string;
+  modelCustomProperties: Array<{ key: string; value: string }>;
+  versionCustomProperties: Array<{ key: string; value: string }>;
+  newVersionPropertyKey: string;
+  newVersionPropertyValue: string;
+
+  // Hardware profile configuration
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -588,6 +636,8 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId: string;
   sourceName2: string;
   redhatAiSourceId2: string;
+  sourceName3: string;
+  redhatAiSourceId3: string;
 };
 
 export type TrainJobTestData = {
@@ -602,13 +652,40 @@ export type TrainJobTestData = {
   gpuQuota: number;
 };
 
+/** E2E fixture for RayJob pause / scale / delete (RHOAIENG-56125). */
+export type RayJobE2eTestData = {
+  projectName: string;
+  rayJobName: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+  workerGroupName: string;
+  rayImage: string;
+  rayVersion: string;
+};
+
+export type RayJobTestData = {
+  projectName: string;
+  rayJobName: string;
+  rayImage: string;
+  flavorName: string;
+  clusterQueueName: string;
+  localQueueName: string;
+  cpuQuota: number;
+  memoryQuota: number;
+  gpuQuota: number;
+};
+
 export type PipelineTestData = {
   projectNamePrefix: string;
   pipelineName: string;
   pipelineDescription: string;
   runName: string;
   runDescription: string;
-  runGroupName: string;
+  experimentName: string;
   dspaSecretName: string;
   pipelineUrl: string;
 };
@@ -647,4 +724,41 @@ export type PromptManagementPromptData = {
 export type PromptManagementTestData = {
   projectName: string;
   prompts: PromptManagementPromptData[];
+};
+
+export type MlflowExperimentRunData = {
+  name: string;
+  parameters: Record<string, string>;
+  metrics: Record<string, string>;
+};
+
+export type MlflowExperimentData = {
+  name: string;
+  renamedName: string;
+};
+
+export type AutomlTestData = {
+  projectNamePrefix: string;
+  dspaSecretName: string;
+  secretName: string;
+  runName: string;
+  runDescription: string;
+  trainingDataFile: string;
+  taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
+  awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // Number of top models to train (min 1, default 3)
+  topN?: number;
+  // Tabular task types (binary, multiclass, regression)
+  labelColumn?: string;
+  // Timeseries task type
+  targetColumn?: string;
+  idColumn?: string;
+  timestampColumn?: string;
+};
+
+export type MlflowExperimentsTestData = {
+  projectName: string;
+  experiments: MlflowExperimentData[];
+  runs: MlflowExperimentRunData[];
+  nonExistentExperiment: string;
 };

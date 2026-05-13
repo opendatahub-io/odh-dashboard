@@ -127,9 +127,18 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   });
 
   it(
-    'Create custom serving runtime for Gen AI',
+    'Gen AI: serving runtime, model deployment (URI), and playground',
     {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ServingRuntime', '@NonConcurrent'],
+      tags: [
+        '@Sanity',
+        '@SanitySet1',
+        '@GenAI',
+        '@ServingRuntime',
+        '@ModelServing',
+        '@Deployment',
+        '@Playground',
+        '@NonConcurrent',
+      ],
     },
     () => {
       if (skipTest) {
@@ -140,6 +149,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
+      cy.step('Phase 1 — Create custom serving runtime for Gen AI');
       cy.step('Navigate to Serving Runtimes settings');
       cy.wrap(servingRuntimes.navigate(), { timeout: 100000 });
 
@@ -172,20 +182,8 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step(`Verify serving runtime ${servingRuntimeName} was created`);
       cy.contains(servingRuntimeDisplayName).should('be.visible');
       servingRuntimes.getRowById(servingRuntimeName).find().should('exist');
-    },
-  );
 
-  it(
-    'Deploy Gen AI model using URI',
-    {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@ModelServing', '@Deployment', '@NonConcurrent'],
-    },
-    () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
+      cy.step('Phase 2 — Deploy Gen AI model using URI');
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
@@ -203,7 +201,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       // Select URI as model location and enter the model URI
       modelServingWizard.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
       modelServingWizard.findUrilocationInput().should('exist').type(testData.connectionURI);
-      // Uncheck "Create a connection to this location" since connection was already created in previous test
+      // Uncheck "Create a connection to this location" — serving runtime phase did not create a saved connection here
       modelServingWizard.findSaveConnectionCheckbox().uncheck();
       modelServingWizard.findModelTypeSelect().should('be.visible').should('not.be.disabled');
       modelServingWizard.findModelTypeSelectOption(testData.modelType).click();
@@ -249,30 +247,21 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
       cy.step('Verify model deployment was created and started');
       waitForResource('inferenceService', testData.inferenceServiceName, projectName);
-      checkInferenceServiceState(testData.inferenceServiceName, projectName, { checkReady: true });
-    },
-  );
+      cy.then(() => {
+        checkInferenceServiceState(testData.inferenceServiceName, projectName, {
+          checkReady: true,
+        });
+      });
 
-  it(
-    'Create and verify Gen AI Playground functionality',
-    {
-      tags: ['@Sanity', '@SanitySet1', '@GenAI', '@Playground', '@NonConcurrent'],
-    },
-    () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
+      cy.step('Phase 3 — Create and verify Gen AI Playground functionality');
       cy.step('Log into the application');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
-      cy.step('Navigate to Gen AI Playground');
-      genAiPlayground.navigate(projectName);
+      cy.step('Navigate to AI asset endpoints page');
+      genAiPlayground.navigateToAssets(projectName);
 
-      cy.step('Click Create playground button');
-      genAiPlayground.findEmptyState().should('exist');
-      genAiPlayground.findCreatePlaygroundButton().should('be.visible').click();
+      cy.step('Click Add to playground button');
+      genAiPlayground.findAddToPlaygroundButton().should('be.visible').click();
 
       cy.step('Ensure model is selected in the configuration table');
       genAiPlayground.findConfigurationTable().should('be.visible');
@@ -290,7 +279,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Wait for playground service to be created');
       waitForResource('service', testData.playgroundServiceName, projectName);
 
-      cy.step('Navigate to playground URL');
+      cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);
 
       cy.step(`Select ${testData.modelDeploymentName} model from dropdown`);

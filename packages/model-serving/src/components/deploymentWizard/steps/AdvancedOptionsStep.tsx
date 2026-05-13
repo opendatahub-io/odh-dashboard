@@ -5,6 +5,7 @@ import {
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { isServingRuntimeKind } from '@odh-dashboard/internal/pages/modelServing/customServingRuntimes/utils';
 import {
   Form,
@@ -22,10 +23,10 @@ import { TokenAuthenticationField } from '../fields/TokenAuthenticationField';
 import { RuntimeArgsField } from '../fields/RuntimeArgsField';
 import { EnvironmentVariablesField } from '../fields/EnvironmentVariablesField';
 import { DeploymentStrategyField } from '../fields/DeploymentStrategyField';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { type UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import { AvailableAiAssetsFieldsComponent } from '../fields/ModelAvailabilityFields';
 import type { ExternalDataMap } from '../ExternalDataLoader';
-import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
 export const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'rbac.authorization.k8s.io',
@@ -94,6 +95,16 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     }
     return kserveContainer.env?.map((ev) => `${ev.name}=${ev.value ?? ''}`) || [];
   };
+
+  const { isGenAiEnabled } = wizardState.state.modelAvailability;
+  const hasModelPlaygroundExtensionFields = React.useMemo(
+    () => wizardState.fields.some((f) => f.parentId === 'model-playground-availability'),
+    [wizardState.fields],
+  );
+  const showModelPlaygroundAvailabilitySection =
+    wizardState.state.modelAvailability.showField &&
+    (isGenAiEnabled || hasModelPlaygroundExtensionFields);
+
   if (!wizardState.loaded.advancedOptionsLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -117,7 +128,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
       <Form>
         <FormSection title="Advanced settings">
           <Stack hasGutter>
-            {wizardState.state.modelAvailability.showField && (
+            {showModelPlaygroundAvailabilitySection && (
               <StackItem>
                 <FormGroup
                   label="Model availability"
@@ -135,6 +146,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                   <AvailableAiAssetsFieldsComponent
                     data={wizardState.state.modelAvailability.data}
                     setData={wizardState.state.modelAvailability.setData}
+                    isGenAiEnabled={isGenAiEnabled}
                     wizardState={wizardState}
                     externalData={externalData}
                   />
@@ -216,6 +228,13 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
                 </FormGroup>
               </StackItem>
             )}
+            {/* Timeout field rendered via extension system */}
+            <GenericFieldRenderer
+              fieldId="kserve/timeout"
+              wizardState={wizardState}
+              externalData={externalData}
+              isEditing={wizardState.initialData?.isEditing}
+            />
           </Stack>
         </FormSection>
       </Form>

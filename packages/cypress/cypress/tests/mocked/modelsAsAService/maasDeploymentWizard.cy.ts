@@ -42,27 +42,21 @@ describe('MaaS Deployment Wizard', () => {
           [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
           [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
         },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
-    const config = mockDashboardConfig({
-      disableNIMModelServing: true,
-      disableKServe: false,
-      genAiStudio: true,
-      modelAsService: true,
-      disableLLMd: false,
-    });
-    cy.intercept('GET', '/api/config', {
-      body: {
-        ...config,
-        spec: {
-          ...config.spec,
-          dashboardConfig: {
-            ...config.spec.dashboardConfig,
-            'gateway-dev': true,
-          },
-        },
-      },
-    });
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableNIMModelServing: true,
+        disableKServe: false,
+        genAiStudio: true,
+        modelAsService: true,
+        disableLLMd: false,
+        llmGatewayField: true,
+      }),
+    );
+
     initMockGatewayIntercepts({
       gateways: [
         {
@@ -212,8 +206,8 @@ describe('MaaS Deployment Wizard', () => {
 
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
     });
 
     cy.wait('@createLLMInferenceService').then((interception) => {
@@ -225,16 +219,20 @@ describe('MaaS Deployment Wizard', () => {
           namespace: 'openshift-ingress',
         },
       ]);
+
+      expect(interception.request.body.metadata.annotations).to.not.have.property(
+        'security.opendatahub.io/enable-auth',
+      );
     });
 
     cy.wait('@createLLMInferenceService');
     cy.get('@createLLMInferenceService.all').should('have.length', 2);
     cy.wait('@createMaaSModelRef').then((interception) => {
       expect(interception.request.url).not.to.include('?dryRun=true');
-      expect(interception.request.body.name).to.equal('test-llm-inference-service');
-      expect(interception.request.body.namespace).to.equal('test-project');
-      expect(interception.request.body.displayName).to.equal('Test LLM Inference Service');
-      expect(interception.request.body.description).to.equal(
+      expect(interception.request.body.data.name).to.equal('test-llm-inference-service');
+      expect(interception.request.body.data.namespace).to.equal('test-project');
+      expect(interception.request.body.data.displayName).to.equal('Test LLM Inference Service');
+      expect(interception.request.body.data.description).to.equal(
         'Test LLM Inference Service Description',
       );
     });
@@ -263,7 +261,7 @@ describe('MaaS Deployment Wizard', () => {
     hardwareProfileSection.findSelect().should('exist');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
     hardwareProfileSection.selectProfile(
-      'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -279,8 +277,8 @@ describe('MaaS Deployment Wizard', () => {
     cy.wait('@updateMaaSModelRef').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=true');
       expect(interception.request.url).to.include('/test-project/test-llm-inference-service');
-      expect(interception.request.body.displayName).to.equal('test-llmd-model-2');
-      expect(interception.request.body.description).to.equal('test-llmd-description-2');
+      expect(interception.request.body.data.displayName).to.equal('test-llmd-model-2');
+      expect(interception.request.body.data.description).to.equal('test-llmd-description-2');
     });
     cy.wait('@updateLLMInferenceService').then((interception) => {
       expect(interception.request.url).to.include('?dryRun=All');
@@ -328,7 +326,7 @@ describe('MaaS Deployment Wizard', () => {
     hardwareProfileSection.findSelect().should('exist');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
     hardwareProfileSection.selectProfile(
-      'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+      'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 

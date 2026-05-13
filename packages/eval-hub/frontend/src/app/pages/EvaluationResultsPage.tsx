@@ -30,7 +30,6 @@ import {
   formatDate,
   formatDuration,
   getBenchmarkName,
-  getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
   getResultScore,
@@ -113,11 +112,8 @@ const EvaluationResultsPage: React.FC = () => {
     if (!job) {
       return '-';
     }
-    if (selectedBenchmark && benchmarks.length > 1) {
-      return getBenchmarkResultScore(job, selectedBenchmark.id, selectedBenchmark.benchmark_index);
-    }
     return getResultScore(job);
-  }, [job, selectedBenchmark, benchmarks.length]);
+  }, [job]);
 
   const mlflowExperimentId = job?.resource.mlflow_experiment_id;
   const mlflowRunId = React.useMemo(() => {
@@ -235,7 +231,12 @@ const EvaluationResultsPage: React.FC = () => {
               <FlexItem>
                 <LabelHelpPopover
                   ariaLabel="About evaluation score"
-                  content="The overall score aggregated across all benchmarks in this evaluation run."
+                  title="Evaluation score"
+                  content={
+                    job.collection
+                      ? 'Weighted average based on the primary metric score of the benchmark runs and the benchmark weights.'
+                      : 'Normalised score based on the primary metric score of the benchmark run.'
+                  }
                 />
               </FlexItem>
             </Flex>

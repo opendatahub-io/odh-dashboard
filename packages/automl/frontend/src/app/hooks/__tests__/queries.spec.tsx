@@ -1,7 +1,20 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useS3GetFileSchemaQuery, fetchS3File } from '~/app/hooks/queries';
+import {
+  useS3GetFileSchemaQuery,
+  useModelEvaluationArtifactsQuery,
+  fetchS3File,
+  AutomlModelSchema,
+  isRawTimeseriesModelV34,
+  isRawModelV35,
+} from '~/app/hooks/queries';
+import type {
+  AutomlRawTabularModelV34,
+  AutomlRawTimeseriesModelV34,
+  AutomlRawModelV35,
+  AutomlRawModel,
+} from '~/app/hooks/queries';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -85,7 +98,7 @@ describe('useS3GetFileSchemaQuery', () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/v1/s3/file/schema?'),
+        expect.stringContaining('/api/v1/s3/files/data.csv?'),
         expect.anything(),
       );
     });
@@ -94,7 +107,7 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).toContain('bucket=test-bucket');
-    expect(callUrl).toContain('key=data.csv');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should omit bucket parameter when not provided', async () => {
@@ -126,7 +139,8 @@ describe('useS3GetFileSchemaQuery', () => {
     expect(callUrl).toContain('namespace=test-namespace');
     expect(callUrl).toContain('secretName=test-secret');
     expect(callUrl).not.toContain('bucket=');
-    expect(callUrl).toContain('key=data.csv');
+    expect(callUrl).toContain('/s3/files/data.csv?');
+    expect(callUrl).toContain('view=schema');
   });
 
   it('should parse response data correctly', async () => {
@@ -313,15 +327,31 @@ describe('useS3GetFileSchemaQuery', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/s3/files/folder%2Fmy%20file.csv?'),
+      expect.objectContaining({ signal: expect.anything() }),
+    );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
-    // URLSearchParams handles encoding automatically
-    expect(callUrl).toContain('key=');
+    expect(callUrl).toContain('namespace=test-namespace');
+    expect(callUrl).toContain('secretName=test-secret');
+    expect(callUrl).toContain('bucket=my-bucket');
+    expect(callUrl).toContain('view=schema');
   });
 });
 
 describe('fetchS3File', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('should throw for empty key', async () => {
+    await expect(fetchS3File('ns', '')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should throw for whitespace-only key', async () => {
+    await expect(fetchS3File('ns', '   ')).rejects.toThrow('File key must be a non-empty string');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('should construct URL with namespace and key', async () => {
@@ -334,12 +364,11 @@ describe('fetchS3File', () => {
     const result = await fetchS3File('test-namespace', 'path/to/file.json');
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/s3/file?'),
+      expect.stringContaining('/api/v1/s3/files/path%2Fto%2Ffile.json?'),
       expect.objectContaining({ signal: undefined }),
     );
     const callUrl = (global.fetch as jest.Mock).mock.calls[0][0];
     expect(callUrl).toContain('namespace=test-namespace');
-    expect(callUrl).toContain('key=path%2Fto%2Ffile.json');
     expect(result).toBe(mockBlob);
   });
 
@@ -411,3 +440,296 @@ describe('fetchS3File', () => {
     );
   });
 });
+
+/* eslint-disable camelcase */
+describe('AutomlModelSchema', () => {
+  const validUnifiedModel: AutomlRawModelV35 = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/notebooks/automl_predictor_notebook.ipynb',
+      metrics: 'WeightedEnsemble_L5_FULL/metrics',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTabularModelV34: AutomlRawTabularModelV34 = {
+    name: 'WeightedEnsemble_L5_FULL',
+    location: {
+      predictor: 'WeightedEnsemble_L5_FULL/predictor.pkl',
+      notebook: 'WeightedEnsemble_L5_FULL/automl_predictor_notebook.ipynb',
+    },
+    metrics: {
+      test_data: { accuracy: 0.95, f1: 0.93 },
+    },
+  };
+
+  const validTimeseriesModelV34: AutomlRawTimeseriesModelV34 = {
+    name: 'TemporalFusionTransformer_FULL',
+    base_model: 'TemporalFusionTransformer',
+    location: {
+      predictor: 'TemporalFusionTransformer_FULL/predictor.pkl',
+      notebooks: 'TemporalFusionTransformer_FULL/notebooks',
+      metrics: 'TemporalFusionTransformer_FULL/metrics',
+    },
+    metrics: {
+      test_data: { mase: 1.2, rmse: 0.05 },
+    },
+  };
+
+  it('should validate a unified 3.5 model', () => {
+    const result = AutomlModelSchema.safeParse(validUnifiedModel);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a legacy tabular 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTabularModelV34);
+    expect(result.success).toBe(true);
+  });
+
+  it('should validate a legacy timeseries 3.4 model', () => {
+    const result = AutomlModelSchema.safeParse(validTimeseriesModelV34);
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept optional model_directory', () => {
+    const unifiedWithDir = {
+      ...validUnifiedModel,
+      location: { ...validUnifiedModel.location, model_directory: 'some/dir/' },
+    };
+    const tabularWithDir = {
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, model_directory: 'some/dir/' },
+    };
+    const timeseriesWithDir = {
+      ...validTimeseriesModelV34,
+      location: { ...validTimeseriesModelV34.location, model_directory: 'some/dir/' },
+    };
+
+    expect(AutomlModelSchema.safeParse(unifiedWithDir).success).toBe(true);
+    expect(AutomlModelSchema.safeParse(tabularWithDir).success).toBe(true);
+    expect(AutomlModelSchema.safeParse(timeseriesWithDir).success).toBe(true);
+  });
+
+  it('should reject a model missing required fields', () => {
+    const invalid = { name: 'bad-model' };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject a unified 3.5 model that includes base_model', () => {
+    const invalid = {
+      ...validUnifiedModel,
+      base_model: 'gpt-4',
+    };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+
+  it('should parse a v3.4 tabular model with extra metrics in location as v3.5', () => {
+    const ambiguous = {
+      ...validTabularModelV34,
+      location: { ...validTabularModelV34.location, metrics: 'metrics' },
+    };
+    const result = AutomlModelSchema.safeParse(ambiguous);
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject non-numeric metric values', () => {
+    const invalid = {
+      ...validUnifiedModel,
+      metrics: { test_data: { accuracy: 'high' } },
+    };
+    const result = AutomlModelSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('isRawTimeseriesModelV34', () => {
+  it('should return true for a legacy timeseries model with notebooks plural', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawTimeseriesModelV34(model)).toBe(true);
+  });
+
+  it('should return false for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model', () => {
+    const model: AutomlRawTabularModelV34 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawTimeseriesModelV34(model)).toBe(false);
+  });
+});
+
+describe('isRawModelV35', () => {
+  it('should return true for a unified 3.5 model', () => {
+    const model: AutomlRawModelV35 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(true);
+  });
+
+  it('should return false for a legacy timeseries model', () => {
+    const model: AutomlRawTimeseriesModelV34 = {
+      name: 'TemporalFusionTransformer_FULL',
+      base_model: 'TemporalFusionTransformer',
+      location: {
+        predictor: 'predictor.pkl',
+        notebooks: 'notebooks',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { mase: 1.2 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
+  });
+
+  it('should return false when notebook + metrics present but base_model also exists', () => {
+    const model = {
+      name: 'WeightedEnsemble_L5_FULL',
+      base_model: 'some-base',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+        metrics: 'metrics',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model as AutomlRawModel)).toBe(false);
+  });
+
+  it('should return false for a legacy tabular model without metrics in location', () => {
+    const model: AutomlRawTabularModelV34 = {
+      name: 'WeightedEnsemble_L5_FULL',
+      location: {
+        predictor: 'predictor.pkl',
+        notebook: 'notebook.ipynb',
+      },
+      metrics: { test_data: { accuracy: 0.95 } },
+    };
+    expect(isRawModelV35(model)).toBe(false);
+  });
+});
+/* eslint-enable camelcase */
+
+/* eslint-disable camelcase */
+describe('useModelEvaluationArtifactsQuery', () => {
+  const mockFeatureImportance = {
+    importance: { feature_a: 0.8, feature_b: 0.2 },
+  };
+
+  const mockConfusionMatrix = {
+    cat: { cat: 10, dog: 2 },
+    dog: { cat: 1, dog: 15 },
+  };
+
+  /**
+   * Creates a mock fetch response that returns JSON parsed from a Blob,
+   * matching the fetchS3Json → fetchS3File → fetch call chain.
+   */
+  const mockBlobJsonResponse = (data: unknown) => {
+    const json = JSON.stringify(data);
+    return {
+      ok: true,
+      blob: async () => ({ text: async () => json }),
+    };
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should not get stuck loading for regression runs (isClassification=false)', async () => {
+    // The confusion matrix query is disabled for regression. Previously, using
+    // isPending (which is true for disabled queries) caused isLoading to be
+    // stuck at true. The fix uses isLoading instead.
+    (global.fetch as jest.Mock).mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', false),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toBeUndefined();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('should load both artifacts for classification runs (isClassification=true)', async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockFeatureImportance))
+      .mockResolvedValueOnce(mockBlobJsonResponse(mockConfusionMatrix));
+
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.featureImportance).toEqual(mockFeatureImportance);
+    expect(result.current.confusionMatrix).toEqual(mockConfusionMatrix);
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should be disabled when namespace is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery(undefined, 'models/best/', true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
+  });
+
+  it('should be disabled when modelDirectory is missing', () => {
+    const { result } = renderHook(
+      () => useModelEvaluationArtifactsQuery('test-ns', undefined, true),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.featureImportance).toBeUndefined();
+    expect(result.current.confusionMatrix).toBeUndefined();
+  });
+});
+/* eslint-enable camelcase */

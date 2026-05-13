@@ -1,6 +1,9 @@
 import React from 'react';
 import { HardwareProfileKind, HardwareProfileFeatureVisibility } from '#~/k8sTypes';
-import { isHardwareProfileValid } from '#~/pages/hardwareProfiles/utils';
+import {
+  filterRecognizedVisibility,
+  isHardwareProfileValid,
+} from '#~/pages/hardwareProfiles/utils';
 import { HardwareProfilesContext } from '#~/concepts/hardwareProfiles/HardwareProfilesContext';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { useWatchHardwareProfiles } from '#~/utilities/useWatchHardwareProfiles';
@@ -104,15 +107,17 @@ export const filterHardwareProfileByFeatureVisibility = (
         return true;
       }
 
-      const visibleIn = JSON.parse(
+      const visibleIn: string[] = JSON.parse(
         profile.metadata.annotations['opendatahub.io/dashboard-feature-visibility'],
       );
 
-      if (visibleIn.length === 0) {
+      const recognized = filterRecognizedVisibility(visibleIn);
+
+      if (recognized.length === 0) {
         return true;
       }
 
-      return visibility ? visibility.some((a) => visibleIn.includes(a)) : true;
+      return visibility ? visibility.some((a) => recognized.includes(a)) : true;
     } catch (error) {
       return true;
     }

@@ -57,12 +57,14 @@ export enum SupportedArea {
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
+  NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
   LLMD_SERVING = 'llmd-serving',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
+  LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -79,6 +81,7 @@ export enum SupportedArea {
 
   /* Plugins */
   PLUGIN_MODEL_SERVING = 'plugin-model-serving',
+  PLUGIN_GEN_AI = 'plugin-gen-ai',
 
   /* RAG & Agentic */
   LLAMA_STACK_CHAT_BOT = 'llama-stack-chat-bot',
@@ -180,14 +183,24 @@ export type SupportedComponentFlagValue = {
        */
       featureFlags: FeatureFlag[];
     },
-    {
-      /**
-       * Refers to the related stack component names. If a backend component is not installed, this
-       * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
-       * component.
-       */
-      requiredComponents: DataScienceStackComponent[];
-    }
+    EitherOrBoth<
+      {
+        /**
+         * Refers to the related stack component names. If a backend component is not installed, this
+         * can prevent the feature flag from enabling the item. Omit to not be reliant on a backend
+         * component.
+         */
+        requiredComponents: DataScienceStackComponent[];
+      },
+      {
+        /**
+         * Optional function to check for a condition that is not covered by other checks.
+         *
+         * Example, checking there exists a specific condition in the DSC status.
+         */
+        customCondition: CustomConditionFunction;
+      }
+    >
   >
 >;
 

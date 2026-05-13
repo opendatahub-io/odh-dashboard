@@ -209,7 +209,7 @@ describe('AutoragExperiments', () => {
     ).toBeInTheDocument();
   });
 
-  it('should show NoPipelineServer for BFF no AutoRAG pipeline message (500)', () => {
+  it('should show error alert when BFF reports no AutoRAG pipeline (auto-creation handles this at submit time)', () => {
     mockGetGenericErrorCode.mockReturnValue(500);
     mockUsePipelineRuns.mockReturnValue({
       ...defaultRunsState,
@@ -220,10 +220,11 @@ describe('AutoragExperiments', () => {
 
     renderAutorag(<AutoragExperiments />);
 
+    // No longer shows NoPipelineServer — the BFF auto-creates pipelines on submit
     expect(
-      screen.getByRole('heading', { name: 'Configure a compatible pipeline server' }),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Failed to load experiments')).not.toBeInTheDocument();
+      screen.queryByRole('heading', { name: 'Configure a compatible pipeline server' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Failed to load experiments')).toBeInTheDocument();
   });
 
   it('should show NoPipelineServer for no Pipeline Server (DSPipelineApplication) message', () => {

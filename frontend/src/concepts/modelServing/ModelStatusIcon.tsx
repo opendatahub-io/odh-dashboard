@@ -50,7 +50,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       return {
         label: 'Stopping',
         color: 'grey',
-        icon: <InProgressIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="ai-u-spin" />,
         message: 'Model deployment is stopping.',
       };
     }
@@ -63,7 +63,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
       return {
         label: 'Starting',
         color: 'blue',
-        icon: <InProgressIcon className="odh-u-spin" />,
+        icon: <InProgressIcon className="ai-u-spin" />,
         message: 'Model deployment is starting.',
       };
     }
@@ -81,7 +81,7 @@ export const ModelStatusIcon: React.FC<ModelStatusIconProps> = ({
         return {
           label: 'Starting',
           color: 'blue',
-          icon: <InProgressIcon className="odh-u-spin" />,
+          icon: <InProgressIcon className="ai-u-spin" />,
           message: 'Model deployment is starting.',
         };
       case ModelDeploymentState.FAILED_TO_LOAD:

@@ -1,11 +1,7 @@
 import React from 'react';
 import type { K8sAPIOptions, ProjectKind } from '@odh-dashboard/internal/k8sTypes';
 import { getLLMdDeploymentEndpoints } from './endpoints';
-import {
-  calculateGracePeriod,
-  getLLMdDeploymentStatus,
-  useLLMInferenceServicePods,
-} from './status';
+import { getLLMdDeploymentStatus, useLLMInferenceServicePods } from './status';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
 import { LLMD_SERVING_ID } from '../../extensions/extensions';
 import { useWatchLLMInferenceService } from '../api/LLMInferenceService';
@@ -43,16 +39,11 @@ export const useWatchDeployments = (
           pod.metadata.labels?.['app.kubernetes.io/name'] === llmInferenceService.metadata.name &&
           pod.metadata.labels['app.kubernetes.io/component'] === 'llminferenceservice-workload',
       );
-      const lastActivity = new Date(
-        llmInferenceService.status?.conditions?.find((c) => c.type === 'Ready')
-          ?.lastTransitionTime ?? '',
-      );
 
       const matchingBaseRefConfig = llmInferenceService.spec.baseRefs?.find(
         (baseRef) => baseRef.name === llmInferenceService.metadata.name,
       );
 
-      const gracePeriod = calculateGracePeriod(lastActivity);
       return {
         modelServingPlatformId: LLMD_SERVING_ID,
         model: llmInferenceService,
@@ -63,7 +54,7 @@ export const useWatchDeployments = (
           : undefined,
         apiProtocol: 'REST', // vLLM uses REST so I assume it's the same for LLMd
         endpoints: getLLMdDeploymentEndpoints(llmInferenceService),
-        status: getLLMdDeploymentStatus(llmInferenceService, pods, gracePeriod),
+        status: getLLMdDeploymentStatus(llmInferenceService, pods),
       };
     });
   }, [filteredLLMInferenceServices, deploymentPods, llmInferenceServiceConfigs]);

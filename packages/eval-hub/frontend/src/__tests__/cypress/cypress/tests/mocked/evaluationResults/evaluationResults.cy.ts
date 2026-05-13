@@ -80,10 +80,10 @@ describe('Evaluation Results Page - Collection', () => {
     initIntercepts({ job: collectionJob });
   });
 
-  it('should display evaluation name and selected benchmark score', () => {
+  it('should display evaluation name and overall score', () => {
     evaluationResultsPage.visit(NAMESPACE, collectionJob.resource.id);
     evaluationResultsPage.findTitle().should('contain.text', 'ToxicityDet_Claude');
-    evaluationResultsPage.findScoreValue().should('contain.text', '95%');
+    evaluationResultsPage.findScoreValue().should('contain.text', '72%');
   });
 
   it('should display benchmark cards grid', () => {

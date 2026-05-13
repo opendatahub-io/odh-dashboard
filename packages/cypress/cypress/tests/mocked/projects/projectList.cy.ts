@@ -96,12 +96,12 @@ describe('Projects details', () => {
 
   it('should delete project', () => {
     initIntercepts();
-    projectListPage.visit();
     cy.interceptK8s(
       'POST',
       SelfSubjectAccessReviewModel,
       mockSelfSubjectAccessReview({ allowed: true }),
     ).as('selfSubjectAccessReviewsCall');
+    projectListPage.visit();
     const deleteProject = projectListPage
       .getProjectRow('Test Project')
       .findKebabAction('Delete project');

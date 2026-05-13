@@ -39,7 +39,10 @@ const ChatbotMain: React.FunctionComponent = () => {
     aiModelsError,
     maasModels,
     maasModelsLoaded,
+    maasModelsError,
     models,
+    modelsLoaded,
+    modelsError,
   } = React.useContext(ChatbotContext);
   const { namespace } = React.useContext(GenAiContext);
   const { data: bffConfig } = useFetchBFFConfig();
@@ -102,7 +105,12 @@ const ChatbotMain: React.FunctionComponent = () => {
     <>
       <ApplicationsPage
         title={<ChatbotHeader />}
-        loaded={lsdStatusLoaded && (aiModelsLoaded || maasModelsLoaded)}
+        loaded={
+          lsdStatusLoaded &&
+          (aiModelsLoaded || !!aiModelsError) &&
+          (maasModelsLoaded || !!maasModelsError) &&
+          (lsdStatus?.phase !== 'Ready' || !!modelsLoaded || !!modelsError)
+        }
         empty={!lsdStatus}
         emptyStatePage={
           !hasModels ? (
@@ -138,6 +146,7 @@ const ChatbotMain: React.FunctionComponent = () => {
             />
           ) : (
             <ChatbotEmptyState
+              data-testid="create-playground-empty-state"
               title="Create your playground"
               description="Create a playground to interact with and test available generative models in this project."
               actionButtonText="Create playground"

@@ -1,12 +1,12 @@
 import { mockModArchResponse } from 'mod-arch-core';
 import { mockMcpServer } from '~/__mocks__';
 import { mcpCatalog, mcpServerDetails } from '~/__tests__/cypress/cypress/pages/mcpCatalog';
+import { mcpCatalogUrl, mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 import {
   initMcpCatalogIntercepts,
   initServerDetailIntercept,
   initServerToolsIntercept,
   initServerToolsErrorIntercept,
-  initMcpServerAvailabilityIntercept,
   mockMcpToolWithServer,
   mockMcpToolList,
 } from './mcpCatalogTestUtils';
@@ -34,7 +34,7 @@ describe('MCP Server Details Page', () => {
       mcpCatalog.visit();
       mcpCatalog.findMcpCatalogCards().should('have.length.at.least', 1, { timeout: 15000 });
       cy.get('[data-testid^="mcp-catalog-card-detail-link-"]').first().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog/');
+      cy.url().should('include', mcpCatalogUrl());
     });
   });
 
@@ -52,7 +52,7 @@ describe('MCP Server Details Page', () => {
     it('should navigate back to catalog when clicking breadcrumb link', () => {
       mcpServerDetails.visit(kubernetesServer.id);
       mcpServerDetails.findBreadcrumbCatalogLink().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog');
+      cy.url().should('include', mcpCatalogUrl());
       cy.url().should('not.include', `/${kubernetesServer.id}`);
     });
   });
@@ -68,6 +68,23 @@ describe('MCP Server Details Page', () => {
       cy.findByTestId('app-page-title').should('contain.text', kubernetesServer.name);
 
       mcpServerDetails.findDescription().should('contain.text', kubernetesServer.description);
+    });
+
+    it('should not show Remote title label for local deployment', () => {
+      mcpServerDetails.visit(kubernetesServer.id);
+      mcpServerDetails.findRemoteTitleLabel().should('not.exist');
+    });
+
+    it('should show Remote title label when deploymentMode is remote', () => {
+      const remoteServer = mockMcpServer({
+        id: 'remote-header-test',
+        name: 'GitHub',
+        deploymentMode: 'remote',
+      });
+      initServerDetailIntercept(remoteServer);
+      mcpServerDetails.visit(remoteServer.id);
+      mcpServerDetails.findRemoteTitleLabel().should('be.visible');
+      mcpServerDetails.findRemoteTitleLabel().should('contain.text', 'Remote');
     });
   });
 
@@ -92,6 +109,25 @@ describe('MCP Server Details Page', () => {
   describe('Server details sidebar', () => {
     beforeEach(() => {
       initServerDetailIntercept(kubernetesServer);
+    });
+
+    it('should not display endpoint when API omits endpoints', () => {
+      mcpServerDetails.visit(kubernetesServer.id);
+      cy.findByTestId('mcp-server-endpoint-copy').should('not.exist');
+    });
+
+    it('should display endpoint with copy when endpoints are present', () => {
+      const host = 'splunk-mcp-server.demo-namespace.svc.cluster.local:8080';
+      const serverWithEndpoint = mockMcpServer({
+        id: 'endpoint-test-server',
+        name: 'Splunk MCP',
+        deploymentMode: 'remote',
+        endpoints: { http: host },
+      });
+      initServerDetailIntercept(serverWithEndpoint);
+      mcpServerDetails.visit(serverWithEndpoint.id);
+      mcpServerDetails.findEndpointCopy().should('be.visible');
+      mcpServerDetails.findEndpointCopy().find('input').should('have.value', host);
     });
 
     it('should display labels, license, version, and deployment mode', () => {
@@ -136,7 +172,7 @@ describe('MCP Server Details Page', () => {
           },
         },
       );
-      cy.visit('/ai-hub/mcp-servers/catalog/invalid-id-that-does-not-exist');
+      cy.visit(mcpServerDetailsUrl('invalid-id-that-does-not-exist'));
       mcpServerDetails.findMcpNotFound().should('be.visible');
       cy.contains('MCP server not found').should('be.visible');
     });
@@ -151,80 +187,9 @@ describe('MCP Server Details Page', () => {
       mcpCatalog.visit();
       mcpCatalog.findMcpCatalogCards().should('have.length.at.least', 1, { timeout: 15000 });
       cy.get('[data-testid^="mcp-catalog-card-detail-link-"]').first().click();
-      cy.url().should('include', '/ai-hub/mcp-servers/catalog/');
+      cy.url().should('include', mcpCatalogUrl());
       cy.go('back');
-      cy.url().should('eq', `${Cypress.config().baseUrl}/ai-hub/mcp-servers/catalog`);
-    });
-  });
-
-  describe('Deploy button', () => {
-    it('should show enabled deploy button when MCP server CRD is available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.be.disabled');
-      mcpServerDetails.findDeployButton().should('contain.text', 'Deploy MCP server');
-    });
-
-    it('should show disabled deploy button when MCP server CRD is not available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(false);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('have.attr', 'aria-disabled', 'true');
-    });
-
-    it('should not show deploy button when server is not found', () => {
-      cy.intercept(
-        { method: 'GET', url: '**/mcp_servers/invalid-server*' },
-        {
-          statusCode: 404,
-          body: {
-            error: { code: '404', message: 'the requested resource could not be found' },
-          },
-        },
-      );
-      cy.visit('/mcp-catalog/invalid-server');
-      mcpServerDetails.findMcpNotFound().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when server has no artifacts', () => {
-      const serverWithoutArtifacts = mockMcpServer({
-        id: 'no-artifacts',
-        name: 'No Artifacts Server',
-        artifacts: [],
-      });
-      initServerDetailIntercept(serverWithoutArtifacts);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithoutArtifacts.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when artifacts contain only empty URIs', () => {
-      const serverWithEmptyUri = mockMcpServer({
-        id: 'empty-uri',
-        name: 'Empty URI Server',
-        artifacts: [{ uri: '' }],
-      });
-      initServerDetailIntercept(serverWithEmptyUri);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithEmptyUri.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should show loading spinner on deploy button while availability is being checked', () => {
-      initServerDetailIntercept(kubernetesServer);
-      cy.intercept(
-        { method: 'GET', pathname: '**/mcp_server_available' },
-        (req) => {
-          req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
-        },
-      );
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().find('.pf-v6-c-spinner').should('exist');
+      cy.url().should('eq', `${Cypress.config().baseUrl}${mcpCatalogUrl()}`);
     });
   });
 

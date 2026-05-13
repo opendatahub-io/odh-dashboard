@@ -100,6 +100,26 @@ describe('S3FileExplorer', () => {
         expect(screen.getByText('Bucket not configured')).toBeInTheDocument();
       });
     });
+
+    it('should show HTTPS required error for HTTP connections', async () => {
+      mockGetFiles.mockRejectedValue(new Error('endpoint URL must use HTTPS scheme, got: http'));
+
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('S3 Connection must use HTTPS')).toBeInTheDocument();
+      });
+    });
+    it('should show S3 endpoint unreachable error', async () => {
+      mockGetFiles.mockRejectedValue(new Error('Unable to connect to the S3 storage endpoint'));
+
+      render(<S3FileExplorer {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('S3 endpoint unreachable')).toBeInTheDocument();
+      });
+    });
+
     it('should show connection not found error', async () => {
       mockGetFiles.mockRejectedValue(new Error('not found'));
 

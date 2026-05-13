@@ -69,6 +69,9 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        // Gen AI plugin registers PLUGIN_GEN_AI with this required component; without it the
+        // save-as-ai-asset UI stays hidden while genAiStudio is still true in dashboard config.
+        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );
@@ -79,6 +82,7 @@ const initIntercepts = ({
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
       vLLMDeploymentOnMaaS,
+      genAiStudio: true,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -1513,6 +1517,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
+          secretName: 'test-uri-secret',
           hasExternalRoute: true,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
@@ -1539,14 +1544,16 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
-    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-    modelServingWizard.findSaveConnectionCheckbox().click();
-    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
     hardwareProfileSection.findCustomizeButton().should('exist').click();
+    // Wait for the ExpandableSection to be fully expanded before interacting with its contents.
+    // PatternFly v6 overrides display:none on [hidden] elements, so .should('be.visible') passes
+    // even when the section is still collapsed. The aria-expanded attribute is the correct signal
+    // that the React state update has completed and the hidden attribute has been removed.
+    hardwareProfileSection.findCustomizeButton().should('have.attr', 'aria-expanded', 'true');
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
@@ -1678,8 +1685,11 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
       expect(interception.request.body.metadata.namespace).to.equal('test-project');
       expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
-        'false',
+        'true',
       );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-hidden'],
+      ).to.equal('true');
       expect(
         interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
       ).to.equal('uri');

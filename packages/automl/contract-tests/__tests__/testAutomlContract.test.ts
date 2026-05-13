@@ -1,7 +1,11 @@
+/* eslint-disable camelcase */
 /**
  * @jest-environment node
  */
-/* eslint-disable camelcase */
+import * as http from 'http';
+import * as https from 'https';
+import { URL } from 'url';
+import type { IncomingMessage } from 'http';
 import { ContractApiClient, loadOpenAPISchema } from '@odh-dashboard/contract-tests';
 
 describe('AutoML API Contract Tests', () => {
@@ -272,7 +276,7 @@ describe('AutoML API Contract Tests', () => {
     });
 
     describe('Secret Value Sanitization', () => {
-      it('should return actual values only for aws_s3_bucket keys', async () => {
+      it('should return actual values only for AWS_S3_BUCKET keys', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default&type=storage');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
@@ -288,8 +292,8 @@ describe('AutoML API Contract Tests', () => {
             keys.forEach((key) => {
               const value = secret.data[key];
 
-              // aws_s3_bucket (case-insensitive) should have actual value
-              if (key.toLowerCase() === 'aws_s3_bucket') {
+              // AWS_S3_BUCKET (case-sensitive, uppercase) should have actual value
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
                 expect(typeof value).toBe('string');
                 expect(value.length).toBeGreaterThan(0);
@@ -302,7 +306,7 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should sanitize all secret values except aws_s3_bucket', async () => {
+      it('should sanitize all secret values except AWS_S3_BUCKET', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
@@ -317,8 +321,8 @@ describe('AutoML API Contract Tests', () => {
           if (secretsWithKeys && secretsWithKeys.length > 0) {
             secretsWithKeys.forEach((secret) => {
               Object.entries(secret.data).forEach(([key, value]) => {
-                // Only aws_s3_bucket (case-insensitive) should have actual values
-                const isAllowedKey = key.toLowerCase() === 'aws_s3_bucket';
+                // Only AWS_S3_BUCKET (case-sensitive, uppercase) should have actual values
+                const isAllowedKey = key === 'AWS_S3_BUCKET';
 
                 if (!isAllowedKey) {
                   expect(value).toBe('[REDACTED]');
@@ -329,19 +333,38 @@ describe('AutoML API Contract Tests', () => {
         }
       });
 
-      it('should handle aws_s3_bucket key with different casing', async () => {
+      it('should only allow uppercase AWS_S3_BUCKET key', async () => {
         const result = await apiClient.get('/api/v1/secrets?namespace=default');
         expect(result.success).toBe(true);
 
         if (result.success) {
           const responseData = result.response.data as SecretsResponseData;
 
+          // Find the fixture secret that has lowercase and mixed-case variants
+          const caseVariantSecret = responseData.data?.find(
+            (s) => s.name === 'case-variant-bucket-secret',
+          );
+          expect(caseVariantSecret).toBeDefined();
+
+          const caseVariantData = caseVariantSecret?.data ?? {};
+
+          // Uppercase AWS_S3_BUCKET should have its actual value
+          expect(caseVariantData.AWS_S3_BUCKET).not.toBe('[REDACTED]');
+          expect(caseVariantData.AWS_S3_BUCKET).toBe('correct-bucket');
+
+          // Lowercase variant should be redacted
+          expect(caseVariantData.aws_s3_bucket).toBe('[REDACTED]');
+
+          // Mixed-case variant should be redacted
+          expect(caseVariantData.Aws_S3_Bucket).toBe('[REDACTED]');
+
+          // Also verify the general rule across all secrets
           responseData.data?.forEach((secret) => {
             Object.entries(secret.data).forEach(([key, value]) => {
-              // Check various casings of aws_s3_bucket
-              if (['aws_s3_bucket', 'AWS_S3_BUCKET', 'Aws_S3_Bucket'].includes(key)) {
-                // Should return actual value, not [REDACTED]
+              if (key === 'AWS_S3_BUCKET') {
                 expect(value).not.toBe('[REDACTED]');
+              } else {
+                expect(value).toBe('[REDACTED]');
               }
             });
           });
@@ -405,10 +428,10 @@ describe('AutoML API Contract Tests', () => {
     describe('Success Cases', () => {
       it('should successfully download a file from S3', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=test-file.pdf',
+          '/api/v1/s3/files/test-file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -417,7 +440,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -427,7 +450,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when secretName parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -437,26 +460,8 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret',
         );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when key parameter is missing', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when all parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/s3/file');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
@@ -467,7 +472,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Empty Parameters', () => {
       it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -477,7 +482,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 for empty secretName', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -487,17 +492,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 for empty bucket', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=&key=file.pdf',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for empty key', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -509,7 +504,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Secret Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -519,7 +514,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 404 when namespace does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -531,22 +526,22 @@ describe('AutoML API Contract Tests', () => {
     describe('Bucket Parameter Fallback', () => {
       it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket',
         );
         // Mock S3 should succeed when bucket is provided via secret's AWS_S3_BUCKET field
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
         );
         // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -555,21 +550,23 @@ describe('AutoML API Contract Tests', () => {
     describe('Key Format Variations', () => {
       it('should handle nested key structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
+          `/api/v1/s3/files/${encodeURIComponent(
+            'folder/subfolder/file.pdf',
+          )}?namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         // Mock S3 should return file data for valid key formats
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should handle key with special characters', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
+          '/api/v1/s3/files/my-file_v2.0.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -577,10 +574,10 @@ describe('AutoML API Contract Tests', () => {
       it('should handle URL-encoded key', async () => {
         const encodedKey = encodeURIComponent('documents/my file.pdf');
         const result = await apiClient.get(
-          `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+          `/api/v1/s3/files/${encodedKey}?namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -589,22 +586,206 @@ describe('AutoML API Contract Tests', () => {
     describe('Valid Bucket and Key Formats', () => {
       it('should accept simple key format', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=mybucket',
         );
         // Mock S3 validates parameter parsing and returns mock file data
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should accept key with multiple path segments', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
+          `/api/v1/s3/files/${encodeURIComponent(
+            'documents/2024/file.pdf',
+          )}?namespace=default&secretName=test-secret&bucket=mybucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
+        });
+      }, 8000);
+    });
+  });
+
+  describe('S3 File Upload (POST)', () => {
+    const buildFormDataWithFile = (): FormData => {
+      const form = new FormData();
+      form.append('file', new Blob(['col1,col2\nval1,val2'], { type: 'text/csv' }), 'file.csv');
+      return form;
+    };
+
+    describe('Error Cases - Missing Parameters', () => {
+      it('should return 400 when namespace parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when secretName parameter is missing', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=default&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - No File Part', () => {
+      it('should return 400 when request body has no file part', async () => {
+        const form = new FormData();
+        form.append('other', 'value');
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+    });
+
+    describe('Error Cases - Declared Content-Length', () => {
+      /** Matches bff s3_upload_limit.go: 32 MiB file max + 64 MiB multipart envelope. */
+      const s3PostMaxDeclaredBodyBytes = (32 << 20) + (64 << 20);
+
+      const postS3WithDeclaredContentLength = async (
+        pathWithQuery: string,
+        declaredLength: number,
+        bodySent: Buffer,
+      ): Promise<{ status: number; headers: Record<string, string>; data: unknown }> => {
+        const target = new URL(pathWithQuery, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+        const isHttps = target.protocol === 'https:';
+        const lib = isHttps ? https : http;
+        const port = target.port !== '' ? Number(target.port) : isHttps ? 443 : 80;
+
+        return new Promise((resolve, reject) => {
+          const req = lib.request(
+            {
+              hostname: target.hostname,
+              port,
+              path: `${target.pathname}${target.search}`,
+              method: 'POST',
+              headers: {
+                'kubeflow-userid': 'dev-user@example.com',
+                'kubeflow-groups': 'system:masters',
+                'Content-Length': String(declaredLength),
+                'Content-Type': 'application/octet-stream',
+              },
+            },
+            (res: IncomingMessage) => {
+              const parts: string[] = [];
+              res.setEncoding('utf8');
+              res.on('data', (chunk: string) => {
+                parts.push(chunk);
+              });
+              res.on('end', () => {
+                const raw = parts.join('');
+                let data: unknown = raw;
+                try {
+                  data = raw.length > 0 ? JSON.parse(raw) : undefined;
+                } catch {
+                  data = raw;
+                }
+                const headers: Record<string, string> = {};
+                for (const [k, v] of Object.entries(res.headers)) {
+                  headers[k] = Array.isArray(v) ? v.join(', ') : String(v ?? '');
+                }
+                resolve({
+                  status: res.statusCode ?? 0,
+                  headers,
+                  data,
+                });
+              });
+            },
+          );
+          req.on('error', reject);
+          req.write(bodySent);
+          req.end();
+        });
+      };
+
+      it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
+        const path =
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket';
+        const response = await postS3WithDeclaredContentLength(
+          path,
+          s3PostMaxDeclaredBodyBytes + 1,
+          Buffer.from('x'),
+        );
+        expect(response.status).toBe(413);
+        const body = response.data as { error?: { code: string; message: string } };
+        expect(body.error).toBeDefined();
+        expect({
+          status: response.status,
+          data: body.error,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/Error',
+          status: 413,
+        });
+      });
+    });
+
+    describe('Error Cases - Secret Issues', () => {
+      it('should return 404 when secret does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+
+      it('should return 404 when namespace does not exist', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Valid Request (all params and file present)', () => {
+      it('should return 201 with S3UploadSuccess when all parameters and file part are valid', async () => {
+        const form = buildFormDataWithFile();
+        const result = await apiClient.postFormData(
+          '/api/v1/s3/files/file.csv?namespace=default&secretName=test-secret&bucket=my-bucket',
+          form,
+        );
+        expect(result).toMatchContract(apiSchema, {
+          ref: '#/components/schemas/S3UploadSuccess',
+          status: 201,
         });
       }, 8000);
     });
@@ -614,10 +795,10 @@ describe('AutoML API Contract Tests', () => {
     describe('Success Cases', () => {
       it('should successfully retrieve CSV file schema from S3', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          ref: '#/components/schemas/S3FileSchemaResponse',
           status: 200,
         });
       }, 8000);
@@ -626,7 +807,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?secretName=test-secret&bucket=my-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -636,17 +817,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when secretName parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&bucket=my-bucket&key=data.csv',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when key parameter is missing', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -656,7 +827,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=test-secret',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -668,7 +839,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Empty Parameters', () => {
       it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=&secretName=test-secret&bucket=my-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -678,17 +849,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 400 for empty secretName', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=&bucket=my-bucket&key=data.csv',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for empty key', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -700,7 +861,7 @@ describe('AutoML API Contract Tests', () => {
     describe('Error Cases - Secret and File Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=non-existent-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -710,7 +871,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should return 404 when namespace does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -720,7 +881,7 @@ describe('AutoML API Contract Tests', () => {
 
       it('should handle request for non-existent CSV file', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=non-existent.csv',
+          '/api/v1/s3/files/non-existent.csv?view=schema&namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         // Mock S3 returns 404 for files with "non-existent" in the key
         expect(result.success).toBe(false);
@@ -733,22 +894,22 @@ describe('AutoML API Contract Tests', () => {
     describe('Bucket Parameter Fallback', () => {
       it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=test-secret-with-bucket',
         );
         // Mock S3 should return schema when bucket is provided via secret's AWS_S3_BUCKET field
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          ref: '#/components/schemas/S3FileSchemaResponse',
           status: 200,
         });
       }, 8000);
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=data.csv',
+          '/api/v1/s3/files/data.csv?view=schema&namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
         );
         // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          ref: '#/components/schemas/S3FileSchemaResponse',
           status: 200,
         });
       }, 8000);
@@ -757,11 +918,13 @@ describe('AutoML API Contract Tests', () => {
     describe('File Format Validation', () => {
       it('should handle CSV files with nested paths', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/data.csv',
+          `/api/v1/s3/files/${encodeURIComponent(
+            'folder/subfolder/data.csv',
+          )}?view=schema&namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         // Mock S3 returns schema data for valid CSV key formats
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          ref: '#/components/schemas/S3FileSchemaResponse',
           status: 200,
         });
       }, 8000);
@@ -769,10 +932,10 @@ describe('AutoML API Contract Tests', () => {
       it('should handle URL-encoded file keys', async () => {
         const encodedKey = encodeURIComponent('data/my file.csv');
         const result = await apiClient.get(
-          `/api/v1/s3/file/schema?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+          `/api/v1/s3/files/${encodedKey}?view=schema&namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file~1schema/get/responses/200/content/application~1json/schema',
+          ref: '#/components/schemas/S3FileSchemaResponse',
           status: 200,
         });
       }, 8000);
@@ -1086,6 +1249,37 @@ describe('AutoML API Contract Tests', () => {
         });
       });
 
+      describe('display_name Length Validation', () => {
+        it('display_name 250 chars accepted', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(250),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result).toMatchContract(apiSchema, {
+            ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
+            status: 200,
+          });
+        });
+
+        it('display_name 251 chars rejected', async () => {
+          const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
+            display_name: 'a'.repeat(251),
+            train_data_secret_name: 'minio-secret',
+            train_data_bucket_name: 'automl-bucket',
+            train_data_file_key: 'data/train.csv',
+            label_column: 'target',
+            task_type: 'binary',
+          });
+          expect(result.success).toBe(false);
+          expect(result.error?.status).toBe(400);
+          expect(result.error?.data).toHaveProperty('error');
+        });
+      });
+
       describe('General Validation', () => {
         it('should return 400 for missing common required fields', async () => {
           const result = await apiClient.post('/api/v1/pipeline-runs?namespace=test-namespace', {
@@ -1128,6 +1322,126 @@ describe('AutoML API Contract Tests', () => {
             expect(result.error.status).toBe(400);
           }
         });
+      });
+    });
+
+    describe('Terminate Pipeline Run', () => {
+      it('should terminate an active pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to terminate a non-terminatable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/terminate?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Retry Pipeline Run', () => {
+      it('should retry a failed pipeline run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-mno345-pqr678/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to retry a non-retryable (SUCCEEDED) run', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/run-abc123-def456/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.post(
+          '/api/v1/pipeline-runs/non-existent-run-id/retry?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+        }
+      });
+    });
+
+    describe('Delete Pipeline Run', () => {
+      it('should delete a succeeded pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should delete a failed pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-mno345-pqr678?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to delete an active (RUNNING) run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/non-existent-run-id?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
+        }
       });
     });
   });

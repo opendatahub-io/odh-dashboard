@@ -75,7 +75,11 @@ const MlflowExperimentsPage: React.FC = () => {
             />
           </FlexItem>
           <FlexItem>
-            <LaunchMlflowButton testId="mlflow-embedded-jump-link" section="experiments-page" />
+            <LaunchMlflowButton
+              testId="mlflow-embedded-jump-link"
+              section="experiments-page"
+              workspace={workspace}
+            />
           </FlexItem>
         </Flex>
       }

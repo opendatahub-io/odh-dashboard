@@ -196,6 +196,9 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   patternsLoading?: boolean;
+  patternsError?: boolean;
+  patternsLoadError?: Error;
+  onRetryPatterns?: () => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
@@ -205,6 +208,9 @@ const renderWithContext = ({
   pipelineRun,
   pipelineRunLoading = false,
   patternsLoading = false,
+  patternsError,
+  patternsLoadError,
+  onRetryPatterns,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
@@ -223,14 +229,17 @@ const renderWithContext = ({
     pipelineRunLoading,
     patterns,
     patternsLoading,
+    patternsError,
+    patternsLoadError,
+    onRetryPatterns,
     parameters: createMockParameters(finalOptimizationMetric),
   };
 
   return render(
-    <MemoryRouter initialEntries={[`/autorag/${namespace}/results`]}>
+    <MemoryRouter initialEntries={[`/autorag/${namespace}/results/test-run-123`]}>
       <Routes>
         <Route
-          path="/autorag/:namespace/results"
+          path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
               <AutoragLeaderboard />
@@ -358,7 +367,7 @@ describe('AutoragLeaderboard component', () => {
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
     });
 
-    it('should show empty state when there are no patterns', () => {
+    it('should show empty state with completion message when succeeded with no patterns', () => {
       renderWithContext({
         patterns: {},
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
@@ -368,13 +377,79 @@ describe('AutoragLeaderboard component', () => {
       expect(emptyState).toBeInTheDocument();
       expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
 
-      // Verify EmptyState component structure
       expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
-      expect(
-        within(emptyState).getByText(
+      // Text is split across multiple elements (spans and a button), so use toHaveTextContent
+      expect(emptyState).toHaveTextContent(
+        'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
+      );
+      // Verify the interactive CTA link exists and navigates to the pipeline run page
+      const link = within(emptyState).getByRole('link', {
+        name: /pipeline configuration and logs/i,
+      });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
+    });
+
+    it.each([
+      [
+        'when run failed',
+        RuntimeStateKF.FAILED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when run was canceled',
+        RuntimeStateKF.CANCELED,
+        'The pipeline run did not complete successfully. Please check the pipeline configuration and logs for errors.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'when pipelineRun is undefined',
+        undefined,
+        'Unable to determine pipeline run status. Please check the pipeline configuration and logs.',
+        /pipeline configuration and logs/i,
+      ],
+      [
+        'for SKIPPED state',
+        RuntimeStateKF.SKIPPED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+      [
+        'for PAUSED state',
+        RuntimeStateKF.PAUSED,
+        'The pipeline run is in an unexpected state. Please check the pipeline status and logs.',
+        /pipeline status and logs/i,
+      ],
+    ])('should show empty state %s', (_testName, state, expectedMessage, linkName) => {
+      renderWithContext({
+        patterns: {},
+        pipelineRun: state !== undefined ? createMockPipelineRun(state) : undefined,
+      });
+
+      const emptyState = screen.getByTestId('leaderboard-empty');
+      expect(emptyState).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      expect(within(emptyState).getByText('No patterns produced')).toBeInTheDocument();
+      expect(emptyState).toHaveTextContent(expectedMessage);
+
+      // All non-SUCCEEDED states should NOT show the SUCCEEDED message
+      if (state !== RuntimeStateKF.SUCCEEDED) {
+        expect(emptyState).not.toHaveTextContent(
           'The pipeline run completed but did not generate any patterns. Please check the pipeline configuration and logs.',
-        ),
-      ).toBeInTheDocument();
+        );
+      }
+
+      const link = within(emptyState).getByRole('link', { name: linkName });
+      expect(link).toBeInTheDocument();
+      expect(link).toHaveAttribute(
+        'href',
+        '/develop-train/pipelines/runs/test-namespace/runs/test-run-123',
+      );
     });
 
     it('should render loading skeleton with correct structure', () => {
@@ -392,6 +467,93 @@ describe('AutoragLeaderboard component', () => {
       const skeletonRows = screen.getAllByRole('row');
       // Header row + 5 skeleton rows = 6 total
       expect(skeletonRows.length).toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  describe('error states', () => {
+    it('should show error empty state when patternsError is true', () => {
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('Failed to list RAG patterns directory'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toBeInTheDocument();
+      expect(within(errorState).getByText('Unable to fetch RAG patterns')).toBeInTheDocument();
+      expect(errorState).toHaveTextContent('An error occurred while loading pattern results.');
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show generic error message when patternsLoadError is undefined', () => {
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toHaveTextContent('An error occurred while loading pattern results.');
+    });
+
+    it('should call onRetryPatterns when Retry button is clicked', () => {
+      const mockRetry = jest.fn();
+
+      renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('S3 failure'),
+        onRetryPatterns: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should display patterns after successful retry', () => {
+      const mockRetry = jest.fn();
+
+      const { rerender } = renderWithContext({
+        patterns: {},
+        patternsError: true,
+        patternsLoadError: new Error('S3 failure'),
+        onRetryPatterns: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+      });
+
+      expect(screen.getByTestId('leaderboard-error')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      // Simulate successful refetch by rerendering with patterns
+      const contextValue = {
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED),
+        pipelineRunLoading: false,
+        patterns: mockStandardPatterns,
+        patternsLoading: false,
+        patternsError: false,
+        onRetryPatterns: mockRetry,
+        parameters: createMockParameters('faithfulness'),
+      };
+
+      rerender(
+        <MemoryRouter initialEntries={['/autorag/test-namespace/results/test-run-123']}>
+          <Routes>
+            <Route
+              path="/autorag/:namespace/results/:runId"
+              element={
+                <AutoragResultsContext.Provider value={contextValue}>
+                  <AutoragLeaderboard />
+                </AutoragResultsContext.Provider>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByTestId('leaderboard-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
     });
   });
 
@@ -619,7 +781,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const patternNameHeader = screen.getByTestId('pattern-name-header');
-      const sortButton = within(patternNameHeader).getByRole('button');
+      const sortButton = within(patternNameHeader).getByRole('button', { name: /Pattern name/ });
 
       fireEvent.click(sortButton);
 
@@ -639,7 +801,9 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const answerCorrectnessHeader = screen.getByTestId('metric-header-answer_correctness');
-      const sortButton = within(answerCorrectnessHeader).getByRole('button');
+      const sortButton = within(answerCorrectnessHeader).getByRole('button', {
+        name: /Answer correctness/,
+      });
 
       fireEvent.click(sortButton);
 
@@ -658,7 +822,7 @@ describe('AutoragLeaderboard component', () => {
       });
 
       const rankHeader = screen.getByTestId('rank-header');
-      const sortButton = within(rankHeader).getByRole('button');
+      const sortButton = within(rankHeader).getByRole('button', { name: /Rank/ });
 
       // First click: descending
       fireEvent.click(sortButton);
@@ -743,12 +907,12 @@ describe('AutoragLeaderboard component', () => {
       expect(within(row1).getByTestId('chunking-method-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('chunking-chunk-size-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('chunking-chunk-overlap-1')).toHaveTextContent('N/A');
-      expect(within(row1).getByTestId('embeddings-model-id-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('retrieval-method-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('retrieval-number-of-chunks-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('retrieval-search-mode-1')).toHaveTextContent('N/A');
       expect(within(row1).getByTestId('retrieval-ranker-strategy-1')).toHaveTextContent('N/A');
-      expect(within(row1).getByTestId('generation-model-id-1')).toHaveTextContent('N/A');
+      // Model names (generation + embedding) are now in the sticky "Model names" column
+      expect(within(row1).getByTestId('model-name-1')).toHaveTextContent('N/A');
     });
 
     it('should allow sorting by settings columns with N/A values', () => {
@@ -764,7 +928,9 @@ describe('AutoragLeaderboard component', () => {
 
       // Click to sort by chunking method
       const chunkingMethodHeader = screen.getByTestId('chunking-method-header');
-      const sortButton = within(chunkingMethodHeader).getByRole('button');
+      const sortButton = within(chunkingMethodHeader).getByRole('button', {
+        name: /Chunking method/,
+      });
       fireEvent.click(sortButton);
 
       // Table should still render without errors
@@ -829,6 +995,217 @@ describe('AutoragLeaderboard component', () => {
       expect(patternLink).toBeInTheDocument();
       expect(patternLink.tagName).toBe('BUTTON');
       expect(patternLink).toHaveTextContent('Advanced RAG');
+    });
+  });
+
+  // ========================================================================
+  // Model Names Column
+  // ========================================================================
+
+  describe('model names column', () => {
+    it('should display generation and embedding model IDs in the model names column', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Model names column shows both generation and embedding model short names
+      const rank1ModelCell = screen.getByTestId('model-name-1');
+      expect(rank1ModelCell).toBeInTheDocument();
+      // Should display short names (last segment of model ID)
+      expect(rank1ModelCell).toHaveTextContent('llama-3');
+      expect(rank1ModelCell).toHaveTextContent('text-embedding-3');
+    });
+
+    it('should display N/A for missing model IDs with malformed settings', () => {
+      renderWithContext({
+        patterns: mockPatternsWithMalformedSettings,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Patterns with null/undefined settings should show N/A for model names
+      const row1 = screen.getByTestId('leaderboard-row-1');
+      const modelCell = within(row1).getByTestId('model-name-1');
+      expect(modelCell).toHaveTextContent('N/A');
+    });
+
+    it('should render model name header with sort button', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const modelHeader = screen.getByTestId('model-name-header');
+      expect(modelHeader).toBeInTheDocument();
+      expect(within(modelHeader).getByText('Model names')).toBeInTheDocument();
+      expect(within(modelHeader).getByRole('button', { name: /Model names/ })).toBeInTheDocument();
+    });
+  });
+
+  // ========================================================================
+  // Settings Columns
+  // ========================================================================
+
+  describe('settings columns', () => {
+    it('should display settings values for standard patterns', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Rank 1 is Advanced RAG
+      const row1 = screen.getByTestId('leaderboard-row-1');
+      expect(within(row1).getByTestId('retrieval-method-1')).toHaveTextContent('Simple');
+      expect(within(row1).getByTestId('chunking-method-1')).toHaveTextContent('Sequential');
+      expect(within(row1).getByTestId('chunking-chunk-size-1')).toHaveTextContent('512');
+      expect(within(row1).getByTestId('chunking-chunk-overlap-1')).toHaveTextContent('50');
+      expect(within(row1).getByTestId('retrieval-number-of-chunks-1')).toHaveTextContent('5');
+      expect(within(row1).getByTestId('retrieval-search-mode-1')).toHaveTextContent('Vector');
+    });
+
+    it('should render settings column headers', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+      expect(screen.getByTestId('chunking-chunk-size-header')).toBeInTheDocument();
+      expect(screen.getByTestId('chunking-chunk-overlap-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-number-of-chunks-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-search-mode-header')).toBeInTheDocument();
+      expect(screen.getByTestId('retrieval-ranker-strategy-header')).toBeInTheDocument();
+    });
+  });
+
+  // ========================================================================
+  // Manage Columns
+  // ========================================================================
+
+  describe('manage columns', () => {
+    it('should render manage columns button', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const button = screen.getByTestId('manage-columns-button');
+      expect(button).toBeInTheDocument();
+      expect(button).toHaveTextContent('Manage columns');
+    });
+
+    it('should open column management modal when button is clicked', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+
+      // Modal should be open
+      expect(
+        screen.getByText('Selected categories will be displayed in the table.'),
+      ).toBeInTheDocument();
+      // Always-visible columns should be disabled
+      expect(screen.getByTestId('column-check-rank')).toBeDisabled();
+      expect(screen.getByTestId('column-check-pattern')).toBeDisabled();
+      expect(screen.getByTestId('column-check-modelNames')).toBeDisabled();
+      expect(screen.getByTestId('column-check-optimized-metric')).toBeDisabled();
+    });
+
+    it('should allow toggling non-sticky metric columns', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Verify non-optimized metric headers exist before hiding
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+
+      // Open modal and uncheck answer_correctness
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const checkbox = screen.getByTestId('column-check-metric:answer_correctness');
+      expect(checkbox).not.toBeDisabled();
+      fireEvent.click(checkbox);
+      fireEvent.click(screen.getByText('Save'));
+
+      // answer_correctness header and cells should be hidden
+      expect(screen.queryByTestId('metric-header-answer_correctness')).not.toBeInTheDocument();
+      // context_correctness should still be visible
+      expect(screen.getByTestId('metric-header-context_correctness')).toBeInTheDocument();
+    });
+
+    it('should allow toggling settings columns', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Verify settings column exists
+      expect(screen.getByTestId('chunking-method-header')).toBeInTheDocument();
+
+      // Hide chunking method column
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const checkbox = screen.getByTestId('column-check-chunkingMethod');
+      expect(checkbox).not.toBeDisabled();
+      fireEvent.click(checkbox);
+      fireEvent.click(screen.getByText('Save'));
+
+      // Chunking method should be hidden
+      expect(screen.queryByTestId('chunking-method-header')).not.toBeInTheDocument();
+      // Other settings columns should still be visible
+      expect(screen.getByTestId('retrieval-method-header')).toBeInTheDocument();
+    });
+
+    it('should hide data cells when column is hidden', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Verify data cell exists
+      expect(screen.getByTestId('chunking-method-1')).toBeInTheDocument();
+
+      // Hide chunking method
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-chunkingMethod'));
+      fireEvent.click(screen.getByText('Save'));
+
+      // Data cells should also be hidden
+      expect(screen.queryByTestId('chunking-method-1')).not.toBeInTheDocument();
+    });
+
+    it('should not change columns when modal is cancelled', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+
+      // Open modal, uncheck, then cancel
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      fireEvent.click(screen.getByTestId('column-check-metric:answer_correctness'));
+      fireEvent.click(screen.getByText('Cancel'));
+
+      // Column should still be visible
+      expect(screen.getByTestId('metric-header-answer_correctness')).toBeInTheDocument();
+    });
+
+    it('should keep optimized metric visible and untoggleable', () => {
+      renderWithContext({
+        patterns: mockStandardPatterns,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      // Optimized metric is always visible
+      expect(screen.getByTestId('metric-header-faithfulness')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('manage-columns-button'));
+      const optimizedCheckbox = screen.getByTestId('column-check-optimized-metric');
+      expect(optimizedCheckbox).toBeDisabled();
     });
   });
 });

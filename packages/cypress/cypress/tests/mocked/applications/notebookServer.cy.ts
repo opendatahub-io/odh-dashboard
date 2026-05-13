@@ -240,7 +240,7 @@ describe('NotebookServer', () => {
     notebookServer
       .findHardwareProfileSelect()
       .findSelectOption(
-        'Large Profile CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+        'Large Profile CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       )
       .click();
     notebookServer.findHardwareProfileSelect().should('contain', 'Large');
@@ -288,7 +288,6 @@ describe('NotebookServer', () => {
     cy.interceptOdh('PATCH /api/notebooks', mockStartNotebookData({})).as('stopNotebookServer');
     notebookServer.visit();
     notebookServer.findStopServerButton().should('be.visible');
-    notebookServer.findStopServerButton().click();
 
     cy.interceptOdh(
       'GET /api/notebooks/openshift-ai-notebooks/:username/status',
@@ -299,6 +298,7 @@ describe('NotebookServer', () => {
       },
     );
 
+    notebookServer.findStopServerButton().click();
     stopNotebookModal.findStopNotebookServerButton().should('be.enabled');
     stopNotebookModal.findStopNotebookServerButton().click();
 

@@ -97,13 +97,7 @@ describe('useChatbotMessages', () => {
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0]).toMatchObject({
-        role: 'bot',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: mockModelId,
-      });
+      expect(result.current.messages).toHaveLength(0);
       expect(result.current.isMessageSendButtonDisabled).toBe(false);
       expect(result.current.scrollToBottomRef).toBeDefined();
       expect(result.current.handleMessageSend).toBeDefined();
@@ -120,17 +114,17 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello, bot!');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + bot
+      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
 
       // Test user message - only check what matters
-      expect(result.current.messages[1]).toMatchObject({
+      expect(result.current.messages[0]).toMatchObject({
         role: 'user',
         content: 'Hello, bot!',
         name: 'User',
       });
 
       // Test bot response - only check what matters (name shows selected model)
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
         name: mockModelId,
@@ -169,13 +163,7 @@ describe('useChatbotMessages', () => {
           input: 'Test query',
           model: 'test-model-id',
           vector_store_ids: ['test-vector-db'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -197,8 +185,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'No model or source settings selected',
         name: 'Bot',
@@ -222,8 +210,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + bot response
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
         name: mockModelId,
@@ -233,13 +221,7 @@ describe('useChatbotMessages', () => {
         {
           input: 'Test message',
           model: 'test-model-id',
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -259,8 +241,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'API Error',
         name: mockModelId,
@@ -295,8 +277,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'API is not available',
         name: mockModelId,
@@ -315,8 +297,8 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + error bot
-      expect(result.current.messages[2]).toMatchObject({
+      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: customErrorMessage,
         name: mockModelId,
@@ -346,9 +328,9 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      // Should have initial + user + bot (updated with error, not added separately)
-      expect(result.current.messages).toHaveLength(3);
-      expect(result.current.messages[2]).toMatchObject({
+      // Should have user + bot (placeholder removed; bot updated with error, not added separately)
+      expect(result.current.messages).toHaveLength(2);
+      expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: streamingErrorMessage,
         name: mockModelId,
@@ -373,19 +355,13 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(3); // initial + user + bot response
+      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
       expect(mockCreateResponse).toHaveBeenCalledWith(
         {
           input: 'Test message',
           model: 'test-model-id',
           vector_store_ids: ['vs_current_store_123'],
-          chat_context: [
-            {
-              role: 'assistant',
-              content:
-                'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-            },
-          ],
+          chat_context: [],
           instructions: '',
           stream: false,
           temperature: 0.7,
@@ -422,25 +398,14 @@ describe('useChatbotMessages', () => {
 
       const firstCall = mockCreateResponse.mock.calls[0][0];
       expect(firstCall.instructions).toBe('You are a helpful assistant.');
-      expect(firstCall.chat_context).toHaveLength(1);
-      expect(firstCall.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
-
+      expect(firstCall.chat_context).toHaveLength(0);
       const secondCall = mockCreateResponse.mock.calls[1][0];
-      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context).toHaveLength(2);
       expect(secondCall.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
-      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
         content: 'Hello',
       });
-      expect(secondCall.chat_context![2]).toMatchObject({
+      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'assistant',
         content: 'This is a bot response',
       });
@@ -457,12 +422,7 @@ describe('useChatbotMessages', () => {
 
       const call = mockCreateResponse.mock.calls[0][0];
       expect(call.instructions).toBe('');
-      expect(call.chat_context).toHaveLength(1);
-      expect(call.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
+      expect(call.chat_context).toHaveLength(0);
     });
 
     it('should maintain conversation context when modelId changes', async () => {
@@ -492,19 +452,14 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello with model 2');
       });
 
-      // Verify conversation context is preserved
+      // Verify conversation context is preserved (placeholder excluded after first send)
       const secondCall = mockCreateResponse.mock.calls[1][0];
-      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context).toHaveLength(2);
       expect(secondCall.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
-      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
         content: 'Hello with model 1',
       });
-      expect(secondCall.chat_context![2]).toMatchObject({
+      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'assistant',
         content: 'This is a bot response',
       });
@@ -537,20 +492,15 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello with detailed instruction');
       });
 
-      // Verify conversation context is preserved
+      // Verify conversation context is preserved (placeholder excluded after first send)
       const secondCall = mockCreateResponse.mock.calls[1][0];
       expect(secondCall.instructions).toBe('Be detailed.');
-      expect(secondCall.chat_context).toHaveLength(3);
+      expect(secondCall.chat_context).toHaveLength(2);
       expect(secondCall.chat_context![0]).toMatchObject({
-        role: 'assistant',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      });
-      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'user',
         content: 'Hello with concise instruction',
       });
-      expect(secondCall.chat_context![2]).toMatchObject({
+      expect(secondCall.chat_context![1]).toMatchObject({
         role: 'assistant',
         content: 'This is a bot response',
       });
@@ -577,7 +527,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Calculate');
       });
 
-      const botMessage = result.current.messages[2];
+      const botMessage = result.current.messages[1];
 
       // Verify isDefaultExpanded is set to false (key change)
       expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
@@ -611,7 +561,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test streaming');
       });
 
-      const botMessage = result.current.messages[2];
+      const botMessage = result.current.messages[1];
 
       // Verify isDefaultExpanded is false in streaming mode too
       expect(botMessage.toolResponse?.isDefaultExpanded).toBe(false);
@@ -633,7 +583,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      const botMessage = result.current.messages[2];
+      const botMessage = result.current.messages[1];
 
       expect(botMessage.metrics).toBeDefined();
       expect(botMessage.metrics?.latency_ms).toBe(1500);
@@ -666,7 +616,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test streaming');
       });
 
-      const botMessage = result.current.messages[2];
+      const botMessage = result.current.messages[1];
 
       expect(botMessage.metrics).toBeDefined();
       expect(botMessage.metrics?.latency_ms).toBe(1500);

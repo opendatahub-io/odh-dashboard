@@ -55,6 +55,34 @@ export const splitLlamaModelId = (llamaModelId: string): { providerId: string; i
   return { providerId, id };
 };
 
+/**
+ * Returns true if a provider-qualified LlamaStack model ID belongs to a MaaS provider.
+ * MaaS providers are registered in LlamaStack with a "maas-" prefix (e.g. "maas-vllm-inference-1").
+ *
+ * NOTE: this is brittle. Ideally we should fetch /v1/providers from LLS
+ * and cross reference the MaaS URL with the provider URL.
+ */
+export const isMaasLlamaModelId = (llamaModelId: string): boolean =>
+  splitLlamaModelId(llamaModelId).providerId.startsWith('maas-');
+
+/**
+ * Returns true if a playground LlamaModel corresponds to the given AIModel, accounting for
+ * model_source_type. MaaS playground models have a "maas-" provider prefix in their full id;
+ * namespace and custom_endpoint models do not. Without this check, two AIModels that share the
+ * same model_id but differ in model_source_type would incorrectly match the same playground entry.
+ */
+export const isPlaygroundModelMatchForAIModel = (
+  playgroundModel: LlamaModel,
+  aiModel: AIModel,
+): boolean => {
+  if (playgroundModel.modelId !== aiModel.model_id) {
+    return false;
+  }
+  return aiModel.model_source_type === 'maas'
+    ? isMaasLlamaModelId(playgroundModel.id)
+    : !isMaasLlamaModelId(playgroundModel.id);
+};
+
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);

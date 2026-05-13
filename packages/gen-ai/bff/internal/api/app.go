@@ -10,12 +10,16 @@ import (
 	"path"
 	"strings"
 
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -40,10 +44,13 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	nemoClientFactory       nemopkg.NemoClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
+	nemoGuardrailsURL       string
+	bffClientFactory        bffclient.BFFClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
 	rootCAs                 *x509.CertPool
@@ -110,6 +117,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
 		llamaStackClientFactory = llamastack.NewRealClientFactory()
+	}
+
+	// Initialize NeMo Guardrails client factory
+	var nemoClientFactory nemopkg.NemoClientFactory
+	if cfg.MockNemoClient {
+		logger.Info("Using mock NeMo Guardrails client factory")
+		nemoClientFactory = nemomocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real NeMo Guardrails client factory", "url", cfg.NemoGuardrailsURL)
+		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
 	// Initialize MaaS client factory - clients will be created per request
@@ -217,6 +234,46 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
+	// Initialize BFF client factory for inter-BFF communication
+	var bffFactory bffclient.BFFClientFactory
+	bffConfig := bffclient.NewDefaultBFFClientConfig()
+	bffConfig.MockBFFClients = cfg.MockBFFClients
+	bffConfig.InsecureSkipVerify = cfg.InsecureSkipVerify
+	bffConfig.PodNamespace = dashboardNamespace
+
+	// Apply MaaS BFF configuration overrides
+	if maasConfig := bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS); maasConfig != nil {
+		if cfg.BFFMaaSServiceName != "" {
+			maasConfig.ServiceName = cfg.BFFMaaSServiceName
+		}
+		if cfg.BFFMaaSServicePort > 0 {
+			maasConfig.Port = cfg.BFFMaaSServicePort
+		}
+		maasConfig.TLSEnabled = cfg.BFFMaaSTLSEnabled
+		maasConfig.DevOverrideURL = cfg.BFFMaaSDevURL
+
+		// Apply auth configuration for inter-BFF communication
+		if cfg.BFFMaaSAuthMethod != "" {
+			maasConfig.AuthMethod = cfg.BFFMaaSAuthMethod
+		}
+		if cfg.BFFMaaSAuthTokenHeader != "" {
+			maasConfig.AuthTokenHeader = cfg.BFFMaaSAuthTokenHeader
+		}
+		// AuthTokenPrefix can be empty (which is the ODH default)
+		maasConfig.AuthTokenPrefix = cfg.BFFMaaSAuthTokenPrefix
+	}
+
+	if cfg.MockBFFClients {
+		logger.Info("Using mock BFF client factory")
+		bffFactory = bffmocks.NewMockClientFactory(logger)
+	} else {
+		logger.Info("Using real BFF client factory",
+			"maasServiceName", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).ServiceName,
+			"maasServicePort", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).Port,
+			"maasDevURL", bffConfig.GetServiceConfig(bffclient.BFFTargetMaaS).DevOverrideURL)
+		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
+	}
+
 	// Initialize shared memory store for caching (10 minute cleanup interval)
 	memStore := cache.NewMemoryStore()
 	logger.Debug("Initialized shared memory store")
@@ -243,10 +300,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		nemoClientFactory:       nemoClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
+		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
+		bffClientFactory:        bffFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
 		rootCAs:                 rootCAs,
@@ -311,8 +371,8 @@ func (app *App) Routes() http.Handler {
 	// Models (LlamaStack)
 	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
+	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler))))))
 
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
@@ -322,7 +382,7 @@ func (app *App) Routes() http.Handler {
 	// Files (LlamaStack)
 	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
-	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackFileUploadStatusHandler)))
+	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
@@ -331,56 +391,61 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
-	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.RequireAccessToService(app.CodeExporterHandler)))
+	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.CodeExporterHandler))
 
 	// Kubernetes routes
 
 	// AI Assets Models (Kubernetes)
-	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.RequireAccessToService(app.ModelsAAHandler)))
-	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.CreateExternalModelHandler)))
-	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.RequireAccessToService(app.DeleteExternalModelHandler)))
+	apiRouter.GET(constants.ModelsAAPath, app.AttachNamespace(app.ModelsAAHandler))
+	apiRouter.POST(constants.ExternalModelsPath, app.AttachNamespace(app.CreateExternalModelHandler))
+	apiRouter.DELETE(constants.ExternalModelsPath, app.AttachNamespace(app.DeleteExternalModelHandler))
 
 	// External model verification (requires namespace for authorization)
-	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyExternalModelHandler)))
+	apiRouter.POST(constants.VerifyExternalModelPath, app.AttachNamespace(app.VerifyExternalModelHandler))
 
 	// Settings path namespace endpoints. This endpoint will get all the namespaces
-	apiRouter.GET(constants.NamespacesPath, app.RequireAccessToService(app.GetNamespaceHandler))
+	apiRouter.GET(constants.NamespacesPath, app.GetNamespaceHandler)
 
 	// Identity
-	apiRouter.GET(constants.UserPath, app.RequireAccessToService(app.GetCurrentUserHandler))
+	apiRouter.GET(constants.UserPath, app.GetCurrentUserHandler)
 
 	// BFF Configuration endpoint
-	apiRouter.GET(constants.ConfigPath, app.RequireAccessToService(app.BFFConfigHandler))
+	apiRouter.GET(constants.ConfigPath, app.BFFConfigHandler)
 
 	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionStatusHandler)))
+	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
 	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionInstallHandler))))
+	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
 	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.RequireAccessToService(app.LlamaStackDistributionDeleteHandler)))
+	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
-	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.RequireAccessToService(app.LSDSafetyConfigHandler)))
+	// NemoGuardrails endpoints
+	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
+	apiRouter.GET(constants.NemoGuardrailsStatusPath, app.AttachNamespace(app.NemoGuardrailsStatusHandler))
 
 	// MCP Client endpoints
-	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.RequireAccessToService(app.MCPToolsHandler)))
-	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.RequireAccessToService(app.MCPStatusHandler)))
-	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.RequireAccessToService(app.MCPListHandler)))
+	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))
+	apiRouter.GET(constants.MCPStatusPath, app.AttachNamespace(app.MCPStatusHandler))
+	apiRouter.GET(constants.MCPServersListPath, app.AttachNamespace(app.MCPListHandler))
 
 	// External Vector Stores
-	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.RequireAccessToService(app.VectorStoresAAHandler)))
-	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.ExternalVectorStoresListHandler)))
+	apiRouter.GET(constants.VectorStoresAAPath, app.AttachNamespace(app.VectorStoresAAHandler))
+	apiRouter.GET(constants.ExternalVectorStoresPath, app.AttachNamespace(app.ExternalVectorStoresListHandler))
 
 	// MaaS API routes
 
 	// Models (MaaS)
 	apiRouter.GET(constants.MaaSModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSModelsHandler))))
 
-	// Tokens (MaaS)
+	// Tokens (MaaS) - direct calls to MaaS controller
 	apiRouter.POST(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSIssueTokenHandler))))
 	apiRouter.DELETE(constants.MaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.MaaSRevokeAllTokensHandler))))
+
+	// Inter-BFF Communication routes - calls to MaaS BFF service
+	apiRouter.POST(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSIssueTokenHandler))))
+	apiRouter.DELETE(constants.BFFMaaSTokensPath, app.AttachNamespace(app.RequireAccessToService(app.AttachBFFMaaSClient(app.BFFMaaSRevokeAllTokensHandler))))
 
 	// MLflow API routes
 	apiRouter.GET(constants.MLflowPromptsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMLflowClient(app.MLflowListPromptsHandler))))

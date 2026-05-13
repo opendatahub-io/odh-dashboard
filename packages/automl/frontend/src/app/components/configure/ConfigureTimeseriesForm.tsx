@@ -13,6 +13,7 @@ import {
 import React, { useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
 import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
+import { MAX_PREDICTION_LENGTH } from '~/app/schemas/configure.schema';
 import { getTypeAcronym } from '~/app/utilities/columnUtils';
 import LoadingFormField from './LoadingFormField';
 
@@ -408,6 +409,7 @@ function ConfigureTimeseriesForm({
                   id="prediction-length-input"
                   value={field.value}
                   min={1}
+                  max={MAX_PREDICTION_LENGTH}
                   validated={fieldState.error ? 'error' : 'default'}
                   onMinus={() => field.onChange(Number(field.value) - 1)}
                   onPlus={() => field.onChange(Number(field.value) + 1)}

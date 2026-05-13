@@ -359,7 +359,7 @@ describe('NIM Model Serving', () => {
       // go the Models tab in the created project
       projectDetails.visitSection('test-project', 'model-server');
       // grab the deployed models table and click the kebab menu
-      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"]').click();
       cy.get('ul[role="menu"]').should('have.length', 1);
       cy.get('button').contains('Delete').should('exist');
     });
@@ -371,7 +371,7 @@ describe('NIM Model Serving', () => {
       // go the Models tab in the created project
       projectDetails.visitSection('test-project', 'model-server');
       // grab the deployed models table and click the kebab menu
-      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"').click();
+      cy.findByTestId('kserve-model-row-item').get('button[aria-label="Kebab toggle"]').click();
       // grab the delete menu and click it
       cy.get('button').contains('Delete').click();
       // grab the delete menu window and put in the project name

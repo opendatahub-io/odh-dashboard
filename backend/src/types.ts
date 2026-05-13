@@ -51,6 +51,7 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      guardrails: boolean;
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
@@ -63,6 +64,7 @@ export type DashboardConfig = K8sResourceCommon & {
       deploymentWizardYAMLViewer: boolean;
       externalVectorStores: boolean;
       vLLMDeploymentOnMaaS: boolean;
+      llmGatewayField: boolean;
       promptManagement: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later

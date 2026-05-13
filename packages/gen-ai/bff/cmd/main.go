@@ -46,6 +46,10 @@ func main() {
 	// Llama Stack configuration
 	flag.StringVar(&cfg.LlamaStackURL, "llama-stack-url", getEnvAsString("LLAMA_STACK_URL", ""), "Llama Stack server URL for proxying requests")
 
+	// NeMo Guardrails configuration
+	flag.StringVar(&cfg.NemoGuardrailsURL, "nemo-guardrails-url", getEnvAsString("NEMO_GUARDRAILS_URL", ""), "NeMo Guardrails server URL for content moderation")
+	flag.BoolVar(&cfg.MockNemoClient, "mock-nemo", getEnvAsBool("MOCK_NEMO_CLIENT", false), "Use mock NeMo Guardrails client")
+
 	// MaaS configuration
 	flag.StringVar(&cfg.MaaSURL, "maas-url", getEnvAsString("MAAS_URL", ""), "MaaS server URL for proxying requests")
 
@@ -61,6 +65,16 @@ func main() {
 
 	// RBAC configuration
 	flag.BoolVar(&cfg.EnableLlamaStackRBAC, "enable-llamastack-rbac", getEnvAsBool("ENABLE_LLAMASTACK_RBAC", false), "Enable RBAC endpoint filtering on LlamaStack configurations")
+
+	// BFF inter-communication configuration
+	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients", getEnvAsBool("MOCK_BFF_CLIENTS", false), "Use mock BFF clients for inter-BFF communication")
+	flag.StringVar(&cfg.BFFMaaSServiceName, "bff-maas-service-name", getEnvAsString("BFF_MAAS_SERVICE_NAME", "odh-dashboard"), "Kubernetes service name for MaaS BFF")
+	flag.IntVar(&cfg.BFFMaaSServicePort, "bff-maas-service-port", getEnvAsInt("BFF_MAAS_SERVICE_PORT", 8243), "Port for MaaS BFF service")
+	flag.BoolVar(&cfg.BFFMaaSTLSEnabled, "bff-maas-tls-enabled", getEnvAsBool("BFF_MAAS_TLS_ENABLED", false), "Enable TLS for MaaS BFF communication")
+	flag.StringVar(&cfg.BFFMaaSDevURL, "bff-maas-dev-url", getEnvAsString("BFF_MAAS_DEV_URL", ""), "Developer override URL for MaaS BFF (e.g., http://localhost:4000/api/v1)")
+	flag.StringVar(&cfg.BFFMaaSAuthMethod, "bff-maas-auth-method", getEnvAsString("BFF_MAAS_AUTH_METHOD", "user_token"), "Auth method for MaaS BFF: 'user_token' (default) or 'internal' (Kubeflow)")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenHeader, "bff-maas-auth-token-header", getEnvAsString("BFF_MAAS_AUTH_TOKEN_HEADER", "x-forwarded-access-token"), "Header to send auth token to MaaS BFF")
+	flag.StringVar(&cfg.BFFMaaSAuthTokenPrefix, "bff-maas-auth-token-prefix", getEnvAsString("BFF_MAAS_AUTH_TOKEN_PREFIX", ""), "Prefix for auth token header (e.g., 'Bearer ')")
 
 	// Initialize klog flags before parsing
 	klog.InitFlags(nil)

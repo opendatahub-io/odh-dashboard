@@ -3,7 +3,7 @@ import { Pagination, Spinner, Toolbar, ToolbarContent, ToolbarItem } from '@patt
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
 import { APIKey, SubscriptionDetail } from '~/app/types/api-key';
-import { ApiKeySortField, apiKeyColumns } from './columns';
+import { ApiKeySortField, getVisibleApiKeyColumns } from './columns';
 import ApiKeysTableRow from './ApiKeysTableRow';
 
 type SortDirection = 'asc' | 'desc';
@@ -23,6 +23,7 @@ type ApiKeysTableProps = {
   onRevokeApiKey: (apiKey: APIKey) => void;
   onClearFilters: () => void;
   isFetching?: boolean;
+  isMaasAdmin: boolean;
 };
 
 const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
@@ -40,8 +41,10 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
   toolbarContent,
   onClearFilters,
   isFetching,
+  isMaasAdmin,
 }) => {
-  const activeSortIndex = apiKeyColumns.findIndex((c) => c.serverSortField === sortField);
+  const visibleColumns = React.useMemo(() => getVisibleApiKeyColumns(isMaasAdmin), [isMaasAdmin]);
+  const activeSortIndex = visibleColumns.findIndex((c) => c.serverSortField === sortField);
 
   const pagination = (variant: 'top' | 'bottom') => (
     <Pagination
@@ -87,7 +90,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
       <Table data-testid="api-keys-table" aria-label="API keys table">
         <Thead noWrap>
           <Tr>
-            {apiKeyColumns.map((col, i) => (
+            {visibleColumns.map((col, i) => (
               <Th
                 key={col.field}
                 width={col.width}
@@ -117,7 +120,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
         {isFetching ? (
           <Tbody>
             <Tr>
-              <Td colSpan={apiKeyColumns.length} className="pf-v6-u-text-align-center">
+              <Td colSpan={visibleColumns.length} className="pf-v6-u-text-align-center">
                 <Spinner size="xl" aria-label="Loading results" />
               </Td>
             </Tr>
@@ -126,7 +129,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
           <Tbody>
             {apiKeys.length === 0 ? (
               <Tr>
-                <Td colSpan={apiKeyColumns.length}>
+                <Td colSpan={visibleColumns.length}>
                   <DashboardEmptyTableView onClearFilters={onClearFilters} />
                 </Td>
               </Tr>
@@ -135,6 +138,7 @@ const ApiKeysTable: React.FC<ApiKeysTableProps> = ({
                 <ApiKeysTableRow
                   key={apiKey.id}
                   apiKey={apiKey}
+                  columns={visibleColumns}
                   subscriptionDetail={
                     apiKey.subscription ? subscriptionDetails?.[apiKey.subscription] : undefined
                   }

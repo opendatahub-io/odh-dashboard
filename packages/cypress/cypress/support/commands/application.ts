@@ -300,6 +300,15 @@ const handleOAuthLogin = (credentials: UserAuthConfig): void => {
   cy.url().should('not.include', '/oauth');
 };
 
+// The webpack dev-server proxy polls `oc whoami --show-token` every
+// TOKEN_REFRESH_MIN_INTERVAL (5 000 ms, see webpack.dev.js) to detect
+// user switches.  After an `oc login`, we must wait at least one full
+// poll cycle so the proxy picks up the new user's token.
+//
+// NOTE: cy.intercept() cannot observe this — the refresh is a
+// server-side execSync call inside the proxy, not a browser request.
+const OC_TOKEN_REFRESH_WAIT_MS = Number(Cypress.env('OC_TOKEN_REFRESH_WAIT_MS')) || 6000;
+
 Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUSTER_ADMIN_USER) => {
   if (Cypress.env('MOCK')) {
     cy.visit(relativeUrl);
@@ -321,9 +330,9 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
         const currentOcUser = result.stdout.trim();
         const requestedUser = credentials.USERNAME;
 
-        if (result.code !== 0) {
+        if (result.exitCode !== 0) {
           cy.log(
-            `⚠️ oc whoami failed (exit code: ${result.code}) - may not be logged into cluster`,
+            `⚠️ oc whoami failed (exit code: ${result.exitCode}) - may not be logged into cluster`,
           );
           return cy.wrap(null);
         }
@@ -350,11 +359,13 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
               { failOnNonZeroExit: false, log: false },
             )
             .then((loginResult) => {
-              if (loginResult.code === 0) {
+              if (loginResult.exitCode === 0) {
                 cy.log(`✅ oc user switched successfully`);
+                // eslint-disable-next-line cypress/no-unnecessary-waiting
+                cy.wait(OC_TOKEN_REFRESH_WAIT_MS);
               } else {
                 const errorMsg =
-                  `oc login failed (exit code: ${loginResult.code}). ` +
+                  `oc login failed (exit code: ${loginResult.exitCode}). ` +
                   `Output: ${loginResult.stdout || loginResult.stderr || 'No output'}`;
                 cy.log(`❌ ${errorMsg}`);
                 throw new Error(errorMsg);
@@ -393,7 +404,10 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
           cy.get('input[name=password]').fill(credentials.PASSWORD, { log: false });
           cy.get('form').submit();
         }
-      } else if (!interception.response || (statusCode !== 200 && statusCode !== 302)) {
+      } else if (
+        !interception.response ||
+        (statusCode !== 200 && statusCode !== 301 && statusCode !== 302)
+      ) {
         throw new Error(`Failed to visit '${fullUrl}'. Status code: ${statusCode || 'unknown'}`);
       }
     });

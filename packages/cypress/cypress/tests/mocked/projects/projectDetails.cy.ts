@@ -45,6 +45,7 @@ import {
   TemplateModel,
 } from '../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
 
 type HandlersProps = {
   isEmpty?: boolean;
@@ -115,6 +116,7 @@ const initIntercepts = ({
         [DataScienceStackComponent.DS_PIPELINES]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
         [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.MLFLOW]: { managementState: 'Managed' },
       },
     }),
   );
@@ -547,16 +549,11 @@ describe('Project Details', () => {
       initIntercepts({});
       initModelServingIntercepts({});
       cy.interceptOdh('GET /api/console-links', mockConsoleLinks([mockMLflowLink]));
+      cy.interceptOdh('GET /api/dsc/status', mockDscStatus({}));
     });
 
     it('should show experiment tracking card with correct actions', () => {
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({
-          mlflow: true,
-        }),
-      );
-
+      interceptMlflowStatus();
       projectDetails.visitSection('test-project', 'overview');
 
       cy.contains('Experiment tracking').should('be.visible');
@@ -569,13 +566,13 @@ describe('Project Details', () => {
       cy.url().should('include', '/develop-train/mlflow/experiments');
     });
 
-    it('should not show MLflow card in overview when MLflow is disabled', () => {
-      cy.interceptOdh(
-        'GET /api/config',
-        mockDashboardConfig({
-          mlflow: false,
-        }),
-      );
+    it('should not show MLflow card in overview when MLflow component is not installed', () => {
+      const dscStatus = mockDscStatus({});
+      dscStatus.components = {
+        ...dscStatus.components,
+        [DataScienceStackComponent.MLFLOW]: { managementState: 'Removed' },
+      };
+      cy.interceptOdh('GET /api/dsc/status', dscStatus);
 
       projectDetails.visitSection('test-project', 'overview');
 

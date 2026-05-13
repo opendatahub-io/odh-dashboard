@@ -16,10 +16,8 @@ const moduleFederationConfig = {
     '@openshift/dynamic-plugin-sdk': {
       singleton: true,
     },
-    '@odh-dashboard/plugin-core': {
-      singleton: true,
-      requiredVersion: '0.0.0',
-    },
+    '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
   },
   exposes: {
     './extensions': './src/odh/extensions',

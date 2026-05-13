@@ -20,9 +20,9 @@ import {
 } from '~/app/pages/modelRegistry/screens/const';
 import FilterToolbar from '~/app/shared/components/FilterToolbar';
 import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
+import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 import RegisteredModelTable from './RegisteredModelTable';
 import RegisteredModelsTableToolbar from './RegisteredModelsTableToolbar';
-import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
 
 type RegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
@@ -147,10 +147,7 @@ const RegisteredModelListView: React.FC<RegisteredModelListViewProps> = (props) 
   // Create deployment context at the top level for all registered models
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   return (
-    <MRDeploymentsContextProvider
-      labelSelectors={undefined}
-      mrName={preferredModelRegistry?.name}
-    >
+    <MRDeploymentsContextProvider labelSelectors={undefined} mrName={preferredModelRegistry?.name}>
       <RegisteredModelListViewContent {...props} />
     </MRDeploymentsContextProvider>
   );

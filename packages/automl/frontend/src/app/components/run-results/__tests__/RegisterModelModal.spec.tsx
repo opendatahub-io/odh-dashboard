@@ -34,6 +34,7 @@ const mockRegistries: ModelRegistriesResponse = {
       description: 'The default registry',
       is_ready: true,
       server_url: 'https://default-registry.svc:8443/api/model_registry/v1alpha3',
+      external_url: 'https://default-registry-rest.apps.example.com/api/model_registry/v1alpha3',
     },
     {
       id: 'uid-2',
@@ -168,6 +169,94 @@ describe('RegisterModelModal', () => {
       renderModal();
 
       expect(screen.getByText('No model registries are available')).toBeInTheDocument();
+    });
+
+    it('should show validation error when registry without external URL is selected', () => {
+      const registryWithoutExternalUrl = {
+        id: 'uid-3',
+        name: 'no-external-url',
+        display_name: 'No External URL Registry',
+        is_ready: true,
+        server_url: 'https://internal-only.svc:8443/api/model_registry/v1alpha3',
+        // external_url is missing
+      };
+
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: {
+            model_registries: [registryWithoutExternalUrl],
+          },
+          isLoading: false,
+          isError: false,
+        }),
+      );
+
+      renderModal();
+
+      // Open the dropdown
+      fireEvent.click(screen.getByTestId('registry-select-toggle'));
+
+      // Registry without external URL should appear in the dropdown
+      const option = screen.getByTestId('registry-option-no-external-url');
+      expect(option).toBeInTheDocument();
+
+      // Click on the option to select it
+      const optionButton = option.querySelector('button');
+      expect(optionButton).not.toBeNull();
+      fireEvent.click(optionButton!);
+
+      // Error message should appear
+      expect(screen.getByTestId('registry-validation-error')).toBeInTheDocument();
+      expect(screen.getByTestId('registry-validation-error')).toHaveTextContent(
+        'This registry does not have an external URL configured and cannot be used for model registration.',
+      );
+
+      // Submit button should remain disabled
+      expect(screen.getByTestId('register-model-submit')).toBeDisabled();
+    });
+
+    it('should show validation error when registry with empty external URL is selected', () => {
+      const registryWithEmptyExternalUrl = {
+        id: 'uid-4',
+        name: 'empty-external-url',
+        display_name: 'Empty External URL Registry',
+        is_ready: true,
+        server_url: 'https://internal-only.svc:8443/api/model_registry/v1alpha3',
+        external_url: '', // Empty string
+      };
+
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: {
+            model_registries: [registryWithEmptyExternalUrl],
+          },
+          isLoading: false,
+          isError: false,
+        }),
+      );
+
+      renderModal();
+
+      // Open the dropdown
+      fireEvent.click(screen.getByTestId('registry-select-toggle'));
+
+      // Registry with empty external URL should appear in the dropdown
+      const option = screen.getByTestId('registry-option-empty-external-url');
+      expect(option).toBeInTheDocument();
+
+      // Click on the option to select it
+      const optionButton = option.querySelector('button');
+      expect(optionButton).not.toBeNull();
+      fireEvent.click(optionButton!);
+
+      // Error message should appear
+      expect(screen.getByTestId('registry-validation-error')).toBeInTheDocument();
+      expect(screen.getByTestId('registry-validation-error')).toHaveTextContent(
+        'This registry does not have an external URL configured and cannot be used for model registration.',
+      );
+
+      // Submit button should remain disabled
+      expect(screen.getByTestId('register-model-submit')).toBeDisabled();
     });
   });
 

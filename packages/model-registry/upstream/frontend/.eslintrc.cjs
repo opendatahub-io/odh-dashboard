@@ -1,4 +1,7 @@
+const path = require('path');
+
 module.exports = {
+  "root": true,
   "parser": "@typescript-eslint/parser",
   "env": {
     "browser": true,
@@ -180,7 +183,8 @@ module.exports = {
       "error",
       {
         "devDependencies": true,
-        "optionalDependencies": true
+        "optionalDependencies": true,
+        "packageDir": [__dirname, path.resolve(__dirname, '../..')]
       }
     ],
     "no-relative-import-paths/no-relative-import-paths": [

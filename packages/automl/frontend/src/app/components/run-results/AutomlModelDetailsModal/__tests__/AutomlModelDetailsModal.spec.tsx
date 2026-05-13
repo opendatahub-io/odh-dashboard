@@ -169,7 +169,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(screen.getByLabelText('Model information info')).toBeInTheDocument();
   });
 
-  it('should render Download and Save as notebook buttons', () => {
+  it('should render Download button and Save as dropdown', () => {
     render(
       <AutomlResultsContext.Provider value={mockTabularContext}>
         <AutomlModelDetailsModal {...defaultProps} onClickSaveNotebook={jest.fn()} />
@@ -177,7 +177,7 @@ describe('AutomlModelDetailsModal', () => {
     );
 
     expect(screen.getByTestId('model-details-download')).toBeInTheDocument();
-    expect(screen.getByTestId('model-details-save-notebook')).toBeInTheDocument();
+    expect(screen.getByTestId('model-details-actions-toggle')).toBeInTheDocument();
   });
 
   it('should call onClose when modal close is triggered', async () => {
@@ -272,7 +272,7 @@ describe('AutomlModelDetailsModal', () => {
     expect(downloadButton).toBeEnabled();
   });
 
-  it('should call onClickSaveNotebook when "Save as notebook" button is clicked', async () => {
+  it('should call onClickSaveNotebook when "Save as notebook" is clicked in dropdown', async () => {
     const onClickSaveNotebook = jest.fn();
     const user = userEvent.setup();
 
@@ -282,8 +282,8 @@ describe('AutomlModelDetailsModal', () => {
       </AutomlResultsContext.Provider>,
     );
 
-    const saveNotebookButton = screen.getByTestId('model-details-save-notebook');
-    await user.click(saveNotebookButton);
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     expect(onClickSaveNotebook).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
     expect(onClickSaveNotebook).toHaveBeenCalledTimes(1);
@@ -304,12 +304,63 @@ describe('AutomlModelDetailsModal', () => {
     await user.click(toggle);
     await user.click(screen.getByText('RandomForest_BAG_L1_FULL'));
 
-    // Click save notebook button
-    const saveNotebookButton = screen.getByTestId('model-details-save-notebook');
-    await user.click(saveNotebookButton);
+    // Click save notebook via dropdown
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Save as notebook' }));
 
     // Should be called with the newly selected model
     expect(onClickSaveNotebook).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
+  });
+
+  it('should call onRegisterModel and onClose when "Register model" is clicked', async () => {
+    const onRegisterModel = jest.fn();
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClose={onClose}
+          onRegisterModel={onRegisterModel}
+        />
+      </AutomlResultsContext.Provider>,
+    );
+
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRegisterModel).toHaveBeenCalledWith('CatBoost_BAG_L2_FULL');
+    expect(onRegisterModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('should call onRegisterModel with current model when model is switched', async () => {
+    const onRegisterModel = jest.fn();
+    const onClose = jest.fn();
+    const user = userEvent.setup();
+
+    render(
+      <AutomlResultsContext.Provider value={mockTabularContext}>
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClose={onClose}
+          onRegisterModel={onRegisterModel}
+        />
+      </AutomlResultsContext.Provider>,
+    );
+
+    // Switch to a different model
+    const toggle = screen.getByTestId('model-selector-dropdown');
+    await user.click(toggle);
+    await user.click(screen.getByText('RandomForest_BAG_L1_FULL'));
+
+    // Click register model via dropdown
+    await user.click(screen.getByTestId('model-details-actions-toggle'));
+    await user.click(screen.getByRole('menuitem', { name: 'Register model' }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onRegisterModel).toHaveBeenCalledWith('RandomForest_BAG_L1_FULL');
   });
 
   it('should render print portal with all visible tabs when download is clicked', async () => {
@@ -358,13 +409,17 @@ describe('AutomlModelDetailsModal', () => {
     }
   });
 
-  it('should not render "Save as notebook" button when callback is not provided', () => {
+  it('should not render Save as dropdown when neither callback is provided', () => {
     render(
       <AutomlResultsContext.Provider value={mockTabularContext}>
-        <AutomlModelDetailsModal {...defaultProps} onClickSaveNotebook={undefined} />
+        <AutomlModelDetailsModal
+          {...defaultProps}
+          onClickSaveNotebook={undefined}
+          onRegisterModel={undefined}
+        />
       </AutomlResultsContext.Provider>,
     );
 
-    expect(screen.queryByTestId('model-details-save-notebook')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('model-details-actions-toggle')).not.toBeInTheDocument();
   });
 });

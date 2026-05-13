@@ -52,7 +52,7 @@ import type {
   AutoragPatternSettings,
 } from '~/app/types/autoragPattern';
 import { usePatternEvaluationResults } from '~/app/hooks/usePatternEvaluationResults';
-import { formatMetricName, formatMetricValue } from '~/app/utilities/utils';
+import { formatMetricName, formatMetricValue, formatPatternName } from '~/app/utilities/utils';
 import './PatternDetailsModal.scss';
 
 let echartsRegistered = false;
@@ -380,7 +380,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
   const allSections = [OVERVIEW_KEY, ...settingsKeys, ...(showSampleQA ? [SAMPLE_QA_KEY] : [])];
 
   const topLevelFields: Record<string, unknown> = {
-    name: data.name,
+    name: formatPatternName(data.name),
     iteration: data.iteration,
     // eslint-disable-next-line camelcase
     max_combinations: data.max_combinations,
@@ -484,21 +484,21 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
                           isExpanded={isPatternDropdownOpen}
                           data-testid="pattern-selector-dropdown"
                         >
-                          {data.name}
+                          {formatPatternName(data.name)}
                         </MenuToggle>
                       )}
                     >
                       <DropdownList>
                         {patterns.map((pattern, i) => (
                           <DropdownItem key={i} value={i}>
-                            {pattern.name}
+                            {formatPatternName(pattern.name)}
                           </DropdownItem>
                         ))}
                       </DropdownList>
                     </Dropdown>
                   ) : (
                     <Title headingLevel="h2" size="lg">
-                      {data.name}
+                      {formatPatternName(data.name)}
                     </Title>
                   )}
                 </StackItem>
@@ -632,9 +632,9 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
           <div className="odh-autox-print-only" data-testid="print-container">
             <div className="autorag-print-page autorag-print-page--first">
               <div className="autorag-print-header">
-                <h1>{data.name}</h1>
+                <h1>{formatPatternName(data.name)}</h1>
                 <p>
-                  {data.name} |{' '}
+                  {formatPatternName(data.name)} |{' '}
                   {optimizedMetric
                     ? `${formatMetricName(optimizedMetric)} (optimized): ${
                         data.scores[optimizedMetric]
@@ -652,7 +652,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             {settingsKeys.map((key) => (
               <div key={key} className="autorag-print-page">
                 <div className="autorag-print-header">
-                  <h1>{data.name}</h1>
+                  <h1>{formatPatternName(data.name)}</h1>
                 </div>
                 <Title headingLevel="h2">{humanize(key)}</Title>
                 <KeyValueList entries={settingsSectionEntries(data.settings, key)} />
@@ -661,7 +661,7 @@ const PatternDetailsModal: React.FC<PatternDetailsModalProps> = ({
             {evaluationResults && evaluationResults.length > 0 && (
               <div className="autorag-print-page">
                 <div className="autorag-print-header">
-                  <h1>{data.name}</h1>
+                  <h1>{formatPatternName(data.name)}</h1>
                 </div>
                 <Title headingLevel="h2">Sample Q&A</Title>
                 <PrintSampleQAContent results={evaluationResults} />

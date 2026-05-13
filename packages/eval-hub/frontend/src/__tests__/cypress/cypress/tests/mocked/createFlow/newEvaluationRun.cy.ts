@@ -39,16 +39,14 @@ describe('New Evaluation Run Page', () => {
 
   it('should render the two evaluation type cards', () => {
     newEvaluationRunPage.visit(NAMESPACE);
-    newEvaluationRunPage.findTitle().should('contain.text', 'New evaluation run');
+    newEvaluationRunPage.findTitle().should('contain.text', 'Select evaluation type');
     newEvaluationRunPage.findStandardisedBenchmarksCard().should('exist');
-    newEvaluationRunPage
-      .findStandardisedBenchmarksCard()
-      .should('contain.text', 'Single benchmark');
+    newEvaluationRunPage.findStandardisedBenchmarksCard().should('contain.text', 'Benchmark');
     newEvaluationRunPage.findCollectionsCard().should('exist');
     newEvaluationRunPage.findCollectionsCard().should('contain.text', 'Benchmark suite');
   });
 
-  it('should navigate to the benchmarks page when clicking Single benchmark', () => {
+  it('should navigate to the benchmarks page when clicking Benchmark', () => {
     newEvaluationRunPage.visit(NAMESPACE);
     newEvaluationRunPage.findStandardisedBenchmarksCard().click();
     cy.url().should('include', `${NAMESPACE}/create/benchmarks`);

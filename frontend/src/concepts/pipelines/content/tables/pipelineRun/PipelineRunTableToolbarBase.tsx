@@ -6,7 +6,11 @@ import { FilterOptions } from '#~/concepts/pipelines/content/tables/usePipelineF
 import { RuntimeStateKF, runtimeStateLabels } from '#~/concepts/pipelines/kfTypes';
 import DashboardDatePicker from '#~/components/DashboardDatePicker';
 import { PipelineRunVersionsContext } from '#~/pages/pipelines/global/runs/PipelineRunVersionsContext';
-import { PipelineVersionFilterSelector } from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
+import { PipelineRunExperimentsContext } from '#~/pages/pipelines/global/runs/PipelineRunExperimentsContext';
+import {
+  ExperimentFilterSelector,
+  PipelineVersionFilterSelector,
+} from '#~/concepts/pipelines/content/pipelineSelector/CustomPipelineRunToolbarSelect';
 import MlflowExperimentSelector from '#~/concepts/mlflow/MlflowExperimentSelector';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 
@@ -28,6 +32,7 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
   ...toolbarProps
 }) => {
   const { versions } = React.useContext(PipelineRunVersionsContext);
+  const { experiments } = React.useContext(PipelineRunExperimentsContext);
   const { namespace } = usePipelinesAPI();
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
@@ -52,13 +57,11 @@ const PipelineRunTableToolbarBase: React.FC<PipelineRunTableToolbarBaseProps> = 
             onChange={(_event, value) => onChange(value)}
           />
         ),
-        [FilterOptions.RUN_GROUP]: ({ onChange, ...props }) => (
-          <TextInput
-            {...props}
-            data-testid="search-for-run-group-name"
-            aria-label="Search for a run group name"
-            placeholder="Search..."
-            onChange={(_event, value) => onChange(value)}
+        [FilterOptions.RUN_GROUP]: ({ onChange, label }) => (
+          <ExperimentFilterSelector
+            resources={experiments}
+            selection={label}
+            onSelect={(runGroup) => onChange(runGroup.experiment_id, runGroup.display_name)}
           />
         ),
         [FilterOptions.PIPELINE_VERSION]: ({ onChange, label }) => (

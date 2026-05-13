@@ -536,6 +536,10 @@ class TrainingJobStatusModal extends Modal {
     return cy.findByTestId('event-logs');
   }
 
+  findEventLogEntries() {
+    return this.findEventLogs().find('li');
+  }
+
   findLogEntry(text: string) {
     return this.findEventLogs().find('li span').contains(text);
   }
@@ -945,6 +949,10 @@ class RayJobResourcesTab {
 
   findNodesValue() {
     return cy.findByTestId('nodes-value');
+  }
+
+  findNodesEditButton() {
+    return cy.findByTestId('nodes-edit-button');
   }
 
   findProcessesPerNodeValue() {

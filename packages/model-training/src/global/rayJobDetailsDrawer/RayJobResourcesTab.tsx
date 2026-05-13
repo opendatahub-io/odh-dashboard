@@ -93,7 +93,7 @@ const RayJobResourcesTab: React.FC<RayJobResourcesTabProps> = ({
 
   const { clusterQueue, loaded: clusterQueueDataLoaded } = useClusterQueue(clusterQueueName);
 
-  const quotaSource = clusterQueue?.spec.cohort || '-';
+  const quotaSource = clusterQueue?.spec.cohortName || '-';
   const consumedResources = clusterQueue ? getAllConsumedResources(clusterQueue) : [];
 
   return (

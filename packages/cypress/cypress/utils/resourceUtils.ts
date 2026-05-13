@@ -57,7 +57,7 @@ export const cleanupCustomResources = (resourcesData: ResourcesData): Cypress.Ch
           stderr: maskSensitiveInfo(result.stderr || ''),
         };
         cy.log(`Command execution result: ${JSON.stringify(maskedResult)}`);
-        expect(result.code).to.equal(0);
+        expect(result.exitCode).to.equal(0);
         cy.log('Custom resource deleted successfully.');
       },
     );

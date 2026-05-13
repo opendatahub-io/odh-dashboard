@@ -90,7 +90,7 @@ func (m *mockKubernetesClientFactoryForSecrets) ValidateRequestIdentity(identity
 }
 
 func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
-	// Create mock secrets with all required S3 keys
+	// Create mock secrets with all required S3 keys (uppercase)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -99,10 +99,10 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE"),
-				"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -112,20 +112,33 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 				UID:       types.UID("uid-2"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("AKIAIOSFODNN7EXAMPLE2"),
-				"aws_secret_access_key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY2"),
-				"aws_default_region":    []byte("us-west-2"),
-				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE2"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY2"),
+				"AWS_DEFAULT_REGION":    []byte("us-west-2"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.us-west-2.amazonaws.com"),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "s3-secret-no-region",
+				Namespace: "test-namespace",
+				UID:       types.UID("uid-3"),
+			},
+			Data: map[string][]byte{
+				"AWS_ACCESS_KEY_ID":     []byte("AKIAIOSFODNN7EXAMPLE3"),
+				"AWS_SECRET_ACCESS_KEY": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY3"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.eu-west-1.amazonaws.com"),
+				// AWS_DEFAULT_REGION intentionally omitted — storageTypeRequiredKeys no longer requires it
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "incomplete-secret",
 				Namespace: "test-namespace",
-				UID:       types.UID("uid-3"),
+				UID:       types.UID("uid-4"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id": []byte("INCOMPLETE"),
+				"AWS_ACCESS_KEY_ID": []byte("INCOMPLETE"),
 				// Missing other required keys
 			},
 		},
@@ -133,7 +146,7 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "other-secret",
 				Namespace: "test-namespace",
-				UID:       types.UID("uid-4"),
+				UID:       types.UID("uid-5"),
 			},
 			Data: map[string][]byte{
 				"password": []byte("some-password"),
@@ -155,29 +168,38 @@ func TestGetSecretsHandler_TypeStorage_Success(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 2) // Only 2 secrets have all required S3 keys
+	assert.Len(t, envelope.Data, 3) // 3 secrets have all required S3 keys (region is not required)
 	assert.Equal(t, "uid-1", envelope.Data[0].UUID)
 	assert.Equal(t, "s3-secret-1", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
-		"aws_access_key_id":     "[REDACTED]",
-		"aws_default_region":    "[REDACTED]",
-		"aws_s3_endpoint":       "[REDACTED]",
-		"aws_secret_access_key": "[REDACTED]",
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_DEFAULT_REGION":    "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[0].Data)
 	assert.Equal(t, "uid-2", envelope.Data[1].UUID)
 	assert.Equal(t, "s3-secret-2", envelope.Data[1].Name)
 	assert.Equal(t, "s3", envelope.Data[1].Type)
 	assert.Equal(t, map[string]string{
-		"aws_access_key_id":     "[REDACTED]",
-		"aws_default_region":    "[REDACTED]",
-		"aws_s3_endpoint":       "[REDACTED]",
-		"aws_secret_access_key": "[REDACTED]",
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_DEFAULT_REGION":    "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[1].Data)
+	// Third secret omits AWS_DEFAULT_REGION — still accepted because region is not a required key
+	assert.Equal(t, "uid-3", envelope.Data[2].UUID)
+	assert.Equal(t, "s3-secret-no-region", envelope.Data[2].Name)
+	assert.Equal(t, "s3", envelope.Data[2].Type)
+	assert.Equal(t, map[string]string{
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
+	}, envelope.Data[2].Data)
 }
 
-func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
-	// Test that storage key matching is case-insensitive
+func TestGetSecretsHandler_TypeStorage_CaseSensitive(t *testing.T) {
+	// Test that storage key matching is case-sensitive (only uppercase keys match)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -234,7 +256,9 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 3) // All 3 secrets should match (case-insensitive)
+	assert.Len(t, envelope.Data, 1) // Only uppercase keys match (case-sensitive)
+	assert.Equal(t, "uid-upper", envelope.Data[0].UUID)
+	assert.Equal(t, "s3-uppercase", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
 		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
@@ -242,20 +266,6 @@ func TestGetSecretsHandler_TypeStorage_CaseInsensitive(t *testing.T) {
 		"AWS_S3_ENDPOINT":       "[REDACTED]",
 		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[0].Data)
-	assert.Equal(t, "s3", envelope.Data[1].Type)
-	assert.Equal(t, map[string]string{
-		"aws_access_key_id":     "[REDACTED]",
-		"aws_default_region":    "[REDACTED]",
-		"aws_s3_endpoint":       "[REDACTED]",
-		"aws_secret_access_key": "[REDACTED]",
-	}, envelope.Data[1].Data)
-	assert.Equal(t, "s3", envelope.Data[2].Type)
-	assert.Equal(t, map[string]string{
-		"Aws_Access_Key_Id":     "[REDACTED]",
-		"Aws_Default_Region":    "[REDACTED]",
-		"Aws_S3_Endpoint":       "[REDACTED]",
-		"Aws_Secret_Access_Key": "[REDACTED]",
-	}, envelope.Data[2].Data)
 }
 
 func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
@@ -268,10 +278,10 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -326,10 +336,10 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 	assert.Equal(t, "s3-secret", envelope.Data[0].Name)
 	assert.Equal(t, "s3", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
-		"aws_access_key_id":     "[REDACTED]",
-		"aws_default_region":    "[REDACTED]",
-		"aws_s3_endpoint":       "[REDACTED]",
-		"aws_secret_access_key": "[REDACTED]",
+		"AWS_ACCESS_KEY_ID":     "[REDACTED]",
+		"AWS_DEFAULT_REGION":    "[REDACTED]",
+		"AWS_S3_ENDPOINT":       "[REDACTED]",
+		"AWS_SECRET_ACCESS_KEY": "[REDACTED]",
 	}, envelope.Data[0].Data)
 	assert.Equal(t, "uid-lls", envelope.Data[1].UUID)
 	assert.Equal(t, "lls-secret", envelope.Data[1].Name)
@@ -355,7 +365,7 @@ func TestGetSecretsHandler_NoType_ReturnsAllSecrets(t *testing.T) {
 }
 
 func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
-	// Create mock secrets with all required LLS keys
+	// Create mock secrets with all required LLS keys (uppercase)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -375,8 +385,8 @@ func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
 				UID:       types.UID("uid-lls-2"),
 			},
 			Data: map[string][]byte{
-				"llama_stack_client_api_key":  []byte("sk-test-api-key-456"), // lowercase
-				"llama_stack_client_base_url": []byte("https://llama-stack-2.example.com"),
+				"LLAMA_STACK_CLIENT_API_KEY":  []byte("sk-test-api-key-456"),
+				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama-stack-2.example.com"),
 			},
 		},
 		{
@@ -428,13 +438,13 @@ func TestGetSecretsHandler_TypeLls_Success(t *testing.T) {
 	assert.Equal(t, "lls-secret-2", envelope.Data[1].Name)
 	assert.Equal(t, "lls", envelope.Data[1].Type)
 	assert.Equal(t, map[string]string{
-		"llama_stack_client_api_key":  "[REDACTED]",
-		"llama_stack_client_base_url": "[REDACTED]",
+		"LLAMA_STACK_CLIENT_API_KEY":  "[REDACTED]",
+		"LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]",
 	}, envelope.Data[1].Data)
 }
 
-func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
-	// Test that LLS key matching is case-insensitive
+func TestGetSecretsHandler_TypeLls_CaseSensitive(t *testing.T) {
+	// Test that LLS key matching is case-sensitive (only uppercase keys match)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -485,26 +495,18 @@ func TestGetSecretsHandler_TypeLls_CaseInsensitive(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Len(t, envelope.Data, 3) // All 3 secrets should match (case-insensitive)
+	assert.Len(t, envelope.Data, 1) // Only uppercase keys match (case-sensitive)
+	assert.Equal(t, "uid-upper", envelope.Data[0].UUID)
+	assert.Equal(t, "lls-uppercase", envelope.Data[0].Name)
 	assert.Equal(t, "lls", envelope.Data[0].Type)
 	assert.Equal(t, map[string]string{
 		"LLAMA_STACK_CLIENT_API_KEY":  "[REDACTED]",
 		"LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]",
 	}, envelope.Data[0].Data)
-	assert.Equal(t, "lls", envelope.Data[1].Type)
-	assert.Equal(t, map[string]string{
-		"llama_stack_client_api_key":  "[REDACTED]",
-		"llama_stack_client_base_url": "[REDACTED]",
-	}, envelope.Data[1].Data)
-	assert.Equal(t, "lls", envelope.Data[2].Type)
-	assert.Equal(t, map[string]string{
-		"Llama_Stack_Client_Api_Key":  "[REDACTED]",
-		"Llama_Stack_Client_Base_Url": "[REDACTED]",
-	}, envelope.Data[2].Data)
 }
 
 func TestGetSecretsHandler_TypeLls_EmptyList(t *testing.T) {
-	// Create mock secrets without all required LLS keys
+	// Create mock secrets without all required LLS keys (uppercase)
 	mockSecrets := []corev1.Secret{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -574,8 +576,8 @@ func TestGetSecretsHandler_TypeStorage_EmptyList(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id": []byte("key"),
-				// Missing aws_secret_access_key, aws_default_region, aws_s3_endpoint
+				"AWS_ACCESS_KEY_ID": []byte("key"),
+				// Missing AWS_SECRET_ACCESS_KEY, AWS_S3_ENDPOINT
 			},
 		},
 		{
@@ -870,10 +872,10 @@ func TestGetSecretsHandler_DisplayName_WithAnnotation(t *testing.T) {
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -906,10 +908,10 @@ func TestGetSecretsHandler_DisplayName_WithoutAnnotation(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -945,10 +947,10 @@ func TestGetSecretsHandler_DisplayName_MixedSecrets(t *testing.T) {
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key1"),
-				"aws_secret_access_key": []byte("secret1"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key1"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret1"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -958,10 +960,10 @@ func TestGetSecretsHandler_DisplayName_MixedSecrets(t *testing.T) {
 				UID:       types.UID("uid-2"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key2"),
-				"aws_secret_access_key": []byte("secret2"),
-				"aws_default_region":    []byte("us-west-2"),
-				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key2"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret2"),
+				"AWS_DEFAULT_REGION":    []byte("us-west-2"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.us-west-2.amazonaws.com"),
 			},
 		},
 		{
@@ -1024,10 +1026,10 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_OverridesKeyBasedDetection(t
 			},
 			Data: map[string][]byte{
 				// Has S3 keys but annotation should override
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1061,10 +1063,10 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_FallsBackToKeyDetection(t *t
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1101,10 +1103,10 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_EmptyAnnotationFallsBackToKe
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1152,10 +1154,10 @@ func TestGetSecretsHandler_ConnectionTypeAnnotation_MixedAnnotatedAndNonAnnotate
 				UID:       types.UID("uid-2"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -1216,10 +1218,10 @@ func TestGetSecretsHandler_Description_WithAnnotation(t *testing.T) {
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1252,10 +1254,10 @@ func TestGetSecretsHandler_Description_WithoutAnnotation(t *testing.T) {
 				UID:       types.UID("uid-1"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1291,10 +1293,10 @@ func TestGetSecretsHandler_Description_MixedSecrets(t *testing.T) {
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key1"),
-				"aws_secret_access_key": []byte("secret1"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key1"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret1"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -1304,10 +1306,10 @@ func TestGetSecretsHandler_Description_MixedSecrets(t *testing.T) {
 				UID:       types.UID("uid-2"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key2"),
-				"aws_secret_access_key": []byte("secret2"),
-				"aws_default_region":    []byte("us-west-2"),
-				"aws_s3_endpoint":       []byte("https://s3.us-west-2.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key2"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret2"),
+				"AWS_DEFAULT_REGION":    []byte("us-west-2"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.us-west-2.amazonaws.com"),
 			},
 		},
 		{
@@ -1370,10 +1372,10 @@ func TestGetSecretsHandler_DisplayNameAndDescription_BothPresent(t *testing.T) {
 				},
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte("key"),
-				"aws_secret_access_key": []byte("secret"),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte("key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("secret"),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 	}
@@ -1419,10 +1421,10 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 				UID:       types.UID("uid-aws"),
 			},
 			Data: map[string][]byte{
-				"aws_access_key_id":     []byte(sensitiveAccessKey),
-				"aws_secret_access_key": []byte(sensitiveSecretKey),
-				"aws_default_region":    []byte("us-east-1"),
-				"aws_s3_endpoint":       []byte("https://s3.amazonaws.com"),
+				"AWS_ACCESS_KEY_ID":     []byte(sensitiveAccessKey),
+				"AWS_SECRET_ACCESS_KEY": []byte(sensitiveSecretKey),
+				"AWS_DEFAULT_REGION":    []byte("us-east-1"),
+				"AWS_S3_ENDPOINT":       []byte("https://s3.amazonaws.com"),
 			},
 		},
 		{
@@ -1432,8 +1434,8 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 				UID:       types.UID("uid-lls"),
 			},
 			Data: map[string][]byte{
-				"llama_stack_client_api_key":  []byte(sensitiveAPIKey),
-				"llama_stack_client_base_url": []byte("https://llama-stack.example.com"),
+				"LLAMA_STACK_CLIENT_API_KEY":  []byte(sensitiveAPIKey),
+				"LLAMA_STACK_CLIENT_BASE_URL": []byte("https://llama-stack.example.com"),
 			},
 		},
 		{

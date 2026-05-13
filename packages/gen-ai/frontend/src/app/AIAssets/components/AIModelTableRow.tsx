@@ -33,6 +33,7 @@ import {
 } from '~/app/types';
 import ChatbotConfigurationModal from '~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationModal';
 import { genAiAiAssetsTabRoute, genAiChatPlaygroundRoute } from '~/app/utilities/routes';
+import { isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
 import useAiAssetVectorStoresEnabled from '~/app/hooks/useAiAssetVectorStoresEnabled';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import AIModelsTableRowInfo from './AIModelsTableRowInfo';
@@ -64,7 +65,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const isVectorStoresEnabled = useAiAssetVectorStoresEnabled();
-  const enabledModel = playgroundModels.find((m) => m.modelId === model.model_id);
+  const enabledModel = playgroundModels.find((m) => isPlaygroundModelMatchForAIModel(m, model));
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
   const [isEndpointModalOpen, setIsEndpointModalOpen] = React.useState(false);
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
@@ -233,21 +234,23 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
                     aria-label={`Actions for ${model.display_name || model.model_id}`}
                     variant="plain"
                     onClick={() => setIsKebabOpen(!isKebabOpen)}
+                    data-testid="model-actions-kebab"
                   >
                     <EllipsisVIcon />
                   </MenuToggle>
                 )}
               >
-                <DropdownList>
+                <DropdownList data-testid="model-actions-dropdown-menu">
                   <DropdownItem
                     key="delete"
+                    data-testid="remove-asset-action"
                     onClick={() => {
                       setIsKebabOpen(false);
                       setIsDeleteModalOpen(true);
                     }}
                     isDanger
                   >
-                    Remove asset
+                    Delete endpoint
                   </DropdownItem>
                 </DropdownList>
               </Dropdown>
@@ -281,20 +284,21 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
           }}
           data-testid="delete-model-modal"
         >
-          <ModalHeader title="Remove asset?" />
+          <ModalHeader title="Delete endpoint?" />
           <ModalBody>
             {deleteError && (
               <Alert
                 variant="danger"
                 isInline
                 title="Error"
+                data-testid="delete-model-error-alert"
                 style={{ marginBottom: 'var(--pf-t--global--spacer--md)' }}
               >
                 {deleteError}
               </Alert>
             )}
-            <strong>{model.display_name}</strong> will be removed from this project&apos;s endpoints
-            list. The endpoint configuration will be deleted.
+            The <strong>{model.display_name}</strong> model endpoint will be deleted, and its
+            associated model will no longer be accessible from this project.
           </ModalBody>
           <ModalFooter>
             <Button
@@ -304,7 +308,7 @@ const AIModelTableRow: React.FC<AIModelTableRowProps> = ({
               isDisabled={isDeleting}
               isLoading={isDeleting}
             >
-              {isDeleting ? 'Removing...' : 'Remove'}
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
             <Button
               key="cancel"

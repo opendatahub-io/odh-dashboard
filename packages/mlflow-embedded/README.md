@@ -4,7 +4,7 @@ Host-side extension package that embeds selected pages from the **external MLflo
 
 ## What this package does
 
-- Registers the **Experiments (MLflow)** navigation item under "Develop and Train"
+- Registers the **Experiments** navigation item under "Develop and Train"
 - Loads the MLflow experiment tracking component from the external MLflow frontend via Module Federation (`loadRemote('mlflowEmbedded/MlflowExperimentWrapper')`)
 - Provides project/workspace selection and breadcrumb navigation around the embedded component
 
@@ -26,7 +26,7 @@ This package has no build step of its own -- its TSX files are compiled by the h
 
 1. Start the external MLflow frontend (dev server on `localhost:9300`)
 2. Start the dashboard: `npm run dev` (from repo root)
-3. Navigate to **Develop and Train > Experiments (MLflow)** in the dashboard
+3. Navigate to **Develop and Train > Experiments** in the dashboard
 
 ## Feature Flags
 

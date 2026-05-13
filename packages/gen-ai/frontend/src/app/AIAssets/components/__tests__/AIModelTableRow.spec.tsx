@@ -96,8 +96,8 @@ const createMockAIModel = (overrides?: Partial<AIModel>): AIModel => ({
   ...overrides,
 });
 
-const createMockPlaygroundModel = (modelId: string): LlamaModel => ({
-  id: `provider/${modelId}`,
+const createMockPlaygroundModel = (modelId: string, providerPrefix = 'provider'): LlamaModel => ({
+  id: `${providerPrefix}/${modelId}`,
   modelId,
   object: 'model',
   created: Date.now(),
@@ -376,7 +376,7 @@ describe('AIModelTableRow', () => {
   describe('Tracking', () => {
     it('should track assetType as maas_model for MaaS models on playground launch', () => {
       const model = createMockAIModel({ model_id: 'maas-model-id', model_source_type: 'maas' });
-      const playgroundModel = createMockPlaygroundModel('maas-model-id');
+      const playgroundModel = createMockPlaygroundModel('maas-model-id', 'maas-vllm-inference-1');
 
       render(
         <TestWrapper>
@@ -389,6 +389,39 @@ describe('AIModelTableRow', () => {
       expect(mockFireMiscTrackingEvent).toHaveBeenCalledWith(
         'Available Endpoints Playground Launched',
         { assetType: 'maas_model', assetId: 'maas-model-id' },
+      );
+    });
+
+    it('should not show Try in playground for a namespace model when only the MaaS variant of the same model_id is in the playground', () => {
+      // Regression: before the fix both source-type rows resolved to the same
+      // playground entry because the lookup only compared modelId.
+      const sharedModelId = 'shared-model-id';
+      const maasPlaygroundModel = createMockPlaygroundModel(sharedModelId, 'maas-vllm-inference-1');
+
+      // Render the NAMESPACE variant — the playground only contains the MaaS variant.
+      const namespaceModel = createMockAIModel({
+        model_id: sharedModelId,
+        model_source_type: 'namespace',
+      });
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={namespaceModel}
+            playgroundModels={[maasPlaygroundModel]}
+          />
+        </TestWrapper>,
+      );
+
+      // Namespace row must show "Add to playground", not "Try in playground".
+      expect(screen.getByText('Add to playground')).toBeInTheDocument();
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+
+      // No tracking event should fire.
+      expect(mockFireMiscTrackingEvent).not.toHaveBeenCalledWith(
+        'Available Endpoints Playground Launched',
+        expect.objectContaining({ assetType: 'maas_model' }),
       );
     });
 

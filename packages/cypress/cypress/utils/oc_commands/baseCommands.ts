@@ -1,11 +1,47 @@
-import type { CommandLineResult } from '../../types';
+import type { CommandLineResult, UserAuthConfig } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
+
+/**
+ * Ensures the oc CLI session is logged in as the cluster admin user.
+ * Required before setup/cleanup steps that run oc commands after a test
+ * may have switched the oc session to a non-admin user via visitWithLogin.
+ *
+ * No-ops when OC_SERVER is not set (non-localhost runs don't switch oc users).
+ */
+export const ensureAdminOcSession = (): void => {
+  const ocServer = Cypress.env('OC_SERVER');
+  if (!ocServer) {
+    return;
+  }
+  const admin: UserAuthConfig = Cypress.env('HTPASSWD_CLUSTER_ADMIN_USER');
+
+  // Check if already logged in as admin before attempting oc login,
+  // because a failed oc login --server=... overwrites the kubeconfig
+  // context and invalidates the existing session.
+  cy.exec('oc whoami', { failOnNonZeroExit: false, log: false }).then(
+    (whoami: CommandLineResult) => {
+      if (whoami.exitCode === 0 && whoami.stdout.trim() === admin.USERNAME) {
+        return;
+      }
+
+      cy.exec(
+        `oc login -u "${admin.USERNAME}" -p "${admin.PASSWORD}" --server="${ocServer}" --insecure-skip-tls-verify`,
+        { failOnNonZeroExit: false, log: false },
+      ).then((result: CommandLineResult) => {
+        if (result.exitCode !== 0) {
+          const maskedStderr = maskSensitiveInfo(result.stderr || result.stdout);
+          cy.log(`⚠️ oc login as admin failed: ${maskedStderr}`);
+        }
+      });
+    },
+  );
+};
 
 /**
  * Run a command and return the result exitCode and output (including stderr).
  * @param command The command to run.
  * @param timeout Timeout in seconds for the command execution (default: 60).
- * @returns A Cypress chainable that resolves to an object with `exitCode` and `output` properties.
+ * @returns A Cypress chainable that resolves to an object with `exitCode`, `stdout`, and `stderr`.
  */
 export const execWithOutput = (
   command: string,
@@ -19,9 +55,9 @@ export const execWithOutput = (
     .then((result: CommandLineResult | null) => {
       if (!result) {
         // Provide a default CommandLineResult shape using cy.wrap
-        return cy.wrap({ code: 0, stdout: '', stderr: '' });
+        return cy.wrap({ exitCode: 0, stdout: '', stderr: '' });
       }
-      cy.log(`Command exit code: ${result.code}`);
+      cy.log(`Command exit code: ${result.exitCode}`);
       return cy.wrap(result);
     });
 };
@@ -75,12 +111,12 @@ export const patchOpenShiftResource = (
   cy.log(ocCommand);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       // If there is an error, log the error and fail the test
       cy.log(`ERROR patching ${resourceType} ${resourceName}
               stdout: ${result.stdout}
               stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -145,7 +181,7 @@ export const waitForPodReady = (
 
         cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
           (waitResult: CommandLineResult) => {
-            if (waitResult.code !== 0) {
+            if (waitResult.exitCode !== 0) {
               cy.log(`Pod readiness check failed: ${waitResult.stderr}`);
             } else {
               cy.log(`Pod is ready: ${waitResult.stdout}`);
@@ -217,7 +253,7 @@ export const waitForPodCompletion = (
 
         cy.exec(waitForPodCommand, { failOnNonZeroExit: false, timeout: 300000 }).then(
           (waitResult: CommandLineResult) => {
-            if (waitResult.code !== 0) {
+            if (waitResult.exitCode !== 0) {
               cy.log(`Pod completion check failed: ${waitResult.stderr}`);
               // Check if pod failed instead of succeeded
               const checkFailedCommand = `oc get pod/${podName} -n ${podNamespace} -o jsonpath='{.status.phase}'`;
@@ -249,7 +285,7 @@ export const deleteNotebook = (
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       throw new Error(`Command failed with code ${maskedStderr}`);
     }
@@ -287,7 +323,7 @@ export const pollUntilSuccess = (
     return cy.exec(command, { failOnNonZeroExit: false }).then((result) => {
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-      if (result.code === 0) {
+      if (result.exitCode === 0) {
         cy.log(`✅ ${description} (found after ${elapsedTime}s)`);
         return cy.wrap(result);
       }

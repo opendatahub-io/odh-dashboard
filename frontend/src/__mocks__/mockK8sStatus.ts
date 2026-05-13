@@ -41,6 +41,17 @@ export const mock409Error = ({ message = '409 Conflict' }: Partial<K8sStatus>): 
   code: 409,
 });
 
+export const mock500Error = ({
+  message = '500 Internal Server Error',
+}: Partial<K8sStatus>): K8sStatus => ({
+  kind: 'Status',
+  apiVersion: 'v1',
+  status: 'Failure',
+  message,
+  reason: 'InternalError',
+  code: 500,
+});
+
 export const mock200Status = ({ message = '200 OK' }: Partial<K8sStatus>): K8sStatus => ({
   kind: 'Status',
   apiVersion: 'v1',

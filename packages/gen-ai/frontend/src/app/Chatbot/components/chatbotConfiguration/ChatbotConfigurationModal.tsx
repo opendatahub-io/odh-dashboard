@@ -10,7 +10,6 @@ import {
   ModalVariant,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
-import { Link } from 'react-router-dom';
 import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/internal/concepts/analyticsTracking/trackingProperties';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -25,6 +24,7 @@ import {
 import {
   computeEmbeddingModelStatus,
   convertMaaSModelToAIModel,
+  isPlaygroundModelMatchForAIModel,
   splitLlamaModelId,
 } from '~/app/utilities/utils';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -106,8 +106,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
   const preSelectedModels = React.useMemo(() => {
     if (existingModels.length > 0) {
-      const existingModelsSet = new Set(existingModels.map((model) => model.modelId));
-      const existingAIModels = allModels.filter((model) => existingModelsSet.has(model.model_id));
+      const existingAIModels = allModels.filter((model) =>
+        existingModels.some((m) => isPlaygroundModelMatchForAIModel(m, model)),
+      );
 
       if (extraSelectedModels && extraSelectedModels.length > 0) {
         const extraSelectedModelsSet = new Set(
@@ -232,24 +233,28 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           });
         };
 
-        // Only act on newly selected collections — never remove models when deselecting
+        // Only act on newly selected collections — never remove models when deselecting.
+        // Use composite key (model_source_type + model_id) so a MaaS and a namespace model
+        // sharing the same model_name are not collapsed into one entry.
+        const modelKey = (m: AIModel) => `${m.model_source_type}-${m.model_id}`;
         const nextRequired = new Map<string, AIModel>();
         next.forEach((c) => {
           const m = findEmbeddingModel(c.embedding_model);
           if (m) {
-            nextRequired.set(m.model_name, m);
+            nextRequired.set(modelKey(m), m);
           }
         });
 
         setSelectedModels((prevModels) => {
-          const byName = new Map(prevModels.map((m) => [m.model_name, m]));
-          nextRequired.forEach((model, name) => byName.set(name, model));
-          return Array.from(byName.values());
+          const byKey = new Map(prevModels.map((m) => [modelKey(m), m]));
+          nextRequired.forEach((model, key) => byKey.set(key, model));
+          return Array.from(byKey.values());
         });
 
         setModelTypeMap((prevMap) => {
           const newMap = new Map(prevMap);
-          nextRequired.forEach((_, name) => newMap.set(name, 'Embedding'));
+          // modelTypeMap is keyed by model_name everywhere else — keep that convention here.
+          nextRequired.forEach((model) => newMap.set(model.model_name, 'Embedding'));
           return newMap;
         });
 
@@ -394,6 +399,9 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     });
   };
 
+  const isNemoGuardrailsConflict = (e: unknown): boolean =>
+    e instanceof Error && 'code' in e && e.code === 'conflict';
+
   const onSubmit = () => {
     if (submitting) {
       return;
@@ -415,30 +423,46 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setSubmitting(true);
 
     const install = () => {
-      api
-        .installLSD({
-          models: selectedModels.map((model) => {
-            const isMaaS = model.model_source_type === 'maas';
-            const resolvedType =
-              modelTypeMap.get(model.model_name) ??
-              (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
-            const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
-            const maxTokens = maxTokensMap.get(model.model_name);
-            const embeddingDimension = embeddingDimensionMap.get(model.model_name);
-            return {
-              model_name: isMaaS ? model.model_id : model.model_name,
-              model_source_type: model.model_source_type,
-              model_type: apiModelType,
-              ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
-              ...(apiModelType === 'embedding' &&
-                embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
-            };
-          }),
-          enable_guardrails: guardrailsEnabled,
-          ...(selectedCollections.length > 0 && {
-            vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
-          }),
-        })
+      const installLSDPromise = api.installLSD({
+        models: selectedModels.map((model) => {
+          const isMaaS = model.model_source_type === 'maas';
+          const resolvedType =
+            modelTypeMap.get(model.model_name) ??
+            (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+          const apiModelType = resolvedType === 'Embedding' ? 'embedding' : 'llm';
+          const maxTokens = maxTokensMap.get(model.model_name);
+          const embeddingDimension = embeddingDimensionMap.get(model.model_name);
+          return {
+            model_name: isMaaS ? model.model_id : model.model_name,
+            model_source_type: model.model_source_type,
+            model_type: apiModelType,
+            ...(apiModelType === 'llm' && maxTokens !== undefined && { max_tokens: maxTokens }),
+            ...(apiModelType === 'embedding' &&
+              embeddingDimension !== undefined && { embedding_dimension: embeddingDimension }),
+          };
+        }),
+        enable_guardrails: guardrailsEnabled,
+        ...(selectedCollections.length > 0 && {
+          vector_stores: selectedCollections.map((c) => ({ vector_store_id: c.vector_store_id })),
+        }),
+      });
+
+      // If guardrails are enabled, init NemoGuardrails. A conflict (already initialised) is swallowed —
+      // the status poller in ChatbotConfigurationState handles waiting for ready.
+      // Any other error (network fault, server error) is rethrown to surface in the wizard.
+      const nemoPromise: Promise<void> = guardrailsEnabled
+        ? api
+            .initNemoGuardrails({})
+            .then(() => undefined)
+            .catch((e: unknown) => {
+              if (isNemoGuardrailsConflict(e)) {
+                return undefined;
+              }
+              throw e;
+            })
+        : Promise.resolve();
+
+      Promise.all([installLSDPromise, nemoPromise])
         .then(() => {
           fireFormTrackingEvent(
             isUpdate ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
@@ -514,9 +538,8 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
           title="Configure playground"
           description={
             <>
-              Choose the models you want to make available in this playground from your AI assets.
-              You can add additional models by making them available from the{' '}
-              <Link to={`/modelServing/${namespace?.name}`}>Model Deployments page</Link>.
+              Select the endpoints of deployed models to try in the {namespace?.name} project
+              playground.
               {error && (
                 <Alert
                   variant="danger"

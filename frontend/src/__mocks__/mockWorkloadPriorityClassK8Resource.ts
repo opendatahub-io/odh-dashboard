@@ -11,7 +11,7 @@ export const mockWorkloadPriorityClassK8sResource = ({
   description = 'Test description',
   value = 1000,
 }: MockResourceConfigType): WorkloadPriorityClassKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'WorkloadPriorityClass',
   description,
   metadata: {

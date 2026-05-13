@@ -132,6 +132,10 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
+  if (err.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+    return false;
+  }
+
   // Let all other errors (including timeout errors) fail the test as expected
   return true;
 });

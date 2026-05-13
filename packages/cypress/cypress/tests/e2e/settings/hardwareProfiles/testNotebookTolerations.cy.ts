@@ -3,6 +3,7 @@ import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
 import { projectListPage } from '../../../../pages/projects';
 import { notebookServer } from '../../../../pages/notebookServer';
 import type { NotebookTolerationsTestData } from '../../../../types';
+import { NotebookStatusLabel } from '../../../../types';
 import { waitForPodReady, deleteNotebook } from '../../../../utils/oc_commands/baseCommands';
 import { retryableBefore, wasSetupPerformed } from '../../../../utils/retryableHooks';
 import {
@@ -85,9 +86,9 @@ describe('Notebooks - tolerations tests', () => {
       cy.step('Expand the Event log');
       notebookServer.findEventlog().should('be.visible').click();
 
-      // Wait for the success alert
+      // Wait for the workbench to be ready
       cy.step('Waits for the Success alert');
-      notebookServer.findSuccessAlert().should('exist');
+      notebookServer.expectStatusLabelToBe(NotebookStatusLabel.Ready);
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the newly added toleration');

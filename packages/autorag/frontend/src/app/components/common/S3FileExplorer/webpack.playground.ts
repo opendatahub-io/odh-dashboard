@@ -47,6 +47,11 @@ const ENV_TO_INCLUDE = [
    * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
    */
   'AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
+
+  /**
+   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with http as the url scheme.
+   */
+  'AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP',
 ];
 const ENV_STUB_FALSE = [
   'APP_ENV',

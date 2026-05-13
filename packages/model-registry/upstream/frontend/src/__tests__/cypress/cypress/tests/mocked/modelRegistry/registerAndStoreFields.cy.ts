@@ -8,6 +8,7 @@ import { ModelTransferJobStatus } from '~/app/types';
 import type { ModelRegistry, ModelTransferJob, RegisteredModel } from '~/app/types';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { mockModelTransferJob } from '~/__mocks__/mockModelTransferJob';
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type HandlersProps = {
   modelRegistries?: ModelRegistry[];
@@ -331,6 +332,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when S3 access key ID is missing', () => {
     // Fill all fields except S3 access key ID
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -349,6 +351,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when S3 secret access key is missing', () => {
     // Fill all fields except S3 secret access key
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -367,6 +370,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when OCI username is missing', () => {
     // Fill all fields except OCI username
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -385,6 +389,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when OCI password is missing', () => {
     // Fill all fields except OCI password
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -491,7 +496,7 @@ describe('Register and Store Fields - Form Submission', () => {
     });
 
     // Should navigate to model list (not version page)
-    cy.url().should('include', '/model-registry/modelregistry-sample');
+    cy.url().should('include', modelRegistryUrl('modelregistry-sample'));
     cy.url().should('not.include', '/register');
   });
 

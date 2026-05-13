@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
@@ -7,11 +8,12 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useS3FileUploadMutation } from '~/app/hooks/mutations';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema, TASK_TYPES } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
+
+const mockS3MutateAsync = jest.fn().mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -28,30 +30,18 @@ jest.mock('~/app/hooks/useNotification', () => ({
   }),
 }));
 
-jest.mock('~/app/hooks/mutations', () => {
-  const mockS3MutateAsync = jest
-    .fn()
-    .mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
-  const stableS3UploadMutation = {
+jest.mock('~/app/hooks/mutations', () => ({
+  ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
+  useS3FileUploadMutation: jest.fn(() => ({
     mutateAsync: mockS3MutateAsync,
     isPending: false,
     reset: jest.fn(),
-    variables: undefined as { file: File } | undefined,
-  };
-  return {
-    ...jest.requireActual<typeof import('~/app/hooks/mutations')>('~/app/hooks/mutations'),
-    useS3FileUploadMutation: jest.fn(() => stableS3UploadMutation),
-  };
-});
+    variables: undefined,
+  })),
+}));
 
 function getMockS3MutateAsync(): jest.Mock {
-  const result = jest.mocked(useS3FileUploadMutation).mock.results[0]?.value as
-    | { mutateAsync: jest.Mock }
-    | undefined;
-  if (!result?.mutateAsync) {
-    throw new Error('useS3FileUploadMutation was not called; render AutomlConfigure first');
-  }
-  return result.mutateAsync;
+  return mockS3MutateAsync;
 }
 
 // Mock S3FileExplorer component
@@ -117,8 +107,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-1',
               name: 'Test Secret 1',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-1' },
+              data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -132,8 +121,7 @@ jest.mock('~/app/components/common/SecretSelector', () => {
             onChange({
               uuid: 'secret-2',
               name: 'Test Secret 2',
-              // eslint-disable-next-line camelcase
-              data: { aws_s3_bucket: 'test-bucket-2' },
+              data: { AWS_S3_BUCKET: 'test-bucket-2', AWS_DEFAULT_REGION: 'us-east-1' },
               type: 's3',
               invalid: false,
             })
@@ -231,6 +219,22 @@ const renderWithQueryClient = (
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutomlConfigure />, defaultValues);
 
+const renderWithInitialValues = (
+  initialValues: Parameters<typeof AutomlConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutomlConfigure>[0]['initialInputDataSecret'];
+  },
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutomlConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    defaultValues,
+  );
+};
+
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -241,6 +245,8 @@ describe('AutomlConfigure', () => {
     } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
     mockUseNavigate.mockReturnValue(jest.fn());
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+    // Reset the S3 upload mock to default resolved value
+    mockS3MutateAsync.mockResolvedValue({ uploaded: true, key: 'uploaded-key.csv' });
   });
 
   describe('initial state - no secret selected', () => {
@@ -329,7 +335,7 @@ describe('AutomlConfigure', () => {
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
         'File too large',
-        'File size must be 1 GiB or less.',
+        'File size must be 32 MiB or less.',
       );
     });
 
@@ -378,6 +384,30 @@ describe('AutomlConfigure', () => {
       expect(mockNotificationError).not.toHaveBeenCalled();
     });
 
+    it('should show human-readable error for max collision attempts (409)', async () => {
+      renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      expect(fileInput).not.toBeNull();
+
+      const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
+      getMockS3MutateAsync().mockClear();
+      getMockS3MutateAsync().mockRejectedValue(
+        new Error('unable to find unique filename after 10 attempts'),
+      );
+
+      fireEvent.change(fileInput!, { target: { files: [file] } });
+
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'Failed to upload file',
+          'A file with this name already exists and no unique name could be generated. Please rename your file or delete existing files with similar names.',
+        );
+      });
+    });
+
     it('should show the newly selected secret name when switching secrets', () => {
       renderComponent();
 
@@ -406,7 +436,7 @@ describe('AutomlConfigure', () => {
       expect(screen.getByRole('button', { name: 'Browse bucket' })).toBeInTheDocument();
     });
 
-    it('should display the "Configure details" fields when a secret is selected', () => {
+    it('should display the "Configure details" fields when a file is selected', () => {
       renderComponent();
 
       // Initially should show empty state
@@ -418,6 +448,15 @@ describe('AutomlConfigure', () => {
       const selectButton = screen.getByTestId('aws-secret-selector-select-secret-1');
       fireEvent.click(selectButton);
 
+      // Empty state should still be shown (no file selected yet)
+      expect(
+        screen.getByText('Select an S3 connection or upload a file to get started'),
+      ).toBeInTheDocument();
+
+      // Select a file via the file explorer
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
       // Empty state should be hidden
       expect(
         screen.queryByText('Select an S3 connection or upload a file to get started'),
@@ -426,9 +465,16 @@ describe('AutomlConfigure', () => {
       // Configure details fields should be visible
       expect(screen.getByText('Prediction type')).toBeInTheDocument();
       expect(screen.getByText('Binary classification')).toBeInTheDocument();
-      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
-      // Label column should NOT be visible until a prediction type is selected
+      // Top models and Label column should NOT be visible until a prediction type is selected
+      expect(screen.queryByText('Top models to consider')).not.toBeInTheDocument();
       expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+
+      // Select a prediction type — Top models to consider should now appear
+      const binaryRadio = document.getElementById('task-type-binary');
+      if (binaryRadio) {
+        fireEvent.click(binaryRadio);
+      }
+      expect(screen.getByText('Top models to consider')).toBeInTheDocument();
     });
   });
 
@@ -563,19 +609,15 @@ describe('AutomlConfigure', () => {
   });
 
   describe('with training data configured', () => {
-    const trainingDataDefaults = {
-      /* eslint-disable camelcase */
-      train_data_secret_name: 'test-secret',
-      train_data_bucket_name: 'test-bucket',
-      train_data_file_key: 'test-file',
-      /* eslint-enable camelcase */
-    };
-
     /** Select a secret and a file so prediction type tiles become enabled */
     const selectSecretAndFile = () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
       fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Verify selections took effect
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+      expect(screen.getByRole('button', { name: 'Remove selection' })).toBeInTheDocument();
     };
 
     /** Click a prediction type tile via its hidden radio input */
@@ -588,7 +630,8 @@ describe('AutomlConfigure', () => {
 
     describe('Prediction type', () => {
       it('should render all four prediction type tile cards', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
         expect(screen.getByTestId('task-type-card-binary')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-multiclass')).toBeInTheDocument();
         expect(screen.getByTestId('task-type-card-regression')).toBeInTheDocument();
@@ -596,7 +639,8 @@ describe('AutomlConfigure', () => {
       });
 
       it('should render prediction type labels', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
         expect(screen.getByText('Binary classification')).toBeInTheDocument();
         expect(screen.getByText('Multiclass classification')).toBeInTheDocument();
         expect(screen.getByText('Regression')).toBeInTheDocument();
@@ -604,7 +648,8 @@ describe('AutomlConfigure', () => {
       });
 
       it('should render prediction type descriptions', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
         expect(
           screen.getByText(
             'Classify data into categories. Choose this if your prediction column contains two distinct categories',
@@ -628,14 +673,16 @@ describe('AutomlConfigure', () => {
       });
 
       it('should have no prediction type selected by default', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
         TASK_TYPES.forEach((type) => {
           expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
         });
       });
 
       it('should not show column forms when no prediction type is selected', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
         expect(screen.queryByText('Label column')).not.toBeInTheDocument();
         expect(screen.queryByText('Target column')).not.toBeInTheDocument();
       });
@@ -658,7 +705,15 @@ describe('AutomlConfigure', () => {
         // Remove the selected file
         fireEvent.click(screen.getByRole('button', { name: 'Remove selection' }));
 
-        // Prediction type should be deselected
+        // Configure details should revert to empty state
+        expect(
+          screen.getByText('Select an S3 connection or upload a file to get started'),
+        ).toBeInTheDocument();
+
+        // Re-select a file — prediction type should be deselected
+        fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+        fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
         TASK_TYPES.forEach((type) => {
           expect(screen.getByTestId(`task-type-card-${type}`)).not.toHaveClass('pf-m-selected');
         });
@@ -769,10 +824,19 @@ describe('AutomlConfigure', () => {
         expect(screen.getByTestId('label_column-select')).toHaveTextContent('Select a column');
       });
 
-      it('should be disabled when no file is selected', () => {
-        renderComponent(trainingDataDefaults);
-        selectPredictionType('binary');
-        expect(screen.getByTestId('label_column-select')).toBeDisabled();
+      it('should not be visible when no file is selected', () => {
+        renderComponent();
+
+        // Select a secret but no file — configure details shows empty state
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+        // Empty state should be rendered
+        expect(
+          screen.getByText('Select an S3 connection or upload a file to get started'),
+        ).toBeInTheDocument();
+
+        // Label column should not exist since configure details is hidden
+        expect(screen.queryByTestId('label_column-select')).not.toBeInTheDocument();
       });
 
       it('should be disabled when columns are empty', () => {
@@ -789,23 +853,18 @@ describe('AutomlConfigure', () => {
 
     describe('Top models to consider', () => {
       it('should render the top N input with default value 3', () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
+        selectPredictionType('binary');
         const input = screen.getByTestId('top-n-input').querySelector('input');
         expect(input).toHaveValue(3);
       });
 
-      it('should show error message when top N exceeds the maximum', async () => {
-        renderComponent(trainingDataDefaults);
-        const input = screen.getByTestId('top-n-input').querySelector('input')!;
-        fireEvent.change(input, { target: { value: '6' } });
-
-        await waitFor(() => {
-          expect(screen.getByText('Maximum number of top models is 5')).toBeInTheDocument();
-        });
-      });
-
       it('should show error message when top N is below the minimum', async () => {
-        renderComponent(trainingDataDefaults);
+        renderComponent();
+        selectSecretAndFile();
+        selectPredictionType('binary');
+
         const input = screen.getByTestId('top-n-input').querySelector('input')!;
         fireEvent.change(input, { target: { value: '0' } });
 
@@ -813,6 +872,359 @@ describe('AutomlConfigure', () => {
           expect(screen.getByText('Minimum number of top models is 1')).toBeInTheDocument();
         });
       });
+
+      describe('Dynamic max validation based on task type', () => {
+        it('should accept top N at maximum (10) for binary classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input); // Trigger validation
+
+          // Should not show any error message for value at max
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for binary classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (10) for multiclass classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('multiclass');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for multiclass classification', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('multiclass');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (10) for regression', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('regression');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '10' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (10) for regression', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('regression');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '11' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 10')).toBeInTheDocument();
+          });
+        });
+
+        it('should accept top N at maximum (7) for timeseries', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '7' } });
+          fireEvent.blur(input);
+
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+        });
+
+        it('should reject top N exceeding maximum (7) for timeseries', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          fireEvent.change(input, { target: { value: '8' } });
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+        });
+
+        it('should automatically show error when switching from tabular to timeseries with top N exceeding new max', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('binary');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          // Set to 8 (valid for tabular max 10, invalid for timeseries max 7)
+          fireEvent.change(input, { target: { value: '8' } });
+          fireEvent.blur(input);
+
+          // Should be valid for binary (max 10)
+          expect(screen.queryByText('Maximum number of top models is 10')).not.toBeInTheDocument();
+          expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+
+          // Switch to timeseries - error should appear automatically without touching the field
+          selectPredictionType('timeseries');
+
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+        });
+
+        it('should automatically clear error when switching from timeseries to tabular with top N within new max', async () => {
+          renderComponent();
+          selectSecretAndFile();
+          selectPredictionType('timeseries');
+
+          const input = screen.getByTestId('top-n-input').querySelector('input')!;
+          // Set to 8 (invalid for timeseries max 7)
+          fireEvent.change(input, { target: { value: '8' } });
+          fireEvent.blur(input);
+
+          // Should show error for timeseries (max 7)
+          await waitFor(() => {
+            expect(screen.getByText('Maximum number of top models is 7')).toBeInTheDocument();
+          });
+
+          // Switch to binary - error should clear automatically without touching the field
+          selectPredictionType('binary');
+
+          await waitFor(() => {
+            expect(
+              screen.queryByText('Maximum number of top models is 10'),
+            ).not.toBeInTheDocument();
+            expect(screen.queryByText('Maximum number of top models is 7')).not.toBeInTheDocument();
+          });
+        });
+      });
+    });
+  });
+
+  describe('reconfigure with initialValues', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+    });
+
+    it('should show the selected training data file when train_data_file_key is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'my-data/train.csv',
+          task_type: 'binary',
+          label_column: 'approval_status',
+          top_n: 5,
+        },
+      );
+
+      // The file table should show the file name extracted from the key
+      const table = screen.getByRole('grid', { name: 'Selected training data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('train.csv')).toBeInTheDocument();
+    });
+
+    it('should pre-select the prediction type card when task_type is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'multiclass',
+          label_column: 'target',
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-multiclass')).toHaveClass('pf-m-selected');
+      expect(screen.getByTestId('task-type-card-binary')).not.toHaveClass('pf-m-selected');
+    });
+
+    it('should show the top_n value from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'binary',
+          label_column: 'target',
+          top_n: 7,
+        },
+      );
+
+      const input = screen.getByTestId('top-n-input').querySelector('input');
+      expect(input).toHaveValue(7);
+    });
+
+    it('should show label column fields for tabular task type from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'data.csv',
+          task_type: 'regression',
+          label_column: 'income',
+          top_n: 5,
+        },
+      );
+
+      expect(screen.getByText('Label column')).toBeInTheDocument();
+      expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
+      expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+    });
+
+    it('should show timeseries fields when task_type is timeseries from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+        {
+          train_data_secret_name: 'Test Secret 1',
+          train_data_bucket_name: 'test-bucket-1',
+          train_data_file_key: 'ts.csv',
+          task_type: 'timeseries',
+          target: 'sales',
+          id_column: 'store_id',
+          timestamp_column: 'date',
+          prediction_length: 30,
+          top_n: 3,
+        },
+      );
+
+      expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
+      expect(screen.getByText('Target column')).toBeInTheDocument();
+      expect(screen.getByTestId('target-select')).toBeInTheDocument();
+      expect(screen.queryByText('Label column')).not.toBeInTheDocument();
     });
   });
 });

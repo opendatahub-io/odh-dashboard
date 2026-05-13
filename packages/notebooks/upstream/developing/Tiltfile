@@ -75,7 +75,9 @@ for o in controller_objects:
 # Apply modified manifests
 k8s_yaml(encode_yaml_stream(controller_objects))
 
-# Port-Forward controller service for local access
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+# - Port-forward controller for local access
 k8s_resource(
     "workspaces-controller",
     port_forwards=[
@@ -98,18 +100,54 @@ docker_build(
     context=os.path.dirname(backend_dir),
 )
 
-# Build manifests with kustomize and apply
-#
-# TODO: use the istio overlay with backend once istio is supported in dev
-#
-backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/base")
+# Build manifests with kustomize
+backend_kustomize_path = os.path.join(backend_dir, "manifests/kustomize/overlays/istio")
+backend_manifests = kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin)
+
+# Mutate the manifest objects before applying
+backend_objects = decode_yaml_stream(backend_manifests)
+for o in backend_objects:
+    kind = o.get("kind")
+    name = o.get("metadata", {}).get("name")
+    if not kind or not name:
+        continue
+
+    if kind == "Deployment" and name == "workspaces-backend":
+        containers = o.get("spec", {}).get("template", {}).get("spec", {}).get("containers", {})
+        env = containers[0].get("env", {})
+        tilt_env_vars = {
+            "SWAGGER_ENABLED": "true",
+            "SWAGGER_SCHEME": "https",
+            "SWAGGER_HOST": "localhost:8443",
+            "SWAGGER_BASE_PATH": "/workspaces/api/v1",
+            "DISABLE_AUTH": "true",
+        }
+
+        # Replace existing keys and add missing ones
+        for (i, var) in enumerate(env):
+            key = var["name"]
+            if key in tilt_env_vars.keys():
+                env[i] = {
+                    "name": key,
+                    "value": tilt_env_vars[key],
+                }
+                tilt_env_vars.pop(key)
+
+        for (key, value) in tilt_env_vars.items():
+            env.append({
+                "name": key,
+                "value": value,
+            })
+
 k8s_yaml(
-    kustomize(backend_kustomize_path, kustomize_bin=kustomize_bin),
+    encode_yaml_stream(backend_objects),
     # NOTE: allow_duplicates=True because namespace is already defined by controller
     allow_duplicates=True,
 )
 
-# Port-Forward backend service for local access
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+# - Resource dependencies on controller
 k8s_resource(
     "workspaces-backend",
     port_forwards=[
@@ -158,10 +196,7 @@ if enable_frontend:
     )
 
     # Build manifests with kustomize
-    #
-    # TODO: use the istio overlay with frontend once istio is supported in dev
-    #
-    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/base")
+    frontend_kustomize_path = os.path.join(frontend_dir, "manifests/kustomize/overlays/istio")
     frontend_manifests = kustomize(frontend_kustomize_path, kustomize_bin=kustomize_bin)
 
     # Mutate the manifest objects before applying
@@ -172,6 +207,15 @@ if enable_frontend:
         name = o.get("metadata", {}).get("name")
         if not kind or not name:
             continue
+
+        # Remove the VirtualService URI rewrite for dev
+        # In production, a static file server serves assets regardless of path prefix,
+        # so the rewrite from /workspaces/ to / is fine. But webpack dev server uses
+        # publicPath to determine serving paths, so it needs requests to arrive with
+        # the /workspaces/ prefix intact.
+        if kind == "VirtualService" and name == "workspaces-frontend":
+            for http_route in o.get("spec", {}).get("http", []):
+                http_route.pop("rewrite", None)
 
         # modify the frontend deployment for dev
         if kind == "Deployment" and name == "workspaces-frontend":
@@ -197,7 +241,7 @@ if enable_frontend:
                     # Once startup probe passes, liveness/readiness probes take over
                     container["startupProbe"] = {
                         "httpGet": {
-                            "path": "/",
+                            "path": "/workspaces/",
                             "port": 8080,
                             "scheme": "HTTP",
                         },
@@ -214,7 +258,9 @@ if enable_frontend:
         allow_duplicates=True
     )
 
-    # Port-Forward frontend service for local access
+    # Manage k8s_yaml resources
+    # - Apply Tilt-specific grouping/labels
+    # - Resource dependencies on backend
     k8s_resource(
         "workspaces-frontend",
         port_forwards=[
@@ -224,3 +270,47 @@ if enable_frontend:
         resource_deps=["workspaces-backend"],
         labels=["frontend"],
     )
+
+# ============================================================================
+# Istio Gateway Resources
+# ============================================================================
+# Apply the gateway namespace, TLS certificate, and Istio Gateway resources.
+# These are prerequisites for the VirtualServices created by backend/frontend overlays.
+# Note: Istio itself (istiod, ingress gateway) is installed by the Makefile before Tilt starts.
+
+istio_gateway_path = os.path.join(tilt_root, "manifests/istio-gateway")
+k8s_yaml(
+    kustomize(istio_gateway_path, kustomize_bin=kustomize_bin),
+    allow_duplicates=True,
+)
+
+# TODO: determine if we can capture these objects
+#       without hardcoding names here
+# Manage k8s_yaml resources
+# - Apply Tilt-specific grouping/labels
+k8s_resource(
+    objects=[
+        "selfsigned-issuer:clusterissuer",
+        "gateway-tls:certificate",
+        "kubeflow-gateway:gateway",
+    ],
+    new_name="istio-gateway",
+    pod_readiness="ignore",
+    labels=["istio"],
+)
+
+# Port-forward the Istio ingress gateway for local access to production-like routing.
+# Uses local_resource because the ingress gateway is installed by istioctl (not managed by Tilt),
+# and extra_pod_selectors doesn't support port-forwarding on object-only resources.
+gateway_links = [link("https://localhost:8443/workspaces/api/v1/swagger/index.html", "API (Backend)")]
+if enable_frontend:
+    gateway_links.insert(0, link("https://localhost:8443/workspaces/", "Dashboard (Frontend)"))
+
+
+local_resource(
+    "istio-ingressgateway",
+    serve_cmd="kubectl port-forward -n istio-system svc/istio-ingressgateway 8443:443",
+    resource_deps=["istio-gateway", "workspaces-frontend" if enable_frontend else "workspaces-backend"],
+    links=gateway_links,
+    labels=["istio"],
+)

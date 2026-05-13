@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import McpCatalogCard from '~/app/pages/mcpCatalog/components/McpCatalogCard';
 import type { McpServer } from '~/app/mcpServerCatalogTypes';
+import { mcpServerDetailsUrl } from '~/app/routes/mcpCatalog/mcpCatalog';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
@@ -62,7 +63,7 @@ describe('McpCatalogCard', () => {
     const link = screen.getByTestId('mcp-catalog-card-detail-link-1');
     expect(link).toBeInTheDocument();
     expect(link.tagName).toBe('A');
-    expect(link).toHaveAttribute('href', '/ai-hub/mcp-servers/catalog/1');
+    expect(link).toHaveAttribute('href', mcpServerDetailsUrl('1'));
   });
 
   it('renders description with TruncatedText wrapper', () => {
@@ -78,5 +79,23 @@ describe('McpCatalogCard', () => {
     });
     const desc = screen.getByTestId('mcp-catalog-card-description-4');
     expect(desc).toBeInTheDocument();
+  });
+
+  it('renders server logo when logo is provided', () => {
+    render(
+      <McpCatalogCard server={{ ...mockServer, id: '5', logo: 'https://example.com/logo.png' }} />,
+      {
+        wrapper,
+      },
+    );
+    const logo = screen.getByTestId('mcp-catalog-card-logo-5');
+    expect(logo).toBeInTheDocument();
+    expect(logo.tagName).toBe('IMG');
+    expect(logo).toHaveAttribute('src', 'https://example.com/logo.png');
+  });
+
+  it('renders default icon when no logo is provided', () => {
+    render(<McpCatalogCard server={mockServer} />, { wrapper });
+    expect(screen.queryByTestId('mcp-catalog-card-logo-1')).not.toBeInTheDocument();
   });
 });

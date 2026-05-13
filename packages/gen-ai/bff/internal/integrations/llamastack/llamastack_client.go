@@ -17,6 +17,7 @@ import (
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
@@ -387,9 +388,11 @@ type CreateResponseParams struct {
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
 	// ProviderData contains custom provider headers (e.g., vllm_api_token)
-	ProviderData   map[string]interface{}
-	InputShieldID  string
-	OutputShieldID string
+	ProviderData map[string]interface{}
+	// GuardrailOpts carries the inline NeMo guardrail configuration for this request.
+	// Input moderation is applied before the LlamaStack call; output moderation is applied
+	// after. An empty GuardrailOpts (Config == nil) means no moderation.
+	GuardrailOpts nemo.GuardrailsOptions
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -753,29 +756,4 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 	}
 
 	return nil
-}
-
-// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
-// Returns the SDK type directly for simplicity.
-func (c *LlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
-	if input == "" {
-		return nil, fmt.Errorf("input is required")
-	}
-	if model == "" {
-		return nil, fmt.Errorf("model (shield ID) is required")
-	}
-
-	params := openai.ModerationNewParams{
-		Input: openai.ModerationNewParamsInputUnion{
-			OfString: openai.String(input),
-		},
-		Model: openai.ModerationModel(model),
-	}
-
-	response, err := c.client.Moderations.New(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create moderation: %w", err)
-	}
-
-	return response, nil
 }

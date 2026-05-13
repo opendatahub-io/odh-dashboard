@@ -216,6 +216,7 @@ export const mockDeploymentWizardState = (
             useCase: '',
           },
           setData: jest.fn(),
+          isGenAiEnabled: true,
         },
         modelServer: {
           data: undefined,

@@ -165,7 +165,7 @@ export const deployModel = async (
     wizardState,
     projectName,
     existingDeployment,
-    modelResourceWithNamespace,
+    modelResourceWithConnection,
     serverResource,
     serverResourceTemplateName,
     false,

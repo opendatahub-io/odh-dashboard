@@ -73,7 +73,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
       testData.clusterQueue,
       testData.resourceFlavour,
       projectName,
-      { wait: false, ignoreNotFound: true },
+      { ignoreNotFound: true },
     );
     cy.log('Deleting Namespace ${projectName}');
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });

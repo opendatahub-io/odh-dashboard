@@ -223,7 +223,6 @@ describe('AutoragConnectionModal', () => {
 
     const connectionName = screen.getByRole('textbox', { name: 'Connection name' });
     const uri = screen.getByRole('textbox', { name: 'uri 2' });
-    const numeric = screen.getByRole('spinbutton', { name: 'Input' });
     const addButton = screen.getByRole('button', { name: 'Add connection' });
 
     await act(async () => {
@@ -246,20 +245,6 @@ describe('AutoragConnectionModal', () => {
         target: { value: 'http://localhost' },
       });
       fireEvent.blur(uri);
-    });
-    expect(addButton).toBeEnabled();
-
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '-10' },
-      });
-    });
-    expect(addButton).toBeDisabled();
-
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '2' },
-      });
     });
     expect(addButton).toBeEnabled();
 

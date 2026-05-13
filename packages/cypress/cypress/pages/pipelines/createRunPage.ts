@@ -33,6 +33,8 @@ export class CreateRunPage {
 
   private type;
 
+  runGroupSelect = new SearchSelector('run-group-selector');
+
   mlflowExperimentSelect = new SearchSelector('mlflow-experiment-selector');
 
   pipelineSelect = new SearchSelector('pipeline-selector');
@@ -55,8 +57,8 @@ export class CreateRunPage {
     return cy.findByTestId('run-description');
   }
 
-  findRunGroupInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.find().findByTestId('run-group-field');
+  findRunGroupToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.runGroupSelect.findToggleButton();
   }
 
   findProjectNavigatorLink(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -212,6 +214,14 @@ export class CreateRunPage {
     return this.find().findByTestId('no-pipeline-versions-available-alert');
   }
 
+  findMlflowIntegrationSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-section-mlflow-integration');
+  }
+
+  findMlflowIntegrationJumpLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('run-section-mlflow-integration-jump-link');
+  }
+
   getParamsSection(): ParamsSection {
     return new ParamsSection(() => cy.findByTestId('run-section-params'));
   }
@@ -225,7 +235,7 @@ export class CreateRunPage {
   }
 
   fillRunGroup(value: string): void {
-    this.findRunGroupInput().clear().type(value);
+    this.runGroupSelect.openAndSelectItem(value);
   }
 
   selectMlflowExperimentByName(name: string): void {

@@ -11,32 +11,33 @@ import {
   Stack,
   Spinner,
   TextInput,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
 } from '@patternfly/react-core';
 import SimpleSelect, { SimpleSelectOption } from '#~/components/SimpleSelect';
-import DashboardModalFooter from '#~/concepts/dashboard/DashboardModalFooter';
+import ContentModal from '#~/components/modals/ContentModal';
 import { ModelRegistryKind } from '#~/k8sTypes';
 import { ModelRegistryModel } from '#~/api';
 import {
   createModelRegistryBackend,
   updateModelRegistryBackend,
 } from '#~/services/modelRegistrySettingsService';
-import { isValidK8sName, kindApiVersion, translateDisplayNameForK8s } from '#~/concepts/k8s/utils';
+import { kindApiVersion } from '#~/concepts/k8s/utils';
 import FormSection from '#~/components/pf-overrides/FormSection';
 import { AreaContext } from '#~/concepts/areas/AreaContext';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import {
+  isK8sNameDescriptionDataValid,
+  LimitNameResourceType,
+} from '#~/concepts/k8s/K8sNameDescriptionField/utils';
 import useModelRegistryCertificateNames from '#~/concepts/modelRegistrySettings/useModelRegistryCertificateNames';
 import {
   buildDatabaseSpec,
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
+  hasDatabaseInvalidChars,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
   isValidPort,
@@ -54,6 +55,7 @@ import {
   DEFAULT_DATABASE_NAME,
   DEFAULT_MYSQL_PORT,
   DEFAULT_POSTGRES_PORT,
+  MAX_MODEL_REGISTRY_NAME_LENGTH,
   ResourceType,
   SecureDBRType,
 } from './const';
@@ -71,6 +73,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   const [error, setError] = React.useState<Error>();
   const { data: nameDesc, onDataChange: setNameDesc } = useK8sNameDescriptionFieldData({
     initialData: mr,
+    limitNameResourceType: LimitNameResourceType.MODEL_REGISTRY,
   });
   const [databaseSource, setDatabaseSource] = React.useState<DatabaseSource>(
     DatabaseSource.DEFAULT,
@@ -323,7 +326,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
         apiVersion: kindApiVersion(ModelRegistryModel),
         kind: 'ModelRegistry',
         metadata: {
-          name: nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
+          name: nameDesc.k8sName.value,
           namespace: modelRegistryNamespace,
           annotations: {
             'openshift.io/description': nameDesc.description,
@@ -389,17 +392,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
+  const isDatabaseEmpty = !hasContent(database);
+  const hasInvalidDatabaseChars = hasDatabaseInvalidChars(database);
+  const hasDatabaseError = isDatabaseEmpty || hasInvalidDatabaseChars;
+
   const canSubmit = () => {
-    const isValidName = isValidK8sName(
-      nameDesc.k8sName.value || translateDisplayNameForK8s(nameDesc.name),
-    );
+    const isValidName = isK8sNameDescriptionDataValid(nameDesc);
 
     if (databaseSource === DatabaseSource.DEFAULT) {
-      // For default database, only name is required
       return !isSubmitting && isValidName;
     }
 
-    // For external database, all connection fields are required
     return (
       !isSubmitting &&
       isValidName &&
@@ -408,7 +411,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       hasContent(port) &&
       isValidPort(port) &&
       hasContent(username) &&
-      hasContent(database) &&
+      !hasDatabaseError &&
       (!addSecureDB || (secureDBInfo.isValid && !configSecretsError))
     );
   };
@@ -419,11 +422,37 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
   ];
 
   return (
-    <Modal isOpen onClose={onCancelClose} variant="medium">
-      <ModalHeader title={`${mr ? 'Edit' : 'Create'} model registry`} />
-      <ModalBody>
+    <ContentModal
+      onClose={onCancelClose}
+      variant="medium"
+      title={`${mr ? 'Edit' : 'Create'} model registry`}
+      error={error}
+      alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
+      buttonActions={[
+        {
+          label: mr ? 'Update' : 'Create',
+          onClick: onSubmit,
+          variant: 'primary',
+          isLoading: isSubmitting,
+          isDisabled: !canSubmit(),
+          dataTestId: 'modal-submit-button',
+        },
+        {
+          label: 'Cancel',
+          onClick: onCancelClose,
+          variant: 'link',
+          isDisabled: isSubmitting,
+          dataTestId: 'modal-cancel-button',
+        },
+      ]}
+      contents={
         <Form>
-          <K8sNameDescriptionField dataTestId="mr" data={nameDesc} onDataChange={setNameDesc} />
+          <K8sNameDescriptionField
+            dataTestId="mr"
+            data={nameDesc}
+            onDataChange={setNameDesc}
+            maxLength={MAX_MODEL_REGISTRY_NAME_LENGTH}
+          />
           <FormSection title="Database" description="Choose where to store model data.">
             <FormGroup role="radiogroup" fieldId="mr-database-source">
               <Stack hasGutter>
@@ -563,13 +592,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             onBlur={() => setIsDatabaseTouched(true)}
                             onChange={(_e, value) => setDatabase(value)}
                             validated={
-                              isDatabaseTouched && !hasContent(database) ? 'error' : 'default'
+                              (isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars
+                                ? 'error'
+                                : 'default'
                             }
                           />
-                          {isDatabaseTouched && !hasContent(database) && (
+                          {((isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars) && (
                             <HelperText>
                               <HelperTextItem variant="error" data-testid="mr-database-error">
-                                Database cannot be empty
+                                {isDatabaseEmpty
+                                  ? 'Database cannot be empty'
+                                  : 'Database name must not contain the "?" character'}
                               </HelperTextItem>
                             </HelperText>
                           )}
@@ -632,19 +665,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
             )}
           </FormSection>
         </Form>
-      </ModalBody>
-      <ModalFooter>
-        <DashboardModalFooter
-          onCancel={onCancelClose}
-          onSubmit={onSubmit}
-          submitLabel={mr ? 'Update' : 'Create'}
-          isSubmitLoading={isSubmitting}
-          isSubmitDisabled={!canSubmit()}
-          error={error}
-          alertTitle={`Error ${mr ? 'updating' : 'creating'} model registry`}
-        />
-      </ModalFooter>
-    </Modal>
+      }
+    />
   );
 };
 

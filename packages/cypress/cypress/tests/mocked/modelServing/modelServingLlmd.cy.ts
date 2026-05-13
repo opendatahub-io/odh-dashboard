@@ -561,7 +561,7 @@ describe('Model Serving LLMD', () => {
       hardwareProfileSection.findSelect().should('exist');
       hardwareProfileSection.findSelect().should('contain.text', 'Small');
       hardwareProfileSection.selectProfile(
-        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+        'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       );
       modelServingWizardEdit
         .findServingRuntimeTemplateSearchSelector()
@@ -676,26 +676,17 @@ describe('Model Serving LLMD', () => {
     it('should create an LLMD deployment with a gateway selection', () => {
       initIntercepts({});
 
-      // Enable the gateway-dev flag by overriding the config intercept
-      const config = mockDashboardConfig({
-        disableNIMModelServing: true,
-        disableKServe: false,
-        genAiStudio: true,
-        modelAsService: true,
-        disableLLMd: false,
-      });
-      cy.intercept('GET', '/api/config', {
-        body: {
-          ...config,
-          spec: {
-            ...config.spec,
-            dashboardConfig: {
-              ...config.spec.dashboardConfig,
-              'gateway-dev': true,
-            },
-          },
-        },
-      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          llmGatewayField: true,
+        }),
+      );
 
       initMockGatewayIntercepts({
         gateways: [
@@ -769,26 +760,17 @@ describe('Model Serving LLMD', () => {
         ],
       });
 
-      // Enable the gateway-dev flag
-      const config = mockDashboardConfig({
-        disableNIMModelServing: true,
-        disableKServe: false,
-        genAiStudio: true,
-        modelAsService: true,
-        disableLLMd: false,
-      });
-      cy.intercept('GET', '/api/config', {
-        body: {
-          ...config,
-          spec: {
-            ...config.spec,
-            dashboardConfig: {
-              ...config.spec.dashboardConfig,
-              'gateway-dev': true,
-            },
-          },
-        },
-      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: false,
+          genAiStudio: true,
+          modelAsService: true,
+          disableLLMd: false,
+          llmGatewayField: true,
+        }),
+      );
 
       initMockGatewayIntercepts({
         gateways: [
@@ -824,7 +806,7 @@ describe('Model Serving LLMD', () => {
 
       // Step 2: Model deployment — select a compatible hardware profile for the deployment's resources
       hardwareProfileSection.selectProfile(
-        'Large Profile Compatible CPU: Request = 4 Cores; Limit = 4 Cores; Memory: Request = 8 GiB; Limit = 8 GiB',
+        'Large Profile Compatible CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
       );
       modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
@@ -1107,6 +1089,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config created with same resource name as deployment, cloned from the selected template
@@ -1123,6 +1106,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: deploymentName });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
     });
 
@@ -1213,6 +1197,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
 
       // Actual: config updated (preserved), IS updated with exactly one baseRef preserved
@@ -1224,6 +1209,7 @@ describe('Model Serving LLMD', () => {
         expect(interception.request.url).not.to.include('?dryRun=All');
         expect(interception.request.body.spec.baseRefs).to.have.length(1);
         expect(interception.request.body.spec.baseRefs).to.deep.include({ name: 'test-vllm-gpu' });
+        expect(interception.request.body.spec.router).to.not.have.property('scheduler');
       });
     });
 

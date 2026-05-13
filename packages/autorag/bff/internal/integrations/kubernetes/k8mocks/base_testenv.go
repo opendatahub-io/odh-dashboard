@@ -139,6 +139,20 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return err
 	}
 
+	// Secret with both canonical (uppercase) and non-canonical (lowercase) AWS_S3_BUCKET keys
+	// for testing case-sensitive sanitization rules in contract tests
+	err = createSecret(mockK8sClient, ctx, "test-secret-mixed-case-bucket", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
+		"AWS_S3_BUCKET":         "canonical-bucket",
+		"aws_s3_bucket":         "non-canonical-bucket",
+	}, nil)
+	if err != nil {
+		return err
+	}
+
 	// Secret with display name annotation
 	err = createSecret(mockK8sClient, ctx, "annotated-display-name-secret", "default", map[string]string{
 		"AWS_ACCESS_KEY_ID":     "test-access-key",

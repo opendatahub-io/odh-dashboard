@@ -14,14 +14,10 @@ export const mockSecretListItem = ({
   name = 'test-secret',
   type,
   data = {
-    // eslint-disable-next-line camelcase
-    aws_access_key_id: '[REDACTED]',
-    // eslint-disable-next-line camelcase
-    aws_secret_access_key: '[REDACTED]',
-    // eslint-disable-next-line camelcase
-    aws_default_region: '[REDACTED]',
-    // eslint-disable-next-line camelcase
-    aws_s3_endpoint: '[REDACTED]',
+    AWS_ACCESS_KEY_ID: '[REDACTED]',
+    AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+    AWS_DEFAULT_REGION: '[REDACTED]',
+    AWS_S3_ENDPOINT: '[REDACTED]',
   },
   displayName,
   description,
@@ -38,14 +34,10 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
   mockSecretListItem({
     type: 's3',
     data: {
-      // eslint-disable-next-line camelcase
-      aws_access_key_id: '[REDACTED]',
-      // eslint-disable-next-line camelcase
-      aws_secret_access_key: '[REDACTED]',
-      // eslint-disable-next-line camelcase
-      aws_default_region: '[REDACTED]',
-      // eslint-disable-next-line camelcase
-      aws_s3_endpoint: '[REDACTED]',
+      AWS_ACCESS_KEY_ID: '[REDACTED]',
+      AWS_SECRET_ACCESS_KEY: '[REDACTED]',
+      AWS_DEFAULT_REGION: '[REDACTED]',
+      AWS_S3_ENDPOINT: '[REDACTED]',
     },
     ...overrides,
   });
@@ -54,10 +46,8 @@ export const mockLLSSecret = (overrides: MockSecretListItemOptions = {}): Secret
   mockSecretListItem({
     type: 'lls',
     data: {
-      // eslint-disable-next-line camelcase
-      llama_stack_client_api_key: '[REDACTED]',
-      // eslint-disable-next-line camelcase
-      llama_stack_client_base_url: '[REDACTED]',
+      LLAMA_STACK_CLIENT_API_KEY: '[REDACTED]',
+      LLAMA_STACK_CLIENT_BASE_URL: '[REDACTED]',
     },
     ...overrides,
   });

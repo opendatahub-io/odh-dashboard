@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
 )
 
@@ -339,24 +340,16 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		} else {
 			var serviceURL string
 
-			// Configuration Priority:
-			// 1. MAAS_URL env var (if set for local dev) - works even without cluster domain
-			// 2. Autodiscovered endpoint (production default) - requires cluster domain
-			// 3. MaaS unavailable - attach nil and let handler decide if it's needed
-
 			if app.config.MaaSURL != "" {
-				// Priority 1: Use environment variable if explicitly set
 				serviceURL = app.config.MaaSURL
 				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else if app.clusterDomain != "" {
-				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
 				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
 				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
 					"clusterDomain", app.clusterDomain,
 					"serviceURL", serviceURL)
 			} else {
-				// Priority 3: MaaS unavailable - neither env var nor cluster domain available
 				logger.Debug("MaaS unavailable: no MAAS_URL configured and cluster domain not available")
 				ctx = context.WithValue(ctx, constants.MaaSClientKey, nil)
 				next(w, r.WithContext(ctx), ps)
@@ -426,6 +419,146 @@ func (app *App) AttachMLflowClient(next func(http.ResponseWriter, *http.Request,
 		}
 
 		ctx = context.WithValue(ctx, constants.MLflowClientKey, mlflowClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachBFFMaaSClient middleware creates a BFF client for inter-BFF communication with MaaS BFF
+// and attaches it to the request context. This is used for endpoints that need to call MaaS BFF
+// rather than the MaaS controller directly.
+func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		// Check if BFF client factory is available
+		if app.bffClientFactory == nil {
+			logger.Warn("BFF client factory not initialized")
+			app.errorResponse(w, r, &integrations.HTTPError{
+				StatusCode: http.StatusServiceUnavailable,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    "service_unavailable",
+					Message: "BFF inter-communication is not configured",
+				},
+			})
+			return
+		}
+
+		// Check if MaaS BFF target is configured
+		if !app.bffClientFactory.IsTargetConfigured("maas") {
+			logger.Debug("MaaS BFF target not configured, attaching nil client")
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		// Get auth token from RequestIdentity
+		var authToken string
+		if identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity); ok && identity != nil {
+			authToken = identity.Token
+		}
+
+		// Build headers based on MaaS BFF's auth method
+		forwardHeaders := make(map[string]string)
+		maasConfig := app.bffClientFactory.GetConfig("maas")
+
+		if maasConfig != nil && maasConfig.AuthMethod == "internal" {
+			// For internal auth mode (Kubeflow only), forward kubeflow identity headers
+			if userID := r.Header.Get("kubeflow-userid"); userID != "" {
+				forwardHeaders["kubeflow-userid"] = userID
+			}
+			if groups := r.Header.Get("kubeflow-groups"); groups != "" {
+				forwardHeaders["kubeflow-groups"] = groups
+			}
+			logger.Debug("Using internal auth mode for MaaS BFF, forwarding kubeflow headers")
+		} else {
+			// For user_token auth mode (default for ODH), the token is sent via
+			// the configured auth header by the client itself
+			logger.Debug("Using user_token auth mode for MaaS BFF")
+		}
+
+		// Create BFF client for MaaS target with forwarded headers
+		client := app.bffClientFactory.CreateClientWithHeaders("maas", authToken, forwardHeaders)
+		if client == nil {
+			logger.Warn("Failed to create MaaS BFF client")
+			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), nil)
+			next(w, r.WithContext(ctx), ps)
+			return
+		}
+
+		logger.Debug("Created MaaS BFF client", "baseURL", client.GetBaseURL())
+
+		// Attach to context
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
+		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+// AttachNemoClient middleware creates a NeMo Guardrails client and attaches it to context.
+// Mirrors AttachLlamaStackClient: uses the user's forwarded token and discovers the service URL
+// from the NemoGuardrails CR (trustyai.opendatahub.io/v1alpha1) when NEMO_GUARDRAILS_URL is not set.
+func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var nemoClient nemopkg.NemoClientInterface
+
+		if app.config.MockNemoClient {
+			logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
+			nemoClient = app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
+		} else {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			var serviceURL string
+
+			if app.config.NemoGuardrailsURL != "" {
+				// Developer override — same pattern as LLAMA_STACK_URL
+				serviceURL = app.config.NemoGuardrailsURL
+				logger.Debug("Using NEMO_GUARDRAILS_URL environment variable (developer override)",
+					"serviceURL", serviceURL)
+			} else {
+				// Auto-discover from NemoGuardrails CR in the request namespace
+				namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				discoveredURL, err := k8sClient.GetNemoGuardrailsServiceURL(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover NemoGuardrails service: %w", err))
+					return
+				}
+
+				if discoveredURL == "" {
+					logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
+					ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
+					next(w, r.WithContext(ctx), ps)
+					return
+				}
+
+				serviceURL = discoveredURL
+				logger.Debug("Discovered NemoGuardrails service URL from CR",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
+			}
+
+			logger.Debug("Creating NeMo Guardrails client",
+				"serviceURL", serviceURL,
+				"hasAuthToken", identity.Token != "")
+
+			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+		}
+
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

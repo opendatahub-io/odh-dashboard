@@ -77,18 +77,12 @@ class ProjectListPage {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title');
+    cy.findByTestId('app-page-title', { timeout: 15000 }).should('be.visible');
     cy.testA11y();
   }
 
   findPageTitle() {
     return cy.findByTestId('app-page-title');
-  }
-
-  waitForPageAndToolbar() {
-    this.findPageTitle().should('be.visible', { timeout: 15000 });
-    this.getTableToolbar().find().should('be.visible', { timeout: 30000 });
-    return this;
   }
 
   shouldHaveProjects() {
@@ -151,6 +145,7 @@ class ProjectListPage {
    * @param projectName Project Name
    */
   filterProjectByName = (projectName: string) => {
+    cy.findByTestId('projects-table-toolbar', { timeout: 30000 }).should('be.visible');
     const projectListToolbar = projectListPage.getTableToolbar();
     projectListToolbar.findNameFilter().type(projectName);
   };
@@ -193,6 +188,10 @@ class ProjectDetails {
 
   findSectionTab(sectionId: string) {
     return cy.findByTestId(`${sectionId}-tab`);
+  }
+
+  findModelServingTab() {
+    return this.findSectionTab('model-server');
   }
 
   private wait(section = 'overview') {

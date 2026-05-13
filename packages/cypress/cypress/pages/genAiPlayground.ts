@@ -4,12 +4,21 @@ class GenAiPlayground {
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
+  navigateToAssets(projectName: string) {
+    cy.visit(`/gen-ai-studio/assets/${projectName}`);
+    cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
+  }
+
   findEmptyState() {
     return cy.findByTestId('empty-state');
   }
 
-  findCreatePlaygroundButton() {
-    return cy.findByTestId('empty-state-action-button');
+  findAddToPlaygroundButton() {
+    return cy.findByTestId('ai-models-table').contains('button', 'Add to playground');
+  }
+
+  findGoToPlaygroundLink(options?: { timeout?: number }) {
+    return cy.findByTestId('go-to-playground-link', options);
   }
 
   findConfigurationTable() {

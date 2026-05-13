@@ -10,7 +10,7 @@ jest.mock('#~/api', () => ({
 const getClusterQueueMock = jest.mocked(getClusterQueue);
 
 const mockClusterQueue: ClusterQueueKind = {
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'ClusterQueue',
   metadata: { name: 'default-cq' },
   spec: {

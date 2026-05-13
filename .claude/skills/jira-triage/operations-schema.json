@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Jira Triage Operations",
+  "description": "Contract between analysis skills and the Apply capability of the jira-triage skill. Analysis skills produce this format; Apply consumes and executes it. Required properties, action enums, params shapes, optional summary vs root issues map, and execution-only fields are defined only here — do not duplicate field lists in skill docs; link to this schema instead.",
+  "type": "object",
+  "required": ["metadata", "operations"],
+  "properties": {
+    "issues": {
+      "type": "object",
+      "description": "Map of issue key → Jira summary (title) for ALL issues returned by the initial query. Populated in Step 1 from the verified inventory — every issue from the query appears here regardless of whether it has actionable operations. This serves as the authoritative record of the query result set and as a deduplication mechanism (avoids repeating summaries on every operation). Apply and dry-run display MUST resolve human-readable titles as: operation.summary if present, else issues[issueKey], else issue key only. When aggregating batches from multiple skills, merge these objects (later keys overwrite on conflict).",
+      "propertyNames": {
+        "pattern": "^[A-Z]+-[0-9]+$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["generated", "query", "issueCount"],
+      "properties": {
+        "generated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp of when this file was generated"
+        },
+        "query": {
+          "type": "string",
+          "description": "JQL query or human-readable description of how the issue set was selected"
+        },
+        "issueCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of issues returned by the initial query. Set once when the file is created (Step 1) and never incremented. This is a static count reflecting the query result size, not the number of issues that have operations."
+        }
+      },
+      "additionalProperties": false
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operation"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "operation": {
+      "type": "object",
+      "required": ["issueKey", "action", "params", "reason"],
+      "properties": {
+        "issueKey": {
+          "type": "string",
+          "pattern": "^[A-Z]+-[0-9]+$",
+          "description": "Jira issue key (e.g., RHOAIENG-12345)"
+        },
+        "summary": {
+          "type": "string",
+          "description": "Issue title for human readability in dry-run output. Omit on each operation when the root issues map includes this issueKey (deduplicated batch format)."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["SET_FIELDS", "ADD_LABEL", "REMOVE_LABEL", "ADD_COMMENT", "TRANSITION", "LINK_DUPLICATE", "LINK_BLOCKED_BY", "NO_OP"],
+          "description": "The type of Jira operation to perform. NO_OP is an informational record indicating no action is needed for this issue, with the reason field explaining why."
+        },
+        "params": {
+          "oneOf": [
+            { "$ref": "#/definitions/setFieldsParams" },
+            { "$ref": "#/definitions/labelParams" },
+            { "$ref": "#/definitions/commentParams" },
+            { "$ref": "#/definitions/transitionParams" },
+            { "$ref": "#/definitions/linkDuplicateParams" },
+            { "$ref": "#/definitions/linkBlockedByParams" },
+            { "$ref": "#/definitions/noOpParams" }
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable explanation of why this operation is recommended"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["success", "failed"],
+          "description": "Execution status. Absent on unannotated operations (not yet attempted). Annotated in-place on the operations file as operations are executed."
+        },
+        "error": {
+          "type": "string",
+          "description": "Error detail when status is 'failed'."
+        },
+        "commentId": {
+          "type": "string",
+          "description": "Jira comment ID returned on successful ADD_COMMENT execution. Enables later edits to the comment."
+        }
+      },
+      "additionalProperties": false
+    },
+    "setFieldsParams": {
+      "type": "object",
+      "required": ["fields"],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "description": "Field names/IDs and their values, passed through to jira_update_issue. Analysis skills determine the field names and values.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "labelParams": {
+      "type": "object",
+      "required": ["labels"],
+      "properties": {
+        "labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Labels to add or remove"
+        }
+      },
+      "additionalProperties": false
+    },
+    "commentParams": {
+      "type": "object",
+      "required": ["comment"],
+      "properties": {
+        "comment": {
+          "type": "string",
+          "description": "Comment text in Markdown format"
+        },
+        "visibility": {
+          "type": "object",
+          "description": "Comment visibility restriction. All triage comments default to {\"type\":\"group\",\"value\":\"Red Hat Employee\"} at execution time (both agent and script paths). Only include explicitly to override the default.",
+          "properties": {
+            "type": { "type": "string", "enum": ["group", "role"] },
+            "value": { "type": "string" }
+          },
+          "required": ["type", "value"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "transitionParams": {
+      "type": "object",
+      "required": ["transitionName"],
+      "properties": {
+        "transitionName": {
+          "type": "string",
+          "description": "Human-readable transition name (e.g., 'Backlog', 'In Progress'). The Apply step resolves this to a numeric transition_id at execution time."
+        },
+        "fields": {
+          "type": "object",
+          "description": "Optional fields to set during the transition (e.g., resolution). Passed through to jira_transition_issue.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "linkDuplicateParams": {
+      "type": "object",
+      "required": ["duplicateOf"],
+      "properties": {
+        "duplicateOf": {
+          "type": "string",
+          "pattern": "^[A-Z]+-[0-9]+$",
+          "description": "Issue key of the original (the issue this one duplicates)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "linkBlockedByParams": {
+      "type": "object",
+      "required": ["blockedBy"],
+      "properties": {
+        "blockedBy": {
+          "type": "string",
+          "pattern": "^[A-Z]+-[0-9]+$",
+          "description": "Issue key of the blocker (the issue that blocks the operation's issue)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "noOpParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false,
+      "description": "Empty params object for NO_OP operations. The reason field on the operation explains why no action is needed."
+    }
+  }
+}

@@ -21,13 +21,13 @@ export interface FileWithSettings {
 export interface UseSourceManagementReturn {
   selectedSourceSettings: ChatbotSourceSettings | null;
   isSourceSettingsOpen: boolean;
-  isRawUploaded: boolean;
+  autoEnableRag: boolean;
   filesWithSettings: FileWithSettings[];
   currentFileForSettings: File | null;
   pendingFiles: File[];
   isUploading: boolean;
   uploadProgress: { current: number; total: number };
-  setIsRawUploaded: (isRawUploaded: boolean) => void;
+  setAutoEnableRag: (value: boolean) => void;
   handleSourceDrop: (event: DropEvent, source: File[]) => Promise<void>;
   removeUploadedSource: (fileName: string) => void;
   handleSourceSettingsSubmit: (settings: ChatbotSourceSettings | null) => Promise<void>;
@@ -51,7 +51,6 @@ const useSourceManagement = ({
   onShowErrorAlert,
   onFileUploadComplete,
   uploadedFiles = [],
-  isFilesLoading = false,
 }: UseSourceManagementProps): UseSourceManagementReturn => {
   const { apiAvailable } = useGenAiAPI();
   const { uploadFile } = useFileUploadWithPolling();
@@ -60,36 +59,15 @@ const useSourceManagement = ({
   const { MAX_FILE_SIZE, MAX_FILES_IN_VECTOR_STORE } = FILE_UPLOAD_CONFIG;
   const [selectedSourceSettings, setSelectedSourceSettings] =
     React.useState<ChatbotSourceSettings | null>(null);
-  const [isRawUploaded, setIsRawUploaded] = React.useState(false);
+  const [autoEnableRag, setAutoEnableRag] = React.useState(false);
   const [isSourceSettingsOpen, setIsSourceSettingsOpen] = React.useState(false);
   const [filesWithSettings, setFilesWithSettings] = React.useState<FileWithSettings[]>([]);
   const [currentFileForSettings, setCurrentFileForSettings] = React.useState<File | null>(null);
   const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
   const [isUploading, setIsUploading] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState({ current: 0, total: 0 });
-  // Track if the page initially loaded with no files
-  const [hadNoFilesInitially, setHadNoFilesInitially] = React.useState<boolean | null>(null);
-  // Track if we've already auto-enabled RAG (so we only do it once)
-  const [hasAutoEnabledRag, setHasAutoEnabledRag] = React.useState(false);
-  // Track the previous loading state to detect when loading completes
-  const prevIsLoadingRef = React.useRef<boolean | null>(null);
   // Track if we should skip processing (e.g., during upload)
   const skipProcessingRef = React.useRef(false);
-
-  // Track the initial file state on first load
-  React.useEffect(() => {
-    const wasLoading = prevIsLoadingRef.current;
-    const isNowLoaded = wasLoading === true && !isFilesLoading;
-
-    // Update the ref for next render
-    prevIsLoadingRef.current = isFilesLoading;
-
-    // Only set initial state when we've just completed the first load (transition from loading to loaded)
-    if (hadNoFilesInitially === null && isNowLoaded) {
-      const noFilesExist = uploadedFiles.length === 0;
-      setHadNoFilesInitially(noFilesExist);
-    }
-  }, [uploadedFiles, hadNoFilesInitially, isFilesLoading]);
 
   // Helper function to find all pending files
   const findPendingFiles = React.useCallback(
@@ -275,10 +253,9 @@ const useSourceManagement = ({
             );
           }
 
-          // Auto-enable RAG toggle only once, on first successful upload, if page initially had no files
-          if (successCount > 0 && hadNoFilesInitially === true && !hasAutoEnabledRag) {
-            setIsRawUploaded(true);
-            setHasAutoEnabledRag(true);
+          // Signal RAG auto-enable on any successful upload
+          if (successCount > 0) {
+            setAutoEnableRag(true);
           }
 
           // Refresh the uploaded files list
@@ -307,8 +284,6 @@ const useSourceManagement = ({
       uploadFile,
       onShowSuccessAlert,
       removeUploadedSource,
-      hadNoFilesInitially,
-      hasAutoEnabledRag,
     ],
   );
 
@@ -342,13 +317,13 @@ const useSourceManagement = ({
   return {
     selectedSourceSettings,
     isSourceSettingsOpen,
-    isRawUploaded,
+    autoEnableRag,
     filesWithSettings,
     currentFileForSettings,
     pendingFiles,
     isUploading,
     uploadProgress,
-    setIsRawUploaded,
+    setAutoEnableRag,
     handleSourceDrop,
     removeUploadedSource,
     handleSourceSettingsSubmit,

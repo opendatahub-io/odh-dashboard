@@ -18,8 +18,6 @@ it('Connection types should not be available for non product admins', () => {
 it('Connection types should be hidden by feature flag', () => {
   asProductAdminUser();
 
-  cy.visitWithLogin('/settings/environment-setup/connection-types');
-
   cy.interceptOdh(
     'GET /api/config',
     mockDashboardConfig({

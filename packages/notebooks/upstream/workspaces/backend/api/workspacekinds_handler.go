@@ -25,7 +25,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	kubefloworgv1beta1 "github.com/kubeflow/notebooks/workspaces/controller/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -45,7 +44,7 @@ type WorkspaceKindEnvelope Envelope[models.WorkspaceKind]
 // GetWorkspaceKindHandler retrieves a specific workspace kind by name.
 //
 //	@Summary		Get workspace kind
-//	@Description	Returns details of a specific workspace kind identified by its name. Workspace kinds define the available types of workspaces that can be created.
+//	@Description	Returns details of a specific workspace kind identified by its name.
 //	@Tags			workspacekinds
 //	@ID				getWorkspaceKind
 //	@Accept			json
@@ -71,12 +70,7 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbGet,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{Name: name},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbGet, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
@@ -97,27 +91,50 @@ func (a *App) GetWorkspaceKindHandler(w http.ResponseWriter, r *http.Request, ps
 	a.dataResponse(w, r, responseEnvelope)
 }
 
-// GetWorkspaceKindsHandler returns a list of all available workspace kinds.
+// GetWorkspaceKindsHandler returns a list of all workspace kinds in the cluster.
 //
 //	@Summary		List workspace kinds
-//	@Description	Returns a list of all available workspace kinds. Workspace kinds define the different types of workspaces that can be created in the system.
+//	@Description	Returns a list of all workspace kinds in the cluster. When namespaceFilter is provided, authorization checks whether the user can create workspaces in that namespace instead of requiring workspace kind list permission.
 //	@Tags			workspacekinds
 //	@ID				listWorkspaceKinds
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
-//	@Failure		401	{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
-//	@Failure		403	{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
-//	@Failure		500	{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
+//	@Param			namespaceFilter	query		string						false	"Namespace used for workspace creation authorization"
+//	@Success		200				{object}	WorkspaceKindListEnvelope	"Successful operation. Returns a list of all available workspace kinds."
+//	@Failure		401				{object}	ErrorEnvelope				"Unauthorized. Authentication is required."
+//	@Failure		403				{object}	ErrorEnvelope				"Forbidden. User does not have permission to list workspace kinds."
+//	@Failure		422				{object}	ErrorEnvelope				"Unprocessable Entity. Validation error."
+//	@Failure		500				{object}	ErrorEnvelope				"Internal server error. An unexpected error occurred on the server."
 //	@Router			/workspacekinds [get]
 func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// =========================== AUTH ===========================
-	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbList,
-			&kubefloworgv1beta1.WorkspaceKind{},
-		),
+	namespace := r.URL.Query().Get(NamespaceFilterQueryParam)
+
+	// validate query parameters
+	var valErrs field.ErrorList
+	if namespace != "" {
+		valErrs = append(valErrs, helper.ValidateKubernetesNamespaceName(field.NewPath(NamespaceFilterQueryParam), namespace)...)
 	}
+
+	if len(valErrs) > 0 {
+		a.failedValidationResponse(w, r, errMsgQueryParamsInvalid, valErrs, nil)
+		return
+	}
+
+	// =========================== AUTH ===========================
+	var authPolicies []*auth.ResourcePolicy
+
+	if namespace != "" {
+		// user intends to create a workspace in the namespace
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(auth.VerbCreate, auth.Workspaces, auth.ResourcePolicyResourceMeta{Namespace: namespace}),
+		}
+	} else {
+		// administrative listing of workspace kinds
+		authPolicies = []*auth.ResourcePolicy{
+			auth.NewResourcePolicy(auth.VerbList, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{}),
+		}
+	}
+
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return
 	}
@@ -147,7 +164,7 @@ func (a *App) GetWorkspaceKindsHandler(w http.ResponseWriter, r *http.Request, _
 //	@Failure		401		{object}	ErrorEnvelope			"Unauthorized. Authentication is required."
 //	@Failure		403		{object}	ErrorEnvelope			"Forbidden. User does not have permission to create WorkspaceKind."
 //	@Failure		409		{object}	ErrorEnvelope			"Conflict. WorkspaceKind with the same name already exists."
-//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large.""
+//	@Failure		413		{object}	ErrorEnvelope			"Request Entity Too Large. The request body is too large."
 //	@Failure		415		{object}	ErrorEnvelope			"Unsupported Media Type. Content-Type header is not correct."
 //	@Failure		422		{object}	ErrorEnvelope			"Unprocessable Entity. Validation error."
 //	@Failure		500		{object}	ErrorEnvelope			"Internal server error. An unexpected error occurred on the server."
@@ -201,14 +218,7 @@ func (a *App) CreateWorkspaceKindHandler(w http.ResponseWriter, r *http.Request,
 
 	// =========================== AUTH ===========================
 	authPolicies := []*auth.ResourcePolicy{
-		auth.NewResourcePolicy(
-			auth.ResourceVerbCreate,
-			&kubefloworgv1beta1.WorkspaceKind{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workspaceKind.Name,
-				},
-			},
-		),
+		auth.NewResourcePolicy(auth.VerbCreate, auth.WorkspaceKinds, auth.ResourcePolicyResourceMeta{Name: workspaceKind.Name}),
 	}
 	if success := a.requireAuth(w, r, authPolicies); !success {
 		return

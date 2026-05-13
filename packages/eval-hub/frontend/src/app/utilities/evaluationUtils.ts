@@ -9,11 +9,32 @@ export const getJobBenchmarks = (job: EvaluationJob): NonNullable<EvaluationJob[
     return job.benchmarks;
   }
   if (job.collection?.benchmarks?.length) {
-    return job.collection.benchmarks;
+    const collBenchmarks = job.collection.benchmarks;
+    const resultsBenchmarks = job.results.benchmarks;
+    if (resultsBenchmarks?.length) {
+      /* eslint-disable camelcase */
+      return resultsBenchmarks.map((rb, rbIdx) => {
+        const config = collBenchmarks.find(
+          (cb, cbIdx) =>
+            cb.id === rb.id && (cb.benchmark_index ?? cbIdx) === (rb.benchmark_index ?? rbIdx),
+        );
+        return {
+          id: rb.id,
+          provider_id: rb.provider_id,
+          benchmark_index: rb.benchmark_index,
+          primary_score: config?.primary_score,
+          pass_criteria: config?.pass_criteria,
+        };
+      });
+      /* eslint-enable camelcase */
+    }
+    /* eslint-disable camelcase */
+    return collBenchmarks.map((b, i) => ({
+      ...b,
+      benchmark_index: b.benchmark_index ?? i,
+    }));
+    /* eslint-enable camelcase */
   }
-  // When a job was submitted via collection ID only (no inline benchmark list),
-  // fall back to results.benchmarks which carries benchmark_index and mlflow_run_id,
-  // ensuring per-benchmark selection and MLflow run linking work correctly.
   if (job.results.benchmarks?.length) {
     /* eslint-disable camelcase */
     return job.results.benchmarks.map((b) => ({
