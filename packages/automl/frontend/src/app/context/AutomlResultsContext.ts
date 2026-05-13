@@ -30,6 +30,7 @@ export type AutomlResultsContextProps = {
   modelsLoadError?: Error;
   onRetryModels?: () => void;
   parameters?: Partial<ConfigureSchema>;
+  modelsBasePath?: string;
 };
 
 export const AutomlResultsContext = React.createContext<AutomlResultsContextProps | undefined>(
@@ -49,6 +50,7 @@ export function getAutomlContext({
   models = {},
   pipelineRunLoading,
   modelsLoading,
+  modelsBasePath,
   modelsError,
   modelsLoadError,
   onRetryModels,
@@ -57,6 +59,7 @@ export function getAutomlContext({
   models?: Record<string, AutomlModel>;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsBasePath?: string;
   modelsError?: boolean;
   modelsLoadError?: Error;
   onRetryModels?: () => void;
@@ -89,5 +92,6 @@ export function getAutomlContext({
     modelsLoadError,
     onRetryModels,
     parameters,
+    modelsBasePath,
   };
 }
