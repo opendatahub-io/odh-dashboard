@@ -133,7 +133,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   if (!projectName) {
     return (
-      <Alert variant="info" isInline title="NVIDIA Inference Microservices (NIM image)">
+      <Alert variant="info" isInline title="No project selected">
         Select a project to load available NIM images.
       </Alert>
     );
@@ -156,7 +156,11 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     );
 
     return (
-      <Alert variant="danger" isInline title="NVIDIA Inference Microservices (NIM image)">
+      <Alert
+        variant="danger"
+        isInline
+        title={isInvalidKey ? 'Invalid NIM API key' : 'No NIM API key'}
+      >
         {isInvalidKey
           ? 'The NVIDIA NIM key for this project is invalid and needs to be replaced. '
           : 'No NVIDIA NIM key has been configured for this project. '}
@@ -166,11 +170,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   }
 
   return (
-    <FormGroup
-      label="NVIDIA Inference Microservices (NIM image)"
-      fieldId="nim-image-selection"
-      isRequired
-    >
+    <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
       <TypeaheadSelect
         toggleWidth="450px"
         selectOptions={options}

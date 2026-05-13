@@ -73,9 +73,7 @@ describe('NIMImageFieldComponent', () => {
     });
 
     expect(screen.getByText('Select a project to load available NIM images.')).toBeInTheDocument();
-    expect(
-      screen.getByText('NVIDIA Inference Microservices (NIM image)', { exact: false }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('No project selected')).toBeInTheDocument();
   });
 
   it('should show "no key configured" error with settings link for admin users', () => {
@@ -235,6 +233,6 @@ describe('NIMImageFieldComponent', () => {
     expect(
       screen.queryByText('The NVIDIA NIM key for this project is invalid', { exact: false }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('NVIDIA Inference Microservices (NIM image)')).toBeInTheDocument();
+    expect(screen.getByText('NIM image')).toBeInTheDocument();
   });
 });
