@@ -1,5 +1,5 @@
 import { PodModel } from '@odh-dashboard/internal/api/models/index';
-import {
+import type {
   InferenceServiceKind,
   K8sAPIOptions,
   PodKind,
@@ -9,23 +9,7 @@ import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWat
 import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
 import { InferenceServiceModel } from '@odh-dashboard/internal/api/models/kserve';
 import type { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
-import { NIMServiceModel, type NIMServiceKind } from '../types';
-
-export const useWatchNIMServices = (
-  project?: ProjectKind,
-  labelSelectors?: Record<string, string>,
-  opts?: K8sAPIOptions,
-): CustomWatchK8sResult<NIMServiceKind[]> =>
-  useK8sWatchResourceList<NIMServiceKind[]>(
-    {
-      isList: true,
-      groupVersionKind: groupVersionKind(NIMServiceModel),
-      namespace: project?.metadata.name,
-      ...(labelSelectors && { selector: labelSelectors }),
-    },
-    NIMServiceModel,
-    opts,
-  );
+import { NIM_OPERATOR_MANAGED_BY } from '../../constants';
 
 export const useWatchInferenceServices = (
   project?: ProjectKind,
@@ -51,7 +35,7 @@ export const useWatchNIMDeploymentPods = (
       groupVersionKind: groupVersionKind(PodModel),
       namespace: project?.metadata.name,
       selector: {
-        'app.kubernetes.io/managed-by': 'k8s-nim-operator',
+        'app.kubernetes.io/managed-by': NIM_OPERATOR_MANAGED_BY,
       },
     },
     PodModel,

@@ -5,14 +5,12 @@ import type {
   InferenceServiceKind,
 } from '@odh-dashboard/internal/k8sTypes';
 import { getKServeDeploymentEndpoints } from '@odh-dashboard/kserve/deploymentEndpoints';
-import { type NIMDeployment, type NIMServiceKind } from './types';
-import {
-  useWatchNIMServices,
-  useWatchInferenceServices,
-  useWatchNIMDeploymentPods,
-} from './api/watch';
-import { getNIMDeploymentStatus } from './deploymentStatus';
-import { NIM_ID } from '../extensions';
+import { type NIMDeployment, type NIMServiceKind } from '../nimservices/types';
+import { isNIMServiceRef } from '../nimservices/utils';
+import { useWatchNIMServices } from '../nimservices/watch';
+import { useWatchInferenceServices, useWatchNIMDeploymentPods } from './watch';
+import { getNIMDeploymentStatus } from './status';
+import { NIM_ID } from '../../../extensions';
 
 export type { NIMDeployment };
 
@@ -45,7 +43,7 @@ export const useWatchDeployments = (
     const byName = new Map<string, InferenceServiceKind>();
     inferenceServices.forEach((is) => {
       is.metadata.ownerReferences?.forEach((ref) => {
-        if (ref.kind === 'NIMService' && ref.apiVersion.startsWith('apps.nvidia.com/')) {
+        if (isNIMServiceRef(ref)) {
           byName.set(ref.name, is);
         }
       });

@@ -12,7 +12,7 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
-    "./types": "./src/types.ts"
+    "./types": "./src/api/nimservices/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

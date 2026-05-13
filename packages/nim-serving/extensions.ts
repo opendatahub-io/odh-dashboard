@@ -9,7 +9,7 @@ import type {
   DeployedModelServingDetails,
   ModelServingPlatformWatchDeploymentsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
-import type { NIMDeployment } from './src/deployments';
+import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
 
 export const NIM_ID = 'nvidia-nim';
 
@@ -42,7 +42,8 @@ const extensions: (
     type: 'model-serving.platform/watch-deployments',
     properties: {
       platform: NIM_ID,
-      watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
+      watch: () =>
+        import('./src/api/deployments/useWatchDeployments').then((m) => m.useWatchDeployments),
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],
@@ -52,7 +53,7 @@ const extensions: (
     type: 'model-serving.deployed-model/serving-runtime',
     properties: {
       platform: NIM_ID,
-      ServingDetailsComponent: () => import('./src/components/NIMServingDetails'),
+      ServingDetailsComponent: () => import('./src/pages/deployments/NIMServingDetails'),
     },
     flags: {
       required: [SupportedArea.NIM_MODEL],

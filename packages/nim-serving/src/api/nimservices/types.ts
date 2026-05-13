@@ -5,7 +5,6 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { K8sModelCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
-import { NIM_ID } from '../extensions';
 
 export const NIMServiceModel: K8sModelCommon = {
   apiVersion: 'v1alpha1',
@@ -78,15 +77,3 @@ export type NIMServiceKind = K8sResourceCommon & {
 };
 
 export type NIMDeployment = Deployment<NIMServiceKind, InferenceServiceKind>;
-
-export const isNIMDeployment = (deployment: Deployment): deployment is NIMDeployment =>
-  deployment.modelServingPlatformId === NIM_ID;
-
-/**
- * Check if an InferenceService is owned by a NIMService
- * by inspecting its ownerReferences.
- */
-export const isNIMOwned = (inferenceService: InferenceServiceKind): boolean =>
-  inferenceService.metadata.ownerReferences?.some(
-    (ref) => ref.kind === 'NIMService' && ref.apiVersion.startsWith('apps.nvidia.com/'),
-  ) ?? false;
