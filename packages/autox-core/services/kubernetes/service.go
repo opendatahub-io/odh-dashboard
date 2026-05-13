@@ -33,7 +33,7 @@ func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) 
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
 	return namespaces, nil
@@ -48,7 +48,7 @@ func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, er
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
 	return s.mapNamespacesToInfos(namespaces), nil
@@ -65,14 +65,18 @@ func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespac
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err == nil && isAdmin {
 		logger.Debug("user is cluster admin, returning all namespaces")
-		return s.Client.GetNamespaces(ctx)
+		namespaces, err := s.Client.GetNamespaces(ctx)
+		if err != nil {
+			return nil, TranslateK8sError(err, "namespaces", "list")
+		}
+		return namespaces, nil
 	}
 
 	// Get all namespaces (or OpenShift Projects if forbidden)
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
 	// Filter by permission
@@ -109,7 +113,7 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 		namespaces, err := s.Client.GetNamespaces(ctx)
 		if err != nil {
 			s.Logger.Error("failed to get namespaces", "error", err)
-			return nil, err
+			return nil, TranslateK8sError(err, "namespaces", "list")
 		}
 		return s.mapNamespacesToInfos(namespaces), nil
 	}
@@ -118,7 +122,7 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
 	// Filter by permission and map to infos
@@ -157,7 +161,7 @@ func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList
 	pods, err := s.Client.GetPods(ctx, namespace)
 	if err != nil {
 		s.Logger.Error("failed to get pods", "namespace", namespace, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "pods", "list")
 	}
 
 	return pods, nil
@@ -175,7 +179,7 @@ func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Sec
 	secrets, err := s.Client.GetSecrets(ctx, namespace)
 	if err != nil {
 		s.Logger.Error("failed to get secrets", "namespace", namespace, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "secrets", "list")
 	}
 
 	return secrets, nil
@@ -197,7 +201,7 @@ func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]Se
 	secrets, err := s.Client.GetSecrets(ctx, namespace)
 	if err != nil {
 		s.Logger.Error("failed to get secrets", "namespace", namespace, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "secrets", "list")
 	}
 
 	// Convert to SecretInfo with type information from annotations
@@ -245,7 +249,7 @@ func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string
 	secret, err := s.Client.GetSecret(ctx, namespace, secretName)
 	if err != nil {
 		s.Logger.Error("failed to get secret", "namespace", namespace, "secretName", secretName, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "secret", "get")
 	}
 
 	return secret, nil
@@ -257,7 +261,7 @@ func (s *K8sService) GetUser(ctx context.Context) (string, error) {
 	user, err := s.Client.GetUser(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get user identity", "error", err)
-		return "", err
+		return "", TranslateK8sError(err, "user", "get")
 	}
 
 	return user, nil
@@ -269,7 +273,7 @@ func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err != nil {
 		s.Logger.Error("failed to check cluster admin status", "error", err)
-		return false, err
+		return false, TranslateK8sError(err, "user", "check admin status")
 	}
 
 	return isAdmin, nil
@@ -283,13 +287,13 @@ func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	username, err := s.Client.GetUser(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get user identity", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "user", "get")
 	}
 
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err != nil {
 		s.Logger.Error("failed to check cluster admin status", "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, "user", "check admin status")
 	}
 
 	return &UserInfo{
@@ -312,7 +316,7 @@ func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, gro
 	canAccess, err := s.Client.CanAccessResource(ctx, namespace, verb, group, resource, name)
 	if err != nil {
 		s.Logger.Error("failed to check resource access", "namespace", namespace, "verb", verb, "resource", resource, "error", err)
-		return false, err
+		return false, TranslateK8sError(err, resource, verb)
 	}
 
 	return canAccess, nil
@@ -332,7 +336,7 @@ func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionR
 	resources, err := s.Client.ListResources(ctx, gvr, namespace)
 	if err != nil {
 		s.Logger.Error("failed to list resources", "gvr", gvr, "namespace", namespace, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, gvr.Resource, "list")
 	}
 
 	return resources, nil
@@ -354,7 +358,7 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 	resource, err := s.Client.GetResource(ctx, gvr, namespace, name)
 	if err != nil {
 		s.Logger.Error("failed to get resource", "gvr", gvr, "namespace", namespace, "name", name, "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, gvr.Resource, "get")
 	}
 
 	return resource, nil
@@ -376,7 +380,7 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 	resource, err := s.Client.CreateResource(ctx, gvr, namespace, obj)
 	if err != nil {
 		s.Logger.Error("failed to create resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName(), "error", err)
-		return nil, err
+		return nil, TranslateK8sError(err, gvr.Resource, "create")
 	}
 
 	return resource, nil
@@ -423,7 +427,7 @@ func (s *K8sService) DiscoverResourceGVR(
 			"resource", resource,
 			"namespace", namespace,
 			"error", err)
-		return schema.GroupVersionResource{}, err
+		return schema.GroupVersionResource{}, TranslateK8sError(err, resource, "discover")
 	}
 
 	s.Logger.Debug("discovered GVR",
