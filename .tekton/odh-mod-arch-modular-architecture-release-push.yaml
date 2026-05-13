@@ -8,7 +8,7 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main" && ( "./packages/model-registry/***".pathChanged()
+      == "odh-release" && ( "./packages/model-registry/***".pathChanged()
       || ".tekton/odh-mod-arch-modular-architecture-push.yaml".pathChanged() || "Dockerfile".pathChanged()
       )
   creationTimestamp: null
@@ -25,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-modular-architecture:odh-stable
+    value: quay.io/opendatahub/odh-mod-arch-modular-architecture:v3.4.3-odh
   - name: dockerfile
     value: packages/model-registry/Dockerfile.workspace
   - name: path-context
