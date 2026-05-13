@@ -6,4 +6,5 @@ import "errors"
 var (
 	ErrPipelineRunNotFound = errors.New("pipeline run not found")
 	ErrPipelineNotFound    = errors.New("pipeline not found")
+	ErrConflict            = errors.New("resource conflict")
 )

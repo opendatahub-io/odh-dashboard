@@ -110,8 +110,9 @@ type dspaCache struct {
 }
 
 type dspaCacheEntry struct {
-	baseURL   string
-	expiresAt time.Time
+	baseURL      string
+	expiresAt    time.Time
+	lastAccessed time.Time
 }
 
 func newDSPACache() *dspaCache {
@@ -121,13 +122,18 @@ func newDSPACache() *dspaCache {
 }
 
 func (c *dspaCache) get(namespace string) (string, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	entry, exists := c.entries[namespace]
-	if !exists || time.Now().After(entry.expiresAt) {
+	if !exists {
 		return "", false
 	}
+	if time.Now().After(entry.expiresAt) {
+		delete(c.entries, namespace)
+		return "", false
+	}
+	entry.lastAccessed = time.Now()
 	return entry.baseURL, true
 }
 
@@ -135,16 +141,34 @@ func (c *dspaCache) set(namespace, baseURL string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if len(c.entries) >= maxCacheSize {
+		if _, exists := c.entries[namespace]; !exists {
+			c.evictOldest()
+		}
+	}
+
+	now := time.Now()
 	c.entries[namespace] = &dspaCacheEntry{
-		baseURL:   baseURL,
-		expiresAt: time.Now().Add(cacheTTL),
+		baseURL:      baseURL,
+		expiresAt:    now.Add(cacheTTL),
+		lastAccessed: now,
 	}
 }
 
-func (c *dspaCache) invalidate(namespace string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.entries, namespace)
+func (c *dspaCache) evictOldest() {
+	var oldestKey string
+	var oldestTime time.Time
+
+	for key, entry := range c.entries {
+		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.lastAccessed
+		}
+	}
+
+	if oldestKey != "" {
+		delete(c.entries, oldestKey)
+	}
 }
 
 // evictOldest removes the least recently accessed entry. Must be called with lock held.

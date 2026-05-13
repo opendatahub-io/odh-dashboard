@@ -519,7 +519,8 @@ func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL str
 	return parseKFPPipelineVersion(kfpResp), nil
 }
 
-// readHTTPError reads and formats an HTTP error response
+// readHTTPError reads an HTTP error response and translates known status codes
+// into domain errors so the service layer never needs to inspect HTTP codes.
 func readHTTPError(resp *http.Response) error {
 	limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 	body, _ := io.ReadAll(limitedReader)
@@ -530,13 +531,24 @@ func readHTTPError(resp *http.Response) error {
 		errorMsg += " (truncated)"
 	}
 
-	return &HTTPError{
+	httpErr := &HTTPError{
 		StatusCode: resp.StatusCode,
 		Message:    errorMsg,
 	}
+
+	switch resp.StatusCode {
+	case http.StatusNotFound:
+		return fmt.Errorf("%w: %s", ErrPipelineNotFound, httpErr)
+	case http.StatusConflict:
+		return fmt.Errorf("%w: %s", ErrConflict, httpErr)
+	default:
+		return httpErr
+	}
 }
 
-// HTTPError represents an HTTP error response
+// HTTPError represents an unhandled HTTP error response from the pipeline server.
+// Known status codes (404, 409) are translated to domain errors by readHTTPError;
+// this type is returned only for codes without a domain mapping.
 type HTTPError struct {
 	StatusCode int
 	Message    string

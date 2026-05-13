@@ -100,6 +100,12 @@ type PipelineDefinition struct {
 	FileContent []byte // YAML content for auto-creation (required for EnsurePipeline)
 }
 
+// PaginatedRuns holds a page of sorted pipeline runs with the total count.
+type PaginatedRuns struct {
+	Runs      []PipelineRun
+	TotalSize int32
+}
+
 // DSPA (Data Science Pipelines Application) models
 
 // DSPAStatus represents the status of a DSPA instance

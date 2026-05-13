@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -398,8 +396,8 @@ func (s *PipelinesService) DiscoverNamedPipelines(ctx context.Context, baseURL, 
 	return result, nil
 }
 
-// InvalidateDiscoveryCache removes cached discovery results for a given base URL and namespace.
-func (s *PipelinesService) InvalidateDiscoveryCache(baseURL, namespace string) {
+// invalidateDiscoveryCache removes cached discovery results for a given base URL and namespace.
+func (s *PipelinesService) invalidateDiscoveryCache(baseURL, namespace string) {
 	s.pipelineCache.invalidate(cacheKey(baseURL, namespace))
 }
 
@@ -477,8 +475,7 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 
 	version, err := s.Client.UploadPipelineVersion(ctx, baseURL, pipelineID, versionName, def.FileContent)
 	if err != nil {
-		var httpErr *HTTPError
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusConflict {
+		if errors.Is(err, ErrConflict) {
 			logger.Info("pipeline version already exists, retrying discovery",
 				"name", pipelineName, "version", versionName, "namespace", namespace)
 			discovered, discoverErr := s.DiscoverPipelineByName(ctx, baseURL, namespace, pipelineName, versionName)
@@ -499,7 +496,7 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 		"versionName", versionName,
 		"namespace", namespace)
 
-	s.InvalidateDiscoveryCache(baseURL, namespace)
+	s.invalidateDiscoveryCache(baseURL, namespace)
 
 	return &DiscoveredPipeline{
 		PipelineID:        pipelineID,
@@ -530,8 +527,7 @@ func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pi
 
 		created, err := s.Client.CreatePipeline(ctx, baseURL, pipelineName)
 		if err != nil {
-			var httpErr *HTTPError
-			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusConflict {
+			if errors.Is(err, ErrConflict) {
 				continue
 			}
 			return "", fmt.Errorf("failed to create pipeline %q: %w", pipelineName, err)
@@ -578,56 +574,6 @@ func (s *PipelinesService) CollectVersionIDs(ctx context.Context, baseURL, pipel
 		return nil, nil
 	}
 	return ids, nil
-}
-
-// PaginatedRuns holds a page of sorted pipeline runs with the total count.
-type PaginatedRuns struct {
-	Runs      []PipelineRun
-	TotalSize int32
-}
-
-// SortAndPaginateRuns sorts runs by created_at descending (ties broken by run_id)
-// and returns the requested page. Uses int64 arithmetic to prevent overflow.
-// page is 1-indexed; pageSize must be > 0.
-func SortAndPaginateRuns(runs []PipelineRun, page int64, pageSize int32) PaginatedRuns {
-	sort.Slice(runs, func(i, j int) bool {
-		ti := runs[i].CreatedAt
-		tj := runs[j].CreatedAt
-		switch {
-		case ti == nil && tj == nil:
-			return runs[i].RunID > runs[j].RunID
-		case ti == nil:
-			return false
-		case tj == nil:
-			return true
-		case !ti.Equal(*tj):
-			return ti.After(*tj)
-		default:
-			return runs[i].RunID > runs[j].RunID
-		}
-	})
-
-	total := int64(len(runs))
-	start := (page - 1) * int64(pageSize)
-	end := start + int64(pageSize)
-
-	if start < 0 {
-		start = 0
-	}
-	if start > total {
-		start = total
-	}
-	if end < start {
-		end = start
-	}
-	if end > total {
-		end = total
-	}
-
-	return PaginatedRuns{
-		Runs:      runs[int(start):int(end)],
-		TotalSize: int32(total),
-	}
 }
 
 const maxRunsPerPipeline = 10000
@@ -711,8 +657,7 @@ func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, opts Pipe
 
 	run, err := s.Client.GetPipelineRun(ctx, baseURL, runID)
 	if err != nil {
-		var httpErr *HTTPError
-		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusNotFound {
+		if errors.Is(err, ErrPipelineNotFound) {
 			return nil, ErrPipelineRunNotFound
 		}
 		return nil, fmt.Errorf("error fetching pipeline run: %w", err)
