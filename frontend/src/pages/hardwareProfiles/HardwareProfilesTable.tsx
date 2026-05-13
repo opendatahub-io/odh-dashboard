@@ -6,6 +6,7 @@ import {
   hardwareProfileColumns,
   HardwareProfileEnableType,
   HardwareProfileFilterDataType,
+  HardwareProfileFilterOptions,
   initialHardwareProfileFilterData,
 } from '#~/pages/hardwareProfiles/const';
 import HardwareProfilesTableRow from '#~/pages/hardwareProfiles/HardwareProfilesTableRow';
@@ -56,9 +57,9 @@ const HardwareProfilesTable: React.FC<HardwareProfilesTableProps> = ({
   const filteredHardwareProfiles = React.useMemo(
     () =>
       hardwareProfiles.filter((cr) => {
-        const nameFilter = filterData.Name?.toLowerCase();
-        const enableFilter = filterData.Enabled;
-        const visibilityFilter = filterData.Visibility;
+        const nameFilter = filterData[HardwareProfileFilterOptions.name]?.toLowerCase();
+        const enableFilter = filterData[HardwareProfileFilterOptions.enabled];
+        const visibilityFilter = filterData[HardwareProfileFilterOptions.visibility];
         const enabledCr = isHardwareProfileEnabled(cr);
         const displayName = getHardwareProfileDisplayName(cr);
         if (nameFilter && !displayName.toLowerCase().includes(nameFilter)) {
