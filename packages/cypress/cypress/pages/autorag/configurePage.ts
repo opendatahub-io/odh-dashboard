@@ -236,8 +236,10 @@ class AutoragConfigurePage {
     );
 
     cy.step('Select first available vector store');
-    this.findVectorStoreSelector().click();
-    this.findFirstVectorStoreOption().click();
+    this.findVectorStoreSelector().should('not.be.disabled').click();
+    this.findFirstVectorStoreOption().should('be.visible').click();
+    // Verify the selection was applied before proceeding
+    this.findVectorStoreSelector().should('not.contain.text', 'Select vector I/O provider');
   }
 
   /**

@@ -5,20 +5,36 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { createLlamaStackSecret } from '../../../utils/oc_commands/llamaStackSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import type { AutoragTestData } from '../../../types';
 import { autoragConfigurePage, autoragResultsPage } from '../../../pages/autorag';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import {
   allowLlamaStackAccess,
   removeLlamaStackAccess,
 } from '../../../utils/oc_commands/llamaStackNetworkPolicy';
+import {
+  ensureLlamaStackOperator,
+  isLlamaStackOperatorManaged,
+  resetLlamaStackOperator,
+  provisionAutoragInfrastructure,
+  cleanupAutoragInfrastructure,
+} from '../../../utils/oc_commands/autoragInfra';
+import type { AutoragTestData } from '../../../types';
 
 const uuid = generateTestUUID();
+
+/**
+ * Whether to self-provision LlamaStack infrastructure (models, Milvus, LSD).
+ * When LLAMA_STACK_URL is set, we use external LlamaStack (no provisioning).
+ * When empty/unset, we provision everything programmatically.
+ */
+const isExternalLlamaStack = (): boolean => !!(Cypress.env('LLAMA_STACK_URL') as string);
 
 describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   let testData: AutoragTestData;
   let projectName: string;
   let autoragWasEnabled = false;
+  let selfProvisioned = false;
+  let operatorWasManaged = false;
 
   retryableBefore(() =>
     cy
@@ -33,21 +49,38 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
         }),
       )
       .then(() => setAutoragEnabled(true))
+      .then(() =>
+        isLlamaStackOperatorManaged().then((wasManaged) => {
+          operatorWasManaged = wasManaged;
+        }),
+      )
       .then(() => {
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        allowLlamaStackAccess(projectName);
+        if (isExternalLlamaStack()) {
+          // External mode: use pre-existing LlamaStack instance
+          provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+          allowLlamaStackAccess(projectName);
 
-        const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string | undefined;
-        if (!llamaStackUrl) {
-          throw new Error('LLAMA_STACK_URL must be set in test-variables.yml');
+          const llamaStackUrl = Cypress.env('LLAMA_STACK_URL') as string;
+          const llamaStackApiKey = (Cypress.env('LLAMA_STACK_API_KEY') as string) || '';
+          createLlamaStackSecret(
+            projectName,
+            testData.llamaStackSecretName,
+            llamaStackUrl,
+            llamaStackApiKey,
+          );
+        } else {
+          // Self-provisioned mode: deploy models, Milvus, LlamaStack Distribution
+          selfProvisioned = true;
+
+          cy.step('Ensure LlamaStack operator is Managed');
+          ensureLlamaStackOperator();
+
+          cy.step('Provision project with DSPA');
+          provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+
+          cy.step('Provision AutoRAG infrastructure (models, Milvus, LSD)');
+          provisionAutoragInfrastructure(projectName, testData.llamaStackSecretName);
         }
-        const llamaStackApiKey = (Cypress.env('LLAMA_STACK_API_KEY') as string) || '';
-        createLlamaStackSecret(
-          projectName,
-          testData.llamaStackSecretName,
-          llamaStackUrl,
-          llamaStackApiKey,
-        );
       }),
   );
 
@@ -55,9 +88,20 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     if (!autoragWasEnabled) {
       setAutoragEnabled(false);
     }
+
+    // Explicit cleanup of each resource (resilient — each call ignores errors)
+    if (selfProvisioned) {
+      cleanupAutoragInfrastructure(projectName, testData.llamaStackSecretName);
+    }
+
     removeLlamaStackAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
+    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+
+    // Restore operator to previous state if we changed it
+    if (selfProvisioned && !operatorWasManaged) {
+      resetLlamaStackOperator();
+    }
   });
 
   it(
