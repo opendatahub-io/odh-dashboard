@@ -40,6 +40,8 @@ func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) 
 }
 
 // GetNamespaceInfos retrieves namespaces with display names
+// NOTE: This method does NOT perform permission filtering. Use GetAccessibleNamespaceInfos
+// if you need to filter namespaces by user permissions.
 func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	s.loggerWithIdentity(ctx).Info("fetching namespace infos")
 
@@ -49,19 +51,97 @@ func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, er
 		return nil, err
 	}
 
-	infos := make([]NamespaceInfo, 0, len(namespaces))
-	for _, ns := range namespaces {
-		displayName := ns.Name
-		if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
-			displayName = dn
-		}
+	return s.mapNamespacesToInfos(namespaces), nil
+}
 
-		infos = append(infos, NamespaceInfo{
-			Name:        ns.Name,
-			DisplayName: displayName,
-		})
+// GetAccessibleNamespaces returns namespaces the user can access, with admin optimization
+// This method contains business logic: it checks if the user is a cluster admin first,
+// and if not, filters namespaces by checking access permissions for each one.
+func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching accessible namespaces")
+
+	// Optimization: Check if user is cluster admin first
+	isAdmin, err := s.Client.IsClusterAdmin(ctx)
+	if err == nil && isAdmin {
+		logger.Debug("user is cluster admin, returning all namespaces")
+		return s.Client.GetNamespaces(ctx)
 	}
 
+	// Get all namespaces (or OpenShift Projects if forbidden)
+	namespaces, err := s.Client.GetNamespaces(ctx)
+	if err != nil {
+		s.Logger.Error("failed to get namespaces", "error", err)
+		return nil, err
+	}
+
+	// Filter by permission
+	allowed := make([]v1.Namespace, 0)
+	for _, ns := range namespaces {
+		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
+		if err != nil {
+			s.Logger.Warn("failed to check namespace access", "namespace", ns.Name, "error", err)
+			continue
+		}
+		if canAccess {
+			allowed = append(allowed, ns)
+		}
+	}
+
+	logger.Info("filtered namespaces by permission", "total", len(namespaces), "accessible", len(allowed))
+	return allowed, nil
+}
+
+// GetAccessibleNamespaceInfos returns namespaces the user can access with display names
+// This method contains business logic: it checks if the user is a cluster admin first,
+// and if not, filters namespaces by checking access permissions for each one.
+// It combines the permission filtering of GetAccessibleNamespaces with the display name
+// mapping of GetNamespaceInfos.
+func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching accessible namespace infos")
+
+	// Optimization: Check if user is cluster admin first
+	isAdmin, err := s.Client.IsClusterAdmin(ctx)
+	if err == nil && isAdmin {
+		logger.Debug("user is cluster admin, returning all namespace infos")
+		// Admin can see all namespaces - just map to infos
+		namespaces, err := s.Client.GetNamespaces(ctx)
+		if err != nil {
+			s.Logger.Error("failed to get namespaces", "error", err)
+			return nil, err
+		}
+		return s.mapNamespacesToInfos(namespaces), nil
+	}
+
+	// Get all namespaces (or OpenShift Projects if forbidden)
+	namespaces, err := s.Client.GetNamespaces(ctx)
+	if err != nil {
+		s.Logger.Error("failed to get namespaces", "error", err)
+		return nil, err
+	}
+
+	// Filter by permission and map to infos
+	infos := make([]NamespaceInfo, 0)
+	for _, ns := range namespaces {
+		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
+		if err != nil {
+			s.Logger.Warn("failed to check namespace access", "namespace", ns.Name, "error", err)
+			continue
+		}
+		if canAccess {
+			displayName := ns.Name
+			if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
+				displayName = dn
+			}
+			infos = append(infos, NamespaceInfo{
+				Name:        ns.Name,
+				DisplayName: displayName,
+			})
+		}
+	}
+
+	logger.Info("filtered namespace infos by permission", "total", len(namespaces), "accessible", len(infos))
 	return infos, nil
 }
 
@@ -196,6 +276,7 @@ func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
 }
 
 // GetUserInfo retrieves user identity and admin status in a single call
+// For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format)
 func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	s.loggerWithIdentity(ctx).Info("getting user info")
 
@@ -212,7 +293,7 @@ func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	}
 
 	return &UserInfo{
-		UserID:       username,
+		UserID:       extractServiceAccountName(username),
 		ClusterAdmin: isAdmin,
 	}, nil
 }
@@ -301,58 +382,6 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 	return resource, nil
 }
 
-// GetAccessibleNamespaces returns namespaces the user can access, with admin optimization
-// This method contains business logic: it checks if the user is a cluster admin first,
-// and if not, filters namespaces by checking access permissions for each one.
-func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
-	logger := s.loggerWithIdentity(ctx)
-	logger.Info("fetching accessible namespaces")
-
-	// Optimization: Check if user is cluster admin first
-	isAdmin, err := s.Client.IsClusterAdmin(ctx)
-	if err == nil && isAdmin {
-		logger.Debug("user is cluster admin, returning all namespaces")
-		return s.Client.GetNamespaces(ctx)
-	}
-
-	// Get all namespaces (or OpenShift Projects if forbidden)
-	namespaces, err := s.Client.GetNamespaces(ctx)
-	if err != nil {
-		s.Logger.Error("failed to get namespaces", "error", err)
-		return nil, err
-	}
-
-	// Filter by permission
-	allowed := make([]v1.Namespace, 0)
-	for _, ns := range namespaces {
-		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
-		if err != nil {
-			s.Logger.Warn("failed to check namespace access", "namespace", ns.Name, "error", err)
-			continue
-		}
-		if canAccess {
-			allowed = append(allowed, ns)
-		}
-	}
-
-	logger.Info("filtered namespaces by permission", "total", len(namespaces), "accessible", len(allowed))
-	return allowed, nil
-}
-
-// ExtractServiceAccountName extracts the service account name from a Kubernetes username
-// If the username is a service account (format: system:serviceaccount:namespace:name),
-// it returns just the service account name. Otherwise, it returns the full username.
-func ExtractServiceAccountName(username string) string {
-	const saPrefix = "system:serviceaccount:"
-	if len(username) > len(saPrefix) && username[:len(saPrefix)] == saPrefix {
-		parts := strings.SplitN(username[len(saPrefix):], ":", 2)
-		if len(parts) == 2 {
-			return parts[1] // Return just the SA name
-		}
-	}
-	return username
-}
-
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
 // Adds validation, logging, and error handling around the client implementation.
@@ -438,4 +467,34 @@ func buildKeysMap(secret v1.Secret) map[string]string {
 	}
 
 	return result
+}
+
+// mapNamespacesToInfos is a helper to convert []v1.Namespace to []NamespaceInfo
+func (s *K8sService) mapNamespacesToInfos(namespaces []v1.Namespace) []NamespaceInfo {
+	infos := make([]NamespaceInfo, 0, len(namespaces))
+	for _, ns := range namespaces {
+		displayName := ns.Name
+		if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
+			displayName = dn
+		}
+		infos = append(infos, NamespaceInfo{
+			Name:        ns.Name,
+			DisplayName: displayName,
+		})
+	}
+	return infos
+}
+
+// extractServiceAccountName extracts the service account name from a Kubernetes username
+// If the username is a service account (format: system:serviceaccount:namespace:name),
+// it returns just the service account name. Otherwise, it returns the full username.
+func extractServiceAccountName(username string) string {
+	const saPrefix = "system:serviceaccount:"
+	if len(username) > len(saPrefix) && username[:len(saPrefix)] == saPrefix {
+		parts := strings.SplitN(username[len(saPrefix):], ":", 2)
+		if len(parts) == 2 {
+			return parts[1] // Return just the SA name
+		}
+	}
+	return username
 }

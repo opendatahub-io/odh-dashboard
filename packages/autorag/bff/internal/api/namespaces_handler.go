@@ -13,8 +13,8 @@ type NamespacesEnvelope Envelope[[]models.NamespaceModel, None]
 func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// Call autox-core service - single method handles everything
-	namespaceInfos, err := app.k8sService.GetNamespaceInfos(ctx)
+	// Call autox-core service - single method handles permission filtering and display names
+	namespaceInfos, err := app.k8sService.GetAccessibleNamespaceInfos(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
