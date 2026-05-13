@@ -150,7 +150,7 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   return (
-    <>
+    <AutoragResultsContext.Provider value={contextValue}>
       <Drawer isExpanded={isDrawerOpen}>
         <DrawerContent
           panelContent={
@@ -250,9 +250,7 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              <AutoragResultsContext.Provider value={contextValue}>
-                <AutoragResults />
-              </AutoragResultsContext.Provider>
+              <AutoragResults />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
@@ -264,7 +262,7 @@ function AutoragResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
       />
-    </>
+    </AutoragResultsContext.Provider>
   );
 }
 

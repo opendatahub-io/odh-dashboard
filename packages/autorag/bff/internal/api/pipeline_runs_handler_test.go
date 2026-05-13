@@ -753,6 +753,66 @@ func TestPipelineRunHandler_ErrorCases(t *testing.T) {
 		// Should return 404 for security (data integrity issue)
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
+
+	t.Run("should accept run from different version of same pipeline", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		runID := "run-old-version"
+		req, err := http.NewRequest(
+			http.MethodGet,
+			"/api/v1/pipeline-runs/"+runID,
+			nil,
+		)
+		require.NoError(t, err)
+
+		mockClient := &differentVersionMockClient{
+			MockPipelineServerClient: *psmocks.NewMockPipelineServerClient("mock://test-namespace"),
+		}
+		ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, mockClient)
+		ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
+		discovered := &repositories.DiscoveredPipeline{
+			PipelineID:        psmocks.DeriveMockIDs("test-namespace").PipelineID,
+			PipelineVersionID: psmocks.DeriveMockIDs("test-namespace").LatestVersionID,
+			PipelineName:      "documents-rag-optimization-pipeline",
+			Namespace:         "test-namespace",
+		}
+		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, map[string]*repositories.DiscoveredPipeline{"autorag": discovered})
+		req = req.WithContext(ctx)
+
+		params := httprouter.Params{
+			httprouter.Param{Key: "runId", Value: runID},
+		}
+
+		app.PipelineRunHandler(rr, req, params)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response PipelineRunEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, runID, response.Data.RunID)
+		assert.Equal(t, constants.PipelineTypeAutoRAG, response.Data.PipelineType)
+	})
+}
+
+// differentVersionMockClient returns runs with the same pipeline ID but a different version ID.
+// This tests that resolveOwnedRun accepts runs from any version of the owned pipeline.
+type differentVersionMockClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *differentVersionMockClient) GetRun(_ context.Context, runID string) (*models.KFPipelineRun, error) {
+	ids := psmocks.DeriveMockIDs(m.Namespace)
+	run := &models.KFPipelineRun{
+		RunID:       runID,
+		DisplayName: "Run From Old Pipeline Version",
+		State:       "SUCCEEDED",
+		PipelineVersionReference: &models.PipelineVersionReference{
+			PipelineID:        ids.PipelineID,
+			PipelineVersionID: "completely-different-version-id",
+		},
+		CreatedAt: "2024-01-01T00:00:00Z",
+	}
+	return run, nil
 }
 
 // failedRunMockClient returns runs with FAILED state for retry testing
