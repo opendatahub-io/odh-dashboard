@@ -23,7 +23,6 @@ export const useWatchGroups = (): {
     adminGroups: [],
     allowedGroups: [],
   });
-  const { errorAdmin, errorUser } = groupSettings;
   const [groupsData, groupsDataLoaded] = useGroups();
 
   const hasDirectAccessDataLoaded = groupsDataLoaded;
@@ -52,15 +51,6 @@ export const useWatchGroups = (): {
       fetchGroups();
     }
   }, [notification, hasDirectAccessDataLoaded, groupsData]);
-
-  React.useEffect(() => {
-    if (errorAdmin) {
-      notification.error(`Group error`, errorAdmin);
-    }
-    if (errorUser) {
-      notification.error(`Group error`, errorUser);
-    }
-  }, [errorAdmin, errorUser, notification]);
 
   const updateGroups = React.useCallback(
     (group: GroupsConfig) => {
