@@ -13,11 +13,12 @@ type PipelineRun struct {
 	FinishedAt        *time.Time
 	RuntimeConfig     *RuntimeConfig
 	Error             *RunError
+	PipelineSpec      *string
 }
 
 // RuntimeConfig holds runtime parameters for a pipeline run
 type RuntimeConfig struct {
-	Parameters   map[string]interface{}
+	Parameters   map[string]any
 	PipelineRoot string
 }
 
@@ -80,6 +81,23 @@ type ListRunsParams struct {
 	PageToken string
 	SortBy    string
 	Filter    string
+}
+
+// DiscoveredPipeline holds the result of pipeline discovery by name.
+type DiscoveredPipeline struct {
+	PipelineID        string
+	PipelineVersionID string
+	PipelineName      string
+	Namespace         string
+	AllVersionIDs     []string
+	DiscoveredAt      time.Time
+}
+
+// PipelineDefinition describes a managed pipeline for discovery and auto-creation.
+type PipelineDefinition struct {
+	Name        string // Exact pipeline display name
+	Version     string // Release version suffix (e.g. "3.4.0")
+	FileContent []byte // YAML content for auto-creation (required for EnsurePipeline)
 }
 
 // DSPA (Data Science Pipelines Application) models

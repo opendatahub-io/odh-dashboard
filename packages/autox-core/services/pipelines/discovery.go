@@ -7,10 +7,16 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// DiscoverReadyDSPA discovers a ready DSPA instance in the namespace
+// DiscoverReadyDSPA discovers a ready DSPA instance in the namespace.
+// Results are cached per namespace with the same TTL as pipeline discovery.
 func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace string) (string, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("discovering ready DSPA", "namespace", namespace)
+
+	if cached, ok := s.dspaCache.get(namespace); ok {
+		logger.Debug("using cached DSPA URL", "namespace", namespace, "url", cached)
+		return cached, nil
+	}
 
 	// Discover DSPA GroupVersionResource dynamically
 	dspaGVR, err := s.K8sService.DiscoverResourceGVR(
@@ -73,6 +79,7 @@ func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace stri
 		}
 
 		logger.Info("found ready DSPA", "name", dspa.GetName(), "url", baseURL)
+		s.dspaCache.set(namespace, baseURL)
 		return baseURL, nil
 	}
 
