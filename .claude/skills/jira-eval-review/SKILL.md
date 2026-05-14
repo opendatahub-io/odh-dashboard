@@ -59,53 +59,35 @@ If no explicit "Acceptance Criteria" section exists, look for:
 - A "Requirements" or "Definition of Done" section
 - Bullet-point lists that describe expected behavior or deliverables
 
-#### 1a-ii. Classify boilerplate vs. feature-specific criteria
-
-Our ticket templates (see `jira-creation.md`) add standard boilerplate AC items to every issue:
-
-- "Add/Update Cypress mocked tests."
-- "Add/Update unit tests." / "Add/Update unit tests for hooks/functions." / "Add/Update unit tests for logic/functions."
-- "(If applicable) Add/Update integration tests."
-- "Fix the bug as described." (bugs only)
-
-**Separate these from feature-specific criteria.** Boilerplate items are evaluated differently:
-
-1. **Test-related boilerplate** — evaluate by checking whether test files were added or modified in the diff (e.g., `*.cy.ts`, `*.spec.ts`, `*.test.ts` files). Use `[PASS]` if relevant test files are present, `[PARTIAL]` if only some test types are covered, or `[SKIP]` if the change legitimately does not require tests (documentation, config-only, etc.). Do **not** use `[MISS]` for boilerplate test items unless the change clearly requires tests and none were added.
-2. **"Fix the bug as described"** — evaluate as part of the overall feature criteria, not as a separate item.
-
-In the report, group boilerplate criteria under a separate **"Test Coverage"** section after the feature-specific criteria table to reduce noise.
+Also fetch Jira comments on the issue (use `jira_get_issue` with `comment_limit=50` or call `jira_get_issue` with `expand=renderedFields` to include comments). Review comments for clarifications, additional requirements, scope changes, or other useful information that may refine or supplement the acceptance criteria extracted from the description.
 
 #### 1b. Traverse parent hierarchy and linked issues
 
-The direct issue may not contain all relevant criteria. Parent epics/stories and linked issues often carry high-level acceptance criteria that child tasks must satisfy.
+The target issue should contain its own acceptance criteria. Parent epics/stories and linked issues provide **context** to enhance understanding of the target issue's AC — they are not independent sources of criteria. Parent issues are typically broader in scope than the individual issue. Use parent, linked, and child issues only to clarify ambiguous criteria, fill in implicit requirements, or understand the broader feature context.
 
 **MANDATORY: Always walk the full parent chain.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Acceptance criteria at any ancestor level may constrain the child task. The only valid reason to stop is reaching an issue with no `parent` field (the root).
 
 **Cycle detection:** Maintain a set of already-visited issue keys. Before fetching any issue (parent or linked), check whether it has already been visited. If so, skip it and continue. This prevents infinite loops from circular issue links.
 
 1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key with the same fields as Phase 1 step 1 (`fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks`) and extract any acceptance criteria from its description. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Fetch **every** ancestor regardless of whether intermediate levels contain criteria — a grandparent or great-grandparent may still have relevant acceptance criteria even if the immediate parent does not.
-2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), call `jira_get_issue` for the linked issue key with `fields=summary,description,issuetype` and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements (skip "is cloned by", "duplicates", etc.).
+2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), call `jira_get_issue` for the linked issue key with `fields=summary,description,issuetype` and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements. Skip "is cloned by" (clones are often modified entirely and are unreliable), "duplicates", and other non-requirement relationships.
 3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
 
 De-duplicate criteria that appear in multiple issues. When a criterion appears in both the direct issue and a parent, keep it once and note that it originates from the parent.
 
 #### 1c. Handle no criteria found
 
-If no structured criteria can be found across the issue and its parents/links, report:
-> No acceptance criteria found in the issue or its parent/linked issues. The issue may need a description update before evaluation. Proceeding with the issue summary as a single high-level criterion.
+If no structured criteria can be found in the issue (including after reviewing comments and parent/linked context), **stop and fail** with the following report:
 
-In that case, use the issue **summary** as a single criterion (the evaluation will be less granular).
+> **Evaluation failed:** No acceptance criteria found in [RHOAIENG-{key}]({url}). The issue description does not contain structured acceptance criteria, requirements, or a definition of done. Please update the issue with explicit acceptance criteria before running this evaluation.
+
+Do **not** fall back to using the issue summary as a criterion. Without explicit AC, the evaluation cannot produce meaningful results.
 
 #### 1d. Organize criteria for the report
 
-Store each criterion as a numbered item. When criteria come from multiple issues, group and label them by source:
+Store each criterion as a numbered item from the target issue. Do not label criteria by source issue — the target issue owns all its criteria, and parent/linked issues only provide context.
 
-```text
-1. [RHOAIENG-12345] Criterion from the direct issue
-2. [RHOAIENG-12345] Another criterion from the direct issue
-3. [RHOAIENG-12000 — parent] Criterion inherited from parent epic
-4. [RHOAIENG-12100 — linked] Criterion from a linked story
-```
+If the PR references **multiple Jira issues** (e.g., the PR title or body mentions several issue keys), evaluate each issue's criteria separately and enumerate them in the report with issue key prefixes to distinguish them.
 
 ### Step 2: Find the PR
 
@@ -122,11 +104,9 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 
 **If a PR was resolved:**
 
-1. Run `gh pr view {number} --json title,body,state,isDraft,baseRefName` to get PR metadata
+1. Run `gh pr view {number} --json title,body,state,baseRefName` to get PR metadata
 2. Run `gh pr diff {number}` to get the full diff
 3. Run `gh pr view {number} --json files --jq '.files[].path'` to get the list of changed files
-
-If the PR is in **draft** state, note this prominently in the report header. Draft PRs may have intentionally incomplete changes; use `[SKIP]` rather than `[MISS]` for criteria that appear to be not-yet-implemented (as opposed to overlooked).
 
 **If evaluating local branch changes (no PR):**
 
@@ -175,7 +155,7 @@ Present the report in this format:
 
 **Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
 **Related issues analyzed:** {list of parent/linked issue keys with links, or "none" if only the direct issue}
-**PR:** [#{number}]({url}) — {title} {append "(DRAFT)" if the PR is in draft state}
+**PR:** [#{number}]({url}) — {title}
 **Status:** {N}/{total} criteria satisfied
 
 ### Per-Criterion Evaluation
