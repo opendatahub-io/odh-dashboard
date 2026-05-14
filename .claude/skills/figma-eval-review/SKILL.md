@@ -1,6 +1,6 @@
 ---
 name: figma-eval-review
-description: Evaluates code changes in a PR against a Figma design to assess visual conformance. Given a Figma URL, analyzes the code diff and reports how well the implementation matches the intended design. Static analysis only — no browser automation. Use when asked to compare a PR or branch against a Figma design, verify design fidelity, or review implementation conformance.
+description: Evaluates code changes in a PR against a Figma design to assess visual conformance. Given a Figma URL (or discovers one from the linked Jira ticket), analyzes the code diff and reports how well the implementation matches the intended design. Static analysis only — no browser automation. Use when asked to compare a PR or branch against a Figma design, verify design fidelity, or review implementation conformance.
 ---
 
 # Figma Evaluation Review
@@ -13,9 +13,12 @@ This skill is invoked on-demand for a single Figma-design + PR pair.
 
 The user provides:
 
-- **Figma URL** (required) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`
-- **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch.
+- **Figma URL** (optional) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`. If omitted, the skill discovers the Figma URL from the Jira ticket (see Phase 2, Step 2).
+- **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch or discovers it from the Jira ticket.
+- **Jira ticket key or URL** (optional) — e.g., `RHOAIENG-12345` or `https://redhat.atlassian.net/browse/RHOAIENG-12345`. If omitted, the skill discovers the ticket from the PR. The Jira ticket is the primary source for finding the Figma URL and PR when they are not provided directly.
 - **Repository** (optional) — defaults to `opendatahub-io/odh-dashboard`
+
+At least one of Figma URL, PR, or Jira ticket must be provided or discoverable. The skill resolves the full set from whichever inputs are given.
 
 ## Phase 1: Verify Prerequisites
 
@@ -27,39 +30,104 @@ Check that all required MCP servers are available before proceeding.
 |---|---|---|
 | **Figma** (`plugin-figma-figma`) | Fetch design context, screenshot, node metadata, and component structure | Call `get_design_context` or `get_screenshot` with the provided Figma URL params. Also uses `get_metadata` to enumerate child nodes when scoping by Jira ticket. |
 | **GitHub** (`user-github`) | Fetch PR diff and changed files | Call `get_me` to verify connectivity |
-
-### Optional MCPs
-
-| MCP | Purpose | How to verify |
-|---|---|---|
-| **Atlassian** (`user-atlassian`) | Fetch Jira ticket objectives to scope which Figma nodes are relevant | Call `jira_get_issue` with a test key |
-
-The Atlassian MCP is optional. If unavailable, the skill skips Jira-based scoping and evaluates the Figma URL as provided.
+| **Atlassian** (`user-atlassian`) | Discover Figma URLs from Jira tickets and linked UX issues; fetch ticket objectives to scope which Figma nodes are relevant | Call `jira_get_issue` with a test key |
 
 ### Verification procedure
 
-1. Parse the Figma URL to extract `fileKey` and `nodeId`:
+1. **If the user provided a Figma URL**, parse it to extract `fileKey` and `nodeId`:
    - `figma.com/design/:fileKey/:fileName?node-id=:nodeId` — convert `-` to `:` in nodeId
    - `figma.com/design/:fileKey/branch/:branchKey/:fileName?node-id=:nodeId` — use branchKey as fileKey; if `node-id` is present, convert `-` to `:` to produce nodeId (same normalization as the non-branch pattern)
-2. Attempt to call `get_screenshot` for the extracted fileKey and nodeId
-3. If the call fails, stop and report:
+   Then attempt to call `get_screenshot` for the extracted fileKey and nodeId. If the call fails, stop and report:
    > **Figma MCP is not available or not authenticated.** This skill requires the Figma MCP (`plugin-figma-figma`) to fetch design context. Please set up the Figma MCP server by following the [Figma MCP setup guide](https://help.figma.com/hc/en-us/articles/35281350665623-Figma-MCP-collection-How-to-set-up-the-Figma-remote-MCP-server-preferred) and try again.
-4. Attempt a lightweight GitHub call (`get_me`) to verify the GitHub MCP is reachable
-5. If it fails, stop and report:
+   The screenshot captured here is carried forward to Phase 2 and Phase 4 — do not call `get_screenshot` again.
+2. **If no Figma URL was provided**, verify the Figma MCP is reachable by calling `get_screenshot` with a known test fileKey. If the call fails with an authentication or MCP error, stop and report the same Figma MCP error as above. Discard the test result — the actual Figma URL will be discovered from the Jira ticket in Phase 2, Step 2.
+3. Attempt a lightweight GitHub call (`get_me`) to verify the GitHub MCP is reachable. If it fails, stop and report:
    > GitHub MCP is not available or not authenticated. This skill requires the GitHub MCP to fetch PR diffs. Please configure and authenticate the `user-github` MCP server.
-6. Attempt a reachability check for the Atlassian MCP: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found" or real issue data) means the MCP is reachable — record it as available. Only treat network errors, timeouts, or MCP request failures as unavailable. This is purely a connectivity check; discard any returned data. This check must not fail the overall flow if the MCP is unreachable.
+4. Verify the Atlassian MCP is reachable: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
+   > **Atlassian MCP is not available or not authenticated.** This skill requires the Atlassian MCP to discover Figma URLs from Jira tickets and scope the evaluation. Please configure and authenticate the `user-atlassian` MCP server.
 
-If the required MCPs succeed, proceed. The screenshot captured in step 2 is carried forward to Phase 2 and Phase 4 — do not call `get_screenshot` again.
+If all required MCPs succeed, proceed to Phase 2.
 
 ## Phase 2: Gather Context
 
-### Step 1: Fetch Figma Design Context
+### Step 1: Find the PR
 
-Using the fileKey and nodeId extracted in Phase 1, fetch design data from the Figma MCP:
+Resolve the PR to evaluate. Auto-detection from the current branch is the default when no PR number or URL is provided.
+
+1. **User provided a PR number or URL** — use it directly
+2. **Discover from Jira ticket** — if the user provided a Jira ticket but no PR, search the ticket for a PR link:
+   - Call `jira_get_issue_development_info` for the Jira key to find linked pull requests (this is the most reliable source)
+   - Scan the ticket description for GitHub PR URLs (`github.com/{owner}/{repo}/pull/\d+`)
+   - Call `jira_get_issue` with `comment_limit=10` and scan comments for GitHub PR URLs
+   - If a PR is found, use it. If multiple PRs are found, prefer the one matching the current repository.
+3. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then use the GitHub MCP's `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR for that branch.
+   - **If on `main`:** stop and report the following — do not fall back to `git diff` since `main...HEAD` produces no diff on main:
+     > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
+   - **If on a feature branch with an open PR:** use that PR
+   - **If on a feature branch with no open PR:** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. If the diff is empty (no committed changes ahead of main), stop and report: "No changes to evaluate — the branch has no commits ahead of main." Otherwise, report that no PR was found and the evaluation is based on the local branch diff.
+
+### Step 2: Resolve Figma URL and Extract Jira Ticket Objectives
+
+This step discovers the Figma URL (if not provided by the user) and extracts Jira ticket context to scope the evaluation.
+
+#### 2a. Find a Jira key
+
+If the user provided a Jira ticket key or URL, use it directly — extract the key from the URL if needed (e.g., `https://redhat.atlassian.net/browse/RHOAIENG-12345` → `RHOAIENG-12345`).
+
+Otherwise, search for a Jira issue key (pattern: `[A-Z][A-Z0-9]+-\d+`, e.g., `RHOAIENG-12345`) in these sources, in order:
+
+1. **PR title** — often prefixed with the ticket key
+2. **PR body** — may contain a Jira link or key in a "References" or "Related" section
+3. **Branch name** — commonly formatted as `RHOAIENG-12345-description` or `feature/RHOAIENG-12345`
+4. **Commit messages** — check the commits in the PR for ticket keys
+
+If no key is found and the user did not provide a Figma URL, stop and report:
+> No Figma URL was provided and no Jira ticket could be found to discover one. Please provide a Figma URL or ensure the PR references a Jira ticket.
+
+If no key is found but the user provided a Figma URL, skip to Step 3 — Jira scoping is best-effort.
+
+#### 2b. Fetch ticket details
+
+Call `jira_get_issue` with the extracted key and `fields=summary,description,status,issuetype,labels,issuelinks`. Extract:
+
+- **Summary** — the one-line objective
+- **Description** — full context including requirements and any Figma URLs or node references embedded in the ticket
+- **Acceptance criteria** — search the description for a section titled "Acceptance Criteria", "Requirements", or "Definition of Done" and extract each criterion as a discrete item. If not found in the description, check the issue's fields map for a field whose name or display name matches "Acceptance Criteria" (this is typically a custom field whose ID varies by Jira instance) and extract its value.
+- **Issue links** — the list of linked issues (used in step 2c for Figma URL discovery)
+
+#### 2c. Discover Figma URL from Jira (if not provided by user)
+
+If the user did not provide a Figma URL, search for one in the Jira ticket. Figma URLs are typically not in the PR itself but linked from the Jira issue or a related UX issue. Search these sources in order — stop at the first match:
+
+1. **Ticket description** — scan the description for URLs matching `figma.com/design/` or `figma.com/file/`. Extract the first Figma URL found.
+2. **Ticket comments** — call `jira_get_issue` with `comment_limit=20` (if not already fetched with comments) and scan all comment bodies for Figma URLs. Designers often paste Figma links in comments rather than the description.
+3. **Custom fields** — check the issue's fields for any field values containing Figma URLs. Some teams use custom fields (e.g., "Design Link", "Figma URL") to store design references.
+4. **Linked UX issues** — check the issue's `issuelinks` for linked issues. Look for links whose related issue has a label like `ux`, `design`, or `UX/Design`, or whose issue type is `Design` or `UX`. For each candidate (limit to 3 to avoid over-fetching), call `jira_get_issue` with `fields=summary,description` and scan the description for Figma URLs.
+5. **Linked issues (general)** — if no UX-specific links were found, check linked issues whose summary mentions "design", "figma", "mockup", or "UX" (case-insensitive). Fetch up to 2 candidate descriptions.
+
+If a Figma URL is discovered, parse it to extract `fileKey` and `nodeId` (same parsing rules as Phase 1, step 1). Then call `get_screenshot` for the extracted params and carry the screenshot forward.
+
+If no Figma URL is found in any source, stop and report:
+> No Figma URL found. Searched the Jira ticket description, comments, custom fields, and linked issues for [{issue key}]({jira url}) but found no Figma link. Please provide a Figma URL directly.
+
+#### 2d. Use ticket objectives to scope the Figma evaluation
+
+If the Figma URL (whether user-provided or discovered) points to a **page or top-level frame** (rather than a specific component node), use the ticket objectives to narrow focus:
+
+1. Call `get_metadata` for the Figma page to get the structure of all child frames/nodes
+2. Match frame names and annotations against the ticket summary and acceptance criteria (e.g., a ticket about "empty state for model list" should match a frame named "Model List / Empty" or similar)
+3. If a clear match is found, call `get_design_context` again with the scoped node's ID to get more specific design data
+4. If multiple frames match (e.g., the ticket covers a flow with several states), call `get_design_context` for each relevant frame and consolidate findings in the report
+
+If no Jira key was found, evaluate the Figma node exactly as provided by the user.
+
+### Step 3: Fetch Figma Design Context
+
+Using the resolved Figma fileKey and nodeId (from Phase 1 if user-provided, or from Step 2c if discovered from Jira), fetch design data from the Figma MCP:
 
 1. **`get_design_context`** — returns reference code, component structure, Code Connect mappings, design tokens, and annotations. Pass `clientLanguages: "typescript"` and `clientFrameworks: "react"`.
 
-The screenshot captured during the Phase 1 prerequisite check (step 2) is reused here — do not call `get_screenshot` again.
+If a screenshot was already captured (Phase 1 step 1, or Step 2c), reuse it — do not call `get_screenshot` again.
 
 From the `get_design_context` response, extract:
 
@@ -69,55 +137,6 @@ From the `get_design_context` response, extract:
 - **Layout structure** — auto-layout direction, padding, gap, alignment
 - **Annotations** — any designer notes, constraints, or instructions
 - **Asset references** — icons, images, or illustrations used
-
-### Step 2: Find the PR
-
-Resolve the PR to evaluate. Auto-detection from the current branch is the default when no PR number or URL is provided.
-
-1. **User provided a PR number or URL** — use it directly
-2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then use the GitHub MCP's `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR for that branch.
-   - **If on `main`:** stop and report the following — do not fall back to `git diff` since `main...HEAD` produces no diff on main:
-     > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
-   - **If on a feature branch with an open PR:** use that PR
-   - **If on a feature branch with no open PR:** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. If the diff is empty (no committed changes ahead of main), stop and report: "No changes to evaluate — the branch has no commits ahead of main." Otherwise, report that no PR was found and the evaluation is based on the local branch diff.
-
-### Step 3: Extract Jira Ticket Objectives (if available)
-
-If the Atlassian MCP is available (verified in Phase 1), attempt to extract a Jira ticket from the PR to understand what the code change is trying to accomplish. This context is used to:
-
-- **Scope which Figma design nodes are relevant** when the Figma file contains multiple screens, states, or variants
-- **Prioritize evaluation dimensions** based on what the ticket describes (e.g., a ticket about "add empty state" focuses Dimension 5)
-- **Provide ticket context in the report** so readers understand the intent behind the change
-
-#### 3a. Find a Jira key
-
-Search for a Jira issue key (pattern: `[A-Z][A-Z0-9]+-\d+`, e.g., `RHOAIENG-12345`) in these sources, in order:
-
-1. **PR title** — often prefixed with the ticket key
-2. **PR body** — may contain a Jira link or key in a "References" or "Related" section
-3. **Branch name** — commonly formatted as `RHOAIENG-12345-description` or `feature/RHOAIENG-12345`
-4. **Commit messages** — check the commits in the PR for ticket keys
-
-If no key is found, skip to Step 4 — Jira scoping is best-effort.
-
-#### 3b. Fetch ticket details
-
-Call `jira_get_issue` with the extracted key and `fields=summary,description,status,issuetype,labels`. Extract:
-
-- **Summary** — the one-line objective
-- **Description** — full context including requirements and any Figma URLs or node references embedded in the ticket
-- **Acceptance criteria** — search the description for a section titled "Acceptance Criteria", "Requirements", or "Definition of Done" and extract each criterion as a discrete item. If not found in the description, check the issue's fields map for a field whose name or display name matches "Acceptance Criteria" (this is typically a custom field whose ID varies by Jira instance) and extract its value.
-
-#### 3c. Use ticket objectives to scope the Figma evaluation
-
-If the Figma URL provided by the user points to a **page or top-level frame** (rather than a specific component node), use the ticket objectives to narrow focus:
-
-1. Call `get_metadata` for the Figma page to get the structure of all child frames/nodes
-2. Match frame names and annotations against the ticket summary and acceptance criteria (e.g., a ticket about "empty state for model list" should match a frame named "Model List / Empty" or similar)
-3. If a clear match is found, call `get_design_context` again with the scoped node's ID to get more specific design data (replacing the broader result from Step 1)
-4. If multiple frames match (e.g., the ticket covers a flow with several states), call `get_design_context` for each relevant frame and consolidate findings in the report
-
-If no Jira key was found or the Atlassian MCP is unavailable, evaluate the Figma node exactly as provided by the user.
 
 ### Step 4: Fetch Code Changes
 
