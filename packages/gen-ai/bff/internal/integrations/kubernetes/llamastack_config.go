@@ -255,18 +255,8 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
 			},
-			FileSearchParams: map[string]interface{}{
-				"header_template": "file_search tool found {num_chunks} chunks:\nBEGIN of file_search tool results.\n",
-				"footer_template": "END of file_search tool results.\n",
-			},
-			ContextPromptParams: map[string]interface{}{
-				"chunk_annotation_template": "Result {index}\nContent: {chunk.content}\nMetadata: {metadata}\n",
-				"context_template":          "The above results were retrieved to help answer the user's query: \"{query}\". Use them as supporting information only in answering this query. {annotation_instruction}\n",
-			},
 			AnnotationPromptParams: map[string]interface{}{
-				"enable_annotations":              true,
-				"annotation_instruction_template": "Cite sources immediately at the end of sentences before punctuation, using `<|file-id|>` format like 'This is a fact <|file-Cn3MSNn72ENTiiq11Qda4A|>.'. Do not add extra punctuation. Use only the file IDs provided, do not invent new ones.",
-				"chunk_annotation_template":       "[{index}] {metadata_text} cite as <|{file_id}|>\n{chunk_text}\n",
+				"enable_annotations": true,
 			},
 			FileIngestionParams: map[string]interface{}{
 				"default_chunk_size_tokens":    512,

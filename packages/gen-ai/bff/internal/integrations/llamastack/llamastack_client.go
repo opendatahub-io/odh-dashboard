@@ -484,6 +484,12 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
 		tools = append(tools, fileSearchTool)
+
+		// Request file_search_call results so the BFF can build citation annotations
+		// from result attributes (deterministic filename resolution)
+		apiParams.Include = []responses.ResponseIncludable{
+			responses.ResponseIncludableFileSearchCallResults,
+		}
 	}
 
 	// Add MCP servers if provided
