@@ -1,12 +1,61 @@
 import * as React from 'react';
-import { CogIcon } from '@patternfly/react-icons';
+import { CogIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import { Bullseye } from '@patternfly/react-core';
+import {
+  Bullseye,
+  EmptyState,
+  EmptyStateBody,
+  EmptyStateFooter,
+  EmptyStateActions,
+  EmptyStateVariant,
+  PageSection,
+} from '@patternfly/react-core';
 import { ProjectObjectType, typedEmptyImage, WhosMyAdministrator } from 'mod-arch-shared';
-import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import EmptyModelRegistryState from '~/app/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import ModelRegistryCoreLoader from '~/app/pages/modelRegistry/ModelRegistryCoreLoader';
-import { isAdminCheckExtension } from '~/odh/extension-points';
+import { isAdminCheckExtension, isRegistrySettingsUrlExtension } from '~/odh/extension-points';
+import { REGISTRY_SETTINGS_PAGE_TITLE, REGISTRY_SETTINGS_URL } from '~/odh/const';
+
+type OdhUnavailableModelRegistryProps = {
+  registryDisplayName: string;
+  isAdmin: boolean;
+  settingsUrl: string;
+  settingsTitle: string;
+};
+
+const OdhUnavailableModelRegistry: React.FC<OdhUnavailableModelRegistryProps> = ({
+  registryDisplayName,
+  isAdmin,
+  settingsUrl,
+  settingsTitle,
+}) => (
+  <PageSection hasBodyWrapper={false} isFilled data-testid="unavailable-model-registry">
+    <EmptyState
+      headingLevel="h1"
+      icon={ExclamationCircleIcon}
+      titleText="Model registry unavailable"
+      variant={EmptyStateVariant.lg}
+    >
+      <EmptyStateBody>
+        {isAdmin
+          ? `The ${registryDisplayName} registry is currently unavailable. Check the registry configuration in settings to troubleshoot the issue.`
+          : `The ${registryDisplayName} registry is currently unavailable. It might still be starting up, or there might be a configuration error. Wait a few minutes and try again. If the problem persists, contact your administrator.`}
+      </EmptyStateBody>
+      <EmptyStateFooter>
+        <EmptyStateActions>
+          {isAdmin ? (
+            <Link to={settingsUrl} data-testid="registry-settings-link">
+              Go to <b>{settingsTitle}</b>
+            </Link>
+          ) : (
+            <WhosMyAdministrator linkTestId="whos-my-admin-link" />
+          )}
+        </EmptyStateActions>
+      </EmptyStateFooter>
+    </EmptyState>
+  </PageSection>
+);
 
 type OdhModelRegistryCoreLoaderProps = {
   getInvalidRedirectPath: (modelRegistry: string) => string;
@@ -14,15 +63,25 @@ type OdhModelRegistryCoreLoaderProps = {
 
 /**
  * ODH-specific override of ModelRegistryCoreLoader that includes admin user detection
- * for showing appropriate empty states when no model registries are available.
+ * for showing appropriate empty and unavailable states.
  */
 const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
   getInvalidRedirectPath,
 }) => {
   const [adminCheckExtensions, adminCheckExtensionsLoaded] =
     useResolvedExtensions(isAdminCheckExtension);
+  const registrySettingsUrlExtensions = useExtensions(isRegistrySettingsUrlExtension);
 
-  // Create the ODH-specific empty state based on admin status
+  const settingsUrl =
+    registrySettingsUrlExtensions.length > 0
+      ? registrySettingsUrlExtensions[0].properties.url
+      : REGISTRY_SETTINGS_URL;
+
+  const settingsTitle =
+    registrySettingsUrlExtensions.length > 0
+      ? registrySettingsUrlExtensions[0].properties.title
+      : REGISTRY_SETTINGS_PAGE_TITLE;
+
   const createEmptyStatePage = (isAdmin: boolean) => {
     const adminTitle = 'Create a model registry';
     const adminDescription =
@@ -48,8 +107,8 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
           !isAdmin ? (
             <WhosMyAdministrator />
           ) : (
-            <Link to="/settings/model-resources-operations/model-registry">
-              Go to <b>Model registry settings</b>
+            <Link to={settingsUrl}>
+              Go to <b>{settingsTitle}</b>
             </Link>
           )
         }
@@ -57,7 +116,18 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     );
   };
 
-  // If an admin check extension is provided and loaded, use it
+  const createUnavailableStatePage = (isAdmin: boolean) => {
+    const renderUnavailablePage = (registryDisplayName: string): React.ReactNode => (
+      <OdhUnavailableModelRegistry
+        registryDisplayName={registryDisplayName}
+        isAdmin={isAdmin}
+        settingsUrl={settingsUrl}
+        settingsTitle={settingsTitle}
+      />
+    );
+    return renderUnavailablePage;
+  };
+
   if (adminCheckExtensionsLoaded && adminCheckExtensions.length > 0) {
     const AdminCheckComponent = adminCheckExtensions[0].properties.component.default;
     return (
@@ -70,6 +140,7 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
             <ModelRegistryCoreLoader
               getInvalidRedirectPath={getInvalidRedirectPath}
               emptyStatePage={createEmptyStatePage(isAdmin)}
+              unavailableStatePage={createUnavailableStatePage(isAdmin)}
             />
           );
         }}
@@ -77,11 +148,11 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     );
   }
 
-  // Fallback: no admin check extension, default to non-admin view
   return (
     <ModelRegistryCoreLoader
       getInvalidRedirectPath={getInvalidRedirectPath}
       emptyStatePage={createEmptyStatePage(false)}
+      unavailableStatePage={createUnavailableStatePage(false)}
     />
   );
 };

@@ -91,12 +91,8 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registries-state');
   }
 
-  findUnavailableModelRegistryState() {
+  findUnavailableModelRegistry() {
     return cy.findByTestId('unavailable-model-registry');
-  }
-
-  findUnavailableErrorPage() {
-    return cy.findByTestId('model-registry-unavailable-error');
   }
 
   findWhosMyAdministratorLink() {
