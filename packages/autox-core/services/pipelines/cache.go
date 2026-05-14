@@ -1,7 +1,6 @@
 package pipelines
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -19,7 +18,7 @@ type cacheEntry struct {
 }
 
 // pipelineCache is an in-memory LRU cache for discovered pipelines.
-// Key format: "baseURL:namespace"
+// Key: namespace (one DSPA per namespace)
 type pipelineCache struct {
 	mu      sync.RWMutex
 	entries map[string]*cacheEntry
@@ -31,9 +30,6 @@ func newPipelineCache() *pipelineCache {
 	}
 }
 
-func cacheKey(baseURL, namespace string) string {
-	return fmt.Sprintf("%s:%s", baseURL, namespace)
-}
 
 func (c *pipelineCache) get(key string) map[string]*DiscoveredPipeline {
 	c.mu.Lock()
