@@ -170,6 +170,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			Inference: []Provider{NewSentenceTransformerProvider()},
 			VectorIO: []Provider{
 				NewProvider("milvus", "inline::milvus", map[string]interface{}{
+					"db_path": "${env.MILVUS_DB_PATH:=~/.llama}/milvus.db",
 					"persistence": map[string]interface{}{
 						"namespace": "vector_io::milvus",
 						"backend":   "kv_default",
