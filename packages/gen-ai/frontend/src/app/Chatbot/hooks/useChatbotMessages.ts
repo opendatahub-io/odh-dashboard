@@ -8,16 +8,22 @@ import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilit
 import {
   ChatMessageRole,
   CreateResponseRequest,
-  GuardrailModelConfig,
+  GuardrailInlineConfig,
   MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
 } from '~/app/types';
-import { GuardrailsConfig } from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
-import { ERROR_MESSAGES, initialBotMessage } from '~/app/Chatbot/const';
+import {
+  ERROR_MESSAGES,
+  GUARDRAIL_ERROR_CODES,
+  GUARDRAIL_INPUT_PROMPT,
+  GUARDRAIL_OUTPUT_PROMPT,
+  GUARDRAIL_MESSAGES,
+} from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+
 import {
   ToolResponseCardTitle,
   ToolResponseCardBody,
@@ -25,6 +31,14 @@ import {
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+
+export type GuardrailsConfig = {
+  enabled: boolean;
+  guardrail: string;
+  userInputEnabled: boolean;
+  modelOutputEnabled: boolean;
+  guardrailSubscription: string;
+};
 
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
@@ -64,7 +78,6 @@ interface UseChatbotMessagesProps {
   namespace?: string;
   // Guardrails configuration
   guardrailsConfig?: GuardrailsConfig;
-  guardrailModelConfigs?: GuardrailModelConfig[];
   // MaaS subscription name for API key generation
   subscription?: string;
   // Compare-mode analytics
@@ -91,7 +104,6 @@ const useChatbotMessages = ({
   toolSelections,
   namespace,
   guardrailsConfig,
-  guardrailModelConfigs = [],
   subscription,
   configIndex,
   isCompareMode,
@@ -99,7 +111,7 @@ const useChatbotMessages = ({
   promptVersion,
   promptName,
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
-  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([initialBotMessage()]);
+  const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
@@ -132,39 +144,42 @@ const useChatbotMessages = ({
     [selectedServerIds, mcpServers, mcpServerStatuses, mcpServerTokens, toolSelections, namespace],
   );
 
-  // Get guardrail shield IDs based on user selections
-  const getGuardrailShieldIds = React.useCallback((): {
-    input_shield_id?: string;
-    output_shield_id?: string;
-  } => {
-    // Only apply shields if guardrails feature is enabled and a model is selected
+  // Build the inline guardrail_config object from the current guardrails selection.
+  // Prompt presence drives enablement — no separate boolean flags needed.
+  const buildGuardrailConfig = React.useCallback((): GuardrailInlineConfig | undefined => {
     if (!guardrailsConfig?.enabled || !guardrailsConfig.guardrail) {
-      return {};
+      return undefined;
     }
 
-    // Find the selected guardrail model config to get shield IDs
-    const selectedModelConfig = guardrailModelConfigs.find(
-      (config) => config.model_name === guardrailsConfig.guardrail,
-    );
+    const { userInputEnabled, modelOutputEnabled } = guardrailsConfig;
 
-    if (!selectedModelConfig) {
-      return {};
+    // Don't send guardrail_config when both toggles are off
+    if (!userInputEnabled && !modelOutputEnabled) {
+      return undefined;
     }
 
-    const shieldIds: { input_shield_id?: string; output_shield_id?: string } = {};
+    const { providerId, id: baseGuardrailModelId } = splitLlamaModelId(guardrailsConfig.guardrail);
+    const isMaaS = providerId.startsWith('maas-');
 
-    // Only add input_shield_id if user input guardrails is enabled
-    if (guardrailsConfig.userInputEnabled && selectedModelConfig.input_shield_id) {
-      shieldIds.input_shield_id = selectedModelConfig.input_shield_id;
+    // Resolve model_source_type the same way as the main model: look up in aiModels
+    const guardrailAIModel = aiModels.find((m) => m.model_id === baseGuardrailModelId);
+    const guardrailSourceType = isMaaS
+      ? 'maas'
+      : (guardrailAIModel?.model_source_type ?? 'namespace');
+
+    const config: GuardrailInlineConfig = {
+      guardrail_model: guardrailsConfig.guardrail,
+      guardrail_model_source_type: guardrailSourceType,
+      ...(userInputEnabled && { input_prompt: GUARDRAIL_INPUT_PROMPT }),
+      ...(modelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
+    };
+
+    if (isMaaS && guardrailsConfig.guardrailSubscription) {
+      config.guardrail_subscription = guardrailsConfig.guardrailSubscription;
     }
 
-    // Only add output_shield_id if model output guardrails is enabled
-    if (guardrailsConfig.modelOutputEnabled && selectedModelConfig.output_shield_id) {
-      shieldIds.output_shield_id = selectedModelConfig.output_shield_id;
-    }
-
-    return shieldIds;
-  }, [guardrailsConfig, guardrailModelConfigs]);
+    return config;
+  }, [guardrailsConfig, aiModels]);
 
   // Cleanup timeout and abort controller on unmount
   React.useEffect(
@@ -178,15 +193,6 @@ const useChatbotMessages = ({
     },
     [],
   );
-
-  // Update initial message name with the initially selected model (runs once on mount)
-  React.useEffect(() => {
-    setMessages((prev) =>
-      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
-        ? [{ ...prev[0], name: modelDisplayName }]
-        : prev,
-    );
-  }, [modelDisplayName]);
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
@@ -248,8 +254,7 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
 
-    // Reset everything to initial state (use model display name for consistency)
-    setMessages([{ ...initialBotMessage(), name: modelDisplayName }]);
+    setMessages([]);
     setIsMessageSendButtonDisabled(false);
     setIsLoading(false);
     setIsStreamingWithoutContent(false);
@@ -261,7 +266,7 @@ const useChatbotMessages = ({
     setTimeout(() => {
       isClearingRef.current = false;
     }, 0);
-  }, [modelDisplayName]);
+  }, []);
 
   const handleMessageSend = async (message: string, compareID?: string) => {
     const userMessage: MessageProps = {
@@ -273,7 +278,7 @@ const useChatbotMessages = ({
       timestamp: new Date().toLocaleString(),
     };
 
-    setMessages((prevMessages) => [...prevMessages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsMessageSendButtonDisabled(true);
     setIsLoading(true);
 
@@ -291,8 +296,8 @@ const useChatbotMessages = ({
 
       const selectedMcpServers = getSelectedServersForAPICallback();
 
-      // Get guardrail shield IDs based on user configuration
-      const guardrailShieldIds = getGuardrailShieldIds();
+      // Get guardrail config based on user configuration
+      const guardrailConfig = buildGuardrailConfig();
 
       // Find the selected model to get its model_source_type
       // Strip provider prefix from LlamaStack model ID (e.g., "endpoint-1/gpt-4o" → "gpt-4o")
@@ -317,7 +322,7 @@ const useChatbotMessages = ({
         stream: isStreamingEnabled,
         temperature,
         ...(selectedMcpServers.length > 0 && { mcp_servers: selectedMcpServers }),
-        ...guardrailShieldIds,
+        ...(guardrailConfig && { guardrail_config: guardrailConfig }),
         ...(selectedModel?.model_source_type && {
           model_source_type: selectedModel.model_source_type,
         }),
@@ -538,10 +543,28 @@ const useChatbotMessages = ({
         return;
       }
 
-      const errorMessage =
+      const rawErrorMessage =
         error instanceof Error
           ? error.message
           : 'Sorry, I encountered an error while processing your request. Please try again.';
+
+      const errorCode =
+        error instanceof Error && 'code' in error && typeof error.code === 'string'
+          ? error.code
+          : undefined;
+      const errorMessage = (() => {
+        if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+          return GUARDRAIL_MESSAGES.INPUT_VIOLATION;
+        }
+        if (errorCode === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+          return GUARDRAIL_MESSAGES.OUTPUT_VIOLATION;
+        }
+        return rawErrorMessage;
+      })();
+
+      if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+      }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)
       const wasUserStopped =

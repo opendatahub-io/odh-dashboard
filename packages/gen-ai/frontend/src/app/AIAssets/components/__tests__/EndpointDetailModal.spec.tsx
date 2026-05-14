@@ -67,7 +67,7 @@ describe('EndpointDetailModal', () => {
 
     expect(screen.getByText('Endpoints')).toBeInTheDocument();
     expect(
-      screen.getByText(/Use this endpoint to connect your application to this model/),
+      screen.getByText(/Use the following URL endpoints to connect this model to your application/),
     ).toBeInTheDocument();
   });
 
@@ -141,8 +141,8 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.getByText('API key')).toBeInTheDocument();
-      expect(screen.getByText(/To create a permanent API key, visit the/)).toBeInTheDocument();
+      expect(screen.getByText('Temporary API key')).toBeInTheDocument();
+      expect(screen.getByText(/Create permanent API keys from the/)).toBeInTheDocument();
       expect(screen.getByTestId('endpoint-modal-generate-api-key')).toBeInTheDocument();
     });
 
@@ -152,7 +152,7 @@ describe('EndpointDetailModal', () => {
       });
       renderModal(model);
 
-      expect(screen.queryByText('API key')).not.toBeInTheDocument();
+      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
     });
 
     it('should call generateToken when Generate API Key button is clicked', () => {
@@ -183,8 +183,8 @@ describe('EndpointDetailModal', () => {
       });
       renderModal(model);
 
-      expect(screen.getByText('This is an ephemeral API key')).toBeInTheDocument();
-      expect(screen.getByText(/This key expires in 1 hour/)).toBeInTheDocument();
+      expect(screen.getByText('Copy your temporary key')).toBeInTheDocument();
+      expect(screen.getByText(/This key will expire in 1 hour/)).toBeInTheDocument();
       expect(screen.getByTestId('endpoint-modal-api-key-input')).toBeInTheDocument();
       expect(screen.queryByTestId('endpoint-modal-generate-api-key')).not.toBeInTheDocument();
     });
@@ -451,7 +451,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.queryByText('External API endpoint')).not.toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('API key')).not.toBeInTheDocument();
+      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
     });
 
     it('should show both endpoints for Internal models with external route', () => {
@@ -464,7 +464,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.getByText('Internal API endpoint')).toBeInTheDocument();
-      expect(screen.queryByText('API key')).not.toBeInTheDocument();
+      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
     });
 
     it('should show only external endpoint for Custom endpoint models', () => {
@@ -476,7 +476,7 @@ describe('EndpointDetailModal', () => {
 
       expect(screen.getByText('External API endpoint')).toBeInTheDocument();
       expect(screen.queryByText('Internal API endpoint')).not.toBeInTheDocument();
-      expect(screen.queryByText('API key')).not.toBeInTheDocument();
+      expect(screen.queryByText('Temporary API key')).not.toBeInTheDocument();
     });
   });
 });

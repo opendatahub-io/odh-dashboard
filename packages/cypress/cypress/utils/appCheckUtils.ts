@@ -5,7 +5,7 @@ import * as yaml from 'js-yaml';
  * @returns Cypress chainable boolean indicating whether RHOAI is hidden.
  */
 export function isRhoaiHidden(): Cypress.Chainable<boolean> {
-  const rhoaiYamlPath = '../../manifests/rhoai/shared/apps/rhoai/rhoai-app.yaml';
+  const rhoaiYamlPath = '../../manifests/rhoai/apps/rhoai/rhoai-app.yaml';
 
   return cy.readFile(rhoaiYamlPath).then((fileContent) => {
     // Parse the YAML content
@@ -48,7 +48,7 @@ export function isFeatureFlagEnabled(flagPath: string): Cypress.Chainable<boolea
     const isEnabled = isDisableFlag ? flagValue !== true : flagValue === true;
 
     cy.log(`Feature flag ${flagPath}: ${isEnabled ? 'enabled' : 'disabled'}`);
-    return isEnabled;
+    return cy.wrap(isEnabled);
   });
 }
 

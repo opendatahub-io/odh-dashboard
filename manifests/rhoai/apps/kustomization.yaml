@@ -11,3 +11,4 @@ resources:
   - ./rhoai
   - ./starburst-enterprise
   - ./watson-x
+  - ./agentic-starter-kits

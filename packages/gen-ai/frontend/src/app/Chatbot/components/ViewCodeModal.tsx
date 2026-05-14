@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { GUARDRAIL_INPUT_PROMPT, GUARDRAIL_OUTPUT_PROMPT } from '~/app/Chatbot/const';
 import { generateMCPServerConfig, getLlamaModelDisplayName } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -155,6 +156,9 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         knowledgeMode,
         selectedVectorStoreId,
         activePrompt,
+        guardrail,
+        guardrailUserInputEnabled,
+        guardrailModelOutputEnabled,
       } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
@@ -245,6 +249,14 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
           ...(activePrompt && {
             prompt: { name: activePrompt.name, version: activePrompt.version },
           }),
+          ...(guardrail &&
+            (guardrailUserInputEnabled || guardrailModelOutputEnabled) && {
+              guardrail_config: {
+                guardrail_model: guardrail,
+                ...(guardrailUserInputEnabled && { input_prompt: GUARDRAIL_INPUT_PROMPT }),
+                ...(guardrailModelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
+              },
+            }),
         };
         /* eslint-enable camelcase */
 

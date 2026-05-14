@@ -110,6 +110,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -151,6 +152,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.uriModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -280,6 +282,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -395,6 +398,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)

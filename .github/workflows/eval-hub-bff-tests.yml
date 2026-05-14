@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - "packages/eval-hub/**"
-      - ".github/workflows/**"
+      - ".github/workflows/eval-hub-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"

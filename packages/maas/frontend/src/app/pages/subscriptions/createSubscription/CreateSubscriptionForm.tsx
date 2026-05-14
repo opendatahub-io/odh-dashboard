@@ -371,6 +371,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
             onRemoveModel={handleRemoveModel}
+            resourceType="subscription"
           />
         )}
 

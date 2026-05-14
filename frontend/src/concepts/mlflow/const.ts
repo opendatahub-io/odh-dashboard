@@ -5,3 +5,10 @@ export const FILTER_PARAM_KEY = 'filter';
 
 export const EXPERIMENT_NAME_COLUMN_WIDTH = 60;
 export const EXPERIMENT_UPDATED_COLUMN_WIDTH = 40;
+
+export const EXPERIMENTS_NAV_ID = 'experiments-mlflow';
+
+export enum MlflowTrackingEvents {
+  EMBEDDED_VIEW_OPENED = 'MLflow Embedded View Opened',
+  LAUNCH_CLICKED = 'Launch MLflow clicked',
+}
