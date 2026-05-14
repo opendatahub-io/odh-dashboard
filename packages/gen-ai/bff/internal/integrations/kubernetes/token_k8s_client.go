@@ -37,8 +37,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	// Import the typed LlamaStackDistribution types
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	// Import the typed OGXServer types
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
@@ -64,7 +64,7 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
-	// Label for LSD identification
+	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
 	// Labels for identifying KServe services
@@ -211,7 +211,7 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
 
-	// Build custom scheme with LlamaStackDistribution types
+	// Build custom scheme with OGXServer types
 	scheme, err := helper.BuildScheme()
 	if err != nil {
 		logger.Error("failed to build scheme", "error", err)
@@ -362,8 +362,8 @@ func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity
 	return resp.Status.Allowed, nil
 }
 
-// CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources
-func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+// CanListOGXServers performs a SubjectAccessReview to check if the user has permission to list OGXServer resources
+func (kc *TokenKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -385,13 +385,13 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
-	// Create SelfSubjectAccessReview to check if user can list LlamaStackDistribution resources
+	// Create SelfSubjectAccessReview to check if user can list OGXServer resources
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
 				Verb:      "list",
-				Group:     "llamastack.io",
-				Resource:  "llamastackdistributions",
+				Group:     "ogx.io",
+				Resource:  "ogxservers",
 				Namespace: namespace,
 			},
 		},
@@ -399,7 +399,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 
 	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
+		kc.Logger.Error("failed to perform OGXServer list SAR", "error", err)
 		return false, wrapK8sSubjectAccessReviewError(err, namespace)
 	}
 
@@ -450,11 +450,11 @@ func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Conte
 	return resp.Status.Allowed, nil
 }
 
-func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+func (kc *TokenKubernetesClient) GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	lsdList := &lsdapi.LlamaStackDistributionList{}
+	serverList := &ogxapi.OGXServerList{}
 
 	listOptions := &client.ListOptions{
 		Namespace: namespace,
@@ -462,12 +462,12 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 			OpenDataHubDashboardLabelKey: "true",
 		}),
 	}
-	err := kc.Client.List(ctx, lsdList, listOptions)
+	err := kc.Client.List(ctx, serverList, listOptions)
 	if err != nil {
-		kc.Logger.Error("failed to list LlamaStackDistributions", "error", err, "namespace", namespace)
+		kc.Logger.Error("failed to list OGXServers", "error", err, "namespace", namespace)
 		return nil, err
 	}
-	return lsdList, nil
+	return serverList, nil
 }
 
 // GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
@@ -1307,18 +1307,18 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
 // This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	// Check if LSD already exists in the namespace
-	existingLSDList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	// Check if an OGXServer already exists in the namespace
+	existingList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to check for existing OGXServer: %w", err)
 	}
 
-	if len(existingLSDList.Items) > 0 {
-		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	if len(existingList.Items) > 0 {
+		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
 	// Step 1: Collect existing service account token secrets for each model
@@ -1369,8 +1369,8 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			Value: "false",
 		},
 		{
-			Name:  "MILVUS_DB_PATH",
-			Value: "~/.llama/milvus.db",
+			Name:  "FAISS_STORE_DIR",
+			Value: "~/.llama/faiss",
 		},
 		{
 			Name:  "VLLM_MAX_TOKENS",
@@ -1379,18 +1379,6 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		{
 			Name:  "SENTENCE_TRANSFORMERS_HOME",
 			Value: "/opt/app-root/src/.cache/huggingface/hub",
-		},
-		{
-			Name:  "HF_HUB_OFFLINE",
-			Value: "1",
-		},
-		{
-			Name:  "TRANSFORMERS_OFFLINE",
-			Value: "1",
-		},
-		{
-			Name:  "HF_DATASETS_OFFLINE",
-			Value: "1",
 		},
 	}
 
@@ -1451,8 +1439,8 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			}
 
 			// Verify the credential secret exists and contains the expected key before
-			// referencing it in the LSD pod spec. This gives a clear error at install time
-			// rather than a cryptic pod failure after the LSD is created.
+			// referencing it in the OGX server pod spec. This gives a clear error at install time
+			// rather than a cryptic pod failure after the OGXServer is created.
 			var secret corev1.Secret
 			if err := kc.Client.Get(ctx, types.NamespacedName{
 				Name:      vs.CredSecretRef.Name,
@@ -1481,7 +1469,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 5: Generate ConfigMap content first (before creating LSD)
+	// Step 5: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
 	userAuthToken := ""
 	for _, model := range installModels {
@@ -1499,15 +1487,16 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
 	}
 
-	// Step 6: Create ConfigMap BEFORE creating LSD (without owner reference yet)
-	// This prevents the LSD from failing with "ConfigMap not found" during initial reconciliation
+	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
+	// This prevents the OGXServer from failing with "ConfigMap not found" during initial reconciliation
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: namespace,
 			Labels: map[string]string{
 				OpenDataHubDashboardLabelKey: "true",
-				"llamastack.io/distribution": lsdName,
+				"ogx.io/server":              lsdName,
+				"ogx.io/watch":               "true",
 			},
 		},
 		Data: map[string]string{
@@ -1520,10 +1509,21 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
 	}
 
-	kc.Logger.Info("ConfigMap created successfully (before LSD creation)", "namespace", namespace, "configMapName", configMapName)
+	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
-	// Step 7: Create LlamaStackDistribution
-	lsd := &lsdapi.LlamaStackDistribution{
+	// Step 7: Create OGXServer
+	replicas := int32(1)
+	workloadResources := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("250m"),
+			corev1.ResourceMemory: resource.MustParse("500Mi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("12Gi"),
+		},
+	}
+	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
 			Namespace: namespace,
@@ -1534,76 +1534,59 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				OpenDataHubDashboardLabelKey: "true",
 			},
 		},
-		Spec: lsdapi.LlamaStackDistributionSpec{
-			Replicas: 1,
-			Network: &lsdapi.NetworkSpec{
-				AllowedFrom: &lsdapi.AllowedFromSpec{
-					Namespaces: []string{namespace},
+		Spec: ogxapi.OGXServerSpec{
+			Distribution: func() ogxapi.DistributionSpec {
+				name := kc.EnvConfig.DistributionName
+				if strings.Contains(name, "/") || strings.Contains(name, ":") {
+					return ogxapi.DistributionSpec{Image: name}
+				}
+				return ogxapi.DistributionSpec{Name: name}
+			}(),
+			OverrideConfig: &ogxapi.ConfigMapKeyRef{
+				Name: configMapName,
+				Key:  constants.LlamaStackConfigYAMLKey,
+			},
+			Workload: &ogxapi.WorkloadSpec{
+				Replicas:  &replicas,
+				Resources: workloadResources,
+				Overrides: &ogxapi.WorkloadOverrides{
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
+					Env: append(envVars, corev1.EnvVar{
+						Name:  "OGX_CONFIG_DIR",
+						Value: "/opt/app-root/src/.ogx/distributions/rh/",
+					}),
 				},
 			},
-			Server: lsdapi.ServerSpec{
-				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("250m"),
-							corev1.ResourceMemory: resource.MustParse("500Mi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("2"),
-							corev1.ResourceMemory: resource.MustParse("12Gi"),
-						},
-					},
-					Env: append(envVars, corev1.EnvVar{
-						Name:  "LLAMA_STACK_CONFIG_DIR",
-						Value: "/opt/app-root/src/.llama/distributions/rh/",
-					}),
-					Name: "llama-stack",
-					Port: 8321,
-				},
-				Distribution: func() lsdapi.DistributionType {
-					// Check if distributionName contains registry patterns indicating it's a container image
-					name := kc.EnvConfig.DistributionName
-					if strings.Contains(name, "/") || strings.Contains(name, ":") {
-						return lsdapi.DistributionType{
-							Image: name,
-						}
-					}
-					return lsdapi.DistributionType{
-						Name: name,
-					}
-				}(),
-				UserConfig: &lsdapi.UserConfigSpec{
-					ConfigMapName: configMapName,
-				},
+			Network: &ogxapi.NetworkSpec{
+				Port: 8321,
 			},
 		},
 	}
 
-	// Create the LlamaStackDistribution
-	if err := kc.Client.Create(ctx, lsd); err != nil {
-		kc.Logger.Error("failed to create LlamaStackDistribution", "error", err, "namespace", namespace, "lsdName", lsdName)
+	// Create the OGXServer
+	if err := kc.Client.Create(ctx, ogxServer); err != nil {
+		kc.Logger.Error("failed to create OGXServer", "error", err, "namespace", namespace, "lsdName", lsdName)
 
-		// Clean up the ConfigMap we just created since LSD creation failed
+		// Clean up the ConfigMap we just created since OGXServer creation failed
 		if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
-			kc.Logger.Error("failed to clean up ConfigMap after LSD creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
+			kc.Logger.Error("failed to clean up ConfigMap after OGXServer creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
 		} else {
-			kc.Logger.Info("ConfigMap cleaned up after LSD creation failure", "namespace", namespace, "configMapName", configMapName)
+			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
 
-		return nil, fmt.Errorf("failed to create LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to create OGXServer: %w", err)
 	}
 
-	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
+	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
 
-	// Step 8: Update ConfigMap to add owner reference to the LSD
-	// This ensures the ConfigMap is garbage collected when the LSD is deleted
+	// Step 8: Update ConfigMap to add owner reference to the OGXServer
+	// This ensures the ConfigMap is garbage collected when the OGXServer is deleted
 	configMap.OwnerReferences = []metav1.OwnerReference{
 		{
-			APIVersion:         "llamastack.io/v1alpha1",
-			Kind:               "LlamaStackDistribution",
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
 			Name:               lsdName,
-			UID:                lsd.UID,
+			UID:                ogxServer.UID,
 			Controller:         &[]bool{true}[0],
 			BlockOwnerDeletion: &[]bool{false}[0],
 		},
@@ -1612,13 +1595,13 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	if err := kc.Client.Update(ctx, configMap); err != nil {
 		kc.Logger.Error("failed to update ConfigMap with owner reference", "error", err, "namespace", namespace, "configMapName", configMapName)
 		// Don't fail the entire operation, just log the warning
-		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when LSD is deleted")
-		// Continue without failing - the LSD is created successfully
+		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when OGXServer is deleted")
+		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
-	return lsd, nil
+	return ogxServer, nil
 }
 
 // ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
@@ -1822,7 +1805,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				for k, v := range vs.Provider.Config.Extra {
 					providerConfig[k] = v
 				}
-				// Ensure persistence is present (in some providers LSD pod will crash if not included).
+				// Ensure persistence is present (in some providers the OGX server pod will crash if not included).
 				// Use the user-supplied value if present; otherwise inject a safe default.
 				if _, hasPersistence := providerConfig["persistence"]; !hasPersistence {
 					providerConfig["persistence"] = map[string]interface{}{
@@ -2307,48 +2290,44 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx cont
 	return internalURL, nil
 }
 
-func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// First, fetch the LSD in the namespace with the OpenDataHubDashboardLabelKey annotation
-	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	// First, fetch OGXServers in the namespace with the OpenDataHubDashboardLabelKey label
+	serverList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		kc.Logger.Error("failed to fetch LlamaStackDistributions", "error", err, "namespace", namespace)
-		return nil, fmt.Errorf("failed to fetch LlamaStackDistributions: %w", err)
+		kc.Logger.Error("failed to fetch OGXServers", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
 	}
 
-	// Check if any LSD resources were found
-	if len(lsdList.Items) == 0 {
-		kc.Logger.Error("no LlamaStackDistribution found with OpenDataHubDashboardLabelKey annotation", "namespace", namespace)
-		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	if len(serverList.Items) == 0 {
+		kc.Logger.Error("no OGXServer found with OpenDataHubDashboardLabelKey label", "namespace", namespace)
+		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey label", namespace)
 	}
 
-	// Find the LSD with matching k8s name
-	var targetLSD *lsdapi.LlamaStackDistribution
-	for i := range lsdList.Items {
-		lsd := &lsdList.Items[i]
-		if lsd.Name == name {
-			targetLSD = lsd
+	var targetServer *ogxapi.OGXServer
+	for i := range serverList.Items {
+		srv := &serverList.Items[i]
+		if srv.Name == name {
+			targetServer = srv
 			break
 		}
 	}
 
-	// If no LSD with matching k8s name found, return error
-	if targetLSD == nil {
-		kc.Logger.Error("LlamaStackDistribution with matching name not found", "k8sName", name, "namespace", namespace)
-		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
+	if targetServer == nil {
+		kc.Logger.Error("OGXServer with matching name not found", "k8sName", name, "namespace", namespace)
+		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
 	}
 
-	// Delete the LSD using the actual resource name
-	err = kc.Client.Delete(ctx, &lsdapi.LlamaStackDistribution{ObjectMeta: metav1.ObjectMeta{Name: targetLSD.Name, Namespace: namespace}})
+	err = kc.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: targetServer.Name, Namespace: namespace}})
 	if err != nil {
-		kc.Logger.Error("failed to delete LlamaStackDistribution", "error", err, "namespace", namespace, "name", targetLSD.Name)
-		return nil, fmt.Errorf("failed to delete LlamaStackDistribution: %w", err)
+		kc.Logger.Error("failed to delete OGXServer", "error", err, "namespace", namespace, "name", targetServer.Name)
+		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
 	}
 
-	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
-	return targetLSD, nil
+	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
+	return targetServer, nil
 }
 
 // GetInferenceServiceURL returns the internal endpoint URL for the InferenceService or
@@ -2366,7 +2345,7 @@ func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *
 
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
-	// Get LlamaStackDistribution
+	// Load OGX config from the ConfigMap referenced by the namespace OGXServer
 	config, err := kc.loadLlamaStackConfig(ctx, identity, namespace)
 	if config == nil {
 		return nil, err
@@ -2377,26 +2356,26 @@ func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, ident
 
 // loadLlamaStackConfig loads the LlamaStack configuration from a ConfigMap in the cluster
 func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*LlamaStackConfig, error) {
-	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	serverList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+		return nil, fmt.Errorf("failed to get OGXServers: %w", err)
 	}
 
-	if len(lsdList.Items) == 0 {
-		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	if len(serverList.Items) == 0 {
+		return nil, fmt.Errorf("no OGXServer found in namespace %s", namespace)
 	}
 
-	if len(lsdList.Items) > 1 {
-		kc.Logger.Warn("Multiple LlamaStackDistributions found, using first one",
-			"namespace", namespace, "count", len(lsdList.Items))
+	if len(serverList.Items) > 1 {
+		kc.Logger.Warn("Multiple OGXServers found, using first one",
+			"namespace", namespace, "count", len(serverList.Items))
 	}
 
-	lsd := lsdList.Items[0]
+	srv := serverList.Items[0]
 
 	// Get configmap name
 	configMapName := constants.LlamaStackConfigMapName
-	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
-		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	if srv.Spec.OverrideConfig != nil && srv.Spec.OverrideConfig.Name != "" {
+		configMapName = srv.Spec.OverrideConfig.Name
 	}
 
 	// Retrieve configmap

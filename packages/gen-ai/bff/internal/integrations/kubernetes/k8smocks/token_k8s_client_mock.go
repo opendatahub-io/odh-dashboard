@@ -19,8 +19,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	// Import the typed LlamaStackDistribution types
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 )
 
 const (
@@ -267,31 +266,31 @@ func (m *TokenKubernetesClientMock) GetUser(ctx context.Context, identity *integ
 	return "mockUser", nil
 }
 
-// GetLlamaStackDistributions returns mock LSD list for testing
-func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+// GetOGXServers returns mock OGXServer list for testing
+func (m *TokenKubernetesClientMock) GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error) {
 	// Special case: mock-test-namespace-1 should always return empty list for testing empty state
 	if namespace == "mock-test-namespace-1" || namespace == "mock-test-namespace-3" {
-		return &lsdapi.LlamaStackDistributionList{
-			Items: []lsdapi.LlamaStackDistribution{},
+		return &ogxapi.OGXServerList{
+			Items: []ogxapi.OGXServer{},
 		}, nil
 	}
 
-	// For other namespaces, first try to query the real cluster for LSD resources
-	var lsdList lsdapi.LlamaStackDistributionList
-	err := m.Client.List(ctx, &lsdList, client.InNamespace(namespace))
+	// For other namespaces, first try to query the real cluster for OGXServer resources
+	var serverList ogxapi.OGXServerList
+	err := m.Client.List(ctx, &serverList, client.InNamespace(namespace))
 	if err != nil {
-		return nil, fmt.Errorf("failed to list LlamaStackDistributions: %w", err)
+		return nil, fmt.Errorf("failed to list OGXServers: %w", err)
 	}
 
-	// If we found real LSD resources in the cluster, return them
-	if len(lsdList.Items) > 0 {
-		return &lsdList, nil
+	// If we found real OGXServer resources in the cluster, return them
+	if len(serverList.Items) > 0 {
+		return &serverList, nil
 	}
 
-	// For namespaces that should return mock LSD data (for testing existing LSD scenarios)
+	// For namespaces that should return mock OGXServer data (for testing existing server scenarios)
 	if namespace == "mock-test-namespace-2" || namespace == "test-namespace" {
-		return &lsdapi.LlamaStackDistributionList{
-			Items: []lsdapi.LlamaStackDistribution{
+		return &ogxapi.OGXServerList{
+			Items: []ogxapi.OGXServer{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mock-lsd",
@@ -303,15 +302,15 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 							"opendatahub.io/dashboard": "true",
 						},
 					},
-					Status: lsdapi.LlamaStackDistributionStatus{
-						Phase: lsdapi.LlamaStackDistributionPhaseReady,
-						Version: lsdapi.VersionInfo{
-							LlamaStackServerVersion: "v0.2.0",
+					Status: ogxapi.OGXServerStatus{
+						Phase: ogxapi.OGXServerPhaseReady,
+						Version: ogxapi.VersionInfo{
+							ServerVersion: "v0.2.0",
 						},
 						ServiceURL: "http://mock-lsd.test-namespace.svc.cluster.local:8321",
-						DistributionConfig: lsdapi.DistributionConfig{
+						DistributionConfig: ogxapi.DistributionConfig{
 							ActiveDistribution: "mock-distribution",
-							Providers: []lsdapi.ProviderInfo{
+							Providers: []ogxapi.ProviderInfo{
 								{
 									ProviderID:   "mock-provider",
 									ProviderType: "mock-type",
@@ -329,8 +328,8 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 	}
 
 	if namespace == "mock-test-namespace-4" {
-		return &lsdapi.LlamaStackDistributionList{
-			Items: []lsdapi.LlamaStackDistribution{
+		return &ogxapi.OGXServerList{
+			Items: []ogxapi.OGXServer{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mock-lsd",
@@ -342,35 +341,35 @@ func (m *TokenKubernetesClientMock) GetLlamaStackDistributions(ctx context.Conte
 							"opendatahub.io/dashboard": "true",
 						},
 					},
-					Status: lsdapi.LlamaStackDistributionStatus{
-						Phase: lsdapi.LlamaStackDistributionPhaseFailed,
+					Status: ogxapi.OGXServerStatus{
+						Phase: ogxapi.OGXServerPhaseFailed,
 					},
 				},
 			},
 		}, nil
 	}
 
-	// For all other namespaces, return empty list (no existing LSDs)
-	return &lsdapi.LlamaStackDistributionList{
-		Items: []lsdapi.LlamaStackDistribution{},
+	// For all other namespaces, return empty list (no existing OGXServers)
+	return &ogxapi.OGXServerList{
+		Items: []ogxapi.OGXServer{},
 	}, nil
 }
 
-func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (m *TokenKubernetesClientMock) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
 	if len(vectorStores) > 0 {
 		if _, err := m.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores); err != nil {
 			return nil, err
 		}
 	}
 
-	// Check if LSD already exists in the namespace
-	existingLSDList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+	// Check if an OGXServer already exists in the namespace
+	existingList, err := m.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to check for existing OGXServer: %w", err)
 	}
 
-	if len(existingLSDList.Items) > 0 {
-		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	if len(existingList.Items) > 0 {
+		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
 	// First ensure the namespace exists
@@ -384,24 +383,26 @@ func (m *TokenKubernetesClientMock) InstallLlamaStackDistribution(ctx context.Co
 		return nil, fmt.Errorf("failed to create namespace %s: %w", namespace, err)
 	}
 
-	// Then create the ConfigMap that the LSD will reference
+	// Then create the ConfigMap that the OGXServer will reference
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "llama-stack-config",
 			Namespace: namespace,
+			Labels: map[string]string{
+				k8s.OpenDataHubDashboardLabelKey: "true",
+				"ogx.io/server":                  mockLSDName,
+				"ogx.io/watch":                   "true",
+			},
 		},
 		Data: map[string]string{
 			constants.LlamaStackConfigYAMLKey: `# Llama Stack Configuration
 version: "2"
 distro_name: rh
 apis:
-- datasetio
+- file_processors
 - files
 - inference
 - responses
-- safety
-- scoring
-- telemetry
 - tool_runtime
 - vector_io
 providers:
@@ -415,60 +416,37 @@ providers:
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
-    config: {}
-  vector_io:
-  - provider_id: milvus
-    provider_type: inline::milvus
     config:
-      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+      trust_remote_code: false
+  vector_io:
+  - provider_id: faiss
+    provider_type: inline::faiss
+    config:
       persistence:
-        namespace: vector_io::milvus
+        namespace: vector_io::faiss
         backend: kv_default
-  safety: []
-  eval: []
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+    config: {}
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
     config:
       persistence:
-        agent_state:
-          namespace: agents
-          backend: kv_default
         responses:
           table_name: responses
           backend: sql_default
           max_write_queue_size: 10000
           num_writers: 4
   files:
-  - provider_id: meta-reference-files
+  - provider_id: localfs-files
     provider_type: inline::localfs
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        namespace: datasetio::huggingface
-        backend: kv_default
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
   tool_runtime:
   - provider_id: file-search
     provider_type: inline::file-search
@@ -496,8 +474,16 @@ storage:
     inference:
       table_name: inference_store
       backend: sql_default
+      max_write_queue_size: 10000
+      num_writers: 4
     conversations:
       table_name: openai_conversations
+      backend: sql_default
+    prompts:
+      table_name: prompts
+      backend: sql_default
+    connectors:
+      table_name: connectors
       backend: sql_default
 registered_resources:
   models:
@@ -511,11 +497,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-  shields: []
   vector_stores: []
-  datasets: []
-  scoring_fns: []
-  benchmarks: []
 server:
   port: 8321`,
 		},
@@ -527,103 +509,109 @@ server:
 		return nil, fmt.Errorf("failed to create ConfigMap in envtest cluster: %w", err)
 	}
 
-	// Create a real LSD resource in the envtest cluster
-	lsd := &lsdapi.LlamaStackDistribution{
+	replicas := int32(1)
+	workloadResources := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("250m"),
+			corev1.ResourceMemory: resource.MustParse("500Mi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("12Gi"),
+		},
+	}
+
+	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mockLSDName,
 			Namespace: namespace,
 			Annotations: map[string]string{
-				"openshift.io/display-name": mockLSDName,
+				k8s.DisplayNameAnnotation: mockLSDName,
 			},
 			Labels: map[string]string{
 				"opendatahub.io/dashboard": "true",
 			},
 		},
-		Spec: lsdapi.LlamaStackDistributionSpec{
-			Replicas: 1,
-			Network: &lsdapi.NetworkSpec{
-				AllowedFrom: &lsdapi.AllowedFromSpec{
-					Namespaces: []string{namespace},
-				},
+		Spec: ogxapi.OGXServerSpec{
+			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			OverrideConfig: &ogxapi.ConfigMapKeyRef{
+				Name: "llama-stack-config",
+				Key:  constants.LlamaStackConfigYAMLKey,
 			},
-			Server: lsdapi.ServerSpec{
-				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("250m"),
-							corev1.ResourceMemory: resource.MustParse("500Mi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("2"),
-							corev1.ResourceMemory: resource.MustParse("12Gi"),
-						},
-					},
+			Network: &ogxapi.NetworkSpec{Port: 8321},
+			Workload: &ogxapi.WorkloadSpec{
+				Replicas:  &replicas,
+				Resources: workloadResources,
+				Overrides: &ogxapi.WorkloadOverrides{
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
 					Env: []corev1.EnvVar{
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
-						{Name: "MILVUS_DB_PATH", Value: "~/.llama/milvus.db"},
+						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
 						{Name: "FMS_ORCHESTRATOR_URL", Value: "http://localhost"},
 						{Name: "VLLM_MAX_TOKENS", Value: "4096"},
+						{Name: "OGX_CONFIG_DIR", Value: "/opt/app-root/src/.ogx/distributions/rh/"},
 					},
-					Name: "llama-stack",
-					Port: 8321,
-				},
-				Distribution: lsdapi.DistributionType{Name: "rh-dev"},
-				UserConfig: &lsdapi.UserConfigSpec{
-					ConfigMapName: "llama-stack-config",
 				},
 			},
 		},
 	}
 
-	// Create the LSD resource in the envtest cluster
-	err = m.Client.Create(ctx, lsd)
+	err = m.Client.Create(ctx, ogxServer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create LlamaStackDistribution in envtest cluster: %w", err)
+		return nil, fmt.Errorf("failed to create OGXServer in envtest cluster: %w", err)
 	}
 
-	return lsd, nil
+	configMap.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
+			Name:               ogxServer.Name,
+			UID:                ogxServer.UID,
+			Controller:         &[]bool{true}[0],
+			BlockOwnerDeletion: &[]bool{false}[0],
+		},
+	}
+	if updateErr := m.Client.Update(ctx, configMap); updateErr != nil {
+		m.Logger.Warn("failed to update ConfigMap with owner reference", "error", updateErr, "namespace", namespace, "configMap", configMap.Name)
+	}
+
+	return ogxServer, nil
 }
 
-func (m *TokenKubernetesClientMock) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
-	// First, fetch the LSD in the namespace with the OpenDataHubDashboardLabelKey annotation
-	lsdList, err := m.GetLlamaStackDistributions(ctx, identity, namespace)
+func (m *TokenKubernetesClientMock) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
+	serverList, err := m.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch LlamaStackDistributions: %w", err)
+		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
 	}
 
-	// Check if any LSD resources were found
-	if len(lsdList.Items) == 0 {
-		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	if len(serverList.Items) == 0 {
+		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
 	}
 
-	// Find the LSD with matching k8s name
-	var targetLSD *lsdapi.LlamaStackDistribution
-	for i := range lsdList.Items {
-		lsd := &lsdList.Items[i]
-		if lsd.Name == name {
-			targetLSD = lsd
+	var target *ogxapi.OGXServer
+	for i := range serverList.Items {
+		srv := &serverList.Items[i]
+		if srv.Name == name {
+			target = srv
 			break
 		}
 	}
 
-	// If no LSD with matching k8s name found, return error
-	if targetLSD == nil {
-		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
+	if target == nil {
+		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
 	}
 
-	// Delete the LSD using the actual resource name
-	err = m.Client.Delete(ctx, &lsdapi.LlamaStackDistribution{ObjectMeta: metav1.ObjectMeta{Name: targetLSD.Name, Namespace: namespace}})
+	err = m.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: target.Name, Namespace: namespace}})
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
 	}
 
-	return targetLSD, nil
+	return target, nil
 }
 
-// CanListLlamaStackDistributions returns mock permission check for testing
-func (m *TokenKubernetesClientMock) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
-	// For testing purposes, always return true to allow LlamaStackDistribution listing
+// CanListOGXServers returns mock permission check for testing
+func (m *TokenKubernetesClientMock) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+	// For testing purposes, always return true to allow OGXServer listing
 	// In real scenarios, this would perform a SubjectAccessReview
 	return true, nil
 }
