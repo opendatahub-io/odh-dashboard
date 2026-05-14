@@ -27,6 +27,7 @@ jobs:
           RUN_ID=$(gh run list \
             --repo "$REPO" \
             --workflow dependency-validation.yml \
+            --limit 100 \
             --json databaseId,headSha,conclusion \
             --jq "[.[] | select(.headSha == \"$HEAD_SHA\" and .conclusion == \"success\")] | .[0].databaseId")
 

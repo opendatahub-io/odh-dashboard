@@ -116,6 +116,7 @@ jobs:
           else
             cd "base/${AUDIT_DIR}"
             npm install --ignore-scripts
+            npm run install:modules 2>/dev/null || true
             set +e
             npm audit --omit=dev --audit-level=high --json > audit-base.json 2>/dev/null
             set -e

@@ -2,7 +2,7 @@ name: Dependabot auto-label
 
 on:
   pull_request_target:
-    types: [opened]
+    types: [opened, synchronize]
 
 permissions:
   pull-requests: write
@@ -15,6 +15,19 @@ jobs:
       - name: Dependabot metadata
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@v3
+
+      - name: Remove stale version-update labels
+        if: steps.dependabot-metadata.outputs.update-type != ''
+        run: |
+          for label in version-update:semver-patch version-update:semver-minor version-update:semver-major; do
+            if [ "$label" != "$UPDATE_TYPE" ]; then
+              gh pr edit "$PR_URL" --remove-label "$label" 2>/dev/null || true
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.dependabot-metadata.outputs.update-type }}
 
       - name: Label with update type
         if: steps.dependabot-metadata.outputs.update-type != ''
