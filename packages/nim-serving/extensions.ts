@@ -37,7 +37,7 @@ const extensions: (
       component: () => import('./src/pages/projectSettings/NIMSettingsCard'),
     },
     flags: {
-      required: [SupportedArea.NIM_MODEL],
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
   {
