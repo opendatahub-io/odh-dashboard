@@ -98,7 +98,7 @@ const HardwareProfiles: React.FC = () => {
                   <Link {...props} to="/settings/environment-setup/hardware-profiles/create" />
                 )}
               >
-                Add new hardware profile
+                Create hardware profile
               </Button>
             </EmptyStateActions>
           </EmptyStateFooter>

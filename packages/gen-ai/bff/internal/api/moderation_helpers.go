@@ -63,8 +63,9 @@ func buildInlineGuardrailOptions(
 			Flows: []string{nemo.FlowSelfCheckInput},
 		}
 		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
-			Task:    nemo.TaskSelfCheckInput,
-			Content: inputPrompt,
+			Task:      nemo.TaskSelfCheckInput,
+			Content:   inputPrompt,
+			MaxTokens: 200,
 		})
 	}
 	if outputPrompt != "" {
@@ -72,8 +73,9 @@ func buildInlineGuardrailOptions(
 			Flows: []string{nemo.FlowSelfCheckOutput},
 		}
 		config.Prompts = append(config.Prompts, nemo.InlineGuardrailPrompt{
-			Task:    nemo.TaskSelfCheckOutput,
-			Content: outputPrompt,
+			Task:      nemo.TaskSelfCheckOutput,
+			Content:   outputPrompt,
+			MaxTokens: 200,
 		})
 	}
 
