@@ -32,7 +32,7 @@ Check that required tools are available before proceeding.
 
 ### Verification procedure
 
-1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks`
+1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks` and `comment_limit=50`
 2. If the call fails with an auth or connection error, stop and report:
    > Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the Atlassian MCP server.
 3. Verify GitHub CLI connectivity by running `gh api user`
@@ -59,27 +59,27 @@ If no explicit "Acceptance Criteria" section exists, look for:
 - A "Requirements" or "Definition of Done" section
 - Bullet-point lists that describe expected behavior or deliverables
 
-Also fetch Jira comments on the issue (use `jira_get_issue` with `comment_limit=50` or call `jira_get_issue` with `expand=renderedFields` to include comments). Review comments for clarifications, additional requirements, scope changes, or other useful information that may refine or supplement the acceptance criteria extracted from the description.
+Review Jira comments on the issue (already fetched in Phase 1 with `comment_limit=50`) for clarifications, additional requirements, scope changes, or other useful information that may refine or supplement the acceptance criteria extracted from the description.
 
 #### 1b. Traverse parent hierarchy and linked issues
 
 The target issue should contain its own acceptance criteria. Parent epics/stories and linked issues provide **context** to enhance understanding of the target issue's AC — they are not independent sources of criteria. Parent issues are typically broader in scope than the individual issue. Use parent, linked, and child issues only to clarify ambiguous criteria, fill in implicit requirements, or understand the broader feature context.
 
-**MANDATORY: Always walk the full parent chain.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Acceptance criteria at any ancestor level may constrain the child task. The only valid reason to stop is reaching an issue with no `parent` field (the root).
+**MANDATORY: Always walk the full parent chain.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Context from any ancestor level may be needed to fully understand the child task's criteria. The only valid reason to stop is reaching an issue with no `parent` field (the root).
 
 **Cycle detection:** Maintain a set of already-visited issue keys. Before fetching any issue (parent or linked), check whether it has already been visited. If so, skip it and continue. This prevents infinite loops from circular issue links.
 
-1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key with the same fields as Phase 1 step 1 (`fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks`) and extract any acceptance criteria from its description. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Fetch **every** ancestor regardless of whether intermediate levels contain criteria — a grandparent or great-grandparent may still have relevant acceptance criteria even if the immediate parent does not.
+1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks` (no `comment_limit` — comments are only reviewed on the target issue) and extract any acceptance criteria from its description. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Fetch **every** ancestor regardless of whether intermediate levels contain criteria — a grandparent or great-grandparent may still have relevant acceptance criteria even if the immediate parent does not.
 2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), call `jira_get_issue` for the linked issue key with `fields=summary,description,issuetype` and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements. Skip "is cloned by" (clones are often modified entirely and are unreliable), "duplicates", and other non-requirement relationships.
 3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
 
-De-duplicate criteria that appear in multiple issues. When a criterion appears in both the direct issue and a parent, keep it once and note that it originates from the parent.
+De-duplicate criteria that appear in multiple issues. When a criterion appears in both the direct issue and a parent, keep it once under the target issue — do not attribute it to the parent.
 
 #### 1c. Handle no criteria found
 
 If no structured criteria can be found in the issue (including after reviewing comments and parent/linked context), **stop and fail** with the following report:
 
-> **Evaluation failed:** No acceptance criteria found in [RHOAIENG-{key}]({url}). The issue description does not contain structured acceptance criteria, requirements, or a definition of done. Please update the issue with explicit acceptance criteria before running this evaluation.
+> **Evaluation failed:** No acceptance criteria found in [{issue_key}](https://redhat.atlassian.net/browse/{issue_key}). The issue description does not contain structured acceptance criteria, requirements, or a definition of done. Please update the issue with explicit acceptance criteria before running this evaluation.
 
 Do **not** fall back to using the issue summary as a criterion. Without explicit AC, the evaluation cannot produce meaningful results.
 
@@ -93,8 +93,8 @@ If the PR references **multiple Jira issues** (e.g., the PR title or body mentio
 
 Resolve the PR to evaluate. **Auto-detection from the current branch is the default** when no PR number or URL is provided.
 
-1. **User provided a PR number or URL** — use it directly
-2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then run `gh pr view --json number,title,url,isDraft` to find the open PR for that branch
+1. **User provided a PR number or URL** — run `gh pr view {number} --json number,title,url,body,state,baseRefName` to fetch metadata
+2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then run `gh pr view --json number,title,url,body,state,baseRefName` to find the open PR for that branch
    - **If on `main`:** stop and report an error:
      > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
    - **If on a feature branch with an open PR:** use that PR
@@ -104,7 +104,7 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 
 **If a PR was resolved:**
 
-1. Run `gh pr view {number} --json title,body,state,baseRefName` to get PR metadata
+1. Reuse PR metadata from Step 2 (`title`, `body`, `state`, `baseRefName` were already fetched — no redundant call)
 2. Run `gh pr diff {number}` to get the full diff
 3. Run `gh pr view {number} --json files --jq '.files[].path'` to get the list of changed files
 
@@ -114,7 +114,6 @@ Resolve the PR to evaluate. **Auto-detection from the current branch is the defa
 2. Use `git diff --name-only main...HEAD` to get the list of changed files
 3. Read key changed files from the local workspace using the `Read` tool
 
-
 ## Phase 3: Evaluate Criteria
 
 For each acceptance criterion, assess whether the code changes satisfy it.
@@ -123,7 +122,7 @@ For each acceptance criterion, assess whether the code changes satisfy it.
 
 For each criterion:
 
-1. **Identify relevant changes** — which files and diff hunks relate to this criterion
+1. **Identify relevant changes** — which files and diff hunks relate to this criterion. For large diffs, prioritize files whose names or paths are most relevant to the criterion rather than reading every hunk sequentially. When the diff context is insufficient, use the `Read` tool to examine surrounding code in the full file.
 2. **Assess coverage** — does the code change fully address the criterion?
 3. **Check for edge cases** — are there obvious gaps or missing pieces?
 4. **Assign a verdict**
@@ -156,7 +155,7 @@ Present the report in this format:
 **Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
 **Related issues analyzed:** {list of parent/linked issue keys with links, or "none" if only the direct issue}
 **PR:** [#{number}]({url}) — {title}
-**Status:** {N}/{total} criteria satisfied
+**Status:** {N}/{total} criteria satisfied{, M partial if any}
 
 ### Per-Criterion Evaluation
 
