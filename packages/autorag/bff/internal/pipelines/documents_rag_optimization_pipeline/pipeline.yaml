@@ -2,18 +2,18 @@
 # Name: documents-rag-optimization-pipeline
 # Description: Automated system for building and optimizing Retrieval-Augmented Generation (RAG) applications
 # Inputs:
-#    embeddings_models: list
+#    embedding_models: list
 #    generation_models: list
 #    input_data_bucket_name: str
 #    input_data_key: str [Default: '']
 #    input_data_secret_name: str
-#    llama_stack_secret_name: str
-#    llama_stack_vector_io_provider_id: str
+#    ogx_secret_name: str
 #    optimization_max_rag_patterns: int [Default: 8.0]
 #    optimization_metric: str [Default: 'faithfulness']
 #    test_data_bucket_name: str
 #    test_data_key: str
 #    test_data_secret_name: str
+#    vector_io_provider_id: str
 components:
   comp-documents-discovery:
     executorLabel: exec-documents-discovery
@@ -119,35 +119,10 @@ components:
           description: A path pointing to test data used for evaluating RAG pattern
             quality.
       parameters:
-        chat_model_token:
-          description: Optional API token for the chat model endpoint. Omit if deployment
-            has no auth.
-          isOptional: true
-          parameterType: STRING
-        chat_model_url:
-          description: 'Inference endpoint URL for the chat/generation model (OpenAI-compatible).
-
-            Required for in-memory scenario.'
-          isOptional: true
-          parameterType: STRING
-        embedding_model_token:
-          description: Optional API token for the embedding model endpoint. Omit if
-            no auth.
-          isOptional: true
-          parameterType: STRING
-        embedding_model_url:
-          description: Inference endpoint URL for the embedding model. Required for
-            in-memory scenario.
-          isOptional: true
-          parameterType: STRING
         input_data_key:
           defaultValue: ''
           description: A path to documents dir within a bucket used as an input to
             AI4RAG experiment.
-          isOptional: true
-          parameterType: STRING
-        llama_stack_vector_io_provider_id:
-          description: Vector I/O provider identifier as registered in llama-stack.
           isOptional: true
           parameterType: STRING
         optimization_settings:
@@ -157,6 +132,9 @@ components:
         test_data_key:
           description: Path to the benchmark JSON file in object storage used by generated
             notebooks.
+          parameterType: STRING
+        vector_io_provider_id:
+          description: Vector I/O provider identifier as registered in OGX.
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -190,23 +168,7 @@ components:
             from input documents. Necessary baseline for calculating quality metrics
             of RAG pipeline.'
       parameters:
-        chat_model_token:
-          description: API token for the chat model endpoint.
-          isOptional: true
-          parameterType: STRING
-        chat_model_url:
-          description: Base URL for the chat/generation model API.
-          isOptional: true
-          parameterType: STRING
-        embedding_model_token:
-          description: API token for the embedding model endpoint.
-          isOptional: true
-          parameterType: STRING
-        embedding_model_url:
-          description: Base URL for the embedding model API.
-          isOptional: true
-          parameterType: STRING
-        embeddings_models:
+        embedding_models:
           description: 'List of embedding model identifiers to try out in the experiment
             process.
 
@@ -385,7 +347,7 @@ deploymentSpec:
           \ DOCUMENTS_DESCRIPTOR_FILENAME)\n    with open(descriptor_path, \"w\")\
           \ as f:\n        json.dump(descriptor, f, indent=2)\n\n    logger.info(\"\
           Documents descriptor written to %s\", descriptor_path)\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -670,7 +632,7 @@ deploymentSpec:
           \    )\n\n    Path(html_artifact.path).parent.mkdir(parents=True, exist_ok=True)\n\
           \    with open(html_artifact.path, \"w\", encoding=\"utf-8\") as f:\n  \
           \      f.write(html_content)\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 1.0
@@ -708,64 +670,62 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef prepare_responses_api_requests(\n    rag_patterns: dsl.InputPath(dsl.Artifact),\n\
           \    responses_api_artifacts: dsl.Output[dsl.Artifact],\n):\n    \"\"\"\
-          Emit one Llama Stack ``POST /v1/responses`` JSON body per RAG pattern directory.\n\
+          Emit one OGX ``POST /v1/responses`` JSON body per RAG pattern directory.\n\
           \n    Expects the ``rag_patterns`` layout from ``rag_templates_optimization``:\
           \ each subdirectory\n    contains ``pattern.json``. For each pattern, writes\
           \ ``v1_responses_body.json``,\n    ``create_model_response.py``, and ``README.md``\
           \ (how to run the script) under a matching\n    output subdirectory.\n \
-          \   The helper script embeds the Llama Stack base URL from environment variable\n\
-          \    ``LLAMA_STACK_CLIENT_BASE_URL`` at pipeline run time (default ``http://localhost:8321``\
+          \   The helper script embeds the OGX base URL from environment variable\n\
+          \    ``OGX_CLIENT_BASE_URL`` at pipeline run time (default ``http://localhost:8321``\
           \ if unset);\n    each per-pattern ``README.md`` documents how to run the\
           \ script and override that URL if needed.\n    The generated ``create_model_response.py``\
-          \ resolves the API key from ``LLAMA_STACK_CLIENT_API_KEY``\n    or ``LLAMA_STACK_API_KEY``\
+          \ resolves the API key from ``OGX_CLIENT_API_KEY``\n    or ``OGX_API_KEY``\
           \ (or a one-time prompt), sets ``os.environ`` for the process when you\n\
           \    type a key at the prompt, then loops on questions until an empty line.\
           \ No secret file is written.\n    For TLS, the script honors ``REQUESTS_CA_BUNDLE``\
           \ / ``SSL_CERT_FILE`` for custom CA bundles\n    (e.g. corporate/private\
-          \ PKI), and ``LLAMA_STACK_TLS_INSECURE=1`` as a dev-only opt-out that\n\
-          \    disables certificate verification with a stderr warning.\n\n    Request-body\
-          \ construction is defined inside this function so Kubeflow embeds it in\n\
-          \    ``ephemeral_component.py`` (module-level helpers in this file are not\
-          \ shipped to the executor).\n\n    The generated body matches OpenAI-compatible\
-          \ ``POST /v1/responses`` (see OpenAI's\n    `Migrate to the Responses API\
-          \ <https://developers.openai.com/api/docs/guides/migrate-to-responses>`__\n\
-          \    and Llama Stack's ``POST /v1/responses``): ``model``, ``input``, ``stream``,\
+          \ PKI), and ``OGX_TLS_INSECURE=1`` as a dev-only opt-out that\n    disables\
+          \ certificate verification with a stderr warning.\n\n    Request-body construction\
+          \ is defined inside this function so Kubeflow embeds it in\n    ``ephemeral_component.py``\
+          \ (module-level helpers in this file are not shipped to the executor).\n\
+          \n    The generated body matches OpenAI-compatible ``POST /v1/responses``\
+          \ (see OpenAI's\n    `Migrate to the Responses API <https://developers.openai.com/api/docs/guides/migrate-to-responses>`__\n\
+          \    and OGX's ``POST /v1/responses``): ``model``, ``input``, ``stream``,\
           \ ``store``,\n    ``metadata`` (string values only), optional ``instructions``,\
           \ and optional ``tools`` /\n    ``file_search`` when a collection name is\
           \ set, plus ``tool_choice`` forcing file search\n    and ``include: [\"\
           file_search_call.results\"]`` to return file-search hits in the response.\n\
-          \    Replace\n    ``vector_store_ids`` with Llama Stack--registered vector\
-          \ store identifiers if your deployment\n    does not use the collection\
-          \ name as the store id.\n\n    Args:\n        rag_patterns: Local path to\
-          \ the ``rag_patterns`` directory (same layout as ``leaderboard_evaluation``).\n\
-          \        responses_api_artifacts: Output directory artifact; mirrors pattern\
-          \ folder names (JSON body,\n            helper script, and README per pattern).\n\
-          \            Request bodies use ``RESPONSES_BODY_DEFAULT_QUESTION`` as the\
-          \ placeholder user message;\n            the interactive script replaces\
-          \ it when you run it locally.\n    \"\"\"\n    import json\n    import os\n\
-          \    from pathlib import Path\n\n    # Fixed placeholder question embedded\
-          \ in generated ``POST /v1/responses`` bodies (overridden at\n    # runtime\
-          \ by ``create_model_response.py`` when the user enters a question).\n  \
-          \  RESPONSES_BODY_DEFAULT_QUESTION = \"What information is available in\
-          \ the indexed knowledge base?\"\n\n    output_filename = \"v1_responses_body.json\"\
-          \n    script_filename = \"create_model_response.py\"\n    readme_filename\
-          \ = \"README.md\"\n    llama_stack_base_url = (\n        (os.environ.get(\"\
-          LLAMA_STACK_CLIENT_BASE_URL\") or \"http://localhost:8321\").strip().rstrip(\"\
-          /\")\n    )\n    grounding_instruction = (\n        \"Use only information\
-          \ found in file_search results. \"\n        'If file_search results are\
-          \ insufficient, reply exactly: \"I cannot answer based on the provided context.\"\
-          '\n    )\n    default_language_instruction = \"Respond in the same language\
-          \ as the user question.\"\n    default_instructions = f\"{grounding_instruction}\
-          \ {default_language_instruction}\"\n\n    def _metadata_string_values(pattern:\
-          \ dict) -> dict[str, str]:\n        \"\"\"Build compact metadata dict with\
-          \ string values only (Llama Stack API constraint).\"\"\"\n        settings\
-          \ = pattern.get(\"settings\") or {}\n        vs = settings.get(\"vector_store\"\
-          ) or {}\n        emb = settings.get(\"embedding\") or {}\n        return\
-          \ {\n            \"rag_pattern_name\": str(pattern.get(\"name\") or \"\"\
-          ),\n            \"rag_pattern_iteration\": str(pattern.get(\"iteration\"\
-          , \"\")),\n            \"vector_datasource_type\": str(vs.get(\"datasource_type\"\
-          ) or \"\"),\n            \"embedding_model_id\": str(emb.get(\"model_id\"\
-          ) or \"\"),\n        }\n\n    def _ranking_options_from_retrieval(retrieval:\
+          \    Replace\n    ``vector_store_ids`` with OGX-registered vector store\
+          \ identifiers if your deployment\n    does not use the collection name as\
+          \ the store id.\n\n    Args:\n        rag_patterns: Local path to the ``rag_patterns``\
+          \ directory (same layout as ``leaderboard_evaluation``).\n        responses_api_artifacts:\
+          \ Output directory artifact; mirrors pattern folder names (JSON body,\n\
+          \            helper script, and README per pattern).\n            Request\
+          \ bodies use ``RESPONSES_BODY_DEFAULT_QUESTION`` as the placeholder user\
+          \ message;\n            the interactive script replaces it when you run\
+          \ it locally.\n    \"\"\"\n    import json\n    import os\n    from pathlib\
+          \ import Path\n\n    # Fixed placeholder question embedded in generated\
+          \ ``POST /v1/responses`` bodies (overridden at\n    # runtime by ``create_model_response.py``\
+          \ when the user enters a question).\n    RESPONSES_BODY_DEFAULT_QUESTION\
+          \ = \"What information is available in the indexed knowledge base?\"\n\n\
+          \    output_filename = \"v1_responses_body.json\"\n    script_filename =\
+          \ \"create_model_response.py\"\n    readme_filename = \"README.md\"\n  \
+          \  ogx_base_url = (os.environ.get(\"OGX_CLIENT_BASE_URL\") or \"http://localhost:8321\"\
+          ).strip().rstrip(\"/\")\n    grounding_instruction = (\n        \"Use only\
+          \ information found in file_search results. \"\n        'If file_search\
+          \ results are insufficient, reply exactly: \"I cannot answer based on the\
+          \ provided context.\"'\n    )\n    default_language_instruction = \"Respond\
+          \ in the same language as the user question.\"\n    default_instructions\
+          \ = f\"{grounding_instruction} {default_language_instruction}\"\n\n    def\
+          \ _metadata_string_values(pattern: dict) -> dict[str, str]:\n        \"\"\
+          \"Build compact metadata dict with string values only (OGX API constraint).\"\
+          \"\"\n        settings = pattern.get(\"settings\") or {}\n        vs = settings.get(\"\
+          vector_store\") or {}\n        emb = settings.get(\"embedding\") or {}\n\
+          \        return {\n            \"rag_pattern_name\": str(pattern.get(\"\
+          name\") or \"\"),\n            \"rag_pattern_iteration\": str(pattern.get(\"\
+          iteration\", \"\")),\n            \"vector_datasource_type\": str(vs.get(\"\
+          datasource_type\") or \"\"),\n            \"embedding_model_id\": str(emb.get(\"\
+          model_id\") or \"\"),\n        }\n\n    def _ranking_options_from_retrieval(retrieval:\
           \ dict) -> dict | None:\n        \"\"\"Map hybrid retrieval settings to\
           \ file_search ranking_options when possible.\"\"\"\n        search_mode\
           \ = str(retrieval.get(\"search_mode\") or \"\").strip().lower()\n      \
@@ -829,66 +789,64 @@ deploymentSpec:
           \        elif \"same language as the user question\" not in lowered and\
           \ \"language of the question\" not in lowered:\n            parts.append(default_language_instruction)\n\
           \        return \" \".join(p.strip() for p in parts if p and p.strip())\n\
-          \n    def _build_llama_stack_v1_responses_body(pattern: dict) -> dict:\n\
-          \        \"\"\"Build the JSON object sent as the HTTP body for Llama Stack\
-          \ ``POST /v1/responses``.\"\"\"\n        settings = pattern.get(\"settings\"\
-          ) or {}\n        generation = settings.get(\"generation\") or {}\n     \
-          \   model_id = str(generation.get(\"model_id\") or \"\").strip()\n     \
-          \   instructions = _compose_instructions(generation)\n\n        tools =\
-          \ _tools_from_pattern(pattern)\n        body: dict = {\n            \"model\"\
-          : model_id,\n            \"stream\": False,\n            \"store\": True,\n\
-          \            \"input\": [\n                {\n                    \"type\"\
-          : \"message\",\n                    \"role\": \"user\",\n              \
-          \      \"content\": [\n                        {\n                     \
-          \       \"type\": \"input_text\",\n                            \"text\"\
-          : _user_message_placeholder_text(),\n                        }\n       \
-          \             ],\n                }\n            ],\n            \"metadata\"\
-          : _metadata_string_values(pattern),\n        }\n        body[\"instructions\"\
-          ] = instructions.strip()\n        if tools:\n            body[\"tools\"\
-          ] = tools\n            body[\"tool_choice\"] = {\"type\": \"file_search\"\
-          }\n            body[\"include\"] = [\"file_search_call.results\"]\n    \
-          \    return body\n\n    def _request_script_contents(base_url: str) -> str:\n\
-          \        \"\"\"Build a runnable script that loads local JSON and posts to\
-          \ ``/v1/responses``.\"\"\"\n        return f'''#!/usr/bin/env python3\n\"\
-          \"\"Interactive helper: load v1_responses_body.json and call POST /v1/responses.\"\
-          \"\"\n\nimport copy\nimport json\nimport os\nfrom getpass import getpass\n\
-          from pathlib import Path\nfrom urllib import request\nfrom urllib.error\
-          \ import HTTPError, URLError\nimport ssl\nimport sys\n\n\nLLAMA_STACK_BASE_URL\
-          \ = \"{base_url.rstrip(\"/\")}\"\nBODY_PATH = Path(__file__).with_name(\"\
+          \n    def _build_ogx_v1_responses_body(pattern: dict) -> dict:\n       \
+          \ \"\"\"Build the JSON object sent as the HTTP body for OGX ``POST /v1/responses``.\"\
+          \"\"\n        settings = pattern.get(\"settings\") or {}\n        generation\
+          \ = settings.get(\"generation\") or {}\n        model_id = str(generation.get(\"\
+          model_id\") or \"\").strip()\n        instructions = _compose_instructions(generation)\n\
+          \n        tools = _tools_from_pattern(pattern)\n        body: dict = {\n\
+          \            \"model\": model_id,\n            \"stream\": False,\n    \
+          \        \"store\": True,\n            \"input\": [\n                {\n\
+          \                    \"type\": \"message\",\n                    \"role\"\
+          : \"user\",\n                    \"content\": [\n                      \
+          \  {\n                            \"type\": \"input_text\",\n          \
+          \                  \"text\": _user_message_placeholder_text(),\n       \
+          \                 }\n                    ],\n                }\n       \
+          \     ],\n            \"metadata\": _metadata_string_values(pattern),\n\
+          \        }\n        body[\"instructions\"] = instructions.strip()\n    \
+          \    if tools:\n            body[\"tools\"] = tools\n            body[\"\
+          tool_choice\"] = {\"type\": \"file_search\"}\n            body[\"include\"\
+          ] = [\"file_search_call.results\"]\n        return body\n\n    def _request_script_contents(base_url:\
+          \ str) -> str:\n        \"\"\"Build a runnable script that loads local JSON\
+          \ and posts to ``/v1/responses``.\"\"\"\n        return f'''#!/usr/bin/env\
+          \ python3\n\"\"\"Interactive helper: load v1_responses_body.json and call\
+          \ POST /v1/responses.\"\"\"\n\nimport copy\nimport json\nimport os\nfrom\
+          \ getpass import getpass\nfrom pathlib import Path\nfrom urllib import request\n\
+          from urllib.error import HTTPError, URLError\nimport ssl\nimport sys\n\n\
+          \nOGX_BASE_URL = \"{base_url.rstrip(\"/\")}\"\nBODY_PATH = Path(__file__).with_name(\"\
           {output_filename}\")\n\n\ndef _set_question(body: dict, question: str) ->\
           \ None:\n    \"\"\"Replace first user input_text payload with an interactive\
           \ question.\"\"\"\n    try:\n        body[\"input\"][0][\"content\"][0][\"\
           text\"] = question\n    except (KeyError, IndexError, TypeError):\n    \
           \    pass\n\n\ndef _api_key_from_env() -> str:\n    return (\n        os.environ.get(\"\
-          LLAMA_STACK_CLIENT_API_KEY\", \"\").strip()\n        or os.environ.get(\"\
-          LLAMA_STACK_API_KEY\", \"\").strip()\n    )\n\n\ndef _apply_api_key_to_env(key:\
-          \ str) -> None:\n    \"\"\"Store key only in this process environment (for\
-          \ the rest of this run).\"\"\"\n    if not key:\n        return\n    os.environ[\"\
-          LLAMA_STACK_CLIENT_API_KEY\"] = key\n    os.environ[\"LLAMA_STACK_API_KEY\"\
-          ] = key\n\n\ndef _resolve_api_key_once() -> str:\n    \"\"\"Use ``LLAMA_STACK_CLIENT_API_KEY``\
-          \ / ``LLAMA_STACK_API_KEY``, else one interactive prompt.\"\"\"\n    key\
-          \ = _api_key_from_env()\n    if key:\n        return key\n    key = getpass(\"\
-          Llama Stack API key (press Enter if not required): \").strip()\n    if key:\n\
-          \        _apply_api_key_to_env(key)\n    return key\n\n\ndef _build_ssl_context():\n\
-          \    \"\"\"Build an SSLContext honoring corporate CA bundles or a dev-only\
-          \ insecure flag.\n\n    Precedence:\n      1. LLAMA_STACK_TLS_INSECURE=1\
-          \  -> verification disabled (dev only, prints warning)\n      2. REQUESTS_CA_BUNDLE\
-          \          -> custom CA bundle path\n      3. SSL_CERT_FILE            \
-          \   -> custom CA bundle path\n      4. None                        -> stdlib\
-          \ default (system trust store)\n    \"\"\"\n    insecure = os.environ.get(\"\
-          LLAMA_STACK_TLS_INSECURE\", \"\").strip().lower() in (\"1\", \"true\", \"\
-          yes\", \"on\")\n    if insecure:\n        print(\n            \"WARNING:\
-          \ TLS verification is DISABLED (LLAMA_STACK_TLS_INSECURE=1). \"\n      \
-          \      \"Do not use this against production Llama Stack deployments.\",\n\
-          \            file=sys.stderr,\n        )\n        ctx = ssl.create_default_context()\n\
+          OGX_CLIENT_API_KEY\", \"\").strip()\n        or os.environ.get(\"OGX_API_KEY\"\
+          , \"\").strip()\n    )\n\n\ndef _apply_api_key_to_env(key: str) -> None:\n\
+          \    \"\"\"Store key only in this process environment (for the rest of this\
+          \ run).\"\"\"\n    if not key:\n        return\n    os.environ[\"OGX_CLIENT_API_KEY\"\
+          ] = key\n    os.environ[\"OGX_API_KEY\"] = key\n\n\ndef _resolve_api_key_once()\
+          \ -> str:\n    \"\"\"Use ``OGX_CLIENT_API_KEY`` / ``OGX_API_KEY``, else\
+          \ one interactive prompt.\"\"\"\n    key = _api_key_from_env()\n    if key:\n\
+          \        return key\n    key = getpass(\"OGX API key (press Enter if not\
+          \ required): \").strip()\n    if key:\n        _apply_api_key_to_env(key)\n\
+          \    return key\n\n\ndef _build_ssl_context():\n    \"\"\"Build an SSLContext\
+          \ honoring corporate CA bundles or a dev-only insecure flag.\n\n    Precedence:\n\
+          \      1. OGX_TLS_INSECURE=1  -> verification disabled (dev only, prints\
+          \ warning)\n      2. REQUESTS_CA_BUNDLE          -> custom CA bundle path\n\
+          \      3. SSL_CERT_FILE               -> custom CA bundle path\n      4.\
+          \ None                        -> stdlib default (system trust store)\n \
+          \   \"\"\"\n    insecure = os.environ.get(\"OGX_TLS_INSECURE\", \"\").strip().lower()\
+          \ in (\"1\", \"true\", \"yes\", \"on\")\n    if insecure:\n        print(\n\
+          \            \"WARNING: TLS verification is DISABLED (OGX_TLS_INSECURE=1).\
+          \ \"\n            \"Do not use this against production OGX deployments.\"\
+          ,\n            file=sys.stderr,\n        )\n        ctx = ssl.create_default_context()\n\
           \        ctx.check_hostname = False\n        ctx.verify_mode = ssl.CERT_NONE\n\
           \        return ctx\n    cafile = (\n        os.environ.get(\"REQUESTS_CA_BUNDLE\"\
           , \"\").strip()\n        or os.environ.get(\"SSL_CERT_FILE\", \"\").strip()\n\
           \    )\n    if cafile:\n        return ssl.create_default_context(cafile=cafile)\n\
           \    return None\n\n\ndef _post_responses(body: dict, api_key: str, ssl_context)\
-          \ -> int:\n    url = f\"{{LLAMA_STACK_BASE_URL}}/v1/responses\"\n    headers\
-          \ = {{\n        \"Content-Type\": \"application/json\",\n        \"Accept\"\
-          : \"application/json\",\n    }}\n    if api_key:\n        headers[\"Authorization\"\
+          \ -> int:\n    url = f\"{{OGX_BASE_URL}}/v1/responses\"\n    headers = {{\n\
+          \        \"Content-Type\": \"application/json\",\n        \"Accept\": \"\
+          application/json\",\n    }}\n    if api_key:\n        headers[\"Authorization\"\
           ] = f\"Bearer {{api_key}}\"\n\n    req = request.Request(\n        url=url,\n\
           \        data=json.dumps(body).encode(\"utf-8\"),\n        headers=headers,\n\
           \        method=\"POST\",\n    )\n\n    try:\n        with request.urlopen(req,\
@@ -911,98 +869,95 @@ deploymentSpec:
           \ str) -> str:\n        \"\"\"Short README next to each pattern's JSON and\
           \ script.\"\"\"\n        url = base_url.rstrip(\"/\")\n        ofn = output_filename\n\
           \        sfn = script_filename\n        return (\n            f\"# Call\
-          \ Llama Stack ``POST /v1/responses`` for this RAG pattern\\n\\n\"\n    \
-          \        f\"This folder contains:\\n\\n\"\n            f\"- ``{ofn}`` \u2014\
-          \ request body for the OpenAI-compatible Responses API \"\n            f\"\
-          (Llama Stack ``/v1/responses``).\\n\"\n            f\"- ``{sfn}`` \u2014\
-          \ interactive helper that loads the JSON, resolves the API key from \"\n\
-          \            f\"environment variables or one prompt (then sets ``os.environ``\
-          \ for this run only), \"\n            f\"then loops: ask a question, POST,\
-          \ repeat until you enter an empty question.\\n\\n\"\n            \"## Prerequisites\\\
-          n\\n\"\n            \"- Python 3 available on your PATH as ``python3`` \"\
-          \n            \"(or run with your Python interpreter).\\n\"\n          \
-          \  \"- Network reachability to Llama Stack.\\n\"\n            f\"- Keep\
-          \ ``{ofn}`` in the **same directory** as ``{sfn}`` \"\n            \"(the\
-          \ script loads the JSON from alongside itself).\\n\\n\"\n            \"\
-          ## Server URL\\n\\n\"\n            \"The script was generated with:\\n\\\
-          n\"\n            \"```text\\n\"\n            f'LLAMA_STACK_BASE_URL = \"\
-          {url}\"\\n'\n            \"```\\n\\n\"\n            \"That value came from\
-          \ the pipeline run (environment variable \"\n            \"``LLAMA_STACK_CLIENT_BASE_URL``,\
-          \ or ``http://localhost:8321`` if unset). \"\n            f\"To use a different\
-          \ URL, edit ``LLAMA_STACK_BASE_URL`` inside ``{sfn}``, or re-run \"\n  \
-          \          \"the pipeline step with ``LLAMA_STACK_CLIENT_BASE_URL`` set\
-          \ as needed.\\n\\n\"\n            \"## Run\\n\\n\"\n            \"From this\
-          \ directory:\\n\\n\"\n            \"```bash\\n\"\n            f\"python3\
+          \ OGX ``POST /v1/responses`` for this RAG pattern\\n\\n\"\n            f\"\
+          This folder contains:\\n\\n\"\n            f\"- ``{ofn}`` \u2014 request\
+          \ body for the OpenAI-compatible Responses API \"\n            f\"(OGX ``/v1/responses``).\\\
+          n\"\n            f\"- ``{sfn}`` \u2014 interactive helper that loads the\
+          \ JSON, resolves the API key from \"\n            f\"environment variables\
+          \ or one prompt (then sets ``os.environ`` for this run only), \"\n     \
+          \       f\"then loops: ask a question, POST, repeat until you enter an empty\
+          \ question.\\n\\n\"\n            \"## Prerequisites\\n\\n\"\n          \
+          \  \"- Python 3 available on your PATH as ``python3`` \"\n            \"\
+          (or run with your Python interpreter).\\n\"\n            \"- Network reachability\
+          \ to OGX.\\n\"\n            f\"- Keep ``{ofn}`` in the **same directory**\
+          \ as ``{sfn}`` \"\n            \"(the script loads the JSON from alongside\
+          \ itself).\\n\\n\"\n            \"## Server URL\\n\\n\"\n            \"\
+          The script was generated with:\\n\\n\"\n            \"```text\\n\"\n   \
+          \         f'OGX_BASE_URL = \"{url}\"\\n'\n            \"```\\n\\n\"\n  \
+          \          \"That value came from the pipeline run (environment variable\
+          \ \"\n            \"``OGX_CLIENT_BASE_URL``, or ``http://localhost:8321``\
+          \ if unset). \"\n            f\"To use a different URL, edit ``OGX_BASE_URL``\
+          \ inside ``{sfn}``, or re-run \"\n            \"the pipeline step with ``OGX_CLIENT_BASE_URL``\
+          \ set as needed.\\n\\n\"\n            \"## Run\\n\\n\"\n            \"From\
+          \ this directory:\\n\\n\"\n            \"```bash\\n\"\n            f\"python3\
           \ {sfn}\\n\"\n            \"```\\n\\n\"\n            \"Optional:\\n\\n\"\
           \n            \"```bash\\n\"\n            f\"chmod +x {sfn}\\n\"\n     \
           \       f\"./{sfn}\\n\"\n            \"```\\n\\n\"\n            \"Flow:\\\
-          n\\n\"\n            \"1. **API key** \u2014 use ``LLAMA_STACK_CLIENT_API_KEY``\
-          \ or ``LLAMA_STACK_API_KEY`` \"\n            \"(recommended: export in your\
-          \ shell before running). If unset, you are prompted \"\n            \"**once**;\
-          \ a typed key is applied only to this process (``os.environ`` for the rest\
-          \ \"\n            \"of this run). Press Enter if your server needs no bearer\
+          n\\n\"\n            \"1. **API key** \u2014 use ``OGX_CLIENT_API_KEY`` or\
+          \ ``OGX_API_KEY`` \"\n            \"(recommended: export in your shell before\
+          \ running). If unset, you are prompted \"\n            \"**once**; a typed\
+          \ key is applied only to this process (``os.environ`` for the rest \"\n\
+          \            \"of this run). Press Enter if your server needs no bearer\
           \ token.\\n\"\n            \"2. **Questions** \u2014 repeatedly enter a\
           \ question; each request uses a fresh copy of \"\n            \"the JSON\
           \ body. An **empty line** exits.\\n\\n\"\n            \"Each response body\
           \ is printed to stdout (JSON).\\n\\n\"\n            \"To reuse the same\
-          \ key in a **new** shell session, export \"\n            \"``LLAMA_STACK_CLIENT_API_KEY``\
-          \ (or ``LLAMA_STACK_API_KEY``) again; nothing is \"\n            \"written\
-          \ to disk by this script.\\n\\n\"\n            \"## TLS / certificates\\\
-          n\\n\"\n            \"The script uses Python's standard library (``urllib``\
-          \ + ``ssl``). It honors these \"\n            \"environment variables, in\
-          \ order of precedence:\\n\\n\"\n            \"1. **``LLAMA_STACK_TLS_INSECURE=1``**\
-          \ \u2014 **dev only.** Disables TLS verification \"\n            \"entirely\
-          \ (``check_hostname=False``, ``verify_mode=CERT_NONE``) and prints a warning\
-          \ \"\n            \"to stderr. **Never** use this against a production Llama\
-          \ Stack deployment; it \"\n            \"exposes you to man-in-the-middle\
-          \ attacks.\\n\"\n            \"2. **``REQUESTS_CA_BUNDLE=/path/to/ca-bundle.pem``**\
-          \ \u2014 path to a PEM file containing \"\n            \"the CA(s) that\
-          \ signed your Llama Stack server certificate. Use this when your \"\n  \
-          \          \"deployment is fronted by a private/corporate CA that is not\
-          \ in the OS default trust \"\n            \"store.\\n\"\n            \"\
-          3. **``SSL_CERT_FILE=/path/to/ca-bundle.pem``** \u2014 same effect as \"\
-          \n            \"``REQUESTS_CA_BUNDLE``; honored for compatibility with the\
-          \ Python stdlib \"\n            \"convention.\\n\"\n            \"4. If\
-          \ none of the above are set, the script uses the system trust store.\\n\\\
-          n\"\n            \"Example (private/corporate CA):\\n\\n\"\n           \
-          \ \"```bash\\n\"\n            \"export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/corporate-ca.pem\\\
+          \ key in a **new** shell session, export \"\n            \"``OGX_CLIENT_API_KEY``\
+          \ (or ``OGX_API_KEY``) again; nothing is \"\n            \"written to disk\
+          \ by this script.\\n\\n\"\n            \"## TLS / certificates\\n\\n\"\n\
+          \            \"The script uses Python's standard library (``urllib`` + ``ssl``).\
+          \ It honors these \"\n            \"environment variables, in order of precedence:\\\
+          n\\n\"\n            \"1. **``OGX_TLS_INSECURE=1``** \u2014 **dev only.**\
+          \ Disables TLS verification \"\n            \"entirely (``check_hostname=False``,\
+          \ ``verify_mode=CERT_NONE``) and prints a warning \"\n            \"to stderr.\
+          \ **Never** use this against a production OGX deployment; it \"\n      \
+          \      \"exposes you to man-in-the-middle attacks.\\n\"\n            \"\
+          2. **``REQUESTS_CA_BUNDLE=/path/to/ca-bundle.pem``** \u2014 path to a PEM\
+          \ file containing \"\n            \"the CA(s) that signed your OGX server\
+          \ certificate. Use this when your \"\n            \"deployment is fronted\
+          \ by a private/corporate CA that is not in the OS default trust \"\n   \
+          \         \"store.\\n\"\n            \"3. **``SSL_CERT_FILE=/path/to/ca-bundle.pem``**\
+          \ \u2014 same effect as \"\n            \"``REQUESTS_CA_BUNDLE``; honored\
+          \ for compatibility with the Python stdlib \"\n            \"convention.\\\
+          n\"\n            \"4. If none of the above are set, the script uses the\
+          \ system trust store.\\n\\n\"\n            \"Example (private/corporate\
+          \ CA):\\n\\n\"\n            \"```bash\\n\"\n            \"export REQUESTS_CA_BUNDLE=/etc/pki/tls/certs/corporate-ca.pem\\\
           n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
           \        \"Example (dev cluster with self-signed cert, **non-production**):\\\
-          n\\n\"\n            \"```bash\\n\"\n            \"export LLAMA_STACK_TLS_INSECURE=1\\\
+          n\\n\"\n            \"```bash\\n\"\n            \"export OGX_TLS_INSECURE=1\\\
           n\"\n            f\"python3 {sfn}\\n\"\n            \"```\\n\\n\"\n    \
           \        \"## Troubleshooting\\n\\n\"\n            f\"- **Missing JSON body\
           \ file** \u2014 restore ``{ofn}`` next to the script or \"\n           \
           \ \"re-download the artifact folder.\\n\"\n            \"- **TLS / certificate\
-          \ errors** (e.g. ``CERTIFICATE_VERIFY_FAILED``) \u2014 your Llama \"\n \
-          \           \"Stack server certificate is signed by a CA not in the OS trust\
-          \ store. See the \"\n            \"**TLS / certificates** section above\
-          \ for ``REQUESTS_CA_BUNDLE`` / ``SSL_CERT_FILE`` \"\n            \"and the\
-          \ dev-only ``LLAMA_STACK_TLS_INSECURE`` opt-out.\\n\"\n            \"- **Connection\
-          \ or HTTP errors** \u2014 confirm the base URL, firewall, and that \"\n\
-          \            \"the model and ``file_search`` / vector store identifiers\
-          \ in the JSON match your \"\n            \"deployment.\\n\"\n        )\n\
-          \n    root = Path(rag_patterns)\n    out_root = Path(responses_api_artifacts.path)\n\
+          \ errors** (e.g. ``CERTIFICATE_VERIFY_FAILED``) \u2014 your OGX \"\n   \
+          \         \"server certificate is signed by a CA not in the OS trust store.\
+          \ See the \"\n            \"**TLS / certificates** section above for ``REQUESTS_CA_BUNDLE``\
+          \ / ``SSL_CERT_FILE`` \"\n            \"and the dev-only ``OGX_TLS_INSECURE``\
+          \ opt-out.\\n\"\n            \"- **Connection or HTTP errors** \u2014 confirm\
+          \ the base URL, firewall, and that \"\n            \"the model and ``file_search``\
+          \ / vector store identifiers in the JSON match your \"\n            \"deployment.\\\
+          n\"\n        )\n\n    root = Path(rag_patterns)\n    out_root = Path(responses_api_artifacts.path)\n\
           \    out_root.mkdir(parents=True, exist_ok=True)\n\n    written: list[dict]\
           \ = []\n    if not root.is_dir():\n        raise FileNotFoundError(f\"rag_patterns\
           \ path is not a directory: {root}\")\n\n    for sub in sorted(p for p in\
           \ root.iterdir() if p.is_dir()):\n        pattern_path = sub / \"pattern.json\"\
           \n        if not pattern_path.is_file():\n            continue\n       \
           \ with pattern_path.open(encoding=\"utf-8\") as f:\n            pattern\
-          \ = json.load(f)\n        body = _build_llama_stack_v1_responses_body(pattern)\n\
+          \ = json.load(f)\n        body = _build_ogx_v1_responses_body(pattern)\n\
           \        dest_dir = out_root / sub.name\n        dest_dir.mkdir(parents=True,\
           \ exist_ok=True)\n        out_file = dest_dir / output_filename\n      \
           \  with out_file.open(\"w\", encoding=\"utf-8\") as out_f:\n           \
           \ json.dump(body, out_f, indent=2, ensure_ascii=False)\n        script_file\
-          \ = dest_dir / script_filename\n        script_file.write_text(_request_script_contents(llama_stack_base_url),\
+          \ = dest_dir / script_filename\n        script_file.write_text(_request_script_contents(ogx_base_url),\
           \ encoding=\"utf-8\")\n        readme_file = dest_dir / readme_filename\n\
-          \        readme_file.write_text(_pattern_readme_contents(llama_stack_base_url),\
+          \        readme_file.write_text(_pattern_readme_contents(ogx_base_url),\
           \ encoding=\"utf-8\")\n        written.append(\n            {\n        \
           \        \"pattern_dir\": sub.name,\n                \"body_path\": str(out_file),\n\
           \                \"script_path\": str(script_file),\n                \"\
           readme_path\": str(readme_file),\n            }\n        )\n\n    responses_api_artifacts.metadata[\"\
           name\"] = \"responses_api_artifacts\"\n    responses_api_artifacts.metadata[\"\
           metadata\"] = {\"patterns\": written}\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 0.5
@@ -1038,7 +993,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
+          \ *\n\n__KFP_EMBEDDED_ARCHIVE_B64 = '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'\n\
           \nimport base64 as __kfp_b64\nimport io as __kfp_io\nimport os as __kfp_os\n\
           import sys as __kfp_sys\nimport tarfile as __kfp_tarfile\nimport tempfile\
           \ as __kfp_tempfile\n\n# Extract embedded archive at import time to ensure\
@@ -1054,97 +1009,69 @@ deploymentSpec:
           \    test_data: dsl.InputPath(dsl.Artifact),\n    search_space_prep_report:\
           \ dsl.InputPath(dsl.Artifact),\n    rag_patterns: dsl.Output[dsl.Artifact],\n\
           \    embedded_artifact: dsl.EmbeddedInput[dsl.Dataset],\n    test_data_key:\
-          \ Optional[str],\n    chat_model_url: Optional[str] = None,\n    chat_model_token:\
-          \ Optional[str] = None,\n    embedding_model_url: Optional[str] = None,\n\
-          \    embedding_model_token: Optional[str] = None,\n    llama_stack_vector_io_provider_id:\
-          \ Optional[str] = None,\n    optimization_settings: Optional[dict] = None,\n\
-          \    input_data_key: Optional[str] = \"\",\n):\n    \"\"\"RAG Templates\
-          \ Optimization component.\n\n    Carries out the iterative RAG optimization\
-          \ process.\n\n    Args:\n        extracted_text: A path pointing to a folder\
-          \ containg extracted texts from input documents.\n\n        test_data: A\
-          \ path pointing to test data used for evaluating RAG pattern quality.\n\n\
-          \        search_space_prep_report: A path pointing to a .yml file containig\
-          \ short\n            report on the experiment's first phase (search space\
-          \ preparation).\n\n        rag_patterns: kfp-enforced argument specifying\
-          \ an output artifact. Provided by kfp backend automatically.\n\n       \
-          \ embedded_artifact: kfp-enforced argument to allow access of base64 encoded\
-          \ dir with notebook templates.\n\n        test_data_key: Path to the benchmark\
-          \ JSON file in object storage used by generated notebooks.\n\n        chat_model_url:\
-          \ Inference endpoint URL for the chat/generation model (OpenAI-compatible).\n\
-          \            Required for in-memory scenario.\n\n        chat_model_token:\
-          \ Optional API token for the chat model endpoint. Omit if deployment has\
-          \ no auth.\n\n        embedding_model_url: Inference endpoint URL for the\
-          \ embedding model. Required for in-memory scenario.\n\n        embedding_model_token:\
-          \ Optional API token for the embedding model endpoint. Omit if no auth.\n\
-          \n        llama_stack_vector_io_provider_id: Vector I/O provider identifier\
-          \ as registered in llama-stack.\n\n        optimization_settings: Additional\
-          \ settings customising the experiment.\n\n        input_data_key: A path\
-          \ to documents dir within a bucket used as an input to AI4RAG experiment.\n\
-          \n    Returns:\n        rag_patterns: Folder containing all generated RAG\
-          \ patterns (each subdir: pattern.json,\n            indexing_notebook.ipynb,\
-          \ inference_notebook.ipynb).\n    \"\"\"\n    # ChromaDB (via ai4rag) requires\
-          \ sqlite3 >= 3.35; RHEL9 base image has older sqlite.\n    # Patch stdlib\
-          \ sqlite3 with pysqlite3-binary before any ai4rag import.\n    import sys\n\
-          \n    try:\n        import pysqlite3\n\n        sys.modules[\"sqlite3\"\
-          ] = pysqlite3\n    except ImportError:\n        pass\n\n    import logging\n\
-          \    import os\n    import ssl\n    from collections import namedtuple\n\
-          \    from json import dump as json_dump\n    from json import load as json_load\n\
-          \    from pathlib import Path\n    from string import Formatter\n    from\
-          \ typing import Any, Literal, Self\n\n    import httpx\n    import pandas\
-          \ as pd\n    import yaml as yml\n    from ai4rag.core.experiment.experiment\
+          \ Optional[str],\n    vector_io_provider_id: str,\n    optimization_settings:\
+          \ Optional[dict] = None,\n    input_data_key: Optional[str] = \"\",\n):\n\
+          \    \"\"\"RAG Templates Optimization component.\n\n    Carries out the\
+          \ iterative RAG optimization process.\n\n    Args:\n        extracted_text:\
+          \ A path pointing to a folder containg extracted texts from input documents.\n\
+          \n        test_data: A path pointing to test data used for evaluating RAG\
+          \ pattern quality.\n\n        search_space_prep_report: A path pointing\
+          \ to a .yml file containig short\n            report on the experiment's\
+          \ first phase (search space preparation).\n\n        rag_patterns: kfp-enforced\
+          \ argument specifying an output artifact. Provided by kfp backend automatically.\n\
+          \n        embedded_artifact: kfp-enforced argument to allow access of base64\
+          \ encoded dir with notebook templates.\n\n        test_data_key: Path to\
+          \ the benchmark JSON file in object storage used by generated notebooks.\n\
+          \n        vector_io_provider_id: Vector I/O provider identifier as registered\
+          \ in OGX.\n\n        optimization_settings: Additional settings customising\
+          \ the experiment.\n\n        input_data_key: A path to documents dir within\
+          \ a bucket used as an input to AI4RAG experiment.\n\n    Returns:\n    \
+          \    rag_patterns: Folder containing all generated RAG patterns (each subdir:\
+          \ pattern.json,\n            indexing_notebook.ipynb, inference_notebook.ipynb).\n\
+          \    \"\"\"\n    # ChromaDB (via ai4rag) requires sqlite3 >= 3.35; RHEL9\
+          \ base image has older sqlite.\n    # Patch stdlib sqlite3 with pysqlite3-binary\
+          \ before any ai4rag import.\n    import sys\n\n    try:\n        import\
+          \ pysqlite3\n\n        sys.modules[\"sqlite3\"] = pysqlite3\n    except\
+          \ ImportError:\n        pass\n\n    import logging\n    import os\n    import\
+          \ ssl\n    from json import dump as json_dump\n    from json import load\
+          \ as json_load\n    from pathlib import Path\n    from string import Formatter\n\
+          \    from typing import Any, Literal, Self\n\n    import httpx\n    import\
+          \ pandas as pd\n    import yaml as yml\n    from ai4rag.core.experiment.experiment\
           \ import AI4RAGExperiment\n    from ai4rag.core.experiment.results import\
           \ ExperimentResults\n    from ai4rag.core.hpo.gam_opt import GAMOptSettings\n\
           \    from ai4rag.rag.embedding.base_model import BaseEmbeddingModel\n  \
-          \  from ai4rag.rag.embedding.llama_stack import LSEmbeddingModel\n    from\
-          \ ai4rag.rag.embedding.openai_model import OpenAIEmbeddingModel\n    from\
-          \ ai4rag.rag.foundation_models.base_model import BaseFoundationModel\n \
-          \   from ai4rag.rag.foundation_models.llama_stack import LSFoundationModel\n\
-          \    from ai4rag.rag.foundation_models.openai_model import OpenAIFoundationModel\n\
-          \    from ai4rag.search_space.src.parameter import Parameter\n    from ai4rag.search_space.src.search_space\
-          \ import AI4RAGSearchSpace\n    from ai4rag.utils.event_handler.event_handler\
-          \ import BaseEventHandler, LogLevel\n    from langchain_core.documents import\
-          \ Document\n    from llama_stack_client import APIConnectionError as LSAPIConnectionError\n\
-          \    from llama_stack_client import LlamaStackClient\n    from openai import\
-          \ APIConnectionError as OAIAPIConnectionError\n    from openai import OpenAI\n\
-          \n    DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS = 8\n    MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE\
-          \ = (4, 20)\n    METRIC = \"faithfulness\"\n    SUPPORTED_OPTIMIZATION_METRICS\
-          \ = frozenset({\"faithfulness\", \"answer_correctness\", \"context_correctness\"\
-          })\n    _ssl_logger = logging.getLogger(__name__)\n\n    def _is_ssl_error(exc:\
-          \ BaseException) -> bool:\n        \"\"\"Check whether an exception (or\
-          \ its cause/context chain) is an SSL verification failure.\"\"\"\n     \
-          \   seen = set()\n        current: BaseException | None = exc\n        while\
-          \ current is not None and id(current) not in seen:\n            seen.add(id(current))\n\
+          \  from ai4rag.rag.embedding.ogx import OGXEmbeddingModel\n    from ai4rag.rag.foundation_models.base_model\
+          \ import BaseFoundationModel\n    from ai4rag.rag.foundation_models.ogx\
+          \ import OGXFoundationModel\n    from ai4rag.search_space.src.parameter\
+          \ import Parameter\n    from ai4rag.search_space.src.search_space import\
+          \ AI4RAGSearchSpace\n    from ai4rag.utils.event_handler.event_handler import\
+          \ BaseEventHandler, LogLevel\n    from langchain_core.documents import Document\n\
+          \    from ogx_client import APIConnectionError as OGXAPIConnectionError\n\
+          \    from ogx_client import OgxClient\n\n    DEFAULT_MAX_NUMBER_OF_RAG_PATTERNS\
+          \ = 8\n    MAX_NUMBER_OF_RAG_PATTERNS_ALLOWED_RANGE = (4, 20)\n    METRIC\
+          \ = \"faithfulness\"\n    SUPPORTED_OPTIMIZATION_METRICS = frozenset({\"\
+          faithfulness\", \"answer_correctness\", \"context_correctness\"})\n    _ssl_logger\
+          \ = logging.getLogger(__name__)\n\n    def _is_ssl_error(exc: BaseException)\
+          \ -> bool:\n        \"\"\"Check whether an exception (or its cause/context\
+          \ chain) is an SSL verification failure.\"\"\"\n        seen = set()\n \
+          \       current: BaseException | None = exc\n        while current is not\
+          \ None and id(current) not in seen:\n            seen.add(id(current))\n\
           \            msg = str(current).upper()\n            if \"CERTIFICATE_VERIFY_FAILED\"\
           \ in msg or \"SSL\" in msg:\n                return True\n            current\
           \ = current.__cause__ or current.__context__\n        return False\n\n \
-          \   # Mutable containers so the nested _create_openai_client can update\
-          \ the flags\n    # without requiring `nonlocal` or returning the flag.\n\
-          \    _chat_ssl_verify = [True]\n    _embedding_ssl_verify = [True]\n\n \
-          \   def _create_openai_client(api_key: str, base_url: str, _ssl_verify:\
-          \ list) -> OpenAI:\n        \"\"\"Create OpenAI client, falling back to\
-          \ SSL-unverified if self-signed cert detected.\"\"\"\n        client = OpenAI(api_key=api_key,\
-          \ base_url=base_url)\n        try:\n            client.models.list()\n \
-          \       except (ssl.SSLCertVerificationError, httpx.ConnectError, OAIAPIConnectionError)\
-          \ as exc:\n            if _is_ssl_error(exc):\n                _ssl_logger.warning(\n\
-          \                    \"SSL verification failed for %s \u2014 retrying with\
-          \ verify=False. \",\n                    base_url,\n                )\n\
-          \                client = OpenAI(\n                    api_key=api_key,\n\
-          \                    base_url=base_url,\n                    http_client=httpx.Client(verify=False),\n\
-          \                )\n                _ssl_verify[0] = False\n           \
-          \ else:\n                raise\n        return client\n\n    # Mutable container\
-          \ so the nested _create_llama_stack_client can update the flag\n    # without\
-          \ requiring `nonlocal` or returning the flag.\n    _ls_ssl_verify = [True]\n\
-          \n    def _create_llama_stack_client(**kwargs) -> LlamaStackClient:\n  \
-          \      \"\"\"Create LlamaStackClient, falling back to SSL-unverified if\
-          \ self-signed cert detected.\"\"\"\n        client = LlamaStackClient(**kwargs)\n\
-          \        try:\n            client.models.list()\n        except (ssl.SSLCertVerificationError,\
-          \ httpx.ConnectError, LSAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
-          \                _ssl_logger.warning(\"SSL verification failed for LlamaStackClient\
-          \ \u2014 retrying with verify=False. \")\n                client = LlamaStackClient(\n\
+          \   # Mutable container so the nested _create_ogx_client can update the\
+          \ flag\n    # without requiring `nonlocal` or returning the flag.\n    _ogx_ssl_verify\
+          \ = [True]\n\n    def _create_ogx_client(**kwargs) -> OgxClient:\n     \
+          \   \"\"\"Create OgxClient, falling back to SSL-unverified if self-signed\
+          \ cert detected.\"\"\"\n        client = OgxClient(**kwargs)\n        try:\n\
+          \            client.models.list()\n        except (ssl.SSLCertVerificationError,\
+          \ httpx.ConnectError, OGXAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
+          \                _ssl_logger.warning(\"SSL verification failed for OgxClient\
+          \ \u2014 retrying with verify=False. \")\n                client = OgxClient(\n\
           \                    **kwargs,\n                    http_client=httpx.Client(verify=False),\n\
-          \                )\n                _ls_ssl_verify[0] = False\n        \
-          \    else:\n                raise\n        return client\n\n    if not isinstance(test_data_key,\
-          \ str) or not test_data_key.strip() or not test_data_key.lower().endswith(\"\
+          \                )\n                _ogx_ssl_verify[0] = False\n       \
+          \     else:\n                raise\n        return client\n\n    if not\
+          \ isinstance(test_data_key, str) or not test_data_key.strip() or not test_data_key.lower().endswith(\"\
           .json\"):\n        raise ValueError(\"test_data_path must point to a JSON\
           \ file\")\n\n    if optimization_settings is not None:\n        if not isinstance(optimization_settings,\
           \ dict):\n            raise TypeError(\"optimization_settings must be a\
@@ -1238,64 +1165,58 @@ deploymentSpec:
           \ exist_ok=True)\n\n            with path.open(\"w+\") as f:\n         \
           \       json_dump(self.to_dict(), f, indent=indent)\n\n            return\
           \ self\n\n        @classmethod\n        def load(\n            cls,\n  \
-          \          notebook_name: Literal[\n                \"ls_indexing_template.ipynb\"\
-          ,\n                \"ls_inference_template.ipynb\",\n                \"\
-          chroma_template.ipynb\",\n            ],\n        ) -> \"Notebook\":\n \
-          \           \"\"\"Load a Jupyter notebook from a file.\n\n            Parameters\n\
-          \            ----------\n            path : str | Path\n               \
-          \ Input file path to the .ipynb file.\n\n            Returns:\n        \
-          \    -------\n            Notebook\n                A new Notebook instance\
-          \ populated with the loaded cells and metadata.\n\n            Examples:\n\
-          \            --------\n            >>> nb = Notebook.load(\"existing_notebook.ipynb\"\
-          )\n            \"\"\"\n            with open(Path(embedded_artifact.path)\
-          \ / notebook_name, \"r\") as f:\n                nb_dict = json_load(f)\n\
-          \n            loaded_cells = []\n            for cell_data in nb_dict.get(\"\
-          cells\", []):\n                cell = NotebookCell(\n                  \
-          \  cell_type=cell_data.get(\"cell_type\", \"code\"),\n                 \
-          \   source=cell_data.get(\"source\", \"\"),\n                    metadata=cell_data.get(\"\
-          metadata\", {}),\n                )\n\n                # Restore code-specific\
-          \ attributes not handled in __init__\n                if cell.cell_type\
-          \ == \"code\":\n                    cell.execution_count = cell_data.get(\"\
-          execution_count\")\n                    cell.outputs = cell_data.get(\"\
-          outputs\", [])\n\n                loaded_cells.append(cell)\n\n        \
-          \    # Safely extract metadata to initialize the Notebook properly\n   \
-          \         metadata = nb_dict.get(\"metadata\", {})\n            kernelspec\
-          \ = metadata.get(\"kernelspec\", {})\n            language_info = metadata.get(\"\
-          language_info\", {})\n\n            # Instantiate the new Notebook with\
-          \ the parsed cells\n            notebook = cls(\n                kernel_name=kernelspec.get(\"\
-          name\", \"python3\"),\n                kernel_display_name=kernelspec.get(\"\
-          display_name\", \"Python 3\"),\n                language=language_info.get(\"\
-          name\", \"python\"),\n                language_version=language_info.get(\"\
-          version\", \"3.13.11\"),\n                cells=loaded_cells,\n        \
-          \    )\n\n            # Preserve the exact original metadata and notebook\
-          \ formatting versions\n            notebook.metadata = metadata\n      \
-          \      notebook.nbformat = nb_dict.get(\"nbformat\", 4)\n            notebook.nbformat_minor\
-          \ = nb_dict.get(\"nbformat_minor\", 4)\n\n            return notebook\n\n\
+          \          notebook_name: Literal[\n                \"ogx_indexing_template.ipynb\"\
+          ,\n                \"ogx_inference_template.ipynb\",\n            ],\n \
+          \       ) -> \"Notebook\":\n            \"\"\"Load a Jupyter notebook from\
+          \ a file.\n\n            Parameters\n            ----------\n          \
+          \  path : str | Path\n                Input file path to the .ipynb file.\n\
+          \n            Returns:\n            -------\n            Notebook\n    \
+          \            A new Notebook instance populated with the loaded cells and\
+          \ metadata.\n\n            Examples:\n            --------\n           \
+          \ >>> nb = Notebook.load(\"existing_notebook.ipynb\")\n            \"\"\"\
+          \n            with open(Path(embedded_artifact.path) / notebook_name, \"\
+          r\") as f:\n                nb_dict = json_load(f)\n\n            loaded_cells\
+          \ = []\n            for cell_data in nb_dict.get(\"cells\", []):\n     \
+          \           cell = NotebookCell(\n                    cell_type=cell_data.get(\"\
+          cell_type\", \"code\"),\n                    source=cell_data.get(\"source\"\
+          , \"\"),\n                    metadata=cell_data.get(\"metadata\", {}),\n\
+          \                )\n\n                # Restore code-specific attributes\
+          \ not handled in __init__\n                if cell.cell_type == \"code\"\
+          :\n                    cell.execution_count = cell_data.get(\"execution_count\"\
+          )\n                    cell.outputs = cell_data.get(\"outputs\", [])\n\n\
+          \                loaded_cells.append(cell)\n\n            # Safely extract\
+          \ metadata to initialize the Notebook properly\n            metadata = nb_dict.get(\"\
+          metadata\", {})\n            kernelspec = metadata.get(\"kernelspec\", {})\n\
+          \            language_info = metadata.get(\"language_info\", {})\n\n   \
+          \         # Instantiate the new Notebook with the parsed cells\n       \
+          \     notebook = cls(\n                kernel_name=kernelspec.get(\"name\"\
+          , \"python3\"),\n                kernel_display_name=kernelspec.get(\"display_name\"\
+          , \"Python 3\"),\n                language=language_info.get(\"name\", \"\
+          python\"),\n                language_version=language_info.get(\"version\"\
+          , \"3.13.11\"),\n                cells=loaded_cells,\n            )\n\n\
+          \            # Preserve the exact original metadata and notebook formatting\
+          \ versions\n            notebook.metadata = metadata\n            notebook.nbformat\
+          \ = nb_dict.get(\"nbformat\", 4)\n            notebook.nbformat_minor =\
+          \ nb_dict.get(\"nbformat_minor\", 4)\n\n            return notebook\n\n\
           \    def create_placeholder_mapping(\n        output_data: dict[str, Any],\n\
           \        test_data_key: str = \"\",\n        input_data_key: str = \"\"\
-          ,\n        chat_model_url: str = \"\",\n        embedding_model_url: str\
-          \ = \"\",\n        ls_ssl_verify: bool = True,\n        chat_ssl_verify:\
-          \ bool = True,\n        embedding_ssl_verify: bool = True,\n    ) -> dict[str,\
-          \ Any]:\n        \"\"\"Create a mapping from placeholder names to their\
-          \ values from output.json.\n\n        This function extracts values from\
-          \ the output.json structure and creates\n        a flat dictionary suitable\
-          \ for use with NotebookCell.format_source().\n\n        Expected output.json\
-          \ structure:\n        {\n            \"config\": {\n                \"pattern_name\"\
+          ,\n        ogx_ssl_verify: bool = True,\n    ) -> dict[str, Any]:\n    \
+          \    \"\"\"Create a mapping from placeholder names to their values from\
+          \ output.json.\n\n        This function extracts values from the output.json\
+          \ structure and creates\n        a flat dictionary suitable for use with\
+          \ NotebookCell.format_source().\n\n        Expected output.json structure:\n\
+          \        {\n            \"config\": {\n                \"pattern_name\"\
           : \"...\",\n                \"autorag_version\": \"...\",\n            \
-          \    \"llama_stack\": {\n                    \"foundation_model\": {...},\n\
-          \                    \"embedding_model\": {...},\n                    \"\
-          vector_store\": {...},\n                    \"retriever\": {...},\n    \
-          \                \"chunker\": {...}\n                },\n              \
-          \  \"data\": {...}\n            }\n        }\n\n        Args:\n        \
-          \    output_data: The parsed pattern.json data\n            test_data_key:\
-          \ Test data key.\n            input_data_key: Input data key.\n        \
-          \    chat_model_url: Chat model url.\n            embedding_model_url: Embedding\
-          \ model url.\n            ls_ssl_verify: Whether LlamaStack SSL verification\
-          \ succeeded.\n            chat_ssl_verify: Whether chat model (OpenAI) SSL\
-          \ verification succeeded.\n            embedding_ssl_verify: Whether embedding\
-          \ model (OpenAI) SSL verification succeeded.\n\n        Returns:\n     \
-          \       Dictionary mapping placeholder names to their values.\n        \"\
-          \"\"\n        mapping = {}\n\n        mapping[\"PATTERN_NAME\"] = output_data.get(\"\
+          \    \"ogx\": {\n                    \"foundation_model\": {...},\n    \
+          \                \"embedding_model\": {...},\n                    \"vector_store\"\
+          : {...},\n                    \"retriever\": {...},\n                  \
+          \  \"chunker\": {...}\n                },\n                \"data\": {...}\n\
+          \            }\n        }\n\n        Args:\n            output_data: The\
+          \ parsed pattern.json data\n            test_data_key: Test data key.\n\
+          \            input_data_key: Input data key.\n            ogx_ssl_verify:\
+          \ Whether OGX SSL verification succeeded.\n\n        Returns:\n        \
+          \    Dictionary mapping placeholder names to their values.\n        \"\"\
+          \"\n        mapping = {}\n\n        mapping[\"PATTERN_NAME\"] = output_data.get(\"\
           name\", \"\")\n        settings = output_data.get(\"settings\", {})\n  \
           \      fm = settings.get(\"generation\", {})\n        mapping[\"FM_MODEL_ID\"\
           ] = fm.get(\"model_id\", \"\")\n        mapping[\"SYSTEM_MESSAGE\"] = fm.get(\"\
@@ -1319,101 +1240,67 @@ deploymentSpec:
           , \"\")\n        mapping[\"CHUNK_SIZE\"] = ch.get(\"chunk_size\", 512)\n\
           \        mapping[\"CHUNK_OVERLAP\"] = ch.get(\"chunk_overlap\", 50)\n\n\
           \        mapping[\"TEST_DATA_KEY\"] = test_data_key\n        mapping[\"\
-          INPUT_DATA_KEY\"] = input_data_key\n\n        mapping[\"CHAT_MODEL_URL\"\
-          ] = chat_model_url\n        mapping[\"EMBEDDING_MODEL_URL\"] = embedding_model_url\n\
-          \        mapping[\"LS_SSL_VERIFY\"] = ls_ssl_verify\n        mapping[\"\
-          CHAT_SSL_VERIFY\"] = chat_ssl_verify\n        mapping[\"EMBEDDING_SSL_VERIFY\"\
-          ] = embedding_ssl_verify\n\n        return mapping\n\n    def generate_notebook_from_templates(\n\
-          \        notebook_template: Literal[\n            \"ls_inference\",\n  \
-          \          \"ls_indexing\",\n            \"chroma\",\n        ],\n     \
-          \   output_data: dict[str, Any],\n        output_notebook_path: Path,\n\
-          \        test_data_key: str = \"\",\n        input_data_key: str = \"\"\
-          ,\n        ls_ssl_verify: bool = True,\n        chat_ssl_verify: bool =\
-          \ True,\n        embedding_ssl_verify: bool = True,\n    ) -> None:\n  \
-          \      \"\"\"Generate a filled notebook from templates and output.json.\n\
-          \n        Args:\n            notebook_template: One of the allowed template\
-          \ names.\n            output_data: The parsed output.json data.\n      \
-          \      output_notebook_path: Path where to save the generated notebook.\n\
-          \            test_data_key: Path to test data file within bucket used as\
-          \ input to AI4RAG.\n            input_data_key: Path to documents dir within\
-          \ bucket used as input to AI4RAG.\n            ls_ssl_verify: Whether LlamaStack\
-          \ SSL verification succeeded; False causes the\n                generated\
-          \ notebook to skip the SSL probe and connect with verify=False directly.\n\
-          \            chat_ssl_verify: Whether chat model (OpenAI) SSL verification\
-          \ succeeded.\n            embedding_ssl_verify: Whether embedding model\
-          \ (OpenAI) SSL verification succeeded.\n\n        Returns:\n           \
-          \ None. The notebook is written to output_notebook_path.\n        \"\"\"\
-          \n        placeholder_mapping = create_placeholder_mapping(\n          \
-          \  output_data,\n            test_data_key=test_data_key,\n            input_data_key=input_data_key,\n\
-          \            chat_model_url=chat_model_url,\n            embedding_model_url=embedding_model_url,\n\
-          \            ls_ssl_verify=ls_ssl_verify,\n            chat_ssl_verify=chat_ssl_verify,\n\
-          \            embedding_ssl_verify=embedding_ssl_verify,\n        )\n   \
-          \     notebook = Notebook.load(notebook_name=f\"{notebook_template}_template.ipynb\"\
+          INPUT_DATA_KEY\"] = input_data_key\n\n        mapping[\"OGX_SSL_VERIFY\"\
+          ] = ogx_ssl_verify\n\n        return mapping\n\n    def generate_notebook_from_templates(\n\
+          \        notebook_template: Literal[\n            \"ogx_inference\",\n \
+          \           \"ogx_indexing\",\n        ],\n        output_data: dict[str,\
+          \ Any],\n        output_notebook_path: Path,\n        test_data_key: str\
+          \ = \"\",\n        input_data_key: str = \"\",\n        ogx_ssl_verify:\
+          \ bool = True,\n    ) -> None:\n        \"\"\"Generate a filled notebook\
+          \ from templates and output.json.\n\n        Args:\n            notebook_template:\
+          \ One of the allowed template names.\n            output_data: The parsed\
+          \ output.json data.\n            output_notebook_path: Path where to save\
+          \ the generated notebook.\n            test_data_key: Path to test data\
+          \ file within bucket used as input to AI4RAG.\n            input_data_key:\
+          \ Path to documents dir within bucket used as input to AI4RAG.\n       \
+          \     ogx_ssl_verify: Whether OGX SSL verification succeeded; False causes\
+          \ the\n                generated notebook to skip the SSL probe and connect\
+          \ with verify=False directly.\n\n        Returns:\n            None. The\
+          \ notebook is written to output_notebook_path.\n        \"\"\"\n       \
+          \ placeholder_mapping = create_placeholder_mapping(\n            output_data,\n\
+          \            test_data_key=test_data_key,\n            input_data_key=input_data_key,\n\
+          \            ogx_ssl_verify=ogx_ssl_verify,\n        )\n        notebook\
+          \ = Notebook.load(notebook_name=f\"{notebook_template}_template.ipynb\"\
           )\n        filled_cells = []\n        for cell in notebook.cells:\n    \
           \        filled_cell = cell.format_source(placeholder_mapping)\n       \
           \     filled_cells.append(filled_cell)\n\n        notebook = Notebook(cells=filled_cells)\n\
-          \n        notebook.save(Path(output_notebook_path))\n\n    if embedding_model_url\
-          \ and chat_model_url:\n        # Specification of OpenAI API compatibility\n\
-          \        embedding_model_url += \"/v1\"\n        chat_model_url += \"/v1\"\
-          \n\n    class TmpEventHandler(BaseEventHandler):\n        \"\"\"Exists temporarily\
-          \ only for the purpose of satisying type hinting checks\"\"\"\n\n      \
-          \  def on_status_change(self, level: LogLevel, message: str, step: str |\
-          \ None = None) -> None:\n            pass\n\n        def on_pattern_creation(self,\
-          \ payload: dict, evaluation_results: list, **kwargs) -> None:\n        \
-          \    pass\n\n    def load_as_langchain_doc(path: str | Path) -> list[Document]:\n\
-          \        \"\"\"Load a text file or folder into a list of langchain Document\
-          \ objects.\n\n        Args:\n            path: A local path to either a\
-          \ text file or a folder of text files.\n\n        Returns:\n           \
-          \ A list of langchain `Document` objects.\n        \"\"\"\n        if isinstance(path,\
-          \ str):\n            path = Path(path)\n\n        documents = []\n     \
-          \   if path.is_dir():\n            for doc_path in path.iterdir():\n   \
-          \             with doc_path.open(\"r\", encoding=\"utf-8\") as doc:\n  \
-          \                  documents.append(\n                        Document(\n\
-          \                            page_content=doc.read(),\n                \
-          \            metadata={\"document_id\": doc_path.stem},\n              \
-          \          )\n                    )\n\n        elif path.is_file():\n  \
-          \          with path.open(\"r\", encoding=\"utf-8\") as doc:\n         \
-          \       documents.append(Document(page_content=doc.read(), metadata={\"\
-          document_id\": path.stem}))\n\n        return documents\n\n    llama_stack_client_base_url\
-          \ = os.environ.get(\"LLAMA_STACK_CLIENT_BASE_URL\", None)\n    llama_stack_client_api_key\
-          \ = os.environ.get(\"LLAMA_STACK_CLIENT_API_KEY\", None)\n\n    in_memory_vector_store_scenario\
-          \ = False\n    Client = namedtuple(\n        \"Client\",\n        [\"llama_stack\"\
-          , \"generation_model\", \"embedding_model\"],\n        defaults=[None, None,\
-          \ None],\n    )\n\n    if llama_stack_client_base_url and llama_stack_client_api_key:\n\
-          \        client = Client(llama_stack=_create_llama_stack_client())\n   \
-          \ else:\n        for name, value in (\n            (\"chat_model_url\",\
-          \ chat_model_url),\n            (\"chat_model_token\", chat_model_token),\n\
-          \            (\"embedding_model_url\", embedding_model_url),\n         \
-          \   (\"embedding_model_token\", embedding_model_token),\n        ):\n  \
-          \          if not value:\n                raise TypeError(f\"{name} must\
-          \ be a non-empty string.\")\n        if not all(\n            (\n      \
-          \          chat_model_url,\n                chat_model_token,\n        \
-          \        embedding_model_url,\n                embedding_model_token,\n\
-          \            )\n        ):\n            raise ValueError(\n            \
-          \    \"All of (`chat_model_url`, `chat_model_token`, `embedding_model_url`,\
-          \ `embedding_model_token`) \"\n                \"have to be defined when\
-          \ running AutoRAG experiment using an in-memory vector store.\"\n      \
-          \      )\n        client = Client(\n            generation_model=_create_openai_client(\n\
-          \                api_key=chat_model_token, base_url=chat_model_url, _ssl_verify=_chat_ssl_verify\n\
-          \            ),\n            embedding_model=_create_openai_client(\n  \
-          \              api_key=embedding_model_token, base_url=embedding_model_url,\
-          \ _ssl_verify=_embedding_ssl_verify\n            ),\n        )\n       \
-          \ in_memory_vector_store_scenario = True\n\n    def construct_model_instance(loader,\
+          \n        notebook.save(Path(output_notebook_path))\n\n    class TmpEventHandler(BaseEventHandler):\n\
+          \        \"\"\"Exists temporarily only for the purpose of satisying type\
+          \ hinting checks\"\"\"\n\n        def on_status_change(self, level: LogLevel,\
+          \ message: str, step: str | None = None) -> None:\n            pass\n\n\
+          \        def on_pattern_creation(self, payload: dict, evaluation_results:\
+          \ list, **kwargs) -> None:\n            pass\n\n    def load_as_langchain_doc(path:\
+          \ str | Path) -> list[Document]:\n        \"\"\"Load a text file or folder\
+          \ into a list of langchain Document objects.\n\n        Args:\n        \
+          \    path: A local path to either a text file or a folder of text files.\n\
+          \n        Returns:\n            A list of langchain `Document` objects.\n\
+          \        \"\"\"\n        if isinstance(path, str):\n            path = Path(path)\n\
+          \n        documents = []\n        if path.is_dir():\n            for doc_path\
+          \ in path.iterdir():\n                with doc_path.open(\"r\", encoding=\"\
+          utf-8\") as doc:\n                    documents.append(\n              \
+          \          Document(\n                            page_content=doc.read(),\n\
+          \                            metadata={\"document_id\": doc_path.stem},\n\
+          \                        )\n                    )\n\n        elif path.is_file():\n\
+          \            with path.open(\"r\", encoding=\"utf-8\") as doc:\n       \
+          \         documents.append(Document(page_content=doc.read(), metadata={\"\
+          document_id\": path.stem}))\n\n        return documents\n\n    ogx_client_base_url\
+          \ = (os.environ.get(\"OGX_CLIENT_BASE_URL\") or \"\").strip()\n    ogx_client_api_key\
+          \ = (os.environ.get(\"OGX_CLIENT_API_KEY\") or \"\").strip()\n\n    if not\
+          \ ogx_client_base_url or not ogx_client_api_key:\n        raise ValueError(\n\
+          \            \"OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY environment variables\
+          \ must be set to non-empty values.\"\n        )\n\n    client = _create_ogx_client(base_url=ogx_client_base_url,\
+          \ api_key=ogx_client_api_key)\n\n    def construct_model_instance(loader,\
           \ node: yml.MappingNode) -> BaseEmbeddingModel | BaseFoundationModel:\n\
           \        \"\"\"Instructs yml.Loader on how to construct \"!Model\" tag.\"\
           \"\"\n        mapping = loader.construct_mapping(node, deep=True)\n\n  \
           \      match mapping:\n            case {\"type_\": \"embedding\", **id_to_params}:\n\
           \                model_id, params = id_to_params.popitem()\n           \
-          \     if in_memory_vector_store_scenario:\n                    return OpenAIEmbeddingModel(client=client.embedding_model,\
-          \ model_id=model_id, params=params)\n                else:\n           \
-          \         return LSEmbeddingModel(client=client.llama_stack, model_id=model_id,\
-          \ params=params)\n\n            case {\"type_\": \"generation\", **id_to_params}:\n\
-          \                model_id, params = id_to_params.popitem()\n           \
-          \     if in_memory_vector_store_scenario:\n                    return OpenAIFoundationModel(client=client.generation_model,\
-          \ model_id=model_id, params=params)\n                else:\n           \
-          \         return LSFoundationModel(client=client.llama_stack, model_id=model_id,\
-          \ params=params)\n            case _:\n                raise ValueError(f\"\
-          Cannot load the yml-serialized !Model tag: {mapping}\")\n\n    yml.add_constructor(\"\
+          \     return OGXEmbeddingModel(client=client, model_id=model_id, params=params)\n\
+          \n            case {\"type_\": \"generation\", **id_to_params}:\n      \
+          \          model_id, params = id_to_params.popitem()\n                return\
+          \ OGXFoundationModel(client=client, model_id=model_id, params=params)\n\
+          \            case _:\n                raise ValueError(f\"Cannot load the\
+          \ yml-serialized !Model tag: {mapping}\")\n\n    yml.add_constructor(\"\
           !Model\", construct_model_instance, Loader=yml.SafeLoader)\n\n    optimization_settings\
           \ = optimization_settings if optimization_settings else {}\n    if not (optimization_metric\
           \ := optimization_settings.get(\"metric\", None)):\n        optimization_metric\
@@ -1433,25 +1320,16 @@ deploymentSpec:
           \ must be a valid integer \"\n                f\"(e.g. from the pipeline\
           \ UI); got {max_rag_patterns!r}.\"\n            ) from exc\n    optimizer_settings\
           \ = GAMOptSettings(max_evals=max_rag_patterns)\n\n    benchmark_data = pd.read_json(Path(test_data))\n\
-          \n    if not llama_stack_vector_io_provider_id or not llama_stack_vector_io_provider_id.strip():\n\
-          \        if in_memory_vector_store_scenario:\n            llama_stack_vector_io_provider_id\
-          \ = \"chroma\"\n        else:\n            raise ValueError(\n         \
-          \       \"llama_stack_vector_io_provider_id must be provided when using\
-          \ llama-stack vector database.\"\n            )\n\n    # ai4rag expects\
-          \ vector_store_type with an \"ls_\" prefix for llama-stack providers.\n\
-          \    # Users provide the raw llama-stack provider_id (e.g. \"milvus\");\
-          \ the prefix is added here.\n    # If the user already included \"ls_\"\
-          , don't double-prefix.\n    if in_memory_vector_store_scenario:\n      \
-          \  vector_store_type = llama_stack_vector_io_provider_id\n    elif llama_stack_vector_io_provider_id.startswith(\"\
-          ls_\"):\n        vector_store_type = llama_stack_vector_io_provider_id\n\
-          \    else:\n        vector_store_type = f\"ls_{llama_stack_vector_io_provider_id}\"\
-          \n\n    rag_exp = AI4RAGExperiment(\n        client=None if in_memory_vector_store_scenario\
-          \ else client.llama_stack,\n        event_handler=event_handler,\n     \
-          \   optimizer_settings=optimizer_settings,\n        search_space=search_space,\n\
-          \        benchmark_data=benchmark_data,\n        vector_store_type=vector_store_type,\n\
-          \        documents=documents,\n        optimization_metric=optimization_metric,\n\
-          \        # TODO some necessary kwargs (if any at all)\n    )\n\n    # retrieve\
-          \ documents && run optimisation loop\n    rag_exp.search()\n\n    def _evaluation_result_fallback(eval_data_list,\
+          \n    if not isinstance(vector_io_provider_id, str) or not vector_io_provider_id.strip():\n\
+          \        raise ValueError(\"vector_io_provider_id must be a non-empty string.\"\
+          )\n    vector_io_provider_id = vector_io_provider_id.strip()\n\n    rag_exp\
+          \ = AI4RAGExperiment(\n        client=client,\n        event_handler=event_handler,\n\
+          \        optimizer_settings=optimizer_settings,\n        search_space=search_space,\n\
+          \        benchmark_data=benchmark_data,\n        vector_store_type=\"ogx\"\
+          ,\n        documents=documents,\n        optimization_metric=optimization_metric,\n\
+          \        ogx_vector_io_provider_id=vector_io_provider_id,\n        # TODO\
+          \ some necessary kwargs (if any at all)\n    )\n\n    # retrieve documents\
+          \ && run optimisation loop\n    rag_exp.search()\n\n    def _evaluation_result_fallback(eval_data_list,\
           \ evaluation_result):\n        \"\"\"Build evaluation_results.json-style\
           \ list when question_scores missing or incomplete.\"\"\"\n        out =\
           \ []\n        for ev in eval_data_list:\n            answer_contexts = []\n\
@@ -1514,7 +1392,7 @@ deploymentSpec:
           \ \"execution_time\", 0) or 0,\n            \"settings\": {\n          \
           \      \"vector_store\": {\n                    \"datasource_type\": idx.get(\"\
           vector_store\", {}).get(\"datasource_type\")\n                    or rp.get(\"\
-          vector_store\", {}).get(\"datasource_type\")\n                    or vector_store_type,\n\
+          vector_store\", {}).get(\"datasource_type\")\n                    or vector_io_provider_id,\n\
           \                    \"collection_name\": getattr(evaluation_result, \"\
           collection\", \"\") or \"\",\n                },\n                \"chunking\"\
           : {\n                    \"method\": chunking.get(\"method\", \"recursive\"\
@@ -1557,37 +1435,31 @@ deploymentSpec:
           metadata\"] = {\"patterns\": []}\n    for i, eval in enumerate(evaluations_list):\n\
           \        patt_dir = rag_patterns_dir / eval.pattern_name\n        patt_dir.mkdir(parents=True,\
           \ exist_ok=True)\n\n        pattern_data = _build_pattern_json(eval, iteration=i,\
-          \ max_combinations=max_combinations)\n        if llama_stack_vector_io_provider_id\
-          \ == \"chroma\":\n            generate_notebook_from_templates(\n      \
-          \          \"chroma\",\n                pattern_data,\n                Path(patt_dir,\
-          \ \"indexing_and_inference.ipynb\"),\n                input_data_key=input_data_key,\n\
-          \                test_data_key=test_data_key,\n                chat_ssl_verify=_chat_ssl_verify[0],\n\
-          \                embedding_ssl_verify=_embedding_ssl_verify[0],\n      \
-          \      )\n        else:\n            generate_notebook_from_templates(\n\
-          \                \"ls_indexing\",\n                pattern_data,\n     \
-          \           Path(patt_dir, \"indexing.ipynb\"),\n                input_data_key=input_data_key,\n\
-          \                ls_ssl_verify=_ls_ssl_verify[0],\n            )\n\n   \
-          \         generate_notebook_from_templates(\n                \"ls_inference\"\
-          ,\n                pattern_data,\n                Path(patt_dir, \"inference.ipynb\"\
-          ),\n                test_data_key=test_data_key,\n                ls_ssl_verify=_ls_ssl_verify[0],\n\
-          \            )\n\n        # Flat schema: scores = per-metric aggregates\
-          \ (mean, ci_low, ci_high); final_score\n        pattern_data[\"scores\"\
-          ] = (getattr(eval, \"scores\", None) or {}).get(\"scores\") or {}\n    \
-          \    pattern_data[\"final_score\"] = getattr(eval, \"final_score\", None)\n\
-          \        rag_patterns.metadata[\"metadata\"][\"patterns\"].append(pattern_data)\n\
-          \        with (patt_dir / \"pattern.json\").open(\"w+\", encoding=\"utf-8\"\
-          ) as pattern_details:\n            json_dump(pattern_data, pattern_details,\
-          \ indent=2)\n\n        eval_data = evaluation_data_list[i] if i < len(evaluation_data_list)\
-          \ else []\n        try:\n            q_scores = (eval.scores or {}).get(\"\
-          question_scores\") or {}\n            if q_scores and all(isinstance(q_scores.get(k),\
-          \ dict) for k in q_scores):\n                evaluation_result_list = ExperimentResults.create_evaluation_results_json(eval_data,\
+          \ max_combinations=max_combinations)\n        generate_notebook_from_templates(\n\
+          \            \"ogx_indexing\",\n            pattern_data,\n            Path(patt_dir,\
+          \ \"indexing.ipynb\"),\n            input_data_key=input_data_key,\n   \
+          \         ogx_ssl_verify=_ogx_ssl_verify[0],\n        )\n\n        generate_notebook_from_templates(\n\
+          \            \"ogx_inference\",\n            pattern_data,\n           \
+          \ Path(patt_dir, \"inference.ipynb\"),\n            test_data_key=test_data_key,\n\
+          \            ogx_ssl_verify=_ogx_ssl_verify[0],\n        )\n\n        #\
+          \ Flat schema: scores = per-metric aggregates (mean, ci_low, ci_high); final_score\n\
+          \        pattern_data[\"scores\"] = (getattr(eval, \"scores\", None) or\
+          \ {}).get(\"scores\") or {}\n        pattern_data[\"final_score\"] = getattr(eval,\
+          \ \"final_score\", None)\n        rag_patterns.metadata[\"metadata\"][\"\
+          patterns\"].append(pattern_data)\n        with (patt_dir / \"pattern.json\"\
+          ).open(\"w+\", encoding=\"utf-8\") as pattern_details:\n            json_dump(pattern_data,\
+          \ pattern_details, indent=2)\n\n        eval_data = evaluation_data_list[i]\
+          \ if i < len(evaluation_data_list) else []\n        try:\n            q_scores\
+          \ = (eval.scores or {}).get(\"question_scores\") or {}\n            if q_scores\
+          \ and all(isinstance(q_scores.get(k), dict) for k in q_scores):\n      \
+          \          evaluation_result_list = ExperimentResults.create_evaluation_results_json(eval_data,\
           \ eval)\n            else:\n                evaluation_result_list = _evaluation_result_fallback(eval_data,\
           \ eval)\n        except (KeyError, TypeError):\n            evaluation_result_list\
           \ = _evaluation_result_fallback(eval_data, eval)\n        with (patt_dir\
           \ / \"evaluation_results.json\").open(\"w+\", encoding=\"utf-8\") as f:\n\
           \            json_dump(evaluation_result_list, f, indent=2)\n\n    # TODO\
           \ autorag_run_artifact\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -1625,193 +1497,116 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef search_space_preparation(\n    test_data: dsl.Input[dsl.Artifact],\n\
           \    extracted_text: dsl.Input[dsl.Artifact],\n    search_space_prep_report:\
-          \ dsl.Output[dsl.Artifact],\n    chat_model_url: Optional[str] = None,\n\
-          \    chat_model_token: Optional[str] = None,\n    embedding_model_url: Optional[str]\
-          \ = None,\n    embedding_model_token: Optional[str] = None,\n    embeddings_models:\
-          \ Optional[List] = None,\n    generation_models: Optional[List] = None,\n\
-          \    metric: str = None,\n):\n    \"\"\"Runs an AutoRAG experiment's first\
-          \ phase which includes:\n\n        - AutoRAG search space creation given\
-          \ the user's constraints,\n        - embedding and foundation models number\
-          \ limitation and initial selection,\n\n    Generates a .yml-formatted report\
-          \ including results of this experiment's phase.\n    For its exact content\
-          \ please refer to the `search_space_prep_report_schema.yml` file.\n\n  \
-          \  Args:\n        test_data: A path to a .json file containing questions\
-          \ and expected answers that can be retrieved\n            from input documents.\
-          \ Necessary baseline for calculating quality metrics of RAG pipeline.\n\n\
-          \        extracted_text: A path to either a single file or a folder of files.\
-          \ The document(s) will be sampled\n            and used during the models\
-          \ selection process.\n\n        chat_model_url: Base URL for the chat/generation\
-          \ model API.\n\n        chat_model_token: API token for the chat model endpoint.\n\
-          \n        embedding_model_url: Base URL for the embedding model API.\n\n\
-          \        embedding_model_token: API token for the embedding model endpoint.\n\
+          \ dsl.Output[dsl.Artifact],\n    embedding_models: Optional[List] = None,\n\
+          \    generation_models: Optional[List] = None,\n    metric: str = None,\n\
+          ):\n    \"\"\"Runs an AutoRAG experiment's first phase which includes:\n\
+          \n        - AutoRAG search space creation given the user's constraints,\n\
+          \        - embedding and foundation models number limitation and initial\
+          \ selection,\n\n    Generates a .yml-formatted report including results\
+          \ of this experiment's phase.\n    For its exact content please refer to\
+          \ the `search_space_prep_report_schema.yml` file.\n\n    Args:\n       \
+          \ test_data: A path to a .json file containing questions and expected answers\
+          \ that can be retrieved\n            from input documents. Necessary baseline\
+          \ for calculating quality metrics of RAG pipeline.\n\n        extracted_text:\
+          \ A path to either a single file or a folder of files. The document(s) will\
+          \ be sampled\n            and used during the models selection process.\n\
           \n        search_space_prep_report: kfp-enforced argument specifying an\
           \ output artifact.\n            Provided by kfp backend automatically.\n\
-          \n        embeddings_models: List of embedding model identifiers to try\
-          \ out in the experiment process.\n            This list, if too long, will\
-          \ undergo models preselection (limiting).\n\n        generation_models:\
-          \ List of generation model identifiers to try out in the experiment process.\n\
-          \            This list, if too long, will undergo models preselection (limiting).\n\
+          \n        embedding_models: List of embedding model identifiers to try out\
+          \ in the experiment process.\n            This list, if too long, will undergo\
+          \ models preselection (limiting).\n\n        generation_models: List of\
+          \ generation model identifiers to try out in the experiment process.\n \
+          \           This list, if too long, will undergo models preselection (limiting).\n\
           \n        metric: Quality metric to evaluate the intermediate RAG patterns.\n\
           \    \"\"\"\n    # ChromaDB (via ai4rag) requires sqlite3 >= 3.35; RHEL9\
           \ base image has older sqlite.\n    # Patch stdlib sqlite3 with pysqlite3-binary\
           \ before any ai4rag import.\n    import sys\n\n    try:\n        import\
           \ pysqlite3\n\n        sys.modules[\"sqlite3\"] = pysqlite3\n    except\
           \ ImportError:\n        pass\n\n    import logging\n    import os\n    import\
-          \ ssl\n    from collections import namedtuple\n    from dataclasses import\
-          \ fields, is_dataclass\n    from pathlib import Path\n\n    import httpx\n\
-          \    import pandas as pd\n    import yaml as yml\n    from ai4rag.core.experiment.benchmark_data\
-          \ import BenchmarkData\n    from ai4rag.core.experiment.mps import ModelsPreSelector\n\
-          \    from ai4rag.rag.embedding.base_model import BaseEmbeddingModel\n  \
-          \  from ai4rag.rag.embedding.openai_model import OpenAIEmbeddingModel\n\
-          \    from ai4rag.rag.foundation_models.base_model import BaseFoundationModel\n\
-          \    from ai4rag.rag.foundation_models.openai_model import OpenAIFoundationModel\n\
-          \    from ai4rag.search_space.prepare.prepare_search_space import (\n  \
-          \      prepare_search_space_with_llama_stack,\n    )\n    from ai4rag.search_space.src.parameter\
-          \ import Parameter\n    from ai4rag.search_space.src.search_space import\
-          \ AI4RAGSearchSpace\n    from langchain_core.documents import Document\n\
-          \    from llama_stack_client import APIConnectionError as LSAPIConnectionError\n\
-          \    from llama_stack_client import LlamaStackClient\n    from openai import\
-          \ APIConnectionError as OAIAPIConnectionError\n    from openai import OpenAI\n\
-          \n    _ssl_logger = logging.getLogger(__name__)\n\n    def _is_ssl_error(exc:\
-          \ BaseException) -> bool:\n        \"\"\"Check whether an exception (or\
-          \ its cause/context chain) is an SSL verification failure.\"\"\"\n     \
-          \   seen = set()\n        current: BaseException | None = exc\n        while\
-          \ current is not None and id(current) not in seen:\n            seen.add(id(current))\n\
-          \            msg = str(current).upper()\n            if \"CERTIFICATE_VERIFY_FAILED\"\
-          \ in msg or \"SSL\" in msg:\n                return True\n            current\
-          \ = current.__cause__ or current.__context__\n        return False\n\n \
-          \   def _create_openai_client(api_key: str, base_url: str) -> OpenAI:\n\
-          \        \"\"\"Create OpenAI client, falling back to SSL-unverified if self-signed\
-          \ cert detected.\"\"\"\n        client = OpenAI(api_key=api_key, base_url=base_url)\n\
+          \ ssl\n    from dataclasses import fields, is_dataclass\n    from pathlib\
+          \ import Path\n\n    import httpx\n    import pandas as pd\n    import yaml\
+          \ as yml\n    from ai4rag.core.experiment.benchmark_data import BenchmarkData\n\
+          \    from ai4rag.core.experiment.mps import ModelsPreSelector\n    from\
+          \ ai4rag.rag.embedding.base_model import BaseEmbeddingModel\n    from ai4rag.rag.foundation_models.base_model\
+          \ import BaseFoundationModel\n    from ai4rag.search_space.prepare.prepare_search_space\
+          \ import (\n        prepare_search_space_with_ogx,\n    )\n    from ai4rag.search_space.src.search_space\
+          \ import AI4RAGSearchSpace\n    from langchain_core.documents import Document\n\
+          \    from ogx_client import APIConnectionError as OGXAPIConnectionError\n\
+          \    from ogx_client import OgxClient\n\n    _ssl_logger = logging.getLogger(__name__)\n\
+          \n    def _is_ssl_error(exc: BaseException) -> bool:\n        \"\"\"Check\
+          \ whether an exception (or its cause/context chain) is an SSL verification\
+          \ failure.\"\"\"\n        seen = set()\n        current: BaseException |\
+          \ None = exc\n        while current is not None and id(current) not in seen:\n\
+          \            seen.add(id(current))\n            msg = str(current).upper()\n\
+          \            if \"CERTIFICATE_VERIFY_FAILED\" in msg or \"SSL\" in msg:\n\
+          \                return True\n            current = current.__cause__ or\
+          \ current.__context__\n        return False\n\n    def _create_ogx_client(**kwargs)\
+          \ -> OgxClient:\n        \"\"\"Create OgxClient, falling back to SSL-unverified\
+          \ if self-signed cert detected.\"\"\"\n        client = OgxClient(**kwargs)\n\
           \        try:\n            client.models.list()\n        except (ssl.SSLCertVerificationError,\
-          \ httpx.ConnectError, OAIAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
-          \                _ssl_logger.warning(\n                    \"SSL verification\
-          \ failed for %s \u2014 retrying with verify=False. \",\n               \
-          \     base_url,\n                )\n                client = OpenAI(\n \
-          \                   api_key=api_key,\n                    base_url=base_url,\n\
-          \                    http_client=httpx.Client(verify=False),\n         \
-          \       )\n            else:\n                raise\n        return client\n\
-          \n    def _create_llama_stack_client(**kwargs) -> LlamaStackClient:\n  \
-          \      \"\"\"Create LlamaStackClient, falling back to SSL-unverified if\
-          \ self-signed cert detected.\"\"\"\n        client = LlamaStackClient(**kwargs)\n\
-          \        try:\n            client.models.list()\n        except (ssl.SSLCertVerificationError,\
-          \ httpx.ConnectError, LSAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
-          \                _ssl_logger.warning(\"SSL verification failed for LlamaStackClient\
-          \ \u2014 retrying with verify=False. \")\n                client = LlamaStackClient(\n\
+          \ httpx.ConnectError, OGXAPIConnectionError) as exc:\n            if _is_ssl_error(exc):\n\
+          \                _ssl_logger.warning(\"SSL verification failed for OgxClient\
+          \ \u2014 retrying with verify=False. \")\n                client = OgxClient(\n\
           \                    **kwargs,\n                    http_client=httpx.Client(verify=False),\n\
           \                )\n            else:\n                raise\n        return\
           \ client\n\n    TOP_N_GENERATION_MODELS = 3\n    TOP_K_EMBEDDING_MODELS\
           \ = 2\n    METRIC = \"faithfulness\"\n    SAMPLE_SIZE = 5\n    SEED = 17\n\
           \n    supported_metrics = [\"faithfulness\", \"answer_correctness\", \"\
-          context_correctness\"]\n\n    if embeddings_models:\n        if not isinstance(embeddings_models,\
-          \ list):\n            raise TypeError(\"embeddings_models must be a list.\"\
-          )\n        for i, m in enumerate(embeddings_models):\n            if not\
-          \ m:\n                raise TypeError(f\"embeddings_models[{i}] must be\
-          \ a non-empty string.\")\n\n    if generation_models:\n        if not isinstance(generation_models,\
+          context_correctness\"]\n\n    if embedding_models:\n        if not isinstance(embedding_models,\
+          \ list):\n            raise TypeError(\"embedding_models must be a list.\"\
+          )\n        for i, m in enumerate(embedding_models):\n            if not\
+          \ m:\n                raise TypeError(f\"embedding_models[{i}] must be a\
+          \ non-empty string.\")\n\n    if generation_models:\n        if not isinstance(generation_models,\
           \ list):\n            raise TypeError(\"generation_models must be a list.\"\
           )\n        for i, m in enumerate(generation_models):\n            if not\
           \ m:\n                raise TypeError(f\"generation_models[{i}] must be\
           \ a non-empty string.\")\n\n    if metric and metric not in supported_metrics:\n\
           \        raise ValueError(f\"Metric {metric} is not supported. Supported\
-          \ metrics are {supported_metrics}.\")\n\n    if embedding_model_url and\
-          \ chat_model_url:\n        # Specification of OpenAI API compatibility\n\
-          \        embedding_model_url += \"/v1\"\n        chat_model_url += \"/v1\"\
-          \n\n    def _get_model_metadata_from(url: str, token: str) -> dict:\n  \
-          \      \"\"\"Retrieve specified model's metadata from the model's deployment\
-          \ URL.\n\n        Currently the following keys are returned:\n         \
-          \   - id: model's identifier\n            - max_model_len: size of the context\
-          \ window\n\n        Args:\n            url: str\n                Model deployment\
-          \ url.\n\n            token: str\n                Authorization token.\n\
-          \n        Returns:\n            Model's metadata as key-value mapping.\n\
-          \n        Raises:\n            ValueError\n                If model metadata\
-          \ could not be retrieved (for whatever reason).\n        \"\"\"\n      \
-          \  api_client = _create_openai_client(api_key=token, base_url=url)\n   \
-          \     models = api_client.models.list()\n        response = {\"id\": \"\"\
-          , \"max_model_len\": 0}\n        required_md = {\"id\"}\n\n        if models.data:\n\
-          \            response[\"id\"] = getattr(models.data[0], \"id\", \"\")\n\
-          \            response[\"max_model_len\"] = getattr(models.data[0], \"max_model_len\"\
-          , 0)\n\n        for k in response.keys() & required_md:\n            if\
-          \ not response[k]:\n                raise ValueError(\n                \
-          \    f\"Could not retrieve all the required model metadata from the provided\
-          \ url: ({url}). \"\n                    f\"Please verify all the required\
-          \ data ({required_md}) is defined on \"\n                    \"the deployment\
-          \ and can be obtained programmatically.\"\n                )\n\n       \
-          \ return response\n\n    def load_as_langchain_doc(path: str | Path) ->\
-          \ list[Document]:\n        \"\"\"Given path to a text-based file or a folder\
-          \ thereof load everything to memory.\n\n        Args:\n            path:\
-          \ str | Path\n                A local path to either a text file or a folder\
-          \ of text files.\n\n        Returns\":\n\n        list[Document]\n     \
-          \       A list of langchain `Document` objects.\n        \"\"\"\n      \
-          \  if isinstance(path, str):\n            path = Path(path)\n\n        documents\
-          \ = []\n        if path.is_dir():\n            for doc_path in path.iterdir():\n\
-          \                with doc_path.open(\"r\", encoding=\"utf-8\") as doc:\n\
-          \                    documents.append(\n                        Document(\n\
-          \                            page_content=doc.read(),\n                \
-          \            metadata={\"document_id\": doc_path.stem},\n              \
-          \          )\n                    )\n\n        elif path.is_file():\n  \
-          \          with path.open(\"r\", encoding=\"utf-8\") as doc:\n         \
-          \       documents.append(Document(page_content=doc.read(), metadata={\"\
+          \ metrics are {supported_metrics}.\")\n\n    def load_as_langchain_doc(path:\
+          \ str | Path) -> list[Document]:\n        \"\"\"Given path to a text-based\
+          \ file or a folder thereof load everything to memory.\n\n        Args:\n\
+          \            path: str | Path\n                A local path to either a\
+          \ text file or a folder of text files.\n\n        Returns\":\n\n       \
+          \ list[Document]\n            A list of langchain `Document` objects.\n\
+          \        \"\"\"\n        if isinstance(path, str):\n            path = Path(path)\n\
+          \n        documents = []\n        if path.is_dir():\n            for doc_path\
+          \ in path.iterdir():\n                with doc_path.open(\"r\", encoding=\"\
+          utf-8\") as doc:\n                    documents.append(\n              \
+          \          Document(\n                            page_content=doc.read(),\n\
+          \                            metadata={\"document_id\": doc_path.stem},\n\
+          \                        )\n                    )\n\n        elif path.is_file():\n\
+          \            with path.open(\"r\", encoding=\"utf-8\") as doc:\n       \
+          \         documents.append(Document(page_content=doc.read(), metadata={\"\
           document_id\": path.stem}))\n\n        return documents\n\n    def prepare_ai4rag_search_space()\
           \ -> AI4RAGSearchSpace:\n        \"\"\"Prepares search space for AI4RAG\
           \ experiment.\n\n        Returns:\n            AI4RAGSearchSpace\n     \
           \           Search space for AI4RAG experiment.\n        \"\"\"\n      \
-          \  if in_memory_vector_store_scenario:\n            gen_model_md = _get_model_metadata_from(chat_model_url,\
-          \ chat_model_token)\n            em_model_md = _get_model_metadata_from(embedding_model_url,\
-          \ embedding_model_token)\n            em_model_params = {\"context_length\"\
-          : em_model_md[\"max_model_len\"]} if em_model_md[\"max_model_len\"] else\
-          \ {}\n            params = [\n                Parameter(\n             \
-          \       \"foundation_model\",\n                    \"C\",\n            \
-          \        values=[\n                        OpenAIFoundationModel(\n    \
-          \                        client=client.generation_model,\n             \
-          \               model_id=gen_model_md[\"id\"],\n                       \
-          \     params={\n                                \"max_completion_tokens\"\
-          : 2048,\n                                \"temperature\": 0.2,\n       \
-          \                     },\n                        )\n                  \
-          \  ],\n                ),\n                Parameter(\n                \
-          \    \"embedding_model\",\n                    \"C\",\n                \
-          \    values=[\n                        OpenAIEmbeddingModel(\n         \
-          \                   client=client.embedding_model,\n                   \
-          \         model_id=em_model_md[\"id\"],\n                            params=em_model_params,\n\
-          \                        )\n                    ],\n                ),\n\
-          \            ]\n            return AI4RAGSearchSpace(params=params, vector_store_type=\"\
-          chroma\")\n        else:\n            payload = {}\n            if generation_models:\n\
-          \                payload[\"foundation_models\"] = [{\"model_id\": gm} for\
-          \ gm in generation_models]\n            if embeddings_models:\n        \
-          \        payload[\"embedding_models\"] = [{\"model_id\": gm} for gm in embeddings_models]\n\
-          \n            return prepare_search_space_with_llama_stack(payload, client=client.llama_stack)\n\
-          \n    def represent_model_instance(dumper, model: BaseFoundationModel |\
-          \ BaseEmbeddingModel) -> yml.Node:\n        \"\"\"Helper method instructing\
+          \  payload = {}\n        if generation_models:\n            payload[\"foundation_models\"\
+          ] = [{\"model_id\": gm} for gm in generation_models]\n        if embedding_models:\n\
+          \            payload[\"embedding_models\"] = [{\"model_id\": gm} for gm\
+          \ in embedding_models]\n\n        return prepare_search_space_with_ogx(payload,\
+          \ client=client)\n\n    def represent_model_instance(dumper, model: BaseFoundationModel\
+          \ | BaseEmbeddingModel) -> yml.Node:\n        \"\"\"Helper method instructing\
           \ the yml.Dumper on how to serialize the *Model instances\"\"\"\n      \
           \  if isinstance(model, BaseEmbeddingModel):\n            type_ = \"embedding\"\
           \n        elif isinstance(model, BaseFoundationModel):\n            type_\
           \ = \"generation\"\n\n        params = model.params\n        if is_dataclass(params):\
-          \  # LS* model classes hold params as dataclass instances\n            params\
-          \ = {\n                field.name: getattr(model.params, field.name)\n \
-          \               for field in fields(model.params)\n                if getattr(model.params,\
+          \  # OGX* model classes hold params as dataclass instances\n           \
+          \ params = {\n                field.name: getattr(model.params, field.name)\n\
+          \                for field in fields(model.params)\n                if getattr(model.params,\
           \ field.name)\n            }\n        elif hasattr(params, \"model_dump\"\
           ):  # Pydantic v2 models\n            params = params.model_dump(exclude_unset=True)\n\
           \        elif hasattr(params, \"dict\"):  # Pydantic v1 models\n       \
           \     params = params.dict(exclude_unset=True)\n\n        return dumper.represent_mapping(\"\
           !Model\", {model.model_id: params or {}, \"type_\": type_})\n\n    yml.add_multi_representer(BaseFoundationModel,\
           \ represent_model_instance, Dumper=yml.SafeDumper)\n    yml.add_multi_representer(BaseEmbeddingModel,\
-          \ represent_model_instance, Dumper=yml.SafeDumper)\n\n    llama_stack_client_base_url\
-          \ = os.environ.get(\"LLAMA_STACK_CLIENT_BASE_URL\", None)\n    llama_stack_client_api_key\
-          \ = os.environ.get(\"LLAMA_STACK_CLIENT_API_KEY\", None)\n\n    in_memory_vector_store_scenario\
-          \ = False\n    Client = namedtuple(\n        \"Client\",\n        [\"llama_stack\"\
-          , \"generation_model\", \"embedding_model\"],\n        defaults=[None, None,\
-          \ None],\n    )\n\n    if llama_stack_client_base_url and llama_stack_client_api_key:\n\
-          \        client = Client(llama_stack=_create_llama_stack_client())\n   \
-          \ else:\n        if not all(\n            (\n                chat_model_url,\n\
-          \                chat_model_token,\n                embedding_model_url,\n\
-          \                embedding_model_token,\n            )\n        ):\n   \
-          \         raise ValueError(\n                \"All of (`chat_model_url`,\
-          \ `chat_model_token`, `embedding_model_url`, `embedding_model_token`) \"\
-          \n                \"have to be defined when running AutoRAG experiment on\
-          \ an in-memory vector store.\"\n            )\n        client = Client(\n\
-          \            generation_model=_create_openai_client(api_key=chat_model_token,\
-          \ base_url=chat_model_url),\n            embedding_model=_create_openai_client(api_key=embedding_model_token,\
-          \ base_url=embedding_model_url),\n        )\n        in_memory_vector_store_scenario\
-          \ = True\n\n    search_space = prepare_ai4rag_search_space()\n\n    benchmark_data\
+          \ represent_model_instance, Dumper=yml.SafeDumper)\n\n    ogx_client_base_url\
+          \ = os.environ.get(\"OGX_CLIENT_BASE_URL\", None)\n    ogx_client_api_key\
+          \ = os.environ.get(\"OGX_CLIENT_API_KEY\", None)\n\n    if not ogx_client_base_url\
+          \ or not ogx_client_api_key:\n        raise ValueError(\"OGX_CLIENT_BASE_URL\
+          \ and OGX_CLIENT_API_KEY environment variables must be set.\")\n\n    client\
+          \ = _create_ogx_client(base_url=ogx_client_base_url, api_key=ogx_client_api_key)\n\
+          \n    search_space = prepare_ai4rag_search_space()\n\n    benchmark_data\
           \ = BenchmarkData(pd.read_json(Path(test_data.path)))\n    documents = load_as_langchain_doc(extracted_text.path)\n\
           \n    if (\n        len(search_space[\"foundation_model\"].values) > TOP_N_GENERATION_MODELS\n\
           \        or len(search_space[\"embedding_model\"].values) > TOP_K_EMBEDDING_MODELS\n\
@@ -1832,7 +1627,7 @@ deploymentSpec:
           \    verbose_search_space_repr |= selected_models_names\n\n    with open(search_space_prep_report.path,\
           \ \"w\") as report_file:\n        yml.safe_dump(verbose_search_space_repr,\
           \ report_file)\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -1927,7 +1722,7 @@ deploymentSpec:
           \        except JSONDecodeError as e:\n            raise TestDataLoaderException(\"\
           test_data_path must point to a valid JSON file.\") from e\n\n    get_test_data_s3()\n\
           \n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -2232,7 +2027,7 @@ deploymentSpec:
           \ completed. Total processed: %d/%d, Errors: %d\",\n        processed_count,\n\
           \        total_docs,\n        total_errors,\n    )\n    raise_if_threshold_exceeded(all_error_details,\
           \ total_docs, error_tolerance)\n\n"
-        image: registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:c275465bc4bee9409e7d33413e4cb8872629fc87ddeef414f85902f939206f1b
+        image: quay.io/opendatahub/odh-autorag:odh-stable
         resources:
           cpuLimit: 32.0
           cpuRequest: 2.0
@@ -2321,8 +2116,6 @@ root:
           parameters:
             input_data_key:
               componentInputParameter: input_data_key
-            llama_stack_vector_io_provider_id:
-              componentInputParameter: llama_stack_vector_io_provider_id
             optimization_settings:
               runtimeValue:
                 constant:
@@ -2334,6 +2127,8 @@ root:
               componentInputParameter: optimization_metric
             test_data_key:
               componentInputParameter: test_data_key
+            vector_io_provider_id:
+              componentInputParameter: vector_io_provider_id
         taskInfo:
           name: rag-templates-optimization
       search-space-preparation:
@@ -2354,8 +2149,8 @@ root:
                 outputArtifactKey: test_data
                 producerTask: test-data-loader
           parameters:
-            embeddings_models:
-              componentInputParameter: embeddings_models
+            embedding_models:
+              componentInputParameter: embedding_models
             generation_models:
               componentInputParameter: generation_models
         taskInfo:
@@ -2388,7 +2183,7 @@ root:
           name: text-extraction
   inputDefinitions:
     parameters:
-      embeddings_models:
+      embedding_models:
         description: Optional list of embedding model identifiers to use in the search
           space.
         isOptional: true
@@ -2418,13 +2213,10 @@ root:
 
           AWS_DEFAULT_REGION is optional.'
         parameterType: STRING
-      llama_stack_secret_name:
-        description: 'Name of the Kubernetes secret for llama-stack API connection.
+      ogx_secret_name:
+        description: 'Name of the Kubernetes secret for OGX API connection.
 
-          The secret must define: LLAMA_STACK_CLIENT_API_KEY, LLAMA_STACK_CLIENT_BASE_URL.'
-        parameterType: STRING
-      llama_stack_vector_io_provider_id:
-        description: Vector I/O provider id (e.g., registered in llama-stack Milvus).
+          The secret must define: OGX_CLIENT_API_KEY, OGX_CLIENT_BASE_URL.'
         parameterType: STRING
       optimization_max_rag_patterns:
         defaultValue: 8.0
@@ -2457,6 +2249,9 @@ root:
 
           AWS_DEFAULT_REGION is optional.'
         parameterType: STRING
+      vector_io_provider_id:
+        description: Vector I/O provider id (e.g., registered in OGX Milvus).
+        parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.16.1
 ---
@@ -2481,33 +2276,33 @@ platforms:
         exec-prepare-responses-api-requests:
           secretAsEnv:
           - keyToEnv:
-            - envVar: LLAMA_STACK_CLIENT_BASE_URL
-              secretKey: LLAMA_STACK_CLIENT_BASE_URL
-            - envVar: LLAMA_STACK_CLIENT_API_KEY
-              secretKey: LLAMA_STACK_CLIENT_API_KEY
+            - envVar: OGX_CLIENT_BASE_URL
+              secretKey: OGX_CLIENT_BASE_URL
+            - envVar: OGX_CLIENT_API_KEY
+              secretKey: OGX_CLIENT_API_KEY
             optional: false
             secretNameParameter:
-              componentInputParameter: llama_stack_secret_name
+              componentInputParameter: ogx_secret_name
         exec-rag-templates-optimization:
           secretAsEnv:
           - keyToEnv:
-            - envVar: LLAMA_STACK_CLIENT_BASE_URL
-              secretKey: LLAMA_STACK_CLIENT_BASE_URL
-            - envVar: LLAMA_STACK_CLIENT_API_KEY
-              secretKey: LLAMA_STACK_CLIENT_API_KEY
+            - envVar: OGX_CLIENT_BASE_URL
+              secretKey: OGX_CLIENT_BASE_URL
+            - envVar: OGX_CLIENT_API_KEY
+              secretKey: OGX_CLIENT_API_KEY
             optional: false
             secretNameParameter:
-              componentInputParameter: llama_stack_secret_name
+              componentInputParameter: ogx_secret_name
         exec-search-space-preparation:
           secretAsEnv:
           - keyToEnv:
-            - envVar: LLAMA_STACK_CLIENT_BASE_URL
-              secretKey: LLAMA_STACK_CLIENT_BASE_URL
-            - envVar: LLAMA_STACK_CLIENT_API_KEY
-              secretKey: LLAMA_STACK_CLIENT_API_KEY
+            - envVar: OGX_CLIENT_BASE_URL
+              secretKey: OGX_CLIENT_BASE_URL
+            - envVar: OGX_CLIENT_API_KEY
+              secretKey: OGX_CLIENT_API_KEY
             optional: false
             secretNameParameter:
-              componentInputParameter: llama_stack_secret_name
+              componentInputParameter: ogx_secret_name
         exec-test-data-loader:
           secretAsEnv:
           - keyToEnv:

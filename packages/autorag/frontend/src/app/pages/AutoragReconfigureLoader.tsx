@@ -64,8 +64,8 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     isPending: llsSecretsPending,
     isError: llsSecretsError,
   } = useQuery({
-    queryKey: ['secrets', namespace, 'lls'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'lls')({}),
+    queryKey: ['secrets', namespace, 'ogx'],
+    queryFn: () => getSecrets('')(namespace ?? '', 'ogx')({}),
     enabled: !!namespace,
   });
 
@@ -131,7 +131,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [params?.input_data_secret_name, storageSecrets]);
 
   React.useEffect(() => {
-    const name = params?.llama_stack_secret_name;
+    const name = params?.ogx_secret_name;
     if (
       name &&
       typeof name === 'string' &&
@@ -142,12 +142,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
       shownWarnings.current.llsMissing = true;
       notification.warning(
         'Connection secret not found',
-        `The previously used LlamaStack connection "${name}" could not be found. Please select a new connection.`,
+        `The previously used Open GenAI Stack connection "${name}" could not be found. Please select a new connection.`,
       );
     }
     // notify once when secrets are loaded
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.llama_stack_secret_name, llsSecrets]);
+  }, [params?.ogx_secret_name, llsSecrets]);
 
   const invalidPipelineRunId =
     pipelineRunError &&
@@ -192,7 +192,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }
 
   const secretName = params?.input_data_secret_name;
-  const llsSecretName = params?.llama_stack_secret_name;
+  const llsSecretName = params?.ogx_secret_name;
 
   // Resolve the matching S3 secret from the fetched list
   let initialInputDataSecret: SecretSelection | undefined;
@@ -207,12 +207,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
   }
 
-  // Resolve the matching LlamaStack secret from the fetched list
-  let initialLlamaStackSecret: SecretSelection | undefined;
+  // Resolve the matching Open GenAI Stack secret from the fetched list
+  let initialOgxSecret: SecretSelection | undefined;
   if (llsSecretName && typeof llsSecretName === 'string' && llsSecrets) {
     const match = llsSecrets.find((s) => s.name === llsSecretName);
     if (match) {
-      initialLlamaStackSecret = match;
+      initialOgxSecret = match;
     }
   }
 
@@ -227,7 +227,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     <AutoragConfigurePage
       initialValues={initialValues}
       initialInputDataSecret={initialInputDataSecret}
-      initialLlamaStackSecret={initialLlamaStackSecret}
+      initialOgxSecret={initialOgxSecret}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />
