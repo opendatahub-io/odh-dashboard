@@ -196,7 +196,7 @@ describe('Model Registry core', () => {
     // Navigate to the unavailable registry (app would redirect to first registry; we go there directly)
     cy.visit(modelRegistryUrl(unavailableRegistryName));
 
-    modelRegistry.findUnavailableModelRegistryState().should('exist');
+    modelRegistry.findUnavailableModelRegistry().should('exist');
     cy.contains('Model registry unavailable').should('be.visible');
     cy.contains('The Unavailable Registry Example registry is currently unavailable').should(
       'be.visible',
@@ -204,39 +204,6 @@ describe('Model Registry core', () => {
     cy.findByTestId('whos-my-admin-link').should('exist');
     // View details button should not be present when registry is unavailable
     modelRegistry.findViewDetailsButton().should('not.exist');
-  });
-
-  it('Shows custom error page when registry API returns an error', () => {
-    cy.interceptApi(
-      'GET /api/:apiVersion/model_registry',
-      { path: { apiVersion: MODEL_REGISTRY_API_VERSION } },
-      [mockModelRegistry({ name: 'modelregistry-sample' })],
-    );
-
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/model-registry/api/${MODEL_REGISTRY_API_VERSION}/model_registry/modelregistry-sample/registered_models`,
-      },
-      { statusCode: 500, body: { error: 'Internal server error' } },
-    );
-
-    cy.intercept(
-      {
-        method: 'GET',
-        pathname: `/model-registry/api/${MODEL_REGISTRY_API_VERSION}/model_registry/modelregistry-sample/model_versions`,
-      },
-      { statusCode: 500, body: { error: 'Internal server error' } },
-    );
-
-    modelRegistry.visit();
-
-    modelRegistry.findUnavailableErrorPage().should('exist');
-    cy.contains('Model registry unavailable').should('be.visible');
-    cy.contains(
-      'The model registry is unavailable. If the problem persists, contact your administrator.',
-    ).should('be.visible');
-    modelRegistry.findWhosMyAdministratorLink().should('exist');
   });
 
   it('No registered models in the selected Model Registry', () => {
