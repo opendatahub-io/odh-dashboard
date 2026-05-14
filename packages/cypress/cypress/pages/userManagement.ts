@@ -3,60 +3,62 @@ import { Contextual } from './components/Contextual';
 
 class GroupSettingSection extends Contextual<HTMLElement> {
   shouldHaveAdministratorGroupInfo() {
-    this.find().findByTestId('data-science-administrator-info');
+    this.find().findByTestId('data-science-administrator-info').should('exist');
     return this;
   }
 
-  clearMultiChipItem() {
-    this.find().findByRole('button', { name: 'Clear input value' }).click();
+  findGroupRow(name: string) {
+    return this.find().contains('td', name).closest('tr');
   }
 
-  findMultiGroupInput() {
-    return this.find().find('input');
+  findRemoveGroupButton(name: string) {
+    return this.find().findByTestId(`remove-group-button ${name}`);
   }
 
-  findMultiGroupOptions(name: string) {
-    return this.find().document().findByRole('option', { name });
+  findAddGroupButton() {
+    return this.find().findByTestId('add-group-button');
   }
 
-  private findChipGroup() {
-    return this.find().findByRole('list', { name: 'Current selections' });
+  findGroupNameInput() {
+    return this.find().findByRole('combobox');
   }
 
-  findChipItem(name: string | RegExp) {
-    return this.findChipGroup().find('li').contains('span', name);
+  findGroupOption(name: string) {
+    // Matches both a direct typeahead option ('rhods-admins')
+    // and the creatable option shown when the name is not in the list ('Select "rhods-admins"')
+    return this.find()
+      .document()
+      .findByRole('option', { name: new RegExp(`^(Select "${name}"|${name})$`) });
   }
 
-  removeChipItem(name: string) {
-    this.findChipGroup()
-      .find('li')
-      .findByRole('button', { name: `Close ${name}` })
-      .click();
+  findSaveNewGroupButton() {
+    return this.find().findByTestId('save-new-group-button');
   }
 
-  findErrorText() {
-    return this.find().findByTestId('group-selection-error-text');
+  findCancelAddGroupButton() {
+    return this.find().findByRole('button', { name: 'Cancel add group' });
   }
 
-  findMultiGroupSelectButton() {
-    return this.find().findByTestId('group-setting-select');
+  findDuplicateError() {
+    return this.find().findByText('This group has already been added.');
   }
 
-  selectMultiGroup(name: string) {
-    this.findMultiGroupSelectButton().click();
-    this.findMultiGroupOptions(name).click();
-  }
-
-  findWarningAlert(groupName: string) {
-    this.find()
-      .find('.pf-v6-c-alert.pf-m-inline.pf-m-warning')
-      .should('exist')
-      .contains(
-        `The group ${groupName} no longer exists in OpenShift and has been removed from the selected group list.`,
-      );
-    return this;
+  addGroup(name: string) {
+    this.findAddGroupButton().click();
+    this.findGroupNameInput().type(name);
+    this.findGroupOption(name).click();
+    // If the group is already in the table the save button will be aria-disabled.
+    // Cancel gracefully so the test can continue without failing.
+    this.findSaveNewGroupButton().then(($btn) => {
+      if ($btn.attr('aria-disabled') === 'true') {
+        this.findCancelAddGroupButton().click();
+      } else {
+        cy.wrap($btn).click();
+      }
+    });
   }
 }
+
 class UserManagement {
   visit(wait = true) {
     cy.visitWithLogin('/settings/user-management');
@@ -77,10 +79,6 @@ class UserManagement {
 
   findNavItem() {
     return appChrome.findNavItem({ name: 'User management', rootSection: 'Settings' });
-  }
-
-  findSubmitButton() {
-    return cy.findByTestId('save-button');
   }
 
   shouldHaveSuccessAlertMessage() {

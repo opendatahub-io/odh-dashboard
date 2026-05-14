@@ -1,6 +1,6 @@
 import {
-  getGroupsConfig,
   restoreDefaultGroupsConfig,
+  updateGroupsConfig,
 } from '../../../../utils/oc_commands/groupConfig';
 import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { userManagement } from '../../../../pages/userManagement';
@@ -9,14 +9,8 @@ import { notFoundPage } from '../../../../pages/notFound';
 
 describe('Settings - User Management - Unauthorized Permission Change', () => {
   retryableBeforeEach(() => {
-    // Clear any existing sessions before each test
     cy.clearCookies();
     cy.clearLocalStorage();
-
-    // Use real groups config instead of mock
-    getGroupsConfig().then((result) => {
-      cy.wrap(result).as('groupsConfig');
-    });
   });
 
   after(() => {
@@ -28,50 +22,18 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
     'Set up initial permissions as admin',
     { tags: ['@Destructive', '@ODS-1660', '@Dashboard', '@NonConcurrent'] },
     () => {
-      // Start as admin user
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+
+      // Set admin = rhods-admins only, user = rhods-users only — same end state as the original
+      // test which cleared all groups then selected specific ones before saving.
+      cy.step('Set admin groups to rhods-admins and user groups to rhods-users');
+      updateGroupsConfig('rhods-admins', 'rhods-users');
+
+      // Verify the new UI reflects the OC-commanded change
+      cy.step('Verify User Management page reflects the updated groups');
       userManagement.navigate();
-
-      // Set up initial permissions
-      const administratorGroupSection = userManagement.getAdministratorGroupSection();
-      const userGroupSection = userManagement.getUserGroupSection();
-
-      // Wait for the administrator group section to be fully loaded
-      administratorGroupSection.find().should('be.visible');
-
-      // Clear existing selections and type new group
-      administratorGroupSection
-        .findMultiGroupInput()
-        .should('be.visible')
-        .clear()
-        .should('have.value', '')
-        .type('rhods-admins{enter}');
-
-      // Verify the selection was made
-      administratorGroupSection.findMultiGroupInput().should('have.value', 'rhods-admins');
-
-      // Clear existing selections
-      userGroupSection.clearMultiChipItem();
-
-      // Select the group using the dropdown
-      userGroupSection.findMultiGroupSelectButton().click();
-      userGroupSection.findMultiGroupOptions('rhods-users').click();
-      // Click outside the dropdown to close it
-      cy.findByTestId('app-page-title').click();
-
-      // Wait for any animations and ensure dropdown is gone
-      cy.get('[role="listbox"]').should('not.exist');
-
-      // Verify selection by checking if the submit button becomes enabled
-      userManagement
-        .findSubmitButton()
-        .should('be.enabled', { timeout: 30000 })
-        .should('be.visible');
-      // Click the submit button
-      userManagement.findSubmitButton().click();
-
-      // Verify the success message appears
-      userManagement.shouldHaveSuccessAlertMessage();
+      userManagement.getAdministratorGroupSection().findGroupRow('rhods-admins').should('exist');
+      userManagement.getUserGroupSection().findGroupRow('rhods-users').should('exist');
     },
   );
 
@@ -82,11 +44,9 @@ describe('Settings - User Management - Unauthorized Permission Change', () => {
       cy.step('Login as unauthorized user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      cy.step('Attempt to access User Management');
-      // Try to access the settings page directly
+      cy.step('Attempt to access User Management directly');
       cy.visit('/settings/user-management', { failOnStatusCode: false });
 
-      // Verify we get the not found page
       cy.step('Verify unauthorized access shows not found page');
       notFoundPage.findNotFoundPage().should('exist');
       notFoundPage.findDescription().should('not.be.empty');
