@@ -55,7 +55,7 @@ func (m *MockBFFClient) Call(ctx context.Context, method, path string, body inte
 // handleMaaSCall handles mock calls to MaaS BFF
 func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string, body interface{}, response interface{}) error {
 	switch {
-	case path == "/api-keys" && method == "POST":
+	case (path == "/api-keys" || path == "/api/v1/api-keys") && method == "POST":
 		// Mock API key creation response.
 		// MaaS BFF wraps responses in {"data": ...} envelope.
 		keyResp := map[string]interface{}{
