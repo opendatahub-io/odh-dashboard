@@ -61,15 +61,21 @@ describe('normalizePipelineRun', () => {
     expect(result).toBe(run);
   });
 
-  it('should prefer new key if both old and new are present', () => {
+  it('should prefer canonical key value when both old and new are present', () => {
     const run = makeRun({
       llama_stack_secret_name: 'old-secret',
       ogx_secret_name: 'new-secret',
     });
     const result = normalizePipelineRun(run);
-    expect(result.runtime_config?.parameters).toHaveProperty('ogx_secret_name');
-    expect(Object.keys(result.runtime_config?.parameters ?? {})).not.toContain(
-      'llama_stack_secret_name',
-    );
+    expect(result.runtime_config?.parameters).toEqual({ ogx_secret_name: 'new-secret' });
+  });
+
+  it('should prefer canonical key value regardless of iteration order', () => {
+    const run = makeRun({
+      ogx_secret_name: 'new-secret',
+      llama_stack_secret_name: 'old-secret',
+    });
+    const result = normalizePipelineRun(run);
+    expect(result.runtime_config?.parameters).toEqual({ ogx_secret_name: 'new-secret' });
   });
 });

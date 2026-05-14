@@ -23,11 +23,11 @@ export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
 
   for (const [key, value] of Object.entries(params)) {
     const newKey = LEGACY_PARAM_RENAMES[key] ?? key;
-    if (newKey !== key) {
+    const isCanonical = key === newKey;
+    if (!isCanonical) {
       changed = true;
     }
-    // Keep the first occurrence; skip if the new key was already set
-    if (!(newKey in normalized)) {
+    if (!(newKey in normalized) || isCanonical) {
       normalized[newKey] = value;
     }
   }
