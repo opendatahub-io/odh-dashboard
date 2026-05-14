@@ -15,7 +15,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/shirou/gopsutil/v4/process"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -87,7 +87,7 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: binaryAssetsDir,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
-			CreateLlamaStackDistributionCRD(),
+			CreateOGXServerCRD(),
 			CreateGuardrailsOrchestratorCRD(),
 			CreateNemoGuardrailsCRD(),
 		},
@@ -121,9 +121,9 @@ func SetupEnvTest(input TestEnvInput) (*TestEnvState, client.Client, error) {
 		os.Exit(1)
 	}
 
-	err = lsdapi.AddToScheme(scheme)
+	err = ogxapi.AddToScheme(scheme)
 	if err != nil {
-		input.Logger.Error("failed to add LlamaStackDistribution types to scheme", slog.String("error", err.Error()))
+		input.Logger.Error("failed to add OGXServer types to scheme", slog.String("error", err.Error()))
 		input.Cancel()
 		os.Exit(1)
 	}
@@ -363,7 +363,7 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 		return fmt.Errorf("failed to create MCP servers ConfigMap: %w", err)
 	}
 
-	// llama-stack namespace with full seeding (vector stores, LlamaStack config, LSD)
+	// llama-stack namespace with full seeding (vector stores, stack config.yaml, OGXServer CR)
 	if err := createNamespace(mockK8sClient, ctx, "llama-stack"); err != nil {
 		return fmt.Errorf("failed to create llama-stack namespace: %w", err)
 	}
@@ -373,8 +373,8 @@ func SetupMock(mockK8sClient client.Client, ctx context.Context) error {
 	if err := createLlamaStackConfigMap(mockK8sClient, ctx, "llama-stack"); err != nil {
 		return fmt.Errorf("failed to create LlamaStack ConfigMap in llama-stack: %w", err)
 	}
-	if err := createLlamaStackDistribution(mockK8sClient, ctx, "llama-stack"); err != nil {
-		return fmt.Errorf("failed to create LlamaStackDistribution in llama-stack: %w", err)
+	if err := createOGXServer(mockK8sClient, ctx, "llama-stack"); err != nil {
+		return fmt.Errorf("failed to create OGXServer in llama-stack: %w", err)
 	}
 
 	// mock-test namespaces matching GetNamespaces mock, with vector stores only
@@ -441,20 +441,20 @@ providers:
   inference:
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
-    config: {}
-  vector_io:
-  - provider_id: milvus
-    provider_type: inline::milvus
     config:
-      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+      trust_remote_code: false
+  vector_io:
+  - provider_id: faiss
+    provider_type: inline::faiss
+    config:
+      persistence:
+        namespace: vector_io::faiss
+        backend: kv_default
   responses:
   - provider_id: builtin
     provider_type: inline::builtin
     config:
       persistence:
-        agent_state:
-          namespace: agents
-          backend: kv_default
         responses:
           table_name: responses
           backend: sql_default
@@ -472,11 +472,7 @@ registered_resources:
       model_id: mock-model
       provider_id: vllm-inference-1
       model_type: llm
-  shields: []
   vector_stores: []
-  datasets: []
-  scoring_fns: []
-  benchmarks: []
 server:
   port: 8321`,
 		},
@@ -484,8 +480,9 @@ server:
 	return k8sClient.Create(ctx, cm)
 }
 
-func createLlamaStackDistribution(k8sClient client.Client, ctx context.Context, namespace string) error {
-	lsd := &lsdapi.LlamaStackDistribution{
+func createOGXServer(k8sClient client.Client, ctx context.Context, namespace string) error {
+	replicas := int32(1)
+	ogx := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mock-lsd",
 			Namespace: namespace,
@@ -493,21 +490,19 @@ func createLlamaStackDistribution(k8sClient client.Client, ctx context.Context, 
 				"opendatahub.io/dashboard": "true",
 			},
 		},
-		Spec: lsdapi.LlamaStackDistributionSpec{
-			Replicas: 1,
-			Server: lsdapi.ServerSpec{
-				ContainerSpec: lsdapi.ContainerSpec{
-					Name: "llama-stack",
-					Port: 8321,
-				},
-				Distribution: lsdapi.DistributionType{Name: "rh-dev"},
-				UserConfig: &lsdapi.UserConfigSpec{
-					ConfigMapName: "llama-stack-config",
-				},
+		Spec: ogxapi.OGXServerSpec{
+			Distribution: ogxapi.DistributionSpec{Name: "rh-dev"},
+			OverrideConfig: &ogxapi.ConfigMapKeyRef{
+				Name: "llama-stack-config",
+				Key:  "config.yaml",
+			},
+			Network: &ogxapi.NetworkSpec{Port: 8321},
+			Workload: &ogxapi.WorkloadSpec{
+				Replicas: &replicas,
 			},
 		},
 	}
-	return k8sClient.Create(ctx, lsd)
+	return k8sClient.Create(ctx, ogx)
 }
 
 func createNamespace(k8sClient client.Client, ctx context.Context, namespace string) error {
@@ -525,20 +520,20 @@ func createNamespace(k8sClient client.Client, ctx context.Context, namespace str
 	return nil
 }
 
-// CreateLlamaStackDistributionCRD creates the CRD for LlamaStackDistribution
-// Based on the official CRD from https://github.com/llamastack/llama-stack-k8s-operator/blob/main/config/crd/bases/llamastack.io_llamastackdistributions.yaml
-// A better approach to replicate real CRD install would be to download the CRD and place it in the CRDDirectoryPaths, given
-// pointing to a remote location is not supported yet by envtest: https://github.com/kubernetes-sigs/controller-runtime/issues/1558
-func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition {
+// CreateOGXServerCRD creates a minimal CRD for OGXServer so envtest accepts the type.
+// For production parity, vendor the official CRD from the ogx-k8s-operator chart instead.
+// envtest does not support remote CRDDirectoryPaths: https://github.com/kubernetes-sigs/controller-runtime/issues/1558
+func CreateOGXServerCRD() *apiextensionsv1.CustomResourceDefinition {
+	policyPreserve := true
 	return &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "llamastackdistributions.llamastack.io",
+			Name: "ogxservers.ogx.io",
 		},
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: "llamastack.io",
+			Group: "ogx.io",
 			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 				{
-					Name:    "v1alpha1",
+					Name:    "v1beta1",
 					Served:  true,
 					Storage: true,
 					Schema: &apiextensionsv1.CustomResourceValidation{
@@ -548,13 +543,38 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 								"spec": {
 									Type: "object",
 									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										"replicas": {
-											Type: "integer",
-										},
-										"server": {
+										"distribution": {
 											Type: "object",
 											Properties: map[string]apiextensionsv1.JSONSchemaProps{
-												"containerSpec": {
+												"name":  {Type: "string"},
+												"image": {Type: "string"},
+											},
+										},
+										"overrideConfig": {
+											Type: "object",
+											Properties: map[string]apiextensionsv1.JSONSchemaProps{
+												"name": {Type: "string"},
+												"key":  {Type: "string"},
+											},
+										},
+										"network": {
+											Type: "object",
+											Properties: map[string]apiextensionsv1.JSONSchemaProps{
+												"port": {Type: "integer"},
+												"policy": {
+													Type:                   "object",
+													XPreserveUnknownFields: &policyPreserve,
+												},
+											},
+										},
+										"workload": {
+											Type: "object",
+											Properties: map[string]apiextensionsv1.JSONSchemaProps{
+												"replicas": {Type: "integer"},
+												"resources": {
+													Type: "object",
+												},
+												"overrides": {
 													Type: "object",
 													Properties: map[string]apiextensionsv1.JSONSchemaProps{
 														"command": {
@@ -565,9 +585,6 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 																},
 															},
 														},
-														"resources": {
-															Type: "object",
-														},
 														"env": {
 															Type: "array",
 															Items: &apiextensionsv1.JSONSchemaPropsOrArray{
@@ -575,28 +592,6 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 																	Type: "object",
 																},
 															},
-														},
-														"name": {
-															Type: "string",
-														},
-														"port": {
-															Type: "integer",
-														},
-													},
-												},
-												"distribution": {
-													Type: "object",
-													Properties: map[string]apiextensionsv1.JSONSchemaProps{
-														"name": {
-															Type: "string",
-														},
-													},
-												},
-												"userConfig": {
-													Type: "object",
-													Properties: map[string]apiextensionsv1.JSONSchemaProps{
-														"configMapName": {
-															Type: "string",
 														},
 													},
 												},
@@ -610,6 +605,17 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 										"phase": {
 											Type: "string",
 										},
+										"serviceURL": {
+											Type: "string",
+										},
+										"conditions": {
+											Type: "array",
+											Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+												Schema: &apiextensionsv1.JSONSchemaProps{
+													Type: "object",
+												},
+											},
+										},
 									},
 								},
 							},
@@ -619,10 +625,11 @@ func CreateLlamaStackDistributionCRD() *apiextensionsv1.CustomResourceDefinition
 			},
 			Scope: apiextensionsv1.NamespaceScoped,
 			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Plural:     "llamastackdistributions",
-				Singular:   "llamastackdistribution",
-				Kind:       "LlamaStackDistribution",
-				ShortNames: []string{"lsd"},
+				Plural:     "ogxservers",
+				Singular:   "ogxserver",
+				Kind:       "OGXServer",
+				ListKind:   "OGXServerList",
+				ShortNames: []string{"ogs"},
 			},
 		},
 	}

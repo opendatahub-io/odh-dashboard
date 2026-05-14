@@ -12,21 +12,29 @@ import (
 
 // LlamaStackConfig represents the main configuration structure
 type LlamaStackConfig struct {
-	Version             string              `json:"version" yaml:"version"`
-	DistroName          string              `json:"distro_name" yaml:"distro_name"`
-	APIs                []string            `json:"apis" yaml:"apis"`
-	Providers           Providers           `json:"providers" yaml:"providers"`
-	MetadataStore       MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
-	Storage             Storage             `json:"storage" yaml:"storage"`
-	VectorStores        VectorStores        `json:"vector_stores" yaml:"vector_stores"`
-	RegisteredResources RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
-	Server              Server              `json:"server" yaml:"server"`
+	Version              string              `json:"version" yaml:"version"`
+	DistroName           string              `json:"distro_name" yaml:"distro_name"`
+	APIs                 []string            `json:"apis" yaml:"apis"`
+	Providers            Providers           `json:"providers" yaml:"providers"`
+	MetadataStore        MetadataStore       `json:"metadata_store" yaml:"metadata_store"`
+	Storage              Storage             `json:"storage" yaml:"storage"`
+	VectorStores         VectorStores        `json:"vector_stores" yaml:"vector_stores"`
+	RegisteredResources  RegisteredResources `json:"registered_resources" yaml:"registered_resources"`
+	ExternalProvidersDir string              `json:"external_providers_dir,omitempty" yaml:"external_providers_dir,omitempty"`
+	Connectors           []ConnectorInput    `json:"connectors,omitempty" yaml:"connectors,omitempty"`
+	Server               Server              `json:"server" yaml:"server"`
 }
 
 // VectorStores configures the default vector store behavior for Llama Stack.
 type VectorStores struct {
-	DefaultProviderID     string                    `json:"default_provider_id" yaml:"default_provider_id"`
-	DefaultEmbeddingModel VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+	DefaultProviderID      string                    `json:"default_provider_id" yaml:"default_provider_id"`
+	DefaultEmbeddingModel  VectorStoreModelReference `json:"default_embedding_model" yaml:"default_embedding_model"`
+	FileSearchParams       map[string]interface{}    `json:"file_search_params,omitempty" yaml:"file_search_params,omitempty"`
+	ContextPromptParams    map[string]interface{}    `json:"context_prompt_params,omitempty" yaml:"context_prompt_params,omitempty"`
+	AnnotationPromptParams map[string]interface{}    `json:"annotation_prompt_params,omitempty" yaml:"annotation_prompt_params,omitempty"`
+	FileIngestionParams    map[string]interface{}    `json:"file_ingestion_params,omitempty" yaml:"file_ingestion_params,omitempty"`
+	ChunkRetrievalParams   map[string]interface{}    `json:"chunk_retrieval_params,omitempty" yaml:"chunk_retrieval_params,omitempty"`
+	FileBatchParams        map[string]interface{}    `json:"file_batch_params,omitempty" yaml:"file_batch_params,omitempty"`
 }
 
 // VectorStoreModelReference references an embedding model by provider and model ID.
@@ -36,15 +44,12 @@ type VectorStoreModelReference struct {
 }
 
 type Providers struct {
-	Inference   []Provider `json:"inference" yaml:"inference"`
-	VectorIO    []Provider `json:"vector_io" yaml:"vector_io"`
-	Responses   []Provider `json:"responses" yaml:"responses"`
-	Eval        []Provider `json:"eval" yaml:"eval"`
-	Files       []Provider `json:"files" yaml:"files"`
-	DatasetIO   []Provider `json:"datasetio" yaml:"datasetio"`
-	Scoring     []Provider `json:"scoring" yaml:"scoring"`
-	ToolRuntime []Provider `json:"tool_runtime" yaml:"tool_runtime"`
-	Safety      []Provider `json:"safety" yaml:"safety"`
+	Inference      []Provider `json:"inference,omitempty" yaml:"inference,omitempty"`
+	VectorIO       []Provider `json:"vector_io,omitempty" yaml:"vector_io,omitempty"`
+	Responses      []Provider `json:"responses,omitempty" yaml:"responses,omitempty"`
+	FileProcessors []Provider `json:"file_processors,omitempty" yaml:"file_processors,omitempty"`
+	Files          []Provider `json:"files,omitempty" yaml:"files,omitempty"`
+	ToolRuntime    []Provider `json:"tool_runtime,omitempty" yaml:"tool_runtime,omitempty"`
 }
 
 type Provider struct {
@@ -61,16 +66,19 @@ type MetadataStore struct {
 
 type RegisteredResources struct {
 	Models       []Model       `json:"models" yaml:"models"`
-	Shields      []Shield      `json:"shields" yaml:"shields"`
 	VectorStores []VectorStore `json:"vector_stores" yaml:"vector_stores"`
-	Datasets     []Dataset     `json:"datasets" yaml:"datasets"`
-	ScoringFns   []ScoringFn   `json:"scoring_fns" yaml:"scoring_fns"`
-	Benchmarks   []Benchmark   `json:"benchmarks" yaml:"benchmarks"`
 }
 
 type Storage struct {
 	Backends map[string]interface{} `json:"backends" yaml:"backends"`
 	Stores   map[string]interface{} `json:"stores" yaml:"stores"`
+}
+
+type ConnectorInput struct {
+	ConnectorType string `json:"connector_type,omitempty" yaml:"connector_type,omitempty"`
+	ConnectorID   string `json:"connector_id" yaml:"connector_id"`
+	URL           string `json:"url" yaml:"url"`
+	ServerLabel   string `json:"server_label,omitempty" yaml:"server_label,omitempty"`
 }
 
 type Model struct {
@@ -155,14 +163,14 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		Version:    "2",
 		DistroName: "rh",
 		APIs: []string{
-			"responses", "datasetio", "files", "inference",
-			"safety", "scoring", "tool_runtime", "vector_io",
+			"responses", "file_processors", "files", "inference",
+			"tool_runtime", "vector_io",
 		},
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
 			VectorIO: []Provider{
 				NewProvider("milvus", "inline::milvus", map[string]interface{}{
-					"db_path": "/opt/app-root/src/.llama/distributions/rh/milvus.db",
+					"db_path": "${env.MILVUS_DB_PATH:=~/.llama}/milvus.db",
 					"persistence": map[string]interface{}{
 						"namespace": "vector_io::milvus",
 						"backend":   "kv_default",
@@ -172,10 +180,6 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			Responses: []Provider{
 				NewProvider("builtin", "inline::builtin", map[string]interface{}{
 					"persistence": map[string]interface{}{
-						"agent_state": map[string]interface{}{
-							"namespace": "agents",
-							"backend":   "kv_default",
-						},
 						"responses": map[string]interface{}{
 							"table_name":           "responses",
 							"backend":              "sql_default",
@@ -185,8 +189,11 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					},
 				}),
 			},
+			FileProcessors: []Provider{
+				NewProvider("pypdf", "inline::pypdf", EmptyConfig()),
+			},
 			Files: []Provider{
-				NewProvider("meta-reference-files", "inline::localfs", map[string]interface{}{
+				NewProvider("localfs-files", "inline::localfs", map[string]interface{}{
 					"storage_dir": "/opt/app-root/src/.llama/distributions/rh/files",
 					"metadata_store": map[string]interface{}{
 						"table_name": "files_metadata",
@@ -194,31 +201,14 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					},
 				}),
 			},
-			DatasetIO: []Provider{
-				NewProvider("huggingface", "remote::huggingface", map[string]interface{}{
-					"kvstore": map[string]interface{}{
-						"namespace": "datasetio::huggingface",
-						"backend":   "kv_default",
-					},
-				}),
-			},
-			Scoring: []Provider{
-				NewProvider("basic", "inline::basic", EmptyConfig()),
-				NewProvider("llm-as-judge", "inline::llm-as-judge", EmptyConfig()),
-			},
 			ToolRuntime: []Provider{
 				NewProvider("file-search", "inline::file-search", EmptyConfig()),
 				NewProvider("model-context-protocol", "remote::model-context-protocol", EmptyConfig()),
 			},
 		},
 		RegisteredResources: RegisteredResources{
-			// Ensure these serialize as `[]` (not `null`) when no values exist.
 			Models:       []Model{},
-			Shields:      []Shield{},
 			VectorStores: []VectorStore{},
-			Datasets:     []Dataset{},
-			ScoringFns:   []ScoringFn{},
-			Benchmarks:   []Benchmark{},
 		},
 		MetadataStore: MetadataStore{
 			Type:   "sqlite",
@@ -241,11 +231,21 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 					"backend":   "kv_default",
 				},
 				"inference": map[string]interface{}{
-					"table_name": "inference_store",
-					"backend":    "sql_default",
+					"table_name":           "inference_store",
+					"backend":              "sql_default",
+					"max_write_queue_size": 10000,
+					"num_writers":          4,
 				},
 				"conversations": map[string]interface{}{
 					"table_name": "openai_conversations",
+					"backend":    "sql_default",
+				},
+				"prompts": map[string]interface{}{
+					"table_name": "prompts",
+					"backend":    "sql_default",
+				},
+				"connectors": map[string]interface{}{
+					"table_name": "connectors",
 					"backend":    "sql_default",
 				},
 			},
@@ -256,7 +256,28 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
 			},
+			AnnotationPromptParams: map[string]interface{}{
+				"enable_annotations": true,
+			},
+			FileIngestionParams: map[string]interface{}{
+				"default_chunk_size_tokens":    512,
+				"default_chunk_overlap_tokens": 128,
+			},
+			ChunkRetrievalParams: map[string]interface{}{
+				"chunk_multiplier":          5,
+				"max_tokens_in_context":     4000,
+				"default_reranker_strategy": "rrf",
+				"rrf_impact_factor":         60.0,
+				"weighted_search_alpha":     0.5,
+				"default_search_mode":       "vector",
+			},
+			FileBatchParams: map[string]interface{}{
+				"max_concurrent_files_per_batch": 3,
+				"file_batch_chunk_size":          10,
+				"cleanup_interval_seconds":       86400,
+			},
 		},
+		ExternalProvidersDir: "/opt/app-root/.llama/providers.d",
 		Server: Server{
 			Port: 8321,
 		},
@@ -388,7 +409,9 @@ func NewSentenceTransformerProvider() Provider {
 	return Provider{
 		ProviderID:   "sentence-transformers",
 		ProviderType: "inline::sentence-transformers",
-		Config:       EmptyConfig(),
+		Config: map[string]interface{}{
+			"trust_remote_code": false,
+		},
 	}
 }
 
@@ -538,19 +561,14 @@ func (c *LlamaStackConfig) AddResponsesProvider(provider Provider) {
 	c.Providers.Responses = append(c.Providers.Responses, provider)
 }
 
-// AddDatasetIOProvider adds a new dataset IO provider to the config
-func (c *LlamaStackConfig) AddDatasetIOProvider(provider Provider) {
-	c.Providers.DatasetIO = append(c.Providers.DatasetIO, provider)
-}
-
-// AddScoringProvider adds a new scoring provider to the config
-func (c *LlamaStackConfig) AddScoringProvider(provider Provider) {
-	c.Providers.Scoring = append(c.Providers.Scoring, provider)
-}
-
 // AddToolRuntimeProvider adds a new tool runtime provider to the config
 func (c *LlamaStackConfig) AddToolRuntimeProvider(provider Provider) {
 	c.Providers.ToolRuntime = append(c.Providers.ToolRuntime, provider)
+}
+
+// AddFileProcessorsProvider adds a new file processors provider to the config
+func (c *LlamaStackConfig) AddFileProcessorsProvider(provider Provider) {
+	c.Providers.FileProcessors = append(c.Providers.FileProcessors, provider)
 }
 
 // AddFilesProvider adds a new files provider to the config
@@ -606,7 +624,7 @@ func (c *LlamaStackConfig) GetModelProviderInfo(modelID string) (*types.ModelPro
 	for _, provider := range c.Providers.Inference {
 		if provider.ProviderID == providerID {
 			url := ""
-			// Try base_url first (llama-stack v0.4.0+), fallback to url for backward compatibility
+			// vLLM uses base_url; other providers (e.g. watsonx) use url
 			if urlVal, ok := provider.Config["base_url"]; ok {
 				if urlStr, ok := urlVal.(string); ok {
 					url = cleanEnvVar(urlStr)
@@ -640,15 +658,6 @@ func cleanEnvVar(value string) string {
 	return value
 }
 
-// Shield represents a safety and security configuration
-type Shield struct {
-	ShieldID   string                 `json:"shield_id" yaml:"shield_id"`
-	ShieldType string                 `json:"shield_type" yaml:"shield_type"`
-	ProviderID string                 `json:"provider_id" yaml:"provider_id"`
-	Config     map[string]interface{} `json:"config" yaml:"config"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
 // VectorStore represents a vector store configuration in registered_resources
 type VectorStore struct {
 	VectorStoreID         string                 `json:"vector_store_id" yaml:"vector_store_id"`
@@ -660,87 +669,12 @@ type VectorStore struct {
 	Metadata              map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 }
 
-// Dataset represents a dataset configuration
-type Dataset struct {
-	DatasetID   string                 `json:"dataset_id" yaml:"dataset_id"`
-	Name        string                 `json:"name" yaml:"name"`
-	ProviderID  string                 `json:"provider_id" yaml:"provider_id"`
-	DatasetType string                 `json:"dataset_type" yaml:"dataset_type"`
-	Config      map[string]interface{} `json:"config" yaml:"config"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// ScoringFn represents a scoring function configuration
-type ScoringFn struct {
-	FunctionID   string                 `json:"function_id" yaml:"function_id"`
-	Name         string                 `json:"name" yaml:"name"`
-	ProviderID   string                 `json:"provider_id" yaml:"provider_id"`
-	FunctionType string                 `json:"function_type" yaml:"function_type"`
-	Config       map[string]interface{} `json:"config" yaml:"config"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// Benchmark represents a benchmark configuration
-type Benchmark struct {
-	BenchmarkID   string                 `json:"benchmark_id" yaml:"benchmark_id"`
-	Name          string                 `json:"name" yaml:"name"`
-	BenchmarkType string                 `json:"benchmark_type" yaml:"benchmark_type"`
-	Config        map[string]interface{} `json:"config" yaml:"config"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-}
-
-// NewShield creates a new Shield instance
-func NewShield(shieldID, shieldType, providerID string, config map[string]interface{}) Shield {
-	return Shield{
-		ShieldID:   shieldID,
-		ShieldType: shieldType,
-		ProviderID: providerID,
-		Config:     config,
-		Metadata:   EmptyConfig(),
-	}
-}
-
 // NewVectorStore creates a new VectorStore instance
 func NewVectorStore(vectorStoreID, embeddingModel string, embeddingDimension int) VectorStore {
 	return VectorStore{
 		VectorStoreID:      vectorStoreID,
 		EmbeddingModel:     embeddingModel,
 		EmbeddingDimension: embeddingDimension,
-	}
-}
-
-// NewDataset creates a new Dataset instance
-func NewDataset(datasetID, name, providerID, datasetType string, config map[string]interface{}) Dataset {
-	return Dataset{
-		DatasetID:   datasetID,
-		Name:        name,
-		ProviderID:  providerID,
-		DatasetType: datasetType,
-		Config:      config,
-		Metadata:    EmptyConfig(),
-	}
-}
-
-// NewScoringFn creates a new ScoringFn instance
-func NewScoringFn(functionID, name, providerID, functionType string, config map[string]interface{}) ScoringFn {
-	return ScoringFn{
-		FunctionID:   functionID,
-		Name:         name,
-		ProviderID:   providerID,
-		FunctionType: functionType,
-		Config:       config,
-		Metadata:     EmptyConfig(),
-	}
-}
-
-// NewBenchmark creates a new Benchmark instance
-func NewBenchmark(benchmarkID, name, benchmarkType string, config map[string]interface{}) Benchmark {
-	return Benchmark{
-		BenchmarkID:   benchmarkID,
-		Name:          name,
-		BenchmarkType: benchmarkType,
-		Config:        config,
-		Metadata:      EmptyConfig(),
 	}
 }
 

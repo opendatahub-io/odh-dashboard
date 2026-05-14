@@ -1110,7 +1110,7 @@ jobs:
         if: needs.get-test-tags.outputs.bff_packages != '[]'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: false
 
       - name: Start BFF Services

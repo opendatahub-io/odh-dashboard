@@ -8,43 +8,43 @@ import (
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck            *HealthCheckRepository
-	Models                 *ModelsRepository
-	MaaSModels             *MaaSModelsRepository
-	AAModels               *AAModelsRepository
-	VectorStores           *VectorStoresRepository
-	ExternalVectorStores   *ExternalVectorStoresRepository
-	Files                  *FilesRepository
-	Responses              *ResponsesRepository
-	Template               *TemplateRepository
-	Namespace              *NamespaceRepository
-	LlamaStackDistribution *LlamaStackDistributionRepository
-	MCPClient              *MCPClientRepository
-	Guardrails             *GuardrailsRepository
-	NemoGuardrails         *NemoGuardrailsRepository
-	MLflowPrompts          *MLflowPromptsRepository
-	ExternalModels         *ExternalModelsRepository
+	HealthCheck          *HealthCheckRepository
+	Models               *ModelsRepository
+	MaaSModels           *MaaSModelsRepository
+	AAModels             *AAModelsRepository
+	VectorStores         *VectorStoresRepository
+	ExternalVectorStores *ExternalVectorStoresRepository
+	Files                *FilesRepository
+	Responses            *ResponsesRepository
+	Template             *TemplateRepository
+	Namespace            *NamespaceRepository
+	OGXServer            *OGXServerRepository
+	MCPClient            *MCPClientRepository
+	Guardrails           *GuardrailsRepository
+	NemoGuardrails       *NemoGuardrailsRepository
+	MLflowPrompts        *MLflowPromptsRepository
+	ExternalModels       *ExternalModelsRepository
 }
 
 // NewRepositories creates domain-specific repositories.
 func NewRepositories() *Repositories {
 	return &Repositories{
-		HealthCheck:            NewHealthCheckRepository(),
-		Models:                 NewModelsRepository(),
-		MaaSModels:             NewMaaSModelsRepository(),
-		AAModels:               NewAAModelsRepository(),
-		VectorStores:           NewVectorStoresRepository(),
-		ExternalVectorStores:   NewExternalVectorStoresRepository(nil),
-		Files:                  NewFilesRepository(),
-		Responses:              NewResponsesRepository(),
-		Template:               NewTemplateRepository(),
-		Namespace:              NewNamespaceRepository(),
-		LlamaStackDistribution: NewLlamaStackDistributionRepository(),
-		MCPClient:              nil, // Will be initialized separately with MCP client factory
-		Guardrails:             NewGuardrailsRepository(),
-		NemoGuardrails:         NewNemoGuardrailsRepository(),
-		MLflowPrompts:          NewMLflowPromptsRepository(),
-		ExternalModels:         NewExternalModelsRepository(),
+		HealthCheck:          NewHealthCheckRepository(),
+		Models:               NewModelsRepository(),
+		MaaSModels:           NewMaaSModelsRepository(),
+		AAModels:             NewAAModelsRepository(),
+		VectorStores:         NewVectorStoresRepository(),
+		ExternalVectorStores: NewExternalVectorStoresRepository(nil),
+		Files:                NewFilesRepository(),
+		Responses:            NewResponsesRepository(),
+		Template:             NewTemplateRepository(),
+		Namespace:            NewNamespaceRepository(),
+		OGXServer:            NewOGXServerRepository(),
+		MCPClient:            nil, // Will be initialized separately with MCP client factory
+		Guardrails:           NewGuardrailsRepository(),
+		NemoGuardrails:       NewNemoGuardrailsRepository(),
+		MLflowPrompts:        NewMLflowPromptsRepository(),
+		ExternalModels:       NewExternalModelsRepository(),
 	}
 }
 
