@@ -158,10 +158,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     createApiKeySchema,
   );
 
-  const isFormValid = () => {
-    const result = createApiKeySchema.safeParse(formData);
-    return result.success;
-  };
+  const isFormValid = getFieldValidation(undefined, true).length === 0;
 
   const selectedOption = EXPIRATION_OPTIONS.find((opt) => opt.value === formData.expirationOption);
 
@@ -539,7 +536,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                 key="create"
                 variant="primary"
                 onClick={handleSubmit}
-                isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
+                isDisabled={!isFormValid || isCreating || subscriptions.length === 0}
                 isLoading={isCreating}
                 data-testid="submit-create-api-key-button"
               >

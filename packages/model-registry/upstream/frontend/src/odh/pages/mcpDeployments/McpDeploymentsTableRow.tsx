@@ -46,7 +46,7 @@ const McpDeploymentsTableRow: React.FC<McpDeploymentsTableRowProps> = ({
         />
       </Td>
       <Td dataLabel="Status" data-testid="mcp-deployment-status">
-        <McpDeploymentStatusLabel phase={deployment.phase} />
+        <McpDeploymentStatusLabel conditions={deployment.conditions} />
       </Td>
       <Td dataLabel="Service" data-testid="mcp-deployment-service">
         <McpDeploymentServicePopover deployment={deployment} />
