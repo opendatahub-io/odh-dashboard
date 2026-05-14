@@ -174,9 +174,13 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
-  const generationModels = parameters?.generation_models;
-  const embeddingsModels = parameters?.embedding_models;
-  const hasModelConfig = (generationModels?.length ?? 0) > 0 || (embeddingsModels?.length ?? 0) > 0;
+  const generationModels = Array.isArray(parameters?.generation_models)
+    ? parameters.generation_models
+    : [];
+  const embeddingModels = Array.isArray(parameters?.embedding_models)
+    ? parameters.embedding_models
+    : [];
+  const hasModelConfig = generationModels.length > 0 || embeddingModels.length > 0;
 
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
@@ -258,7 +262,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
                     <ModelConfigurationValue
                       generationModels={generationModels}
-                      embeddingsModels={embeddingsModels}
+                      embeddingsModels={embeddingModels}
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>

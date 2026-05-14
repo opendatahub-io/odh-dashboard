@@ -19,7 +19,7 @@ export const normalizePipelineRun = (run: PipelineRun): PipelineRun => {
   }
 
   let changed = false;
-  const normalized: Record<string, unknown> = {};
+  const normalized: Record<string, unknown> = Object.create(null);
 
   for (const [key, value] of Object.entries(params)) {
     const newKey = LEGACY_PARAM_RENAMES[key] ?? key;
