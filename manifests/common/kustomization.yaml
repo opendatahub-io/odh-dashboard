@@ -5,3 +5,4 @@ resources:
   - ./connection-types
   - ./apps
   - ./model-registry
+  - ./rbac
