@@ -169,9 +169,9 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 		Providers: Providers{
 			Inference: []Provider{NewSentenceTransformerProvider()},
 			VectorIO: []Provider{
-				NewProvider("faiss", "inline::faiss", map[string]interface{}{
+				NewProvider("milvus", "inline::milvus", map[string]interface{}{
 					"persistence": map[string]interface{}{
-						"namespace": "vector_io::faiss",
+						"namespace": "vector_io::milvus",
 						"backend":   "kv_default",
 					},
 				}),
@@ -250,7 +250,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 			},
 		},
 		VectorStores: VectorStores{
-			DefaultProviderID: "faiss",
+			DefaultProviderID: "milvus",
 			DefaultEmbeddingModel: VectorStoreModelReference{
 				ProviderID: "sentence-transformers",
 				ModelID:    "ibm-granite/granite-embedding-125m-english",
