@@ -20,7 +20,7 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
     <ModalHeader title="Stop pipeline run?" />
     <ModalBody>
       Are you sure you want to stop {runName ? `"${runName}"` : 'this run'}? All running tasks will
-      be canceled and the run will be marked as canceled. This action cannot be undone.
+      be canceled and the run will be marked as failed. This action cannot be undone.
     </ModalBody>
     <ModalFooter>
       <Button
