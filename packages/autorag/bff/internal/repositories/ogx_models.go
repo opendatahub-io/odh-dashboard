@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
@@ -19,12 +20,12 @@ func NewOGXModelsRepository() *OGXModelsRepository {
 func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXModelsData, error) {
 	client, err := helper.GetContextOGXClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get OGX client from context: %w", err)
 	}
 
 	nativeModels, err := client.ListModels(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list OGX models: %w", err)
 	}
 
 	allModels := make([]models.LSDModel, 0, len(nativeModels))

@@ -39,7 +39,7 @@ The secret must contain the following keys (exact match, case-sensitive):
 
 The request passes through the following middleware:
 
-```
+```text
 AttachNamespace -> AttachOGXClientFromSecret -> OGXModelsHandler
 ```
 
@@ -200,7 +200,7 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 ## Security
 
 - Authentication is enforced by the `InjectRequestIdentity` global middleware
-- Secret access is authorized by Kubernetes RBAC — the user must have `list` permission on secrets in the namespace
+- Secret access is authorized by Kubernetes RBAC — the user must have `get` permission on the named secret in the namespace
 - The `secretName` parameter is validated as a DNS-1123 label to prevent injection
 - The Open GenAI Stack base URL from the secret is validated to reject loopback, link-local, and unspecified addresses (SSRF protection)
 - Secret values (API keys) are not logged
