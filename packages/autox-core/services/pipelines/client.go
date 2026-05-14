@@ -58,6 +58,10 @@ type PipelinesClientConfig struct {
 type DefaultPipelinesClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
+	// WrapTransport optionally wraps the HTTP transport chain.
+	// Used by consumers (e.g. automl dev mode) to inject port-forwarding
+	// or other transport-level concerns without leaking them into the service layer.
+	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
 // NewPipelinesClient creates a client with injectable HTTP client (for testing)
@@ -85,9 +89,14 @@ func NewDefaultPipelinesClient(cfg DefaultPipelinesClientConfig) *PipelinesClien
 		}
 	}
 
+	var base http.RoundTripper = transport
+	if cfg.WrapTransport != nil {
+		base = cfg.WrapTransport(base)
+	}
+
 	httpClient := &http.Client{
 		Transport: &pipelinesRoundTripper{
-			base: transport,
+			base: base,
 		},
 	}
 
