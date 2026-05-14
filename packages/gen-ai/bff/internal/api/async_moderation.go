@@ -272,8 +272,8 @@ func (s *AsyncModerationState) FlushPendingChunks(sendFunc func([]*StreamingEven
 	return ""
 }
 
-// handleStreamingResponseAsync handles streaming response with async moderation
-func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams) {
+// handleStreamingResponseWithModeration handles streaming response with guardrails moderation
+func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams, inputMessages []nemo.Message) {
 	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -295,23 +295,10 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Output moderation is enabled when the request included an inline guardrail config
-	// with output rails configured.
-	moderationEnabled := hasOutputModeration(params.GuardrailOpts)
-
-	// If moderation is disabled, use the simple streaming path
-	if !moderationEnabled {
-		app.streamWithoutModeration(w, flusher, stream, ctx)
-		return
-	}
-
-	// Initialize async moderation state
-	modState := NewAsyncModerationState(ctx, app.logger)
-	defer modState.Cancel()
-
 	// Mutex for thread-safe writes to response writer
 	var writeMu sync.Mutex
 
+	// Start heartbeat to keep the connection alive through HAProxy during slow operations
 	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
 	go hb.start(ctx)
 	defer hb.stop()
@@ -327,6 +314,65 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		flusher.Flush()
 		return nil
 	}
+
+	sendGuardrailError := func(message string, code string) {
+		errorData := map[string]interface{}{
+			"error": map[string]interface{}{
+				"message": message,
+				"code":    code,
+			},
+		}
+		if eventData, err := json.Marshal(errorData); err == nil {
+			_ = sendEvent(eventData) // Best effort - client may have disconnected
+		}
+	}
+
+	// Run input moderation after heartbeat is active (prevents HAProxy timeout)
+	if len(inputMessages) > 0 {
+		flagged, _, modErr := app.checkInputModeration(ctx, inputMessages, params.GuardrailOpts)
+		if modErr != nil {
+			sendGuardrailError("guardrail service unavailable", constants.GuardrailServiceUnavailableCode)
+			return
+		}
+		if flagged {
+			sendGuardrailError("input blocked by safety guardrails", constants.GuardrailInputViolationCode)
+			return
+		}
+	}
+
+	outputModeration := hasOutputModeration(params.GuardrailOpts)
+
+	// When no output moderation, stream events directly to the client
+	if !outputModeration {
+		for stream.Next() {
+			select {
+			case <-ctx.Done():
+				app.logger.Info("Client disconnected, stopping stream processing")
+				return
+			default:
+			}
+
+			event := stream.Current()
+			streamingEvent := convertToStreamingEvent(event)
+			if streamingEvent == nil {
+				continue
+			}
+
+			if eventData, err := json.Marshal(streamingEvent); err == nil {
+				_ = sendEvent(eventData) // Best effort - client may have disconnected
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			app.logger.Error("Streaming error", "error", err)
+			sendGuardrailError("Streaming error occurred", "500")
+		}
+		return
+	}
+
+	// Output moderation: buffer chunks and moderate asynchronously
+	modState := NewAsyncModerationState(ctx, app.logger)
+	defer modState.Cancel()
 
 	// Helper to send multiple events
 	sendEvents := func(events []*StreamingEvent) error {
@@ -357,18 +403,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
-	sendGuardrailViolation := func() {
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "output blocked by safety guardrails",
-				"code":    constants.GuardrailOutputViolationCode,
-			},
-		}
-		if eventData, err := json.Marshal(errorData); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
-	}
-
 	// Current chunk being accumulated
 	var currentChunk *ModerationChunk
 	var wordCount int
@@ -383,7 +417,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		case violation := <-violationChan:
 			app.logger.Info("Output blocked by guardrails (async)",
 				"reason", violation)
-			sendGuardrailViolation()
+			sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
 			return
 		default:
 			// Continue processing
@@ -452,7 +486,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
 					"reason", violation)
-				sendGuardrailViolation()
+				sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
 				return
 			}
 
@@ -481,7 +515,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 		app.logger.Info("Output blocked by guardrails (stream end)",
 			"reason", violation)
-		sendGuardrailViolation()
+		sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
 		return
 	}
 
@@ -492,72 +526,6 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	// Check for stream errors
 	if err := stream.Err(); err != nil {
 		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
-	}
-}
-
-// streamWithoutModeration handles streaming when moderation is disabled
-func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flusher, stream llamastack.ResponseStreamIterator, ctx context.Context) {
-	var writeMu sync.Mutex
-	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
-	go hb.start(ctx)
-	defer hb.stop()
-
-	sendEvent := func(eventData []byte) error {
-		writeMu.Lock()
-		defer writeMu.Unlock()
-		_, err := fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			return err
-		}
-		flusher.Flush()
-		return nil
-	}
-
-	for stream.Next() {
-		select {
-		case <-ctx.Done():
-			app.logger.Info("Client disconnected, stopping stream processing",
-				"context_error", ctx.Err())
-			return
-		default:
-		}
-
-		event := stream.Current()
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			continue
-		}
-
-		eventData, err := json.Marshal(streamingEvent)
-		if err != nil {
-			continue
-		}
-
-		if err := sendEvent(eventData); err != nil {
-			app.logger.Error("Failed to write streaming event", "error", err)
-			return
-		}
-	}
-
-	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		writeMu.Lock()
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
-		writeMu.Unlock()
+		sendGuardrailError("Streaming error occurred", "500")
 	}
 }
