@@ -29,6 +29,12 @@ const DEFAULT_POLL_OPTIONS: Required<PollOptions> = {
 };
 
 /**
+ * DSC condition names — older clusters use LlamaStackOperatorReady,
+ * newer ones will surface OGXOperatorReady once the DSC is updated.
+ */
+const DSC_OPERATOR_CONDITIONS = ['LlamaStackOperatorReady', 'OGXOperatorReady'] as const;
+
+/**
  * Wait for the LlamaStack operator to be ready by polling the DataScienceCluster status.
  * Checks for the LlamaStackOperatorReady condition to be True.
  *
@@ -43,13 +49,15 @@ export const waitForLlamaStackOperatorReady = (
   const totalTimeout = maxAttempts * pollIntervalMs;
 
   const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
-    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="LlamaStackOperatorReady")].status}'`;
+    const conditionFilter = DSC_OPERATOR_CONDITIONS.map((c) => `@.type=="${c}"`).join(' || ');
+    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(${conditionFilter})].status}'`;
 
     return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-      const status = result.stdout.trim();
+      const raw = result.stdout.trim();
+      const isReady = raw.split(/\s+/).includes('True');
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-      if (status === 'True') {
+      if (isReady) {
         cy.log(`✅ LlamaStackOperatorReady condition is True (after ${elapsedTime}s)`);
         return cy.wrap(result);
       }
@@ -57,14 +65,14 @@ export const waitForLlamaStackOperatorReady = (
       if (attemptNumber >= maxAttempts) {
         throw new Error(
           `LlamaStackOperatorReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
-            status || 'not found'
+            raw || 'not found'
           }`,
         );
       }
 
       cy.log(
         `⏳ Waiting for LlamaStackOperatorReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
-          status || 'not found'
+          raw || 'not found'
         }, elapsed: ${elapsedTime}s)`,
       );
       // eslint-disable-next-line cypress/no-unnecessary-waiting
