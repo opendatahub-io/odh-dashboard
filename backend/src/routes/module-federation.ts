@@ -6,6 +6,13 @@ import { KubeFastifyInstance } from '../types';
 import { DEV_MODE } from '../utils/constants';
 import { errorHandler } from '../utils';
 
+const K8S_NAME_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+const MAX_K8S_NAME_LEN = 63;
+const isValidK8sName = (value: string): boolean =>
+  value.length > 0 && value.length <= MAX_K8S_NAME_LEN && K8S_NAME_RE.test(value);
+
+const isValidPort = (port: number): boolean => Number.isInteger(port) && port >= 1 && port <= 65535;
+
 const startDevPortForwards = (
   fastify: KubeFastifyInstance,
   mfConfig: ModuleFederationConfig[],
@@ -58,6 +65,15 @@ const startDevPortForwards = (
     const localPort = ps.localService?.port ?? ps.service.port;
     const remotePort = ps.service.port;
 
+    if (!isValidK8sName(svcName) || !isValidK8sName(namespace)) {
+      fastify.log.warn(`Skipping port-forward: invalid service name or namespace for "${svcName}"`);
+      return;
+    }
+    if (!isValidPort(localPort) || !isValidPort(remotePort)) {
+      fastify.log.warn(`Skipping port-forward for ${svcName}: port out of range`);
+      return;
+    }
+
     try {
       execFileSync('oc', ['get', 'svc', svcName, '-n', namespace], { stdio: 'ignore' });
     } catch {
@@ -73,17 +89,14 @@ const startDevPortForwards = (
         { stdio: ['ignore', 'pipe', 'pipe'] },
       );
       activeChildren.set(svcName, child);
-      child.stderr?.on('data', (data: Buffer) => {
-        const msg = String(data).trim();
-        fastify.log.warn(`[port-forward ${svcName}] ${msg}`);
+      child.stderr?.on('data', () => {
+        fastify.log.warn(`[port-forward ${svcName}] stderr output received`);
       });
-      child.on('error', (err) =>
-        fastify.log.warn(`Port-forward for ${svcName} failed: ${err.message}`),
-      );
-      child.on('exit', (code) => {
+      child.on('error', () => fastify.log.warn(`Port-forward for ${svcName} failed to start`));
+      child.on('exit', () => {
         if (!stopping) {
-          fastify.log.info(`Port-forward for ${svcName} dropped (code ${code}), restarting...`);
-          setTimeout(() => !stopping && startPortForward(), 1000);
+          fastify.log.info(`Port-forward for ${svcName} exited, restarting`);
+          startPortForward();
         }
       });
     };
