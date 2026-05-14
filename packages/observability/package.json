@@ -20,7 +20,7 @@
         "authorize": true,
         "path": "/perses/api",
         "pathRewrite": "",
-        "tls": false,
+        "tls": true,
         "service": {
           "name": "perses",
           "namespace": "openshift-cluster-observability-operator",

@@ -260,26 +260,47 @@ module.exports = smp.wrap(
             }));
 
             // Auto-spawn port-forwards for the verified services
+            const activeChildren = new Map();
+            let stopping = false;
+
+            const cleanup = () => {
+              stopping = true;
+              activeChildren.forEach((child) => {
+                try {
+                  child.kill();
+                } catch {
+                  // already exited
+                }
+              });
+            };
+            process.on('exit', cleanup);
+            process.once('SIGINT', () => {
+              cleanup();
+              process.kill(process.pid, 'SIGINT');
+            });
+            process.once('SIGTERM', () => {
+              cleanup();
+              process.kill(process.pid, 'SIGTERM');
+            });
+
             availableLocalServices.forEach((ps) => {
               const localPort = ps.localService.port;
               const remotePort = ps.service.port;
               const namespace = ps.service.namespace || odhProject;
               const svcName = ps.service.name;
 
-              let current;
-              let stopping = false;
-
               const startPortForward = () => {
                 console.info(
                   `Port-forwarding svc/${svcName} ${localPort}:${remotePort} -n ${namespace}`,
                 );
-                current = spawn(
+                const current = spawn(
                   'oc',
                   ['port-forward', `svc/${svcName}`, `${localPort}:${remotePort}`, '-n', namespace],
                   { stdio: ['ignore', 'pipe', 'pipe'] },
                 );
+                activeChildren.set(svcName, current);
                 current.stderr.on('data', (data) =>
-                  console.warn(`[port-forward ${svcName}]`, data.toString().trim()),
+                  console.warn(`[port-forward ${svcName}]`, String(data).trim()),
                 );
                 current.on('error', (err) =>
                   console.warn(`Port-forward for ${svcName} failed: ${err.message}`),
@@ -295,18 +316,6 @@ module.exports = smp.wrap(
               };
 
               startPortForward();
-
-              const cleanup = () => {
-                stopping = true;
-                try {
-                  current?.kill();
-                } catch {
-                  // already exited
-                }
-              };
-              process.on('exit', cleanup);
-              process.on('SIGINT', cleanup);
-              process.on('SIGTERM', cleanup);
             });
 
             // Remove locally-proxied paths from the gateway proxy
