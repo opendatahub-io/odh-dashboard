@@ -14,6 +14,7 @@ import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesFi
 import { modelServerSelectFieldSchema } from './fields/ModelServerTemplateSelectField';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
+import { getFormId } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -52,11 +53,11 @@ export const useModelDeploymentWizardValidation = (
   );
   const modelDeploymentStepValidation = useZodFormValidation(
     {
-      modelServer: state.modelServer.data,
+      modelServer: state.modelServer?.data,
       modelFormatState: state.modelFormatState.modelFormat,
       numReplicas: state.numReplicas.data,
       ...step2Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = state[field.id];
+        acc[getFormId(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -66,7 +67,7 @@ export const useModelDeploymentWizardValidation = (
       numReplicas: numReplicasFieldSchema,
       ...step2Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getFormId(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
@@ -82,7 +83,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = resolveFieldValue(field, state);
+        acc[getFormId(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -93,7 +94,7 @@ export const useModelDeploymentWizardValidation = (
       environmentVariables: environmentVariablesFieldSchema,
       ...step3Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getFormId(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),

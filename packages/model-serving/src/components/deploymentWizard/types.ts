@@ -14,10 +14,11 @@ import type {
 import type { LabeledConnection } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import type { z } from 'zod';
+import { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect.js';
 import type {
   ModelServerOption,
+  ModelServerSelectField,
   ModelServerSelectFieldData,
-  useModelServerSelectField,
 } from './fields/ModelServerTemplateSelectField';
 import type { useModelTypeField } from './fields/ModelTypeSelectField';
 import type { useExternalRouteField } from './fields/ExternalRouteField';
@@ -35,6 +36,7 @@ import {
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
+import { getFormId } from './dynamicFormUtils';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
@@ -157,10 +159,13 @@ export type WizardFormData = {
     runtimeArgs: ReturnType<typeof useRuntimeArgsField>;
     environmentVariables: ReturnType<typeof useEnvironmentVariablesField>;
     modelAvailability: ReturnType<typeof useModelAvailabilityFields>;
-    modelServer: ReturnType<typeof useModelServerSelectField>;
+    modelServer?: ModelServerSelectField;
     createConnectionData: ReturnType<typeof useCreateConnectionData>;
     deploymentStrategy: ReturnType<typeof useDeploymentStrategyField>;
     canCreateRoleBindings: boolean;
+    devFeatureFlags?: {
+      vLLMDeploymentOnMaaS: boolean;
+    };
   } & Record<string, unknown>;
 };
 
@@ -229,6 +234,7 @@ export type WizardField<
   Dependencies extends Record<string, unknown> = Record<string, unknown>,
 > = DeploymentWizardFieldBase<string> & {
   type: 'addition' | 'replacement';
+  formId?: string;
   parentId?: string;
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
@@ -246,7 +252,10 @@ export type WizardField<
       wizardState: RecursivePartial<WizardFormData['state']>,
     ) => WizardStateOverrides;
   };
-  shouldResetOnDependencyChange?: boolean;
+  shouldResetOnDependencyChange?: (
+    prevDependencies: Dependencies,
+    newDependencies: Dependencies,
+  ) => boolean;
   externalDataHook?: (dependencies?: Dependencies) => {
     data: ExternalData;
     loaded: boolean;
@@ -273,7 +282,7 @@ export const resolveFieldValue = (
   field: WizardField,
   state: WizardFormData['state'],
 ): unknown | undefined => {
-  const storedValue: unknown = field.id in state ? state[field.id] : undefined;
+  const storedValue: unknown = getFormId(field) in state ? state[getFormId(field)] : undefined;
   if (storedValue == null) {
     return undefined;
   }
@@ -284,6 +293,9 @@ export const resolveFieldValue = (
 
 // actual fields
 
+export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
+  extraOption: SimpleSelectOption;
+};
 export type ModelServerTemplateField = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];
   suggestion?: (
@@ -304,18 +316,23 @@ export type TokenAuthField = DeploymentWizardFieldBase<'tokenAuth'> & {
 // union type
 
 export type DeploymentWizardField =
+  | ModelTypeFieldOverride
   | ModelServerTemplateField
   | ModelAvailabilityField
   | ExternalRouteField
   | TokenAuthField
   | DeploymentStrategyField;
 
+export const isModelTypeFieldOverride = (
+  field: DeploymentWizardField,
+): field is ModelTypeFieldOverride => {
+  return field.id === 'modelType';
+};
 export const isModelServerTemplateField = (
   field: DeploymentWizardField,
 ): field is ModelServerTemplateField => {
   return field.id === 'modelServerTemplate';
 };
-
 export const isModelAvailabilityField = (
   field: DeploymentWizardField,
 ): field is ModelAvailabilityField => {
