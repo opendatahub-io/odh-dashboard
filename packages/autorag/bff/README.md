@@ -121,7 +121,7 @@ Three modes are supported (flag `--auth-method` / env `AUTH_METHOD`):
 
 - **`user_token` (default)**: extracts a bearer token from the configured header/prefix (default `Authorization: Bearer <token>`) and performs SelfSubjectAccessReview. This is the production mode and the default for `make run`.
 - **`internal`**: impersonates the provided `kubeflow-userid` (and optional `kubeflow-groups`) headers using a cluster or local kubeconfig credential. Useful for local development when you don't have a bearer token readily available.
-- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_LS_CLIENT=true`). Useful for local testing. **Not recommended for production.**
+- **`disabled`**: skips all authentication and authorization checks. Automatically enabled when mock clients are used (`MOCK_K8S_CLIENT=true` or `MOCK_OGX_CLIENT=true`). Useful for local testing. **Not recommended for production.**
 
 ### Sample local calls
 
@@ -193,11 +193,11 @@ metadata:
   namespace: <your-namespace>
 type: Opaque
 data:
-  ogx_client_base_url: <base64-encoded URL>
-  ogx_client_api_key: <base64-encoded token>
+  OGX_CLIENT_BASE_URL: <base64-encoded URL>
+  OGX_CLIENT_API_KEY: <base64-encoded token>
 ```
 
-The secret keys `ogx_client_base_url` and `ogx_client_api_key` are required (exact match, case-sensitive). The BFF reads these to create the Open GenAI Stack client.
+The secret keys `OGX_CLIENT_BASE_URL` and `OGX_CLIENT_API_KEY` are required (exact match, case-sensitive). The BFF reads these to create the Open GenAI Stack client.
 
 #### Generating the API key
 
@@ -225,8 +225,8 @@ Once you have the token and know your Open GenAI Stack server URL, create the se
 ```shell
 oc create secret generic my-ogx-secret \
   --namespace=<your-namespace> \
-  --from-literal=ogx_client_base_url=https://<ogx-route> \
-  --from-literal=ogx_client_api_key=${TOKEN}
+  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
+  --from-literal=OGX_CLIENT_API_KEY=${TOKEN}
 ```
 
 **Note:** OAuth2 tokens expire. You will need to regenerate the token and update the secret when it expires. To update an existing secret:
@@ -234,8 +234,8 @@ oc create secret generic my-ogx-secret \
 ```shell
 oc create secret generic my-ogx-secret \
   --namespace=<your-namespace> \
-  --from-literal=ogx_client_base_url=https://<ogx-route> \
-  --from-literal=ogx_client_api_key=${TOKEN} \
+  --from-literal=OGX_CLIENT_BASE_URL=https://<ogx-route> \
+  --from-literal=OGX_CLIENT_API_KEY=${TOKEN} \
   --dry-run=client -o yaml | oc apply -f -
 ```
 

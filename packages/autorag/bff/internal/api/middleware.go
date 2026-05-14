@@ -375,6 +375,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName))
 				return
 			}
+			// API key is optional; only reject if the field is missing, not if empty.
 			if !foundAPIKey {
 				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: ogx_client_api_key", secretName))
 				return

@@ -288,7 +288,7 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         onChange({
           uuid: 'ogx-secret-1',
           name: 'Test OGX Secret',
-          data: { ogx_url: 'https://example.com' },
+          data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
           type: 'ogx',
           invalid: false,
         });
@@ -956,7 +956,7 @@ describe('AutoragConfigurePage', () => {
           initialOgxSecret={{
             uuid: 'ogx-secret-1',
             name: 'Test OGX Secret',
-            data: { ogx_url: 'https://example.com' },
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
             type: 'ogx',
             invalid: false,
           }}
@@ -1035,7 +1035,7 @@ describe('AutoragConfigurePage', () => {
           initialOgxSecret={{
             uuid: 'ogx-secret-1',
             name: 'Test OGX Secret',
-            data: { ogx_url: 'https://example.com' },
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
             type: 'ogx',
             invalid: false,
           }}
@@ -1077,7 +1077,7 @@ describe('AutoragConfigurePage', () => {
       const reconfigureInitialOgxSecret = {
         uuid: 'ogx-secret-1',
         name: 'Test OGX Secret',
-        data: { ogx_url: 'https://example.com' },
+        data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
         type: 'ogx',
         invalid: false,
       };

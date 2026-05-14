@@ -49,7 +49,7 @@ The `AttachOGXClientFromSecret` middleware determines how to create the Open Gen
 
 | Priority | Condition | Behavior |
 |----------|-----------|----------|
-| 1 | `MockLSClient` flag is set | Creates a mock client, skips secret lookup |
+| 1 | `MockOGXClient` flag is set | Creates a mock client, skips secret lookup |
 | 2 | Auth is disabled | Requires `OGX_URL` env var, uses it with empty token |
 | 3 | `OGX_URL` env var is set | Developer override, skips secret lookup, uses env var URL |
 | 4 | Normal (production) | Reads credentials from the named Kubernetes secret |
@@ -126,7 +126,7 @@ Start the BFF with mock clients to test without a cluster or Open GenAI Stack se
 
 ```bash
 cd packages/autorag/bff
-make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
+make run MOCK_K8S_CLIENT=true MOCK_OGX_CLIENT=true
 ```
 
 ```bash

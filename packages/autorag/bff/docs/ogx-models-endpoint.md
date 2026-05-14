@@ -49,7 +49,7 @@ The `AttachOGXClientFromSecret` middleware determines how to create the Open Gen
 
 | Priority | Condition | Behavior |
 |----------|-----------|----------|
-| 1 | `MockLSClient` flag is set | Creates a mock client, skips secret lookup |
+| 1 | `MockOGXClient` flag is set | Creates a mock client, skips secret lookup |
 | 2 | Auth is disabled | Requires `OGX_URL` env var, uses it with empty token |
 | 3 | `OGX_URL` env var is set | Developer override, skips secret lookup, uses env var URL |
 | 4 | Normal (production) | Reads credentials from the named Kubernetes secret |
@@ -149,7 +149,7 @@ Start the BFF with mock clients to test without a cluster or Open GenAI Stack se
 
 ```bash
 cd packages/autorag/bff
-make run MOCK_K8S_CLIENT=true MOCK_LS_CLIENT=true
+make run MOCK_K8S_CLIENT=true MOCK_OGX_CLIENT=true
 ```
 
 ```bash
@@ -212,8 +212,8 @@ curl -H "Authorization: Bearer $(oc whoami -t)" \
 | File | Purpose |
 |------|---------|
 | `internal/api/middleware.go` | `AttachOGXClientFromSecret` middleware — reads secret, creates client |
-| `internal/api/lsd_models_handler.go` | HTTP handler — calls repository, returns envelope response |
-| `internal/repositories/lsd_models.go` | Repository — calls Open GenAI Stack client, translates response format |
+| `internal/api/ogx_models_handler.go` | HTTP handler — calls repository, returns envelope response |
+| `internal/repositories/ogx_models.go` | Repository — calls Open GenAI Stack client, translates response format |
 | `internal/integrations/ogx/ogx_client.go` | Open GenAI Stack client — wraps OpenAI SDK for model listing |
 | `internal/helpers/ogx.go` | Context helper — retrieves Open GenAI Stack client from request context |
 | `internal/api/app.go` | Route registration and API path constants |

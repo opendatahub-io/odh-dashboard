@@ -16,7 +16,7 @@ func NewOGXModelsRepository() *OGXModelsRepository {
 
 // GetOGXModels retrieves all models from OGX.
 // Translates OGX's native format into our stable public API format.
-func (r *OGXModelsRepository) GetLSDModels(ctx context.Context) (*models.OGXModelsData, error) {
+func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXModelsData, error) {
 	client, err := helper.GetContextOGXClient(ctx)
 	if err != nil {
 		return nil, err

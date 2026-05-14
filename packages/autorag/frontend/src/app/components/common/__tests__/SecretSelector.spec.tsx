@@ -6,7 +6,7 @@ import { SecretListItem } from '~/app/types';
 import {
   mockSecretListItem,
   mockStorageSecret,
-  mockLLSSecret,
+  mockOGXSecret,
 } from '~/__mocks__/mockSecretListItem';
 import SecretSelector from '~/app/components/common/SecretSelector';
 
@@ -51,7 +51,7 @@ describe('SecretSelector', () => {
     const mockSecrets: SecretListItem[] = [
       mockStorageSecret({ uuid: '1', name: 'aws-secret-1' }),
       mockStorageSecret({ uuid: '2', name: 'aws-secret-2' }),
-      mockLLSSecret({ uuid: '3', name: 'ogx-secret-1' }),
+      mockOGXSecret({ uuid: '3', name: 'ogx-secret-1' }),
     ];
 
     it('should render dropdown with secrets when loaded', () => {
@@ -228,7 +228,7 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '2',
           name: 'ogx-secret-1',
           description: 'OGX API credentials',
@@ -259,7 +259,7 @@ describe('SecretSelector', () => {
           name: 'aws-secret-1',
           description: 'AWS S3 storage credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '2',
           name: 'ogx-secret-1',
           description: 'OGX API credentials',
@@ -998,7 +998,7 @@ describe('SecretSelector', () => {
 
     it('should not validate when secret type is not in additionalRequiredKeys', () => {
       const mockSecrets: SecretListItem[] = [
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '1',
           name: 'ogx-secret',
           data: {
@@ -1157,7 +1157,7 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-dev-credentials',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '3',
           name: 'ogx-prod-secret',
           displayName: 'Production OGX',
@@ -1346,7 +1346,7 @@ describe('SecretSelector', () => {
           uuid: '2',
           name: 'aws-without-desc',
         }),
-        mockLLSSecret({
+        mockOGXSecret({
           uuid: '3',
           name: 'ogx-with-desc',
           description: 'OGX endpoint for testing',

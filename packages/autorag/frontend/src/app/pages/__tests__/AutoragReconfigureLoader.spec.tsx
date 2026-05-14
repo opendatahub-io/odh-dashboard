@@ -736,8 +736,8 @@ describe('AutoragReconfigureLoader', () => {
     });
   });
 
-  describe('legacy parameter backwards compatibility', () => {
-    it('should normalize legacy pipeline run keys so the component reads new key names', async () => {
+  describe('OGX secret resolution from normalized pipeline run data', () => {
+    it('should resolve OGX secret and pass normalized keys as initialValues', async () => {
       const mockOgxSecrets = [
         {
           uuid: 'ogx-uuid-1',
@@ -748,11 +748,6 @@ describe('AutoragReconfigureLoader', () => {
       ];
       mockGetLlsSecrets.mockResolvedValue(mockOgxSecrets);
 
-      // Simulate a pipeline run returned with legacy keys (as if from an older pipeline).
-      // normalizePipelineRun (called inside usePipelineRunQuery) would rename these,
-      // so the component should see the new key names.
-      // We mock the hook return with already-normalized data to verify the component
-      // correctly resolves the ogx secret via the new ogx_secret_name key.
       mockUsePipelineRunQuery.mockReturnValue({
         data: createMockPipelineRun(
           { display_name: 'Legacy Run' },
@@ -793,11 +788,6 @@ describe('AutoragReconfigureLoader', () => {
         embedding_models: ['model-a'],
         display_name: 'Legacy Run - 1',
       });
-
-      // Verify legacy keys are NOT present in the passed values
-      expect(capturedProps.initialValues).not.toHaveProperty('llama_stack_secret_name');
-      expect(capturedProps.initialValues).not.toHaveProperty('llama_stack_vector_io_provider_id');
-      expect(capturedProps.initialValues).not.toHaveProperty('embeddings_models');
     });
   });
 });

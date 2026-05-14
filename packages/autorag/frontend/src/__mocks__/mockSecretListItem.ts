@@ -42,7 +42,7 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
     ...overrides,
   });
 
-export const mockLLSSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+export const mockOGXSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
     type: 'ogx',
     data: {
