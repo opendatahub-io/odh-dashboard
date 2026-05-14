@@ -28,7 +28,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, yamlStr, "version: \"2\"")
 	assert.Contains(t, yamlStr, "distro_name: rh")
 	assert.Contains(t, yamlStr, "vector_stores:")
-	assert.Contains(t, yamlStr, "default_provider_id: faiss")
+	assert.Contains(t, yamlStr, "default_provider_id: milvus")
 
 	// Test JSON conversion
 	jsonStr, err := config.ToJSON()
@@ -36,7 +36,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.Contains(t, jsonStr, "\"version\":\"2\"")
 	assert.Contains(t, jsonStr, "\"distro_name\":\"rh\"")
 	assert.Contains(t, jsonStr, "\"vector_stores\"")
-	assert.Contains(t, jsonStr, "\"default_provider_id\":\"faiss\"")
+	assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 
 	// Test parsing YAML
 	var parsedConfig LlamaStackConfig
@@ -44,7 +44,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedConfig.Version)
 	assert.Equal(t, config.DistroName, parsedConfig.DistroName)
-	assert.Equal(t, "faiss", parsedConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "milvus", parsedConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 
@@ -54,7 +54,7 @@ func TestLlamaStackConfig_Conversions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, config.Version, parsedJSONConfig.Version)
 	assert.Equal(t, config.DistroName, parsedJSONConfig.DistroName)
-	assert.Equal(t, "faiss", parsedJSONConfig.VectorStores.DefaultProviderID)
+	assert.Equal(t, "milvus", parsedJSONConfig.VectorStores.DefaultProviderID)
 	assert.Equal(t, "sentence-transformers", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ProviderID)
 	assert.Equal(t, "ibm-granite/granite-embedding-125m-english", parsedJSONConfig.VectorStores.DefaultEmbeddingModel.ModelID)
 }
@@ -1292,8 +1292,8 @@ func TestDefaultConfig_APIsAndProviders(t *testing.T) {
 	assert.Equal(t, "remote::model-context-protocol", config.Providers.ToolRuntime[1].ProviderType)
 
 	require.Len(t, config.Providers.VectorIO, 1)
-	assert.Equal(t, "faiss", config.Providers.VectorIO[0].ProviderID)
-	assert.Equal(t, "inline::faiss", config.Providers.VectorIO[0].ProviderType)
+	assert.Equal(t, "milvus", config.Providers.VectorIO[0].ProviderID)
+	assert.Equal(t, "inline::milvus", config.Providers.VectorIO[0].ProviderType)
 
 	require.Len(t, config.Providers.Inference, 1)
 	assert.Equal(t, "sentence-transformers", config.Providers.Inference[0].ProviderID)
@@ -1346,9 +1346,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, yamlStr, "responses:")
 		assert.Contains(t, yamlStr, "inline::builtin")
 		assert.Contains(t, yamlStr, "inline::file-search")
-		assert.Contains(t, yamlStr, "inline::faiss")
+		assert.Contains(t, yamlStr, "inline::milvus")
 		assert.Contains(t, yamlStr, "inline::pypdf")
-		assert.Contains(t, yamlStr, "default_provider_id: faiss")
+		assert.Contains(t, yamlStr, "default_provider_id: milvus")
 	})
 
 	t.Run("JSON contains expected keys", func(t *testing.T) {
@@ -1358,9 +1358,9 @@ func TestDefaultConfig_Serialization(t *testing.T) {
 		assert.Contains(t, jsonStr, "\"responses\"")
 		assert.Contains(t, jsonStr, "inline::builtin")
 		assert.Contains(t, jsonStr, "inline::file-search")
-		assert.Contains(t, jsonStr, "inline::faiss")
+		assert.Contains(t, jsonStr, "inline::milvus")
 		assert.Contains(t, jsonStr, "inline::pypdf")
-		assert.Contains(t, jsonStr, "\"default_provider_id\":\"faiss\"")
+		assert.Contains(t, jsonStr, "\"default_provider_id\":\"milvus\"")
 	})
 }
 
