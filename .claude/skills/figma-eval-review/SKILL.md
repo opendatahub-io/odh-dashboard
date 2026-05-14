@@ -15,7 +15,7 @@ The user provides:
 
 - **Jira ticket key or URL** (required) — e.g., `RHOAIENG-12345` or `https://redhat.atlassian.net/browse/RHOAIENG-12345`. The Jira ticket is the primary source for discovering the Figma URL and PR when they are not provided directly.
 - **Figma URL** (optional) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`. If omitted, the skill discovers the Figma URL from the Jira ticket (see Phase 2, Step 2).
-- **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch or discovers it from the Jira ticket.
+- **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch.
 - **Repository** (optional) — defaults to `opendatahub-io/odh-dashboard`
 
 If the user does not provide a Jira ticket, ask for one before proceeding.
@@ -28,7 +28,7 @@ Check that all required MCP servers are available before proceeding.
 
 | MCP | Purpose | How to verify |
 |---|---|---|
-| **Figma** (`plugin-figma-figma`) | Fetch design context, screenshot, node metadata, and component structure | Call `get_design_context` or `get_screenshot` with the provided Figma URL params. Also uses `get_metadata` to enumerate child nodes when scoping by Jira ticket. |
+| **Figma** (`plugin-figma-figma`) | Fetch design context, screenshot, node metadata, and component structure | Call `get_metadata` with a known test fileKey to verify connectivity |
 | **Atlassian** (`user-atlassian`) | Discover Figma URLs from Jira tickets and linked UX issues; fetch ticket objectives to scope which Figma nodes are relevant | Call `jira_get_issue` with a test key |
 
 ### Optional MCPs
@@ -39,16 +39,12 @@ Check that all required MCP servers are available before proceeding.
 
 ### Verification procedure
 
-1. **If the user provided a Figma URL**, parse it to extract `fileKey` and `nodeId`:
-   - `figma.com/design/:fileKey/:fileName?node-id=:nodeId` — convert `-` to `:` in nodeId
-   - `figma.com/design/:fileKey/branch/:branchKey/:fileName?node-id=:nodeId` — use branchKey as fileKey; if `node-id` is present, convert `-` to `:` to produce nodeId (same normalization as the non-branch pattern)
-   Then attempt to call `get_screenshot` for the extracted fileKey and nodeId. If the call fails, stop and report:
+1. **Figma MCP** — call `get_metadata` with a known test fileKey (any lightweight call that exercises authentication). If it fails with an authentication or MCP error, stop and report:
    > **Figma MCP is not available or not authenticated.** This skill requires the Figma MCP (`plugin-figma-figma`) to fetch design context. Please set up the Figma MCP server by following the [Figma MCP setup guide](https://help.figma.com/hc/en-us/articles/35281350665623-Figma-MCP-collection-How-to-set-up-the-Figma-remote-MCP-server-preferred) and try again.
-   The screenshot captured here is carried forward to Phase 2 and Phase 4 — do not call `get_screenshot` again.
-2. **If no Figma URL was provided**, verify the Figma MCP is reachable by calling `get_screenshot` with a known test fileKey. If the call fails with an authentication or MCP error, stop and report the same Figma MCP error as above. Discard the test result — the actual Figma URL will be discovered from the Jira ticket in Phase 2, Step 2.
-3. Verify the Atlassian MCP is reachable: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
+   Discard the test result — actual Figma data is fetched in Phase 2, Step 3.
+2. **Atlassian MCP** — call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
    > **Atlassian MCP is not available or not authenticated.** This skill requires the Atlassian MCP to discover Figma URLs from Jira tickets and scope the evaluation. Please configure and authenticate the `user-atlassian` MCP server.
-4. Attempt a lightweight GitHub call (`get_me`) to check if the GitHub MCP is reachable. Record the result (available or unavailable) but **do not stop** if it fails — the skill falls back to local git commands.
+3. **GitHub MCP** (optional) — call `get_me` to check reachability. Record the result but **do not stop** if it fails — the skill falls back to local git commands.
 
 If all required MCPs succeed, proceed to Phase 2.
 
@@ -59,12 +55,7 @@ If all required MCPs succeed, proceed to Phase 2.
 Resolve the PR to evaluate. Auto-detection from the current branch is the default when no PR number or URL is provided.
 
 1. **User provided a PR number or URL** — use it directly
-2. **Discover from Jira ticket** — if the user provided a Jira ticket but no PR, search the ticket for a PR link:
-   - Call `jira_get_issue_development_info` for the Jira key to find linked pull requests (this is the most reliable source)
-   - Scan the ticket description for GitHub PR URLs (`github.com/{owner}/{repo}/pull/\d+`)
-   - Call `jira_get_issue` with `comment_limit=10` and scan comments for GitHub PR URLs
-   - If a PR is found, use it. If multiple PRs are found, prefer the one matching the current repository.
-3. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name. If the GitHub MCP is available, use `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR. If the GitHub MCP is unavailable, skip PR search and go directly to the local git fallback.
+2. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name. If the GitHub MCP is available, use `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR. If the GitHub MCP is unavailable, skip PR search and go directly to the local git fallback.
    - **If on `main`:** stop and report the following — do not fall back to `git diff` since `main...HEAD` produces no diff on main:
      > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
    - **If on a feature branch with an open PR:** use that PR
@@ -97,7 +88,7 @@ If the user did not provide a Figma URL, search for one in the Jira ticket. Figm
 4. **Linked UX issues** — check the issue's `issuelinks` for linked issues. Look for links whose related issue has a label like `ux`, `design`, or `UX/Design`, or whose issue type is `Design` or `UX`. For each candidate (limit to 3 to avoid over-fetching), call `jira_get_issue` with `fields=summary,description` and scan the description for Figma URLs.
 5. **Linked issues (general)** — if no UX-specific links were found, check linked issues whose summary mentions "design", "figma", "mockup", or "UX" (case-insensitive). Fetch up to 2 candidate descriptions.
 
-If a Figma URL is discovered, parse it to extract `fileKey` and `nodeId` (same parsing rules as Phase 1, step 1). Then call `get_screenshot` for the extracted params and carry the screenshot forward.
+If a Figma URL is discovered, parse it to extract `fileKey` and `nodeId` (see parsing rules in Step 3).
 
 If no Figma URL is found in any source, stop and report:
 > No Figma URL found. Searched the Jira ticket description, comments, custom fields, and linked issues for [{issue key}]({jira url}) but found no Figma link. Please provide a Figma URL directly.
@@ -111,15 +102,17 @@ If the Figma URL (whether user-provided or discovered) points to a **page or top
 3. If a clear match is found, call `get_design_context` again with the scoped node's ID to get more specific design data
 4. If multiple frames match (e.g., the ticket covers a flow with several states), call `get_design_context` for each relevant frame and consolidate findings in the report
 
-If no Jira key was found, evaluate the Figma node exactly as provided by the user.
-
 ### Step 3: Fetch Figma Design Context
 
-Using the resolved Figma fileKey and nodeId (from Phase 1 if user-provided, or from Step 2c if discovered from Jira), fetch design data from the Figma MCP:
+Parse the resolved Figma URL (user-provided or discovered in Step 2c) to extract `fileKey` and `nodeId`:
+
+- `figma.com/design/:fileKey/:fileName?node-id=:nodeId` — convert `-` to `:` in nodeId
+- `figma.com/design/:fileKey/branch/:branchKey/:fileName?node-id=:nodeId` — use branchKey as fileKey; if `node-id` is present, convert `-` to `:` to produce nodeId (same normalization as the non-branch pattern)
+
+Fetch design data and a screenshot from the Figma MCP:
 
 1. **`get_design_context`** — returns reference code, component structure, Code Connect mappings, design tokens, and annotations. Pass `clientLanguages: "typescript"` and `clientFrameworks: "react"`.
-
-If a screenshot was already captured (Phase 1 step 1, or Step 2c), reuse it — do not call `get_screenshot` again.
+2. **`get_screenshot`** — capture a screenshot of the resolved node for inclusion in the report.
 
 From the `get_design_context` response, extract:
 
@@ -156,6 +149,8 @@ Also read any existing component files that the design's Code Connect snippets r
 
 Analyze the code changes against the Figma design context across the following dimensions. Each dimension produces one or more findings.
 
+**Before running these checks**, invoke the **style-review** skill on the same changed files. The style-review skill checks PF priority order, wrapper component usage, token compliance, and class naming conventions. Its findings feed into Dimensions 2–4 below — do not duplicate those checks here. Include a summary of style-review findings in the report's Recommendations section.
+
 ### Dimension 1: Component Mapping
 
 Compare the Figma component hierarchy against the React component tree in the code.
@@ -170,26 +165,29 @@ Compare the Figma component hierarchy against the React component tree in the co
 Compare the Figma auto-layout properties against the code's layout approach.
 
 - **Direction** — does Figma's horizontal/vertical auto-layout match the code's flex direction or PF layout components (`Stack`, `Split`, `Flex`, `Grid`)?
-- **Gap & Padding** — do the Figma spacing values map to PatternFly spacing tokens (`--pf-t--global--spacer--*`) or PF component props (`gap`, `hasGutter`)?
 - **Alignment** — does the Figma alignment (top-left, center, space-between, etc.) match the code's `alignItems`/`justifyContent` or PF alignment props?
 - **Sizing** — does the Figma sizing (fixed, hug, fill) match the code's width/height behavior?
 - **Responsive behavior** — if the Figma design shows multiple breakpoints or responsive variants, note them as `[LIMITED]` since verifying responsive behavior requires runtime evaluation
+
+> **PF token compliance** (hardcoded gap/padding values, missing PF spacer tokens) is checked by the **style-review** skill. This dimension focuses on whether the layout *structure* matches the Figma design — not whether the code uses the right tokens.
 
 ### Dimension 3: Typography
 
 Compare the Figma text styles against the code's typography.
 
 - Are Figma text nodes using the correct PF text components (`Content`, `Title`, `Text`) or heading levels?
-- Do font sizes, weights, and line heights correspond to PF typography tokens?
-- Are there hardcoded font values in the code where PF tokens should be used?
+- Do heading levels and text hierarchy match the Figma design's visual hierarchy?
+
+> **PF token compliance** (hardcoded font sizes/weights, missing typography tokens) is checked by the **style-review** skill. This dimension focuses on whether the *text structure and hierarchy* match the Figma design.
 
 ### Dimension 4: Color & Theming
 
 Compare the Figma color usage against the code's color references.
 
-- Are Figma fill/stroke colors mapped to PF color tokens (`--pf-t--global--color--*`, `--pf-t--global--background--color--*`)?
-- Are there hardcoded hex/rgb values in the code where PF tokens exist?
+- Does the implementation use the correct semantic color roles (e.g., status colors, link colors, background roles) as shown in the Figma design?
 - Does the implementation account for dark/light theme if the Figma file shows both variants?
+
+> **PF token compliance** (hardcoded hex/rgb values, missing color tokens) is checked by the **style-review** skill. This dimension focuses on whether the *color intent* matches the Figma design.
 
 ### Dimension 5: Interactive States
 
@@ -243,7 +241,7 @@ Present the report in this format:
 
 ### Screenshot
 
-{Include the Figma screenshot captured in Phase 1 for visual reference}
+{Include the Figma screenshot captured in Step 3 for visual reference}
 
 ### Conformance Summary
 
