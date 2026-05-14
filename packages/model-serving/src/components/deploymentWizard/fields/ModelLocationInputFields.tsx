@@ -261,6 +261,10 @@ export const modelLocationDataSchema = z.object({
   }),
 });
 
+// NIM-specific fields are provided by the nim-serving plugin via WizardField extensions.
+export const hasOnlyExtensionFields = (modelLocation: ModelLocationData['type']): boolean =>
+  modelLocation === ModelLocationType.NIM;
+
 type ModelLocationInputFieldsProps = {
   wizardState: UseModelDeploymentWizardState;
   modelLocation: ModelLocationData['type'];
@@ -385,7 +389,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <PvcSelectField
@@ -419,9 +422,8 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
 
-  // NIM-specific fields are provided by the nim-serving plugin via WizardField extensions.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (modelLocation === ModelLocationType.NIM) {
+  if (hasOnlyExtensionFields(modelLocation)) {
     return null;
   }
 
