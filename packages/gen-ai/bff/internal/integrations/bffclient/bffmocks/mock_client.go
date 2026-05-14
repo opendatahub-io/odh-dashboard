@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -70,17 +71,70 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 		}
 		return marshalToResponse(keyResp, response)
 
-	case path == "/models" && method == "GET":
+	case (path == "/models" || strings.HasPrefix(path, "/api/v1/models")) && method == "GET":
 		// Mock models list
+		// MaaS BFF wraps models response in {"data": {"object": "list", "data": [...]}} envelope
 		modelsResp := map[string]interface{}{
-			"object": "list",
-			"data": []map[string]interface{}{
-				{
-					"id":      "mock-model-1",
-					"object":  "model",
-					"created": time.Now().Unix(),
-					"ownedBy": "mock-owner",
-					"ready":   true,
+			"data": map[string]interface{}{
+				"object": "list",
+				"data": []map[string]interface{}{
+					{
+						"id":       "llama-2-7b-chat",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://llama-2-7b-chat.apps.example.openshift.com/v1",
+						"subscriptions": []map[string]interface{}{
+							{
+								"name":        "basic-subscription",
+								"displayName": "Basic Tier",
+							},
+							{
+								"name":        "premium-subscription",
+								"displayName": "Premium Tier",
+								"description": "Premium subscription with higher rate limits",
+							},
+						},
+					},
+					{
+						"id":       "llama-2-13b-chat",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://llama-2-13b-chat.apps.example.openshift.com/v1",
+						"subscriptions": []map[string]interface{}{
+							{
+								"name":        "premium-subscription",
+								"displayName": "Premium Tier",
+							},
+						},
+					},
+					{
+						"id":       "llama-3-8b-instruct",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    false,
+						"url":      "https://llama-3-8b-instruct.apps.example.openshift.com/v1",
+					},
+					{
+						"id":       "mistral-7b-instruct",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    true,
+						"url":      "https://mistral-7b-instruct.apps.example.openshift.com/v1",
+					},
+					{
+						"id":       "granite-8b-code",
+						"object":   "model",
+						"created":  time.Now().Unix(),
+						"owned_by": "model-namespace",
+						"ready":    false,
+						"url":      "https://granite-8b-code.apps.example.openshift.com/v1",
+					},
 				},
 			},
 		}
