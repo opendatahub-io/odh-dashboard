@@ -35,14 +35,14 @@ class EvaluationsPage {
     return cy.findByTestId('evaluations-table', options);
   }
 
-  /** Waits for the LMEvalJob to reach Complete on the backend, then verifies the UI. */
+  /** Waits for the evaluation Job to complete on the backend, then verifies the UI. */
   assertEvaluationComplete(evaluationName: string, namespace: string, timeoutMs = 900000) {
     const pollIntervalMs = 10000;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
 
     pollUntilSuccess(
-      `oc get lmevaljobs -n ${namespace} -o json | jq -e '.items[] | select(.metadata.name | contains("${evaluationName}")) | select(.status.state == "Complete")'`,
-      `LMEvalJob ${evaluationName} Complete`,
+      `oc get jobs -n ${namespace} -o json | jq -e '.items[] | select(.status.conditions[]? | select(.type == "Complete" and .status == "True"))'`,
+      `Evaluation job Complete in ${namespace}`,
       { maxAttempts, pollIntervalMs },
     );
 
