@@ -35,6 +35,7 @@ import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
   let skipTest = false;
+  const uuid = generateTestUUID();
   let evaluationTenantProject = '';
   let evalHubCrCreatedByTest = false;
   let evalHubCrName = 'evalhub';
@@ -102,7 +103,7 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       if (skipTest) return;
-      return findExistingProjectByPrefix('eval-hub-e2e').then((existingProject) => {
+      return findExistingProjectByPrefix(testData.projectNamePrefix).then((existingProject) => {
         if (existingProject) {
           cy.log(`Reusing existing tenant project: ${existingProject}`);
           evaluationTenantProject = existingProject;
@@ -110,8 +111,7 @@ describe('Eval Hub E2E', () => {
           return;
         }
 
-        const uuid = generateTestUUID();
-        evaluationTenantProject = `eval-hub-e2e-${uuid}`;
+        evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
         cy.step(`Create ephemeral project ${evaluationTenantProject}`);
         createCleanProject(evaluationTenantProject);
 
@@ -163,36 +163,44 @@ describe('Eval Hub E2E', () => {
         this.skip();
       }
 
-      const ns = evaluationTenantProject;
-      const benchmarkTitle = testData.benchmarkCardTitle;
-      const modelName = testData.inferenceModelName;
-      const defaultExperiment = testData.defaultExperimentName;
-      const extraParams = testData.additionalBenchmarkParams.trim();
-      const evaluationRunName = `e2e-eval-${ns.replace('eval-hub-e2e-', '')}`;
+      const {
+        benchmarkCardTitle,
+        inferenceModelName,
+        defaultExperimentName,
+        additionalBenchmarkParams,
+        projectNamePrefix,
+      } = testData;
+      const extraParams = additionalBenchmarkParams.trim();
+      const evaluationRunName = `e2e-eval-${evaluationTenantProject.replace(
+        `${projectNamePrefix}-`,
+        '',
+      )}`;
 
       cy.step('Log into the application');
       cy.visitWithLogin('/', LDAP_ADMIN_USER);
 
       cy.step('Open Evaluations page');
-      cy.visit(evaluationsPage.pathWithLmEvalDevFlags(ns));
-      evaluationsPage.assertEvaluationsShellVisible(ns);
+      cy.visit(evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject));
+      evaluationsPage.assertEvaluationsShellVisible(evaluationTenantProject);
 
       cy.step('Create new evaluation → single benchmark');
       evalHubEvaluationFlow.openCreateEvaluationFromList();
       evalHubEvaluationFlow.selectSingleBenchmarkEntry();
 
-      cy.step(`Select benchmark: ${benchmarkTitle}`);
-      evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkTitle);
+      cy.step(`Select benchmark: ${benchmarkCardTitle}`);
+      evalHubEvaluationFlow.startRunForBenchmarkCardContaining(benchmarkCardTitle);
 
       cy.step('Fill evaluation form');
-      evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkTitle);
+      evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
       evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
       evalHubEvaluationFlow.findExperimentModeNew().should('be.checked');
-      evalHubEvaluationFlow.findNewExperimentNameInput().should('have.value', defaultExperiment);
+      evalHubEvaluationFlow
+        .findNewExperimentNameInput()
+        .should('have.value', defaultExperimentName);
       evalHubEvaluationFlow.findInputModeInference().should('be.checked');
 
       cy.step('Enter model details');
-      evalHubEvaluationFlow.findModelNameInput().clear().type(modelName);
+      evalHubEvaluationFlow.findModelNameInput().clear().type(inferenceModelName);
       evalHubEvaluationFlow.findEndpointUrlInput().clear().type(vllmEndpointUrl);
 
       if (extraParams) {
@@ -213,7 +221,7 @@ describe('Eval Hub E2E', () => {
       evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
 
       cy.step('Wait for evaluation to complete');
-      evaluationsPage.assertEvaluationComplete(evaluationRunName, ns);
+      evaluationsPage.assertEvaluationComplete(evaluationRunName, evaluationTenantProject);
     },
   );
 });

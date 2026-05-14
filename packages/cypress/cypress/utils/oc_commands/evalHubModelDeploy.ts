@@ -4,15 +4,27 @@ import { createCleanHardwareProfile } from './hardwareProfiles';
 import type { EvalHubTestData } from '../../types';
 
 /**
- * Binds a user to the `evalhub-evaluator` Role in the tenant namespace so non-cluster-admin
- * users can access evaluations, collections, providers, and MLflow experiments.
+ * Grants a user EvalHub tenant access in the namespace. Creates the `evalhub-evaluator` Role
+ * (evaluations, collections, providers + MLflow experiments) and binds the user to it.
  */
 export function grantEvalHubTenantAccess(ns: string, username: string): void {
-  pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-evaluator -o name`,
-    'operator-provisioned evalhub-evaluator Role',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
+  const roleYaml = `
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: evalhub-evaluator
+  namespace: ${ns}
+rules:
+  - apiGroups: ["trustyai.opendatahub.io"]
+    resources: ["evaluations", "collections", "providers"]
+    verbs: ["get", "list", "create", "update", "delete"]
+  - apiGroups: ["mlflow.kubeflow.org"]
+    resources: ["experiments"]
+    verbs: ["create", "get"]
+`;
+  const tmpFile = `/tmp/evalhub-evaluator-role-${ns}.yaml`;
+  cy.writeFile(tmpFile, roleYaml);
+  cy.exec(`oc apply -f ${tmpFile}`, { failOnNonZeroExit: false });
   cy.exec(
     `oc create rolebinding e2e-tenant-evaluator --role=evalhub-evaluator --user=${username} -n ${ns}`,
     { failOnNonZeroExit: false },
