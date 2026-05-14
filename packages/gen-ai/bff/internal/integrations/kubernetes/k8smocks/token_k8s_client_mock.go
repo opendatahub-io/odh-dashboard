@@ -426,8 +426,8 @@ providers:
         namespace: vector_io::faiss
         backend: kv_default
   file_processors:
-  - provider_id: auto
-    provider_type: inline::auto
+  - provider_id: pypdf
+    provider_type: inline::pypdf
     config: {}
   responses:
   - provider_id: builtin

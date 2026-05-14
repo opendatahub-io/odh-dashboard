@@ -51,8 +51,8 @@ providers:
           max_write_queue_size: 10000
           num_writers: 4
   file_processors:
-  - provider_id: auto
-    provider_type: inline::auto
+  - provider_id: pypdf
+    provider_type: inline::pypdf
     config: {}
   files:
   - provider_id: localfs-files

@@ -189,7 +189,7 @@ func NewDefaultLlamaStackConfig() *LlamaStackConfig {
 				}),
 			},
 			FileProcessors: []Provider{
-				NewProvider("auto", "inline::auto", EmptyConfig()),
+				NewProvider("pypdf", "inline::pypdf", EmptyConfig()),
 			},
 			Files: []Provider{
 				NewProvider("localfs-files", "inline::localfs", map[string]interface{}{
