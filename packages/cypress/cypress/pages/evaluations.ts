@@ -1,3 +1,5 @@
+import { pollUntilSuccess } from '../utils/oc_commands/baseCommands';
+
 /**
  * Evaluations (Eval Hub) area — selectors and URL helpers for live-cluster E2E.
  * LM eval is gated by `disableLMEval` on OdhDashboardConfig; dev sessions override via query (see `useDevFeatureFlags`).
@@ -33,41 +35,23 @@ class EvaluationsPage {
     return cy.findByTestId('evaluations-table', options);
   }
 
-  /** Waits for the evaluation row to reach "Complete" status (polls via reload). */
-  assertEvaluationComplete(evaluationName: string, timeoutMs = 900000) {
+  /** Waits for the LMEvalJob to reach Complete on the backend, then verifies the UI. */
+  assertEvaluationComplete(evaluationName: string, namespace: string, timeoutMs = 900000) {
     const pollIntervalMs = 10000;
     const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
 
-    const checkStatus = (attempt: number): void => {
-      this.findEvaluationsTable({ timeout: 30000 })
-        .contains('tr', evaluationName, { timeout: 30000 })
-        .then(($row) => {
-          const hasComplete = $row.find('[data-testid="status-label-completed"]').length > 0;
-          const hasFailed = $row.find('[data-testid="status-label-failed"]').length > 0;
+    pollUntilSuccess(
+      `oc get lmevaljobs -n ${namespace} -o json | jq -e '.items[] | select(.metadata.name | contains("${evaluationName}")) | select(.status.state == "Complete")'`,
+      `LMEvalJob ${evaluationName} Complete`,
+      { maxAttempts, pollIntervalMs },
+    );
 
-          if (hasComplete) {
-            const elapsedSeconds = (attempt * pollIntervalMs) / 1000;
-            cy.log(`Evaluation "${evaluationName}" completed after ${elapsedSeconds}s`);
-            return;
-          }
-          if (hasFailed) {
-            throw new Error(`Evaluation "${evaluationName}" failed`);
-          }
-          if (attempt >= maxAttempts) {
-            throw new Error(
-              `Evaluation "${evaluationName}" did not complete within ${timeoutMs / 1000}s`,
-            );
-          }
-
-          // eslint-disable-next-line cypress/no-unnecessary-waiting
-          cy.wait(pollIntervalMs);
-          cy.reload();
-          this.findPageTitle().should('be.visible', { timeout: 30000 });
-          checkStatus(attempt + 1);
-        });
-    };
-
-    checkStatus(0);
+    cy.reload();
+    this.findPageTitle().should('be.visible', { timeout: 30000 });
+    this.findEvaluationsTable({ timeout: 30000 })
+      .contains('tr', evaluationName, { timeout: 30000 })
+      .find('[data-testid="status-label-completed"]')
+      .should('exist');
   }
 }
 

@@ -273,6 +273,29 @@ export const getOdhDashboardConfigGroupsConfig = (): Cypress.Chainable<CommandLi
   });
 };
 
+/**
+ * Finds an existing project matching a name prefix, or returns empty string if none exists.
+ */
+export const findExistingProjectByPrefix = (prefix: string): Cypress.Chainable<string> =>
+  cy
+    .exec(
+      `oc get projects -o name | grep ${prefix} | head -1 | sed 's|project.project.openshift.io/||'`,
+      { failOnNonZeroExit: false },
+    )
+    .then((result) => cy.wrap(result.stdout.trim()));
+
+/**
+ * Polls until the given project exists on the cluster.
+ */
+export const waitForProjectReady = (
+  projectName: string,
+  options?: { maxAttempts?: number; pollIntervalMs?: number },
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(`oc get project "${projectName}" -o name`, `OpenShift project ${projectName}`, {
+    maxAttempts: options?.maxAttempts ?? 90,
+    pollIntervalMs: options?.pollIntervalMs ?? 2000,
+  });
+
 // Helper function to safely get nested properties
 function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce((current: unknown, key: string) => {

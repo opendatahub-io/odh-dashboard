@@ -1,16 +1,15 @@
 import * as yaml from 'js-yaml';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
-import { pollUntilSuccess } from '../../../utils/oc_commands/baseCommands';
+import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import {
+  deleteOpenShiftProject,
+  findExistingProjectByPrefix,
+  waitForProjectReady,
+} from '../../../utils/oc_commands/project';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { isTrustyAIStackAvailable } from '../../../utils/oc_commands/dsc';
-import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
-import {
-  createCleanHardwareProfile,
-  cleanupHardwareProfiles,
-} from '../../../utils/oc_commands/hardwareProfiles';
+import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -19,87 +18,12 @@ import {
   ensureEvalHubCrReady,
 } from '../../../utils/oc_commands/evalHubInstance';
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
+import {
+  getVllmEndpointUrl,
+  setupTenantAndDeployModel,
+} from '../../../utils/oc_commands/evalHubModelDeploy';
 import { evaluationsPage } from '../../../pages/evaluations';
 import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
-
-function getVllmEndpointUrl(td: EvalHubTestData, ns: string): string {
-  const isvcName = td.inferenceServiceName ?? 'evalhub-llm';
-  return `http://${isvcName}-predictor.${ns}.svc.cluster.local:8080`;
-}
-
-function setupTenantAndDeployModel(ns: string, td: EvalHubTestData, hwProfileName: string): void {
-  cy.step('Label namespace so TrustyAI operator provisions tenant RBAC');
-  cy.exec(
-    `oc label namespace ${ns} opendatahub.io/generated-namespace=true evalhub.trustyai.opendatahub.io/tenant= --overwrite`,
-  );
-
-  cy.step('Wait for operator to reconcile tenant resources');
-  pollUntilSuccess(
-    `oc -n ${ns} get sa evalhub-redhat-ods-applications-job -o name`,
-    'operator-provisioned ServiceAccount',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
-  pollUntilSuccess(
-    `oc -n ${ns} get configmap evalhub-service-ca -o name`,
-    'operator-provisioned evalhub-service-ca ConfigMap',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
-  pollUntilSuccess(
-    `oc -n ${ns} get role evalhub-redhat-ods-applications-job-access-role -o name`,
-    'operator-provisioned status-events Role',
-    { maxAttempts: 30, pollIntervalMs: 2000 },
-  );
-
-  cy.step('Deploy vLLM model in tenant namespace');
-  const isvcName = td.inferenceServiceName ?? 'evalhub-llm';
-  const modelUri =
-    td.modelOciUri ?? 'oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct';
-  const servingRuntimePath =
-    td.servingRuntimeYamlPath ?? 'resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml';
-  const hwProfilePath =
-    td.hardwareProfileResourceYamlPath ?? 'resources/hardwareProfile/gen_ai_hardware_profile.yaml';
-
-  createCleanHardwareProfile(hwProfilePath);
-
-  cy.fixture(servingRuntimePath, 'utf8').then((srYaml: string) => {
-    const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;
-    cy.exec(`cat <<'EOFSR' > ${tmpFile}\n${srYaml}\nEOFSR`);
-    cy.exec(`oc apply -n ${ns} -f ${tmpFile}`, { failOnNonZeroExit: false }).then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
-      }
-    });
-  });
-
-  const isvcYaml = `
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
-metadata:
-  name: ${isvcName}
-  annotations:
-    serving.kserve.io/deploymentMode: RawDeployment
-    opendatahub.io/hardware-profile: ${hwProfileName || 'cypress-gen-ai-hardware-profile'}
-  labels:
-    opendatahub.io/dashboard: 'true'
-spec:
-  predictor:
-    model:
-      modelFormat:
-        name: vLLM
-      runtime: vllm-cpu-runtime-amd64
-      storageUri: ${modelUri}
-`;
-  const isvcTmpFile = `/tmp/evalhub-isvc-${ns}.yaml`;
-  cy.exec(`cat <<'EOFISVC' > ${isvcTmpFile}\n${isvcYaml}\nEOFISVC`);
-  cy.exec(`oc apply -n ${ns} -f ${isvcTmpFile}`, { failOnNonZeroExit: false }).then((result) => {
-    if (result.exitCode !== 0) {
-      throw new Error(`InferenceService apply failed: ${result.stderr}`);
-    }
-  });
-
-  cy.step('Wait for InferenceService to be Ready');
-  checkInferenceServiceState(isvcName, ns, { checkReady: true });
-}
 
 /**
  * Live-cluster Eval Hub E2E. Ensures EvalHub + MLflow CRs are Ready, creates an ephemeral
@@ -149,15 +73,14 @@ describe('Eval Hub E2E', () => {
       if (skipTest) return;
       return cy.fixture('e2e/eval-hub/testEvalHub.yaml', 'utf8').then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as EvalHubTestData;
-        evalHubCrName = testData.evalHubCrName ?? 'evalhub';
-        hardwareProfileName = testData.hardwareProfileName ?? '';
+        evalHubCrName = testData.evalHubCrName;
+        hardwareProfileName = testData.hardwareProfileName;
       });
     });
 
     cy.then(() => {
       if (skipTest) return;
-      const yamlPath =
-        testData.evalHubInstanceResourceYamlPath ?? 'resources/eval-hub/evalhub-instance.yaml';
+      const yamlPath = testData.evalHubInstanceResourceYamlPath;
 
       cy.step('Ensure EvalHub CR is Ready');
       return ensureEvalHubCrReady(evalHubCrName, yamlPath).then((created) => {
@@ -167,9 +90,7 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       if (skipTest) return;
-      const yamlPath =
-        testData.mlflowInstanceResourceYamlPath ??
-        'resources/mlflow/mlflow-instance-rhoai-ea2-minimal.yaml';
+      const yamlPath = testData.mlflowInstanceResourceYamlPath;
 
       cy.step('Ensure MLflow CR is Available');
       return ensureMlflowCrReady(yamlPath).then((created) => {
@@ -179,35 +100,25 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       if (skipTest) return;
-      return cy
-        .exec(
-          `oc get projects -o name | grep eval-hub-e2e | head -1 | sed 's|project.project.openshift.io/||'`,
-          { failOnNonZeroExit: false },
-        )
-        .then((result) => {
-          const existingProject = result.stdout.trim();
-          if (existingProject) {
-            cy.log(`Reusing existing tenant project: ${existingProject}`);
-            evaluationTenantProject = existingProject;
-            vllmEndpointUrl = getVllmEndpointUrl(testData, existingProject);
-            return;
-          }
+      return findExistingProjectByPrefix('eval-hub-e2e').then((existingProject) => {
+        if (existingProject) {
+          cy.log(`Reusing existing tenant project: ${existingProject}`);
+          evaluationTenantProject = existingProject;
+          vllmEndpointUrl = getVllmEndpointUrl(testData, existingProject);
+          return;
+        }
 
-          const uuid = generateTestUUID();
-          evaluationTenantProject = `eval-hub-e2e-${uuid}`;
-          cy.step(`Create ephemeral project ${evaluationTenantProject}`);
-          createCleanProject(evaluationTenantProject);
+        const uuid = generateTestUUID();
+        evaluationTenantProject = `eval-hub-e2e-${uuid}`;
+        cy.step(`Create ephemeral project ${evaluationTenantProject}`);
+        createCleanProject(evaluationTenantProject);
 
-          return pollUntilSuccess(
-            `oc get project "${evaluationTenantProject}" -o name`,
-            `OpenShift project ${evaluationTenantProject}`,
-            { maxAttempts: 90, pollIntervalMs: 2000 },
-          ).then(() => {
-            setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
-            vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
-            cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
-          });
+        return waitForProjectReady(evaluationTenantProject).then(() => {
+          setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+          vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
+          cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
         });
+      });
     });
   });
 
@@ -249,14 +160,17 @@ describe('Eval Hub E2E', () => {
       }
 
       const ns = evaluationTenantProject;
-      const benchmarkTitle = testData.benchmarkCardTitle ?? 'Basic science Q&A';
-      const modelName = testData.inferenceModelName ?? 'evalhub-llm';
-      const defaultExperiment = testData.defaultExperimentName ?? 'EvalHub';
-      const extraParams = (testData.additionalBenchmarkParams ?? '').trim();
+      const benchmarkTitle = testData.benchmarkCardTitle;
+      const modelName = testData.inferenceModelName;
+      const defaultExperiment = testData.defaultExperimentName;
+      const extraParams = testData.additionalBenchmarkParams.trim();
       const evaluationRunName = `e2e-eval-${ns.replace('eval-hub-e2e-', '')}`;
 
+      cy.step('Log into the application');
+      cy.visitWithLogin('/', LDAP_ADMIN_USER);
+
       cy.step('Open Evaluations page');
-      cy.visitWithLogin(evaluationsPage.pathWithLmEvalDevFlags(ns), HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visit(evaluationsPage.pathWithLmEvalDevFlags(ns));
       evaluationsPage.assertEvaluationsShellVisible(ns);
 
       cy.step('Create new evaluation → single benchmark');
@@ -295,7 +209,7 @@ describe('Eval Hub E2E', () => {
       evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
 
       cy.step('Wait for evaluation to complete');
-      evaluationsPage.assertEvaluationComplete(evaluationRunName);
+      evaluationsPage.assertEvaluationComplete(evaluationRunName, ns);
     },
   );
 });
