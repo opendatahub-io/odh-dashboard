@@ -36,7 +36,7 @@ export const ensureEvalHubCrReady = (
   const existsCmd = `oc get evalhub ${crName} -n ${ns} -o name --ignore-not-found`;
 
   return cy.exec(existsCmd, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.exitCode !== 0 && !result.stderr.includes('NotFound')) {
+    if (result.exitCode !== 0) {
       throw new Error(
         `Failed to check EvalHub CR existence in ${ns}: ${result.stderr || result.stdout}`,
       );

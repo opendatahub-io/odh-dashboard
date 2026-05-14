@@ -278,11 +278,11 @@ export const getOdhDashboardConfigGroupsConfig = (): Cypress.Chainable<CommandLi
  */
 export const findExistingProjectByPrefix = (prefix: string): Cypress.Chainable<string> =>
   cy
-    .exec(
-      `oc get projects -o name | grep ${prefix} | head -1 | sed 's|project.project.openshift.io/||'`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => cy.wrap(result.stdout.trim()));
+    .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, { failOnNonZeroExit: false })
+    .then((result) => {
+      const match = result.stdout.split(' ').find((name) => name.startsWith(prefix)) ?? '';
+      return cy.wrap(match);
+    });
 
 /**
  * Polls until the given project exists on the cluster.
