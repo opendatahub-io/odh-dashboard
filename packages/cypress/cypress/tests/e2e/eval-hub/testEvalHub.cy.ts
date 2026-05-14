@@ -1,6 +1,7 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
+  addUserToProject,
   deleteOpenShiftProject,
   findExistingProjectByPrefix,
   waitForProjectReady,
@@ -114,6 +115,7 @@ describe('Eval Hub E2E', () => {
         createCleanProject(evaluationTenantProject);
 
         return waitForProjectReady(evaluationTenantProject).then(() => {
+          addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
           setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
           vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
           cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
