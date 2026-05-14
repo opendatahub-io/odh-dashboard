@@ -12,19 +12,50 @@ import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/dep
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import { useNIMImages, type NIMImagesData } from '../../../api/models/hooks';
 import type { NIMModelInfo } from '../../../api/models/types';
-import { getNIMImageName, normalizeVersion } from '../../../api/models/utils';
+import { getImageRepository, normalizeVersion } from '../../../api/models/utils';
 
 export type NIMImageDependencies = {
   project: ProjectSectionType;
 };
 
 export type NIMImageFieldValue = {
-  imageName: string;
+  repository: string;
+  tag: string;
 };
 
 const nimImageFieldSchema = z.object({
-  imageName: z.string().min(1, 'NIM image is required'),
+  repository: z.string().min(1, 'NIM image is required'),
+  tag: z.string().min(1, 'NIM image tag is required'),
 });
+
+type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
+
+const getImageOptionKey = (image: Pick<NIMImageFieldValue, 'repository' | 'tag'>): string =>
+  `${image.repository}:${image.tag}`;
+
+const getNIMImageOptions = (modelInfos: NIMModelInfo[]): NIMImageOption[] => {
+  const seen = new Set<string | number>();
+  return modelInfos.flatMap((modelInfo) => {
+    if (!modelInfo.namespace) {
+      return [];
+    }
+    const repository = getImageRepository(modelInfo.namespace, modelInfo.name);
+    return (modelInfo.tags ?? []).reduce<NIMImageOption[]>((acc, tag) => {
+      const normalizedTag = normalizeVersion(tag);
+      const optionValue = getImageOptionKey({ repository, tag: normalizedTag });
+      if (!seen.has(optionValue)) {
+        seen.add(optionValue);
+        acc.push({
+          value: optionValue,
+          content: `${modelInfo.displayName ?? modelInfo.name} - ${normalizedTag}`,
+          repository,
+          tag: normalizedTag,
+        });
+      }
+      return acc;
+    }, []);
+  });
+};
 
 type NIMImageFieldComponentProps = {
   value?: NIMImageFieldValue;
@@ -32,21 +63,6 @@ type NIMImageFieldComponentProps = {
   externalData?: { data: NIMImagesData; loaded: boolean; loadError?: Error };
   isEditing?: boolean;
   isDisabled?: boolean;
-};
-
-const extractModelAndVersion = (
-  key: string,
-  modelInfos: NIMModelInfo[],
-): { modelInfo: NIMModelInfo; version: string } | null => {
-  const matchedModels = modelInfos.filter((model) => key.startsWith(`${model.name}-`));
-  if (matchedModels.length === 0) {
-    return null;
-  }
-  const modelInfo = matchedModels.reduce((longest, current) =>
-    current.name.length > longest.name.length ? current : longest,
-  );
-  const version = key.slice(modelInfo.name.length + 1);
-  return { modelInfo, version };
 };
 
 const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
@@ -61,60 +77,31 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [externalData?.data.modelInfos],
   );
 
-  const options: TypeaheadSelectOption[] = React.useMemo(() => {
-    const seen = new Set<string>();
-    return modelInfos
-      .flatMap((modelInfo) =>
-        (modelInfo.tags ?? []).map((tag): TypeaheadSelectOption | null => {
-          const normalizedTag = normalizeVersion(tag);
-          const optionValue = `${modelInfo.name}-${normalizedTag}`;
-          const content = `${modelInfo.displayName ?? modelInfo.name} - ${normalizedTag}`;
-          if (seen.has(optionValue)) {
-            return null;
-          }
-          seen.add(optionValue);
-          return { value: optionValue, content };
-        }),
-      )
-      .filter((option): option is TypeaheadSelectOption => option !== null);
-  }, [modelInfos]);
+  const options: NIMImageOption[] = React.useMemo(
+    () => getNIMImageOptions(modelInfos),
+    [modelInfos],
+  );
 
   const selectedKey = React.useMemo(() => {
-    if (!value?.imageName) {
+    if (!value?.repository) {
       return '';
     }
-    const matched = options.find((opt) => {
-      const result = extractModelAndVersion(String(opt.value), modelInfos);
-      if (!result || !result.modelInfo.namespace) {
-        return false;
-      }
-      const imgName = getNIMImageName(
-        result.modelInfo.namespace,
-        result.modelInfo.name,
-        result.version,
-      );
-      return imgName === value.imageName;
-    });
-    return matched?.value.toString() ?? value.imageName;
-  }, [value?.imageName, options, modelInfos]);
+    const currentKey = getImageOptionKey(value);
+    const matched = options.find((opt) => String(opt.value) === currentKey);
+    return matched ? String(matched.value) : currentKey;
+  }, [value, options]);
 
   const onSelect = React.useCallback(
     (_event: React.MouseEvent | React.KeyboardEvent | undefined, key: string | number) => {
       if (typeof key !== 'string' || isEditing) {
         return;
       }
-      const result = extractModelAndVersion(key, modelInfos);
-      if (result && result.modelInfo.namespace) {
-        onChange({
-          imageName: getNIMImageName(
-            result.modelInfo.namespace,
-            result.modelInfo.name,
-            result.version,
-          ),
-        });
+      const selected = options.find((opt) => String(opt.value) === key);
+      if (selected) {
+        onChange({ repository: selected.repository, tag: selected.tag });
       }
     },
-    [modelInfos, onChange, isEditing],
+    [options, onChange, isEditing],
   );
 
   const projectName = externalData?.data.projectName;
@@ -184,7 +171,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         allowClear={!isEditing}
         onClearSelection={() => {
           if (!isEditing) {
-            onChange({ imageName: '' });
+            onChange({ repository: '', tag: '' });
           }
         }}
       />
@@ -214,7 +201,7 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
   reducerFunctions: {
     setFieldData: (value: NIMImageFieldValue) => value,
     getInitialFieldData: (existingFieldData?: NIMImageFieldValue): NIMImageFieldValue =>
-      existingFieldData ?? { imageName: '' },
+      existingFieldData ?? { repository: '', tag: '' },
     validationSchema: nimImageFieldSchema,
     resolveDependencies: (formData) => ({ project: formData.project }),
   },

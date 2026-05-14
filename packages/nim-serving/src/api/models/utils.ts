@@ -2,6 +2,7 @@ import { k8sGetResource, k8sListResource } from '@openshift/dynamic-plugin-sdk-u
 import { ConfigMapKind, NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { ConfigMapModel } from '@odh-dashboard/internal/api/models';
 import type { NIMModelInfo } from './types';
+import { NIM_IMAGE_REGISTRY } from './constants';
 import { NIMAccountModel } from '../accounts/k8s';
 
 export const normalizeVersion = (tag: string): string => {
@@ -15,11 +16,8 @@ export const normalizeVersion = (tag: string): string => {
   return tag;
 };
 
-export const getNIMImageName = (
-  modelNamespace: string,
-  modelName: string,
-  version: string,
-): string => `nvcr.io/${modelNamespace}/${modelName}:${version}`;
+export const getImageRepository = (modelNamespace: string, modelName: string): string =>
+  `${NIM_IMAGE_REGISTRY}/${modelNamespace}/${modelName}`;
 
 export const fetchNIMModelNames = async (projectNamespace: string): Promise<NIMModelInfo[]> => {
   const accounts = await k8sListResource<NIMAccountKind>({

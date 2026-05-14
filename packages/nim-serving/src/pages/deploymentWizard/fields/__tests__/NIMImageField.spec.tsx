@@ -37,15 +37,15 @@ describe('NIMImageFieldComponent', () => {
     const NIMImageFieldModule = require('../NIMImageField');
     const NIMImageFieldComponent = NIMImageFieldModule.NIMImageFieldWizardField
       .component as React.FC<{
-      value?: { imageName: string };
-      onChange: (value: { imageName: string }) => void;
+      value?: { repository: string; tag: string };
+      onChange: (value: { repository: string; tag: string }) => void;
       externalData?: { data: NIMImagesData; loaded: boolean; loadError?: Error };
     }>;
 
     return render(
       <MemoryRouter>
         <NIMImageFieldComponent
-          value={{ imageName: '' }}
+          value={{ repository: '', tag: '' }}
           onChange={mockOnChange}
           externalData={externalData}
         />

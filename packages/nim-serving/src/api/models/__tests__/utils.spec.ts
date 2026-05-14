@@ -1,4 +1,4 @@
-import { normalizeVersion, getNIMImageName } from '../utils';
+import { normalizeVersion, getImageRepository } from '../utils';
 
 describe('normalizeVersion', () => {
   it('should pad single number to three parts', () => {
@@ -26,16 +26,8 @@ describe('normalizeVersion', () => {
   });
 });
 
-describe('getNIMImageName', () => {
-  it('should construct image name from namespace, model name, and version', () => {
-    expect(getNIMImageName('nim/test', 'my-model', '1.0.0')).toBe(
-      'nvcr.io/nim/test/my-model:1.0.0',
-    );
-  });
-
-  it('should handle latest tag', () => {
-    expect(getNIMImageName('nim/test', 'my-model', 'latest')).toBe(
-      'nvcr.io/nim/test/my-model:latest',
-    );
+describe('getImageRepository', () => {
+  it('should construct repository from namespace and model name', () => {
+    expect(getImageRepository('nim/test', 'my-model')).toBe('nvcr.io/nim/test/my-model');
   });
 });
