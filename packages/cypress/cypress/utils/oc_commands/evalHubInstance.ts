@@ -1,5 +1,4 @@
 import { pollUntilSuccess } from './baseCommands';
-import { createCustomResource } from './customResources';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
@@ -37,6 +36,11 @@ export const ensureEvalHubCrReady = (
   const existsCmd = `oc get evalhub ${crName} -n ${ns} -o name --ignore-not-found`;
 
   return cy.exec(existsCmd, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.exitCode !== 0 && !result.stderr.includes('NotFound')) {
+      throw new Error(
+        `Failed to check EvalHub CR existence in ${ns}: ${result.stderr || result.stdout}`,
+      );
+    }
     const existed = result.stdout.trim().length > 0;
 
     if (existed) {
@@ -45,12 +49,22 @@ export const ensureEvalHubCrReady = (
     }
 
     cy.log(`Applying EvalHub CR ${crName} in ${ns} (operator will create service)`);
-    return createCustomResource(ns, fixturePathRelativeToFixtures).then((applyResult) => {
-      if (applyResult.exitCode !== 0) {
-        const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
-        throw new Error(`oc apply EvalHub failed: ${maskedStderr}`);
-      }
-      return waitEvalHubReady(ns, crName).then(() => cy.wrap(true));
+    return cy.fixture(fixturePathRelativeToFixtures, 'utf8').then((yamlContent: string) => {
+      const patchedYaml = yamlContent.replace(
+        /mlflow\.redhat-ods-applications\.svc/g,
+        `mlflow.${ns}.svc`,
+      );
+      const tmpFile = `/tmp/evalhub-cr-${Date.now()}.yaml`;
+      cy.writeFile(tmpFile, patchedYaml);
+      return cy
+        .exec(`oc apply -f "${tmpFile}" -n ${ns}`, { failOnNonZeroExit: false })
+        .then((applyResult) => {
+          if (applyResult.exitCode !== 0) {
+            const maskedStderr = maskSensitiveInfo(applyResult.stderr || '');
+            throw new Error(`oc apply EvalHub failed: ${maskedStderr}`);
+          }
+          return waitEvalHubReady(ns, crName).then(() => cy.wrap(true));
+        });
     });
   });
 };

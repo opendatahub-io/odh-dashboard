@@ -64,7 +64,11 @@ function setupTenantAndDeployModel(ns: string, td: EvalHubTestData, hwProfileNam
   cy.fixture(servingRuntimePath, 'utf8').then((srYaml: string) => {
     const tmpFile = `/tmp/evalhub-sr-${ns}.yaml`;
     cy.exec(`cat <<'EOFSR' > ${tmpFile}\n${srYaml}\nEOFSR`);
-    cy.exec(`oc apply -n ${ns} -f ${tmpFile}`, { failOnNonZeroExit: false });
+    cy.exec(`oc apply -n ${ns} -f ${tmpFile}`, { failOnNonZeroExit: false }).then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(`ServingRuntime apply failed: ${result.stderr}`);
+      }
+    });
   });
 
   const isvcYaml = `
@@ -87,7 +91,11 @@ spec:
 `;
   const isvcTmpFile = `/tmp/evalhub-isvc-${ns}.yaml`;
   cy.exec(`cat <<'EOFISVC' > ${isvcTmpFile}\n${isvcYaml}\nEOFISVC`);
-  cy.exec(`oc apply -n ${ns} -f ${isvcTmpFile}`, { failOnNonZeroExit: false });
+  cy.exec(`oc apply -n ${ns} -f ${isvcTmpFile}`, { failOnNonZeroExit: false }).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(`InferenceService apply failed: ${result.stderr}`);
+    }
+  });
 
   cy.step('Wait for InferenceService to be Ready');
   checkInferenceServiceState(isvcName, ns, { checkReady: true });

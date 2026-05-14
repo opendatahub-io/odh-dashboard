@@ -16,9 +16,9 @@ class EvalHubEvaluationFlow {
   /** Switches the filter toolbar to "Name" and types the search term to narrow the gallery. */
   searchBenchmarkByName(name: string) {
     cy.findByTestId('filter-toolbar-dropdown').click();
-    cy.findByText('Name').click();
-    cy.findByPlaceholderText('Filter by name').clear();
-    cy.findByPlaceholderText('Filter by name').type(name);
+    cy.findByTestId('filter-toolbar-option-Name').click();
+    cy.findByTestId('benchmarks-name-filter').clear();
+    cy.findByTestId('benchmarks-name-filter').type(name);
   }
 
   /** Searches for the benchmark by name, then clicks "Select benchmark" on the matching card. */
@@ -38,7 +38,7 @@ class EvalHubEvaluationFlow {
       .parents(cardRoot)
       .first()
       .within(() => {
-        cy.contains('button', /^(Select benchmark|Use this benchmark)$/).click();
+        cy.findByTestId('select-benchmark-button').click();
       });
     cy.findByTestId('start-evaluation-form').should('exist', { timeout: 120000 });
   }
@@ -69,10 +69,6 @@ class EvalHubEvaluationFlow {
 
   findEndpointUrlInput() {
     return cy.findByTestId('endpoint-url-input');
-  }
-
-  findApiKeyInput() {
-    return cy.findByTestId('api-key-input');
   }
 
   findBenchmarkParametersCheckbox() {

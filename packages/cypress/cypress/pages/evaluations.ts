@@ -62,8 +62,6 @@ class EvaluationsPage {
           // eslint-disable-next-line cypress/no-unnecessary-waiting
           cy.wait(pollIntervalMs);
           cy.reload();
-          // eslint-disable-next-line cypress/no-unnecessary-waiting
-          cy.wait(2000);
           this.findPageTitle().should('be.visible', { timeout: 30000 });
           checkStatus(attempt + 1);
         });
