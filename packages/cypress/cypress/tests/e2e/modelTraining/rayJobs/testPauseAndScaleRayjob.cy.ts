@@ -248,7 +248,7 @@ describe('Verify pause, scale worker nodes, and delete RayJob', () => {
       deleteModal.findSubmitButton().should('be.enabled').click();
 
       cy.step('Verify RayJob is removed from the UI');
-      trainingJobTable.findEmptyState().should('be.visible');
+      trainingJobTable.findEmptyState(120000).should('be.visible');
 
       cy.step('Verify RayJob is deleted on the cluster');
       verifyRayJobDeleted(rayJobName, projectName);

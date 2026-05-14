@@ -666,7 +666,7 @@ const execCurlInMlflowPod = (
       `printf '%s' '${escapedBody}'`,
       '|',
       `oc exec -n ${namespace} -i ${podName} -c mlflow --`,
-      `curl -sk -X POST 'https://localhost:8443${endpoint}'`,
+      `curl -sk -X POST 'https://localhost:8443/mlflow${endpoint}'`,
       `-H 'Content-Type: application/json'`,
       `-H "Authorization: Bearer $(oc whoami -t)"`,
       `-H 'X-MLFLOW-WORKSPACE: ${ns}'`,
