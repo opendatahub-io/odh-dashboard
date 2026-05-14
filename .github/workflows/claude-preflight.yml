@@ -1,0 +1,330 @@
+name: ODH Dashboard Agent
+
+# Preflight checks on PRs using Claude Code.
+#
+# Triggers:
+#   issue_comment    — @odh-dashboard-agent preflight check|fix
+#   schedule (30min) — polls agent-managed/agent-check-only labeled PRs
+#
+# Only org members can trigger via comments.
+# Cron runs from main — scans labeled PRs for new reviews/CI/comments.
+#
+# Required Secrets:
+#   CLAUDE_APP_ID, CLAUDE_APP_PRIVATE_KEY, GCP_CREDENTIALS_JSON,
+#   GCP_PROJECT_ID, MLFLOW_TRACKING_URI, MLFLOW_TRACKING_TOKEN,
+#   MLFLOW_EXPERIMENT_NAME, MLFLOW_WORKSPACE
+
+on:
+  issue_comment:
+    types: [created]
+  schedule:
+    - cron: "17,47 * * * *"
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  checks: read
+
+jobs:
+  # ------------------------------------------------------------------ #
+  #  Router                                                             #
+  # ------------------------------------------------------------------ #
+  router:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.comment.outputs.matrix || steps.cron.outputs.matrix || '[]' }}
+
+    steps:
+      - name: Route issue_comment
+        id: comment
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          AUTHOR_ASSOC: ${{ github.event.comment.author_association }}
+          ACTOR: ${{ github.triggering_actor }}
+          IS_PR: ${{ github.event.issue.pull_request.url }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [[ "$ACTOR" == *"[bot]"* ]]; then
+            echo "Skipping: bot comment"; exit 0
+          fi
+          if [[ ! "$AUTHOR_ASSOC" =~ ^(OWNER|MEMBER|COLLABORATOR)$ ]]; then
+            echo "Skipping: $AUTHOR_ASSOC not authorized"; exit 0
+          fi
+          if [ -z "$IS_PR" ]; then
+            echo "Skipping: not a PR"; exit 0
+          fi
+
+          MODE=""
+          if echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight.*fix"; then
+            MODE=managed
+          elif echo "$COMMENT_BODY" | grep -qi "@odh-dashboard-agent.*preflight"; then
+            MODE=check-only
+          fi
+
+          if [ -z "$MODE" ]; then
+            echo "Skipping: no @odh-dashboard-agent command found"; exit 0
+          fi
+
+          PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
+          SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
+          REF=$(echo "$PR_DATA" | jq -r '.headRefName')
+          HR=$(echo "$PR_DATA" | jq -r 'if .headRepository then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+          echo "→ Preflight $MODE for PR #$ISSUE_NUMBER"
+          MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg m "$MODE" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
+            '[{"pr_number":$n,"mode":$m,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Route schedule
+        id: cron
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          PRS=$(gh pr list --repo "$REPO" --state open \
+            --json number,labels,headRefOid,headRefName,headRepository \
+            --jq '.[] | select(.labels | map(.name) | (index("agent-managed") or index("agent-check-only")))' 2>/dev/null)
+
+          if [ -z "$PRS" ]; then
+            echo "No labeled PRs"; exit 0
+          fi
+
+          MATRIX="[]"
+          while IFS= read -r pr_json; do
+            NUM=$(echo "$pr_json" | jq -r '.number')
+            SHA=$(echo "$pr_json" | jq -r '.headRefOid')
+            REF=$(echo "$pr_json" | jq -r '.headRefName')
+            HR=$(echo "$pr_json" | jq -r 'if .headRepository then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+            HR="${HR:-$REPO}"
+            LABELS=$(echo "$pr_json" | jq -r '[.labels[].name] | join(",")')
+
+            # Dual-label guard
+            if echo "$LABELS" | grep -q "agent-managed" && echo "$LABELS" | grep -q "agent-check-only"; then
+              echo "PR #$NUM: has both labels, skipping"; continue
+            fi
+
+            LAST=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+              --jq '.check_runs[] | select(.name == "ODH Dashboard Agent") | .completed_at' 2>/dev/null | head -1)
+
+            NEEDS_RUN=false
+            if [ -z "$LAST" ]; then
+              echo "PR #$NUM: no previous run"
+              NEEDS_RUN=true
+            else
+              REVIEW=$(gh api "repos/$REPO/pulls/$NUM/reviews?per_page=1" --jq '.[0].submitted_at // empty' 2>/dev/null)
+              COMMENT=$(gh api "repos/$REPO/issues/$NUM/comments?sort=created&direction=desc&per_page=1" --jq '.[0].created_at // empty' 2>/dev/null)
+              CI=$(gh api "repos/$REPO/commits/$SHA/check-runs" \
+                --jq '[.check_runs[] | select(.name != "ODH Dashboard Agent") | .completed_at // empty] | map(select(. != "")) | sort | last // empty' 2>/dev/null)
+
+              for ts in "$REVIEW" "$COMMENT" "$CI"; do
+                if [ -n "$ts" ] && [[ "$ts" > "$LAST" ]]; then
+                  echo "PR #$NUM: new activity"
+                  NEEDS_RUN=true; break
+                fi
+              done
+            fi
+
+            if [ "$NEEDS_RUN" = "true" ]; then
+              echo "$LABELS" | grep -q "agent-managed" && MODE=managed || MODE=check-only
+              echo "→ Preflight $MODE for PR #$NUM (cron)"
+              MATRIX=$(echo "$MATRIX" | jq -c --arg n "$NUM" --arg m "$MODE" --arg s "$SHA" --arg r "$REF" --arg h "$HR" \
+                '. + [{"pr_number":$n,"mode":$m,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
+            fi
+          done <<< "$PRS"
+
+          if [ "$MATRIX" != "[]" ]; then
+            echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ------------------------------------------------------------------ #
+  #  Preflight                                                          #
+  # ------------------------------------------------------------------ #
+  preflight:
+    needs: router
+    if: needs.router.outputs.matrix != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.router.outputs.matrix) }}
+      fail-fast: false
+    concurrency:
+      group: claude-preflight-pr-${{ matrix.pr_number }}
+      cancel-in-progress: true
+
+    env:
+      PR_NUMBER: ${{ matrix.pr_number }}
+      MODE: ${{ matrix.mode }}
+      HEAD_SHA: ${{ matrix.head_sha }}
+      HEAD_REF: ${{ matrix.head_ref }}
+      HEAD_REPO: ${{ matrix.head_repo }}
+      ANTHROPIC_VERTEX_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      CLOUD_ML_REGION: us-east5
+      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+      MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+      MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+      MLFLOW_WORKSPACE: ${{ secrets.MLFLOW_WORKSPACE }}
+      MLFLOW_ENABLE_WORKSPACES: "true"
+      MLFLOW_CLAUDE_TRACING_ENABLED: "true"
+
+    steps:
+      - name: Generate GitHub App token (managed)
+        if: matrix.mode == 'managed'
+        id: app-token-managed
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+
+      - name: Generate GitHub App token (check-only)
+        if: matrix.mode == 'check-only'
+        id: app-token-readonly
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.CLAUDE_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
+          permission-contents: read
+          permission-pull-requests: write
+          permission-checks: write
+
+      - name: Resolve token
+        id: app-token
+        run: |
+          echo "token=${{ steps.app-token-managed.outputs.token || steps.app-token-readonly.outputs.token }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create check run
+        id: check-run
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          CHECK_RUN_ID=$(gh api "repos/$REPO/check-runs" \
+            -f "name=ODH Dashboard Agent" \
+            -f "head_sha=$HEAD_SHA" \
+            -f "status=in_progress" \
+            -f "output[title]=Preflight running..." \
+            -f "output[summary]=**Mode:** $MODE | **PR:** #$PR_NUMBER | **Trigger:** $EVENT_NAME" \
+            --jq '.id')
+          echo "id=$CHECK_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HEAD_REPO }}
+          ref: ${{ env.HEAD_SHA }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Set up Python and MLflow
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install MLflow
+        run: pip install "mlflow[genai]>=3.5"
+
+      - name: Configure MLflow tracing
+        run: |
+          mkdir -p .claude
+          printf '.claude/settings.local.json\n' >> .git/info/exclude
+          cat > .claude/settings.local.json << 'SETTINGS'
+          {
+            "env": { "MLFLOW_CLAUDE_TRACING_ENABLED": "true" },
+            "hooks": {
+              "Stop": [{
+                "matcher": "",
+                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
+              }]
+            }
+          }
+          SETTINGS
+
+      # ── Check (read-only) ──
+      - name: Preflight check
+        if: matrix.mode == 'check-only'
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          use_vertex: "true"
+          claude_args: "--max-turns 30 --model claude-opus-4-6 --disallowedTools Edit,Write,NotebookEdit"
+          prompt: >-
+            Run /preflight ${{ env.PR_NUMBER }} --skip-review coderabbit to check
+            this PR. You are in agent-check-only mode — do NOT modify files,
+            commit, or push. Run preflight once, then post a summary PR comment
+            via gh pr comment ${{ env.PR_NUMBER }}. The comment must have a
+            Preflight Agent Report header, verdict with mode, the results table
+            with status emojis, an expandable Tracing section, and a footer
+            linking to
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+
+      # ── Fix (iterative) ──
+      - name: Preflight fix
+        if: matrix.mode == 'managed'
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ steps.app-token.outputs.token }}
+          use_vertex: "true"
+          claude_args: "--max-turns 80 --model claude-opus-4-6"
+          prompt: >-
+            /goal Run /preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit
+            to check and fix this PR. You are in agent-managed mode — edit files,
+            commit, and push as needed. If /preflight reports NOT READY, fix the
+            issues and re-run. Track each iteration's results. Stop after 5 runs
+            or 2 consecutive with no improvement. The goal is met when /preflight
+            reports READY or READY WITH WARNINGS AND you have posted a summary PR
+            comment via gh pr comment ${{ env.PR_NUMBER }}. The comment must have
+            a Preflight Agent Report header, verdict with iteration count and mode,
+            the results table with status emojis, an expandable Iteration History
+            section, an expandable Tracing section, and a footer linking to
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+
+      # ── Report ──
+      - name: Update check run (success)
+        if: success() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=success" \
+            -f "output[title]=Preflight passed ($MODE)" \
+            -f "output[summary]=See PR comment for full report."
+
+      - name: Update check run (failure)
+        if: failure() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=failure" \
+            -f "output[title]=Preflight failed ($MODE)" \
+            -f "output[summary]=Check the [workflow run]($RUN_URL)."
+
+      - name: Update check run (cancelled)
+        if: cancelled() && steps.check-run.outputs.id
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          REPO: ${{ github.repository }}
+          CHECK_RUN_ID: ${{ steps.check-run.outputs.id }}
+        run: |
+          gh api "repos/$REPO/check-runs/$CHECK_RUN_ID" \
+            -X PATCH \
+            -f "status=completed" -f "conclusion=cancelled" \
+            -f "output[title]=Preflight cancelled ($MODE)" \
+            -f "output[summary]=Superseded by a newer run."
