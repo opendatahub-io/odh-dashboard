@@ -21,6 +21,7 @@ import {
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
 import {
   getVllmEndpointUrl,
+  grantEvalHubTenantAccess,
   setupTenantAndDeployModel,
 } from '../../../utils/oc_commands/evalHubModelDeploy';
 import { evaluationsPage } from '../../../pages/evaluations';
@@ -117,6 +118,7 @@ describe('Eval Hub E2E', () => {
         return waitForProjectReady(evaluationTenantProject).then(() => {
           addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
           setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+          grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
           vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
           cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
         });

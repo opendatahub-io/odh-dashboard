@@ -3,6 +3,22 @@ import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
 import type { EvalHubTestData } from '../../types';
 
+/**
+ * Binds a user to the `evalhub-evaluator` Role in the tenant namespace so non-cluster-admin
+ * users can access evaluations, collections, providers, and MLflow experiments.
+ */
+export function grantEvalHubTenantAccess(ns: string, username: string): void {
+  pollUntilSuccess(
+    `oc -n ${ns} get role evalhub-evaluator -o name`,
+    'operator-provisioned evalhub-evaluator Role',
+    { maxAttempts: 30, pollIntervalMs: 2000 },
+  );
+  cy.exec(
+    `oc create rolebinding e2e-tenant-evaluator --role=evalhub-evaluator --user=${username} -n ${ns}`,
+    { failOnNonZeroExit: false },
+  );
+}
+
 export function getVllmEndpointUrl(td: EvalHubTestData, ns: string): string {
   return `http://${td.inferenceServiceName}-predictor.${ns}.svc.cluster.local:8080`;
 }
