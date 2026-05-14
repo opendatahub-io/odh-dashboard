@@ -202,6 +202,27 @@ describe('NIMImageFieldComponent', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
+  it('should show skeleton while account status and images are loading', () => {
+    mockUseNIMAccountStatus.mockReturnValue({
+      status: NIMAccountStatus.NOT_FOUND,
+      nimAccount: null,
+      errorMessages: [],
+      loaded: false,
+      refresh: jest.fn(),
+      startRevalidation: jest.fn(),
+    });
+
+    renderComponent({
+      data: { modelInfos: [], projectName: 'test-project' },
+      loaded: false,
+    });
+
+    expect(screen.getByText('NIM image')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No NVIDIA NIM key has been configured', { exact: false }),
+    ).not.toBeInTheDocument();
+  });
+
   it('should show typeahead selector when NIM is configured with models', () => {
     mockUseNIMAccountStatus.mockReturnValue({
       status: NIMAccountStatus.READY,

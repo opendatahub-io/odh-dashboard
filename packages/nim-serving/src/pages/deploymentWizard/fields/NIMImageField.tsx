@@ -1,15 +1,14 @@
 import React from 'react';
 import { z } from 'zod';
-import { Alert, FormGroup, HelperText, HelperTextItem, Spinner } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
+import { Alert, FormGroup, HelperText, HelperTextItem, Skeleton } from '@patternfly/react-core';
 import TypeaheadSelect, {
   TypeaheadSelectOption,
 } from '@odh-dashboard/internal/components/TypeaheadSelect';
-import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
 import type { ProjectSectionType } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ProjectSection';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
+import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
 import { useNIMImages, type NIMImagesData } from '../../../api/models/hooks';
 import type { NIMModelInfo } from '../../../api/models/types';
 import { getImageRepository, normalizeVersion } from '../../../api/models/utils';
@@ -105,18 +104,9 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   );
 
   const projectName = externalData?.data.projectName;
+  const imagesLoaded = externalData?.loaded ?? false;
 
   const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName);
-
-  const [canViewSettings, rbacLoaded] = useAccessReview(
-    {
-      group: 'rbac.authorization.k8s.io',
-      resource: 'rolebindings',
-      namespace: projectName ?? '',
-      verb: 'list',
-    },
-    !!projectName,
-  );
 
   if (!projectName) {
     return (
@@ -126,22 +116,20 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     );
   }
 
+  if (!accountLoaded || !imagesLoaded) {
+    return (
+      <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
+        <Skeleton height="36px" width="450px" />
+      </FormGroup>
+    );
+  }
+
   const isNIMUnconfigured =
-    accountLoaded &&
     (accountStatus === NIMAccountStatus.NOT_FOUND || accountStatus === NIMAccountStatus.ERROR) &&
     modelInfos.length === 0;
 
   if (isNIMUnconfigured) {
     const isInvalidKey = accountStatus === NIMAccountStatus.ERROR;
-
-    const settingsAction = !rbacLoaded ? (
-      <Spinner size="sm" />
-    ) : canViewSettings ? (
-      <Link to={`/projects/${projectName}?section=settings`}>Configure in project settings</Link>
-    ) : (
-      'Ask your project administrator to configure NVIDIA NIM.'
-    );
-
     return (
       <Alert
         variant="danger"
@@ -151,7 +139,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
         {isInvalidKey
           ? 'The NVIDIA NIM key for this project is invalid and needs to be replaced. '
           : 'No NVIDIA NIM key has been configured for this project. '}
-        {settingsAction}
+        <NIMSettingsLink projectName={projectName} />
       </Alert>
     );
   }
