@@ -114,7 +114,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Hello, bot!');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot
 
       // Test user message - only check what matters
       expect(result.current.messages[0]).toMatchObject({
@@ -185,13 +185,13 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: '',
         name: 'Bot',
       });
-      expect(result.current.messages[2].errorClassification).toMatchObject({
+      expect(result.current.messages[1].errorClassification).toMatchObject({
         pattern: 'full-failure',
         variant: 'danger',
       });
@@ -214,7 +214,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: 'This is a bot response',
@@ -245,13 +245,13 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toMatchObject({
+      expect(result.current.messages[1].errorClassification).toMatchObject({
         pattern: 'full-failure',
         variant: 'danger',
       });
@@ -285,13 +285,13 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toMatchObject({
+      expect(result.current.messages[1].errorClassification).toMatchObject({
         pattern: 'full-failure',
         variant: 'danger',
       });
@@ -309,13 +309,13 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + error bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + error bot
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: '',
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toMatchObject({
+      expect(result.current.messages[1].errorClassification).toMatchObject({
         pattern: 'full-failure',
         variant: 'danger',
       });
@@ -344,14 +344,14 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      // Should have user + bot (placeholder removed; bot updated with error, not added separately)
+      // Should have user + bot (updated with error, not added separately)
       expect(result.current.messages).toHaveLength(2);
       expect(result.current.messages[1]).toMatchObject({
         role: 'bot',
         content: '', // Error happened before streaming content was persisted
         name: mockModelId,
       });
-      expect(result.current.messages[2].errorClassification).toMatchObject({
+      expect(result.current.messages[1].errorClassification).toMatchObject({
         pattern: 'partial-failure',
         variant: 'warning',
       });
@@ -375,7 +375,7 @@ describe('useChatbotMessages', () => {
         await result.current.handleMessageSend('Test message');
       });
 
-      expect(result.current.messages).toHaveLength(2); // user + bot (placeholder removed on first send)
+      expect(result.current.messages).toHaveLength(2); // user + bot response
       expect(mockCreateResponse).toHaveBeenCalledWith(
         {
           input: 'Test message',
