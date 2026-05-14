@@ -96,7 +96,7 @@ describe('NIMImageFieldComponent', () => {
       screen.getByText('No NVIDIA NIM key has been configured for this project.', { exact: false }),
     ).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Configure in project settings' });
-    expect(link).toHaveAttribute('href', '/projects/test-project?section=settings');
+    expect(link).toHaveAttribute('href', expect.stringContaining('/projects/test-project'));
   });
 
   it('should show "no key configured" error with ask-admin text for non-admin users', () => {

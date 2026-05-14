@@ -119,7 +119,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   if (!accountLoaded || !imagesLoaded) {
     return (
       <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
-        <Skeleton height="36px" width="450px" />
+        <Skeleton shape="square" width="450px" height="36px" />
       </FormGroup>
     );
   }

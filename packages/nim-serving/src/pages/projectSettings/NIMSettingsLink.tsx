@@ -1,29 +1,25 @@
 import React from 'react';
 import { Spinner } from '@patternfly/react-core';
 import { Link } from 'react-router-dom';
-import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
+import { routeProjectsNamespace } from '@odh-dashboard/internal/routes/projects';
+import { ProjectSectionID } from '@odh-dashboard/internal/pages/projects/screens/detail/types';
+import { useProjectPermissionsTabVisible } from '@odh-dashboard/internal/concepts/projects/accessChecks';
 
 type NIMSettingsLinkProps = {
   projectName: string;
 };
 
 const NIMSettingsLink: React.FC<NIMSettingsLinkProps> = ({ projectName }) => {
-  const [canViewSettings, rbacLoaded] = useAccessReview(
-    {
-      group: 'rbac.authorization.k8s.io',
-      resource: 'rolebindings',
-      namespace: projectName,
-      verb: 'list',
-    },
-    true,
-  );
+  const [canViewSettings, rbacLoaded] = useProjectPermissionsTabVisible(projectName);
 
   if (!rbacLoaded) {
     return <Spinner size="sm" />;
   }
   if (canViewSettings) {
     return (
-      <Link to={`/projects/${projectName}?section=settings`}>Configure in project settings</Link>
+      <Link to={`${routeProjectsNamespace(projectName)}?section=${ProjectSectionID.SETTINGS}`}>
+        Configure in project settings
+      </Link>
     );
   }
   return <>Ask your project administrator to configure NVIDIA NIM.</>;
