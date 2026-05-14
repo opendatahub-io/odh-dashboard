@@ -5,7 +5,7 @@ description: Evaluates code changes in a PR against a Figma design to assess vis
 
 # Figma Evaluation Review
 
-Evaluates code changes against a Figma design to produce a structured design-conformance report. Uses the Figma MCP to extract design context (component structure, tokens, layout, screenshot) and the GitHub MCP to fetch the PR diff, then statically analyzes how well the code matches the intended design.
+Evaluates code changes against a Figma design to produce a structured design-conformance report. Uses the Figma MCP to extract design context (component structure, tokens, layout, screenshot) and optionally the GitHub MCP to fetch the PR diff (falling back to local git commands), then statically analyzes how well the code matches the intended design.
 
 This skill is invoked on-demand for a single Figma-design + PR pair.
 
@@ -14,7 +14,7 @@ This skill is invoked on-demand for a single Figma-design + PR pair.
 The user provides:
 
 - **Jira ticket key or URL** (required) — e.g., `RHOAIENG-12345` or `https://redhat.atlassian.net/browse/RHOAIENG-12345`. The Jira ticket is the primary source for discovering the Figma URL and PR when they are not provided directly.
-- **Figma URL** (optional) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`. If omitted, the skill discovers the Figma URL from the Jira ticket (see Phase 2, Step 2).
+- **Figma URL** (optional) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`. If omitted, the skill discovers the Figma URL from the Jira ticket (see Phase 2, Step 2c).
 - **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch.
 - **Repository** (optional) — defaults to `opendatahub-io/odh-dashboard`
 
@@ -39,7 +39,7 @@ Check that all required MCP servers are available before proceeding.
 
 ### Verification procedure
 
-1. **Figma MCP** — call `get_metadata` with a known test fileKey (any lightweight call that exercises authentication). If it fails with an authentication or MCP error, stop and report:
+1. **Figma MCP** — call `get_metadata` with the fileKey from the user-provided Figma URL (if available) or any lightweight fileKey to exercise authentication. If it fails with an authentication or MCP error, stop and report:
    > **Figma MCP is not available or not authenticated.** This skill requires the Figma MCP (`plugin-figma-figma`) to fetch design context. Please set up the Figma MCP server by following the [Figma MCP setup guide](https://help.figma.com/hc/en-us/articles/35281350665623-Figma-MCP-collection-How-to-set-up-the-Figma-remote-MCP-server-preferred) and try again.
    Discard the test result — actual Figma data is fetched in Phase 2, Step 3.
 2. **Atlassian MCP** — call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
@@ -71,11 +71,11 @@ Extract the Jira issue key from the user-provided input. If the user gave a URL 
 
 #### 2b. Fetch ticket details
 
-Call `jira_get_issue` with the extracted key and `fields=summary,description,status,issuetype,labels,issuelinks`. Extract:
+Call `jira_get_issue` with the extracted key, `fields=summary,description,status,issuetype,labels,issuelinks`, and `comment_limit=20`. Extract:
 
 - **Summary** — the one-line objective
 - **Description** — full context including requirements and any Figma URLs or node references embedded in the ticket
-- **Acceptance criteria** — search the description for a section titled "Acceptance Criteria", "Requirements", or "Definition of Done" and extract each criterion as a discrete item. If not found in the description, check the issue's fields map for a field whose name or display name matches "Acceptance Criteria" (this is typically a custom field whose ID varies by Jira instance) and extract its value.
+- **Acceptance criteria** — search the description for a section titled "Acceptance Criteria", "Requirements", or "Definition of Done" and extract each criterion as a discrete item. If not found in the description, call `jira_get_issue` with `fields=*all` and check the returned fields for a custom field whose value contains acceptance criteria (use `jira_search_fields` with keyword `acceptance` to identify the field ID if needed).
 - **Issue links** — the list of linked issues (used in step 2c for Figma URL discovery)
 
 #### 2c. Discover Figma URL from Jira (if not provided by user)
@@ -83,8 +83,8 @@ Call `jira_get_issue` with the extracted key and `fields=summary,description,sta
 If the user did not provide a Figma URL, search for one in the Jira ticket. Figma URLs are typically not in the PR itself but linked from the Jira issue or a related UX issue. Search these sources in order — stop at the first match:
 
 1. **Ticket description** — scan the description for URLs matching `figma.com/design/` or `figma.com/file/`. Extract the first Figma URL found.
-2. **Ticket comments** — call `jira_get_issue` with `comment_limit=20` (if not already fetched with comments) and scan all comment bodies for Figma URLs. Designers often paste Figma links in comments rather than the description.
-3. **Custom fields** — check the issue's fields for any field values containing Figma URLs. Some teams use custom fields (e.g., "Design Link", "Figma URL") to store design references.
+2. **Ticket comments** — scan all comment bodies (already fetched in Step 2b) for Figma URLs. Designers often paste Figma links in comments rather than the description.
+3. **Custom fields** — call `jira_get_issue` with `fields=*all` for the same key and scan the returned fields for any values containing Figma URLs. Some teams use custom fields (e.g., "Design Link", "Figma URL") to store design references. Skip this source if the acceptance criteria fallback in Step 2b already made a `fields=*all` call — reuse that response instead.
 4. **Linked UX issues** — check the issue's `issuelinks` for linked issues. Look for links whose related issue has a label like `ux`, `design`, or `UX/Design`, or whose issue type is `Design` or `UX`. For each candidate (limit to 3 to avoid over-fetching), call `jira_get_issue` with `fields=summary,description` and scan the description for Figma URLs.
 5. **Linked issues (general)** — if no UX-specific links were found, check linked issues whose summary mentions "design", "figma", "mockup", or "UX" (case-insensitive). Fetch up to 2 candidate descriptions.
 
@@ -99,8 +99,7 @@ If the Figma URL (whether user-provided or discovered) points to a **page or top
 
 1. Call `get_metadata` for the Figma page to get the structure of all child frames/nodes
 2. Match frame names and annotations against the ticket summary and acceptance criteria (e.g., a ticket about "empty state for model list" should match a frame named "Model List / Empty" or similar)
-3. If a clear match is found, call `get_design_context` again with the scoped node's ID to get more specific design data
-4. If multiple frames match (e.g., the ticket covers a flow with several states), call `get_design_context` for each relevant frame and consolidate findings in the report
+3. Record the matched node IDs — Step 3 will use these scoped IDs instead of the original page-level node ID when fetching design context and screenshots
 
 ### Step 3: Fetch Figma Design Context
 
@@ -109,10 +108,12 @@ Parse the resolved Figma URL (user-provided or discovered in Step 2c) to extract
 - `figma.com/design/:fileKey/:fileName?node-id=:nodeId` — convert `-` to `:` in nodeId
 - `figma.com/design/:fileKey/branch/:branchKey/:fileName?node-id=:nodeId` — use branchKey as fileKey; if `node-id` is present, convert `-` to `:` to produce nodeId (same normalization as the non-branch pattern)
 
-Fetch design data and a screenshot from the Figma MCP:
+Determine which node IDs to fetch. If Step 2d produced scoped node IDs, use those. Otherwise, use the node ID parsed from the resolved URL. For each node ID, fetch design data and a screenshot from the Figma MCP:
 
-1. **`get_design_context`** — returns reference code, component structure, Code Connect mappings, design tokens, and annotations. Pass `clientLanguages: "typescript"` and `clientFrameworks: "react"`.
-2. **`get_screenshot`** — capture a screenshot of the resolved node for inclusion in the report.
+1. **`get_design_context`** — returns reference code, component structure, Code Connect mappings, design tokens, and annotations. Pass `clientLanguages: "typescript"` and `clientFrameworks: "react"`. If multiple scoped nodes were identified in Step 2d, call `get_design_context` for each and consolidate the results.
+2. **`get_screenshot`** — capture a screenshot of each resolved node for inclusion in the report.
+
+If either call fails (invalid node ID, permission error, deleted file), stop and report the error with the Figma URL. Do not proceed to Phase 3 without design context.
 
 From the `get_design_context` response, extract:
 
@@ -127,11 +128,9 @@ From the `get_design_context` response, extract:
 
 **If a PR was resolved and the GitHub MCP is available:**
 
-1. Call `pull_request_read({ method: "get", owner, repo, pullNumber })` to get PR metadata (title, body, state, draft status)
+1. Call `pull_request_read({ method: "get", owner, repo, pullNumber })` to get PR metadata (title, body, state)
 2. Call `pull_request_read({ method: "get_files", owner, repo, pullNumber })` to get the list of changed files (paginate if needed)
 3. Call `pull_request_read({ method: "get_diff", owner, repo, pullNumber })` to get the full diff
-
-If the PR is in **draft** state, note this in the report header. Use `[NOT_IMPLEMENTED]` for checks that target code not yet written.
 
 **If a PR was resolved but the GitHub MCP is unavailable**, or **if evaluating local branch changes (no PR):**
 
@@ -169,8 +168,6 @@ Compare the Figma auto-layout properties against the code's layout approach.
 - **Sizing** — does the Figma sizing (fixed, hug, fill) match the code's width/height behavior?
 - **Responsive behavior** — if the Figma design shows multiple breakpoints or responsive variants, note them as `[LIMITED]` since verifying responsive behavior requires runtime evaluation
 
-> **PF token compliance** (hardcoded gap/padding values, missing PF spacer tokens) is checked by the **style-review** skill. This dimension focuses on whether the layout *structure* matches the Figma design — not whether the code uses the right tokens.
-
 ### Dimension 3: Typography
 
 Compare the Figma text styles against the code's typography.
@@ -178,16 +175,12 @@ Compare the Figma text styles against the code's typography.
 - Are Figma text nodes using the correct PF text components (`Content`, `Title`, `Text`) or heading levels?
 - Do heading levels and text hierarchy match the Figma design's visual hierarchy?
 
-> **PF token compliance** (hardcoded font sizes/weights, missing typography tokens) is checked by the **style-review** skill. This dimension focuses on whether the *text structure and hierarchy* match the Figma design.
-
 ### Dimension 4: Color & Theming
 
 Compare the Figma color usage against the code's color references.
 
 - Does the implementation use the correct semantic color roles (e.g., status colors, link colors, background roles) as shown in the Figma design?
 - Does the implementation account for dark/light theme if the Figma file shows both variants?
-
-> **PF token compliance** (hardcoded hex/rgb values, missing color tokens) is checked by the **style-review** skill. This dimension focuses on whether the *color intent* matches the Figma design.
 
 ### Dimension 5: Interactive States
 
@@ -213,7 +206,6 @@ Compare text content between the Figma design and the code.
 | **Partial Match** | `[PARTIAL]` | Some aspects match but gaps or deviations exist |
 | **Mismatch** | `[MISMATCH]` | The code diverges from the design in a meaningful way |
 | **Cannot Evaluate** | `[LIMITED]` | Cannot determine conformance from static analysis alone (e.g., animation, responsive behavior, interaction timing) |
-| **Not Yet Implemented** | `[NOT_IMPLEMENTED]` | PR is in draft state or the check targets code that is not yet written |
 | **Not Applicable** | `[NOT_APPLICABLE]` | This dimension is not relevant to the current change set |
 
 ### Evidence Requirements
@@ -224,7 +216,6 @@ Every verdict must cite specific evidence:
 - **PARTIAL**: reference what matches and explicitly state what deviates
 - **MISMATCH**: reference the Figma expectation and the code that contradicts it
 - **LIMITED**: explain why static analysis is insufficient for this check
-- **NOT_IMPLEMENTED**: note the draft PR state or cite the missing code area
 - **NOT_APPLICABLE**: explain why this dimension does not apply to the change set
 
 ## Phase 4: Generate Report
@@ -236,7 +227,7 @@ Present the report in this format:
 
 **Figma Design:** [{design name or node path}]({figma url})
 **PR:** [#{number}]({url}) — {title}
-**Jira:** [{issue key}]({jira url}) — {summary} _(omit if no ticket found)_
+**Jira:** [{issue key}]({jira url}) — {summary}
 **Status:** {N}/{total} dimensions fully matching
 
 ### Screenshot
@@ -258,7 +249,7 @@ Present the report in this format:
 
 #### 1. Component Mapping
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Detailed analysis with specific Figma component names mapped to code component references.}
 
@@ -268,37 +259,37 @@ Present the report in this format:
 
 #### 2. Layout & Spacing
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Detailed analysis comparing Figma auto-layout to code layout approach.}
 
 | Figma Property | Figma Value | Code Equivalent | Status |
 |---|---|---|---|
 | Direction | Vertical | `<Stack>` | MATCH |
-| Gap | 16px | `--pf-t--global--spacer--md` | MATCH |
-| Padding | 24px | hardcoded `24px` | MISMATCH — use `--pf-t--global--spacer--lg` |
+| Gap | 16px | `hasGutter` on `<Stack>` | MATCH |
+| Alignment | Center | `justifyContent` not set | PARTIAL — Figma centers children but code uses default start alignment |
 
 #### 3. Typography
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Detailed analysis of text style conformance.}
 
 #### 4. Color & Theming
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Detailed analysis of color token usage and theme support.}
 
 #### 5. Interactive States
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Analysis of which states from the design are implemented.}
 
 #### 6. Content & Copy
 
-**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_IMPLEMENTED|NOT_APPLICABLE}
+**Verdict:** {MATCH|PARTIAL|MISMATCH|LIMITED|NOT_APPLICABLE}
 
 {Text content comparison.}
 
@@ -315,6 +306,9 @@ Present the report in this format:
 #### Consider
 - {Minor copy differences, optional enhancements}
 
+#### Style Review Findings
+{Summary of findings from the style-review skill (PF priority order, wrapper component usage, token compliance, class naming). Merge critical findings into Must Fix / Should Fix above; list remaining items here.}
+
 ### Overall Assessment
 
 {1-2 paragraph summary: how well does the implementation match the design? Is it ready for design review, or are there significant gaps? Highlight the strongest and weakest dimensions.}
@@ -323,7 +317,7 @@ Present the report in this format:
 ### Report Rules
 
 - The Figma URL is always a clickable link
-- Jira issue keys are clickable links: `[RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345)`. Omit the Jira line from the header if no ticket was found.
+- Jira issue keys are clickable links: `[RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345)`.
 - PR references are clickable links when a PR exists: `[#4567](https://github.com/opendatahub-io/odh-dashboard/pull/4567)`. When evaluating local branch changes, show the branch name instead.
 - File references use backtick-wrapped paths: `` `frontend/src/pages/Foo.tsx` ``
 - Code citations use the repository's standard fenced code block format with a `startLine:endLine:filepath` header
