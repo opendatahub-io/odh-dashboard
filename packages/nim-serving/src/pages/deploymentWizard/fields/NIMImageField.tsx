@@ -108,19 +108,19 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName);
 
+  if (!externalData || !accountLoaded || !imagesLoaded) {
+    return (
+      <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
+        <Skeleton shape="square" width="450px" height="36px" />
+      </FormGroup>
+    );
+  }
+
   if (!projectName) {
     return (
       <Alert variant="info" isInline title="No project selected">
         Select a project to load available NIM images.
       </Alert>
-    );
-  }
-
-  if (!accountLoaded || !imagesLoaded) {
-    return (
-      <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
-        <Skeleton shape="square" width="450px" height="36px" />
-      </FormGroup>
     );
   }
 
