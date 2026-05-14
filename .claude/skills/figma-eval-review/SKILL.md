@@ -13,12 +13,12 @@ This skill is invoked on-demand for a single Figma-design + PR pair.
 
 The user provides:
 
+- **Jira ticket key or URL** (required) — e.g., `RHOAIENG-12345` or `https://redhat.atlassian.net/browse/RHOAIENG-12345`. The Jira ticket is the primary source for discovering the Figma URL and PR when they are not provided directly.
 - **Figma URL** (optional) — e.g., `https://figma.com/design/ABC123/MyFile?node-id=1-2`. If omitted, the skill discovers the Figma URL from the Jira ticket (see Phase 2, Step 2).
 - **PR number or URL** (optional) — e.g., `#4567` or `https://github.com/opendatahub-io/odh-dashboard/pull/4567`. If omitted, the skill auto-detects from the current git branch or discovers it from the Jira ticket.
-- **Jira ticket key or URL** (optional) — e.g., `RHOAIENG-12345` or `https://redhat.atlassian.net/browse/RHOAIENG-12345`. If omitted, the skill discovers the ticket from the PR. The Jira ticket is the primary source for finding the Figma URL and PR when they are not provided directly.
 - **Repository** (optional) — defaults to `opendatahub-io/odh-dashboard`
 
-At least one of Figma URL, PR, or Jira ticket must be provided or discoverable. The skill resolves the full set from whichever inputs are given.
+If the user does not provide a Jira ticket, ask for one before proceeding.
 
 ## Phase 1: Verify Prerequisites
 
@@ -74,21 +74,9 @@ Resolve the PR to evaluate. Auto-detection from the current branch is the defaul
 
 This step discovers the Figma URL (if not provided by the user) and extracts Jira ticket context to scope the evaluation.
 
-#### 2a. Find a Jira key
+#### 2a. Parse the Jira key
 
-If the user provided a Jira ticket key or URL, use it directly — extract the key from the URL if needed (e.g., `https://redhat.atlassian.net/browse/RHOAIENG-12345` → `RHOAIENG-12345`).
-
-Otherwise, search for a Jira issue key (pattern: `[A-Z][A-Z0-9]+-\d+`, e.g., `RHOAIENG-12345`) in these sources, in order:
-
-1. **PR title** — often prefixed with the ticket key
-2. **PR body** — may contain a Jira link or key in a "References" or "Related" section
-3. **Branch name** — commonly formatted as `RHOAIENG-12345-description` or `feature/RHOAIENG-12345`
-4. **Commit messages** — check the commits in the PR for ticket keys
-
-If no key is found and the user did not provide a Figma URL, stop and report:
-> No Figma URL was provided and no Jira ticket could be found to discover one. Please provide a Figma URL or ensure the PR references a Jira ticket.
-
-If no key is found but the user provided a Figma URL, skip to Step 3 — Jira scoping is best-effort.
+Extract the Jira issue key from the user-provided input. If the user gave a URL (e.g., `https://redhat.atlassian.net/browse/RHOAIENG-12345`), extract the key (`RHOAIENG-12345`). If the user gave a key directly, use it as-is.
 
 #### 2b. Fetch ticket details
 
