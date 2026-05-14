@@ -22,8 +22,10 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
+import { z } from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
@@ -45,6 +47,18 @@ type CreateSubscriptionFormProps = {
 };
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
+
+const subscriptionFormSchema = z.object({
+  priority: z
+    .number({ message: 'Priority is required' })
+    .int('Priority must be a whole number')
+    .min(MIN_PRIORITY, `Priority must be at least ${MIN_PRIORITY}`)
+    .max(MAX_PRIORITY, `Priority must be at most ${MAX_PRIORITY}`),
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
+});
+
+type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
 
 const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
   info.subscription.modelRefs.map((ref) => {
@@ -94,6 +108,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     return [];
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
   const [priority, setPriority] = React.useState<number | undefined>(
     subscription?.priority ?? undefined,
   );
@@ -143,10 +158,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
-  const groupsValidationError =
-    groupsTouched && selectedGroupNames.length === 0
-      ? 'At least one group must be selected'
-      : undefined;
 
   const initialGroupNames = React.useMemo(
     () =>
@@ -194,23 +205,36 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     return subscriptionsForConflictCheck.find((s) => (s.priority ?? 0) === priority);
   }, [priority, subscriptionsForConflictCheck]);
 
-  const priorityValidationError = conflictingSubscription
+  const priorityConflictError = conflictingSubscription
     ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(subscriptionsForConflictCheck, (conflictingSubscription.priority ?? 0) + 1)}.`
     : undefined;
 
-  const isPriorityValid = priority != null && !Number.isNaN(priority);
+  const zodFormData: SubscriptionFormData = React.useMemo(
+    () => ({
+      priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
+      groups: selectedGroupNames,
+      models,
+    }),
+    [priority, selectedGroupNames, models],
+  );
+
+  const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
+
+  const priorityValidationError =
+    priorityConflictError ??
+    (getFieldValidation(['priority'], true).length > 0
+      ? getFieldValidation(['priority'], true)[0].message
+      : undefined);
 
   const canSubmit =
     isNameValid &&
-    selectedGroupNames.length > 0 &&
-    models.length > 0 &&
+    getFieldValidation(undefined, true).length === 0 &&
     allModelsHaveRateLimits &&
-    isPriorityValid &&
     !isSubmitting &&
-    !priorityValidationError;
+    !priorityConflictError;
 
   const handleSubmit = async () => {
-    if (!isPriorityValid) {
+    if (priority == null || Number.isNaN(priority)) {
       return;
     }
 
@@ -336,13 +360,13 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
           />
-          {groupsValidationError && (
+          {groupsTouched && getFieldValidation(['groups'], true).length > 0 && (
             <FormHelperText>
               <HelperText>
-                <HelperTextItem>{groupsValidationError}</HelperTextItem>
+                <HelperTextItem variant="error">
+                  {getFieldValidation(['groups'], true)[0].message}
+                </HelperTextItem>
               </HelperText>
             </FormHelperText>
           )}
@@ -370,7 +394,15 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             editable
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
-            onRemoveModel={handleRemoveModel}
+            onRemoveModel={(index) => {
+              setModelsTouched(true);
+              handleRemoveModel(index);
+            }}
+            validationError={
+              modelsTouched && getFieldValidation(['models'], true).length > 0
+                ? getFieldValidation(['models'], true)[0].message
+                : undefined
+            }
             resourceType="subscription"
           />
         )}
@@ -382,8 +414,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
             allSubscriptions={subscriptionsForConflictCheck}
             allPolicies={formData.policies}
             currentModels={models}
-            onAdd={handleAddModels}
-            onRemove={handleRemoveModelsByRef}
+            onAdd={(refs) => {
+              setModelsTouched(true);
+              handleAddModels(refs);
+            }}
+            onRemove={(refs) => {
+              setModelsTouched(true);
+              handleRemoveModelsByRef(refs);
+            }}
             onClose={() => setIsAddModelsModalOpen(false)}
           />
         )}
