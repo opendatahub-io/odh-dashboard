@@ -53,7 +53,18 @@ export type KServeServingRuntimeFieldType = WizardField<
 >;
 
 /**
- * Active for all deployments except generative non-legacy which is behind a feature flag.
+ * Determines if the KServe serving runtime field should be active in the wizard.
+ *
+ * Activation logic:
+ * - PREDICTIVE models: Always active (use traditional KServe serving runtimes)
+ * - GENERATIVE models with LLMInferenceServiceConfig flow available (vLLMDeploymentOnMaaS=true):
+ *   - Active ONLY if legacyVLLM=true (user opted for legacy vLLM deployment path)
+ *   - Inactive if legacyVLLM=false (uses LLMInferenceServiceConfig-based deployment instead)
+ * - GENERATIVE models without LLMInferenceServiceConfig flow (vLLMDeploymentOnMaaS=false):
+ *   - Always active (LLMInferenceServiceConfig not available, must use KServe serving runtime)
+ *
+ * @param wizardState Current wizard form state
+ * @returns true if the KServe serving runtime field should be shown
  */
 export const isKServeServingRuntimeFieldActive = (
   wizardState: RecursivePartial<WizardFormData['state']>,
@@ -61,14 +72,19 @@ export const isKServeServingRuntimeFieldActive = (
   const modelType = wizardState.modelType?.data;
   const vLLMDeploymentOnMaaSEnabled = wizardState.devFeatureFlags?.vLLMDeploymentOnMaaS;
 
+  // Predictive models always use KServe serving runtimes
   if (modelType?.type === ServingRuntimeModelType.PREDICTIVE) {
     return true;
   }
+
+  // Generative models with LLMInferenceServiceConfig flow enabled: only show if using legacy vLLM
   if (vLLMDeploymentOnMaaSEnabled === true) {
     if (modelType?.type === ServingRuntimeModelType.GENERATIVE && modelType.legacyVLLM === true) {
       return true;
     }
   }
+
+  // Generative models without LLMInferenceServiceConfig flow: always show (no alternative)
   if (vLLMDeploymentOnMaaSEnabled === false) {
     if (modelType?.type === ServingRuntimeModelType.GENERATIVE) {
       return true;
@@ -80,6 +96,13 @@ export const isKServeServingRuntimeFieldActive = (
 
 // External data hook
 
+/**
+ * External data hook for KServe serving runtime field.
+ * Fetches wizard field overrides from extensions and computes suggestions.
+ *
+ * @param dependencies Dependencies needed to resolve overrides and suggestions
+ * @returns External data object with extraOptions, suggestion, loaded state, and optional error
+ */
 export const useKServeServingRuntimeExternalData = (
   dependencies?: KServeServingRuntimeDependencies,
 ): {
@@ -100,16 +123,26 @@ export const useKServeServingRuntimeExternalData = (
   const modelServerOverrides = useWizardFieldOverrides(isModelServerTemplateField, formData);
 
   return React.useMemo(() => {
-    const extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
-    const suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
-      (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
-      undefined,
-    );
+    try {
+      const extraOptions = modelServerOverrides.flatMap((override) => override.extraOptions ?? []);
+      const suggestion = modelServerOverrides.reduce<ModelServerOption | undefined>(
+        (acc, override) => acc ?? override.suggestion?.(modelServingClusterSettings),
+        undefined,
+      );
 
-    return {
-      data: { extraOptions, suggestion },
-      loaded: true,
-    };
+      return {
+        data: { extraOptions, suggestion },
+        loaded: true,
+      };
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error loading KServe serving runtime external data:', error);
+      return {
+        data: { extraOptions: [], suggestion: undefined },
+        loaded: true,
+        loadError: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
   }, [modelServerOverrides, modelServingClusterSettings]);
 };
 
@@ -259,6 +292,22 @@ export const KServeServingRuntimeFieldWizardField: KServeServingRuntimeFieldType
       data: modelServerSelectFieldSchema,
     }),
   },
+  /**
+   * Determines when the field should reset to its initial value.
+   *
+   * The serving runtime selection is reset ONLY when the model type changes
+   * (predictive ↔ generative), because different model types use different
+   * serving runtime templates.
+   *
+   * The field does NOT reset on modelFormat or hardwareProfile changes.
+   * While these affect which templates are compatible and which gets suggested,
+   * they don't fundamentally change the available template set, so we preserve
+   * the user's selection if they already made one.
+   *
+   * @param prevDependencies Previous dependency values
+   * @param newDependencies New dependency values
+   * @returns true if the field should reset, false to preserve current value
+   */
   shouldResetOnDependencyChange: (prevDependencies, newDependencies) => {
     return prevDependencies.modelType?.type !== newDependencies.modelType?.type;
   },

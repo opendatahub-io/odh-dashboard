@@ -278,17 +278,39 @@ export type WizardField<
   ) => WizardReviewSection[];
 };
 
+/**
+ * Resolves the effective field value from wizard state.
+ *
+ * Retrieves the stored value from state using the field's formId (or id as fallback),
+ * then applies the field's getFieldData transformation if defined.
+ *
+ * @param field The wizard field to resolve
+ * @param state The current wizard form state
+ * @returns The resolved field value, or undefined if not present or error occurred
+ */
 export const resolveFieldValue = (
   field: WizardField,
   state: WizardFormData['state'],
 ): unknown | undefined => {
-  const storedValue: unknown = getFormId(field) in state ? state[getFormId(field)] : undefined;
+  const formId = getFormId(field);
+  if (!(formId in state)) {
+    return undefined;
+  }
+
+  const storedValue: unknown = state[formId];
   if (storedValue == null) {
     return undefined;
   }
-  return field.reducerFunctions.getFieldData
-    ? field.reducerFunctions.getFieldData(storedValue, state)
-    : storedValue;
+
+  try {
+    return field.reducerFunctions.getFieldData
+      ? field.reducerFunctions.getFieldData(storedValue, state)
+      : storedValue;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Error resolving field value for ${field.id}:`, error);
+    return undefined;
+  }
 };
 
 // actual fields

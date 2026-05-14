@@ -56,10 +56,36 @@ export const getFieldDependencies = (
 };
 
 /**
- * Where in the form state is the field data stored?
- * Needed for fields that do the same thing but work differently in different platforms.
- * @param field The field to get the form id for
- * @returns The form id or the field id if no form id is set
+ * Determines where in the form state a field's data is stored.
+ *
+ * The formId allows multiple platform-specific fields to share the same form slot.
+ * For example, kserve and llmd-serving both manage the "modelServer" form field
+ * but with different implementations:
+ * - kserve field: { id: 'kserve/modelServer', formId: 'modelServer' }
+ * - llmd field: { id: 'llmd/modelServer', formId: 'modelServer' }
+ *
+ * Both store their data at state.modelServer, and only the active field is used
+ * based on the isActive() predicate.
+ *
+ * @param field The wizard field to get the form id for
+ * @returns The formId if explicitly set, otherwise falls back to the field's id
+ *
+ * @example
+ * // Platform-specific field sharing a form slot
+ * const kserveField = {
+ *   id: 'kserve/modelServer',
+ *   formId: 'modelServer',  // Shares slot with other platform fields
+ *   // ...
+ * };
+ * getFormId(kserveField); // Returns 'modelServer'
+ *
+ * @example
+ * // Standard field without shared slot
+ * const standardField = {
+ *   id: 'externalRoute',
+ *   // formId not set
+ * };
+ * getFormId(standardField); // Returns 'externalRoute'
  */
 export const getFormId = (field: WizardField<unknown>): string => {
   return field.formId ?? field.id;
