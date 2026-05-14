@@ -29,8 +29,13 @@ Check that all required MCP servers are available before proceeding.
 | MCP | Purpose | How to verify |
 |---|---|---|
 | **Figma** (`plugin-figma-figma`) | Fetch design context, screenshot, node metadata, and component structure | Call `get_design_context` or `get_screenshot` with the provided Figma URL params. Also uses `get_metadata` to enumerate child nodes when scoping by Jira ticket. |
-| **GitHub** (`user-github`) | Fetch PR diff and changed files | Call `get_me` to verify connectivity |
 | **Atlassian** (`user-atlassian`) | Discover Figma URLs from Jira tickets and linked UX issues; fetch ticket objectives to scope which Figma nodes are relevant | Call `jira_get_issue` with a test key |
+
+### Optional MCPs
+
+| MCP | Purpose | How to verify |
+|---|---|---|
+| **GitHub** (`user-github`) | Fetch PR diff, changed files, and search for open PRs by branch name. If unavailable, the skill falls back to local git commands (`git diff`, `git log`, `git branch`). | Call `get_me` to verify connectivity |
 
 ### Verification procedure
 
@@ -41,10 +46,9 @@ Check that all required MCP servers are available before proceeding.
    > **Figma MCP is not available or not authenticated.** This skill requires the Figma MCP (`plugin-figma-figma`) to fetch design context. Please set up the Figma MCP server by following the [Figma MCP setup guide](https://help.figma.com/hc/en-us/articles/35281350665623-Figma-MCP-collection-How-to-set-up-the-Figma-remote-MCP-server-preferred) and try again.
    The screenshot captured here is carried forward to Phase 2 and Phase 4 — do not call `get_screenshot` again.
 2. **If no Figma URL was provided**, verify the Figma MCP is reachable by calling `get_screenshot` with a known test fileKey. If the call fails with an authentication or MCP error, stop and report the same Figma MCP error as above. Discard the test result — the actual Figma URL will be discovered from the Jira ticket in Phase 2, Step 2.
-3. Attempt a lightweight GitHub call (`get_me`) to verify the GitHub MCP is reachable. If it fails, stop and report:
-   > GitHub MCP is not available or not authenticated. This skill requires the GitHub MCP to fetch PR diffs. Please configure and authenticate the `user-github` MCP server.
-4. Verify the Atlassian MCP is reachable: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
+3. Verify the Atlassian MCP is reachable: call `jira_get_issue` with the dummy key `NONEXISTENT-0`. Any HTTP response (including 404 "issue not found") means the MCP is reachable. Only treat network errors, timeouts, or MCP request failures as unavailable. If unreachable, stop and report:
    > **Atlassian MCP is not available or not authenticated.** This skill requires the Atlassian MCP to discover Figma URLs from Jira tickets and scope the evaluation. Please configure and authenticate the `user-atlassian` MCP server.
+4. Attempt a lightweight GitHub call (`get_me`) to check if the GitHub MCP is reachable. Record the result (available or unavailable) but **do not stop** if it fails — the skill falls back to local git commands.
 
 If all required MCPs succeed, proceed to Phase 2.
 
@@ -60,11 +64,11 @@ Resolve the PR to evaluate. Auto-detection from the current branch is the defaul
    - Scan the ticket description for GitHub PR URLs (`github.com/{owner}/{repo}/pull/\d+`)
    - Call `jira_get_issue` with `comment_limit=10` and scan comments for GitHub PR URLs
    - If a PR is found, use it. If multiple PRs are found, prefer the one matching the current repository.
-3. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name, then use the GitHub MCP's `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR for that branch.
+3. **Auto-detect from current branch** (default) — run `git branch --show-current` to get the branch name. If the GitHub MCP is available, use `search_pull_requests` (query: `repo:{owner}/{repo} head:{branch} is:open`) to find an open PR. If the GitHub MCP is unavailable, skip PR search and go directly to the local git fallback.
    - **If on `main`:** stop and report the following — do not fall back to `git diff` since `main...HEAD` produces no diff on main:
      > Cannot auto-detect PR from the `main` branch. Check out the feature branch or provide a PR number.
    - **If on a feature branch with an open PR:** use that PR
-   - **If on a feature branch with no open PR:** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. If the diff is empty (no committed changes ahead of main), stop and report: "No changes to evaluate — the branch has no commits ahead of main." Otherwise, report that no PR was found and the evaluation is based on the local branch diff.
+   - **If on a feature branch with no open PR (or GitHub MCP unavailable):** fall back to `git diff main...HEAD` to capture committed changes on the feature branch relative to main. If the diff is empty (no committed changes ahead of main), stop and report: "No changes to evaluate — the branch has no commits ahead of main." Otherwise, report that no PR was found and the evaluation is based on the local branch diff.
 
 ### Step 2: Resolve Figma URL and Extract Jira Ticket Objectives
 
@@ -140,7 +144,7 @@ From the `get_design_context` response, extract:
 
 ### Step 4: Fetch Code Changes
 
-**If a PR was resolved:**
+**If a PR was resolved and the GitHub MCP is available:**
 
 1. Call `pull_request_read({ method: "get", owner, repo, pullNumber })` to get PR metadata (title, body, state, draft status)
 2. Call `pull_request_read({ method: "get_files", owner, repo, pullNumber })` to get the list of changed files (paginate if needed)
@@ -148,7 +152,7 @@ From the `get_design_context` response, extract:
 
 If the PR is in **draft** state, note this in the report header. Use `[NOT_IMPLEMENTED]` for checks that target code not yet written.
 
-**If evaluating local branch changes (no PR):**
+**If a PR was resolved but the GitHub MCP is unavailable**, or **if evaluating local branch changes (no PR):**
 
 1. Use `git diff main...HEAD` as the diff
 2. Use `git diff --name-only main...HEAD` to get the list of changed files
