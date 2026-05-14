@@ -13,6 +13,7 @@ hardwareProfileName: cypress-gen-ai-hardware-profile
 # Benchmark + evaluation config
 benchmarkCardTitle: Basic science Q&A
 inferenceModelName: evalhub-llm
+defaultExperimentName: EvalHub
 additionalBenchmarkParams: |
   {
     "num_examples": 10,

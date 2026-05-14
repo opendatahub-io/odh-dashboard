@@ -43,8 +43,20 @@ class EvalHubEvaluationFlow {
     cy.findByTestId('start-evaluation-form').should('exist', { timeout: 120000 });
   }
 
+  findBenchmarkNameDisplay() {
+    return cy.findByTestId('benchmark-name-display');
+  }
+
   findEvaluationNameInput() {
     return cy.findByTestId('evaluation-name-input');
+  }
+
+  findExperimentModeNew() {
+    return cy.findByTestId('experiment-mode-new');
+  }
+
+  findNewExperimentNameInput() {
+    return cy.findByTestId('new-experiment-name-input');
   }
 
   findInputModeInference() {
