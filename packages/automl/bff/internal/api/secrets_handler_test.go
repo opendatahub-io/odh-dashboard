@@ -1203,7 +1203,7 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: factory,
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 
 	// Test successful request
@@ -1246,7 +1246,7 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 			config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 			logger:                  logger,
 			kubernetesClientFactory: errorFactory,
-			repositories:            repositories.NewRepositories(logger),
+			repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)
@@ -1292,7 +1292,7 @@ func TestGetSecretsHandler_DoesNotLogCredentials(t *testing.T) {
 			config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 			logger:                  logger,
 			kubernetesClientFactory: errorFactory,
-			repositories:            repositories.NewRepositories(logger),
+			repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/secrets?namespace=test-namespace", nil)

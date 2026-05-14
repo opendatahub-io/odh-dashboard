@@ -74,7 +74,7 @@ func TestPostS3FileHandler_ContentLengthTooLarge(t *testing.T) {
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
 		logger:                  logger,
 		kubernetesClientFactory: &panicKubernetesClientFactory{},
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 	rr := httptest.NewRecorder()
 	app.Routes().ServeHTTP(rr, req)
@@ -109,7 +109,7 @@ func TestPostS3FileHandler_UnknownContentLength_PassesDeclaredSizeMiddleware(t *
 		logger:                  logger,
 		kubernetesClientFactory: factory,
 		s3ClientFactory:         s3mocks.NewMockClientFactory(),
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 	rr := httptest.NewRecorder()
 	app.Routes().ServeHTTP(rr, req)

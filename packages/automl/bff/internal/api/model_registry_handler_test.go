@@ -26,7 +26,7 @@ func newModelRegistryTestApp() *App {
 			MockK8Client: true,
 		},
 		logger:       logger,
-		repositories: repositories.NewRepositories(logger),
+		repositories: repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 }
 
