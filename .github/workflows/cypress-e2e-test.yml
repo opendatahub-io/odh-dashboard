@@ -289,7 +289,7 @@ jobs:
           # =================================================================
           # Smart Test Selection: Detect changed areas and resolve CI tags
           #
-          # Layer 1: Turbo detects changed packages (including frontend "//" workspace)
+          # Layer 1: Turbo detects changed packages (including frontend workspace)
           #          → reads e2eCiTags from each package.json (self-service, teams opt in)
           # Layer 2: For frontend changes detected by Layer 1, git diff identifies
           #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
@@ -340,8 +340,8 @@ jobs:
           # --- Layer 2: Frontend sub-area detection ---
           # Turbo sees the entire frontend as one workspace. When it changes,
           # use git diff to identify which sub-areas were modified.
-          # Note: Turbo reports the root/frontend workspace as "//"
-          if echo "$CHANGED_PACKAGES" | grep -qx "//"; then
+          # Turbo may report the frontend workspace as "//" or "odh-dashboard-frontend"
+          if echo "$CHANGED_PACKAGES" | grep -qxE "//|odh-dashboard-frontend"; then
             echo ""
             echo "🔍 Frontend changed — detecting sub-areas via git diff..."
 
