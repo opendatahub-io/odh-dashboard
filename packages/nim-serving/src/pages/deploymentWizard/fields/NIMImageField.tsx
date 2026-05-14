@@ -29,8 +29,7 @@ const nimImageFieldSchema = z.object({
 
 type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 
-const getImageOptionKey = (image: Pick<NIMImageFieldValue, 'repository' | 'tag'>): string =>
-  `${image.repository}:${image.tag}`;
+const getImageOptionKey = (image: NIMImageFieldValue): string => `${image.repository}:${image.tag}`;
 
 const getNIMImageOptions = (modelInfos: NIMModelInfo[]): NIMImageOption[] => {
   const seen = new Set<string | number>();
