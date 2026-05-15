@@ -847,8 +847,8 @@ jobs:
           # Clean old webpack logs (>2 days old)
           find /tmp -name "webpack_*.log" -type f -mtime +2 -delete 2>/dev/null || true
           
-          # Note: ~/.cache/Cypress is managed by actions/cache and should not be cleaned here
-          # to avoid removing the Cypress binary on shared self-hosted runners
+          # Note: .cache/Cypress is managed by actions/cache (workspace-local via CYPRESS_CACHE_FOLDER)
+          # and should not be cleaned here to avoid removing the Cypress binary mid-run
           
           # Clean old temporary yaml files (>2 days old)
           find /tmp -name "cypress-yaml-*.yaml" -type f -mtime +2 -delete 2>/dev/null || true
