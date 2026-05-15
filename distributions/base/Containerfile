@@ -1,0 +1,40 @@
+ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"
+
+FROM ${BASE_IMAGE} AS builder
+
+WORKDIR /usr/src/app
+
+COPY --chown=default:root package.json package-lock.json ./
+COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
+COPY --chown=default:root packages/eslint-config/ ./packages/eslint-config/
+COPY --chown=default:root distributions/base/ ./distributions/base/
+
+USER default
+
+RUN npm cache clean --force
+RUN npm ci --ignore-scripts
+
+WORKDIR /usr/src/app/distributions/base
+RUN npm run build
+
+FROM ${BASE_IMAGE}
+
+WORKDIR /usr/src/app
+
+RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs
+
+USER 1001:0
+
+COPY --chown=default:root --from=builder /usr/src/app/distributions/base/public ./public
+COPY --chown=default:root --from=builder /usr/src/app/distributions/base/server ./server
+COPY --chown=default:root --from=builder /usr/src/app/distributions/base/package.json ./package.json
+
+EXPOSE 4000
+
+CMD ["node", "server/stub.js"]
+
+LABEL io.opendatahub.component="app-shell-base" \
+      io.k8s.display-name="app-shell-base" \
+      name="open-data-hub/app-shell-base-ubi9" \
+      summary="app-shell-base" \
+      description="Base app shell distribution for Open Data Hub Dashboard"
