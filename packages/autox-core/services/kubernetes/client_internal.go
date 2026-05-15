@@ -32,15 +32,8 @@ type K8sInternalClient struct {
 	RestConfig    *rest.Config
 }
 
-// K8sInternalClientConfig for injectable constructor (testing)
-type K8sInternalClientConfig struct {
-	// Minimal config for testing
-}
-
-// DefaultK8sInternalClientConfig for default constructor (production)
-type DefaultK8sInternalClientConfig struct {
-	// Could have additional fields like custom transport settings
-}
+// K8sInternalClientConfig configures the internal (impersonation-based) Kubernetes client.
+type K8sInternalClientConfig struct{}
 
 // NewK8sInternalClient creates an internal client with injectable clientset and dynamic client (for testing).
 func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sInternalClient {
@@ -61,7 +54,7 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterf
 //   - Needs only "impersonate" permission for the service account (minimal privilege)
 //
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sInternalClient, error) {
+func NewDefaultK8sInternalClient(cfg K8sInternalClientConfig) (*K8sInternalClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {

@@ -211,7 +211,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}, k8sClient)
 
 	// Create autox-core Pipelines client and service
-	pipelinesCfg := corepipelines.DefaultPipelinesClientConfig{
+	pipelinesCfg := corepipelines.PipelinesClientConfig{
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 		RootCAs:            rootCAs,
 	}

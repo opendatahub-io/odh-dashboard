@@ -64,7 +64,7 @@ type DefaultK8sClientConfig struct {
 // For user_token auth, the token is extracted from the request context via IdentityFromContext.
 func NewDefaultK8sClient(cfg DefaultK8sClientConfig) (K8sClientInterface, error) {
 	if cfg.AuthMethod == "user_token" {
-		return NewDefaultK8sTokenClient(DefaultK8sTokenClientConfig{})
+		return NewDefaultK8sTokenClient(K8sTokenClientConfig{})
 	}
-	return NewDefaultK8sInternalClient(DefaultK8sInternalClientConfig{})
+	return NewDefaultK8sInternalClient(K8sInternalClientConfig{})
 }

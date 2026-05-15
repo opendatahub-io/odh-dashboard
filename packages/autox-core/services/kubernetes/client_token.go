@@ -26,17 +26,10 @@ type K8sTokenClient struct {
 	RestConfig    *rest.Config
 }
 
-// K8sTokenClientConfig for injectable constructor (testing)
-type K8sTokenClientConfig struct {
-	// Configuration for testing - empty for now
-}
+// K8sTokenClientConfig configures the token-based Kubernetes client.
+type K8sTokenClientConfig struct{}
 
-// DefaultK8sTokenClientConfig for default constructor (production)
-type DefaultK8sTokenClientConfig struct {
-	// Could have additional fields like custom transport settings
-}
-
-// NewK8sTokenClient creates a token client with injectable clientset and dynamic client (for testing)
+// NewK8sTokenClient creates a token client with injectable clientset and dynamic client (for testing).
 func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sTokenClient {
 	return &K8sTokenClient{
 		Clientset:     clientset,
@@ -50,7 +43,7 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 // Wraps all requests with user token authentication via RoundTripper.
 // The user token is extracted from the request context via IdentityFromContext.
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient, error) {
+func NewDefaultK8sTokenClient(cfg K8sTokenClientConfig) (*K8sTokenClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {

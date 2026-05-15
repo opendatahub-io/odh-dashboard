@@ -50,13 +50,8 @@ type PipelinesClient struct {
 	HttpClient httpClientInterface
 }
 
-// PipelinesClientConfig for injectable constructor (testing)
+// PipelinesClientConfig configures the pipelines client.
 type PipelinesClientConfig struct {
-	// Minimal config for testing with mock HTTP client
-}
-
-// DefaultPipelinesClientConfig for default constructor (production)
-type DefaultPipelinesClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
 	// WrapTransport optionally wraps the HTTP transport chain.
@@ -65,17 +60,17 @@ type DefaultPipelinesClientConfig struct {
 	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
-// NewPipelinesClient creates a client with injectable HTTP client (for testing)
-func NewPipelinesClient(cfg PipelinesClientConfig, httpClient httpClientInterface) *PipelinesClient {
+// NewPipelinesClient creates a client with an injectable HTTP client (for testing).
+func NewPipelinesClient(httpClient httpClientInterface) *PipelinesClient {
 	return &PipelinesClient{
 		HttpClient: httpClient,
 	}
 }
 
-// NewDefaultPipelinesClient creates a client with real HTTP client configured for
+// NewDefaultPipelinesClient creates a client with a real HTTP client configured for
 // token-based authentication. The token is extracted per-request from the context
 // via IdentityFromContext and injected via a RoundTripper.
-func NewDefaultPipelinesClient(cfg DefaultPipelinesClientConfig) *PipelinesClient {
+func NewDefaultPipelinesClient(cfg PipelinesClientConfig) *PipelinesClient {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConns = 100
 	transport.MaxIdleConnsPerHost = 100
