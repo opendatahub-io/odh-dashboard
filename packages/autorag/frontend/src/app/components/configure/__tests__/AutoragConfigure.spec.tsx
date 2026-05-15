@@ -302,7 +302,7 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -989,7 +989,7 @@ describe('AutoragConfigure', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, select a file or upload one in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });

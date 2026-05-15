@@ -730,7 +730,7 @@ function AutomlConfigure({
                   >
                     <EmptyStateBody>
                       In order to configure details and run an experiment, select a file or upload
-                      one in the widget on the left.
+                      one in the Knowledge setup panel.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (

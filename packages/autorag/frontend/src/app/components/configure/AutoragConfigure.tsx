@@ -704,7 +704,7 @@ function AutoragConfigure({
                   >
                     <EmptyStateBody>
                       In order to configure details and run an experiment, select a file or upload
-                      one in the widget on the left.
+                      one in the Knowledge setup panel.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
@@ -909,9 +909,13 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${
-                                          generationModels.length || 'No'
-                                        } foundation models`}</Content>
+                                        <Content>
+                                          {generationModels.length
+                                            ? `${generationModels.length} foundation model${
+                                                generationModels.length === 1 ? '' : 's'
+                                              }`
+                                            : 'No foundation models'}
+                                        </Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -948,9 +952,13 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${
-                                          embeddingModels.length || 'No'
-                                        } embedding models`}</Content>
+                                        <Content>
+                                          {embeddingModels.length
+                                            ? `${embeddingModels.length} embedding model${
+                                                embeddingModels.length === 1 ? '' : 's'
+                                              }`
+                                            : 'No embedding models'}
+                                        </Content>
                                         {!!embeddingModels.length && (
                                           <Popover
                                             bodyContent={
