@@ -192,6 +192,17 @@ func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err
 	}
 }
 
+// maasBFFUnavailableResponse returns a service unavailable error when MaaS BFF client is not available
+func (app *App) maasBFFUnavailableResponse(w http.ResponseWriter, r *http.Request) {
+	app.errorResponse(w, r, &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    "service_unavailable",
+			Message: "MaaS BFF is not available",
+		},
+	})
+}
+
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 
 	httpError := &integrations.HTTPError{
