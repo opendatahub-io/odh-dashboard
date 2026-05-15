@@ -273,6 +273,34 @@ export const getOdhDashboardConfigGroupsConfig = (): Cypress.Chainable<CommandLi
   });
 };
 
+/**
+ * Search for an existing project whose name starts with the given prefix.
+ * Returns the first match or an empty string if none found.
+ */
+export const findExistingProjectByPrefix = (prefix: string): Cypress.Chainable<string> =>
+  cy
+    .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, { failOnNonZeroExit: false })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        cy.log(`ERROR listing projects: ${result.stderr}`);
+        throw new Error(`Failed to list projects: exit code ${result.exitCode}`);
+      }
+      const match = result.stdout.split(' ').find((name) => name.startsWith(prefix)) ?? '';
+      return cy.wrap(match);
+    });
+
+/**
+ * Poll until an OpenShift project is ready (exists and is accessible).
+ */
+export const waitForProjectReady = (
+  projectName: string,
+  options?: { maxAttempts?: number; pollIntervalMs?: number },
+): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(`oc get project "${projectName}" -o name`, `OpenShift project ${projectName}`, {
+    maxAttempts: options?.maxAttempts ?? 90,
+    pollIntervalMs: options?.pollIntervalMs ?? 2000,
+  });
+
 // Helper function to safely get nested properties
 function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce((current: unknown, key: string) => {

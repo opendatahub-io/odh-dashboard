@@ -1,6 +1,10 @@
 import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import {
+  deleteOpenShiftProject,
+  findExistingProjectByPrefix,
+  waitForProjectReady,
+} from '../../../utils/oc_commands/project';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import {
@@ -53,11 +57,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
         .then((yamlContent: string) => {
           testData = yaml.load(yamlContent) as GenAiTestData;
-          projectName = `gen-ai-test-${uuid}`;
           hardwareProfileName = testData.hardwareProfileName;
-
-          cy.log(`Creating project ${projectName} using oc commands`);
-          return createCleanProject(projectName);
         })
         .then(() => enableGenAiFeatures())
         .then(() => getVllmCpuAmd64RuntimeInfo())
@@ -65,10 +65,24 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           servingRuntimeName = info.singleModelServingName;
           return cleanupServingRuntimeTemplate(servingRuntimeName);
         })
-        .then(() => {
-          cy.step('Deploy Gen AI model via oc commands');
-          deployGenAiModel(projectName, testData);
-        });
+        .then(() =>
+          findExistingProjectByPrefix(testData.projectNamePrefix).then((existingProject) => {
+            if (existingProject) {
+              cy.log(`Reusing existing project: ${existingProject}`);
+              projectName = existingProject;
+              return;
+            }
+
+            projectName = `${testData.projectNamePrefix}-${uuid}`;
+            cy.step(`Create project ${projectName}`);
+            createCleanProject(projectName);
+
+            return waitForProjectReady(projectName).then(() => {
+              cy.step('Deploy Gen AI model via oc commands');
+              deployGenAiModel(projectName, testData);
+            });
+          }),
+        );
     });
   });
 
