@@ -73,6 +73,23 @@ func (c *pipelineCache) invalidate(key string) {
 	delete(c.entries, key)
 }
 
+// evictOldest removes the least recently accessed entry. Must be called with lock held.
+func (c *pipelineCache) evictOldest() {
+	var oldestKey string
+	var oldestTime time.Time
+
+	for key, entry := range c.entries {
+		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = entry.lastAccessed
+		}
+	}
+
+	if oldestKey != "" {
+		delete(c.entries, oldestKey)
+	}
+}
+
 // getCachedVersionIDs looks up pre-fetched version IDs for a pipeline ID.
 // Returns nil on cache miss, letting the caller fall back to an API call.
 // Returns a defensive copy to prevent mutation of cached data.
@@ -152,23 +169,6 @@ func (c *dspaCache) set(namespace, baseURL string) {
 }
 
 func (c *dspaCache) evictOldest() {
-	var oldestKey string
-	var oldestTime time.Time
-
-	for key, entry := range c.entries {
-		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
-			oldestKey = key
-			oldestTime = entry.lastAccessed
-		}
-	}
-
-	if oldestKey != "" {
-		delete(c.entries, oldestKey)
-	}
-}
-
-// evictOldest removes the least recently accessed entry. Must be called with lock held.
-func (c *pipelineCache) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
 

@@ -3,8 +3,6 @@ package kubernetes
 import (
 	"context"
 	"log/slog"
-	"strings"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -53,7 +51,7 @@ func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, er
 		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
-	return s.mapNamespacesToInfos(namespaces), nil
+	return mapNamespacesToInfos(namespaces), nil
 }
 
 // GetAccessibleNamespaces returns namespaces the user can access, with admin optimization
@@ -117,7 +115,7 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 			s.Logger.Error("failed to get namespaces", "error", err)
 			return nil, TranslateK8sError(err, "namespaces", "list")
 		}
-		return s.mapNamespacesToInfos(namespaces), nil
+		return mapNamespacesToInfos(namespaces), nil
 	}
 
 	// Get all namespaces (or OpenShift Projects if forbidden)
@@ -467,52 +465,3 @@ func (s *K8sService) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	return s.Logger.With("user", identity.UserID)
 }
 
-// buildKeysMap extracts all keys from a secret's Data and StringData fields
-// and returns them as string values without redaction
-func buildKeysMap(secret v1.Secret) map[string]string {
-	result := make(map[string]string)
-
-	// Process Data field
-	for key, value := range secret.Data {
-		result[key] = string(value)
-	}
-
-	// Process StringData field (avoiding duplicates)
-	for key, value := range secret.StringData {
-		if _, exists := result[key]; !exists {
-			result[key] = value
-		}
-	}
-
-	return result
-}
-
-// mapNamespacesToInfos is a helper to convert []v1.Namespace to []NamespaceInfo
-func (s *K8sService) mapNamespacesToInfos(namespaces []v1.Namespace) []NamespaceInfo {
-	infos := make([]NamespaceInfo, 0, len(namespaces))
-	for _, ns := range namespaces {
-		displayName := ns.Name
-		if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
-			displayName = dn
-		}
-		infos = append(infos, NamespaceInfo{
-			Name:        ns.Name,
-			DisplayName: displayName,
-		})
-	}
-	return infos
-}
-
-// extractServiceAccountName extracts the service account name from a Kubernetes username
-// If the username is a service account (format: system:serviceaccount:namespace:name),
-// it returns just the service account name. Otherwise, it returns the full username.
-func extractServiceAccountName(username string) string {
-	const saPrefix = "system:serviceaccount:"
-	if len(username) > len(saPrefix) && username[:len(saPrefix)] == saPrefix {
-		parts := strings.SplitN(username[len(saPrefix):], ":", 2)
-		if len(parts) == 2 {
-			return parts[1] // Return just the SA name
-		}
-	}
-	return username
-}

@@ -1,5 +1,55 @@
 package kubernetes
 
+import (
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
+)
+
+// buildKeysMap extracts all keys from a secret's Data and StringData fields
+// and returns them as string values without redaction.
+func buildKeysMap(secret v1.Secret) map[string]string {
+	result := make(map[string]string)
+	for key, value := range secret.Data {
+		result[key] = string(value)
+	}
+	for key, value := range secret.StringData {
+		if _, exists := result[key]; !exists {
+			result[key] = value
+		}
+	}
+	return result
+}
+
+// extractServiceAccountName extracts the service account name from a Kubernetes username.
+// If the username is a service account (format: system:serviceaccount:namespace:name),
+// it returns just the service account name. Otherwise, it returns the full username.
+func mapNamespacesToInfos(namespaces []v1.Namespace) []NamespaceInfo {
+	infos := make([]NamespaceInfo, 0, len(namespaces))
+	for _, ns := range namespaces {
+		displayName := ns.Name
+		if dn := ns.Annotations["openshift.io/display-name"]; dn != "" {
+			displayName = dn
+		}
+		infos = append(infos, NamespaceInfo{
+			Name:        ns.Name,
+			DisplayName: displayName,
+		})
+	}
+	return infos
+}
+
+func extractServiceAccountName(username string) string {
+	const saPrefix = "system:serviceaccount:"
+	if len(username) > len(saPrefix) && username[:len(saPrefix)] == saPrefix {
+		parts := strings.SplitN(username[len(saPrefix):], ":", 2)
+		if len(parts) == 2 {
+			return parts[1]
+		}
+	}
+	return username
+}
+
 // SecretInfoHasAllKeys checks if a SecretInfo contains all specified keys (case-sensitive).
 func SecretInfoHasAllKeys(secret SecretInfo, keys []string) bool {
 	for _, key := range keys {
