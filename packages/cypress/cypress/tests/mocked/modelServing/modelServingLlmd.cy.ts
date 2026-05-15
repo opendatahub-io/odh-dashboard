@@ -70,7 +70,7 @@ const initIntercepts = ({
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );

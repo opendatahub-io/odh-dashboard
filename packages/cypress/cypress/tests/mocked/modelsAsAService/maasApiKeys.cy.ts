@@ -63,7 +63,7 @@ describe('API Keys Page', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -683,7 +683,7 @@ describe('API Keys Page (Admin)', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),

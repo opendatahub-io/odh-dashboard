@@ -1,5 +1,5 @@
 {
-  "test_id": null,
+  "test_id": "bff/testdata/llamastack/test.py::record",
   "request": {
     "method": "POST",
     "url": "https://generativelanguage.googleapis.com/v1beta/openai/v1/models",
@@ -8,7 +8,7 @@
     "endpoint": "/v1/models",
     "model": "",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.36.0"
     }
   },
   "response": {
@@ -96,61 +96,21 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
-          "id": "models/gemma-3-1b-it",
+          "id": "models/gemma-4-26b-a4b-it",
           "created": null,
           "object": "model",
           "owned_by": "google",
-          "display_name": "Gemma 3 1B"
+          "display_name": "Gemma 4 26B A4B IT"
         }
       },
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
-          "id": "models/gemma-3-4b-it",
+          "id": "models/gemma-4-31b-it",
           "created": null,
           "object": "model",
           "owned_by": "google",
-          "display_name": "Gemma 3 4B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-12b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 12B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3-27b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3 27B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3n-e4b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3n E4B"
-        }
-      },
-      {
-        "__type__": "openai.types.model.Model",
-        "__data__": {
-          "id": "models/gemma-3n-e2b-it",
-          "created": null,
-          "object": "model",
-          "owned_by": "google",
-          "display_name": "Gemma 3n E2B"
+          "display_name": "Gemma 4 31B IT"
         }
       },
       {
@@ -256,6 +216,16 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3.1-flash-lite",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash Lite"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-3-pro-image-preview",
           "created": null,
           "object": "model",
@@ -306,6 +276,16 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-3.1-flash-tts-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini 3.1 Flash TTS Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-robotics-er-1.5-preview",
           "created": null,
           "object": "model",
@@ -316,11 +296,41 @@
       {
         "__type__": "openai.types.model.Model",
         "__data__": {
+          "id": "models/gemini-robotics-er-1.6-preview",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Robotics-ER 1.6 Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
           "id": "models/gemini-2.5-computer-use-preview-10-2025",
           "created": null,
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini 2.5 Computer Use Preview 10-2025"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/deep-research-max-preview-04-2026",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Deep Research Max Preview (Apr-21-2026)"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/deep-research-preview-04-2026",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Deep Research Preview (Apr-21-2026)"
         }
       },
       {
@@ -351,6 +361,16 @@
           "object": "model",
           "owned_by": "google",
           "display_name": "Gemini Embedding 2 Preview"
+        }
+      },
+      {
+        "__type__": "openai.types.model.Model",
+        "__data__": {
+          "id": "models/gemini-embedding-2",
+          "created": null,
+          "object": "model",
+          "owned_by": "google",
+          "display_name": "Gemini Embedding 2"
         }
       },
       {

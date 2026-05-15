@@ -688,20 +688,22 @@ func TestGetS3FileHandler_ViewSchema_IncludesParseWarnings(t *testing.T) {
 	assert.True(t, ok, "columns should be a JSON array")
 	require.Len(t, columnsSlice, 5)
 	expected := []struct {
-		name string
-		typ  string
+		name     string
+		typ      string
+		taskType string
 	}{
-		{"id", "integer"},
-		{"name", "string"},
-		{"score", "double"},
-		{"is_active", "bool"},
-		{"created_at", "timestamp"},
+		{"id", "integer", "regression"},
+		{"name", "string", "multiclass"},
+		{"score", "double", "regression"},
+		{"is_active", "bool", "binary"},
+		{"created_at", "timestamp", "multiclass"},
 	}
 	for i, exp := range expected {
 		col, ok := columnsSlice[i].(map[string]interface{})
 		assert.True(t, ok, "column %d should be an object", i)
 		assert.Equal(t, exp.name, col["name"], "column %d name", i)
 		assert.Equal(t, exp.typ, col["type"], "column %d type (inference)", i)
+		assert.Equal(t, exp.taskType, col["task_type"], "column %d task_type", i)
 	}
 }
 

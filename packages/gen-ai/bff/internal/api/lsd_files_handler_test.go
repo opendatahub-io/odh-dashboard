@@ -763,7 +763,7 @@ var _ = Describe("LlamaStackDeleteFileHandler", func() {
 	It("missing LlamaStack client in context", func() {
 		t := GinkgoT()
 		req := httptest.NewRequest(http.MethodDelete, constants.FilesDeletePath+"?namespace=default&file_id=file-test123", nil)
-		// Simulate AttachNamespace middleware but skip AttachLlamaStackClient
+		// Simulate AttachNamespace middleware but skip AttachOGXClient
 		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, "default")
 		req = req.WithContext(ctx)
 
