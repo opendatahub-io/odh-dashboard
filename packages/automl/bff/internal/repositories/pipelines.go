@@ -136,7 +136,7 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 
 // --- Pipeline Runs: Single + Ownership ---
 
-func (r *PipelinesRepository) GetOwnedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error) {
+func (r *PipelinesRepository) GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error) {
 	coreRun, err := r.core.GetPipelineRunWithSpec(ctx, namespace, runID)
 	if err != nil {
 		if errors.Is(err, corepipelines.ErrPipelineRunNotFound) {
@@ -206,21 +206,21 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 // Ownership validation (run belongs to a discovered AutoML pipeline) is automl-specific.
 
 func (r *PipelinesRepository) TerminateRun(ctx context.Context, namespace, runID string) error {
-	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
+	if _, err := r.GetManagedRun(ctx, namespace, runID); err != nil {
 		return err
 	}
 	return r.core.TerminateRun(ctx, namespace, runID)
 }
 
 func (r *PipelinesRepository) RetryRun(ctx context.Context, namespace, runID string) error {
-	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
+	if _, err := r.GetManagedRun(ctx, namespace, runID); err != nil {
 		return err
 	}
 	return r.core.RetryRun(ctx, namespace, runID)
 }
 
 func (r *PipelinesRepository) DeleteRun(ctx context.Context, namespace, runID string) error {
-	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
+	if _, err := r.GetManagedRun(ctx, namespace, runID); err != nil {
 		return err
 	}
 	return r.core.DeleteRun(ctx, namespace, runID)

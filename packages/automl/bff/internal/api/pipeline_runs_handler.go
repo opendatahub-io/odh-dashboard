@@ -73,7 +73,7 @@ func (app *App) PipelineRunHandler(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	run, err := app.repositories.Pipelines.GetOwnedRun(r.Context(), namespace, runID)
+	run, err := app.repositories.Pipelines.GetManagedRun(r.Context(), namespace, runID)
 	if err != nil {
 		app.mapPipelineError(w, r, err)
 		return
