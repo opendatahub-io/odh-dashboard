@@ -121,11 +121,9 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 }
 
 // RequireAccessToPipelineServers enforces RBAC-based authorization for Pipeline Server access in the namespace.
-// This middleware performs a proactive SubjectAccessReview to check if the user can list DSPipelineApplications
-// in the requested namespace before attempting service discovery.
+// Performs a SSAR to check if the user can list DSPipelineApplications before proceeding.
 func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled skip RBAC checks.
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)
 			return
@@ -134,34 +132,14 @@ func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *h
 		ctx := r.Context()
 		logger := helper.GetContextLoggerFromReq(r)
 
-		// Get namespace from context (set by AttachNamespace middleware)
 		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 		if !ok || namespace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
 			return
 		}
 
-		// Get request identity
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		// Get Kubernetes client to perform RBAC check
-		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-
-		// Perform SubjectAccessReview to check if user can list DSPipelineApplications
-		allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
+		allowed, err := app.k8sService.CanAccessResource(ctx, namespace, "list",
+			"datasciencepipelinesapplications.opendatahub.io", "datasciencepipelinesapplications", "")
 		if err != nil {
 			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
 			return

@@ -21,6 +21,7 @@ func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace stri
 		return cached, nil
 	}
 
+	// DSPA CRD has multiple API versions across ODH/RHOAI releases; try newest first
 	dspaGVR, err := s.K8sService.DiscoverResourceGVR(
 		ctx,
 		"datasciencepipelinesapplications.opendatahub.io",

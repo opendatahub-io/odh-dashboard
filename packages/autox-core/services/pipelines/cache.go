@@ -59,6 +59,7 @@ func (c *pipelineCache) set(key string, pipelines map[string]*DiscoveredPipeline
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// Only evict if this is a new key, not an update of an existing one
 	if len(c.entries) >= maxCacheSize {
 		if _, exists := c.entries[key]; !exists {
 			c.evictOldest()
@@ -96,9 +97,9 @@ func (c *pipelineCache) evictOldest() {
 	}
 }
 
-// getCachedVersionIDs looks up pre-fetched version IDs for a pipeline ID.
-// Returns nil on cache miss, letting the caller fall back to an API call.
-// Returns a defensive copy to prevent mutation of cached data.
+// getCachedVersionIDs searches all cached entries for a pipeline by ID and returns
+// its version IDs. This avoids an API call when DiscoverNamedPipelines already
+// fetched the versions during discovery.
 func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

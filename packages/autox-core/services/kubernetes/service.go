@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"log/slog"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,6 +26,8 @@ func NewK8sService(cfg K8sServiceConfig, client K8sClientInterface) *K8sService 
 	}
 }
 
+// --- Namespaces ---
+
 func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespaces")
@@ -38,9 +41,8 @@ func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) 
 	return namespaces, nil
 }
 
-// GetNamespaceInfos retrieves namespaces with display names
-// NOTE: This method does NOT perform permission filtering. Use GetAccessibleNamespaceInfos
-// if you need to filter namespaces by user permissions.
+// GetNamespaceInfos retrieves namespaces with display names.
+// Does NOT perform permission filtering — use GetAccessibleNamespaceInfos for that.
 func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespace infos")
@@ -54,14 +56,13 @@ func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, er
 	return mapNamespacesToInfos(namespaces), nil
 }
 
-// GetAccessibleNamespaces returns namespaces the user can access, with admin optimization
-// This method contains business logic: it checks if the user is a cluster admin first,
-// and if not, filters namespaces by checking access permissions for each one.
+// GetAccessibleNamespaces returns namespaces the user can access.
 func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching accessible namespaces")
 
-	// Optimization: Check if user is cluster admin first
+	// Skip per-namespace SSAR checks for cluster admins — they can access everything.
+	// This avoids N+1 API calls (one SSAR per namespace).
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err == nil && isAdmin {
 		logger.Debug("user is cluster admin, returning all namespaces")
@@ -72,14 +73,13 @@ func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespac
 		return namespaces, nil
 	}
 
-	// Get all namespaces (or OpenShift Projects if forbidden)
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
 		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
-	// Filter by permission
+	// Filter by per-namespace SSAR check
 	allowed := make([]v1.Namespace, 0)
 	for _, ns := range namespaces {
 		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
@@ -96,20 +96,14 @@ func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespac
 	return allowed, nil
 }
 
-// GetAccessibleNamespaceInfos returns namespaces the user can access with display names
-// This method contains business logic: it checks if the user is a cluster admin first,
-// and if not, filters namespaces by checking access permissions for each one.
-// It combines the permission filtering of GetAccessibleNamespaces with the display name
-// mapping of GetNamespaceInfos.
+// GetAccessibleNamespaceInfos returns namespaces the user can access with display names.
 func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching accessible namespace infos")
 
-	// Optimization: Check if user is cluster admin first
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err == nil && isAdmin {
 		logger.Debug("user is cluster admin, returning all namespace infos")
-		// Admin can see all namespaces - just map to infos
 		namespaces, err := s.Client.GetNamespaces(ctx)
 		if err != nil {
 			s.Logger.Error("failed to get namespaces", "error", err)
@@ -118,14 +112,12 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 		return mapNamespacesToInfos(namespaces), nil
 	}
 
-	// Get all namespaces (or OpenShift Projects if forbidden)
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
 		s.Logger.Error("failed to get namespaces", "error", err)
 		return nil, TranslateK8sError(err, "namespaces", "list")
 	}
 
-	// Filter by permission and map to infos
 	infos := make([]NamespaceInfo, 0)
 	for _, ns := range namespaces {
 		canAccess, err := s.Client.CanAccessResource(ctx, ns.Name, "get", "", "namespaces", "")
@@ -149,11 +141,12 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 	return infos, nil
 }
 
+// --- Pods ---
+
 func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching pods", "namespace", namespace)
 
-	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
@@ -168,11 +161,12 @@ func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList
 	return pods, nil
 }
 
+// --- Secrets ---
+
 func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secrets", "namespace", namespace)
 
-	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
@@ -188,48 +182,36 @@ func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Sec
 }
 
 // GetSecretInfos retrieves all secrets from a namespace with raw key data.
-// Returns SecretInfo with type information from annotations and unredacted data.
 // Filtering and redaction are the responsibility of the caller.
 func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secret infos", "namespace", namespace)
 
-	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
 	}
 
-	// Fetch all secrets from the namespace
 	secrets, err := s.Client.GetSecrets(ctx, namespace)
 	if err != nil {
 		s.Logger.Error("failed to get secrets", "namespace", namespace, "error", err)
 		return nil, TranslateK8sError(err, "secrets", "list")
 	}
 
-	// Convert to SecretInfo with type information from annotations
 	secretInfos := make([]SecretInfo, 0, len(secrets))
 	for _, secret := range secrets {
-		// Get type from annotation if present, otherwise empty string
 		var responseType string
 		if annotationType, hasAnnotation := secret.Annotations["opendatahub.io/connection-type"]; hasAnnotation && annotationType != "" {
 			responseType = annotationType
 		}
 
-		// Extract all keys without redaction
-		availableKeys := buildKeysMap(secret)
-
-		// Extract metadata
-		displayName := secret.Annotations["openshift.io/display-name"]
-		description := secret.Annotations["openshift.io/description"]
-
 		secretInfos = append(secretInfos, SecretInfo{
 			UUID:        string(secret.UID),
 			Name:        secret.Name,
 			Type:        responseType,
-			Data:        availableKeys,
-			DisplayName: displayName,
-			Description: description,
+			Data:        buildKeysMap(secret),
+			DisplayName: secret.Annotations["openshift.io/display-name"],
+			Description: secret.Annotations["openshift.io/description"],
 		})
 	}
 
@@ -240,7 +222,6 @@ func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secret", "namespace", namespace, "secretName", secretName)
 
-	// Validate namespace and secret name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
@@ -258,6 +239,8 @@ func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string
 
 	return secret, nil
 }
+
+// --- User & Auth ---
 
 func (s *K8sService) GetUser(ctx context.Context) (string, error) {
 	logger := s.loggerWithIdentity(ctx)
@@ -285,8 +268,8 @@ func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
 	return isAdmin, nil
 }
 
-// GetUserInfo retrieves user identity and admin status in a single call
-// For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format)
+// GetUserInfo retrieves user identity and admin status in a single call.
+// For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format).
 func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting user info")
@@ -313,7 +296,6 @@ func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, gro
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
 
-	// Validate namespace if provided
 	if namespace != "" {
 		if err := ValidateNamespaceName(namespace); err != nil {
 			s.Logger.Error("invalid namespace name", "error", err)
@@ -330,11 +312,12 @@ func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, gro
 	return canAccess, nil
 }
 
+// --- Generic Resources ---
+
 func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing resources", "gvr", gvr, "namespace", namespace)
 
-	// Validate namespace name if provided
 	if namespace != "" {
 		if err := ValidateNamespaceName(namespace); err != nil {
 			s.Logger.Error("invalid namespace name", "error", err)
@@ -355,7 +338,6 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
 
-	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
@@ -378,7 +360,6 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
 
-	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return nil, err
@@ -397,9 +378,10 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 	return resource, nil
 }
 
+// --- Discovery ---
+
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
-// Adds validation, logging, and error handling around the client implementation.
 func (s *K8sService) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
@@ -412,13 +394,11 @@ func (s *K8sService) DiscoverResourceGVR(
 		"namespace", namespace,
 		"versions", knownVersions)
 
-	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
 		return schema.GroupVersionResource{}, err
 	}
 
-	// Validate inputs
 	if group == "" {
 		s.Logger.Error("group cannot be empty")
 		return schema.GroupVersionResource{}, &ValidationError{Field: "group", Message: "group cannot be empty"}
@@ -451,17 +431,13 @@ func (s *K8sService) DiscoverResourceGVR(
 	return gvr, nil
 }
 
-// loggerWithIdentity extracts identity from context and returns a logger with the user field attached.
-// If identity extraction fails, it logs the error and returns the base logger (without user field).
-// This should never happen in production if middleware is configured correctly.
+// --- Internal ---
+
 func (s *K8sService) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	identity, err := IdentityFromContext(ctx)
 	if err != nil {
-		// This indicates a middleware configuration issue - log but don't fail the request
 		s.Logger.Error("missing identity in context", "error", err)
 		return s.Logger
 	}
-	// Return a logger with user field already attached
 	return s.Logger.With("user", identity.UserID)
 }
-

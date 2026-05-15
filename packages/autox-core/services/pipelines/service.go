@@ -447,6 +447,9 @@ func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string,
 		return nil, err
 	}
 
+	// Serialize concurrent creation requests for the same pipeline version.
+	// If another goroutine is already creating this version, wait for it
+	// and then re-discover rather than creating a duplicate.
 	createKey := fmt.Sprintf("%s:%s", namespace, versionName)
 	s.inFlightMu.Lock()
 	if doneCh, ok := s.inFlight[createKey]; ok {
@@ -468,7 +471,8 @@ func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string,
 		s.inFlightMu.Unlock()
 	}()
 
-	// Double-check after registering
+	// Re-check after registering in case another goroutine created it between
+	// our first discovery attempt and acquiring the in-flight lock.
 	discovered, err = s.DiscoverPipelineByName(ctx, namespace, pipelineName, versionName)
 	if err != nil {
 		return nil, err
@@ -522,6 +526,8 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 	}, nil
 }
 
+// findOrCreatePipeline returns the pipeline ID for a name, creating the shell if needed.
+// Retries on 409 Conflict to handle concurrent creation by another BFF instance.
 func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pipelineName string) (string, error) {
 	const maxRetries = 3
 	for range maxRetries {

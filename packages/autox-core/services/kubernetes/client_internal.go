@@ -228,7 +228,9 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 			Resource: resource,
 		}
 
-		// Test with namespace-scoped query (respects RBAC)
+		// Probe with a minimal namespace-scoped list (Limit: 1) to check if
+		// this API version exists. 404 = version doesn't exist on this cluster,
+		// 403 = exists but user lacks access — both mean try the next version.
 		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(timeoutCtx, metav1.ListOptions{Limit: 1})
 		if err == nil {
 			return gvr, nil

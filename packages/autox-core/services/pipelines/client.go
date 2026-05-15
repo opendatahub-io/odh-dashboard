@@ -89,6 +89,7 @@ func NewDefaultPipelinesClient(cfg PipelinesClientConfig) *PipelinesClient {
 		}
 	}
 
+	// Transport chain: auth (outermost) → caller wrapper (e.g. port-forward) → base HTTP
 	var base http.RoundTripper = transport
 	if cfg.WrapTransport != nil {
 		base = cfg.WrapTransport(base)
