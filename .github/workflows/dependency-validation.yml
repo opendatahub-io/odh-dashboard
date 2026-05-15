@@ -42,14 +42,14 @@ jobs:
 
           DIRS="[]"
           if echo "$CHANGED" | grep -qE '^package-lock\.json$'; then
-            DIRS=$(echo "$DIRS" | jq '. + ["."]')
+            DIRS=$(echo "$DIRS" | jq -c '. + ["."]')
           fi
 
           for dir in $(echo "$CHANGED" | grep -oE '^packages/[^/]+(/upstream)?(/workspaces)?/frontend' | sort -u); do
-            DIRS=$(echo "$DIRS" | jq --arg d "$dir" '. + [$d]')
+            DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" '. + [$d]')
           done
 
-          echo "dirs=$DIRS" >> "$GITHUB_OUTPUT"
+          echo "dirs=$(echo "$DIRS" | jq -c '.')" >> "$GITHUB_OUTPUT"
           echo "Directories to audit: $DIRS"
 
   audit:
