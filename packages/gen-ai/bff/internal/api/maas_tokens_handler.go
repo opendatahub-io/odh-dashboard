@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
@@ -32,13 +31,7 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	// Get MaaS BFF client from context (set by AttachBFFMaaSClient middleware)
 	maasClient := bffclient.GetClient(ctx, bffclient.BFFTargetMaaS)
 	if maasClient == nil {
-		app.errorResponse(w, r, &integrations.HTTPError{
-			StatusCode: http.StatusServiceUnavailable,
-			ErrorResponse: integrations.ErrorResponse{
-				Code:    "service_unavailable",
-				Message: "MaaS BFF is not available",
-			},
-		})
+		app.maasBFFUnavailableResponse(w, r)
 		return
 	}
 
