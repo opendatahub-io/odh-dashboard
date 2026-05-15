@@ -83,6 +83,15 @@ Report: `Style (local)` as the source.
 
 Report: `Claude (local)` as the source.
 
+### RBAC Review
+
+| Context | How to check |
+|---|---|
+| Ran in Step 2 | Results from `/rbac-review` invocation |
+| Not run | ➖ "not run" |
+
+Report: `RBAC (local)` as the source. Any critical findings → ❌. Warnings only → ⚠️. None or info only → ✅.
+
 ## Jira
 
 Checks that the work is tracked in Jira.
