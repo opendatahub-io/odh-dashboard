@@ -37,8 +37,15 @@ const extensions: (
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
-      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
       featureFlags: [GEN_AI_STUDIO],
+      customCondition: ({ dscStatus }) =>
+        [
+          DataScienceStackComponent.LLAMA_STACK_OPERATOR,
+          DataScienceStackComponent.OGX_OPERATOR,
+        ].some((key) => {
+          const state = dscStatus?.components?.[key]?.managementState;
+          return state === 'Managed' || state === 'Unmanaged';
+        }),
     },
   },
   {

@@ -121,6 +121,7 @@ export enum DataScienceStackComponent {
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
 }
