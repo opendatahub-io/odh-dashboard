@@ -698,13 +698,13 @@ function AutoragConfigure({
                 {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select an S3 connection or upload a file to get started"
+                    titleText="Select a file from your S3 connection or upload a file to get started"
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, add a document or
-                      connection in the widget on the left.
+                      In order to configure details and run an experiment, select a file or upload
+                      one in the widget on the left.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
@@ -877,6 +877,7 @@ function AutoragConfigure({
                                       onClick={openExperimentSettings}
                                       isDisabled={
                                         !inputDataBucketName ||
+                                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                                         !inputDataKeyValue ||
                                         form.formState.isSubmitting ||
                                         isModelsLoading ||
@@ -908,7 +909,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
+                                        <Content>{`${
+                                          generationModels.length || 'No'
+                                        } foundation models`}</Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -945,7 +948,9 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
+                                        <Content>{`${
+                                          embeddingModels.length || 'No'
+                                        } embedding models`}</Content>
                                         {!!embeddingModels.length && (
                                           <Popover
                                             bodyContent={

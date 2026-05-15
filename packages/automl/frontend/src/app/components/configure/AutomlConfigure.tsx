@@ -178,6 +178,7 @@ function AutomlConfigure({
     const lastSegment = initialFileKey.split('/').pop();
     const fileName = lastSegment || initialFileKey;
     const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return { name: fileName, path: `/${initialFileKey}`, type: ext };
   });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);
@@ -723,13 +724,13 @@ function AutomlConfigure({
                 {!trainDataFileKey ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select an S3 connection or upload a file to get started"
+                    titleText="Select a file from your S3 connection or upload a file to get started"
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, add a document or
-                      connection in the widget on the left.
+                      In order to configure details and run an experiment, select a file or upload
+                      one in the widget on the left.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (
