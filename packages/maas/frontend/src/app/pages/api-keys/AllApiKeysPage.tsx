@@ -23,6 +23,7 @@ type SortDirection = 'asc' | 'desc';
 const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 const DEFAULT_PER_PAGE = 50;
+const EXISTENCE_CHECK_REQUEST: APIKeySearchRequest = { pagination: { limit: 1, offset: 0 } };
 
 const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -50,12 +51,8 @@ const AllApiKeysPage: React.FC = () => {
 
   const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
 
-  const existenceCheckRequest: APIKeySearchRequest = React.useMemo(
-    () => ({ pagination: { limit: 1, offset: 0 } }),
-    [],
-  );
   const [existenceResponse, existenceLoaded, , refreshExistence] =
-    useFetchApiKeys(existenceCheckRequest);
+    useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
   const hasAnyApiKeys = existenceResponse.data.length > 0;
 
   const refreshAll = React.useCallback(() => {
