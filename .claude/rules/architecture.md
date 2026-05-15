@@ -21,37 +21,31 @@ ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides t
 
 ### Feature Plugin Packages (`packages/`)
 
-Feature packages provide extensions and are discovered by `discoverPluginPackages.js`. They fall into two categories based on how they are built and loaded:
+Most feature packages are **Module Federation remotes** that get dynamically loaded into the main frontend at runtime. Some are **bundled libraries** that are compiled directly into the host bundle at build time — they register extensions via `package.json` exports but have no separate webpack config or dev server.
 
 #### Module Federation Remotes
 
-These packages have a `module-federation` config in `package.json`, their own webpack build under `frontend/config/`, and produce a `remoteEntry.js` that is loaded dynamically at runtime:
-
+- `gen-ai` — Gen AI / LLM features (has Go BFF)
+- `model-registry` — Model Registry UI (has Go BFF)
+- `model-serving` — Model Serving UI
+- `model-serving-backport` — Model serving backport compatibility
+- `model-training` — Model training UI
+- `maas` — Model-as-a-Service (has Go BFF)
+- `notebooks` — Notebooks management
+- `kserve` — KServe integration
 - `automl` — AutoML features (has Go BFF)
 - `autorag` — AutoRAG features (has Go BFF)
 - `eval-hub` — Evaluation Hub (has Go BFF)
-- `gen-ai` — Gen AI / LLM features (has Go BFF)
-- `maas` — Model-as-a-Service (has Go BFF)
+- `llmd-serving` — LLM serving
 - `mlflow` — MLflow integration (has Go BFF)
 - `mlflow-embedded` — Embedded MLflow integration
 - `model-registry` — Model Registry UI (has Go BFF)
 - `notebooks` — Notebooks management
 - `observability` — Observability features
 
-#### Bundled Plugin Packages
+#### Bundled Library Packages
 
-These packages export extensions but have **no** `module-federation` config. They are compiled directly into the host bundle at build time — no separate webpack build, no `remoteEntry.js`, no standalone dev server:
-
-- `feature-store` — Feature Store
-- `kserve` — KServe integration
-- `llmd-serving` — LLM serving
-- `model-serving` — Model Serving UI
-- `model-serving-backport` — Model serving backport compatibility
-- `model-training` — Model training UI
-- `nim-serving` — NIM serving
-
-#### Plugin Infrastructure
-
+- `feature-store` — Feature Store (read-only Feast UI; no BFF, proxies through main dashboard backend)
 - `plugin-core` — Core plugin utilities shared across plugins
 - `plugin-template` — Scaffold for new plugins
 
