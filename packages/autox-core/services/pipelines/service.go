@@ -252,7 +252,7 @@ func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, namespace
 	logger.Info("discovering pipeline by name", "namespace", namespace, "name", pipelineName)
 
 	if pipelineName == "" {
-		return nil, fmt.Errorf("pipeline name is required for discovery")
+		return nil, fmt.Errorf("%w: pipeline name is required for discovery", ErrInvalidInput)
 	}
 
 	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
@@ -335,7 +335,7 @@ func (s *PipelinesService) DiscoverNamedPipelines(ctx context.Context, namespace
 	logger.Info("discovering named pipelines", "namespace", namespace, "count", len(definitions))
 
 	if namespace == "" {
-		return nil, fmt.Errorf("namespace is required for pipeline discovery")
+		return nil, fmt.Errorf("%w: namespace is required for pipeline discovery", ErrInvalidInput)
 	}
 
 	if cached := s.pipelineCache.get(namespace); cached != nil {
@@ -381,10 +381,10 @@ func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string,
 
 	pipelineName := def.Name
 	if pipelineName == "" {
-		return nil, fmt.Errorf("pipeline name is required")
+		return nil, fmt.Errorf("%w: pipeline name is required", ErrInvalidInput)
 	}
 	if def.Version == "" {
-		return nil, fmt.Errorf("pipeline version is required")
+		return nil, fmt.Errorf("%w: pipeline version is required", ErrInvalidInput)
 	}
 
 	versionName := fmt.Sprintf("%s-%s", pipelineName, def.Version)

@@ -91,6 +91,6 @@ func NewIdentityExtractor(authMethod, tokenHeader, tokenPrefix, userIDHeader, us
 	default:
 		// Don't expose auth method to client - this is a configuration error
 		// The actual auth method should be logged server-side during startup
-		return nil, fmt.Errorf("authentication configuration error")
+		return nil, fmt.Errorf("%w: unsupported auth method", ErrInvalid)
 	}
 }

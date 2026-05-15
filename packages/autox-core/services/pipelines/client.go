@@ -157,7 +157,7 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 // GetPipelineRun retrieves a single pipeline run by ID
 func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 	if runID == "" {
-		return nil, fmt.Errorf("runID is required")
+		return nil, fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", baseURL, url.PathEscape(runID))
@@ -231,7 +231,7 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 // TerminateRun terminates a running pipeline
 func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runID string) error {
 	if runID == "" {
-		return fmt.Errorf("runID is required")
+		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:terminate", baseURL, url.PathEscape(runID))
@@ -256,7 +256,7 @@ func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 // RetryRun retries a failed pipeline run
 func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID string) error {
 	if runID == "" {
-		return fmt.Errorf("runID is required")
+		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s:retry", baseURL, url.PathEscape(runID))
@@ -281,7 +281,7 @@ func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 // DeleteRun deletes a pipeline run
 func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID string) error {
 	if runID == "" {
-		return fmt.Errorf("runID is required")
+		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/runs/%s", baseURL, url.PathEscape(runID))
@@ -360,7 +360,7 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 // GetPipelineVersion retrieves a pipeline version
 func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
 	if pipelineID == "" || versionID == "" {
-		return nil, fmt.Errorf("pipelineID and versionID are required")
+		return nil, fmt.Errorf("%w: pipelineID and versionID are required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions/%s",
@@ -391,7 +391,7 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 // ListPipelineVersions retrieves all versions for a pipeline
 func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
 	if pipelineID == "" {
-		return nil, fmt.Errorf("pipelineID is required")
+		return nil, fmt.Errorf("%w: pipelineID is required", ErrInvalidInput)
 	}
 
 	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions", baseURL, url.PathEscape(pipelineID))
@@ -421,7 +421,7 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 // CreatePipeline creates a new pipeline
 func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
 	if name == "" {
-		return nil, fmt.Errorf("name is required")
+		return nil, fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
 
 	requestBody := map[string]string{"display_name": name}
@@ -458,7 +458,7 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 // UploadPipelineVersion uploads a new pipeline version from file content
 func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
 	if pipelineID == "" || versionName == "" {
-		return nil, fmt.Errorf("pipelineID and versionName are required")
+		return nil, fmt.Errorf("%w: pipelineID and versionName are required", ErrInvalidInput)
 	}
 
 	var buf bytes.Buffer

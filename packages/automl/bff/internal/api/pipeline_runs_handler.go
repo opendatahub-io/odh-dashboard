@@ -12,6 +12,7 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
+	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 const maxRequestBodyBytes = 10 << 20
@@ -168,8 +169,11 @@ func (app *App) mapPipelineError(w http.ResponseWriter, r *http.Request, err err
 		app.notFoundResponse(w, r)
 		return
 	}
-	var validationErr *repositories.ValidationError
-	if errors.As(err, &validationErr) {
+	if errors.Is(err, repositories.ErrValidation) {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if errors.Is(err, corepipelines.ErrInvalidInput) {
 		app.badRequestResponse(w, r, err)
 		return
 	}

@@ -14,16 +14,21 @@ import (
 	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
-// ErrPipelineRunNotFound is returned when a requested pipeline run does not exist
-var ErrPipelineRunNotFound = errors.New("pipeline run not found")
+var (
+	ErrPipelineRunNotFound = errors.New("pipeline run not found")
+	ErrValidation          = errors.New("validation error")
+)
 
-// ValidationError represents a client-side validation error (should result in 400 Bad Request)
 type ValidationError struct {
 	Message string
 }
 
 func (e *ValidationError) Error() string {
 	return e.Message
+}
+
+func (e *ValidationError) Unwrap() error {
+	return ErrValidation
 }
 
 func NewValidationError(message string) error {
