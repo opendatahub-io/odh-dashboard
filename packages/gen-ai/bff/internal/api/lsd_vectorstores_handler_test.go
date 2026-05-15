@@ -83,6 +83,43 @@ func uploadTestFile(baseURL string) (string, error) {
 	return id, nil
 }
 
+// createVectorStoreWithRetry creates a vector store through the handler,
+// retrying on transient 502 errors from the OGX server during provider initialization.
+func createVectorStoreWithRetry(app *App, name string, client llamastack.LlamaStackClientInterface) (string, error) {
+	const maxRetries = 5
+	const retryDelay = 2 * time.Second
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		payload := CreateVectorStoreRequest{Name: name}
+		jsonData, _ := json.Marshal(payload)
+
+		req := httptest.NewRequest(http.MethodPost,
+			"/gen-ai/api/v1/vectorstores?namespace="+testutil.TestNamespace,
+			bytes.NewBuffer(jsonData))
+		req.Header.Set("Content-Type", "application/json")
+		identity := &integrations.RequestIdentity{Token: "test-token"}
+		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, client)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateVectorStoreHandler(rr, req, nil)
+
+		if rr.Code == http.StatusCreated {
+			var resp VectorStoreResponse
+			if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+				return "", err
+			}
+			return resp.Data.(map[string]interface{})["id"].(string), nil
+		}
+
+		if attempt < maxRetries {
+			time.Sleep(retryDelay)
+		}
+	}
+	return "", fmt.Errorf("create vector store failed after %d retries", maxRetries)
+}
+
 var _ = Describe("LlamaStackListVectorStoresHandler", func() {
 	var app App
 
@@ -604,26 +641,10 @@ var _ = Describe("LlamaStackDeleteVectorStoreHandler", func() {
 		t := GinkgoT()
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
 
-		// First create a vector store to delete
-		createPayload := CreateVectorStoreRequest{Name: "VS to Delete"}
-		jsonData, err := json.Marshal(createPayload)
-		assert.NoError(t, err)
+		vsID, err := createVectorStoreWithRetry(&app, "VS to Delete", llamaStackClient)
+		require.NoError(t, err, "setup: create vector store should succeed")
 
-		createReq := httptest.NewRequest(http.MethodPost, "/gen-ai/api/v1/vectorstores?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		createReq.Header.Set("Content-Type", "application/json")
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		createCtx := context.WithValue(createReq.Context(), constants.RequestIdentityKey, identity)
-		createCtx = context.WithValue(createCtx, constants.LlamaStackClientKey, llamaStackClient)
-		createReq = createReq.WithContext(createCtx)
-
-		createRR := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(createRR, createReq, nil)
-		require.Equal(t, http.StatusCreated, createRR.Code, "setup: create vector store should succeed")
-
-		var createResp VectorStoreResponse
-		err = json.Unmarshal(createRR.Body.Bytes(), &createResp)
-		assert.NoError(t, err)
-		vsID := createResp.Data.(map[string]interface{})["id"].(string)
 
 		// Now delete it
 		req := httptest.NewRequest(http.MethodDelete, constants.VectorStoresDeletePath+"?namespace=default&vector_store_id="+vsID, nil)
@@ -700,26 +721,10 @@ var _ = Describe("LlamaStackListVectorStoreFilesHandler", func() {
 		t := GinkgoT()
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
 
-		// Create a vector store first to get a valid ID
-		createPayload := CreateVectorStoreRequest{Name: "VS for File List"}
-		jsonData, err := json.Marshal(createPayload)
-		assert.NoError(t, err)
+		vsID, err := createVectorStoreWithRetry(&app, "VS for File List", llamaStackClient)
+		require.NoError(t, err, "setup: create vector store should succeed")
 
-		createReq := httptest.NewRequest(http.MethodPost, "/gen-ai/api/v1/vectorstores?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		createReq.Header.Set("Content-Type", "application/json")
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		createCtx := context.WithValue(createReq.Context(), constants.RequestIdentityKey, identity)
-		createCtx = context.WithValue(createCtx, constants.LlamaStackClientKey, llamaStackClient)
-		createReq = createReq.WithContext(createCtx)
-
-		createRR := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(createRR, createReq, nil)
-		require.Equal(t, http.StatusCreated, createRR.Code, "setup: create vector store should succeed")
-
-		var createResp VectorStoreResponse
-		err = json.Unmarshal(createRR.Body.Bytes(), &createResp)
-		assert.NoError(t, err)
-		vsID := createResp.Data.(map[string]interface{})["id"].(string)
 
 		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default&vector_store_id="+vsID, nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -749,26 +754,10 @@ var _ = Describe("LlamaStackListVectorStoreFilesHandler", func() {
 		t := GinkgoT()
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
 
-		// Create a vector store first
-		createPayload := CreateVectorStoreRequest{Name: "VS for Param Test"}
-		jsonData, err := json.Marshal(createPayload)
-		assert.NoError(t, err)
+		vsID, err := createVectorStoreWithRetry(&app, "VS for Param Test", llamaStackClient)
+		require.NoError(t, err, "setup: create vector store should succeed")
 
-		createReq := httptest.NewRequest(http.MethodPost, "/gen-ai/api/v1/vectorstores?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		createReq.Header.Set("Content-Type", "application/json")
 		identity := &integrations.RequestIdentity{Token: "test-token"}
-		createCtx := context.WithValue(createReq.Context(), constants.RequestIdentityKey, identity)
-		createCtx = context.WithValue(createCtx, constants.LlamaStackClientKey, llamaStackClient)
-		createReq = createReq.WithContext(createCtx)
-
-		createRR := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(createRR, createReq, nil)
-		require.Equal(t, http.StatusCreated, createRR.Code, "setup: create vector store should succeed")
-
-		var createResp VectorStoreResponse
-		err = json.Unmarshal(createRR.Body.Bytes(), &createResp)
-		assert.NoError(t, err)
-		vsID := createResp.Data.(map[string]interface{})["id"].(string)
 
 		req := httptest.NewRequest(http.MethodGet, constants.VectorStoreFilesListPath+"?namespace=default&vector_store_id="+vsID+"&limit=10&order=desc&filter=completed", nil)
 		ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -844,25 +833,8 @@ var _ = Describe("LlamaStackDeleteVectorStoreFileHandler", func() {
 		llamaStackClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
 		identity := &integrations.RequestIdentity{Token: "test-token"}
 
-		// Create a vector store first
-		createPayload := CreateVectorStoreRequest{Name: "VS for File Delete"}
-		jsonData, err := json.Marshal(createPayload)
-		assert.NoError(t, err)
-
-		createReq := httptest.NewRequest(http.MethodPost, "/gen-ai/api/v1/vectorstores?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		createReq.Header.Set("Content-Type", "application/json")
-		createCtx := context.WithValue(createReq.Context(), constants.RequestIdentityKey, identity)
-		createCtx = context.WithValue(createCtx, constants.LlamaStackClientKey, llamaStackClient)
-		createReq = createReq.WithContext(createCtx)
-
-		createRR := httptest.NewRecorder()
-		app.LlamaStackCreateVectorStoreHandler(createRR, createReq, nil)
-		require.Equal(t, http.StatusCreated, createRR.Code, "setup: create vector store should succeed")
-
-		var createResp VectorStoreResponse
-		err = json.Unmarshal(createRR.Body.Bytes(), &createResp)
-		assert.NoError(t, err)
-		vsID := createResp.Data.(map[string]interface{})["id"].(string)
+		vsID, err := createVectorStoreWithRetry(&app, "VS for File Delete", llamaStackClient)
+		require.NoError(t, err, "setup: create vector store should succeed")
 
 		// Upload a file (not added to the vector store)
 		fileResp, err := uploadTestFile(testutil.GetTestLlamaStackURL())

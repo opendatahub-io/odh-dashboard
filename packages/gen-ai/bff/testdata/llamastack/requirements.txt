@@ -7,5 +7,6 @@ pymilvus==2.6.9
 chardet==7.1.0
 ollama==0.6.1
 pypdf==6.9.0
+regex>=2024.11.6
 rich>=13
 setuptools>=75,<81
