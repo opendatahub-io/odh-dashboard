@@ -9,6 +9,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
 )
 
 type HTTPError struct {
@@ -168,6 +169,27 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 		},
 	}
 	app.errorResponse(w, r, httpError)
+}
+
+// handleBFFClientError maps BFF client errors to appropriate HTTP responses
+func (app *App) handleBFFClientError(w http.ResponseWriter, r *http.Request, err error) {
+	if bffErr, ok := err.(*bffclient.BFFClientError); ok {
+		statusCode := bffErr.StatusCode
+		if statusCode == 0 {
+			statusCode = http.StatusBadGateway
+		}
+
+		httpError := &integrations.HTTPError{
+			StatusCode: statusCode,
+			ErrorResponse: integrations.ErrorResponse{
+				Code:    bffErr.Code,
+				Message: bffErr.Message,
+			},
+		}
+		app.errorResponse(w, r, httpError)
+	} else {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
