@@ -12,6 +12,7 @@ import {
   compareBaseline,
   generateMarkdownSummary,
   emitAnnotations,
+  DEFAULT_IGNORED_RULES,
 } from './eslint-disable-audit.mjs';
 
 // ── splitRulesAndDescription ────────────────────────────────────────────────
@@ -146,17 +147,29 @@ describe('extractTsDescription', () => {
 describe('parseArgs', () => {
   it('returns defaults with no arguments', () => {
     const args = parseArgs(['node', 'script.mjs']);
-    assert.deepStrictEqual(args, {
-      json: false,
-      outputFile: null,
-      baseline: null,
-      saveBaseline: null,
-      failOnIncrease: false,
-      includeGenerated: false,
-      githubSummary: null,
-      githubAnnotations: false,
-      help: false,
-    });
+    assert.strictEqual(args.json, false);
+    assert.strictEqual(args.outputFile, null);
+    assert.strictEqual(args.baseline, null);
+    assert.strictEqual(args.saveBaseline, null);
+    assert.strictEqual(args.failOnIncrease, false);
+    assert.strictEqual(args.includeGenerated, false);
+    assert.strictEqual(args.githubSummary, null);
+    assert.strictEqual(args.githubAnnotations, false);
+    assert.strictEqual(args.help, false);
+    assert.ok(args.ignoredRules instanceof Set);
+    assert.ok(args.ignoredRules.has('no-console'));
+  });
+
+  it('parses --no-ignore-rules to clear default ignored rules', () => {
+    const args = parseArgs(['node', 'script.mjs', '--no-ignore-rules']);
+    assert.strictEqual(args.ignoredRules.size, 0);
+  });
+
+  it('parses --ignore-rules with comma-separated list', () => {
+    const args = parseArgs(['node', 'script.mjs', '--ignore-rules', 'no-console,camelcase']);
+    assert.ok(args.ignoredRules.has('no-console'));
+    assert.ok(args.ignoredRules.has('camelcase'));
+    assert.strictEqual(args.ignoredRules.size, 2);
   });
 
   it('parses --json flag', () => {
@@ -686,6 +699,56 @@ describe('aggregate', () => {
     assert.strictEqual(result.byRule[1].count, 2);
     assert.strictEqual(result.byRule[2].rule, 'alpha-rule');
     assert.strictEqual(result.byRule[2].count, 1);
+  });
+
+  it('excludes directives whose only rule is in ignoredRules', () => {
+    const hits = [
+      {
+        file: 'src/a.ts', line: 1,
+        type: 'eslint-disable-next-line-scoped',
+        rules: ['no-console'], description: null, generated: false,
+      },
+      {
+        file: 'src/a.ts', line: 2,
+        type: 'eslint-disable-next-line-scoped',
+        rules: ['camelcase'], description: null, generated: false,
+      },
+    ];
+    const result = aggregate(hits, false, new Set(['no-console']));
+    assert.strictEqual(result.summary.totalDirectives, 1);
+    assert.strictEqual(result.byRule.length, 1);
+    assert.strictEqual(result.byRule[0].rule, 'camelcase');
+  });
+
+  it('keeps directives with a mix of ignored and non-ignored rules', () => {
+    const hits = [
+      {
+        file: 'src/a.ts', line: 1,
+        type: 'eslint-disable-next-line-scoped',
+        rules: ['no-console', 'camelcase'], description: null, generated: false,
+      },
+    ];
+    const result = aggregate(hits, false, new Set(['no-console']));
+    assert.strictEqual(result.summary.totalDirectives, 1);
+    assert.strictEqual(result.byRule.length, 1);
+    assert.strictEqual(result.byRule[0].rule, 'camelcase');
+  });
+
+  it('never drops bare disables even when ignoredRules is set', () => {
+    const hits = [
+      {
+        file: 'src/a.ts', line: 1,
+        type: 'eslint-disable-next-line-bare',
+        rules: [], description: null, generated: false,
+      },
+    ];
+    const result = aggregate(hits, false, new Set(['no-console']));
+    assert.strictEqual(result.summary.totalDirectives, 1);
+    assert.strictEqual(result.critical.bareDisables.length, 1);
+  });
+
+  it('DEFAULT_IGNORED_RULES contains no-console', () => {
+    assert.ok(DEFAULT_IGNORED_RULES.has('no-console'));
   });
 });
 

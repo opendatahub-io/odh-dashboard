@@ -13,6 +13,8 @@
 //   --save-baseline <file>     Write current results to a JSON baseline file
 //   --fail-on-increase         Exit 1 if any suppression category regressed vs baseline
 //   --include-generated        Include generated/third_party files in counts
+//   --no-ignore-rules          Disable the default ignored-rules filter (count everything)
+//   --ignore-rules <rules>     Comma-separated rules to exclude (default: no-console)
 //   --help                     Show this message
 
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -40,6 +42,10 @@ const SKIP_DIRS = new Set([
 ]);
 
 const GENERATED_MARKERS = ['generated', 'third_party'];
+
+// Rules excluded from audit counts — these are ubiquitous, intentional, and not
+// worth tracking as suppression debt.
+const DEFAULT_IGNORED_RULES = new Set(['no-console']);
 
 // ── Regex patterns ──────────────────────────────────────────────────────────
 
@@ -109,6 +115,7 @@ function parseArgs(argv) {
     saveBaseline: null,
     failOnIncrease: false,
     includeGenerated: false,
+    ignoredRules: new Set(DEFAULT_IGNORED_RULES),
     githubSummary: null,
     githubAnnotations: false,
     help: false,
@@ -133,6 +140,12 @@ function parseArgs(argv) {
         break;
       case '--include-generated':
         args.includeGenerated = true;
+        break;
+      case '--no-ignore-rules':
+        args.ignoredRules = new Set();
+        break;
+      case '--ignore-rules':
+        args.ignoredRules = new Set(argv[++i].split(',').map((r) => r.trim()).filter(Boolean));
         break;
       case '--github-summary':
         args.githubSummary = argv[++i];
@@ -162,6 +175,8 @@ Options:
   --save-baseline <file>     Save current results as a baseline JSON file
   --fail-on-increase         Exit 1 if any suppression category increased vs baseline
   --include-generated        Include generated/third_party files in counts
+  --no-ignore-rules          Disable the default ignored-rules filter (count everything)
+  --ignore-rules <rules>     Comma-separated rules to exclude (default: no-console)
   --github-summary <file>    Write a GitHub-flavored markdown summary to a file
   --github-annotations       Emit ::error:: / ::warning:: annotations for CI
   --help                     Show usage information`);
@@ -326,8 +341,17 @@ function inferPackage(relPath) {
   return 'root';
 }
 
-function aggregate(allHits, includeGenerated) {
-  const filtered = includeGenerated ? allHits : allHits.filter((h) => !h.generated);
+function aggregate(allHits, includeGenerated, ignoredRules = new Set()) {
+  let filtered = includeGenerated ? allHits : allHits.filter((h) => !h.generated);
+
+  // Drop directives whose suppressed rules are ALL in the ignored set.
+  // Bare disables (no rules listed) are never dropped.
+  if (ignoredRules.size > 0) {
+    filtered = filtered.filter((h) => {
+      if (h.rules.length === 0) return true;
+      return h.rules.some((r) => !ignoredRules.has(r));
+    });
+  }
 
   const byType = {
     'eslint-disable-next-line-scoped': 0,
@@ -366,6 +390,7 @@ function aggregate(allHits, includeGenerated) {
     }
 
     for (const rule of hit.rules) {
+      if (ignoredRules.has(rule)) continue;
       ruleMap.set(rule, (ruleMap.get(rule) || 0) + 1);
     }
 
@@ -815,7 +840,7 @@ async function main() {
   const allHits = await scanFilesInBatches(relFiles);
 
   // Aggregate
-  const report = aggregate(allHits, args.includeGenerated);
+  const report = aggregate(allHits, args.includeGenerated, args.ignoredRules);
   const fullReport = buildReport(report);
 
   // Save baseline if requested
@@ -882,6 +907,7 @@ export {
   emitAnnotations,
   SKIP_DIRS,
   EXTENSIONS,
+  DEFAULT_IGNORED_RULES,
 };
 
 // Run main only when executed directly (not when imported by tests).
