@@ -204,7 +204,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     isNameValid &&
     getFieldValidation(undefined, true).length === 0 &&
     allModelsHaveRateLimits &&
-    !isSubmitting &&
     isPriorityValid &&
     !isSubmitting;
 
