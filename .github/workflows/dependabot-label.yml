@@ -33,6 +33,6 @@ jobs:
             gh pr edit "$PR_URL" --add-label "$UPDATE_TYPE"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           UPDATE_TYPE: ${{ steps.dependabot-metadata.outputs.update-type }}

@@ -57,7 +57,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           FAILING=$(gh pr checks "$PR_NUMBER" --repo "$REPO" \
-            --json name,state --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")] | length')
+            --json name,state --jq '[.[] | select(.name != "tide" and .state != "SUCCESS" and .state != "SKIPPED")] | length')
 
           echo "Non-passing checks: $FAILING"
 
@@ -123,7 +123,7 @@ jobs:
             echo "--- Checking PR #$PR_NUMBER ---"
 
             FAILING=$(gh pr checks "$PR_NUMBER" --repo "$REPO" \
-              --json name,state --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")] | length' 2>/dev/null || echo "unknown")
+              --json name,state --jq '[.[] | select(.name != "tide" and .state != "SUCCESS" and .state != "SKIPPED")] | length' 2>/dev/null || echo "unknown")
 
             if [ "$FAILING" != "0" ]; then
               echo "PR #$PR_NUMBER has non-passing checks — not ready"
