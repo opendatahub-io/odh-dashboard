@@ -85,6 +85,8 @@ Do **not** fall back to using the issue summary as a criterion. Without explicit
 
 #### 1d. Organize criteria for the report
 
+**Filter out test-related criteria.** Unless the issue itself is specifically about testing (e.g., "add unit tests for X", "fix flaky E2E test"), drop any acceptance criteria that are solely about adding or updating tests (e.g., "Add/Update Cypress mocked tests", "Add/Update unit tests"). This skill focuses on evaluating the core feature or fix — test coverage is handled separately.
+
 Store each criterion as a numbered item from the target issue. Do not label criteria by source issue — the target issue owns all its criteria, and parent/linked issues only provide context.
 
 If the PR references **multiple Jira issues** (e.g., the PR title or body mentions several issue keys), evaluate each issue's criteria separately and enumerate them in the report with issue key prefixes to distinguish them.
