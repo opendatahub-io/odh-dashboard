@@ -107,7 +107,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
       setIsAdding(false);
       setNewGroupName('');
     } catch (e) {
-      setError(String(e));
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsSaving(false);
     }
@@ -251,7 +251,9 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                         variant="plain"
                         icon={<MinusCircleIcon />}
                         onClick={() => {
-                          onRemove(row.name).catch((e) => setError(String(e)));
+                          onRemove(row.name).catch((e) =>
+                            setError(e instanceof Error ? e.message : String(e)),
+                          );
                         }}
                       />
                     )}

@@ -26,9 +26,10 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   findGroupOption(name: string) {
     // Matches both a direct typeahead option ('rhods-admins')
     // and the creatable option shown when the name is not in the list ('Select "rhods-admins"')
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     return this.find()
       .document()
-      .findByRole('option', { name: new RegExp(`^(Select "${name}"|${name})$`) });
+      .findByRole('option', { name: new RegExp(`^(Select "${escaped}"|${escaped})$`) });
   }
 
   findSaveNewGroupButton() {
