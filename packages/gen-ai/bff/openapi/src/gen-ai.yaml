@@ -816,31 +816,6 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: issueMaaSToken
-    delete:
-      tags:
-        - MaaS
-      security:
-        - Bearer: []
-      parameters:
-        - name: namespace
-          in: query
-          description: Kubernetes namespace for MaaS token operations
-          required: true
-          schema:
-            type: string
-            example: 'default'
-      summary: Revoke All Tokens
-      description: Invalidate all tokens for the current user. This will break any applications currently using those tokens.
-      responses:
-        '204':
-          description: All tokens revoked successfully (no content)
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: revokeAllMaaSTokens
 
   # =============================================================================
   # MLFLOW ENDPOINTS
