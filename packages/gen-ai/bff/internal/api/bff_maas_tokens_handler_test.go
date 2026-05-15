@@ -145,6 +145,23 @@ func TestHandleBFFClientError(t *testing.T) {
 			expectedStatus: http.StatusServiceUnavailable,
 			expectedCode:   bffclient.ErrCodeServerUnavailable,
 		},
+		{
+			name: "BFFClientError with zero StatusCode defaults to BadGateway",
+			err: &bffclient.BFFClientError{
+				Target:     bffclient.BFFTargetMaaS,
+				Code:       "custom_error",
+				Message:    "custom error message",
+				StatusCode: 0, // Zero status code should default to 502
+			},
+			expectedStatus: http.StatusBadGateway,
+			expectedCode:   "custom_error",
+		},
+		{
+			name:           "GenericError calls serverErrorResponse",
+			err:            assert.AnError, // Generic Go error, not BFFClientError
+			expectedStatus: http.StatusInternalServerError,
+			expectedCode:   "500", // serverErrorResponse returns strconv.Itoa(http.StatusInternalServerError)
+		},
 	}
 
 	for _, tt := range tests {
