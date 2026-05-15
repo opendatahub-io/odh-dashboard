@@ -15,6 +15,9 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Set Cypress cache to workspace-local path
+      shell: bash
+      run: echo "CYPRESS_CACHE_FOLDER=${{ github.workspace }}/.cache/Cypress" >> "$GITHUB_ENV"
     - name: Root node_modules cache
       id: root-cache
       uses: actions/cache@v4
@@ -25,7 +28,7 @@ runs:
           frontend/node_modules
           frontend/src/node_modules
           packages/*/node_modules
-          ~/.cache/Cypress
+          .cache/Cypress
         key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
@@ -33,6 +36,10 @@ runs:
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm install
+    - name: Ensure Cypress binary is installed
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npx --no-install cypress install
 
     - name: automl node_modules cache
       id: automl-cache
