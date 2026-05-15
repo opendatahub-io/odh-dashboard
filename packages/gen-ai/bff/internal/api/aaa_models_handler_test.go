@@ -13,8 +13,11 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/bffclient/bffmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -193,5 +196,507 @@ var _ = Describe("ModelsAAHandler", func() {
 
 		assert.Equal(t, "401", errorMap["code"])
 		assert.Contains(t, errorMap["message"], "missing RequestIdentity in context")
+	})
+})
+
+var _ = Describe("parseModelSources", func() {
+	It("should return default sources when input is empty", func() {
+		t := GinkgoT()
+		sources := parseModelSources("")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace], "Should include namespace by default")
+		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint], "Should include custom_endpoint by default")
+		assert.False(t, sources[models.ModelSourceTypeMaaS], "Should not include maas by default")
+	})
+
+	It("should parse single source: namespace", func() {
+		t := GinkgoT()
+		sources := parseModelSources("namespace")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace])
+		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.False(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should parse single source: custom_endpoint", func() {
+		t := GinkgoT()
+		sources := parseModelSources("custom_endpoint")
+
+		assert.False(t, sources[models.ModelSourceTypeNamespace])
+		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.False(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should parse single source: maas", func() {
+		t := GinkgoT()
+		sources := parseModelSources("maas")
+
+		assert.False(t, sources[models.ModelSourceTypeNamespace])
+		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should parse multiple sources: namespace,maas", func() {
+		t := GinkgoT()
+		sources := parseModelSources("namespace,maas")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace])
+		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should parse multiple sources: custom_endpoint,maas", func() {
+		t := GinkgoT()
+		sources := parseModelSources("custom_endpoint,maas")
+
+		assert.False(t, sources[models.ModelSourceTypeNamespace])
+		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should parse all sources: namespace,custom_endpoint,maas", func() {
+		t := GinkgoT()
+		sources := parseModelSources("namespace,custom_endpoint,maas")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace])
+		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should ignore invalid sources", func() {
+		t := GinkgoT()
+		sources := parseModelSources("namespace,invalid,maas,unknown")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace])
+		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+
+	It("should handle whitespace in source list", func() {
+		t := GinkgoT()
+		sources := parseModelSources("namespace , maas , custom_endpoint")
+
+		assert.True(t, sources[models.ModelSourceTypeNamespace])
+		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
+		assert.True(t, sources[models.ModelSourceTypeMaaS])
+	})
+})
+
+var _ = Describe("getMaaSModelStatus", func() {
+	It("should return Running when model is ready", func() {
+		t := GinkgoT()
+		status := getMaaSModelStatus(true)
+		assert.Equal(t, models.ModelStatusRunning, status)
+	})
+
+	It("should return Stop when model is not ready", func() {
+		t := GinkgoT()
+		status := getMaaSModelStatus(false)
+		assert.Equal(t, models.ModelStatusStop, status)
+	})
+})
+
+var _ = Describe("fetchMaaSModels", func() {
+	var app App
+	var mockClientFactory *bffmocks.MockClientFactory
+
+	BeforeEach(func() {
+		mockClientFactory = bffmocks.NewMockClientFactory(slog.Default()).(*bffmocks.MockClientFactory)
+		app = App{
+			config: config.EnvConfig{Port: 4000},
+			logger: slog.Default(),
+		}
+	})
+
+	It("should successfully fetch and convert MaaS models to AAModel format", func() {
+		t := GinkgoT()
+
+		// Create mock MaaS client
+		mockMaaSClient := mockClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+
+		// Add client to context
+		ctx := context.WithValue(context.Background(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+
+		// Fetch MaaS models
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+
+		assert.NoError(t, err)
+		assert.NotNil(t, aaModels)
+		assert.GreaterOrEqual(t, len(aaModels), 5, "Should return at least 5 mock MaaS models")
+
+		// Verify first model conversion
+		firstModel := aaModels[0]
+		assert.Equal(t, "llama-2-7b-chat", firstModel.ModelName)
+		assert.Equal(t, "llama-2-7b-chat", firstModel.ModelID)
+		assert.Equal(t, models.ModelSourceTypeMaaS, firstModel.ModelSourceType)
+		assert.Equal(t, models.ModelStatusRunning, firstModel.Status)
+		assert.Equal(t, "model-namespace", firstModel.ServingRuntime)
+		assert.Len(t, firstModel.Endpoints, 1)
+		assert.Equal(t, "https://llama-2-7b-chat.apps.example.openshift.com/v1", firstModel.Endpoints[0])
+
+		// Verify third model (not ready)
+		thirdModel := aaModels[2]
+		assert.Equal(t, "llama-3-8b-instruct", thirdModel.ModelName)
+		assert.Equal(t, models.ModelStatusStop, thirdModel.Status)
+	})
+
+	It("should return error when MaaS BFF client is not available in context", func() {
+		t := GinkgoT()
+
+		// Context without BFF client
+		ctx := context.Background()
+
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+
+		assert.Error(t, err)
+		assert.Nil(t, aaModels)
+		assert.Contains(t, err.Error(), "MaaS BFF client not available")
+	})
+
+	It("should return error when MaaS BFF call fails", func() {
+		t := GinkgoT()
+
+		// Create mock MaaS client with custom error handler
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			return bffclient.NewBFFClientError(bffclient.ErrCodeInternalError, "mock BFF error", 500)
+		}
+
+		// Add client to context
+		ctx := context.WithValue(context.Background(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+
+		assert.Error(t, err)
+		assert.Nil(t, aaModels)
+		assert.Contains(t, err.Error(), "failed to call MaaS BFF")
+	})
+
+	It("should handle MaaS models with ModelDetails correctly", func() {
+		t := GinkgoT()
+
+		// Create mock MaaS client with custom response including model details
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			maasResp := models.MaaSBFFModelsResponse{
+				Data: models.MaaSBFFModelsData{
+					Object: "list",
+					Data: []models.MaaSBFFModel{
+						{
+							ID:        "test-model-with-details",
+							Ready:     true,
+							URL:       "https://test.example.com/v1",
+							OwnedBy:   "test-runtime",
+							ModelType: "llm",
+							ModelDetails: &models.MaaSBFFModelDetails{
+								DisplayName:  "Test Display Name",
+								Description:  "Test Description",
+								GenAIUseCase: "Test Use Case",
+							},
+						},
+					},
+				},
+			}
+
+			// Marshal to response
+			respBytes, _ := json.Marshal(maasResp)
+			return json.Unmarshal(respBytes, response)
+		}
+
+		// Add client to context
+		ctx := context.WithValue(context.Background(), constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+
+		aaModels, err := app.fetchMaaSModels(ctx, "test-namespace")
+
+		assert.NoError(t, err)
+		assert.Len(t, aaModels, 1)
+
+		model := aaModels[0]
+		assert.Equal(t, "Test Display Name", model.DisplayName)
+		assert.Equal(t, "Test Description", model.Description)
+		assert.Equal(t, "Test Use Case", model.Usecase)
+		assert.Equal(t, models.ModelTypeLLM, model.ModelType)
+	})
+})
+
+var _ = Describe("ModelsAAHandler with sources query parameter", func() {
+	var app App
+	var mockClientFactory *bffmocks.MockClientFactory
+
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
+
+		llamaStackClientFactory := lsmocks.NewMockClientFactory()
+		mockClientFactory = bffmocks.NewMockClientFactory(slog.Default()).(*bffmocks.MockClientFactory)
+
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			bffClientFactory:        mockClientFactory,
+		}
+	})
+
+	It("should return namespace and custom_endpoint models by default (no sources param)", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Should have namespace and custom_endpoint models, but not MaaS
+		assert.GreaterOrEqual(t, len(response.Data), 8, "Should return namespace and custom_endpoint models")
+
+		// Verify no MaaS models (they all have model_source_type: "maas")
+		for _, model := range response.Data {
+			assert.NotEqual(t, models.ModelSourceTypeMaaS, model.ModelSourceType, "Should not include MaaS models by default")
+		}
+	})
+
+	It("should return only namespace models when sources=namespace", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// All models should be namespace models
+		for _, model := range response.Data {
+			assert.Equal(t, models.ModelSourceTypeNamespace, model.ModelSourceType)
+		}
+	})
+
+	It("should return only custom_endpoint models when sources=custom_endpoint", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=custom_endpoint", nil)
+		assert.NoError(t, err)
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// All models should be custom_endpoint models
+		for _, model := range response.Data {
+			assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
+		}
+	})
+
+	It("should return only MaaS models when sources=maas", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client
+		mockMaaSClient := mockClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		assert.GreaterOrEqual(t, len(response.Data), 5, "Should return MaaS models")
+
+		// All models should be MaaS models
+		for _, model := range response.Data {
+			assert.Equal(t, models.ModelSourceTypeMaaS, model.ModelSourceType)
+		}
+	})
+
+	It("should return namespace and MaaS models when sources=namespace,maas", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client
+		mockMaaSClient := mockClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Should have both namespace and MaaS models
+		hasNamespace := false
+		hasMaaS := false
+
+		for _, model := range response.Data {
+			if model.ModelSourceType == models.ModelSourceTypeNamespace {
+				hasNamespace = true
+			}
+			if model.ModelSourceType == models.ModelSourceTypeMaaS {
+				hasMaaS = true
+			}
+		}
+
+		assert.True(t, hasNamespace, "Should include namespace models")
+		assert.True(t, hasMaaS, "Should include MaaS models")
+	})
+
+	It("should return all model sources when sources=namespace,custom_endpoint,maas", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,custom_endpoint,maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client
+		mockMaaSClient := mockClientFactory.CreateClient(bffclient.BFFTargetMaaS, "test-token")
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Should have all three types of models
+		hasNamespace := false
+		hasCustomEndpoint := false
+		hasMaaS := false
+
+		for _, model := range response.Data {
+			switch model.ModelSourceType {
+			case models.ModelSourceTypeNamespace:
+				hasNamespace = true
+			case models.ModelSourceTypeCustomEndpoint:
+				hasCustomEndpoint = true
+			case models.ModelSourceTypeMaaS:
+				hasMaaS = true
+			}
+		}
+
+		assert.True(t, hasNamespace, "Should include namespace models")
+		assert.True(t, hasCustomEndpoint, "Should include custom_endpoint models")
+		assert.True(t, hasMaaS, "Should include MaaS models")
+	})
+
+	It("should not fail request when MaaS fetch fails (logs error but continues)", func() {
+		t := GinkgoT()
+		req, err := http.NewRequest(http.MethodGet, "/gen-ai/api/v1/models/aa?sources=namespace,maas", nil)
+		assert.NoError(t, err)
+
+		// Create mock MaaS client that returns error
+		mockMaaSClient := bffmocks.NewMockBFFClient(bffclient.BFFTargetMaaS)
+		mockMaaSClient.CallHandler = func(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+			return bffclient.NewBFFClientError(bffclient.ErrCodeInternalError, "MaaS service unavailable", 503)
+		}
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, "mock-test-namespace-2")
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{
+			Token: "FAKE_BEARER_TOKEN",
+		})
+		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(bffclient.BFFTargetMaaS)), mockMaaSClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+
+		app.ModelsAAHandler(rr, req, nil)
+
+		// Request should still succeed with 200
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response ModelsAAEnvelope
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		// Should have namespace models, but no MaaS models
+		hasNamespace := false
+		hasMaaS := false
+
+		for _, model := range response.Data {
+			if model.ModelSourceType == models.ModelSourceTypeNamespace {
+				hasNamespace = true
+			}
+			if model.ModelSourceType == models.ModelSourceTypeMaaS {
+				hasMaaS = true
+			}
+		}
+
+		assert.True(t, hasNamespace, "Should include namespace models")
+		assert.False(t, hasMaaS, "Should not include MaaS models when fetch fails")
 	})
 })
