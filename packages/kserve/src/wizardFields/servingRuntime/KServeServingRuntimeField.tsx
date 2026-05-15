@@ -110,7 +110,11 @@ export const useKServeServingRuntimeExternalData = (
   loaded: boolean;
   loadError?: Error;
 } => {
-  const { data: modelServingClusterSettings } = useModelServingClusterSettings();
+  const {
+    data: modelServingClusterSettings,
+    loaded: modelServingClusterSettingsLoaded,
+    error: modelServingClusterSettingsError,
+  } = useModelServingClusterSettings();
 
   const formData = React.useMemo(
     () => ({
@@ -132,18 +136,24 @@ export const useKServeServingRuntimeExternalData = (
 
       return {
         data: { extraOptions, suggestion },
-        loaded: true,
+        loaded: modelServingClusterSettingsLoaded,
+        loadError: modelServingClusterSettingsError,
       };
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Error loading KServe serving runtime external data:', error);
       return {
         data: { extraOptions: [], suggestion: undefined },
-        loaded: true,
+        loaded: modelServingClusterSettingsLoaded,
         loadError: error instanceof Error ? error : new Error(String(error)),
       };
     }
-  }, [modelServerOverrides, modelServingClusterSettings]);
+  }, [
+    modelServerOverrides,
+    modelServingClusterSettings,
+    modelServingClusterSettingsLoaded,
+    modelServingClusterSettingsError,
+  ]);
 };
 
 const computeSuggestion = (
