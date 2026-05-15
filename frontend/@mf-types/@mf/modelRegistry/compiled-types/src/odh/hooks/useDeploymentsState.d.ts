@@ -1,6 +1,7 @@
 import React from 'react';
+import type { ModelRegistryDeploymentListItem } from '~/odh/k8sTypes';
 type DeploymentsStateContextType = {
-    deployments?: any[];
+    deployments?: ModelRegistryDeploymentListItem[];
     loaded: boolean;
 };
 export declare const DeploymentsStateContext: React.Context<DeploymentsStateContextType>;

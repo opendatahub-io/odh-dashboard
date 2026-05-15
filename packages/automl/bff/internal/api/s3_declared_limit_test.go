@@ -58,7 +58,7 @@ func TestPostS3FileHandler_ContentLengthTooLarge(t *testing.T) {
 	smallBody := []byte("--b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"x\"\r\n\r\nx\r\n--b--\r\n")
 	req, err := http.NewRequest(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=ns&secretName=sec&bucket=bkt&key=k",
+		"/api/v1/s3/files/k?namespace=ns&secretName=sec&bucket=bkt",
 		bytes.NewReader(smallBody),
 	)
 	require.NoError(t, err)
@@ -88,7 +88,7 @@ func TestPostS3FileHandler_UnknownContentLength_PassesDeclaredSizeMiddleware(t *
 	smallBody := []byte("--b\r\nContent-Disposition: form-data; name=\"file\"; filename=\"data.csv\"\r\nContent-Type: text/csv\r\n\r\nx\r\n--b--\r\n")
 	req, err := http.NewRequest(
 		http.MethodPost,
-		"/api/v1/s3/file?namespace=test-namespace&secretName=non-existent&bucket=my-bucket&key=file.csv",
+		"/api/v1/s3/files/file.csv?namespace=test-namespace&secretName=non-existent&bucket=my-bucket",
 		bytes.NewReader(smallBody),
 	)
 	require.NoError(t, err)

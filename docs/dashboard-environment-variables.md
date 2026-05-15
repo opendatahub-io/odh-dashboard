@@ -6,7 +6,7 @@ This document describes environment variables that are injected into the dashboa
 
 **Purpose:** The cluster’s gateway/ingress domain. Used when building URLs that depend on the cluster domain (e.g. notebook addresses, gateway-based routes, or any URL that must use the cluster’s canonical domain).
 
-**Manifest parameter:** `gateway-domain` in `params.env` (ODH: `manifests/odh/params.env`, RHOAI: `manifests/rhoai/addon/params.env`, `manifests/rhoai/onprem/params.env`).
+**Manifest parameter:** `gateway-domain` in `params.env` (ODH: `manifests/odh/params.env`, RHOAI: `manifests/rhoai/params.env`).
 
 **Injected into:**
 

@@ -400,7 +400,9 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
                   data={createDataInferenceService}
                   setData={setCreateDataInferenceService}
                   servingRuntimeName={servingRuntimeSelected?.metadata.name}
-                  modelContext={servingRuntimeSelected?.spec.supportedModelFormats}
+                  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                  modelContext={servingRuntimeSelected?.spec?.supportedModelFormats}
                   registeredModelFormat={modelDeployPrefillInfo?.modelFormat}
                 />
                 <KServeAutoscalerReplicaSection

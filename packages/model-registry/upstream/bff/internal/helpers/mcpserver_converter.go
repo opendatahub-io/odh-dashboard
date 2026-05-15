@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	corev1 "k8s.io/api/core/v1"
 )
 

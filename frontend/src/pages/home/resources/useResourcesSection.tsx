@@ -47,7 +47,7 @@ export const useResourcesSection = (): React.ReactNode => {
     >
       <CollapsibleSection
         title="Get oriented with learning resources"
-        titleVariant={ContentVariants.h1}
+        titleVariant={ContentVariants.h2}
         open={resourcesOpen}
         setOpen={setResourcesOpen}
       >

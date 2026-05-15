@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.6.1"
+      "openai_sdk_version": "2.36.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello! I'm an AI, so I don't experience feelings, but I'm functioning perfectly and ready to assist you.\n\nHow are you doing today? Or, how",
+                "content": "Hello! I'm doing well, thank you for asking. As an AI, I don't experience feelings, but I'm fully operational",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 38,
+            "completion_tokens": 30,
             "prompt_tokens": 7,
-            "total_tokens": 370,
+            "total_tokens": 172,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": " can I help you?",
+                "content": " and ready to help.\n\nHow are you today?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 43,
+            "completion_tokens": 41,
             "prompt_tokens": 7,
-            "total_tokens": 375,
+            "total_tokens": 183,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

@@ -3,12 +3,13 @@ import type {
   AreaExtension,
   NavExtension,
   RouteExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 const PLUGIN_AUTORAG = 'plugin-autorag';
 const PLUGIN_GEN_AI = 'plugin-gen-ai';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension | TaskItemExtension)[] = [
   {
     type: 'app.area',
     properties: {
@@ -40,6 +41,19 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
     properties: {
       path: '/gen-ai-studio/autorag/*',
       component: () => import('./AppWrapper'),
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_AUTORAG],
+    },
+    properties: {
+      id: 'genai-autorag',
+      group: 'gen-ai-studio',
+      title: 'Create RAG pipelines',
+      destination: { href: '/gen-ai-studio/autorag' },
+      order: '3_autorag',
     },
   },
 ];

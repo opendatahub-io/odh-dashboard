@@ -11,12 +11,13 @@ import {
   Form,
   FormGroup,
   FormHelperText,
-  FormSection,
   HelperText,
   HelperTextItem,
   PageSection,
   Radio,
   Spinner,
+  Stack,
+  StackItem,
   TextInput,
   EmptyState,
   EmptyStateBody,
@@ -51,6 +52,8 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+
+import './StartEvaluationRunPage.css';
 
 type InputMode = 'inference' | 'prerecorded';
 type ExperimentMode = 'existing' | 'new';
@@ -140,7 +143,7 @@ const StartEvaluationRunPage: React.FC = () => {
     return '';
   }, [benchmark, collection]);
 
-  const breadcrumbFlowLabel = isCollectionFlow ? 'Choose benchmark collection' : 'Single benchmark';
+  const breadcrumbFlowLabel = isCollectionFlow ? 'Select benchmark suite' : 'Select benchmark';
 
   const hasBenchmarks =
     !!benchmark || (!!collection && !!collection.benchmarks && collection.benchmarks.length > 0);
@@ -213,8 +216,8 @@ const StartEvaluationRunPage: React.FC = () => {
         const parsed: unknown = JSON.parse(additionalArgs);
         if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
           notification.error(
-            'Invalid additional arguments',
-            'Additional arguments must be a JSON object (e.g. {"key": "value"}).',
+            'Invalid benchmark parameters',
+            'Benchmark parameters must be a JSON object (e.g. {"key": "value"}).',
           );
           setIsSubmitting(false);
           return;
@@ -222,8 +225,8 @@ const StartEvaluationRunPage: React.FC = () => {
         Object.assign(parsedArgs, parsed);
       } catch {
         notification.error(
-          'Invalid additional arguments',
-          'Additional arguments must be valid JSON.',
+          'Invalid benchmark parameters',
+          'Benchmark parameters must be valid JSON.',
         );
         setIsSubmitting(false);
         return;
@@ -351,7 +354,7 @@ const StartEvaluationRunPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="Start evaluation run"
+      noHeader
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
@@ -380,6 +383,13 @@ const StartEvaluationRunPage: React.FC = () => {
       empty={false}
     >
       <PageSection hasBodyWrapper={false} isFilled>
+        <Content
+          component="h1"
+          data-testid="app-page-title"
+          style={{ marginBlockStart: 0, marginBlockEnd: 0 }}
+        >
+          Start evaluation run
+        </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
           <FormGroup
             label={isCollectionFlow ? 'Benchmark suite name' : 'Benchmark name'}
@@ -407,7 +417,7 @@ const StartEvaluationRunPage: React.FC = () => {
             labelHelp={
               <LabelHelpPopover
                 ariaLabel="More info for MLflow experiment"
-                content="Select an existing MLFlow experiment to log this evaluation run to, or create a new one. If you don't have any experiments, the default 'EvalHub' experiment will be used."
+                content="Select an existing MLflow experiment that this evaluation will belong to, or create a new experiment."
               />
             }
           >
@@ -415,7 +425,7 @@ const StartEvaluationRunPage: React.FC = () => {
               id="experiment-existing"
               data-testid="experiment-mode-existing"
               name="experiment-mode"
-              label="Add to an existing experiment"
+              label="Select existing experiment"
               isChecked={experimentMode === 'existing'}
               onChange={() => {
                 setExperimentMode('existing');
@@ -425,7 +435,10 @@ const StartEvaluationRunPage: React.FC = () => {
             />
 
             {experimentMode === 'existing' && namespace && (
-              <div style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+              <div
+                className="eval-hub-start-evaluation-run__mlflow-selector"
+                style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}
+              >
                 <MlflowExperimentSelector
                   workspace={namespace}
                   filter={EXPERIMENT_FILTER}
@@ -449,6 +462,9 @@ const StartEvaluationRunPage: React.FC = () => {
                   setExperimentMode('new');
                   setSelectedExperiment(undefined);
                   experimentManuallyChangedRef.current = true;
+                  setNewExperimentName((prev) =>
+                    prev.trim() === '' ? DEFAULT_EXPERIMENT_NAME : prev,
+                  );
                 }}
               />
             </div>
@@ -466,7 +482,12 @@ const StartEvaluationRunPage: React.FC = () => {
             )}
           </FormGroup>
 
-          <FormSection title="Source">
+          <FormGroup
+            label="Source"
+            fieldId="source-input-mode"
+            role="group"
+            style={{ marginBlockStart: 'var(--pf-t--global--spacer--sm)' }}
+          >
             <Radio
               id="input-inference"
               data-testid="input-mode-inference"
@@ -474,48 +495,65 @@ const StartEvaluationRunPage: React.FC = () => {
               label="Inference endpoint"
               isChecked={inputMode === 'inference'}
               onChange={() => setInputMode('inference')}
+              className="eval-hub-start-evaluation-run__source-inference-radio"
+              body={
+                inputMode === 'inference' ? (
+                  <Stack hasGutter>
+                    <StackItem>
+                      <FormGroup label="Model or agent name" isRequired fieldId="model-name">
+                        <TextInput
+                          id="model-name"
+                          data-testid="model-name-input"
+                          value={modelName}
+                          onChange={(_e, val) => setModelName(val)}
+                          isRequired
+                        />
+                        <FormHelperText>
+                          <HelperText>
+                            <HelperTextItem>
+                              The model or agent name is case-sensitive.
+                            </HelperTextItem>
+                          </HelperText>
+                        </FormHelperText>
+                      </FormGroup>
+                    </StackItem>
+
+                    <StackItem>
+                      <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
+                        <TextInput
+                          id="endpoint-url"
+                          data-testid="endpoint-url-input"
+                          value={endpointUrl}
+                          onChange={(_e, val) => setEndpointUrl(val)}
+                          placeholder="https://api.example.com/v1/model"
+                          isRequired
+                        />
+                      </FormGroup>
+                    </StackItem>
+
+                    <StackItem>
+                      <FormGroup
+                        label="API key"
+                        fieldId="api-key"
+                        labelHelp={
+                          <LabelHelpPopover
+                            ariaLabel="More info for API key"
+                            content="If access to the model or agent is restricted or requires authentication, provide the API key for its inference endpoint."
+                          />
+                        }
+                      >
+                        <TextInput
+                          id="api-key"
+                          data-testid="api-key-input"
+                          value={apiKeySecretRef}
+                          onChange={(_e, val) => setApiKeySecretRef(val)}
+                        />
+                      </FormGroup>
+                    </StackItem>
+                  </Stack>
+                ) : undefined
+              }
             />
-
-            {inputMode === 'inference' && (
-              <>
-                <FormGroup label="Model or agent name" isRequired fieldId="model-name">
-                  <TextInput
-                    id="model-name"
-                    data-testid="model-name-input"
-                    value={modelName}
-                    onChange={(_e, val) => setModelName(val)}
-                    isRequired
-                  />
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        The verbatim model or agent name from the deployment. Must match exactly.
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                </FormGroup>
-
-                <FormGroup label="Endpoint URL" isRequired fieldId="endpoint-url">
-                  <TextInput
-                    id="endpoint-url"
-                    data-testid="endpoint-url-input"
-                    value={endpointUrl}
-                    onChange={(_e, val) => setEndpointUrl(val)}
-                    placeholder="https://api.example.com/v1/model"
-                    isRequired
-                  />
-                </FormGroup>
-
-                <FormGroup label="API key" fieldId="api-key">
-                  <TextInput
-                    id="api-key"
-                    data-testid="api-key-input"
-                    value={apiKeySecretRef}
-                    onChange={(_e, val) => setApiKeySecretRef(val)}
-                  />
-                </FormGroup>
-              </>
-            )}
 
             <Radio
               id="input-prerecorded"
@@ -524,76 +562,83 @@ const StartEvaluationRunPage: React.FC = () => {
               label="Pre-recorded responses"
               isChecked={inputMode === 'prerecorded'}
               onChange={() => setInputMode('prerecorded')}
+              body={
+                inputMode === 'prerecorded' ? (
+                  <Stack hasGutter>
+                    <StackItem>
+                      <FormGroup
+                        label="Source name"
+                        isRequired
+                        fieldId="source-name"
+                        labelHelp={
+                          <LabelHelpPopover
+                            ariaLabel="More info for source name"
+                            content="Enter the name of the tool or agent used to generate the response. This is for your reference only."
+                          />
+                        }
+                      >
+                        <TextInput
+                          id="source-name"
+                          data-testid="source-name-input"
+                          value={sourceName}
+                          onChange={(_e, val) => setSourceName(val)}
+                          isRequired
+                        />
+                      </FormGroup>
+                    </StackItem>
+
+                    <StackItem>
+                      <FormGroup label="Dataset URL" isRequired fieldId="dataset-url">
+                        <TextInput
+                          id="dataset-url"
+                          data-testid="dataset-url-input"
+                          value={datasetUrl}
+                          onChange={(_e, val) => setDatasetUrl(val)}
+                          isRequired
+                        />
+                      </FormGroup>
+                    </StackItem>
+
+                    <StackItem>
+                      <FormGroup
+                        label="Access token"
+                        fieldId="access-token"
+                        labelHelp={
+                          <LabelHelpPopover
+                            ariaLabel="More info for access token secret"
+                            content="Name of the Kubernetes Secret that contains the access token for the dataset source."
+                          />
+                        }
+                      >
+                        <TextInput
+                          id="access-token"
+                          data-testid="access-token-input"
+                          value={accessToken}
+                          onChange={(_e, val) => setAccessToken(val)}
+                          placeholder="e.g. my-dataset-credentials"
+                        />
+                      </FormGroup>
+                    </StackItem>
+                  </Stack>
+                ) : undefined
+              }
             />
-
-            {inputMode === 'prerecorded' && (
-              <>
-                <FormGroup
-                  label="Source name"
-                  isRequired
-                  fieldId="source-name"
-                  labelHelp={
-                    <LabelHelpPopover
-                      ariaLabel="More info for source name"
-                      content="Model or agent that was used to generate this dataset."
-                    />
-                  }
-                >
-                  <TextInput
-                    id="source-name"
-                    data-testid="source-name-input"
-                    value={sourceName}
-                    onChange={(_e, val) => setSourceName(val)}
-                    isRequired
-                  />
-                </FormGroup>
-
-                <FormGroup label="Dataset URL" isRequired fieldId="dataset-url">
-                  <TextInput
-                    id="dataset-url"
-                    data-testid="dataset-url-input"
-                    value={datasetUrl}
-                    onChange={(_e, val) => setDatasetUrl(val)}
-                    isRequired
-                  />
-                </FormGroup>
-
-                <FormGroup
-                  label="Access token secret name"
-                  fieldId="access-token"
-                  labelHelp={
-                    <LabelHelpPopover
-                      ariaLabel="More info for access token secret"
-                      content="Name of the Kubernetes Secret that contains the access token for the dataset source."
-                    />
-                  }
-                >
-                  <TextInput
-                    id="access-token"
-                    data-testid="access-token-input"
-                    value={accessToken}
-                    onChange={(_e, val) => setAccessToken(val)}
-                    placeholder="e.g. my-dataset-credentials"
-                  />
-                </FormGroup>
-              </>
-            )}
-          </FormSection>
+          </FormGroup>
 
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
               <Checkbox
                 id="show-additional-args"
                 data-testid="show-additional-args"
-                label="Add additional arguments"
+                label="Benchmark parameters"
                 isChecked={showAdditionalArgs}
                 onChange={(_e, checked) => setShowAdditionalArgs(checked)}
               />
             </FlexItem>
             <FlexItem>
               <LabelHelpPopover
-                ariaLabel="More info for additional arguments"
-                content="Additional runtime arguments passed to the evaluation provider as a JSON object."
+                ariaLabel="More info for benchmark parameters"
+                content="Enter the benchmark parameters for this evaluation run, or upload a JSON file containing them."
               />
             </FlexItem>
           </Flex>

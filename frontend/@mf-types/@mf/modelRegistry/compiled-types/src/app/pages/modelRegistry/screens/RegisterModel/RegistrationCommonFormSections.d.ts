@@ -8,6 +8,11 @@ type RegistrationCommonFormSectionsProps<D extends RegistrationCommonFormData> =
     isFirstVersion: boolean;
     latestVersion?: ModelVersion;
     isCatalogModel?: boolean;
+    namespaceHasAccess?: boolean;
+    isNamespaceAccessLoading?: boolean;
+    namespaceAccessError?: Error | undefined;
+    namespaceCannotCheck?: boolean;
+    registryName?: string;
 };
-declare const RegistrationCommonFormSections: <D extends RegistrationCommonFormData>({ formData, setData, isFirstVersion, latestVersion, isCatalogModel, }: RegistrationCommonFormSectionsProps<D>) => React.ReactNode;
+declare const RegistrationCommonFormSections: <D extends RegistrationCommonFormData>({ formData, setData, isFirstVersion, latestVersion, isCatalogModel, namespaceHasAccess, isNamespaceAccessLoading, namespaceAccessError, namespaceCannotCheck, registryName, }: RegistrationCommonFormSectionsProps<D>) => React.ReactNode;
 export default RegistrationCommonFormSections;

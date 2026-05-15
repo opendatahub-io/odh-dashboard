@@ -3,6 +3,8 @@ import type {
   NavExtension,
   RouteExtension,
   AreaExtension,
+  TaskGroupExtension,
+  TaskItemExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import {
   aiAssetsRootPath,
@@ -21,14 +23,29 @@ export const GUARDRAILS = 'guardrails';
 export const PROMPT_MANAGEMENT = 'promptManagement';
 export const AI_ASSET_CUSTOM_ENDPOINTS = 'aiAssetCustomEndpoints';
 export const EXTERNAL_VECTOR_STORES = 'externalVectorStores';
+const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
-const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabExtension)[] = [
+const extensions: (
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | AIAssetsTabExtension
+  | TaskGroupExtension
+  | TaskItemExtension
+)[] = [
   {
     type: 'app.area',
     properties: {
       id: PLUGIN_GEN_AI,
-      requiredComponents: [DataScienceStackComponent.LLAMA_STACK_OPERATOR],
       featureFlags: [GEN_AI_STUDIO],
+      customCondition: ({ dscStatus }) =>
+        [
+          DataScienceStackComponent.LLAMA_STACK_OPERATOR,
+          DataScienceStackComponent.OGX_OPERATOR,
+        ].some((key) => {
+          const state = dscStatus?.components?.[key]?.managementState;
+          return state === 'Managed' || state === 'Unmanaged';
+        }),
     },
   },
   {
@@ -36,7 +53,8 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
     properties: {
       id: GUARDRAILS,
       reliantAreas: [PLUGIN_GEN_AI],
-      devFlags: [GUARDRAILS],
+      featureFlags: [GUARDRAILS],
+      requiredComponents: [DataScienceStackComponent.TRUSTY_AI],
     },
   },
   {
@@ -69,6 +87,10 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: MODEL_AS_SERVICE_CAMEL,
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [MODEL_AS_SERVICE_CAMEL],
+      customCondition: ({ dscStatus }) =>
+        !!dscStatus?.conditions.some(
+          (c) => c.type === MODELS_AS_SERVICE_READY && c.status === 'True',
+        ),
     },
   },
   {
@@ -153,6 +175,47 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | AIAssetsTabEx
       id: 'vectorstores',
       title: 'Vector stores',
       component: () => import('../app/AIAssets/AIAssetsVectorStoresTab').then((m) => m.default),
+    },
+  },
+
+  // -- Task Assistant --
+
+  {
+    type: 'app.task/group',
+    properties: {
+      id: 'gen-ai-studio',
+      title: 'Gen AI studio',
+      description: 'Prototype, test, and manage models and applications.',
+      label: 'Test gen AI models and apps',
+      icon: () => import('./GenAiStudioNavIcon'),
+      type: 'organize',
+      order: '2_gen_ai_studio',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'genai-playground',
+      group: 'gen-ai-studio',
+      title: 'Chat with models',
+      destination: { href: chatPlaygroundRootPath },
+      order: '1_playground',
+    },
+  },
+  {
+    type: 'app.task/item',
+    flags: {
+      required: [PLUGIN_GEN_AI],
+    },
+    properties: {
+      id: 'genai-ai-assets',
+      group: 'gen-ai-studio',
+      title: 'Browse available AI assets',
+      destination: { href: aiAssetsRootPath },
+      order: '2_ai_assets',
     },
   },
 ];

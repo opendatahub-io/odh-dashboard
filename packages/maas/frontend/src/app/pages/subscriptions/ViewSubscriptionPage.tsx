@@ -39,12 +39,14 @@ const SubscriptionActions: React.FC<SubscriptionActionsProps> = ({ subscription 
             key: 'edit',
             label: 'Edit',
             onClick: () => navigate(`${URL_PREFIX}/subscriptions/edit/${subscription.name}`),
+            isDisabled: !!subscription.deletionTimestamp,
           },
           { isSpacer: true },
           {
             key: 'delete',
             label: 'Delete',
             onClick: () => setIsDeleteOpen(true),
+            isDisabled: !!subscription.deletionTimestamp,
           },
         ]}
       />
@@ -136,6 +138,7 @@ const ViewSubscriptionPage: React.FC = () => {
               <MaasModelsSection
                 modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
                 modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
+                resourceType="subscription"
               />
             </PageSection>
           </Tab>

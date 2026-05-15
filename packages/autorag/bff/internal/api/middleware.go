@@ -327,7 +327,7 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 		if app.config.MockLSClient {
 			// Mock mode: skip secret lookup entirely
 			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -384,12 +384,23 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
+			// Dev-only: rewrite LlamaStack URL to localhost via dynamic port-forward.
+			// portForwardManager is nil in production (requires DevMode=true).
+			if app.portForwardManager != nil {
+				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
+					logger.Warn("dynamic port-forward failed for LlamaStack endpoint, using original URL",
+						"error", pfErr, "url", baseURL)
+				} else {
+					baseURL = rewritten
+				}
+			}
+
 			logger.Debug("Creating LlamaStack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
@@ -1413,4 +1424,21 @@ func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Re
 
 		next(w, r, ps)
 	}
+}
+
+// preserveRawPath wraps an http.Handler so that percent-encoded path segments
+// (e.g. %2F inside an S3 key) survive exactly one level of decoding in the
+// handler. For S3 file endpoints it replaces Path with EscapedPath(), which
+// re-encodes any percent-literal characters that Go's url.Parse already
+// decoded (e.g. %252F → Path has %2F → EscapedPath re-encodes to %252F).
+// The handler then calls url.PathUnescape once to recover the real key.
+func preserveRawPath(next http.Handler) http.Handler {
+	s3FilesPrefix := ApiPathPrefix + "/s3/files/"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if escaped := r.URL.EscapedPath(); strings.HasPrefix(escaped, s3FilesPrefix) {
+			r.URL.Path = escaped
+		}
+		next.ServeHTTP(w, r)
+	})
 }

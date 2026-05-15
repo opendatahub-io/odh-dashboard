@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - "packages/maas/**"
-      - ".github/workflows/**"
+      - ".github/workflows/maas-bff-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -26,7 +26,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v6
         with:
-          go-version: "1.24.6"
+          go-version: "1.25.9"
 
       - name: Lint
         working-directory: packages/maas/bff

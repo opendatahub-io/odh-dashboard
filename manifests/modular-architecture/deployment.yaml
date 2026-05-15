@@ -6,6 +6,75 @@
       configMapKeyRef:
         key: module-federation-config.json
         name: federation-config
+# --- SA isolation: disable auto-mount and add per-container SA tokens ---
+- op: add
+  path: /spec/template/spec/automountServiceAccountToken
+  value: false
+# Projected volume with the pod's own SA token (odh-dashboard) for containers 0-1
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: dashboard-sa-token
+    projected:
+      defaultMode: 420
+      sources:
+        - serviceAccountToken:
+            expirationSeconds: 3607
+            path: token
+        - configMap:
+            name: kube-root-ca.crt
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - downwardAPI:
+            items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+        - configMap:
+            name: openshift-service-ca.crt
+            items:
+              - key: service-ca.crt
+                path: service-ca.crt
+# Secret-based volume with the modules SA token (odh-dashboard-modules) for BFF containers
+- op: add
+  path: /spec/template/spec/volumes/-
+  value:
+    name: modules-sa-token
+    projected:
+      defaultMode: 420
+      sources:
+        - secret:
+            name: odh-dashboard-modules-token
+            items:
+              - key: token
+                path: token
+              - key: ca.crt
+                path: ca.crt
+        - downwardAPI:
+            items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+        - configMap:
+            name: openshift-service-ca.crt
+            items:
+              - key: service-ca.crt
+                path: service-ca.crt
+# Mount dashboard SA token into odh-dashboard (container 0) and kube-rbac-proxy (container 1)
+- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value:
+    name: dashboard-sa-token
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
+- op: add
+  path: /spec/template/spec/containers/1/volumeMounts/-
+  value:
+    name: dashboard-sa-token
+    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+    readOnly: true
+# --- End SA isolation infrastructure ---
 - op: add
   path: /spec/template/spec/containers/-
   value:
@@ -33,11 +102,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8043
@@ -61,6 +130,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--deployment-mode=federated'
@@ -106,11 +178,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8143
@@ -134,6 +206,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--auth-method=user_token'
@@ -196,11 +271,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8243
@@ -224,6 +299,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--auth-method=user_token'
@@ -273,11 +351,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8343
@@ -301,6 +379,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--deployment-mode=federated'
@@ -344,11 +425,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8543
@@ -372,6 +453,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--deployment-mode=federated'
@@ -415,11 +499,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8643
@@ -443,6 +527,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--auth-method=user_token'
@@ -485,11 +572,11 @@
       successThreshold: 1
       failureThreshold: 3
     resources:
-      limits:
-        cpu: 300m
-        memory: 512Mi
       requests:
         cpu: 300m
+        memory: 512Mi
+        ephemeral-storage: 10Mi
+      limits:
         memory: 512Mi
     ports:
       - containerPort: 8743
@@ -513,6 +600,9 @@
       - name: odh-ca-cert
         mountPath: /etc/ssl/certs/odh-ca-bundle.crt
         subPath: odh-ca-bundle.crt
+        readOnly: true
+      - name: modules-sa-token
+        mountPath: /var/run/secrets/kubernetes.io/serviceaccount
         readOnly: true
     args:
       - '--auth-method=user_token'

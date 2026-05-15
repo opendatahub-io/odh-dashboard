@@ -6,7 +6,6 @@ type CategorySectionProps = {
     pageSize: number;
     catalogSources: CatalogSourceList | null;
     onShowMore: (label: string) => void;
-    displayName?: string;
 };
 declare const CatalogCategorySection: React.FC<CategorySectionProps>;
 export default CatalogCategorySection;

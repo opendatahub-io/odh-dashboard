@@ -203,7 +203,7 @@ const StartNotebookModal: React.FC<StartNotebookModalProps> = ({
         <Flex gap={{ default: 'gapSm' }}>
           {(!spawnStatus || spawnStatus.status === AlertVariant.info) && inProgress ? (
             <FlexItem>
-              <InProgressIcon style={{ color: BrandIconColor.var }} className="odh-u-spin" />
+              <InProgressIcon style={{ color: BrandIconColor.var }} className="ai-u-spin" />
             </FlexItem>
           ) : null}
           <FlexItem>

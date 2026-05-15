@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { PrometheusQueryResponse } from '#~/types';
 import { FetchStateObject } from '#~/utilities/useFetch';
-import { useMakeFetchObject } from '#~/utilities/useMakeFetchObject';
 import { DEFAULT_VALUE_FETCH_STATE } from '#~/utilities/const';
 import { WorkloadKind, WorkloadOwnerType } from '#~/k8sTypes';
 import { TopWorkloadUsageType, getWorkloadOwner } from '#~/concepts/distributedWorkloads/utils';
@@ -43,10 +42,10 @@ const useWorkloadMetricIndexedByOwner = (
   query?: string,
   refreshRate = 0,
 ): FetchStateObject<WorkloadMetricIndexedByOwner> => {
-  const promQueryFetchObj = useMakeFetchObject(
-    usePrometheusQuery<WorkloadMetricPromQueryResponse>('/api/prometheus/query', query, {
-      refreshRate,
-    }),
+  const promQueryFetchObj = usePrometheusQuery<WorkloadMetricPromQueryResponse>(
+    '/api/prometheus/query',
+    query,
+    { refreshRate },
   );
   return React.useMemo(
     () => ({

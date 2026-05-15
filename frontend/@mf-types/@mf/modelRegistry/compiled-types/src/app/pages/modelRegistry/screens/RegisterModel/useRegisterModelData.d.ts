@@ -1,5 +1,6 @@
 import { GenericObjectState } from 'mod-arch-core';
 import { ModelRegistryCustomProperties, ModelArtifact } from '~/app/types';
+import { RegistrationMode } from '~/app/pages/modelRegistry/screens/const';
 export declare enum ModelLocationType {
     ObjectStorage = "Object storage",
     URI = "URI"
@@ -15,6 +16,16 @@ export type RegistrationCommonFormData = {
     modelLocationRegion: string;
     modelLocationPath: string;
     modelLocationURI: string;
+    modelLocationS3AccessKeyId: string;
+    modelLocationS3SecretAccessKey: string;
+    destinationOciRegistry: string;
+    destinationOciUsername: string;
+    destinationOciPassword: string;
+    destinationOciUri: string;
+    namespace: string;
+    registrationMode?: RegistrationMode.Register | RegistrationMode.RegisterAndStore;
+    jobName: string;
+    jobResourceName: string;
     versionCustomProperties?: ModelRegistryCustomProperties;
     modelCustomProperties?: ModelRegistryCustomProperties;
     additionalArtifactProperties?: Partial<ModelArtifact>;

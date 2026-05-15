@@ -1,5 +1,5 @@
 # Backend build stage
-FROM registry.redhat.io/ubi9/go-toolset:1.24 AS builder
+FROM registry.redhat.io/ubi9/go-toolset:1.25 AS builder
 WORKDIR /usr/src/app
 COPY go.mod go.sum ./
 RUN go mod download

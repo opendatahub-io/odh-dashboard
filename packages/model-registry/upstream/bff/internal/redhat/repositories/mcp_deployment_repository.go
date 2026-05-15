@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"gopkg.in/yaml.v3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -331,7 +331,6 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 		Namespace:         server.Metadata.Namespace,
 		UID:               string(obj.GetUID()),
 		CreationTimestamp: obj.GetCreationTimestamp().UTC().Format("2006-01-02T15:04:05Z"),
-		Phase:             models.McpDeploymentPhasePending,
 	}
 
 	if server.Metadata.Annotations != nil {
@@ -349,7 +348,7 @@ func convertUnstructuredToMcpDeployment(obj unstructured.Unstructured) (models.M
 	}
 	deployment.YAML = marshalSpecToYAML(specBody)
 
-	deployment.Phase, deployment.Conditions = extractMcpServerStatus(obj)
+	deployment.Conditions = extractMcpServerConditions(obj)
 	deployment.Address = extractMcpServerAddress(obj)
 
 	return deployment, nil
@@ -467,25 +466,18 @@ func marshalSpecToYAML(spec models.McpSpecBody) string {
 	return string(yamlBytes)
 }
 
-func extractMcpServerStatus(obj unstructured.Unstructured) (models.McpDeploymentPhase, []models.McpDeploymentCondition) {
-	phase := models.McpDeploymentPhasePending
-	var conditions []models.McpDeploymentCondition
-
+func extractMcpServerConditions(obj unstructured.Unstructured) []models.McpDeploymentCondition {
 	status, ok := obj.Object["status"].(map[string]interface{})
 	if !ok {
-		return phase, conditions
-	}
-
-	if p, ok := status["phase"].(string); ok && p != "" {
-		phase = models.McpDeploymentPhase(p)
+		return []models.McpDeploymentCondition{}
 	}
 
 	condList, ok := status["conditions"].([]interface{})
 	if !ok {
-		return phase, conditions
+		return []models.McpDeploymentCondition{}
 	}
 
-	conditions = make([]models.McpDeploymentCondition, 0, len(condList))
+	conditions := make([]models.McpDeploymentCondition, 0, len(condList))
 	for _, item := range condList {
 		c, ok := item.(map[string]interface{})
 		if !ok {
@@ -500,7 +492,7 @@ func extractMcpServerStatus(obj unstructured.Unstructured) (models.McpDeployment
 		})
 	}
 
-	return phase, conditions
+	return conditions
 }
 
 func extractMcpServerAddress(obj unstructured.Unstructured) *models.McpDeploymentAddress {

@@ -1,9 +1,11 @@
 import { mcpTab } from './playgroundPage/mcpTab';
+import { appendFeatureFlagParams } from './appChrome';
 
 class ChatbotPage {
   mcpTab = mcpTab;
   visit(namespace?: string): void {
-    cy.visit(namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground');
+    const path = namespace ? `/gen-ai-studio/playground/${namespace}` : '/gen-ai-studio/playground';
+    cy.visit(appendFeatureFlagParams(path));
     this.waitForPageLoad();
   }
 

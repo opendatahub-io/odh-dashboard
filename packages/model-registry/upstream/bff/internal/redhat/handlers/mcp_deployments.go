@@ -10,10 +10,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/api"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
-	redhatrepos "github.com/kubeflow/model-registry/ui/bff/internal/redhat/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/api"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
+	redhatrepos "github.com/kubeflow/hub/ui/bff/internal/redhat/repositories"
 )
 
 type McpDeploymentListEnvelope api.Envelope[models.McpDeploymentList, api.None]

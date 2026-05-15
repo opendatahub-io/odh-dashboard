@@ -43,7 +43,7 @@ The skill uses six signal dimensions to determine area labels. No single dimensi
 
 1. **Keywords** -- Feature names, UI text, and domain terms matched against issue summary and description. Source: Content Signals table in `jira-project-reference.md`.
 2. **K8s resource kinds** -- Kubernetes CRD/resource type names referenced in descriptions. Source: Content Signals table.
-3. **Code paths** -- Repository file/directory paths from linked PRs, stack traces, or description references. Source: Code Path Signals table.
+3. **Code paths** -- Repository file/directory paths from linked PRs, stack traces, or description references. **When a file name is mentioned without its full path** (common in test failure/flake issues that reference a spec like `someTest.cy.ts`), **resolve the file name to its full repository path** using workspace search tools (e.g., `Glob` with `**/<filename>`). The resolved full path is then matched against the Code Path Signals table. Intermediate directory names in the resolved path also contribute as keyword signals (e.g., resolving `featureDataSources.cy.ts` to `packages/cypress/cypress/tests/mocked/featureStore/featureDataSources.cy.ts` surfaces `featureStore` as a keyword hit). Source: Code Path Signals table in `jira-project-reference.md`.
 4. **Jira labels** -- Non-area labels already on the issue (e.g., `AutoML`, `AutoRAG`, `gen-ai`, `ai-pipelines`) that serve as product/feature identifiers. Source: Jira Label Signals table in `jira-project-reference.md`. Treated as keyword-equivalent signals with the same confidence as a keyword match in the summary.
 5. **Linked issues** -- Area labels on linked Jira issues (parent, blocks/blocked-by, relates-to). If linked issues already have `dashboard-area-*` labels, those are a confirming signal. Fetch linked issue labels via `issuelinks` field data (inward/outward issue keys and their labels).
 6. **Scrum team label** -- If the issue has a `dashboard-*-scrum` label, use the Area-to-Scrum Default Mapping in `jira-project-reference.md` in reverse as a **weak confirming signal**. Not definitive: a scrum team may pick up issues outside their default areas.
@@ -67,10 +67,11 @@ A single generic keyword match alone (e.g., "deployment", "connection", "storage
 Used by both modes:
 
 1. **Extract signals** from summary, description, Jira labels (non-area labels), linked issues, and scrum team labels. Check issue labels against the Jira Label Signals table in `jira-project-reference.md` to identify product/feature label matches.
-2. **Score each area** against the Content Signals, Jira Label Signals, and Code Path Signals tables in `jira-project-reference.md`. For each area, check all six dimensions and compute a match score.
-3. **Rank areas** by score. The top-scoring area(s) with sufficient confidence become candidates.
-4. **Apply disambiguation rules** (below) to resolve conflicts
-5. **Multiple area labels are expected.** An issue can genuinely span multiple areas. Produce an `ADD_LABEL` for each area that independently meets the confidence threshold. Do not cap at one.
+2. **Resolve file references.** Scan the summary and description for file names — look for patterns like `*.cy.ts`, `*.test.ts`, `*.spec.ts`, `*.tsx`, `*.ts`, `*.go`, or any identifiable source file name. For each file name found, search the repository using workspace tools (e.g., `Glob` with `**/<filename>`) to locate matching paths. Add every resolved path as a Code Path signal and treat each path's intermediate directory names as keyword signals. If no matches are found, continue without a Code Path signal. This step is critical for test failure and flake issues where the spec file name is often the strongest — or only — content signal pointing to a feature area.
+3. **Score each area** against the Content Signals, Jira Label Signals, and Code Path Signals tables in `jira-project-reference.md`. For each area, check all six dimensions (including any resolved file paths from step 2) and compute a match score.
+4. **Rank areas** by score. The top-scoring area(s) with sufficient confidence become candidates.
+5. **Apply disambiguation rules** (below) to resolve conflicts
+6. **Multiple area labels are expected.** An issue can genuinely span multiple areas. Produce an `ADD_LABEL` for each area that independently meets the confidence threshold. Do not cap at one.
 
 ### Disambiguation Rules
 

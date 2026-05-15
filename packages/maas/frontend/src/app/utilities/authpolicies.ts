@@ -1,4 +1,11 @@
-import { MaaSModelRefSummary } from '~/app/types/subscriptions';
+import type { K8sResourceCommon } from '@odh-dashboard/internal/k8sTypes';
+import { MaaSAuthPolicy, MaaSModelRefSummary } from '~/app/types/subscriptions';
+
+export const convertAuthPolicyToK8sResource = (authPolicy: MaaSAuthPolicy): K8sResourceCommon => ({
+  apiVersion: 'maas.opendatahub.io/v1alpha1',
+  kind: 'MaaSAuthPolicy',
+  metadata: { name: authPolicy.name },
+});
 
 export const DEFAULT_MODEL_KIND = 'LLMInferenceService' as const;
 
