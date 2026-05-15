@@ -21,15 +21,15 @@ const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 // maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
 const maxSuccessBodySize = 10 << 20 // 10 MB
 
-// HttpClientInterface wraps http.Client for testing
-type HttpClientInterface interface {
+// httpClientInterface wraps http.Client for testing
+type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
 // PipelinesClientInterface defines the contract for Pipelines API operations
 type PipelinesClientInterface interface {
 	// Pipeline Run operations
-	CreatePipelineRun(ctx context.Context, baseURL string, req *CreatePipelineRunRequest) (*PipelineRun, error)
+	CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
 	GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
 	ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error)
 	TerminateRun(ctx context.Context, baseURL string, runID string) error
@@ -46,7 +46,7 @@ type PipelinesClientInterface interface {
 
 // PipelinesClient implements Pipelines API operations using HTTP
 type PipelinesClient struct {
-	HttpClient HttpClientInterface
+	HttpClient httpClientInterface
 }
 
 // PipelinesClientConfig for injectable constructor (testing)
@@ -65,7 +65,7 @@ type DefaultPipelinesClientConfig struct {
 }
 
 // NewPipelinesClient creates a client with injectable HTTP client (for testing)
-func NewPipelinesClient(cfg PipelinesClientConfig, httpClient HttpClientInterface) *PipelinesClient {
+func NewPipelinesClient(cfg PipelinesClientConfig, httpClient httpClientInterface) *PipelinesClient {
 	return &PipelinesClient{
 		HttpClient: httpClient,
 	}
@@ -111,19 +111,20 @@ type pipelinesRoundTripper struct {
 }
 
 func (t *pipelinesRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	identity, err := k8s.IdentityFromContext(req.Context())
+	ctx := req.Context()
+	identity, err := k8s.IdentityFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("missing identity in context: %w", err)
 	}
 
-	reqClone := req.Clone(req.Context())
+	reqClone := req.Clone(ctx)
 	reqClone.Header.Set("Authorization", "Bearer "+identity.Token)
 	return t.base.RoundTrip(reqClone)
 }
 
 // CreatePipelineRun creates a new pipeline run
-func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, reqData *CreatePipelineRunRequest) (*PipelineRun, error) {
-	body, err := json.Marshal(reqData)
+func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
@@ -142,7 +143,7 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var run PipelineRun
@@ -172,7 +173,7 @@ func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var run PipelineRun
@@ -216,7 +217,7 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var response PipelineRunResponse
@@ -246,7 +247,7 @@ func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return readHTTPError(resp)
+		return readhttpError(resp)
 	}
 
 	return nil
@@ -271,7 +272,7 @@ func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return readHTTPError(resp)
+		return readhttpError(resp)
 	}
 
 	return nil
@@ -296,7 +297,7 @@ func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return readHTTPError(resp)
+		return readhttpError(resp)
 	}
 
 	return nil
@@ -329,7 +330,7 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			err := readHTTPError(resp)
+			err := readhttpError(resp)
 			resp.Body.Close()
 			return nil, err
 		}
@@ -376,7 +377,7 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var version PipelineVersion
@@ -406,7 +407,7 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var response PipelineVersionsResponse
@@ -443,7 +444,7 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var pipeline Pipeline
@@ -494,7 +495,7 @@ func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL str
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, readHTTPError(resp)
+		return nil, readhttpError(resp)
 	}
 
 	var version PipelineVersion
@@ -505,9 +506,9 @@ func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL str
 	return &version, nil
 }
 
-// readHTTPError reads an HTTP error response and translates known status codes
+// readhttpError reads an HTTP error response and translates known status codes
 // into domain errors so the service layer never needs to inspect HTTP codes.
-func readHTTPError(resp *http.Response) error {
+func readhttpError(resp *http.Response) error {
 	limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 	body, _ := io.ReadAll(limitedReader)
 	_, _ = io.Copy(io.Discard, resp.Body)
@@ -517,7 +518,7 @@ func readHTTPError(resp *http.Response) error {
 		errorMsg += " (truncated)"
 	}
 
-	httpErr := &HTTPError{
+	httpErr := &httpError{
 		StatusCode: resp.StatusCode,
 		Message:    errorMsg,
 	}
@@ -532,14 +533,14 @@ func readHTTPError(resp *http.Response) error {
 	}
 }
 
-// HTTPError represents an unhandled HTTP error response from the pipeline server.
-// Known status codes (404, 409) are translated to domain errors by readHTTPError;
+// httpError represents an unhandled HTTP error response from the pipeline server.
+// Known status codes (404, 409) are translated to domain errors by readhttpError;
 // this type is returned only for codes without a domain mapping.
-type HTTPError struct {
+type httpError struct {
 	StatusCode int
 	Message    string
 }
 
-func (e *HTTPError) Error() string {
+func (e *httpError) Error() string {
 	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
 }

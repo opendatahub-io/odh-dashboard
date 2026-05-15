@@ -6,10 +6,10 @@ import (
 	"log/slog"
 )
 
-// BuildPipelineNameFilter builds a KFP predicate JSON filter that restricts
+// buildPipelineNameFilter builds a KFP predicate JSON filter that restricts
 // ListPipelines results to pipelines whose display_name exactly matches the given name.
 // Returns an empty string if name is empty, which signals the client to omit the filter.
-func BuildPipelineNameFilter(name string) string {
+func buildPipelineNameFilter(name string) string {
 	if name == "" {
 		return ""
 	}
@@ -33,10 +33,10 @@ func BuildPipelineNameFilter(name string) string {
 	return string(filterJSON)
 }
 
-// BuildRunFilter creates a KFP predicate JSON filter for listing pipeline runs.
+// buildRunFilter creates a KFP predicate JSON filter for listing pipeline runs.
 // Always includes storage_state=AVAILABLE to exclude archived runs.
 // When versionIDs are provided, scopes runs to those versions using the IN operator.
-func BuildRunFilter(versionIDs []string) (string, error) {
+func buildRunFilter(versionIDs []string) (string, error) {
 	predicates := []map[string]any{
 		{
 			"key":          "storage_state",

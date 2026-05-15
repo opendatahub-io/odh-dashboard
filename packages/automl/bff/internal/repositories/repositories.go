@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 // Repositories is a single convenient container for all repository instances.
@@ -15,7 +15,7 @@ type Repositories struct {
 	ModelRegistry *ModelRegistryRepository
 }
 
-func NewRepositories(pipelinesService *pipelines.PipelinesService, pipelinesCfg PipelinesRepositoryConfig) *Repositories {
+func NewRepositories(pipelinesService *corepipelines.PipelinesService, pipelinesCfg PipelinesRepositoryConfig) *Repositories {
 	return &Repositories{
 		HealthCheck:   NewHealthCheckRepository(),
 		User:          NewUserRepository(),

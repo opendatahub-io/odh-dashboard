@@ -5,7 +5,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// GetKubernetesConfig returns a Kubernetes rest.Config, automatically detecting
+// getKubernetesConfig returns a Kubernetes rest.Config, automatically detecting
 // whether the code is running in-cluster or out-of-cluster.
 //
 // Detection order:
@@ -17,7 +17,7 @@ import (
 //
 // This function is used by both K8sInternalClient and K8sTokenClient to eliminate
 // the need for BFF-specific config bridging.
-func GetKubernetesConfig() (*rest.Config, error) {
+func getKubernetesConfig() (*rest.Config, error) {
 	// Try in-cluster config first (running as pod with service account)
 	config, err := rest.InClusterConfig()
 	if err == nil {

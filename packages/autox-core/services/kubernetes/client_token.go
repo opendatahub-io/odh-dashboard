@@ -52,7 +52,7 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
 func NewDefaultK8sTokenClient(cfg DefaultK8sTokenClientConfig) (*K8sTokenClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
-	baseConfig, err := GetKubernetesConfig()
+	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +305,8 @@ type tokenRoundTripper struct {
 }
 
 func (t *tokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	identity, err := IdentityFromContext(req.Context())
+	ctx := req.Context()
+	identity, err := IdentityFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -314,8 +315,7 @@ func (t *tokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 		return nil, errors.New("identity token is empty")
 	}
 
-	// Clone the request to avoid modifying the original (required by http.RoundTripper contract)
-	req2 := req.Clone(req.Context())
+	req2 := req.Clone(ctx)
 	req2.Header.Set("Authorization", "Bearer "+identity.Token)
 	return t.base.RoundTrip(req2)
 }

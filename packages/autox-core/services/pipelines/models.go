@@ -74,8 +74,8 @@ type ChildTask struct {
 	PodName string `json:"pod_name,omitempty"`
 }
 
-// CreatePipelineRunRequest is the request payload for creating a pipeline run.
-type CreatePipelineRunRequest struct {
+// CreatePipelineRunInput is the input payload for creating a pipeline run.
+type CreatePipelineRunInput struct {
 	DisplayName              string                    `json:"display_name"`
 	Description              string                    `json:"description,omitempty"`
 	PipelineVersionReference *PipelineVersionReference `json:"pipeline_version_reference,omitempty"`
@@ -151,32 +151,4 @@ type PipelineDefinition struct {
 type PaginatedRuns struct {
 	Runs      []PipelineRun
 	TotalSize int32
-}
-
-// DSPA (Data Science Pipelines Application) models
-
-// DSPAStatus represents the status of a DSPA instance.
-type DSPAStatus struct {
-	Ready        bool
-	APIServerURL string
-	ExternalURL  string
-	Conditions   []DSPACondition
-}
-
-// DSPACondition represents a condition in DSPA status.
-type DSPACondition struct {
-	Type    string
-	Status  string
-	Reason  string
-	Message string
-}
-
-// DSPAObjectStorage holds the resolved object storage configuration from a DSPA.
-type DSPAObjectStorage struct {
-	SecretName     string
-	AccessKeyField string
-	SecretKeyField string
-	EndpointURL    string
-	Bucket         string
-	Region         string
 }

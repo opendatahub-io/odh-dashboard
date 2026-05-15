@@ -28,7 +28,8 @@ func NewK8sService(cfg K8sServiceConfig, client K8sClientInterface) *K8sService 
 }
 
 func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
-	s.loggerWithIdentity(ctx).Info("fetching namespaces")
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching namespaces")
 
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
@@ -43,7 +44,8 @@ func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) 
 // NOTE: This method does NOT perform permission filtering. Use GetAccessibleNamespaceInfos
 // if you need to filter namespaces by user permissions.
 func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
-	s.loggerWithIdentity(ctx).Info("fetching namespace infos")
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching namespace infos")
 
 	namespaces, err := s.Client.GetNamespaces(ctx)
 	if err != nil {
@@ -150,7 +152,8 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 }
 
 func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
-	s.loggerWithIdentity(ctx).Info("fetching pods", "namespace", namespace)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching pods", "namespace", namespace)
 
 	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -168,7 +171,8 @@ func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList
 }
 
 func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
-	s.loggerWithIdentity(ctx).Info("fetching secrets", "namespace", namespace)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching secrets", "namespace", namespace)
 
 	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -189,7 +193,8 @@ func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Sec
 // Returns SecretInfo with type information from annotations and unredacted data.
 // Filtering and redaction are the responsibility of the caller.
 func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
-	s.loggerWithIdentity(ctx).Info("fetching secret infos", "namespace", namespace)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching secret infos", "namespace", namespace)
 
 	// Validate namespace name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -234,7 +239,8 @@ func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]Se
 }
 
 func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
-	s.loggerWithIdentity(ctx).Info("fetching secret", "namespace", namespace, "secretName", secretName)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("fetching secret", "namespace", namespace, "secretName", secretName)
 
 	// Validate namespace and secret name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -256,7 +262,8 @@ func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string
 }
 
 func (s *K8sService) GetUser(ctx context.Context) (string, error) {
-	s.loggerWithIdentity(ctx).Info("getting user identity")
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("getting user identity")
 
 	user, err := s.Client.GetUser(ctx)
 	if err != nil {
@@ -268,7 +275,8 @@ func (s *K8sService) GetUser(ctx context.Context) (string, error) {
 }
 
 func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
-	s.loggerWithIdentity(ctx).Info("checking cluster admin status")
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("checking cluster admin status")
 
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err != nil {
@@ -282,7 +290,8 @@ func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
 // GetUserInfo retrieves user identity and admin status in a single call
 // For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format)
 func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
-	s.loggerWithIdentity(ctx).Info("getting user info")
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("getting user info")
 
 	username, err := s.Client.GetUser(ctx)
 	if err != nil {
@@ -303,7 +312,8 @@ func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 }
 
 func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
-	s.loggerWithIdentity(ctx).Info("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
 
 	// Validate namespace if provided
 	if namespace != "" {
@@ -323,7 +333,8 @@ func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, gro
 }
 
 func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	s.loggerWithIdentity(ctx).Info("listing resources", "gvr", gvr, "namespace", namespace)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("listing resources", "gvr", gvr, "namespace", namespace)
 
 	// Validate namespace name if provided
 	if namespace != "" {
@@ -343,7 +354,8 @@ func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionR
 }
 
 func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	s.loggerWithIdentity(ctx).Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
 
 	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -365,7 +377,8 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 }
 
 func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	s.loggerWithIdentity(ctx).Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
 
 	// Validate namespace and resource name
 	if err := ValidateNamespaceName(namespace); err != nil {
@@ -394,7 +407,8 @@ func (s *K8sService) DiscoverResourceGVR(
 	group, resource, namespace string,
 	knownVersions []string,
 ) (schema.GroupVersionResource, error) {
-	s.loggerWithIdentity(ctx).Info("discovering resource GVR",
+	logger := s.loggerWithIdentity(ctx)
+	logger.Info("discovering resource GVR",
 		"group", group,
 		"resource", resource,
 		"namespace", namespace,

@@ -22,8 +22,9 @@ type portForwardRoundTripper struct {
 }
 
 func (t *portForwardRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	ctx := req.Context()
 	originalURL := req.URL.String()
-	forwarded, err := t.manager.ForwardURL(req.Context(), originalURL)
+	forwarded, err := t.manager.ForwardURL(ctx, originalURL)
 	if err != nil {
 		return nil, fmt.Errorf("port-forward failed for %s: %w", originalURL, err)
 	}
@@ -34,7 +35,7 @@ func (t *portForwardRoundTripper) RoundTrip(req *http.Request) (*http.Response, 
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse forwarded URL %s: %w", forwarded, err)
 		}
-		req = req.Clone(req.Context())
+		req = req.Clone(ctx)
 		req.URL = parsed
 	}
 

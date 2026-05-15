@@ -63,7 +63,7 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterf
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
 func NewDefaultK8sInternalClient(cfg DefaultK8sInternalClientConfig) (*K8sInternalClient, error) {
 	// Auto-detect in-cluster vs out-of-cluster config
-	baseConfig, err := GetKubernetesConfig()
+	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +305,8 @@ type impersonationRoundTripper struct {
 }
 
 func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	identity, err := IdentityFromContext(req.Context())
+	ctx := req.Context()
+	identity, err := IdentityFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -317,8 +318,7 @@ func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response
 		}
 	}
 
-	// Clone the request to avoid modifying the original (required by http.RoundTripper contract)
-	req2 := req.Clone(req.Context())
+	req2 := req.Clone(ctx)
 
 	// Set impersonation headers on the cloned request
 	req2.Header.Set("Impersonate-User", identity.UserID)

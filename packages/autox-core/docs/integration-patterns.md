@@ -313,7 +313,7 @@ func (a *App) CreatePipelineRunHandler(w http.ResponseWriter, r *http.Request, p
     ctx := r.Context()
     namespace := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
 
-    var req pipelines.CreatePipelineRunRequest
+    var req pipelines.CreatePipelineRunInput
     err := a.ReadJSON(w, r, &req)
     if err != nil {
         a.badRequestResponse(w, r, err)
@@ -343,7 +343,7 @@ package pipelines
 
 // PipelinesClientInterface defines the contract for Pipelines API operations
 type PipelinesClientInterface interface {
-    CreatePipelineRun(ctx context.Context, baseUrl string, req *CreatePipelineRunRequest) (*PipelineRun, error)
+    CreatePipelineRun(ctx context.Context, baseUrl string, req *CreatePipelineRunInput) (*PipelineRun, error)
     GetPipelineRun(ctx context.Context, baseUrl string, runID string) (*PipelineRun, error)
     ListPipelineRuns(ctx context.Context, baseUrl string, pipelineID string) ([]*PipelineRun, error)
 }
@@ -449,7 +449,7 @@ func (s *PipelinesService) resolveBaseUrl(ctx context.Context, opts PipelineTarg
 
 // CreatePipelineRun creates a pipeline run
 // Provide either Namespace (to discover DSPA) or BaseUrl (to use directly)
-func (s *PipelinesService) CreatePipelineRun(ctx context.Context, opts PipelineTargetOptions, req *CreatePipelineRunRequest) (*PipelineRun, error) {
+func (s *PipelinesService) CreatePipelineRun(ctx context.Context, opts PipelineTargetOptions, req *CreatePipelineRunInput) (*PipelineRun, error) {
     s.Logger.Info("creating pipeline run", "pipeline_id", req.PipelineID)
 
     baseUrl, err := s.resolveBaseUrl(ctx, opts)
@@ -547,7 +547,7 @@ func NewDefaultPipelinesClient(cfg DefaultPipelinesClientConfig) *PipelinesClien
     }
 }
 
-func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseUrl string, reqData *CreatePipelineRunRequest) (*PipelineRun, error) {
+func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseUrl string, reqData *CreatePipelineRunInput) (*PipelineRun, error) {
     url := fmt.Sprintf("%s/apis/v2beta1/runs", baseUrl)
 
     body, err := json.Marshal(reqData)
@@ -865,7 +865,7 @@ func TestPipelinesService_CreatePipelineRun_WithNamespace(t *testing.T) {
 
     // Mock Pipelines client for API calls
     mockPipelinesClient := &mocks.MockPipelinesClient{
-        CreatePipelineRunFunc: func(ctx context.Context, baseUrl string, req *pipelines.CreatePipelineRunRequest) (*pipelines.PipelineRun, error) {
+        CreatePipelineRunFunc: func(ctx context.Context, baseUrl string, req *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
             // Verify the service resolved the correct base URL
             assert.Equal(t, "http://dspa-server:8080", baseUrl)
             assert.Equal(t, "pipeline-123", req.PipelineID)
@@ -886,7 +886,7 @@ func TestPipelinesService_CreatePipelineRun_WithNamespace(t *testing.T) {
     // Test service orchestration logic
     run, err := service.CreatePipelineRun(context.Background(), pipelines.PipelineTargetOptions{
         Namespace: "test-namespace",
-    }, &pipelines.CreatePipelineRunRequest{
+    }, &pipelines.CreatePipelineRunInput{
         PipelineID: "pipeline-123",
     })
 
@@ -898,7 +898,7 @@ func TestPipelinesService_CreatePipelineRun_WithNamespace(t *testing.T) {
 func TestPipelinesService_CreatePipelineRun_WithBaseUrl(t *testing.T) {
     // Mock only the Pipelines client (K8s client not needed for direct URL)
     mockPipelinesClient := &mocks.MockPipelinesClient{
-        CreatePipelineRunFunc: func(ctx context.Context, baseUrl string, req *pipelines.CreatePipelineRunRequest) (*pipelines.PipelineRun, error) {
+        CreatePipelineRunFunc: func(ctx context.Context, baseUrl string, req *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error) {
             assert.Equal(t, "http://custom-dspa:8080", baseUrl)
             return &pipelines.PipelineRun{
                 ID:         "run-456",
@@ -916,7 +916,7 @@ func TestPipelinesService_CreatePipelineRun_WithBaseUrl(t *testing.T) {
     // Test direct URL path (no DSPA discovery needed)
     run, err := service.CreatePipelineRun(context.Background(), pipelines.PipelineTargetOptions{
         BaseUrl: "http://custom-dspa:8080",
-    }, &pipelines.CreatePipelineRunRequest{
+    }, &pipelines.CreatePipelineRunInput{
         PipelineID: "pipeline-123",
     })
 
@@ -944,7 +944,7 @@ func TestPipelinesService_DiscoverReadyDSPA_Error(t *testing.T) {
     // Test error handling when DSPA discovery fails
     _, err := service.CreatePipelineRun(context.Background(), pipelines.PipelineTargetOptions{
         Namespace: "test-namespace",
-    }, &pipelines.CreatePipelineRunRequest{
+    }, &pipelines.CreatePipelineRunInput{
         PipelineID: "pipeline-123",
     })
 
@@ -972,7 +972,7 @@ func TestPipelinesClient_CreatePipelineRun(t *testing.T) {
             assert.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
             
             // Verify request body
-            var body pipelines.CreatePipelineRunRequest
+            var body pipelines.CreatePipelineRunInput
             json.NewDecoder(req.Body).Decode(&body)
             assert.Equal(t, "pipeline-123", body.PipelineID)
             
@@ -993,7 +993,7 @@ func TestPipelinesClient_CreatePipelineRun(t *testing.T) {
     }, mockHttpClient)
 
     // Test client's HTTP request logic
-    run, err := client.CreatePipelineRun(context.Background(), "http://dspa:8080", &pipelines.CreatePipelineRunRequest{
+    run, err := client.CreatePipelineRun(context.Background(), "http://dspa:8080", &pipelines.CreatePipelineRunInput{
         PipelineID: "pipeline-123",
     })
 

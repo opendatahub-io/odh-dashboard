@@ -41,16 +41,16 @@ func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClientInter
 
 // --- Pipeline Run CRUD ---
 
-func (s *PipelinesService) CreatePipelineRun(ctx context.Context, namespace string, req *CreatePipelineRunRequest) (*PipelineRun, error) {
+func (s *PipelinesService) CreatePipelineRun(ctx context.Context, namespace string, input *CreatePipelineRunInput) (*PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("creating pipeline run", "namespace", namespace, "display_name", req.DisplayName)
+	logger.Info("creating pipeline run", "namespace", namespace, "display_name", input.DisplayName)
 
 	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	run, err := s.Client.CreatePipelineRun(ctx, baseURL, req)
+	run, err := s.Client.CreatePipelineRun(ctx, baseURL, input)
 	if err != nil {
 		s.Logger.Error("failed to create pipeline run", "error", err)
 		return nil, err
@@ -260,7 +260,7 @@ func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, namespace
 		return nil, err
 	}
 
-	nameFilter := BuildPipelineNameFilter(pipelineName)
+	nameFilter := buildPipelineNameFilter(pipelineName)
 
 	pipelinesResp, err := s.Client.ListPipelines(ctx, baseURL, nameFilter)
 	if err != nil {
@@ -486,7 +486,7 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pipelineName string) (string, error) {
 	const maxRetries = 3
 	for range maxRetries {
-		nameFilter := BuildPipelineNameFilter(pipelineName)
+		nameFilter := buildPipelineNameFilter(pipelineName)
 		pipelinesResp, err := s.Client.ListPipelines(ctx, baseURL, nameFilter)
 		if err != nil {
 			return "", fmt.Errorf("failed to list pipelines: %w", err)
@@ -517,9 +517,9 @@ func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pi
 
 // --- Aggregation ---
 
-// CollectVersionIDs returns all pipeline version IDs for a given pipeline.
+// collectVersionIDs returns all pipeline version IDs for a given pipeline.
 // Checks the discovery cache first, then falls back to the API.
-func (s *PipelinesService) CollectVersionIDs(ctx context.Context, namespace, pipelineID string) ([]string, error) {
+func (s *PipelinesService) collectVersionIDs(ctx context.Context, namespace, pipelineID string) ([]string, error) {
 	if pipelineID == "" {
 		return nil, nil
 	}
@@ -571,7 +571,7 @@ func (s *PipelinesService) GetAllPipelineRuns(ctx context.Context, namespace, pi
 		return nil, err
 	}
 
-	versionIDs, err := s.CollectVersionIDs(ctx, namespace, pipelineID)
+	versionIDs, err := s.collectVersionIDs(ctx, namespace, pipelineID)
 	if err != nil {
 		return nil, fmt.Errorf("error collecting pipeline version IDs: %w", err)
 	}
@@ -579,7 +579,7 @@ func (s *PipelinesService) GetAllPipelineRuns(ctx context.Context, namespace, pi
 		return nil, nil
 	}
 
-	filter, err := BuildRunFilter(versionIDs)
+	filter, err := buildRunFilter(versionIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error building filter: %w", err)
 	}
