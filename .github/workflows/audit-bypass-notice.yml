@@ -12,6 +12,7 @@ permissions:
 jobs:
   post-bypass-notice:
     if: >
+      github.repository == 'opendatahub-io/odh-dashboard' &&
       github.event.pull_request.merged == true &&
       contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
     runs-on: ubuntu-latest
