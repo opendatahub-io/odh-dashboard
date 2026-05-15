@@ -785,3 +785,64 @@ describe('API Keys Page (Admin)', () => {
     adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
   });
 });
+
+describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelAsService: true,
+        mySubscriptions: true,
+      }),
+    );
+
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'test-user', clusterAdmin: false },
+    });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      }),
+    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockSubscriptionDetails,
+      ),
+    ).as('initialSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
+  });
+
+  it('should navigate to subscriptions tab', () => {
+    apiKeysPage.visit();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
+    apiKeysPage
+      .findDescription()
+      .should('contain.text', 'Manage your API keys and view your subscription access');
+
+    apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findRows().should('have.length', 2);
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.url().should('include', '/maas/tokens/subscriptions');
+    apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
+
+    cy.contains('Models available to you through your subscriptions, with token limits.').should(
+      'exist',
+    );
+  });
+});

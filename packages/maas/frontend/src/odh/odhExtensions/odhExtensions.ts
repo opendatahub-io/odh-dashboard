@@ -7,6 +7,7 @@ import {
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
+export const MAAS_MY_SUBSCRIPTIONS = 'mySubscriptions';
 
 export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
 const ADMIN_USER = 'ADMIN_USER';
@@ -77,10 +78,24 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID],
+      disallowed: [MAAS_MY_SUBSCRIPTIONS],
     },
     properties: {
       id: 'maas-tokens-view',
       title: 'API keys',
+      href: '/maas/tokens',
+      section: 'gen-ai-studio',
+      path: '/maas/tokens/*',
+    },
+  },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+    },
+    properties: {
+      id: 'maas-tokens-subscriptions-view',
+      title: 'API keys and subscriptions',
       href: '/maas/tokens',
       section: 'gen-ai-studio',
       path: '/maas/tokens/*',

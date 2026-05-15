@@ -1,199 +1,72 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { PageSection } from '@patternfly/react-core';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
+import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
-import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
-import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
-import {
-  APIKeyStatus,
-  APIKeySearchRequest,
-  APIKey,
-  ApiKeyFilterDataType,
-  initialApiKeyFilterData,
-  emptyApiKeyFilterData,
-} from '~/app/types/api-key';
-import { ApiKeySortField } from './allKeys/columns';
-import CreateApiKeyModal from './CreateApiKeyModal';
-import EmptyApiKeysPage from './EmptyApiKeysPage';
-import ApiKeysTable from './allKeys/ApiKeysTable';
-import RevokeApiKeyModal from './RevokeApiKeyModal';
-import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
+import { useNavigate, useParams } from 'react-router-dom';
+import { URL_PREFIX } from '~/app/utilities/const';
+import ApiKeysTab from './ApiKeysTab';
+import SubscriptionsTab from './SubscriptionsTab';
 
-type SortDirection = 'asc' | 'desc';
-
-const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
-const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
-const DEFAULT_PER_PAGE = 50;
-const EXISTENCE_CHECK_REQUEST: APIKeySearchRequest = { pagination: { limit: 1, offset: 0 } };
+const API_KEYS_TAB = 'api-keys';
+const SUBSCRIPTIONS_TAB = 'subscriptions';
+const VALID_TABS = [API_KEYS_TAB, SUBSCRIPTIONS_TAB];
 
 const AllApiKeysPage: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
+  const dashboardConfigSpec = React.useContext(DashboardConfigContext);
+  const isMySubscriptionsEnabled = !!dashboardConfigSpec?.dashboardConfig.mySubscriptions;
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
 
-  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
+  const activeTab = tab && VALID_TABS.includes(tab) ? tab : API_KEYS_TAB;
 
-  const [filterData, setFilterData] = React.useState<ApiKeyFilterDataType>(initialApiKeyFilterData);
-  const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
-  const [sortField, setSortField] = React.useState<ApiKeySortField>(DEFAULT_SORT_FIELD);
-  const [sortDirection, setSortDirection] = React.useState<SortDirection>(DEFAULT_SORT_DIRECTION);
-
-  const searchRequest: APIKeySearchRequest = React.useMemo(
-    () => ({
-      filters: {
-        ...(filterData.username && { username: filterData.username }),
-        ...(filterData.statuses.length > 0 && { status: filterData.statuses }),
-      },
-      sort: { by: sortField, order: sortDirection },
-      pagination: { limit: perPage, offset: (page - 1) * perPage },
-    }),
-    [filterData, sortField, sortDirection, page, perPage],
-  );
-
-  const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
-
-  const [existenceResponse, existenceLoaded, , refreshExistence] =
-    useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
-  const hasAnyApiKeys = response.data.length > 0 || existenceResponse.data.length > 0;
-
-  const refreshAll = React.useCallback(() => {
-    refresh();
-    refreshExistence();
-  }, [refresh, refreshExistence]);
-
-  const [localUsername, setLocalUsername] = React.useState('');
-
-  const apiKeys = response.data;
-  const hasMore = response.has_more;
-  const { subscriptionDetails } = response;
-
-  const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
-
-  const [isFetching, setIsFetching] = React.useState(false);
-  React.useEffect(() => {
-    setIsFetching(false);
-  }, [response]);
-
-  const onUsernameChange = React.useCallback(
-    (value: string) => {
-      setFilterData((prev) => ({ ...prev, username: value }));
-      setPage(1);
-      setIsFetching(value !== localUsername);
+  const onSelectTab = React.useCallback(
+    (_event: React.MouseEvent, tabKey: string | number) => {
+      navigate(`${URL_PREFIX}/tokens/${String(tabKey)}`);
     },
-    [localUsername],
+    [navigate],
   );
-
-  const onStatusToggle = React.useCallback((status: APIKeyStatus) => {
-    setFilterData((prev) => ({
-      ...prev,
-      statuses: prev.statuses.includes(status)
-        ? prev.statuses.filter((s) => s !== status)
-        : [...prev.statuses, status],
-    }));
-    setPage(1);
-    setIsFetching(true);
-  }, []);
-
-  const onStatusClear = React.useCallback((status: APIKeyStatus) => {
-    setFilterData((prev) => ({
-      ...prev,
-      statuses: prev.statuses.filter((s) => s !== status),
-    }));
-    setPage(1);
-    setIsFetching(true);
-  }, []);
-
-  const onSort = React.useCallback((field: ApiKeySortField, direction: SortDirection) => {
-    setSortField(field);
-    setSortDirection(direction);
-    setPage(1);
-    setIsFetching(true);
-  }, []);
-
-  const onSetPage = React.useCallback((newPage: number) => {
-    setPage(newPage);
-    setIsFetching(true);
-  }, []);
-
-  const onPerPageSelect = React.useCallback((newPerPage: number, newPage: number) => {
-    setPerPage(newPerPage);
-    setPage(Math.max(1, newPage));
-    setIsFetching(true);
-  }, []);
-  const onClearFilters = React.useCallback(() => {
-    setFilterData(emptyApiKeyFilterData);
-    setPage(1);
-    setLocalUsername('');
-    setIsFetching(true);
-  }, []);
 
   return (
-    <>
-      {isModalOpen && (
-        <CreateApiKeyModal
-          onClose={(created) => {
-            setIsModalOpen(false);
-            if (created) {
-              refreshAll();
-            }
-          }}
-        />
+    <ApplicationsPage
+      title={isMySubscriptionsEnabled ? 'API keys and subscriptions' : 'API keys'}
+      description={
+        isMySubscriptionsEnabled
+          ? 'Manage your API keys and view your subscription access'
+          : 'Manage API keys that can be used to authenticate with model endpoints.'
+      }
+      loaded
+      empty={false}
+    >
+      {isMySubscriptionsEnabled ? (
+        <Tabs
+          activeKey={activeTab}
+          onSelect={onSelectTab}
+          aria-label="API keys and subscriptions tabs"
+          inset={{ default: 'insetNone' }}
+        >
+          <Tab
+            eventKey={API_KEYS_TAB}
+            title={<TabTitleText>API keys</TabTitleText>}
+            aria-label="API keys tab"
+            data-testid="api-keys-tab"
+          >
+            <PageSection isFilled>
+              <ApiKeysTab />
+            </PageSection>
+          </Tab>
+          <Tab
+            eventKey={SUBSCRIPTIONS_TAB}
+            title={<TabTitleText>Subscriptions</TabTitleText>}
+            aria-label="Subscriptions tab"
+            data-testid="subscriptions-tab"
+          >
+            <SubscriptionsTab />
+          </Tab>
+        </Tabs>
+      ) : (
+        <ApiKeysTab />
       )}
-      {revokeApiKey && revokeApiKey.name && (
-        <RevokeApiKeyModal
-          apiKey={revokeApiKey}
-          onClose={(revoked) => {
-            setRevokeApiKey(undefined);
-            if (revoked) {
-              refreshAll();
-            }
-          }}
-        />
-      )}
-      <ApplicationsPage
-        title="API keys"
-        description="Manage API keys that can be used to authenticate with model endpoints."
-        loaded={loaded && (response.data.length > 0 || existenceLoaded)}
-        loadError={error}
-        empty={loaded && existenceLoaded && !error && !hasAnyApiKeys}
-        emptyStatePage={<EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />}
-      >
-        {loaded && isMaasAdminLoaded && (
-          <PageSection isFilled>
-            <ApiKeysTable
-              onRevokeApiKey={setRevokeApiKey}
-              apiKeys={apiKeys}
-              subscriptionDetails={subscriptionDetails}
-              hasMore={hasMore}
-              page={page}
-              perPage={perPage}
-              sortField={sortField}
-              sortDirection={sortDirection}
-              onSetPage={onSetPage}
-              onPerPageSelect={onPerPageSelect}
-              onSort={onSort}
-              onClearFilters={onClearFilters}
-              isFetching={isFetching}
-              isMaasAdmin={isMaasAdmin}
-              toolbarContent={
-                <ApiKeysToolbar
-                  isMaasAdmin={isMaasAdmin}
-                  setIsModalOpen={setIsModalOpen}
-                  filterData={filterData}
-                  localUsername={localUsername}
-                  setLocalUsername={setLocalUsername}
-                  onUsernameChange={onUsernameChange}
-                  onStatusToggle={onStatusToggle}
-                  onStatusClear={onStatusClear}
-                  activeApiKeys={activeApiKeys}
-                  refresh={refreshAll}
-                  onClearFilters={onClearFilters}
-                />
-              }
-            />
-          </PageSection>
-        )}
-      </ApplicationsPage>
-    </>
+    </ApplicationsPage>
   );
 };
 

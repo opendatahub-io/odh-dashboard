@@ -28,6 +28,14 @@ class APIKeysPage {
     return cy.findByTestId('app-page-description');
   }
 
+  findApiKeysTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-tab');
+  }
+
+  findSubscriptionsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-tab');
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('api-keys-table');
   }

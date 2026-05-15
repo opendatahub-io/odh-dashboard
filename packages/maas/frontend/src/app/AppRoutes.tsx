@@ -42,6 +42,7 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<AllApiKeysPage />} />
+      <Route path="/:tab" element={<AllApiKeysPage />} />
       <Route path="*" element={<Navigate to={`${URL_PREFIX}/tokens`} replace />} />
     </Routes>
   );
