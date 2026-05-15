@@ -3,6 +3,9 @@ package pipelines
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/url"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -73,10 +76,49 @@ func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace stri
 			continue
 		}
 
-		logger.Info("found ready DSPA", "name", dspa.GetName(), "url", baseURL)
+		if err := validateDSPAURL(baseURL); err != nil {
+			logger.Warn("skipping DSPA with invalid URL", "name", dspa.GetName(), "url", baseURL, "error", err)
+			continue
+		}
+
+		logger.Info("found ready DSPA", "name", dspa.GetName(), "namespace", namespace)
 		s.dspaCache.set(namespace, baseURL)
 		return baseURL, nil
 	}
 
 	return "", fmt.Errorf("no ready DSPA found in namespace %s", namespace)
+}
+
+// validateDSPAURL ensures the base URL is safe to use as a pipeline server endpoint.
+// Blocks cloud metadata endpoints, loopback, link-local, and non-HTTP schemes.
+func validateDSPAURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("malformed URL: %w", err)
+	}
+
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("unsupported scheme %q: must be http or https", parsed.Scheme)
+	}
+
+	if parsed.User != nil {
+		return fmt.Errorf("URL must not contain credentials")
+	}
+
+	hostname := parsed.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("URL must contain a hostname")
+	}
+
+	ip := net.ParseIP(hostname)
+	if ip != nil {
+		if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			return fmt.Errorf("URL must not point to loopback or link-local address")
+		}
+		if strings.HasPrefix(hostname, "169.254.") {
+			return fmt.Errorf("URL must not point to cloud metadata endpoint")
+		}
+	}
+
+	return nil
 }

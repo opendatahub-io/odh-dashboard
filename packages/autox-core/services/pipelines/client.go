@@ -22,6 +22,9 @@ const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 // maxSuccessBodySize limits the size of success response bodies to prevent memory exhaustion.
 const maxSuccessBodySize = 10 << 20 // 10 MB
 
+// maxPaginationPages caps auto-paginating client methods to prevent unbounded iteration.
+const maxPaginationPages = 100
+
 // httpClientInterface wraps http.Client for testing
 type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -318,7 +321,8 @@ func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 	return nil
 }
 
-// ListPipelines retrieves all pipelines, paging through results
+// ListPipelines retrieves all pipelines, paging through results.
+// Capped at maxPaginationPages to prevent unbounded iteration from a malicious server.
 func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -327,7 +331,7 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 	var totalSize int32
 	pageToken := ""
 
-	for {
+	for range maxPaginationPages {
 		queryParams := url.Values{}
 		if filter != "" {
 			queryParams.Set("filter", filter)

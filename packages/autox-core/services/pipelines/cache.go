@@ -46,7 +46,13 @@ func (c *pipelineCache) get(key string) map[string]*DiscoveredPipeline {
 	}
 
 	entry.lastAccessed = time.Now()
-	return entry.pipelines
+
+	result := make(map[string]*DiscoveredPipeline, len(entry.pipelines))
+	for k, v := range entry.pipelines {
+		copied := *v
+		result[k] = &copied
+	}
+	return result
 }
 
 func (c *pipelineCache) set(key string, pipelines map[string]*DiscoveredPipeline) {
