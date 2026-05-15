@@ -19,10 +19,10 @@ type OGXCustomMetadata struct {
 	ProviderResourceID string `json:"provider_resource_id,omitempty"` // Full provider resource path from OGX
 }
 
-// LSDModel represents a model in our stable public API format.
+// OGXModel represents a model in our stable public API format.
 // This is the contract exposed to the frontend and should remain stable.
 // Changes to OGX's format are absorbed by the translation layer.
-type LSDModel struct {
+type OGXModel struct {
 	ID           string `json:"id"`            // Model identifier (e.g., "llama3.2:3b")
 	Type         string `json:"type"`          // Model type: "llm" or "embedding"
 	Provider     string `json:"provider"`      // Provider identifier (e.g., "ollama")
@@ -32,5 +32,5 @@ type LSDModel struct {
 // Note: Always create a bespoke type for list types, this creates minimal work later if implementing pagination
 // as the necessary metadata can be added at a later date without breaking the API.
 type OGXModelsData struct {
-	Models []LSDModel `json:"models"` // Complete list of all models
+	Models []OGXModel `json:"models"` // Complete list of all models
 }

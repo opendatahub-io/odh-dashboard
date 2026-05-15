@@ -15,7 +15,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8smocks"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +31,7 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ls.OGXClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ogx.OGXClientInterface {
 	f.CapturedURL = baseURL
 	return ogxmocks.NewMockOGXClient()
 }

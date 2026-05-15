@@ -12,7 +12,7 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
@@ -48,7 +48,7 @@ type App struct {
 	config                      config.EnvConfig
 	logger                      *slog.Logger
 	kubernetesClientFactory     k8s.KubernetesClientFactory
-	ogxClientFactory            ls.OGXClientFactory
+	ogxClientFactory            ogx.OGXClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
@@ -157,13 +157,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Initialize Open GenAI Stack client factory
-	var ogxClientFactory ls.OGXClientFactory
+	var ogxClientFactory ogx.OGXClientFactory
 	if cfg.MockOGXClient {
 		logger.Info("Using mock Open GenAI Stack client factory")
 		ogxClientFactory = ogxmocks.NewMockClientFactory()
 	} else {
 		logger.Info("Using real Open GenAI Stack client factory")
-		ogxClientFactory = ls.NewRealClientFactory()
+		ogxClientFactory = ogx.NewRealClientFactory()
 	}
 
 	// Initialize Pipeline Server client factory
@@ -262,7 +262,7 @@ func (app *App) Routes() http.Handler {
 	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
-	// LLamaStack
+	// Open GenAI Stack
 	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXModelsHandler))))
 	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXVectorStoresHandler))))
 

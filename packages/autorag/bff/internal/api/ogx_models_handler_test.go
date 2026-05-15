@@ -11,17 +11,17 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
-// newLSDHandlerTestApp creates a lightweight App wired with a mock Open GenAI Stack client factory
+// newOGXHandlerTestApp creates a lightweight App wired with a mock Open GenAI Stack client factory
 // and a discard logger, for testing OGX handler logic in isolation (no envtest needed).
 // A non-nil logger is required because error paths call app.logger.Error via serverErrorResponse.
-func newLSDHandlerTestApp(t *testing.T) *App {
+func newOGXHandlerTestApp(t *testing.T) *App {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return &App{
@@ -48,7 +48,7 @@ func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, 
 }
 
 func TestOGXModelsHandler_Success(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return all models successfully", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
@@ -103,7 +103,7 @@ func TestOGXModelsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should return empty array when Open GenAI Stack has no models", func(t *testing.T) {
-		emptyApp := newLSDHandlerTestApp(t)
+		emptyApp := newOGXHandlerTestApp(t)
 		emptyApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
@@ -124,7 +124,7 @@ func TestOGXModelsHandler_Success(t *testing.T) {
 }
 
 func TestOGXModelsHandler_ErrorCases(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -164,7 +164,7 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 500 when Open GenAI Stack client returns error", func(t *testing.T) {
-		errApp := newLSDHandlerTestApp(t)
+		errApp := newOGXHandlerTestApp(t)
 		errApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
@@ -181,11 +181,11 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 502 when Open GenAI Stack client returns a connection error", func(t *testing.T) {
-		lsErrApp := newLSDHandlerTestApp(t)
-		lsErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
+		ogxErrApp := newOGXHandlerTestApp(t)
+		ogxErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
 
-		rr, req := newHandlerTestRequest(t, lsErrApp)
-		lsErrApp.OGXModelsHandler(rr, req, nil)
+		rr, req := newHandlerTestRequest(t, ogxErrApp)
+		ogxErrApp.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 
@@ -203,7 +203,7 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 // mockErrorClient is a mock client that always returns a generic error
 type mockErrorClient struct{}
 
-var _ ls.OGXClientInterface = (*mockErrorClient)(nil)
+var _ ogx.OGXClientInterface = (*mockErrorClient)(nil)
 
 func (m *mockErrorClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
 	return nil, assert.AnError
@@ -216,7 +216,7 @@ func (m *mockErrorClient) ListProviders(ctx context.Context) ([]models.OGXProvid
 // mockEmptyClient is a mock client that returns an empty models list
 type mockEmptyClient struct{}
 
-var _ ls.OGXClientInterface = (*mockEmptyClient)(nil)
+var _ ogx.OGXClientInterface = (*mockEmptyClient)(nil)
 
 func (m *mockEmptyClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
 	return []models.OGXNativeModel{}, nil
@@ -229,12 +229,12 @@ func (m *mockEmptyClient) ListProviders(ctx context.Context) ([]models.OGXProvid
 // mockOGXErrClient is a mock client that returns a typed OGXError (connection failure)
 type mockOGXErrClient struct{}
 
-var _ ls.OGXClientInterface = (*mockOGXErrClient)(nil)
+var _ ogx.OGXClientInterface = (*mockOGXErrClient)(nil)
 
 func (m *mockOGXErrClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
-	return nil, ls.NewConnectionError("mock: could not reach Open GenAI Stack server")
+	return nil, ogx.NewConnectionError("mock: could not reach Open GenAI Stack server")
 }
 
 func (m *mockOGXErrClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
-	return nil, ls.NewConnectionError("mock: could not reach Open GenAI Stack server")
+	return nil, ogx.NewConnectionError("mock: could not reach Open GenAI Stack server")
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-type LSDVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
+type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
 
 // OGXVectorStoresHandler handles GET /api/v1/ogx/vector-stores
 // Returns available vector store providers from Open GenAI Stack Distribution,
@@ -21,7 +21,7 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	envelope := LSDVectorStoresEnvelope{
+	envelope := OGXVectorStoresEnvelope{
 		Data: providersData,
 	}
 

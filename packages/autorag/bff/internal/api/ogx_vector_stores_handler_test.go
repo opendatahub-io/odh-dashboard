@@ -12,7 +12,7 @@ import (
 )
 
 func TestOGXVectorStoresHandler_Success(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return vector_io providers only", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
@@ -60,7 +60,7 @@ func TestOGXVectorStoresHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should return empty array when Open GenAI Stack has no providers", func(t *testing.T) {
-		emptyApp := newLSDHandlerTestApp(t)
+		emptyApp := newOGXHandlerTestApp(t)
 		emptyApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
@@ -81,7 +81,7 @@ func TestOGXVectorStoresHandler_Success(t *testing.T) {
 }
 
 func TestOGXVectorStoresHandler_ErrorCases(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
@@ -135,7 +135,7 @@ func TestOGXVectorStoresHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 500 when Open GenAI Stack client returns error", func(t *testing.T) {
-		errApp := newLSDHandlerTestApp(t)
+		errApp := newOGXHandlerTestApp(t)
 		errApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
@@ -152,11 +152,11 @@ func TestOGXVectorStoresHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 502 when Open GenAI Stack client returns a connection error", func(t *testing.T) {
-		lsErrApp := newLSDHandlerTestApp(t)
-		lsErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
+		ogxErrApp := newOGXHandlerTestApp(t)
+		ogxErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
 
-		rr, req := newHandlerTestRequest(t, lsErrApp)
-		lsErrApp.OGXVectorStoresHandler(rr, req, nil)
+		rr, req := newHandlerTestRequest(t, ogxErrApp)
+		ogxErrApp.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 

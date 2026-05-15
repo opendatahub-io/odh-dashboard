@@ -19,7 +19,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -322,7 +322,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 
 		logger := helper.GetContextLoggerFromReq(r)
 
-		var ogxClient ls.OGXClientInterface
+		var ogxClient ogx.OGXClientInterface
 
 		if app.config.MockOGXClient {
 			// Mock mode: skip secret lookup entirely

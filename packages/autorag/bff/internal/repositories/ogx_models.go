@@ -28,18 +28,18 @@ func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXMode
 		return nil, fmt.Errorf("failed to list OGX models: %w", err)
 	}
 
-	allModels := make([]models.LSDModel, 0, len(nativeModels))
+	allModels := make([]models.OGXModel, 0, len(nativeModels))
 	var skipped, degraded int
 	for _, native := range nativeModels {
-		lsdModel, ok := translateOGXModel(native)
+		ogxModel, ok := translateOGXModel(native)
 		if !ok {
 			skipped++
 			continue
 		}
-		if lsdModel.Type == "unknown" {
+		if ogxModel.Type == "unknown" {
 			degraded++
 		}
-		allModels = append(allModels, lsdModel)
+		allModels = append(allModels, ogxModel)
 	}
 
 	if skipped > 0 || degraded > 0 {
@@ -62,13 +62,13 @@ func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXMode
 //   - provider and resource_path are optional — empty strings are acceptable.
 //
 // Returns false if the model should be skipped (missing ID).
-func translateOGXModel(native models.OGXNativeModel) (models.LSDModel, bool) {
+func translateOGXModel(native models.OGXNativeModel) (models.OGXModel, bool) {
 	if native.ID == "" {
 		slog.Warn("skipping Open GenAI Stack model with empty ID")
-		return models.LSDModel{}, false
+		return models.OGXModel{}, false
 	}
 
-	result := models.LSDModel{ID: native.ID}
+	result := models.OGXModel{ID: native.ID}
 
 	if native.CustomMetadata == nil {
 		// custom_metadata is absent — upstream schema may have changed.
