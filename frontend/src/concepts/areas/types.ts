@@ -61,6 +61,7 @@ export enum SupportedArea {
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
+  MAAS_ENDPOINTS = 'maas-endpoints',
   LLMD_SERVING = 'llmd-serving',
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',

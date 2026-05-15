@@ -3,12 +3,21 @@ import {
   RouteExtension,
   NavExtension,
   TaskItemExtension,
+  TabRoutePageExtension,
+  TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 
 export const MODEL_AS_SERVICE_ID = 'modelAsService';
 export const MAAS_AUTH_POLICIES = 'maasAuthPolicies';
+export const MAAS_ENDPOINTS = 'maas-endpoints';
 
-export type ODHExtensions = NavExtension | RouteExtension | AreaExtension | TaskItemExtension;
+export type ODHExtensions =
+  | NavExtension
+  | RouteExtension
+  | AreaExtension
+  | TaskItemExtension
+  | TabRoutePageExtension
+  | TabRouteTabExtension;
 const ADMIN_USER = 'ADMIN_USER';
 const MODELS_AS_SERVICE_READY = 'ModelsAsServiceReady';
 
@@ -71,6 +80,21 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
       title: 'Gen AI studio',
       group: '4_gen_ai_studio',
       iconRef: () => import('./GenAiStudioNavIcon'),
+    },
+  },
+  {
+    type: 'app.tab-route/tab',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, MAAS_ENDPOINTS],
+    },
+    properties: {
+      pageId: 'models-tab-page',
+      id: 'maas-endpoints',
+      title: 'MaaS endpoints',
+      component: () =>
+        import('~/app/AppRoutes').then((m) => ({
+          default: m.EndpointsTabRoutes,
+        })),
     },
   },
   {
