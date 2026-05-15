@@ -543,7 +543,7 @@ server:
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
 					Env: []corev1.EnvVar{
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
 						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
