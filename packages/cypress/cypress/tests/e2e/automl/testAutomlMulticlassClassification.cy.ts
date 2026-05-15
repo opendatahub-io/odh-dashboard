@@ -47,12 +47,12 @@ describe('AutoML Multiclass Classification E2E', { testIsolation: false }, () =>
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
+      cy.step('Select target column');
+      automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
+      automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
+
       cy.step('Select Multiclass Classification prediction type');
       automlConfigurePage.findTaskTypeCard('multiclass').click();
-
-      cy.step('Select label column');
-      automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
-      automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);
