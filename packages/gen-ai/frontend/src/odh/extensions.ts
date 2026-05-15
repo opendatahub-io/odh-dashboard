@@ -39,13 +39,9 @@ const extensions: (
       id: PLUGIN_GEN_AI,
       featureFlags: [GEN_AI_STUDIO],
       customCondition: ({ dscStatus }) =>
-        [
-          DataScienceStackComponent.LLAMA_STACK_OPERATOR,
-          DataScienceStackComponent.OGX_OPERATOR,
-        ].some((key) => {
-          const state = dscStatus?.components?.[key]?.managementState;
-          return state === 'Managed' || state === 'Unmanaged';
-        }),
+        ['Managed', 'Unmanaged'].includes(
+          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
+        ),
     },
   },
   {
