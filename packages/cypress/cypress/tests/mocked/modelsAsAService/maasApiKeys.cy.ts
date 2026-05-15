@@ -151,6 +151,7 @@ describe('API Keys Page', () => {
     // Clearing filters reveals the revoked key
     apiKeysPage.clearAllFilters();
     cy.wait('@apiKeysSearch');
+    cy.wait('@apiKeysSearch');
 
     apiKeysPage.findEmptyTableState().should('not.exist');
     apiKeysPage.findRows().should('have.length', 1);
@@ -162,6 +163,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
     apiKeysPage.visit();
+    cy.wait('@emptySearch');
     cy.wait('@emptySearch');
 
     apiKeysPage.findEmptyState().should('exist');

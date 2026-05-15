@@ -53,7 +53,7 @@ const AllApiKeysPage: React.FC = () => {
 
   const [existenceResponse, existenceLoaded, , refreshExistence] =
     useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
-  const hasAnyApiKeys = existenceResponse.data.length > 0;
+  const hasAnyApiKeys = response.data.length > 0 || existenceResponse.data.length > 0;
 
   const refreshAll = React.useCallback(() => {
     refresh();
@@ -130,9 +130,11 @@ const AllApiKeysPage: React.FC = () => {
     <>
       {isModalOpen && (
         <CreateApiKeyModal
-          onClose={() => {
+          onClose={(created) => {
             setIsModalOpen(false);
-            refreshAll();
+            if (created) {
+              refreshAll();
+            }
           }}
         />
       )}
@@ -150,9 +152,9 @@ const AllApiKeysPage: React.FC = () => {
       <ApplicationsPage
         title="API keys"
         description="Manage API keys that can be used to authenticate with model endpoints."
-        loaded={loaded && existenceLoaded}
+        loaded={loaded && (response.data.length > 0 || existenceLoaded)}
         loadError={error}
-        empty={existenceLoaded && !error && !hasAnyApiKeys}
+        empty={loaded && existenceLoaded && !error && !hasAnyApiKeys}
         emptyStatePage={<EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />}
       >
         {loaded && isMaasAdminLoaded && (
