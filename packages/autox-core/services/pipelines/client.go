@@ -11,6 +11,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"time"
 
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
@@ -78,6 +79,7 @@ func NewDefaultPipelinesClient(cfg DefaultPipelinesClientConfig) *PipelinesClien
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConns = 100
 	transport.MaxIdleConnsPerHost = 100
+	transport.ResponseHeaderTimeout = 20 * time.Second
 
 	if cfg.InsecureSkipVerify || cfg.RootCAs != nil {
 		if transport.TLSClientConfig == nil {
@@ -124,6 +126,9 @@ func (t *pipelinesRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 
 // CreatePipelineRun creates a new pipeline run
 func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
 	body, err := json.Marshal(input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -156,6 +161,9 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 
 // GetPipelineRun retrieves a single pipeline run by ID
 func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	if runID == "" {
 		return nil, fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
@@ -186,6 +194,9 @@ func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 
 // ListPipelineRuns queries the Kubeflow Pipelines API for runs
 func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	if params == nil {
 		params = &ListRunsParams{}
 	}
@@ -230,6 +241,9 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 
 // TerminateRun terminates a running pipeline
 func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	if runID == "" {
 		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
@@ -255,6 +269,9 @@ func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 
 // RetryRun retries a failed pipeline run
 func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	if runID == "" {
 		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
@@ -280,6 +297,9 @@ func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 
 // DeleteRun deletes a pipeline run
 func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID string) error {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	if runID == "" {
 		return fmt.Errorf("%w: runID is required", ErrInvalidInput)
 	}
@@ -305,6 +325,9 @@ func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 
 // ListPipelines retrieves all pipelines, paging through results
 func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	var allPipelines []Pipeline
 	var totalSize int32
 	pageToken := ""
@@ -359,6 +382,9 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 
 // GetPipelineVersion retrieves a pipeline version
 func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	if pipelineID == "" || versionID == "" {
 		return nil, fmt.Errorf("%w: pipelineID and versionID are required", ErrInvalidInput)
 	}
@@ -390,6 +416,9 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 
 // ListPipelineVersions retrieves all versions for a pipeline
 func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	if pipelineID == "" {
 		return nil, fmt.Errorf("%w: pipelineID is required", ErrInvalidInput)
 	}
@@ -420,6 +449,9 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 
 // CreatePipeline creates a new pipeline
 func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
 	if name == "" {
 		return nil, fmt.Errorf("%w: name is required", ErrInvalidInput)
 	}
@@ -457,6 +489,9 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 
 // UploadPipelineVersion uploads a new pipeline version from file content
 func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	if pipelineID == "" || versionName == "" {
 		return nil, fmt.Errorf("%w: pipelineID and versionName are required", ErrInvalidInput)
 	}
