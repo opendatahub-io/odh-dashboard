@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
@@ -26,16 +25,14 @@ func NewSecretRepository() *SecretRepository {
 	return &SecretRepository{}
 }
 
-// GetFilteredSecrets retrieves secrets from a namespace and filters them based on secretType.
-// secretType can be:
-//   - "" (empty): return all secrets
-//   - "storage": filter for secrets matching storage type requirements (e.g., S3)
+// GetFilteredSecrets retrieves secrets from a namespace, filters by type, and redacts sensitive data.
+// Returns domain-level SecretInfo — the handler maps to the response DTO.
 func (r *SecretRepository) GetFilteredSecrets(
 	k8sService *corek8s.K8sService,
 	ctx context.Context,
 	namespace string,
 	secretType string,
-) ([]models.SecretListItem, error) {
+) ([]corek8s.SecretInfo, error) {
 	secretInfos, err := k8sService.GetSecretInfos(ctx, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
@@ -51,20 +48,10 @@ func (r *SecretRepository) GetFilteredSecrets(
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
 
-	result := make([]models.SecretListItem, 0, len(filtered))
-	for _, secret := range filtered {
-		responseType := corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
-		redactedData := corek8s.RedactSecretData(secret.Data, allowedSecretKeys)
-
-		result = append(result, models.NewSecretListItem(
-			secret.UUID,
-			secret.Name,
-			responseType,
-			redactedData,
-			secret.DisplayName,
-			secret.Description,
-		))
+	for i := range filtered {
+		filtered[i].Type = corek8s.DetectSecretType(filtered[i], storageTypeRequiredKeys)
+		filtered[i].Data = corek8s.RedactSecretData(filtered[i].Data, allowedSecretKeys)
 	}
 
-	return result, nil
+	return filtered, nil
 }
