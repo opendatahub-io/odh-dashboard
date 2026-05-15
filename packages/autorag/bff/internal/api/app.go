@@ -19,6 +19,7 @@ import (
 	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
 	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -215,6 +216,19 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		Logger: logger,
 	}, autoxClient)
 
+	// Create autox-core Pipelines client and service
+	pipelinesCfg := corepipelines.PipelinesClientConfig{
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            rootCAs,
+	}
+	if pfManager != nil {
+		pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+	}
+	pipelinesClient := corepipelines.NewDefaultPipelinesClient(pipelinesCfg)
+	pipelinesService := corepipelines.NewPipelinesService(corepipelines.PipelinesServiceConfig{
+		Logger: logger,
+	}, pipelinesClient, k8sService)
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
@@ -222,11 +236,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		llamaStackClientFactory:     llamaStackClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
-		repositories:                repositories.NewRepositories(logger),
-		k8sService:                  k8sService,
-		testEnv:                     testEnv,
-		rootCAs:                     rootCAs,
-		portForwardManager:          pfManager,
+		repositories: repositories.NewRepositories(pipelinesService, repositories.PipelinesRepositoryConfig{
+			AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
+		}),
+		k8sService:         k8sService,
+		testEnv:            testEnv,
+		rootCAs:            rootCAs,
+		portForwardManager: pfManager,
 	}
 	return app, nil
 }
@@ -286,12 +302,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(LSDVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunsHandler)))))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.CreatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.TerminatePipelineRunHandler)))))
-	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.RetryPipelineRunHandler)))))
-	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.DeletePipelineRunHandler)))))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.CreatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.TerminatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.RetryPipelineRunHandler)))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.DeletePipelineRunHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()

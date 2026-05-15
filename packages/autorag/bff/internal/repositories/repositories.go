@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"log/slog"
+	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
@@ -13,11 +13,10 @@ type Repositories struct {
 	LSDVectorStores *LSDVectorStoresRepository
 	Secret          *SecretRepository
 	S3              *S3Repository
-	Pipeline        *PipelineRepository
-	PipelineRuns    *PipelineRunsRepository
+	Pipelines       *PipelinesRepository
 }
 
-func NewRepositories(_ *slog.Logger) *Repositories {
+func NewRepositories(pipelinesService *corepipelines.PipelinesService, pipelinesCfg PipelinesRepositoryConfig) *Repositories {
 	return &Repositories{
 		HealthCheck:     NewHealthCheckRepository(),
 		User:            NewUserRepository(),
@@ -26,7 +25,6 @@ func NewRepositories(_ *slog.Logger) *Repositories {
 		LSDVectorStores: NewLSDVectorStoresRepository(),
 		Secret:          NewSecretRepository(),
 		S3:              NewS3Repository(),
-		Pipeline:        NewPipelineRepository(),
-		PipelineRuns:    NewPipelineRunsRepository(),
+		Pipelines:       NewPipelinesRepository(pipelinesService, pipelinesCfg),
 	}
 }

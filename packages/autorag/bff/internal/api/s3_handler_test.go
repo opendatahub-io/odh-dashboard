@@ -120,7 +120,7 @@ func newS3HandlerTestApp(
 		logger:                  logger,
 		kubernetesClientFactory: k8Factory,
 		s3ClientFactory:         s3Factory,
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 	if opts != nil {
 		app.s3PostMaxFilePartBytes = opts.S3PostMaxFilePartBytes

@@ -28,7 +28,7 @@ func newLSDHandlerTestApp(t *testing.T) *App {
 		config:                  config.EnvConfig{Port: 4000},
 		logger:                  logger,
 		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		repositories:            repositories.NewRepositories(logger),
+		repositories:            repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
 	}
 }
 

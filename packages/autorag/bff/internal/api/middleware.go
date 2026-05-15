@@ -20,7 +20,6 @@ import (
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -203,58 +202,37 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// This middleware enforces RBAC-based authorization for service access in the namespace.
+// RequireAccessToService enforces RBAC-based authorization for service access in the namespace.
+// Performs a SSAR to check if the user can list DSPipelineApplications before proceeding.
 func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		// If authentication is disabled skip these steps.
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)
 			return
 		}
 
 		ctx := r.Context()
-		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-
-		if !ok || identity == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-			return
-		}
-
-		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-
-		// Apply DSPA authorization check to all endpoints that require namespace access
-		// This ensures consistent security across all services
-		// Namespace must be present in context (set by AttachNamespace middleware).
-		if namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && namespace != "" {
-			// Get Kubernetes client to perform SAR
-			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
-			if err != nil {
-				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-				return
-			}
-
-			// Perform SubjectAccessReview to check if user can list DSPipelineApplications
-			// This ensures users have proper permissions to access any service in the namespace
-			allowed, err := k8sClient.CanListDSPipelineApplications(ctx, identity, namespace)
-			if err != nil {
-				app.handleK8sClientError(w, r, err)
-				return
-			}
-
-			if !allowed {
-				app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
-				return
-			}
-
-			logger := helper.GetContextLoggerFromReq(r)
-			logger.Debug("User authorized to access services in namespace", "namespace", namespace)
-		}
-
 		logger := helper.GetContextLoggerFromReq(r)
-		logger.Debug("Request authorized")
+
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		allowed, err := app.k8sService.CanAccessResource(ctx, namespace, "list",
+			"datasciencepipelinesapplications.opendatahub.io", "datasciencepipelinesapplications", "")
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check permissions: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+			return
+		}
+
+		logger.Debug("User authorized to access services in namespace", "namespace", namespace)
 
 		next(w, r, ps)
 	}
@@ -1322,80 +1300,9 @@ func (app *App) discoverReadyDSPA(
 	return nil, nil
 }
 
-// AttachDiscoveredPipeline middleware discovers managed pipelines and attaches them to context.
-//
-// Middleware Chain Requirements:
-//   - Must be used AFTER: AttachNamespace, AttachPipelineServerClient
-//   - Returns 400 if prerequisites are missing
-//
-// Behavior:
-//   - Builds a definitions map from config (pipeline type → name prefix)
-//   - Calls DiscoverNamedPipelines to find all configured pipelines
-//   - Stores the result map in context at constants.DiscoveredPipelinesKey
-//   - Partial maps are allowed — handlers decide if their specific type is required
-//   - Returns 500 only if discovery fails with a hard API error
-//   - Logs discovery results for debugging
-//
-// Handlers using this middleware can retrieve discovered pipelines from context:
-//
-//	pipelines, _ := ctx.Value(constants.DiscoveredPipelinesKey).(map[string]*repositories.DiscoveredPipeline)
-//	discovered := pipelines["autorag"]
-func (app *App) AttachDiscoveredPipeline(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := r.Context()
-
-		// Get namespace from context (set by AttachNamespace middleware)
-		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		if !ok || namespace == "" {
-			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
-			return
-		}
-
-		// Get pipeline server client from context (set by AttachPipelineServerClient middleware)
-		pipelineClient, ok := ctx.Value(constants.PipelineServerClientKey).(pipelineserver.PipelineServerClientInterface)
-		if !ok || pipelineClient == nil {
-			app.badRequestResponse(w, r, fmt.Errorf("missing pipeline server client in context - ensure AttachPipelineServerClient middleware is used first"))
-			return
-		}
-
-		logger := helper.GetContextLoggerFromReq(r)
-
-		// Get pipeline server base URL from context (used as part of cache key)
-		pipelineServerBaseURL, _ := ctx.Value(constants.PipelineServerBaseURLKey).(string)
-
-		// Build definitions map: pipeline type key → name prefix
-		definitions := map[string]string{
-			"autorag": app.config.AutoRAGPipelineNamePrefix,
-		}
-
-		// Discover named pipelines in the namespace
-		pipelines, err := app.repositories.Pipeline.DiscoverNamedPipelines(pipelineClient, ctx, namespace, pipelineServerBaseURL, definitions)
-		if err != nil {
-			logger.Error("Failed to discover AutoRAG pipelines",
-				"namespace", namespace,
-				"error", err)
-			app.serverErrorResponseWithMessage(w, r,
-				fmt.Errorf("failed to discover AutoRAG pipeline: %w", err),
-				fmt.Sprintf("failed to discover AutoRAG pipeline in namespace %s - check that the pipeline server is accessible", namespace))
-			return
-		}
-
-		if autoragPipeline, found := pipelines["autorag"]; found {
-			logger.Debug("Discovered AutoRAG pipeline",
-				"namespace", namespace,
-				"pipelineId", autoragPipeline.PipelineID,
-				"pipelineVersionId", autoragPipeline.PipelineVersionID)
-		} else {
-			logger.Debug("No AutoRAG pipeline discovered in namespace", "namespace", namespace)
-		}
-
-		// Attach discovered pipelines map to context (may be empty)
-		ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, pipelines)
-		r = r.WithContext(ctx)
-
-		next(w, r, ps)
-	}
-}
+// AttachDiscoveredPipeline is deprecated — pipeline discovery is now handled by the
+// PipelinesRepository via autox-core's PipelinesService. Pipeline run handlers no
+// longer need this middleware.
 
 // preserveRawPath wraps an http.Handler so that percent-encoded path segments
 // (e.g. %2F inside an S3 key) survive exactly one level of decoding in the

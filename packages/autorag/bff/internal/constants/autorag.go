@@ -16,6 +16,9 @@ const (
 	// DefaultPipelineVersionSuffix is the release version suffix appended to pipeline version names.
 	// Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
 	DefaultPipelineVersionSuffix = "3.5.0-ea.1"
+
+	// Embedded pipeline directory name (matches upstream repo structure)
+	PipelineDirAutoRAG = "documents_rag_optimization_pipeline"
 )
 
 var ValidOptimizationMetrics = map[string]bool{
