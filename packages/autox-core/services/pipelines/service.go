@@ -104,6 +104,19 @@ func (s *PipelinesService) TerminateRun(ctx context.Context, namespace, runID st
 		return err
 	}
 
+	run, err := s.Client.GetPipelineRun(ctx, baseURL, runID)
+	if err != nil {
+		if errors.Is(err, ErrPipelineNotFound) {
+			return ErrPipelineRunNotFound
+		}
+		return err
+	}
+
+	state := strings.ToUpper(run.State)
+	if !terminatableStates[state] {
+		return fmt.Errorf("%w: run %s is in state %s; only PENDING, RUNNING, or PAUSED runs can be terminated", ErrInvalidRunState, runID, state)
+	}
+
 	if err := s.Client.TerminateRun(ctx, baseURL, runID); err != nil {
 		s.Logger.Error("failed to terminate pipeline run", "run_id", runID, "error", err)
 		return err
@@ -121,6 +134,19 @@ func (s *PipelinesService) RetryRun(ctx context.Context, namespace, runID string
 		return err
 	}
 
+	run, err := s.Client.GetPipelineRun(ctx, baseURL, runID)
+	if err != nil {
+		if errors.Is(err, ErrPipelineNotFound) {
+			return ErrPipelineRunNotFound
+		}
+		return err
+	}
+
+	state := strings.ToUpper(run.State)
+	if !retryableStates[state] {
+		return fmt.Errorf("%w: run %s is in state %s; only FAILED or CANCELED runs can be retried", ErrInvalidRunState, runID, state)
+	}
+
 	if err := s.Client.RetryRun(ctx, baseURL, runID); err != nil {
 		s.Logger.Error("failed to retry pipeline run", "run_id", runID, "error", err)
 		return err
@@ -136,6 +162,19 @@ func (s *PipelinesService) DeleteRun(ctx context.Context, namespace, runID strin
 	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
 		return err
+	}
+
+	run, err := s.Client.GetPipelineRun(ctx, baseURL, runID)
+	if err != nil {
+		if errors.Is(err, ErrPipelineNotFound) {
+			return ErrPipelineRunNotFound
+		}
+		return err
+	}
+
+	state := strings.ToUpper(run.State)
+	if !deletableStates[state] {
+		return fmt.Errorf("%w: run %s is in state %s; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", ErrInvalidRunState, runID, state)
 	}
 
 	if err := s.Client.DeleteRun(ctx, baseURL, runID); err != nil {

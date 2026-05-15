@@ -173,7 +173,7 @@ func (app *App) mapPipelineError(w http.ResponseWriter, r *http.Request, err err
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if errors.Is(err, corepipelines.ErrInvalidInput) {
+	if errors.Is(err, corepipelines.ErrInvalidInput) || errors.Is(err, corepipelines.ErrInvalidRunState) {
 		app.badRequestResponse(w, r, err)
 		return
 	}

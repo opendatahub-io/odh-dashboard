@@ -202,46 +202,26 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 }
 
 // --- Pipeline Runs: Mutations ---
-
-var terminatableStates = map[string]bool{"PENDING": true, "RUNNING": true, "PAUSED": true}
-var retryableStates = map[string]bool{"FAILED": true, "CANCELED": true}
-var deletableStates = map[string]bool{"SUCCEEDED": true, "FAILED": true, "CANCELED": true}
+// State validation (terminatable/retryable/deletable) is handled by autox-core.
+// Ownership validation (run belongs to a discovered AutoML pipeline) is automl-specific.
 
 func (r *PipelinesRepository) TerminateRun(ctx context.Context, namespace, runID string) error {
-	run, err := r.GetOwnedRun(ctx, namespace, runID)
-	if err != nil {
+	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
 		return err
-	}
-	if !terminatableStates[strings.ToUpper(run.State)] {
-		return NewValidationError(fmt.Sprintf(
-			"run %s is in state %s and cannot be terminated; only PENDING, RUNNING, or PAUSED runs can be terminated",
-			run.RunID, run.State))
 	}
 	return r.core.TerminateRun(ctx, namespace, runID)
 }
 
 func (r *PipelinesRepository) RetryRun(ctx context.Context, namespace, runID string) error {
-	run, err := r.GetOwnedRun(ctx, namespace, runID)
-	if err != nil {
+	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
 		return err
-	}
-	if !retryableStates[strings.ToUpper(run.State)] {
-		return NewValidationError(fmt.Sprintf(
-			"run %s is in state %s and cannot be retried; only FAILED or CANCELED runs can be retried",
-			run.RunID, run.State))
 	}
 	return r.core.RetryRun(ctx, namespace, runID)
 }
 
 func (r *PipelinesRepository) DeleteRun(ctx context.Context, namespace, runID string) error {
-	run, err := r.GetOwnedRun(ctx, namespace, runID)
-	if err != nil {
+	if _, err := r.GetOwnedRun(ctx, namespace, runID); err != nil {
 		return err
-	}
-	if !deletableStates[strings.ToUpper(run.State)] {
-		return NewValidationError(fmt.Sprintf(
-			"run %s is in state %s and cannot be deleted; only SUCCEEDED, FAILED, or CANCELED runs can be deleted",
-			run.RunID, run.State))
 	}
 	return r.core.DeleteRun(ctx, namespace, runID)
 }
