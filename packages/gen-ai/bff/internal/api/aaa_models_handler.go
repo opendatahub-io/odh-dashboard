@@ -37,7 +37,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	sourcesParam := r.URL.Query().Get("sources")
 	requestedSources := parseModelSources(sourcesParam)
 
-	var allModels []models.AAModel
+	var aaModels []models.AAModel
 
 	// Fetch namespace and custom endpoint models if requested
 	if requestedSources[models.ModelSourceTypeNamespace] || requestedSources[models.ModelSourceTypeCustomEndpoint] {
@@ -56,7 +56,7 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 		// Filter models based on requested sources
 		for _, model := range k8sModels {
 			if requestedSources[model.ModelSourceType] {
-				allModels = append(allModels, model)
+				aaModels = append(aaModels, model)
 			}
 		}
 	}
@@ -68,12 +68,12 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 			// Log error but don't fail the entire request
 			app.logger.Error("failed to fetch MaaS models", "error", err)
 		} else {
-			allModels = append(allModels, maasModels...)
+			aaModels = append(aaModels, maasModels...)
 		}
 	}
 
 	aaModelsEnvelope := ModelsAAEnvelope{
-		Data: allModels,
+		Data: aaModels,
 	}
 	err := app.WriteJSON(w, http.StatusOK, aaModelsEnvelope, nil)
 	if err != nil {
