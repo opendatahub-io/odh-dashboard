@@ -55,8 +55,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	if err := applyKustomizeParams(dashboard, manifests, r.Platform); err != nil {
 		setReadyCondition(dashboard, metav1.ConditionFalse, "KustomizeParamsFailed", err.Error())
-		//nolint:errcheck
-		r.Status().Update(ctx, dashboard)
+
+		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after kustomize params failure")
+		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to apply kustomize params: %w", err)
 	}
@@ -68,8 +70,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.Namespace))
 		if err != nil {
 			setReadyCondition(dashboard, metav1.ConditionFalse, "RenderFailed", err.Error())
-			//nolint:errcheck
-			r.Status().Update(ctx, dashboard)
+
+			if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+				logger.Error(statusErr, "Failed to update status after render failure")
+			}
 
 			return ctrl.Result{}, fmt.Errorf("failed to render manifests from %s: %w", m, err)
 		}
@@ -88,8 +92,10 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		Resources: allResources,
 	}); err != nil {
 		setReadyCondition(dashboard, metav1.ConditionFalse, "DeployFailed", err.Error())
-		//nolint:errcheck
-		r.Status().Update(ctx, dashboard)
+
+		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after deploy failure")
+		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to deploy resources: %w", err)
 	}
@@ -97,6 +103,13 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
 	if err != nil {
 		logger.Error(err, "Failed to extract dashboard URL")
+		setReadyCondition(dashboard, metav1.ConditionFalse, "URLExtractionFailed", err.Error())
+
+		if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
+			logger.Error(statusErr, "Failed to update status after URL extraction failure")
+		}
+
+		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
 	}
 
 	dashboard.Status.URL = url

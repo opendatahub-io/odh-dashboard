@@ -15,6 +15,8 @@ const (
 // This is defined locally because it is not yet part of odh-platform-utilities.
 type GatewaySpec struct {
 	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$`
 	Domain string `json:"domain"`
 }
 

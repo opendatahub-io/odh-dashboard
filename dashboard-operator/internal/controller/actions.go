@@ -51,8 +51,21 @@ func extractDashboardURL(ctx context.Context, cli client.Client, namespace strin
 	}
 
 	if len(rl.Items) == 1 && len(rl.Items[0].Status.Ingress) > 0 {
-		if host := rl.Items[0].Status.Ingress[0].Host; host != "" {
-			return "https://" + host, nil
+		ingress := rl.Items[0].Status.Ingress[0]
+
+		admitted := false
+		for _, cond := range ingress.Conditions {
+			if cond.Type == routev1.RouteAdmitted && cond.Status == "True" {
+				admitted = true
+
+				break
+			}
+		}
+
+		if admitted {
+			if host := ingress.Host; host != "" {
+				return "https://" + host, nil
+			}
 		}
 	}
 
