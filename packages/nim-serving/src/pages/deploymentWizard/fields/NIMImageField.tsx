@@ -9,9 +9,49 @@ import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsLink from '../../projectSettings/NIMSettingsLink';
-import { useNIMImages, type NIMImagesData } from '../../../api/models/hooks';
-import type { NIMModelInfo } from '../../../api/models/types';
-import { getImageRepository, normalizeVersion } from '../../../api/models/utils';
+import { useNIMImages, type NIMImagesData } from '../../../api/images/hooks';
+import type { NIMImage } from '../../../api/images/types';
+import { getImageRepository, normalizeVersion } from '../../../api/images/utils';
+
+export type NIMImageFieldExternalData = {
+  nimImages: NIMImagesData;
+  accountStatus: NIMAccountStatus;
+};
+
+const useNIMImageFieldExternalData = (dependencies?: {
+  project?: { projectName?: string };
+}): {
+  data: NIMImageFieldExternalData;
+  loaded: boolean;
+  loadError?: Error;
+} => {
+  const projectName = dependencies?.project?.projectName;
+  const {
+    status: accountStatus,
+    nimAccount,
+    loaded: accountLoaded,
+  } = useNIMAccountStatus(projectName);
+
+  const {
+    data: nimImages,
+    loaded: imagesLoaded,
+    loadError,
+  } = useNIMImages({
+    project: dependencies?.project,
+    nimAccount,
+  });
+
+  const loaded = !projectName || (imagesLoaded && accountLoaded);
+
+  return React.useMemo(
+    () => ({
+      data: { nimImages, accountStatus },
+      loaded,
+      loadError,
+    }),
+    [nimImages, accountStatus, loaded, loadError],
+  );
+};
 
 export type NIMImageDependencies = {
   project: ProjectSectionType;
@@ -31,21 +71,21 @@ type NIMImageOption = TypeaheadSelectOption & NIMImageFieldValue;
 
 const getImageOptionKey = (image: NIMImageFieldValue): string => `${image.repository}:${image.tag}`;
 
-const getNIMImageOptions = (modelInfos: NIMModelInfo[]): NIMImageOption[] => {
+const getNIMImageOptions = (images: NIMImage[]): NIMImageOption[] => {
   const seen = new Set<string | number>();
-  return modelInfos.flatMap((modelInfo) => {
-    if (!modelInfo.namespace) {
+  return images.flatMap((image) => {
+    if (!image.namespace) {
       return [];
     }
-    const repository = getImageRepository(modelInfo.namespace, modelInfo.name);
-    return (modelInfo.tags ?? []).reduce<NIMImageOption[]>((acc, tag) => {
+    const repository = getImageRepository(image.namespace, image.name);
+    return (image.tags ?? []).reduce<NIMImageOption[]>((acc, tag) => {
       const normalizedTag = normalizeVersion(tag);
       const optionValue = getImageOptionKey({ repository, tag: normalizedTag });
       if (!seen.has(optionValue)) {
         seen.add(optionValue);
         acc.push({
           value: optionValue,
-          content: `${modelInfo.displayName ?? modelInfo.name} - ${normalizedTag}`,
+          content: `${image.displayName ?? image.name} - ${normalizedTag}`,
           repository,
           tag: normalizedTag,
         });
@@ -58,7 +98,7 @@ const getNIMImageOptions = (modelInfos: NIMModelInfo[]): NIMImageOption[] => {
 type NIMImageFieldComponentProps = {
   value?: NIMImageFieldValue;
   onChange: (value: NIMImageFieldValue) => void;
-  externalData?: { data: NIMImagesData; loaded: boolean; loadError?: Error };
+  externalData?: { data: NIMImageFieldExternalData; loaded: boolean; loadError?: Error };
   isEditing?: boolean;
   isDisabled?: boolean;
 };
@@ -70,15 +110,12 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
   isEditing,
   isDisabled,
 }) => {
-  const modelInfos = React.useMemo(
-    () => externalData?.data.modelInfos ?? [],
-    [externalData?.data.modelInfos],
+  const images = React.useMemo(
+    () => externalData?.data.nimImages.images ?? [],
+    [externalData?.data.nimImages.images],
   );
 
-  const options: NIMImageOption[] = React.useMemo(
-    () => getNIMImageOptions(modelInfos),
-    [modelInfos],
-  );
+  const options: NIMImageOption[] = React.useMemo(() => getNIMImageOptions(images), [images]);
 
   const selectedKey = React.useMemo(() => {
     if (!value?.repository) {
@@ -102,12 +139,10 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
     [options, onChange, isEditing],
   );
 
-  const projectName = externalData?.data.projectName;
-  const imagesLoaded = externalData?.loaded ?? false;
+  const projectName = externalData?.data.nimImages.projectName;
+  const accountStatus = externalData?.data.accountStatus ?? NIMAccountStatus.LOADING;
 
-  const { status: accountStatus, loaded: accountLoaded } = useNIMAccountStatus(projectName);
-
-  if (!externalData || !accountLoaded || !imagesLoaded) {
+  if (!externalData || !externalData.loaded) {
     return (
       <FormGroup label="NIM image" fieldId="nim-image-selection" isRequired>
         <Skeleton shape="square" width="450px" height="36px" />
@@ -125,7 +160,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
   const isNIMUnconfigured =
     (accountStatus === NIMAccountStatus.NOT_FOUND || accountStatus === NIMAccountStatus.ERROR) &&
-    modelInfos.length === 0;
+    images.length === 0;
 
   if (isNIMUnconfigured) {
     const isInvalidKey = accountStatus === NIMAccountStatus.ERROR;
@@ -175,7 +210,7 @@ const NIMImageFieldComponent: React.FC<NIMImageFieldComponentProps> = ({
 
 export type NIMImageFieldType = WizardField<
   NIMImageFieldValue,
-  NIMImagesData,
+  NIMImageFieldExternalData,
   NIMImageDependencies
 >;
 
@@ -193,5 +228,5 @@ export const NIMImageFieldWizardField: NIMImageFieldType = {
     resolveDependencies: (formData) => ({ project: formData.project }),
   },
   component: NIMImageFieldComponent,
-  externalDataHook: useNIMImages,
+  externalDataHook: useNIMImageFieldExternalData,
 };

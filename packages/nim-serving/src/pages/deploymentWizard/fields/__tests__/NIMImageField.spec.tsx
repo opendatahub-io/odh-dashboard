@@ -3,33 +3,20 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useAccessReview } from '@odh-dashboard/internal/api/useAccessReview';
-import useNIMAccountStatus, { NIMAccountStatus } from '../../../../api/accounts/hooks';
-import type { NIMImagesData } from '../../../../api/models/hooks';
+import { NIMAccountStatus } from '../../../../api/accounts/hooks';
+import type { NIMImageFieldExternalData } from '../NIMImageField';
 
 jest.mock('@odh-dashboard/internal/api/useAccessReview', () => ({
   useAccessReview: jest.fn(),
 }));
 
-jest.mock('../../../../api/accounts/hooks', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  NIMAccountStatus: {
-    LOADING: 'LOADING',
-    NOT_FOUND: 'NOT_FOUND',
-    PENDING: 'PENDING',
-    ERROR: 'ERROR',
-    READY: 'READY',
-  },
-}));
-
 const mockUseAccessReview = jest.mocked(useAccessReview);
-const mockUseNIMAccountStatus = jest.mocked(useNIMAccountStatus);
 
 describe('NIMImageFieldComponent', () => {
   const mockOnChange = jest.fn();
 
   const renderComponent = (externalData?: {
-    data: NIMImagesData;
+    data: NIMImageFieldExternalData;
     loaded: boolean;
     loadError?: Error;
   }) => {
@@ -39,7 +26,7 @@ describe('NIMImageFieldComponent', () => {
       .component as React.FC<{
       value?: { repository: string; tag: string };
       onChange: (value: { repository: string; tag: string }) => void;
-      externalData?: { data: NIMImagesData; loaded: boolean; loadError?: Error };
+      externalData?: { data: NIMImageFieldExternalData; loaded: boolean; loadError?: Error };
     }>;
 
     return render(
@@ -55,20 +42,15 @@ describe('NIMImageFieldComponent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([true, true]);
   });
 
   it('should show info alert when no project is selected', () => {
     renderComponent({
-      data: { modelInfos: [] },
+      data: {
+        nimImages: { images: [] },
+        accountStatus: NIMAccountStatus.NOT_FOUND,
+      },
       loaded: true,
     });
 
@@ -77,18 +59,13 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show "no key configured" error with settings link for admin users', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([true, true]);
 
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.NOT_FOUND,
+      },
       loaded: true,
     });
 
@@ -100,18 +77,13 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show "no key configured" error with ask-admin text for non-admin users', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([false, true]);
 
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.NOT_FOUND,
+      },
       loaded: true,
     });
 
@@ -129,18 +101,13 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show "invalid key" error with settings link for admin users', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.ERROR,
-      nimAccount: null,
-      errorMessages: ['API key failed validation.'],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([true, true]);
 
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.ERROR,
+      },
       loaded: true,
     });
 
@@ -153,18 +120,13 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show "invalid key" error with ask-admin text for non-admin users', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.ERROR,
-      nimAccount: null,
-      errorMessages: ['API key failed validation.'],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([false, true]);
 
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.ERROR,
+      },
       loaded: true,
     });
 
@@ -181,18 +143,13 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show spinner while RBAC check is loading', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
     mockUseAccessReview.mockReturnValue([false, false]);
 
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.NOT_FOUND,
+      },
       loaded: true,
     });
 
@@ -203,17 +160,11 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show skeleton while account status and images are loading', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: false,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
-
     renderComponent({
-      data: { modelInfos: [], projectName: 'test-project' },
+      data: {
+        nimImages: { images: [], projectName: 'test-project' },
+        accountStatus: NIMAccountStatus.LOADING,
+      },
       loaded: false,
     });
 
@@ -224,26 +175,20 @@ describe('NIMImageFieldComponent', () => {
   });
 
   it('should show typeahead selector when NIM is configured with models', () => {
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.READY,
-      nimAccount: null,
-      errorMessages: [],
-      loaded: true,
-      refresh: jest.fn(),
-      startRevalidation: jest.fn(),
-    });
-
     renderComponent({
       data: {
-        modelInfos: [
-          {
-            name: 'test-model',
-            displayName: 'Test Model',
-            namespace: 'nim/test',
-            tags: ['1.0.0', '2.0.0'],
-          },
-        ],
-        projectName: 'test-project',
+        nimImages: {
+          images: [
+            {
+              name: 'test-model',
+              displayName: 'Test Model',
+              namespace: 'nim/test',
+              tags: ['1.0.0', '2.0.0'],
+            },
+          ],
+          projectName: 'test-project',
+        },
+        accountStatus: NIMAccountStatus.READY,
       },
       loaded: true,
     });

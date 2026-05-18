@@ -1,4 +1,4 @@
-export type NIMModelInfo = {
+export type NIMImage = {
   name: string;
   displayName?: string;
   shortDescription?: string;
