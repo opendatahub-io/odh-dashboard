@@ -7,6 +7,7 @@ import type {
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   DeployedModelServingDetails,
+  ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
@@ -18,6 +19,7 @@ const extensions: (
   | ProjectDetailsSettingsCardExtension
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
+  | ModelServingExcludeDeploymentExtension
 )[] = [
   {
     type: 'app.area',
@@ -54,6 +56,17 @@ const extensions: (
     properties: {
       platform: NIM_ID,
       ServingDetailsComponent: () => import('./src/pages/deployments/NIMServingDetails'),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.platform/exclude-deployment',
+    properties: {
+      platform: NIM_ID,
+      excludeFromPlatform: 'kserve',
+      filter: () => import('./src/nimOwnership').then((m) => m.isNIMOwned),
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],
