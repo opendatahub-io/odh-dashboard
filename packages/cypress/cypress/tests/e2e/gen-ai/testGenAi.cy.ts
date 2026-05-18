@@ -119,7 +119,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       }
 
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to AI asset endpoints page');
       genAiPlayground.navigateToAssets(projectName);
@@ -146,11 +146,11 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Navigate to playground');
       genAiPlayground.navigate(projectName);
 
-      cy.step(`Select ${testData.modelDeploymentName} model from dropdown`);
-      genAiPlayground.selectModelFromDropdown(testData.modelDeploymentName);
+      cy.step(`Select ${testData.inferenceServiceName} model from dropdown`);
+      genAiPlayground.selectModelFromDropdown(testData.inferenceServiceName);
 
-      cy.step(`Verify ${testData.modelDeploymentName} model is selected`);
-      genAiPlayground.verifyModelIsSelected(testData.modelDeploymentName);
+      cy.step(`Verify ${testData.inferenceServiceName} model is selected`);
+      genAiPlayground.verifyModelIsSelected(testData.inferenceServiceName);
 
       cy.step('Verify message input is ready and functional');
       genAiPlayground.findMessageInput().should('be.enabled').and('be.visible');
