@@ -13,7 +13,8 @@
   },
   "exports": {
     "./extensions": "./extensions.ts",
-    "./deployUtils": "./src/deployUtils.ts"
+    "./deployUtils": "./src/deployUtils.ts",
+    "./deploymentEndpoints": "./src/deploymentEndpoints.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
