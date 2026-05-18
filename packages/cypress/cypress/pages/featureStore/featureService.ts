@@ -36,7 +36,7 @@ class FeatureServicesTable extends Contextual<HTMLElement> {
 
 class FeatureServiceTableRow extends TableRow {
   shouldHaveFeatureServiceName(name: string) {
-    this.find().find('[data-label="Name"]').should('contains.text', name);
+    this.find().find('[data-label="Name"]').should('contain.text', name);
     return this;
   }
 
