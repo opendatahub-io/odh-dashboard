@@ -202,83 +202,94 @@ var _ = Describe("ModelsAAHandler", func() {
 var _ = Describe("parseModelSources", func() {
 	It("should return default sources when input is empty", func() {
 		t := GinkgoT()
-		sources := parseModelSources("")
+		sources, invalid := parseModelSources("")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace], "Should include namespace by default")
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint], "Should include custom_endpoint by default")
 		assert.False(t, sources[models.ModelSourceTypeMaaS], "Should not include maas by default")
+		assert.Empty(t, invalid, "Should have no invalid sources")
 	})
 
 	It("should parse single source: namespace", func() {
 		t := GinkgoT()
-		sources := parseModelSources("namespace")
+		sources, invalid := parseModelSources("namespace")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.False(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
 	It("should parse single source: custom_endpoint", func() {
 		t := GinkgoT()
-		sources := parseModelSources("custom_endpoint")
+		sources, invalid := parseModelSources("custom_endpoint")
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.False(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
 	It("should parse single source: maas", func() {
 		t := GinkgoT()
-		sources := parseModelSources("maas")
+		sources, invalid := parseModelSources("maas")
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
 	It("should parse multiple sources: namespace,maas", func() {
 		t := GinkgoT()
-		sources := parseModelSources("namespace,maas")
+		sources, invalid := parseModelSources("namespace,maas")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
 	It("should parse multiple sources: custom_endpoint,maas", func() {
 		t := GinkgoT()
-		sources := parseModelSources("custom_endpoint,maas")
+		sources, invalid := parseModelSources("custom_endpoint,maas")
 
 		assert.False(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
 	It("should parse all sources: namespace,custom_endpoint,maas", func() {
 		t := GinkgoT()
-		sources := parseModelSources("namespace,custom_endpoint,maas")
+		sources, invalid := parseModelSources("namespace,custom_endpoint,maas")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 
-	It("should ignore invalid sources", func() {
+	It("should return invalid sources", func() {
 		t := GinkgoT()
-		sources := parseModelSources("namespace,invalid,maas,unknown")
+		sources, invalid := parseModelSources("namespace,invalid,maas,unknown")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.False(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Contains(t, invalid, "invalid", "Should track invalid source")
+		assert.Contains(t, invalid, "unknown", "Should track unknown source")
+		assert.Len(t, invalid, 2, "Should have exactly 2 invalid sources")
 	})
 
 	It("should handle whitespace in source list", func() {
 		t := GinkgoT()
-		sources := parseModelSources("namespace , maas , custom_endpoint")
+		sources, invalid := parseModelSources("namespace , maas , custom_endpoint")
 
 		assert.True(t, sources[models.ModelSourceTypeNamespace])
 		assert.True(t, sources[models.ModelSourceTypeCustomEndpoint])
 		assert.True(t, sources[models.ModelSourceTypeMaaS])
+		assert.Empty(t, invalid)
 	})
 })
 
