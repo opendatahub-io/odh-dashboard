@@ -388,7 +388,10 @@ export const applyModelType = (
   modelType: string,
 ): InferenceServiceKind => {
   if (!isKnownServingRuntimeModelType(modelType)) {
-    console.error(`Invalid model type for kserve deployment: ${modelType}`);
+    console.error(
+      `Invalid model type for kserve deployment: ${modelType}. Skipping applyModelType.`,
+    );
+    return inferenceService;
   }
 
   const result = structuredClone(inferenceService);
