@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -35,9 +36,16 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	// Parse sources query parameter (comma-separated list: namespace,custom_endpoint,maas)
 	// Default to namespace and custom_endpoint if not specified
 	sourcesParam := r.URL.Query().Get("sources")
-	requestedSources := parseModelSources(sourcesParam)
+	requestedSources, invalidSources := parseModelSources(sourcesParam)
 
-	var aaModels []models.AAModel
+	// Validate that no invalid sources were provided
+	if len(invalidSources) > 0 {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid source(s): %s", strings.Join(invalidSources, ", ")))
+		return
+	}
+
+	// Initialize as empty slice to ensure JSON marshals to [] instead of null
+	aaModels := make([]models.AAModel, 0)
 
 	// Fetch namespace and custom endpoint models if requested
 	if requestedSources[models.ModelSourceTypeNamespace] || requestedSources[models.ModelSourceTypeCustomEndpoint] {
@@ -84,20 +92,26 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 
 // parseModelSources parses the sources query parameter into a map of requested source types.
 // If sourcesParam is empty, defaults to namespace and custom_endpoint.
-// Example: "namespace,maas" -> {namespace: true, maas: true}
-func parseModelSources(sourcesParam string) map[models.ModelSourceTypeEnum]bool {
+// Returns valid sources map and a slice of invalid source tokens.
+// Example: "namespace,maas" -> {namespace: true, maas: true}, []
+// Example: "namespace,invalid" -> {namespace: true}, ["invalid"]
+func parseModelSources(sourcesParam string) (map[models.ModelSourceTypeEnum]bool, []string) {
 	sources := make(map[models.ModelSourceTypeEnum]bool)
+	var invalidSources []string
 
 	// Default sources if not specified
 	if sourcesParam == "" {
 		sources[models.ModelSourceTypeNamespace] = true
 		sources[models.ModelSourceTypeCustomEndpoint] = true
-		return sources
+		return sources, invalidSources
 	}
 
 	// Parse comma-separated list
 	for _, source := range strings.Split(sourcesParam, ",") {
 		source = strings.TrimSpace(source)
+		if source == "" {
+			continue // Skip empty tokens
+		}
 		switch models.ModelSourceTypeEnum(source) {
 		case models.ModelSourceTypeNamespace:
 			sources[models.ModelSourceTypeNamespace] = true
@@ -105,10 +119,13 @@ func parseModelSources(sourcesParam string) map[models.ModelSourceTypeEnum]bool 
 			sources[models.ModelSourceTypeCustomEndpoint] = true
 		case models.ModelSourceTypeMaaS:
 			sources[models.ModelSourceTypeMaaS] = true
+		default:
+			// Track invalid source tokens
+			invalidSources = append(invalidSources, source)
 		}
 	}
 
-	return sources
+	return sources, invalidSources
 }
 
 // fetchMaaSModels fetches models from MaaS BFF and converts them to AAModel format
@@ -121,7 +138,7 @@ func (app *App) fetchMaaSModels(ctx context.Context, namespace string) ([]models
 
 	// Call MaaS BFF to get models
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/api/v1/models?namespace="+namespace, nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/api/v1/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call MaaS BFF: %w", err)
 	}

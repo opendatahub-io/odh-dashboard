@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -33,7 +34,7 @@ func (app *App) MaaSModelsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// MaaS BFF returns response wrapped in envelope: {"data": {"object": "list", "data": [...]}}
 	// The X-MaaS-Return-All-Models: true header (set in middleware) ensures enriched model details
 	var bffResponse models.MaaSBFFModelsResponse
-	err := maasClient.Call(ctx, "GET", "/api/v1/models?namespace="+namespace, nil, &bffResponse)
+	err := maasClient.Call(ctx, "GET", "/api/v1/models?namespace="+url.QueryEscape(namespace), nil, &bffResponse)
 	if err != nil {
 		app.handleBFFClientError(w, r, err)
 		return

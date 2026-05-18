@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -35,8 +36,9 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	// Validate required fields
-	if tokenRequest.Subscription == "" {
+	// Validate required fields (trim whitespace to catch whitespace-only values)
+	subscription := strings.TrimSpace(tokenRequest.Subscription)
+	if subscription == "" {
 		app.badRequestResponse(w, r, fmt.Errorf("subscription is required"))
 		return
 	}
@@ -53,8 +55,9 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		Data: models.MaaSBFFAPIKeyRequestData{
 			Name:         keyName,
 			Description:  tokenRequest.Description,
-			Subscription: tokenRequest.Subscription,
-			Ephemeral:    true, // Always ephemeral for playground sessions
+			ExpiresIn:    tokenRequest.ExpiresIn, // Forward TTL if provided
+			Subscription: subscription,           // Use trimmed value
+			Ephemeral:    true,                   // Always ephemeral for playground sessions
 		},
 	}
 
