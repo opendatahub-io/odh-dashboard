@@ -18,6 +18,8 @@ import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines
 import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
@@ -27,6 +29,7 @@ import {
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import { EXPERIMENTS_PAGE_TITLE } from '../shared/const';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 
@@ -34,6 +37,7 @@ const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
+  const { available: mlflowAvailable, loaded: mlflowLoaded } = useIsMlflowCRAvailable();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -47,8 +51,9 @@ const MlflowExperimentsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      loaded
-      empty={false}
+      loaded={mlflowLoaded}
+      empty={mlflowLoaded && !mlflowAvailable}
+      emptyStatePage={<MLflowNotConfigured />}
       noHeader={!isTopLevel}
       title={
         isTopLevel ? (
@@ -94,19 +99,20 @@ const MlflowExperimentsPage: React.FC = () => {
       }
       keepBodyWrapper={false}
     >
-      {/* key={workspace} forces remount when the project changes. The remote's
-          v6 BrowserRouter doesn't detect the host's v7 pushState navigation,
-          so remounting is the cleanest way to reset with the new workspace. */}
-      <LazyCodeRefComponent
-        key={workspace}
-        component={loadWrapper}
-        props={{ onBreadcrumbChange: setBreadcrumbs }}
-        fallback={
-          <Bullseye>
-            <Spinner />
-          </Bullseye>
-        }
-      />
+      {/* Only load the federated remote when the BFF has discovered an MLflow CR.
+          When empty=true, ApplicationsPage does not render children. */}
+      {mlflowAvailable && (
+        <LazyCodeRefComponent
+          key={workspace}
+          component={loadWrapper}
+          props={{ onBreadcrumbChange: setBreadcrumbs }}
+          fallback={
+            <Bullseye>
+              <Spinner />
+            </Bullseye>
+          }
+        />
+      )}
     </ApplicationsPage>
   );
 };

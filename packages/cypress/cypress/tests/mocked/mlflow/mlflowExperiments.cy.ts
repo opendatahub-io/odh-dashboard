@@ -90,8 +90,18 @@ describe('MLflow Experiments page wrapper', () => {
         .should('contain', invalidWorkspace);
     });
 
-    it('should show unavailable state when MLflow is not configured', () => {
+    it('should show not-configured empty state when MLflow BFF reports unconfigured', () => {
       initIntercepts({ mlflowConfigured: false });
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNotConfiguredEmptyState().should('be.visible');
+      mlflowExperiments.findNotConfiguredAdminLink().should('be.visible');
+    });
+
+    it('should show service-unavailable empty state when MLflow remote fails to load', () => {
+      // mlflowConfigured: true passes the "not configured" gate, but the
+      // Module Federation remote is not running in the mocked environment,
+      // so loadRemote rejects and the page falls back to MLflowUnavailable.
+      initIntercepts({ mlflowConfigured: true });
       mlflowExperiments.visit(PROJECT_A);
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
     });

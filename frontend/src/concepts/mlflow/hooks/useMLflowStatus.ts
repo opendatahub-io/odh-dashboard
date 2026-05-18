@@ -40,7 +40,8 @@ export const useMLflowStatus = createSharedPollingStore<MLflowStatus>({
       // eslint-disable-next-line no-console
       console.warn('MLflow BFF status check failed (will suppress until recovery)', e);
     }
-    return previous;
+    // Mark loaded so consumers (e.g. embedded Experiments page) do not spin forever on first failure.
+    return { ...previous, loaded: true };
   },
   onReset: () => {
     lastPollErrored = false;

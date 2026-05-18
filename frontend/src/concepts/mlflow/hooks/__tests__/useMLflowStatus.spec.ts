@@ -80,16 +80,15 @@ describe('useMLflowStatus', () => {
     });
   });
 
-  it('should preserve previous value when API call fails', async () => {
+  it('should mark loaded and preserve configured when the first API call fails', async () => {
     const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
     mockAxiosGet.mockRejectedValue(new Error('Network error'));
     const renderResult = testHook(useMLflowStatus)(true);
 
-    // First fetch fails — stays at initialValue (no state change, so no extra render)
     await waitFor(() => {
-      expect(mockAxiosGet).toHaveBeenCalledTimes(1);
+      expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
     });
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
+    expect(mockAxiosGet).toHaveBeenCalledTimes(1);
   });
 
   it('should keep last successful value on transient error', async () => {
@@ -226,11 +225,11 @@ describe('useMLflowStatus', () => {
 
     const renderResult = testHook(useMLflowStatus)(true);
 
-    // First poll fails — stays at initialValue
+    // First poll fails — configured stays false but loaded is set so UI can proceed
     await waitFor(() => {
-      expect(mockAxiosGet).toHaveBeenCalledTimes(1);
+      expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
     });
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
+    expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
     mockAxiosGet.mockResolvedValueOnce({ data: { configured: true } });
     jest.advanceTimersByTime(POLL_INTERVAL);
