@@ -1,5 +1,4 @@
 import { pollUntilSuccess } from './baseCommands';
-import { enableGenAiBackend, disableGenAiFeatures } from './genAi';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult, MlflowExperimentRunData } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -39,21 +38,6 @@ export const isMlflowOperatorManaged = (): Cypress.Chainable<boolean> =>
     .then((result) => {
       if (result.exitCode !== 0) {
         throw new Error(`Failed to read mlflowoperator state: ${maskSensitiveInfo(result.stderr)}`);
-      }
-      return result.stdout.replace(/"/g, '').trim() === 'Managed';
-    });
-
-/**
- * Check if Gen AI (OGX operator) is currently set to Managed in the DSC.
- */
-export const isGenAiEnabled = (): Cypress.Chainable<boolean> =>
-  cy
-    .exec(`oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.ogx.managementState}"`, {
-      failOnNonZeroExit: false,
-    })
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`Failed to read ogx state: ${maskSensitiveInfo(result.stderr)}`);
       }
       return result.stdout.replace(/"/g, '').trim() === 'Managed';
     });
@@ -546,28 +530,22 @@ export const disableMlflowFeatures = (
 
 /**
  * Enable all features required for Prompt Management:
- * 1. Enable Gen AI backend (OGX operator, genAiStudio flag)
- * 2. Enable MLflow backend (operator, CR, tracking pod readiness)
- * 3. Verify DSC status reflects both operators as Managed
- * 4. Single sidebar poll for "Prompts" nav item (confirms frontend picked up the state)
+ * 1. Enable MLflow backend (operator, CR, tracking pod readiness)
+ * 2. Verify DSC status reflects MLflow operator as Managed
+ * 3. Single sidebar poll for "Prompts" nav item (confirms frontend picked up the state)
  *
- * Polls backend resources first so the sidebar check is a quick confirmation,
- * not a long discovery loop.
+ * OGX/Gen AI backend setup is handled by Jenkins before the test runs.
  */
 export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
-  cy.step('Enable Gen AI backend (required for Prompts nav)');
-  return enableGenAiBackend()
+  cy.step('Enable MLflow backend (required for Prompts nav)');
+  return enableMlflowBackend()
     .then(() => {
-      cy.step('Enable MLflow backend (required for Prompts nav)');
-      return enableMlflowBackend();
-    })
-    .then(() => {
-      cy.step('Verify DSC status reflects both operators as Managed');
-      return waitForDSCComponentsManaged(['ogx', 'mlflowoperator']);
+      cy.step('Verify DSC status reflects MLflow operator as Managed');
+      return waitForDSCComponentsManaged(['mlflowoperator']);
     })
     .then(() => {
       cy.step('Establish browser session for remote entry check');
-      cy.visitWithLogin('/');
+      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true');
       return cy.get('#page-sidebar', { timeout: 15000 });
     })
     .then(() => {
@@ -575,9 +553,8 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
       return waitForMlflowRemoteEntry();
     })
     .then(() => {
-      cy.step('Wait for dashboard backend to reflect both operators as Managed');
+      cy.step('Wait for dashboard backend to reflect MLflow operator as Managed');
       return waitForDashboardDSCStatus({
-        ogx: 'Managed',
         mlflowoperator: 'Managed',
       });
     })
@@ -588,23 +565,15 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
 };
 
 /**
- * Restore MLflow and Gen AI features to their pre-test state.
+ * Restore MLflow features to their pre-test state.
  *
  * @param operatorWasManaged - If true, the operator was already Managed before the test.
  * @param crExisted - If true, the MLflow CR already existed before the test.
- * @param genAiWasEnabled - If true, Gen AI features were already enabled before the test.
  */
 export const disablePromptManagementFeatures = (
   operatorWasManaged = true,
   crExisted = true,
-  genAiWasEnabled = true,
-): Cypress.Chainable<undefined> =>
-  disableMlflowFeatures(operatorWasManaged, crExisted).then(() => {
-    if (!genAiWasEnabled) {
-      cy.step('Disable Gen AI features (were not enabled before test)');
-      disableGenAiFeatures();
-    }
-  });
+): Cypress.Chainable<undefined> => disableMlflowFeatures(operatorWasManaged, crExisted);
 
 /**
  * Get the MLflow tracking server URL from the MLflow CR status.

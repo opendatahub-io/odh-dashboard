@@ -4,7 +4,6 @@ import {
   disablePromptManagementFeatures,
   isMlflowOperatorManaged,
   doesMlflowCRExist,
-  isGenAiEnabled,
 } from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
@@ -19,7 +18,6 @@ describe('Verify Prompt Management page', () => {
   let projectName: string;
   let operatorWasManaged = true;
   let crExisted = true;
-  let genAiWasEnabled = true;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -40,16 +38,13 @@ describe('Verify Prompt Management page', () => {
           crExisted = v;
         }),
       )
-      .then(() =>
-        isGenAiEnabled().then((v) => {
-          genAiWasEnabled = v;
-          cy.step(
-            `Pre-test state: operator=${operatorWasManaged ? 'Managed' : 'Removed'}, CR=${
-              crExisted ? 'exists' : 'absent'
-            }, GenAI=${genAiWasEnabled ? 'enabled' : 'disabled'}`,
-          );
-        }),
-      )
+      .then(() => {
+        cy.step(
+          `Pre-test state: operator=${operatorWasManaged ? 'Managed' : 'Removed'}, CR=${
+            crExisted ? 'exists' : 'absent'
+          }`,
+        );
+      })
       .then(() => {
         cy.step('Enable all features required for Prompt Management');
         return enablePromptManagementFeatures();
@@ -57,7 +52,7 @@ describe('Verify Prompt Management page', () => {
   });
 
   after(() => {
-    disablePromptManagementFeatures(operatorWasManaged, crExisted, genAiWasEnabled);
+    disablePromptManagementFeatures(operatorWasManaged, crExisted);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
@@ -70,7 +65,7 @@ describe('Verify Prompt Management page', () => {
       const prompt = testData.prompts[0];
 
       cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Navigate to Prompt Management page');
       promptManagement.visit(projectName);
