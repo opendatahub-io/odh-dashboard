@@ -73,7 +73,7 @@ jobs:
           PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
           REF=$(echo "$PR_DATA" | jq -r '.headRefName')
-          HR=$(echo "$PR_DATA" | jq -r 'if .headRepository then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+          HR=$(echo "$PR_DATA" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
           echo "→ Preflight $MODE for PR #$ISSUE_NUMBER"
           MATRIX=$(jq -nc --arg n "$ISSUE_NUMBER" --arg m "$MODE" --arg s "$SHA" --arg r "$REF" --arg h "${HR:-$REPO}" \
             '[{"pr_number":$n,"mode":$m,"head_sha":$s,"head_ref":$r,"head_repo":$h}]')
@@ -99,7 +99,7 @@ jobs:
             NUM=$(echo "$pr_json" | jq -r '.number')
             SHA=$(echo "$pr_json" | jq -r '.headRefOid')
             REF=$(echo "$pr_json" | jq -r '.headRefName')
-            HR=$(echo "$pr_json" | jq -r 'if .headRepository then .headRepository.owner.login + "/" + .headRepository.name else empty end')
+            HR=$(echo "$pr_json" | jq -r 'if .headRepository.owner then .headRepository.owner.login + "/" + .headRepository.name else empty end')
             HR="${HR:-$REPO}"
             LABELS=$(echo "$pr_json" | jq -r '[.labels[].name] | join(",")')
 
