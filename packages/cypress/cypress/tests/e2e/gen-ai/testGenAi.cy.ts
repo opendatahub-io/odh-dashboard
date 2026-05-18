@@ -7,12 +7,7 @@ import {
 } from '../../../utils/oc_commands/project';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
-import {
-  enableGenAiFeatures,
-  disableGenAiFeatures,
-  cleanupServingRuntimeTemplate,
-  deployGenAiModel,
-} from '../../../utils/oc_commands/genAi';
+import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
 import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -59,7 +54,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
           testData = yaml.load(yamlContent) as GenAiTestData;
           hardwareProfileName = testData.hardwareProfileName;
         })
-        .then(() => enableGenAiFeatures())
         .then(() => getVllmCpuAmd64RuntimeInfo())
         .then((info) => {
           servingRuntimeName = info.singleModelServingName;
@@ -90,8 +84,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     if (skipTest) {
       return;
     }
-
-    disableGenAiFeatures();
 
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
