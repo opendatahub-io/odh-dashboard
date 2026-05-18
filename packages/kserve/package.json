@@ -18,7 +18,8 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/model-serving": "*"
+    "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/plugin-core": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
