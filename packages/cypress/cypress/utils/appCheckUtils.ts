@@ -1,33 +1,37 @@
-import * as yaml from 'js-yaml';
-
 /**
- * Reads and parses the rhoai-app.yaml YAML file and returns a boolean based on the 'hidden' value.
- * @returns Cypress chainable boolean indicating whether RHOAI is hidden.
- */
-export function isRhoaiHidden(): Cypress.Chainable<boolean> {
-  const rhoaiYamlPath = '../../manifests/rhoai/apps/rhoai/rhoai-app.yaml';
-
-  return cy.readFile(rhoaiYamlPath).then((fileContent) => {
-    // Parse the YAML content
-    const parsedYaml = yaml.load(fileContent) as { spec?: { hidden?: boolean } };
-
-    // Extract the "hidden" property
-    const isHidden = parsedYaml.spec?.hidden === true;
-
-    return isHidden;
-  });
-}
-
-/**
- * Filters the applications list by excluding RHOAI if it is hidden=true in the rhoai-app.yaml.
+ * Filters out applications that have spec.hidden === true in their OdhApplication CR.
+ * Queries the cluster for all OdhApplication CRs and excludes any with hidden set.
+ * @param applicationNamespace - The namespace containing OdhApplication CRs.
  * @param apps - Array of application names.
  * @returns Cypress chainable array of filtered application names.
  */
-export function filterRhoaiIfHidden(apps: string[]): Cypress.Chainable<string[]> {
-  return isRhoaiHidden().then((isHidden) => {
-    const filteredApps = isHidden ? apps.filter((app) => app !== 'rhoai') : apps;
-    return filteredApps;
-  });
+export function filterHiddenApps(
+  applicationNamespace: string,
+  apps: string[],
+): Cypress.Chainable<string[]> {
+  return cy
+    .exec(`oc get OdhApplication -n ${applicationNamespace} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0 || !result.stdout.trim()) {
+        cy.log(`Failed to query OdhApplication CRs: ${result.stderr}`);
+        return cy.wrap(apps);
+      }
+
+      const items: { metadata: { name: string }; spec?: { hidden?: boolean } }[] =
+        JSON.parse(result.stdout).items || [];
+
+      const hiddenNames = new Set(
+        items.filter((item) => item.spec?.hidden === true).map((item) => item.metadata.name),
+      );
+
+      if (hiddenNames.size > 0) {
+        cy.log(`Filtering out hidden apps: ${[...hiddenNames].join(', ')}`);
+      }
+
+      return cy.wrap(apps.filter((app) => !hiddenNames.has(app)));
+    });
 }
 
 /**
