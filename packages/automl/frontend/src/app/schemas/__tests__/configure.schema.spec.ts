@@ -29,7 +29,7 @@ describe('createConfigureSchema', () => {
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(false);
     });
@@ -41,7 +41,7 @@ describe('createConfigureSchema', () => {
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
-        label_column: 'col1',
+        target_column: 'col1',
       };
 
       for (const taskType of [TASK_TYPE_BINARY, TASK_TYPE_MULTICLASS, TASK_TYPE_REGRESSION]) {
@@ -58,14 +58,61 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_TIMESERIES,
-        target: 'target_col',
+        target_column: 'target_col',
         id_column: 'id_col',
         timestamp_column: 'ts_col',
       });
       expect(result.success).toBe(true);
     });
 
-    it('should not require label_column when task_type is empty', () => {
+    it('should require target_column for all task types', () => {
+      for (const taskType of TASK_TYPES) {
+        const data: Record<string, unknown> = {
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: taskType,
+        };
+        if (taskType === TASK_TYPE_TIMESERIES) {
+          data.id_column = 'id_col';
+          data.timestamp_column = 'ts_col';
+        }
+        const result = schema.full.safeParse(data);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const paths = result.error.issues.map((i) => i.path.join('.'));
+          expect(paths).toContain('target_column');
+        }
+      }
+    });
+
+    it('should reject whitespace-only target_column for all task types', () => {
+      for (const taskType of TASK_TYPES) {
+        const data: Record<string, unknown> = {
+          ...schema.defaults,
+          display_name: 'test',
+          train_data_secret_name: 'secret',
+          train_data_bucket_name: 'bucket',
+          train_data_file_key: 'file.csv',
+          task_type: taskType,
+          target_column: '   ',
+        };
+        if (taskType === TASK_TYPE_TIMESERIES) {
+          data.id_column = 'id_col';
+          data.timestamp_column = 'ts_col';
+        }
+        const result = schema.full.safeParse(data);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          const paths = result.error.issues.map((i) => i.path.join('.'));
+          expect(paths).toContain('target_column');
+        }
+      }
+    });
+
+    it('should not require target_column when task_type is empty', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
         display_name: 'test',
@@ -73,12 +120,94 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
       });
-      // Should fail because task_type is invalid (empty), NOT because label_column is missing
+      // Should fail because task_type is invalid (empty), NOT because target_column is missing
       expect(result.success).toBe(false);
       if (!result.success) {
         const paths = result.error.issues.map((i) => i.path.join('.'));
         expect(paths).toContain('task_type');
-        expect(paths).not.toContain('label_column');
+        expect(paths).not.toContain('target_column');
+      }
+    });
+
+    it('should reject target_column equal to timestamp_column for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'same_col',
+        id_column: 'id_col',
+        timestamp_column: 'same_col',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must be different from timestamp column',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should reject target_column equal to id_column for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'same_col',
+        id_column: 'same_col',
+        timestamp_column: 'ts_col',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must be different from ID column',
+            }),
+          ]),
+        );
+      }
+    });
+
+    it('should reject target_column included in known_covariates_names for timeseries', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'target_col',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+        known_covariates_names: ['covar1', 'target_col', 'covar2'],
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const targetIssues = result.error.issues.filter(
+          (i) => i.path.join('.') === 'target_column',
+        );
+        expect(targetIssues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              message: 'Target column must not be included in known covariates',
+            }),
+          ]),
+        );
       }
     });
 
@@ -90,7 +219,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(true);
     });
@@ -103,7 +232,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -123,7 +252,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(true);
     });
@@ -136,7 +265,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -150,12 +279,12 @@ describe('createConfigureSchema', () => {
       // 250 × 'é' (U+00E9) = 250 characters but 500 bytes in UTF-8.
       const result = schema.full.safeParse({
         ...schema.defaults,
-        display_name: '\u00e9'.repeat(250),
+        display_name: 'é'.repeat(250),
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(true);
     });
@@ -163,12 +292,12 @@ describe('createConfigureSchema', () => {
     it('should reject display_name with 251 multi-byte characters', () => {
       const result = schema.full.safeParse({
         ...schema.defaults,
-        display_name: '\u00e9'.repeat(251),
+        display_name: 'é'.repeat(251),
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -185,7 +314,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: 'invalid',
-        label_column: 'col1',
+        target_column: 'col1',
       });
       expect(result.success).toBe(false);
     });
@@ -199,7 +328,7 @@ describe('createConfigureSchema', () => {
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
-        label_column: 'col1',
+        target_column: 'col1',
         top_n: 10,
       };
 
@@ -216,7 +345,7 @@ describe('createConfigureSchema', () => {
         train_data_secret_name: 'secret',
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
-        label_column: 'col1',
+        target_column: 'col1',
         top_n: 11,
       };
 
@@ -239,7 +368,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_TIMESERIES,
-        target: 'target_col',
+        target_column: 'target_col',
         id_column: 'id_col',
         timestamp_column: 'ts_col',
         top_n: 7,
@@ -255,7 +384,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_TIMESERIES,
-        target: 'target_col',
+        target_column: 'target_col',
         id_column: 'id_col',
         timestamp_column: 'ts_col',
         top_n: 8,
@@ -276,7 +405,7 @@ describe('createConfigureSchema', () => {
         train_data_bucket_name: 'bucket',
         train_data_file_key: 'file.csv',
         task_type: TASK_TYPE_BINARY,
-        label_column: 'col1',
+        target_column: 'col1',
         top_n: 0,
       });
       expect(result.success).toBe(false);
@@ -284,6 +413,50 @@ describe('createConfigureSchema', () => {
         const topNIssue = result.error.issues.find((i) => i.path.includes('top_n'));
         expect(topNIssue).toBeDefined();
         expect(topNIssue?.message).toContain('Minimum');
+      }
+    });
+  });
+
+  describe('transformers', () => {
+    it('should map target_column to label_column for tabular task types', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_BINARY,
+        target_column: 'my_label',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.label_column).toBe('my_label');
+        expect(result.data).not.toHaveProperty('target_column');
+        expect(result.data).not.toHaveProperty('target');
+        expect(result.data).not.toHaveProperty('id_column');
+        expect(result.data).not.toHaveProperty('timestamp_column');
+        expect(result.data).not.toHaveProperty('prediction_length');
+        expect(result.data).not.toHaveProperty('known_covariates_names');
+      }
+    });
+
+    it('should map target_column to target for timeseries task type', () => {
+      const result = schema.full.safeParse({
+        ...schema.defaults,
+        display_name: 'test',
+        train_data_secret_name: 'secret',
+        train_data_bucket_name: 'bucket',
+        train_data_file_key: 'file.csv',
+        task_type: TASK_TYPE_TIMESERIES,
+        target_column: 'forecast_val',
+        id_column: 'id_col',
+        timestamp_column: 'ts_col',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.target).toBe('forecast_val');
+        expect(result.data).not.toHaveProperty('target_column');
+        expect(result.data).not.toHaveProperty('label_column');
       }
     });
   });

@@ -44,19 +44,16 @@ export const isMlflowOperatorManaged = (): Cypress.Chainable<boolean> =>
     });
 
 /**
- * Check if Gen AI (LlamaStack operator) is currently set to Managed in the DSC.
+ * Check if Gen AI (OGX operator) is currently set to Managed in the DSC.
  */
 export const isGenAiEnabled = (): Cypress.Chainable<boolean> =>
   cy
-    .exec(
-      `oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.llamastackoperator.managementState}"`,
-      { failOnNonZeroExit: false },
-    )
+    .exec(`oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.ogx.managementState}"`, {
+      failOnNonZeroExit: false,
+    })
     .then((result) => {
       if (result.exitCode !== 0) {
-        throw new Error(
-          `Failed to read llamastackoperator state: ${maskSensitiveInfo(result.stderr)}`,
-        );
+        throw new Error(`Failed to read ogx state: ${maskSensitiveInfo(result.stderr)}`);
       }
       return result.stdout.replace(/"/g, '').trim() === 'Managed';
     });
@@ -218,8 +215,8 @@ const logSidebarDiagnostics = (): void => {
     (resp) => {
       if (resp.status === 200 && resp.body?.components) {
         const mlflow = resp.body.components.mlflowoperator?.managementState ?? '(missing)';
-        const llama = resp.body.components.llamastackoperator?.managementState ?? '(missing)';
-        cy.log(`[DIAG] /api/dsc/status: mlflowoperator=${mlflow}, llamastackoperator=${llama}`);
+        const ogx = resp.body.components.ogx?.managementState ?? '(missing)';
+        cy.log(`[DIAG] /api/dsc/status: mlflowoperator=${mlflow}, ogx=${ogx}`);
       } else {
         cy.log(`[DIAG] /api/dsc/status: HTTP ${resp.status}`);
       }
@@ -549,7 +546,7 @@ export const disableMlflowFeatures = (
 
 /**
  * Enable all features required for Prompt Management:
- * 1. Enable Gen AI backend (LlamaStack operator, genAiStudio flag)
+ * 1. Enable Gen AI backend (OGX operator, genAiStudio flag)
  * 2. Enable MLflow backend (operator, CR, tracking pod readiness)
  * 3. Verify DSC status reflects both operators as Managed
  * 4. Single sidebar poll for "Prompts" nav item (confirms frontend picked up the state)
@@ -566,7 +563,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     })
     .then(() => {
       cy.step('Verify DSC status reflects both operators as Managed');
-      return waitForDSCComponentsManaged(['llamastackoperator', 'mlflowoperator']);
+      return waitForDSCComponentsManaged(['ogx', 'mlflowoperator']);
     })
     .then(() => {
       cy.step('Establish browser session for remote entry check');
@@ -580,7 +577,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     .then(() => {
       cy.step('Wait for dashboard backend to reflect both operators as Managed');
       return waitForDashboardDSCStatus({
-        llamastackoperator: 'Managed',
+        ogx: 'Managed',
         mlflowoperator: 'Managed',
       });
     })
