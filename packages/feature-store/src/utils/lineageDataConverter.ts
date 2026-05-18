@@ -273,17 +273,20 @@ const collectFeaturesByView = (
   relationships: FeatureStoreRelationship[],
 ): Map<string, FeatureColumns[]> => {
   const featuresByView = new Map<string, FeatureColumns[]>();
-  const seen = new Set<string>();
+  const addedFeatureKeys = new Set<string>();
 
   const addFeature = (viewName: string, featureName: string) => {
     const key = `${viewName}::${featureName}`;
-    if (seen.has(key)) {
+    if (addedFeatureKeys.has(key)) {
       return;
     }
-    seen.add(key);
-    const existing = featuresByView.get(viewName) ?? [];
-    existing.push({ name: featureName, valueType: '' });
-    featuresByView.set(viewName, existing);
+    addedFeatureKeys.add(key);
+    const existing = featuresByView.get(viewName);
+    if (existing) {
+      existing.push({ name: featureName, valueType: '' });
+    } else {
+      featuresByView.set(viewName, [{ name: featureName, valueType: '' }]);
+    }
   };
 
   relationships.forEach((rel) => {
@@ -328,8 +331,8 @@ export const convertFeatureViewLineageToVisualizationData = (
     if (obj.type === 'feature') {
       return;
     }
-    const isCurrentFeatureView = isFeatureViewType(obj.type) && obj.name === featureViewName;
     const isFeatureViewNode = isFeatureViewType(obj.type);
+    const isCurrentFeatureView = isFeatureViewNode && obj.name === featureViewName;
     const layer = getObjectLayer(obj.type, isCurrentFeatureView);
 
     const objectTypeForLabel = isCurrentFeatureView && featureViewType ? featureViewType : obj.type;
