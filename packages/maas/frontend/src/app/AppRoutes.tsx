@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import NotFound from '@odh-dashboard/internal/pages/NotFound';
 import AllSubscriptionsPage from '~/app/pages/subscriptions/AllSubscriptionsPage';
 import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
 import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
 import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
+import ApiKeysAndSubscriptionsPage from '~/app/pages/api-keys/ApiKeysAndSubscriptionsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
@@ -14,6 +16,8 @@ import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
+  const dashboardConfig = React.useContext(DashboardConfigContext);
+  const isMySubscriptionsEnabled = !!dashboardConfig?.dashboardConfig.mySubscriptions;
   const isSubscriptions = pathname.startsWith(`${URL_PREFIX}/subscriptions`);
   const isAuthPolicies = pathname.startsWith(`${URL_PREFIX}/auth-policies`);
   if (isAuthPolicies) {
@@ -39,10 +43,12 @@ const AppRoutes: React.FC = () => {
     );
   }
 
+  const TokensPage = isMySubscriptionsEnabled ? ApiKeysAndSubscriptionsPage : AllApiKeysPage;
+
   return (
     <Routes>
-      <Route path="/" element={<AllApiKeysPage />} />
-      <Route path="/:tab" element={<AllApiKeysPage />} />
+      <Route path="/" element={<TokensPage />} />
+      <Route path="/:tab" element={<TokensPage />} />
       <Route path="*" element={<Navigate to={`${URL_PREFIX}/tokens`} replace />} />
     </Routes>
   );

@@ -248,7 +248,7 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],
   },
-  [SupportedArea.API_KEYS]: {
+  [SupportedArea.MY_SUBSCRIPTIONS]: {
     featureFlags: ['mySubscriptions'],
   },
 };

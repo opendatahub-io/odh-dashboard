@@ -37,6 +37,13 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
   },
   {
+    type: 'app.area',
+    properties: {
+      id: MAAS_MY_SUBSCRIPTIONS,
+      featureFlags: ['mySubscriptions'],
+    },
+  },
+  {
     type: 'app.navigation/href',
     flags: {
       required: [MODEL_AS_SERVICE_ID, ADMIN_USER],
