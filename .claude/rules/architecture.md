@@ -17,7 +17,7 @@ ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides t
 
 ### Feature Plugin Packages (`packages/`)
 
-Feature packages export extensions via `./extensions` in `package.json` and are discovered by `discoverPluginPackages.js`. They fall into two categories based on how they are built and loaded:
+Feature packages provide extensions and are discovered by `discoverPluginPackages.js`. They fall into two categories based on how they are built and loaded:
 
 #### Module Federation Remotes
 
@@ -72,7 +72,7 @@ These packages export extensions but have **no** `module-federation` config. The
 
 ## BFF (Backend-for-Frontend) Architecture
 
-Several packages have a Go-based BFF service: `automl`, `autorag`, `eval-hub`, `gen-ai`, `maas`, `mlflow`.
+Several packages have a Go-based BFF service: `automl`, `autorag`, `eval-hub`, `gen-ai`, `maas`, `mlflow`, `model-registry`.
 - Located in `bff/` within the package
 - Check each package's `bff/go.mod` for its required Go toolchain version
 - Exposes REST APIs consumed by the package's frontend
