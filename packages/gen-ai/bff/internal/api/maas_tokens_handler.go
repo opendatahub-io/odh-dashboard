@@ -87,4 +87,3 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 		app.serverErrorResponse(w, r, err)
 	}
 }
-
