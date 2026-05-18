@@ -185,7 +185,7 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onEditInferenceService(inferenceService);
                 },
-                isDisabled: (!isNIMAvailable && isKServeNIMEnabled) || isStarting || isStopping,
+                isDisabled: (!isNIMAvailable && isKServeNIMEnabled) || isStarting,
               },
               { isSeparator: true },
               {
@@ -193,7 +193,6 @@ const InferenceServiceTableRow: React.FC<InferenceServiceTableRowProps> = ({
                 onClick: () => {
                   onDeleteInferenceService(inferenceService);
                 },
-                isDisabled: isStarting || isStopping,
               },
             ]}
           />

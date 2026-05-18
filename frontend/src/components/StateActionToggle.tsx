@@ -24,8 +24,8 @@ const StateActionToggle = <T extends ToggleState>({
   isDisabled,
   isDisabledWhileStarting = true,
 }: StateActionToggleProps<T>): React.ReactElement => {
-  const { isStarting, isRunning, isStopping } = currentState;
-  const actionDisabled = isDisabled || isStopping || (isStarting && isDisabledWhileStarting);
+  const { isStarting, isRunning } = currentState;
+  const actionDisabled = isDisabled || (isStarting && isDisabledWhileStarting);
   const runningState = isRunning || isStarting;
   return (
     <Button
