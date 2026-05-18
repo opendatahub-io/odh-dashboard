@@ -12,7 +12,7 @@ Feature Store is a **bundled library package** -- not a Module Federation remote
 
 ### Data Flow
 
-```
+```text
 Browser
   -> GET /api/featurestores                           (discovery)
   -> Dashboard Backend
