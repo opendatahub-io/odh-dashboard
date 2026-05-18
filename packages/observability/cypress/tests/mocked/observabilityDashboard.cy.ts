@@ -1,5 +1,6 @@
 import type { DashboardResource } from '@perses-dev/core';
 import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
+import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
 
 // Minimal test fixtures following the naming pattern from packages/observability/setup
@@ -48,6 +49,74 @@ describe('Observability Dashboard', () => {
     cy.wait('@getPersesDashboards');
 
     observabilityDashboardPage.shouldHaveEmptyState();
+  });
+
+  it('should show monitoring unavailable when DSCI reports monitoring is not ready', () => {
+    cy.interceptOdh(
+      'GET /api/dsci/status',
+      mockDsciStatus({
+        conditions: [
+          {
+            lastTransitionTime: '2023-10-20T11:45:04Z',
+            type: 'MonitoringReady',
+            status: 'False',
+            reason: 'MissingOperator',
+            message: 'Cluster Observability Operator must be installed.',
+          },
+        ],
+      }),
+    );
+
+    initIntercepts({ dashboards: [], isAdmin: true });
+
+    observabilityDashboardPage.visit();
+
+    observabilityDashboardPage.shouldHaveMonitoringUnavailableState();
+  });
+
+  it('should show Perses unavailable when MonitoringReady is True but PersesAvailable is False', () => {
+    cy.interceptOdh(
+      'GET /api/dsci/status',
+      mockDsciStatus({
+        conditions: [
+          {
+            lastTransitionTime: '2023-10-20T11:45:04Z',
+            type: 'MonitoringReady',
+            status: 'True',
+            reason: 'Ready',
+            message: 'Monitoring stack is available',
+          },
+          {
+            lastTransitionTime: '2023-10-20T11:45:04Z',
+            type: 'PersesAvailable',
+            status: 'False',
+            reason: 'PersesCRDNotFoundReason',
+            message: 'Perses CRD not found in cluster.',
+          },
+        ],
+      }),
+    );
+
+    initIntercepts({ dashboards: [], isAdmin: true });
+
+    observabilityDashboardPage.visit();
+
+    observabilityDashboardPage.shouldHavePersesUnavailableState();
+  });
+
+  it('should show a load error when the Perses dashboards API is unreachable', () => {
+    initIntercepts({ isAdmin: true });
+
+    cy.intercept('GET', '/perses/api/api/v1/dashboards', {
+      statusCode: 503,
+      body: 'Service Unavailable',
+    }).as('getPersesDashboards');
+
+    observabilityDashboardPage.visit();
+
+    cy.wait('@getPersesDashboards');
+
+    observabilityDashboardPage.shouldHavePersesLoadError();
   });
 
   it('should show both admin and non-admin dashboard tabs when user is admin', () => {
