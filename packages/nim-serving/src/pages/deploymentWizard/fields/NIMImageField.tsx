@@ -39,6 +39,7 @@ const useNIMImageFieldExternalData = (dependencies?: {
   } = useNIMImages({
     project: dependencies?.project,
     nimAccount,
+    accountLoaded,
   });
 
   const loaded = !projectName || (imagesLoaded && accountLoaded);

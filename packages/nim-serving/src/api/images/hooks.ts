@@ -15,6 +15,7 @@ export type NIMImagesData = {
 export const useNIMImages = (dependencies?: {
   project?: { projectName?: string };
   nimAccount?: NIMAccountKind | null;
+  accountLoaded?: boolean;
 }): {
   data: NIMImagesData;
   loaded: boolean;
@@ -23,16 +24,20 @@ export const useNIMImages = (dependencies?: {
   const project = dependencies?.project;
   const projectName = project?.projectName;
   const nimAccount = dependencies?.nimAccount;
+  const accountLoaded = dependencies?.accountLoaded ?? false;
 
   const fetchCallback = React.useCallback<FetchStateCallbackPromise<NIMImage[]>>(() => {
     if (!projectName) {
       return Promise.reject(new NotReadyError('No project selected'));
     }
-    if (!nimAccount) {
+    if (!accountLoaded) {
       return Promise.reject(new NotReadyError('NIM account not loaded'));
     }
+    if (!nimAccount) {
+      return Promise.resolve([]);
+    }
     return fetchNIMImages(nimAccount);
-  }, [projectName, nimAccount]);
+  }, [projectName, nimAccount, accountLoaded]);
 
   const { data: images, loaded, error: loadError } = useFetch(fetchCallback, []);
 
