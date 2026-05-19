@@ -42,7 +42,7 @@ jest.mock('~/app/api/k8s', () => ({
     if (type === 'storage') {
       return mockGetStorageSecrets;
     }
-    if (type === 'lls') {
+    if (type === 'ogx') {
       return mockGetLlsSecrets;
     }
     return jest.fn().mockResolvedValue([]);
@@ -99,7 +99,7 @@ jest.mock('mod-arch-shared', () => ({
 let capturedProps: {
   initialValues?: Partial<ConfigureSchema>;
   initialInputDataSecret?: unknown;
-  initialLlamaStackSecret?: unknown;
+  initialOgxSecret?: unknown;
   sourceRunId?: string;
   sourceRunName?: string;
 } = {};
@@ -372,7 +372,7 @@ describe('AutoragReconfigureLoader', () => {
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
-        llama_stack_secret_name: 'lls-secret',
+        ogx_secret_name: 'ogx-secret',
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       };
@@ -395,7 +395,7 @@ describe('AutoragReconfigureLoader', () => {
         test_data_secret_name: 'my-secret',
         test_data_bucket_name: 'my-bucket',
         test_data_key: 'eval.json',
-        llama_stack_secret_name: 'lls-secret',
+        ogx_secret_name: 'ogx-secret',
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
         display_name: 'Run A - 1',
@@ -426,7 +426,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-aws-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'lls',
+            ogx_secret_name: 'ogx',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -471,7 +471,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'incomplete-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'lls',
+            ogx_secret_name: 'ogx',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -508,7 +508,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'missing-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'lls',
+            ogx_secret_name: 'ogx',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -532,13 +532,13 @@ describe('AutoragReconfigureLoader', () => {
       });
     });
 
-    it('should resolve initialLlamaStackSecret from lls secrets list', async () => {
+    it('should resolve initialOgxSecret from ogx secrets list', async () => {
       const mockLlsSecrets = [
         {
-          uuid: 'lls-uuid-1',
-          name: 'my-lls-secret',
-          type: 'lls',
-          data: { llama_stack_url: 'https://example.com' },
+          uuid: 'ogx-uuid-1',
+          name: 'my-ogx-secret',
+          type: 'ogx',
+          data: { ogx_url: 'https://example.com' },
         },
       ];
       mockGetLlsSecrets.mockResolvedValue(mockLlsSecrets);
@@ -553,7 +553,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'my-lls-secret',
+            ogx_secret_name: 'my-ogx-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -568,18 +568,18 @@ describe('AutoragReconfigureLoader', () => {
       await screen.findByTestId('configure-page');
 
       await waitFor(() => {
-        expect(capturedProps.initialLlamaStackSecret).toMatchObject({
-          uuid: 'lls-uuid-1',
-          name: 'my-lls-secret',
-          type: 'lls',
+        expect(capturedProps.initialOgxSecret).toMatchObject({
+          uuid: 'ogx-uuid-1',
+          name: 'my-ogx-secret',
+          type: 'ogx',
         });
-        expect(capturedProps.initialLlamaStackSecret).not.toHaveProperty('invalid');
+        expect(capturedProps.initialOgxSecret).not.toHaveProperty('invalid');
       });
     });
 
-    it('should show warning and not set initialLlamaStackSecret when lls secret name does not match', async () => {
+    it('should show warning and not set initialOgxSecret when ogx secret name does not match', async () => {
       mockGetLlsSecrets.mockResolvedValue([
-        { uuid: 'other-uuid', name: 'other-lls', type: 'lls', data: {} },
+        { uuid: 'other-uuid', name: 'other-ogx', type: 'ogx', data: {} },
       ]);
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -592,7 +592,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 's3-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'missing-lls-secret',
+            ogx_secret_name: 'missing-ogx-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -606,12 +606,12 @@ describe('AutoragReconfigureLoader', () => {
 
       await screen.findByTestId('configure-page');
 
-      expect(capturedProps.initialLlamaStackSecret).toBeUndefined();
+      expect(capturedProps.initialOgxSecret).toBeUndefined();
 
       await waitFor(() => {
         expect(mockNotification.warning).toHaveBeenCalledWith(
           'Connection secret not found',
-          expect.stringContaining('missing-lls-secret'),
+          expect.stringContaining('missing-ogx-secret'),
         );
       });
     });
@@ -630,7 +630,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'lls-secret',
+            ogx_secret_name: 'ogx-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 8,
           },
@@ -652,7 +652,7 @@ describe('AutoragReconfigureLoader', () => {
       });
 
       expect(capturedProps.initialInputDataSecret).toBeUndefined();
-      expect(capturedProps.initialLlamaStackSecret).toBeUndefined();
+      expect(capturedProps.initialOgxSecret).toBeUndefined();
     });
   });
 
@@ -700,7 +700,7 @@ describe('AutoragReconfigureLoader', () => {
             test_data_secret_name: 'my-secret',
             test_data_bucket_name: 'my-bucket',
             test_data_key: 'eval.json',
-            llama_stack_secret_name: 'lls-secret',
+            ogx_secret_name: 'ogx-secret',
             optimization_metric: 'faithfulness',
             optimization_max_rag_patterns: 10,
           },
@@ -733,6 +733,61 @@ describe('AutoragReconfigureLoader', () => {
       renderPage();
 
       expect(mockUsePipelineRunQuery).toHaveBeenCalledWith('run-123', 'test-ns');
+    });
+  });
+
+  describe('OGX secret resolution from normalized pipeline run data', () => {
+    it('should resolve OGX secret and pass normalized keys as initialValues', async () => {
+      const mockOgxSecrets = [
+        {
+          uuid: 'ogx-uuid-1',
+          name: 'my-ogx-conn',
+          type: 'ogx',
+          data: { OGX_CLIENT_BASE_URL: 'https://ogx.example.com' },
+        },
+      ];
+      mockGetLlsSecrets.mockResolvedValue(mockOgxSecrets);
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: createMockPipelineRun(
+          { display_name: 'Legacy Run' },
+          {
+            input_data_secret_name: 's3-secret',
+            input_data_bucket_name: 'bucket',
+            input_data_key: 'file.pdf',
+            test_data_secret_name: 's3-secret',
+            test_data_bucket_name: 'bucket',
+            test_data_key: 'eval.json',
+            ogx_secret_name: 'my-ogx-conn',
+            vector_io_provider_id: 'milvus',
+            embedding_models: ['model-a'],
+            optimization_metric: 'faithfulness',
+            optimization_max_rag_patterns: 8,
+          },
+        ),
+        isPending: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      await screen.findByTestId('configure-page');
+
+      await waitFor(() => {
+        expect(capturedProps.initialOgxSecret).toMatchObject({
+          uuid: 'ogx-uuid-1',
+          name: 'my-ogx-conn',
+          type: 'ogx',
+        });
+      });
+
+      expect(capturedProps.initialValues).toMatchObject({
+        ogx_secret_name: 'my-ogx-conn',
+        vector_io_provider_id: 'milvus',
+        embedding_models: ['model-a'],
+        display_name: 'Legacy Run - 1',
+      });
     });
   });
 });

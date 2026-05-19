@@ -60,12 +60,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   });
 
   const {
-    data: llsSecrets,
-    isPending: llsSecretsPending,
-    isError: llsSecretsError,
+    data: ogxSecrets,
+    isPending: ogxSecretsPending,
+    isError: ogxSecretsError,
   } = useQuery({
-    queryKey: ['secrets', namespace, 'lls'],
-    queryFn: () => getSecrets('')(namespace ?? '', 'lls')({}),
+    queryKey: ['secrets', namespace, 'ogx'],
+    queryFn: () => getSecrets('')(namespace ?? '', 'ogx')({}),
     enabled: !!namespace,
   });
 
@@ -82,11 +82,11 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     secretsLoadError: false,
     parseError: false,
     storageMissing: false,
-    llsMissing: false,
+    ogxMissing: false,
   });
 
   React.useEffect(() => {
-    if ((storageSecretsError || llsSecretsError) && !shownWarnings.current.secretsLoadError) {
+    if ((storageSecretsError || ogxSecretsError) && !shownWarnings.current.secretsLoadError) {
       shownWarnings.current.secretsLoadError = true;
       notification.warning(
         'Unable to load connection secrets',
@@ -95,7 +95,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
     // notify once when the error state is reached
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageSecretsError, llsSecretsError]);
+  }, [storageSecretsError, ogxSecretsError]);
 
   React.useEffect(() => {
     if (parsedParams && !parsedParams.success && !shownWarnings.current.parseError) {
@@ -131,23 +131,23 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }, [params?.input_data_secret_name, storageSecrets]);
 
   React.useEffect(() => {
-    const name = params?.llama_stack_secret_name;
+    const name = params?.ogx_secret_name;
     if (
       name &&
       typeof name === 'string' &&
-      llsSecrets &&
-      !llsSecrets.find((s) => s.name === name) &&
-      !shownWarnings.current.llsMissing
+      ogxSecrets &&
+      !ogxSecrets.find((s) => s.name === name) &&
+      !shownWarnings.current.ogxMissing
     ) {
-      shownWarnings.current.llsMissing = true;
+      shownWarnings.current.ogxMissing = true;
       notification.warning(
         'Connection secret not found',
-        `The previously used LlamaStack connection "${name}" could not be found. Please select a new connection.`,
+        `The previously used Open GenAI Stack connection "${name}" could not be found. Please select a new connection.`,
       );
     }
     // notify once when secrets are loaded
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params?.llama_stack_secret_name, llsSecrets]);
+  }, [params?.ogx_secret_name, ogxSecrets]);
 
   const invalidPipelineRunId =
     pipelineRunError &&
@@ -183,7 +183,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     );
   }
 
-  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending || llsSecretsPending) {
+  if (!namespacesLoaded || pipelineRunPending || storageSecretsPending || ogxSecretsPending) {
     return (
       <Bullseye>
         <Spinner />
@@ -192,7 +192,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
   }
 
   const secretName = params?.input_data_secret_name;
-  const llsSecretName = params?.llama_stack_secret_name;
+  const ogxSecretName = params?.ogx_secret_name;
 
   // Resolve the matching S3 secret from the fetched list
   let initialInputDataSecret: SecretSelection | undefined;
@@ -207,12 +207,12 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     }
   }
 
-  // Resolve the matching LlamaStack secret from the fetched list
-  let initialLlamaStackSecret: SecretSelection | undefined;
-  if (llsSecretName && typeof llsSecretName === 'string' && llsSecrets) {
-    const match = llsSecrets.find((s) => s.name === llsSecretName);
+  // Resolve the matching Open GenAI Stack secret from the fetched list
+  let initialOgxSecret: SecretSelection | undefined;
+  if (ogxSecretName && typeof ogxSecretName === 'string' && ogxSecrets) {
+    const match = ogxSecrets.find((s) => s.name === ogxSecretName);
     if (match) {
-      initialLlamaStackSecret = match;
+      initialOgxSecret = match;
     }
   }
 
@@ -227,7 +227,7 @@ function AutoragReconfigureLoader(): React.JSX.Element {
     <AutoragConfigurePage
       initialValues={initialValues}
       initialInputDataSecret={initialInputDataSecret}
-      initialLlamaStackSecret={initialLlamaStackSecret}
+      initialOgxSecret={initialOgxSecret}
       sourceRunId={runId}
       sourceRunName={pipelineRun.display_name}
     />
