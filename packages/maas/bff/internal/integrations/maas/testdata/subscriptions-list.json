@@ -6,12 +6,12 @@
     "priority": 10,
     "cost_center": "engineering",
     "organization_id": "org-123",
-    "keyCount": 10,
+    "key_count": 10,
     "model_refs": [
       {
         "name": "granite-3-8b-instruct",
         "display_name": "Granite 3 8B Instruct",
-        "provider": "internal",
+        "source": "internal",
         "description": "Granite 3 8B Instruct is a large language model that is used for advanced tasks.",
         "namespace": "maas-models",
         "token_rate_limits": [
@@ -21,7 +21,7 @@
       {
         "name": "flan-t5-small",
         "display_name": "Flan T5 Small",
-        "provider": "external",
+        "source": "external",
         "description": "Flan T5 Small is a small language model that is used for basic tasks.",
         "namespace": "maas-models",
         "token_rate_limits": [
@@ -38,13 +38,13 @@
     "subscription_description": "Basic Team Subscription",
     "display_name": "Basic Team",
     "priority": 1,
-    "keyCount": 5,
+    "key_count": 5,
     "model_refs": [
       {
         "name": "flan-t5-small",
         "display_name": "Flan T5 Small",
         "description": "Flan T5 Small is a small language model that is used for basic tasks.",
-        "provider": "external",
+        "source": "external",
         "namespace": "maas-models",
         "token_rate_limits": [
           { "limit": 10000, "window": "24h" }

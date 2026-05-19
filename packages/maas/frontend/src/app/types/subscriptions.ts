@@ -141,7 +141,7 @@ export type BillingRateInfo = {
 export type ModelRefInfo = {
   name: string;
   display_name?: string;
-  provider?: string;
+  source?: string;
   description?: string;
   namespace?: string;
   token_rate_limits?: TokenRateLimitInfo[];
@@ -153,7 +153,7 @@ export type UserSubscription = {
   subscription_description: string;
   display_name?: string;
   priority: number;
-  keyCount?: number;
+  key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;

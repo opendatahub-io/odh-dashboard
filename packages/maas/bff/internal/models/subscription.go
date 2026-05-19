@@ -17,7 +17,7 @@ type BillingRateInfo struct {
 type ModelRefInfo struct {
 	Name            string               `json:"name"`
 	DisplayName     string               `json:"display_name,omitempty"`
-	Provider        string               `json:"provider,omitempty"`
+	Source          string               `json:"source,omitempty"`
 	Description     string               `json:"description,omitempty"`
 	Namespace       string               `json:"namespace,omitempty"`
 	TokenRateLimits []TokenRateLimitInfo `json:"token_rate_limits"`
@@ -30,7 +30,7 @@ type SubscriptionListItem struct {
 	SubscriptionDescription string            `json:"subscription_description"`
 	DisplayName             string            `json:"display_name,omitempty"`
 	Priority                int32             `json:"priority"`
-	KeyCount                int32             `json:"keyCount,omitempty"`
+	KeyCount                int32             `json:"key_count,omitempty"`
 	ModelRefs               []ModelRefInfo    `json:"model_refs"`
 	OrganizationID          string            `json:"organization_id,omitempty"`
 	CostCenter              string            `json:"cost_center,omitempty"`
