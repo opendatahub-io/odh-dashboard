@@ -60,6 +60,7 @@ export type MockDashboardConfigType = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  agentOps?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -118,7 +119,11 @@ export const mockDashboardConfig = ({
   llmGatewayField = false,
   promptManagement = false,
   nimWizard = false,
+<<<<<<< HEAD
   mySubscriptions = false,
+=======
+  agentOps = false,
+>>>>>>> 242cdd802 (feat: add agentOps feature flag and nav item under Gen AI studio)
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -300,7 +305,11 @@ export const mockDashboardConfig = ({
       llmGatewayField,
       promptManagement,
       nimWizard,
+<<<<<<< HEAD
       mySubscriptions,
+=======
+      agentOps,
+>>>>>>> 242cdd802 (feat: add agentOps feature flag and nav item under Gen AI studio)
     },
     notebookController: {
       enabled: !disableNotebookController,

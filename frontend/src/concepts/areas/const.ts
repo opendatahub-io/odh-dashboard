@@ -25,6 +25,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
+  agentOps: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -219,6 +220,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.RAY_JOBS]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.RAY],
+  },
+  [SupportedArea.AGENT_OPS]: {
+    featureFlags: ['agentOps'],
   },
   [SupportedArea.MLFLOW]: {
     requiredComponents: [DataScienceStackComponent.MLFLOW],

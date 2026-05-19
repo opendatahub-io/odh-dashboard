@@ -1,36 +1,26 @@
 import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 
+const AGENT_OPS = 'agentOps';
+
 const extensions: (NavExtension | RouteExtension)[] = [
-  // Navigation section kept commented out, only used for local testing
-  // {
-  //   type: 'app.navigation/section',
-  //   flags: {
-  //     required: [],
-  //   },
-  //   properties: {
-  //     id: 'agent-ops',
-  //     title: 'Agent Ops',
-  //     group: '8_agent-ops',
-  //   },
-  // },
-  // {
-  //   type: 'app.navigation/href',
-  //   flags: {
-  //     required: [],
-  //   },
-  //   properties: {
-  //     id: 'agent-ops-view',
-  //     title: 'Main Page',
-  //     href: '/agent-ops-bff/main-view',
-  //     section: 'agent-ops',
-  //     path: '/agent-ops-bff/main-view/*',
-  //     label: 'Tech Preview',
-  //   },
-  // },
+  {
+    type: 'app.navigation/href',
+    flags: {
+      required: [AGENT_OPS],
+    },
+    properties: {
+      id: 'agent-ops-my-agents',
+      title: 'My Agents',
+      href: '/agent-ops-bff/main-view',
+      section: 'gen-ai-studio',
+      path: '/agent-ops-bff/main-view/*',
+      label: 'WIP',
+    },
+  },
   {
     type: 'app.route',
     flags: {
-      required: [],
+      required: [AGENT_OPS],
     },
     properties: {
       path: '/agent-ops-bff/main-view/*',
