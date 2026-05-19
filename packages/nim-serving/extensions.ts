@@ -6,6 +6,7 @@ import type {
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
+  DeploymentWizardFieldExtension,
   DeployedModelServingDetails,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
@@ -20,6 +21,7 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
+  | DeploymentWizardFieldExtension
 )[] = [
   {
     type: 'app.area',
@@ -70,6 +72,16 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      platform: 'nim-wizard',
+      field: () =>
+        import('./src/wizardFields/overrides/NIMModelTypeOverride').then(
+          (m) => m.NIMModelTypeOverride,
+        ),
     },
   },
 ];

@@ -46,7 +46,7 @@ export type CreatingInferenceServiceObject = {
   name: string;
   k8sName: string;
   description: string;
-  modelType?: ServingRuntimeModelType;
+  modelType?: string;
   modelLocationData?: ModelLocationData;
   hardwareProfile: HardwareProfileConfig;
   modelFormat?: SupportedModelFormats;
