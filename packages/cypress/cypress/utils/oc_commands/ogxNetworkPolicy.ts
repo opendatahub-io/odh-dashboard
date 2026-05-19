@@ -2,7 +2,7 @@ const NETWORK_POLICY_PREFIX = 'allow-cy-e2e-autorag';
 
 /**
  * Extract the namespace from a Kubernetes in-cluster service URL.
- * e.g. "http://llama-stack-service.llama-stack.svc.cluster.local:8321" → "llama-stack"
+ * e.g. "http://ogx-service.ogx-ns.svc.cluster.local:8321" → "ogx-ns"
  *
  * Returns undefined if the URL doesn't match the expected pattern.
  */
@@ -12,14 +12,14 @@ const extractNamespaceFromServiceUrl = (url: string): string | undefined => {
 };
 
 /**
- * Resolve the LlamaStack namespace from an explicit parameter,
- * the LLAMA_STACK_URL env var, or fall back to 'llama-stack'.
+ * Resolve the OGX namespace from an explicit parameter,
+ * the OGX_URL env var, or fall back to 'llama-stack'.
  */
-const resolveLlamaStackNamespace = (lsNamespace?: string): string => {
-  if (lsNamespace) {
-    return lsNamespace;
+const resolveOgxNamespace = (ogxNamespace?: string): string => {
+  if (ogxNamespace) {
+    return ogxNamespace;
   }
-  const url = Cypress.env('LLAMA_STACK_URL') as string | undefined;
+  const url = Cypress.env('OGX_URL') as string | undefined;
   if (url) {
     const ns = extractNamespaceFromServiceUrl(url);
     if (ns) {
@@ -44,30 +44,30 @@ const hasNetworkPolicies = (namespace: string): Cypress.Chainable<boolean> =>
  * Clean up stale NetworkPolicies left behind by previous test runs that
  * crashed before their after() hook could run.
  */
-const cleanupStaleNetworkPolicies = (lsNamespace: string): Cypress.Chainable<Cypress.Exec> =>
+const cleanupStaleNetworkPolicies = (ogxNs: string): Cypress.Chainable<Cypress.Exec> =>
   cy.exec(
-    `oc get networkpolicy -n ${lsNamespace} -o name 2>/dev/null` +
+    `oc get networkpolicy -n ${ogxNs} -o name 2>/dev/null` +
       ` | grep '${NETWORK_POLICY_PREFIX}'` +
-      ` | xargs -r oc delete -n ${lsNamespace} --ignore-not-found`,
+      ` | xargs -r oc delete -n ${ogxNs} --ignore-not-found`,
     { failOnNonZeroExit: false },
   );
 
 /**
- * Create a NetworkPolicy in the LlamaStack namespace that allows pipeline
- * pods in the given test namespace to reach LlamaStack on port 8321.
+ * Create a NetworkPolicy in the OGX namespace that allows pipeline
+ * pods in the given test namespace to reach OGX on port 8321.
  *
- * Skips creation if no existing NetworkPolicies in the LlamaStack namespace.
+ * Skips creation if no existing NetworkPolicies in the OGX namespace.
  * Also cleans up stale policies from previous runs.
  *
  * @param namespace - The test project namespace that needs access
- * @param lsNamespace - Optional LlamaStack namespace override (derived from LLAMA_STACK_URL if not provided)
+ * @param ogxNs - Optional OGX namespace override (derived from OGX_URL if not provided)
  */
-export const allowLlamaStackAccess = (
+export const allowOgxAccess = (
   namespace: string,
-  lsNamespace?: string,
+  ogxNs?: string,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const resolvedNs = resolveLlamaStackNamespace(lsNamespace);
-  cy.step(`Allow LlamaStack access from ${namespace} to ${resolvedNs}`);
+  const resolvedNs = resolveOgxNamespace(ogxNs);
+  cy.step(`Allow OGX access from ${namespace} to ${resolvedNs}`);
 
   return hasNetworkPolicies(resolvedNs).then((enforced) => {
     if (!enforced) {
@@ -104,17 +104,17 @@ EOF`,
 };
 
 /**
- * Remove the NetworkPolicy that allowed the test namespace to reach LlamaStack.
+ * Remove the NetworkPolicy that allowed the test namespace to reach OGX.
  *
  * @param namespace - The test project namespace
- * @param lsNamespace - Optional LlamaStack namespace override
+ * @param ogxNs - Optional OGX namespace override
  */
-export const removeLlamaStackAccess = (
+export const removeOgxAccess = (
   namespace: string,
-  lsNamespace?: string,
+  ogxNs?: string,
 ): Cypress.Chainable<Cypress.Exec> => {
-  const resolvedNs = resolveLlamaStackNamespace(lsNamespace);
-  cy.step(`Remove LlamaStack access for ${namespace}`);
+  const resolvedNs = resolveOgxNamespace(ogxNs);
+  cy.step(`Remove OGX access for ${namespace}`);
   return cy.exec(
     `oc delete networkpolicy ${NETWORK_POLICY_PREFIX}-${namespace} -n ${resolvedNs} --ignore-not-found`,
   );

@@ -24,11 +24,11 @@ class AutoragConfigurePage {
     return cy.findByTestId('autorag-description-input');
   }
 
-  findLlamaStackSecretSelector() {
+  findOgxSecretSelector() {
     return cy.findByTestId('lls-secret-selector');
   }
 
-  findAddLlsConnectionButton() {
+  findAddOgxConnectionButton() {
     return cy.findByTestId('add-lls-connection-button');
   }
 
@@ -162,7 +162,7 @@ class AutoragConfigurePage {
    * Common setup for submitting an AutoRAG run.
    *
    * Handles: login, wait for DSPA, navigate to experiments, create run,
-   * fill name/description, select LlamaStack secret, select S3 connection,
+   * fill name/description, select OGX secret, select S3 connection,
    * upload document, and select first available models + vector store.
    *
    * After this, optionally configure metric/patterns, then call `submitRun()`.
@@ -192,10 +192,10 @@ class AutoragConfigurePage {
     cy.findByTestId('autorag-name-input', { timeout: 30000 }).type(testData.runName);
     this.findDescriptionInput().type(testData.runDescription);
 
-    cy.step('Step 1 - Select LlamaStack secret');
-    this.findLlamaStackSecretSelector().click();
-    this.findLlamaStackSecretSelector().type(testData.llamaStackSecretName);
-    this.findSelectOption(new RegExp(testData.llamaStackSecretName, 'i')).click();
+    cy.step('Step 1 - Select OGX secret');
+    this.findOgxSecretSelector().click();
+    this.findOgxSecretSelector().type(testData.ogxSecretName);
+    this.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
 
     cy.step('Click Next to go to Configure step');
     this.findNextButton().click();

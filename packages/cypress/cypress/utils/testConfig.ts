@@ -90,9 +90,9 @@ const NGC_API_KEY = testConfig?.NGC_API_KEY;
 const OCI_SECRET_VALUE = testConfig?.OCI_SECRET_VALUE;
 const OCI_MODEL_URI = testConfig?.OCI_MODEL_URI;
 
-// LlamaStack connection settings
-const LLAMA_STACK_URL = testConfig?.LLAMA_STACK_URL;
-const LLAMA_STACK_API_KEY = testConfig?.LLAMA_STACK_API_KEY;
+// OGX connection settings
+const OGX_URL = testConfig?.OGX_URL;
+const OGX_API_KEY = testConfig?.OGX_API_KEY;
 
 // BYOIDC cluster authentication settings
 const CLUSTER_AUTH = testConfig?.CLUSTER_AUTH;
@@ -112,8 +112,8 @@ export const cypressEnv = {
   NGC_API_KEY,
   OCI_SECRET_VALUE,
   OCI_MODEL_URI,
-  LLAMA_STACK_URL,
-  LLAMA_STACK_API_KEY,
+  OGX_URL,
+  OGX_API_KEY,
   CLUSTER_AUTH,
 };
 
