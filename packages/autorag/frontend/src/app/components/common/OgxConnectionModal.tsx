@@ -35,7 +35,7 @@ const isValidUrl = (url: string): boolean => {
   }
 };
 
-const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
+const OgxConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubmit }) => {
   const { data: nameDescData, onDataChange: setNameDescData } = useK8sNameDescriptionFieldData();
   const [baseUrl, setBaseUrl] = React.useState('');
   const [apiKey, setApiKey] = React.useState('');
@@ -64,8 +64,8 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
         },
       },
       stringData: {
-        LLAMA_STACK_CLIENT_BASE_URL: baseUrl.trim(),
-        LLAMA_STACK_CLIENT_API_KEY: apiKey.trim(),
+        OGX_CLIENT_BASE_URL: baseUrl.trim(),
+        OGX_CLIENT_API_KEY: apiKey.trim(),
       },
     };
 
@@ -90,22 +90,22 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
   return (
     <Modal isOpen onClose={isSaving ? undefined : onClose} variant="medium">
       <ModalHeader
-        title="Add Llama Stack connection"
-        description="Provide credentials for accessing an external Llama Stack server. The generation and embedding models registered in the Llama Stack server will be considered when generating RAG patterns. Vector I/O providers in the Llama Stack server can be used to create a collection for retrieval."
+        title="Add Open GenAI Stack connection"
+        description="Provide credentials for accessing an external Open GenAI Stack server. The generation and embedding models registered in the Open GenAI Stack server will be considered when generating RAG patterns. Vector I/O providers in the Open GenAI Stack server can be used to create a collection for retrieval."
       />
       <ModalBody>
         <Form>
           <K8sNameDescriptionField
-            dataTestId="lls-connection"
+            dataTestId="ogx-connection"
             data={nameDescData}
             onDataChange={setNameDescData}
             nameLabel="Connection name"
             hideDescription
           />
-          <FormGroup fieldId="lls-connection-base-url" label="Base URL" isRequired>
+          <FormGroup fieldId="ogx-connection-base-url" label="Base URL" isRequired>
             <TextInput
-              id="lls-connection-base-url"
-              data-testid="lls-connection-base-url"
+              id="ogx-connection-base-url"
+              data-testid="ogx-connection-base-url"
               value={baseUrl}
               onChange={(_e, val) => setBaseUrl(val)}
               onBlur={() => {
@@ -121,15 +121,15 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
                 <HelperTextItem variant={showBaseUrlError ? 'error' : 'default'}>
                   {showBaseUrlError
                     ? 'Enter a valid URL (e.g. https://example.com).'
-                    : 'The base URL of the Llama Stack connection.'}
+                    : 'The base URL of the Open GenAI Stack connection.'}
                 </HelperTextItem>
               </HelperText>
             </FormHelperText>
           </FormGroup>
-          <FormGroup fieldId="lls-connection-api-key" label="API key">
+          <FormGroup fieldId="ogx-connection-api-key" label="API key">
             <PasswordInput
-              id="lls-connection-api-key"
-              data-testid="lls-connection-api-key"
+              id="ogx-connection-api-key"
+              data-testid="ogx-connection-api-key"
               value={apiKey}
               onChange={(_e, val) => setApiKey(val)}
               ariaLabelShow="Show API key"
@@ -154,4 +154,4 @@ const LlamaStackConnectionModal: React.FC<Props> = ({ namespace, onClose, onSubm
   );
 };
 
-export default LlamaStackConnectionModal;
+export default OgxConnectionModal;

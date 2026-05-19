@@ -9,16 +9,16 @@ import (
 
 const vectorIOAPI = "vector_io"
 
-type LSDVectorStoresRepository struct{}
+type OGXVectorStoresRepository struct{}
 
-func NewLSDVectorStoresRepository() *LSDVectorStoresRepository {
-	return &LSDVectorStoresRepository{}
+func NewOGXVectorStoresRepository() *OGXVectorStoresRepository {
+	return &OGXVectorStoresRepository{}
 }
 
-// GetLSDVectorStoreProviders retrieves vector store providers from LlamaStack
+// GetOGXVectorStoreProviders retrieves vector store providers from OGX
 // by calling the native /v1/providers endpoint and filtering for vector_io API type.
-func (r *LSDVectorStoresRepository) GetLSDVectorStoreProviders(ctx context.Context) (*models.LSDVectorStoreProvidersData, error) {
-	client, err := helper.GetContextLlamaStackClient(ctx)
+func (r *OGXVectorStoresRepository) GetOGXVectorStoreProviders(ctx context.Context) (*models.OGXVectorStoreProvidersData, error) {
+	client, err := helper.GetContextOGXClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -28,17 +28,17 @@ func (r *LSDVectorStoresRepository) GetLSDVectorStoreProviders(ctx context.Conte
 		return nil, err
 	}
 
-	vectorStoreProviders := make([]models.LSDVectorStoreProvider, 0)
+	vectorStoreProviders := make([]models.OGXVectorStoreProvider, 0)
 	for _, p := range allProviders {
 		if p.API == vectorIOAPI {
-			vectorStoreProviders = append(vectorStoreProviders, models.LSDVectorStoreProvider{
+			vectorStoreProviders = append(vectorStoreProviders, models.OGXVectorStoreProvider{
 				ProviderID:   p.ProviderID,
 				ProviderType: p.ProviderType,
 			})
 		}
 	}
 
-	return &models.LSDVectorStoreProvidersData{
+	return &models.OGXVectorStoreProvidersData{
 		VectorStoreProviders: vectorStoreProviders,
 	}, nil
 }

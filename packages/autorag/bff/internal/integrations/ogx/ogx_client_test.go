@@ -1,4 +1,4 @@
-package llamastack
+package ogx
 
 import (
 	"context"
@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestClient creates a LlamaStackClient pointing at the given test server.
-func newTestClient(serverURL string) *LlamaStackClient {
-	return NewLlamaStackClient(serverURL, "", false, nil)
+// newTestClient creates a OGXClient pointing at the given test server.
+func newTestClient(serverURL string) *OGXClient {
+	return NewOGXClient(serverURL, "", false, nil)
 }
 
 // writeJSON encodes v as JSON into the response writer, failing the test on error.
@@ -103,10 +103,10 @@ func TestListModels(t *testing.T) {
 		_, err := client.ListModels(context.Background())
 
 		require.Error(t, err)
-		var lsErr *LlamaStackError
+		var lsErr *OGXError
 		require.ErrorAs(t, err, &lsErr)
 		assert.Equal(t, ErrCodeInternalError, lsErr.Code)
-		assert.Contains(t, lsErr.Message, "failed to parse LlamaStack models response")
+		assert.Contains(t, lsErr.Message, "failed to parse Open GenAI Stack models response")
 	})
 
 	t.Run("should handle empty data array", func(t *testing.T) {
@@ -150,7 +150,7 @@ func TestListModels(t *testing.T) {
 		}))
 		defer server.Close()
 
-		client := NewLlamaStackClient(server.URL, "secret-token", false, nil)
+		client := NewOGXClient(server.URL, "secret-token", false, nil)
 		_, err := client.ListModels(context.Background())
 
 		require.NoError(t, err)
@@ -164,7 +164,7 @@ func TestListModels(t *testing.T) {
 		defer server.Close()
 
 		// Use the test server's TLS client to trust the self-signed cert
-		client := &LlamaStackClient{
+		client := &OGXClient{
 			httpClient: server.Client(),
 			baseURL:    server.URL,
 			authToken:  "secret-token",
@@ -240,7 +240,7 @@ func TestListModelsHTTPErrors(t *testing.T) {
 			_, err := client.ListModels(context.Background())
 
 			require.Error(t, err)
-			var lsErr *LlamaStackError
+			var lsErr *OGXError
 			require.ErrorAs(t, err, &lsErr)
 			assert.Equal(t, tt.expectedCode, lsErr.Code)
 			assert.Equal(t, tt.expectedStatus, lsErr.StatusCode)
@@ -255,7 +255,7 @@ func TestListModelsConnectionError(t *testing.T) {
 		_, err := client.ListModels(context.Background())
 
 		require.Error(t, err)
-		var lsErr *LlamaStackError
+		var lsErr *OGXError
 		require.ErrorAs(t, err, &lsErr)
 		assert.Equal(t, ErrCodeConnectionFailed, lsErr.Code)
 	})
@@ -297,12 +297,12 @@ func TestMapHTTPStatusToError(t *testing.T) {
 }
 
 // TestListModelsFixture verifies that the full parse pipeline handles a real
-// LlamaStack OpenAI-compatible response (the format served at /v1/models).
-// When upgrading LlamaStack, capture the new response as a fixture to catch
+// Open GenAI Stack OpenAI-compatible response (the format served at /v1/models).
+// When upgrading OGX, capture the new response as a fixture to catch
 // regressions immediately.
 func TestListModelsFixture(t *testing.T) {
-	fixtureBytes, err := os.ReadFile("testdata/llamastack_openai_models.json")
-	require.NoError(t, err, "fixture file must exist — run tests from the llamastack package directory")
+	fixtureBytes, err := os.ReadFile("testdata/ogx_openai_models.json")
+	require.NoError(t, err, "fixture file must exist — run tests from the ogx package directory")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -389,7 +389,7 @@ func TestListProviders(t *testing.T) {
 		_, err := client.ListProviders(context.Background())
 
 		require.Error(t, err)
-		var lsErr *LlamaStackError
+		var lsErr *OGXError
 		require.ErrorAs(t, err, &lsErr)
 		assert.Equal(t, ErrCodeInternalError, lsErr.Code)
 	})
@@ -406,7 +406,7 @@ func TestListProviders(t *testing.T) {
 		_, err := client.ListProviders(context.Background())
 
 		require.Error(t, err)
-		var lsErr *LlamaStackError
+		var lsErr *OGXError
 		require.ErrorAs(t, err, &lsErr)
 		assert.Equal(t, ErrCodeServerUnavailable, lsErr.Code)
 	})

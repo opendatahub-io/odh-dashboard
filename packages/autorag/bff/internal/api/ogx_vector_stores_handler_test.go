@@ -7,16 +7,16 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+func TestOGXVectorStoresHandler_Success(t *testing.T) {
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return vector_io providers only", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackVectorStoresHandler(rr, req, nil)
+		app.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
@@ -38,7 +38,7 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 
 	t.Run("should have correct stable API provider structure", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackVectorStoresHandler(rr, req, nil)
+		app.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -59,12 +59,12 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 		assert.Equal(t, "remote::milvus", first["provider_type"])
 	})
 
-	t.Run("should return empty array when LlamaStack has no providers", func(t *testing.T) {
-		emptyApp := newLSDHandlerTestApp(t)
-		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
+	t.Run("should return empty array when Open GenAI Stack has no providers", func(t *testing.T) {
+		emptyApp := newOGXHandlerTestApp(t)
+		emptyApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
-		emptyApp.LlamaStackVectorStoresHandler(rr, req, nil)
+		emptyApp.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
@@ -80,15 +80,15 @@ func TestLlamaStackVectorStoresHandler_Success(t *testing.T) {
 	})
 }
 
-func TestLlamaStackVectorStoresHandler_ErrorCases(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+func TestOGXVectorStoresHandler_ErrorCases(t *testing.T) {
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/vector-stores", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/vector-stores", nil)
 		assert.NoError(t, err)
 
-		app.AttachNamespace(app.LlamaStackVectorStoresHandler)(rr, req, nil)
+		app.AttachNamespace(app.OGXVectorStoresHandler)(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
@@ -102,10 +102,10 @@ func TestLlamaStackVectorStoresHandler_ErrorCases(t *testing.T) {
 
 	t.Run("should return 400 when secretName query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/vector-stores?namespace=test-namespace", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/vector-stores?namespace=test-namespace", nil)
 		assert.NoError(t, err)
 
-		app.AttachNamespace(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))(rr, req, nil)
+		app.AttachNamespace(app.AttachOGXClientFromSecret(app.OGXVectorStoresHandler))(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
@@ -117,12 +117,12 @@ func TestLlamaStackVectorStoresHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 500 when LlamaStack client is missing from context", func(t *testing.T) {
+	t.Run("should return 500 when Open GenAI Stack client is missing from context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/vector-stores", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/vector-stores", nil)
 		assert.NoError(t, err)
 
-		app.LlamaStackVectorStoresHandler(rr, req, nil)
+		app.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
@@ -134,12 +134,12 @@ func TestLlamaStackVectorStoresHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 500 when LlamaStack client returns error", func(t *testing.T) {
-		errApp := newLSDHandlerTestApp(t)
-		errApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
+	t.Run("should return 500 when Open GenAI Stack client returns error", func(t *testing.T) {
+		errApp := newOGXHandlerTestApp(t)
+		errApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
-		errApp.LlamaStackVectorStoresHandler(rr, req, nil)
+		errApp.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
@@ -151,12 +151,12 @@ func TestLlamaStackVectorStoresHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 502 when LlamaStack client returns a connection error", func(t *testing.T) {
-		lsErrApp := newLSDHandlerTestApp(t)
-		lsErrApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockLlamaStackErrClient{})
+	t.Run("should return 502 when Open GenAI Stack client returns a connection error", func(t *testing.T) {
+		ogxErrApp := newOGXHandlerTestApp(t)
+		ogxErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
 
-		rr, req := newHandlerTestRequest(t, lsErrApp)
-		lsErrApp.LlamaStackVectorStoresHandler(rr, req, nil)
+		rr, req := newHandlerTestRequest(t, ogxErrApp)
+		ogxErrApp.OGXVectorStoresHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 

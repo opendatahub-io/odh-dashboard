@@ -78,7 +78,7 @@ type EnvConfig struct {
 	Port                     int
 	MockK8Client             bool
 	MockHTTPClient           bool
-	MockLSClient             bool
+	MockOGXClient            bool
 	MockPipelineServerClient bool
 	MockS3Client             bool
 	DevMode                  bool
