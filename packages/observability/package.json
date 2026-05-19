@@ -20,10 +20,9 @@
         "authorize": true,
         "path": "/perses/api",
         "pathRewrite": "",
-        "tls": true,
+        "tls": false,
         "service": {
-          "name": "perses",
-          "namespace": "openshift-cluster-observability-operator",
+          "name": "data-science-perses",
           "port": 8080
         },
         "localService": {
