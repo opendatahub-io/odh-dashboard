@@ -47,12 +47,12 @@ describe('AutoML Time Series Forecasting E2E', { testIsolation: false }, () => {
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
-      cy.step('Select Time Series Forecasting prediction type');
-      automlConfigurePage.findTaskTypeCard('timeseries').click();
-
       cy.step('Select target column');
       automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.targetColumn as string)).click();
+
+      cy.step('Select Time Series Forecasting prediction type');
+      automlConfigurePage.findTaskTypeCard('timeseries').click();
 
       cy.step('Select timestamp column');
       automlConfigurePage.findTimestampColumnSelect().should('not.be.disabled').click();

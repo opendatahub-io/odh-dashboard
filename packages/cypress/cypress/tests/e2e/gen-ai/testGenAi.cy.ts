@@ -273,7 +273,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       cy.step('Wait for llama-stack-config ConfigMap to be created');
       waitForResource('configmap', testData.configMapName, projectName);
 
-      cy.step('Wait for LlamaStackDistribution to be ready');
+      cy.step('Wait for OGXServer to be ready');
       checkLlamaStackDistributionReady(projectName);
 
       cy.step('Wait for playground service to be created');

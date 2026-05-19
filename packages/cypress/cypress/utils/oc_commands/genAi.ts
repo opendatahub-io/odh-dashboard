@@ -1,5 +1,5 @@
 import { pollUntilSuccess, waitForNamespace } from './baseCommands';
-import { waitForLlamaStackOperatorReady } from './llamaStackDistribution';
+import { waitForOGXReady } from './llamaStackDistribution';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
@@ -37,14 +37,14 @@ const buildPatchCommand = (resource: string, patchJson: object, namespace?: stri
 };
 
 /**
- * Set the LlamaStack operator management state.
+ * Set the OGX operator management state in the DataScienceCluster.
  */
-const setLlamaStackState = (state: 'Managed' | 'Removed'): Cypress.Chainable<CommandLineResult> => {
-  const patchSpec = { spec: { components: { llamastackoperator: { managementState: state } } } };
+const setComponentState = (state: 'Managed' | 'Removed'): Cypress.Chainable<CommandLineResult> => {
+  const patchSpec = { spec: { components: { ogx: { managementState: state } } } };
   return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
     if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`Failed to set LlamaStack state to ${state}: ${maskedStderr}`);
+      throw new Error(`Failed to set OGX state to ${state}: ${maskedStderr}`);
     }
     return result;
   });
@@ -162,7 +162,7 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
 
 /**
  * Enable Gen AI backend resources without waiting for sidebar visibility.
- * Sets LlamaStack operator to Managed, waits for readiness, namespace,
+ * Sets OGX operator to Managed, waits for readiness, namespace,
  * enables Gen AI Studio flag, and polls for the feature flag.
  *
  * Useful for composition when a caller will perform its own sidebar check.
@@ -170,11 +170,11 @@ const waitForGenAiStudioInSidebar = (): Cypress.Chainable<boolean> => {
 export const enableGenAiBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Set LlamaStack to Managed');
-  return setLlamaStackState('Managed')
+  cy.step('Set OGX component to Managed');
+  return setComponentState('Managed')
     .then(() => {
-      cy.step('Wait for LlamaStack operator to be ready');
-      return waitForLlamaStackOperatorReady();
+      cy.step('Wait for OGX operator to be ready');
+      return waitForOGXReady();
     })
     .then(() => {
       cy.step(`Wait for namespace ${namespace} to be created`);
@@ -191,19 +191,18 @@ export const enableGenAiBackend = (): Cypress.Chainable<Cypress.Exec> => {
 };
 
 /**
- * Poll until the DSC status reports llamastackoperator as Managed.
- * The dashboard frontend reads DSC status to evaluate the plugin-gen-ai area flag.
+ * Poll until the DSC status reports the OGX component as Managed.
  */
-const waitForDSCLlamaStackManaged = (): Cypress.Chainable<Cypress.Exec> =>
+const waitForDSCComponentManaged = (): Cypress.Chainable<Cypress.Exec> =>
   pollUntilSuccess(
-    `oc get ${DSC_RESOURCE} -o json | jq -e '.status.components.llamastackoperator.managementState == "Managed"'`,
-    'DSC status to reflect llamastackoperator as Managed',
+    `oc get ${DSC_RESOURCE} -o json | jq -e '.status.components.ogx.managementState == "Managed"'`,
+    'DSC status to reflect ogx as Managed',
     { maxAttempts: 60, pollIntervalMs: 5000 },
   );
 
 /**
  * Enable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Managed, waits for the operator to be ready,
+ * Sets OGX operator to Managed, waits for the operator to be ready,
  * waits for the namespace, enables Gen AI Studio, polls for the feature flag,
  * verifies DSC status, and finally polls until it appears in the sidebar.
  *
@@ -212,8 +211,8 @@ const waitForDSCLlamaStackManaged = (): Cypress.Chainable<Cypress.Exec> =>
 export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
   return enableGenAiBackend()
     .then(() => {
-      cy.step('Verify DSC status reflects llamastackoperator as Managed');
-      return waitForDSCLlamaStackManaged();
+      cy.step('Verify DSC status reflects OGX component as Managed');
+      return waitForDSCComponentManaged();
     })
     .then(() => {
       cy.step('Wait for Gen AI Studio to appear in sidebar');
@@ -223,15 +222,15 @@ export const enableGenAiFeatures = (): Cypress.Chainable<boolean> => {
 
 /**
  * Disable Gen AI features by patching the DataScienceCluster and ODHDashboardConfig resources.
- * Sets LlamaStack operator to Removed and disables Gen AI Studio and Model as Service.
+ * Sets OGX operator to Removed and disables Gen AI Studio.
  *
  * @returns A Cypress chainable that resolves when both patches are applied successfully.
  */
 export const disableGenAiFeatures = (): Cypress.Chainable<CommandLineResult> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Set LlamaStack to Removed');
-  return setLlamaStackState('Removed').then(() => {
+  cy.step('Set OGX component to Removed');
+  return setComponentState('Removed').then(() => {
     cy.step('Disable Gen AI Studio');
     return setGenAiStudioEnabled(false, namespace);
   });

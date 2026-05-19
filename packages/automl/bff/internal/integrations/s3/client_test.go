@@ -364,6 +364,127 @@ func TestInferColumnType_Timestamp(t *testing.T) {
 	assert.Equal(t, "timestamp", inferColumnType(rows, 0))
 }
 
+func TestInferTaskType_Binary(t *testing.T) {
+	rows := [][]string{{"true"}, {"false"}, {"true"}, {"false"}}
+	assert.Equal(t, "binary", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_BinaryTwoUniqueStrings(t *testing.T) {
+	rows := [][]string{{"cat"}, {"dog"}, {"cat"}, {"dog"}}
+	assert.Equal(t, "binary", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_Multiclass(t *testing.T) {
+	rows := [][]string{{"red"}, {"green"}, {"blue"}, {"yellow"}}
+	assert.Equal(t, "multiclass", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_Regression(t *testing.T) {
+	rows := make([][]string, 15)
+	for i := range rows {
+		rows[i] = []string{fmt.Sprintf("%d", i*10)}
+	}
+	assert.Equal(t, "regression", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_TenUniqueNumerical_NotRegression(t *testing.T) {
+	rows := make([][]string, 10)
+	for i := range rows {
+		rows[i] = []string{fmt.Sprintf("%d", i)}
+	}
+	assert.Equal(t, "multiclass", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_ManyUniqueMixedTypes_Multiclass(t *testing.T) {
+	rows := [][]string{{"1"}, {"2"}, {"3"}, {"4"}, {"5"}, {"6"}, {"7"}, {"8"}, {"9"}, {"10"}, {"11"}, {"abc"}}
+	assert.Equal(t, "multiclass", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_EmptyValues(t *testing.T) {
+	rows := [][]string{{""}, {""}, {""}}
+	assert.Equal(t, "binary", inferTaskType(collectUniqueRawValues(rows, 0)))
+}
+
+func TestInferTaskType_NilSlice(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType(nil))
+}
+
+func TestInferTaskType_EmptySlice(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType([]string{}))
+}
+
+func TestInferTaskType_SingleValue(t *testing.T) {
+	assert.Equal(t, "binary", inferTaskType([]string{"only_one"}))
+}
+
+func TestCollectUniqueRawValues_NilRows(t *testing.T) {
+	assert.Equal(t, []string(nil), collectUniqueRawValues(nil, 0))
+}
+
+func TestCollectUniqueRawValues_EmptyRows(t *testing.T) {
+	assert.Equal(t, []string(nil), collectUniqueRawValues([][]string{}, 0))
+}
+
+func TestCollectUniqueRawValues_ColIdxOutOfBounds(t *testing.T) {
+	rows := [][]string{{"only_one"}, {"two"}}
+	assert.Equal(t, []string(nil), collectUniqueRawValues(rows, 5))
+}
+
+func TestCollectUniqueRawValues_MixedShortRows(t *testing.T) {
+	rows := [][]string{{"a", "b"}, {"c"}, {"d", "e"}}
+	assert.Equal(t, []string{"b", "e"}, collectUniqueRawValues(rows, 1))
+}
+
+func TestCollectUniqueRawValues_Basic(t *testing.T) {
+	rows := [][]string{{"a"}, {"b"}, {"a"}, {"c"}, {"b"}}
+	assert.Equal(t, []string{"a", "b", "c"}, collectUniqueRawValues(rows, 0))
+}
+
+func TestCollectUniqueRawValues_TrimsWhitespace(t *testing.T) {
+	rows := [][]string{{"  hello  "}, {"hello"}, {" world"}}
+	assert.Equal(t, []string{"hello", "world"}, collectUniqueRawValues(rows, 0))
+}
+
+func TestCollectUniqueRawValues_SkipsEmptyAndShortRows(t *testing.T) {
+	rows := [][]string{{"a"}, {""}, {"b"}, {}, {"  "}, {"c"}}
+	assert.Equal(t, []string{"a", "b", "c"}, collectUniqueRawValues(rows, 0))
+}
+
+func TestCollectUniqueRawValues_SecondColumn(t *testing.T) {
+	rows := [][]string{{"x", "1"}, {"y", "2"}, {"z", "1"}}
+	assert.Equal(t, []string{"1", "2"}, collectUniqueRawValues(rows, 1))
+}
+
+func TestCollectUniqueRawValues_NumericDedup(t *testing.T) {
+	rows := [][]string{{"1"}, {"1.0"}, {"01"}, {"2"}, {"002"}, {"2.0"}}
+	assert.Equal(t, []string{"1", "2"}, collectUniqueRawValues(rows, 0))
+}
+
+func TestToTypedValues_Integers(t *testing.T) {
+	result := toTypedValues([]string{"1", "2", "3"})
+	assert.Equal(t, []interface{}{int64(1), int64(2), int64(3)}, result)
+}
+
+func TestToTypedValues_Floats(t *testing.T) {
+	result := toTypedValues([]string{"1.5", "2.7"})
+	assert.Equal(t, []interface{}{1.5, 2.7}, result)
+}
+
+func TestToTypedValues_Strings(t *testing.T) {
+	result := toTypedValues([]string{"cat", "dog"})
+	assert.Equal(t, []interface{}{"cat", "dog"}, result)
+}
+
+func TestToTypedValues_Mixed(t *testing.T) {
+	result := toTypedValues([]string{"abc", "42", "3.14"})
+	assert.Equal(t, []interface{}{"abc", int64(42), 3.14}, result)
+}
+
+func TestToTypedValues_Empty(t *testing.T) {
+	result := toTypedValues([]string{})
+	assert.Equal(t, []interface{}{}, result)
+}
+
 func TestExtractFirstLine(t *testing.T) {
 	line, err := extractFirstLine([]byte("header\nrow1"))
 	assert.NoError(t, err)

@@ -1,8 +1,8 @@
 # testMaaSSubscriptions.cy.ts Test Data #
-modelLocationURI: 'hf://openai-community/gpt2'
+modelLocationURI: 'hf://facebook/opt-125m'
 projectResourceName: 'maas-subs-project'
 hardwareProfileName: 'cypress-llmd-hardware-profile-model'
-singleModelName: 'gpt2'
+singleModelName: 'maasmodel'
 connectionNameSuffix: '-connection'
 subscriptionName: 'a-test-maas-subscription'
 subscriptionDisplayName: 'A Test MaaS Subscription'

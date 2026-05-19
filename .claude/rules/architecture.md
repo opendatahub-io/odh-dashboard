@@ -17,24 +17,37 @@ ODH Dashboard is a monorepo managed with npm workspaces and Turbo. It provides t
 
 ### Feature Plugin Packages (`packages/`)
 
-Each feature package is a **Module Federation remote** that gets dynamically loaded into the main frontend:
+Feature packages provide extensions and are discovered by `discoverPluginPackages.js`. They fall into two categories based on how they are built and loaded:
 
-- `gen-ai` — Gen AI / LLM features (has Go BFF)
-- `model-registry` — Model Registry UI (has Go BFF)
-- `model-serving` — Model Serving UI
-- `model-serving-backport` — Model serving backport compatibility
-- `model-training` — Model training UI
-- `maas` — Model-as-a-Service (has Go BFF)
-- `notebooks` — Notebooks management
-- `kserve` — KServe integration
+#### Module Federation Remotes
+
+These packages have a `module-federation` config in `package.json`, their own webpack build under `frontend/config/`, and produce a `remoteEntry.js` that is loaded dynamically at runtime:
+
 - `automl` — AutoML features (has Go BFF)
 - `autorag` — AutoRAG features (has Go BFF)
 - `eval-hub` — Evaluation Hub (has Go BFF)
-- `feature-store` — Feature Store
-- `llmd-serving` — LLM serving
+- `gen-ai` — Gen AI / LLM features (has Go BFF)
+- `maas` — Model-as-a-Service (has Go BFF)
 - `mlflow` — MLflow integration (has Go BFF)
 - `mlflow-embedded` — Embedded MLflow integration
+- `model-registry` — Model Registry UI (has Go BFF)
+- `notebooks` — Notebooks management
 - `observability` — Observability features
+
+#### Bundled Plugin Packages
+
+These packages export extensions but have **no** `module-federation` config. They are compiled directly into the host bundle at build time — no separate webpack build, no `remoteEntry.js`, no standalone dev server:
+
+- `feature-store` — Feature Store
+- `kserve` — KServe integration
+- `llmd-serving` — LLM serving
+- `model-serving` — Model Serving UI
+- `model-serving-backport` — Model serving backport compatibility
+- `model-training` — Model training UI
+- `nim-serving` — NIM serving
+
+#### Plugin Infrastructure
+
 - `plugin-core` — Core plugin utilities shared across plugins
 - `plugin-template` — Scaffold for new plugins
 
@@ -59,7 +72,7 @@ Each feature package is a **Module Federation remote** that gets dynamically loa
 
 ## BFF (Backend-for-Frontend) Architecture
 
-Several packages have a Go-based BFF service: `automl`, `autorag`, `eval-hub`, `gen-ai`, `maas`, `mlflow`.
+Several packages have a Go-based BFF service: `automl`, `autorag`, `eval-hub`, `gen-ai`, `maas`, `mlflow`, `model-registry`.
 - Located in `bff/` within the package
 - Check each package's `bff/go.mod` for its required Go toolchain version
 - Exposes REST APIs consumed by the package's frontend

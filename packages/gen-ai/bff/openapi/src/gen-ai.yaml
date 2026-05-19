@@ -678,9 +678,9 @@ paths:
                             $ref: '#/components/schemas/SubscriptionInfo'
                           example:
                             - name: basic-subscription
-                              displayName: Basic Tier
+                              displayName: Basic Subscription
                             - name: premium-subscription
-                              displayName: Premium Tier
+                              displayName: Premium Subscription
                               description: Premium subscription with higher rate limits
                       required:
                         - id
@@ -2241,7 +2241,7 @@ components:
         displayName:
           type: string
           description: Human-readable display name for UI rendering
-          example: 'Premium Tier'
+          example: 'Premium Subscription'
         description:
           type: string
           description: Subscription description

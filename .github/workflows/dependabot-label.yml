@@ -1,0 +1,38 @@
+name: Dependabot auto-label
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'opendatahub-io/odh-dashboard'
+    steps:
+      - name: Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v3
+
+      - name: Apply version-update label
+        if: steps.dependabot-metadata.outputs.update-type != ''
+        run: |
+          CURRENT_LABELS=$(gh pr view "$PR_URL" --json labels --jq '[.labels[].name]')
+
+          for label in version-update:semver-patch version-update:semver-minor version-update:semver-major; do
+            if echo "$CURRENT_LABELS" | jq -e "index(\"$label\")" > /dev/null 2>&1; then
+              if [ "$label" != "$UPDATE_TYPE" ]; then
+                gh pr edit "$PR_URL" --remove-label "$label" || true
+              fi
+            fi
+          done
+
+          if ! echo "$CURRENT_LABELS" | jq -e "index(\"$UPDATE_TYPE\")" > /dev/null 2>&1; then
+            gh pr edit "$PR_URL" --add-label "$UPDATE_TYPE"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.dependabot-metadata.outputs.update-type }}

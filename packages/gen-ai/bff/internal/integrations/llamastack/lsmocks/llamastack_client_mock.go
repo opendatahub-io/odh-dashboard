@@ -255,17 +255,19 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 			Queries: []string{params.Input},
 		})
 
-		// Manually set results using reflection since the exact type might not be exported
 		lastItem := &outputItems[len(outputItems)-1]
 		results := []map[string]interface{}{
 			{
 				"score":    0.8542,
 				"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
-				"filename": "mock_document.txt",
+				"file_id":  "e6053358-ab61-48cb-a600-2d04dfcbb51b",
+				"filename": "e6053358-ab61-48cb-a600-2d04dfcbb51b",
+				"attributes": map[string]interface{}{
+					"filename": "mock_document.txt",
+				},
 			},
 		}
 
-		// Use JSON marshal/unmarshal to set the Results field correctly
 		if itemJSON, err := json.Marshal(map[string]interface{}{
 			"id":      lastItem.ID,
 			"type":    lastItem.Type,
@@ -280,8 +282,9 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 			}
 		}
 
-		// Update response text to indicate RAG usage
-		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+		// Include a citation marker matching the file_id above so that
+		// processResponseCitations exercises the full strip+annotate path.
+		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input
 	}
 
 	// Add message content
@@ -338,7 +341,7 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 
 	responseText := "This is a mock response to your query: " + params.Input
 	if len(params.VectorStoreIDs) > 0 {
-		responseText = "Based on retrieved documents, this is a mock response to your query: " + params.Input
+		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input
 	}
 	if params.PreviousResponseID != "" {
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
@@ -441,9 +444,13 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 			"queries": []string{params.Input},
 			"results": []map[string]interface{}{
 				{
-					"filename": "mock_document.txt",
+					"file_id":  "e6053358-ab61-48cb-a600-2d04dfcbb51b",
+					"filename": "e6053358-ab61-48cb-a600-2d04dfcbb51b",
 					"score":    0.8542,
 					"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+					"attributes": map[string]interface{}{
+						"filename": "mock_document.txt",
+					},
 				},
 			},
 		})

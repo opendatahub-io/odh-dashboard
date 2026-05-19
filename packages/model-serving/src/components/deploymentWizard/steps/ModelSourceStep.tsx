@@ -79,6 +79,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           isEditing={
             !wizardState.initialData?.modelTypeField ? false : wizardState.initialData.isEditing
           }
+          externalData={wizardState.state.modelType.externalData}
         />
       </FormSection>
     </Form>
