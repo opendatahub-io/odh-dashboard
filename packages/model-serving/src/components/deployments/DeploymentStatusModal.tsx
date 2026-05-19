@@ -23,6 +23,7 @@ import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/M
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import DeploymentEventLog from './DeploymentEventLog';
+import DeploymentLogsTab from './DeploymentLogsTab';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 import { useWatchDeploymentEvents } from '../../concepts/useWatchDeploymentEvents';
 import {
@@ -34,7 +35,8 @@ import {
 import './DeploymentStatusModal.scss';
 
 const PROGRESS_TAB = 'Progress';
-const EVENT_LOG_TAB = 'Events log';
+const EVENT_LOG_TAB = 'Events';
+const LOGS_TAB = 'Logs';
 
 const progressStepVariants: Record<DeploymentProgressStep['status'], ProgressStepVariant> = {
   pending: ProgressStepVariant.pending,
@@ -177,10 +179,20 @@ const DeploymentStatusModal: React.FC<DeploymentStatusModalProps> = ({
                 title={<TabTitleText>{EVENT_LOG_TAB}</TabTitleText>}
                 data-testid="expand-events"
               />
+              <Tab
+                eventKey={LOGS_TAB}
+                aria-label={LOGS_TAB}
+                title={<TabTitleText>{LOGS_TAB}</TabTitleText>}
+                data-testid="expand-logs"
+              />
             </Tabs>
           </StackItem>
           <StackItem isFilled className="deployment-status-modal__filled-stack-item">
-            {activeTab === PROGRESS_TAB ? renderProgress() : renderEvents()}
+            {activeTab === PROGRESS_TAB && renderProgress()}
+            {activeTab === EVENT_LOG_TAB && renderEvents()}
+            {activeTab === LOGS_TAB && (
+              <DeploymentLogsTab namespace={namespace} deploymentName={deploymentName} />
+            )}
           </StackItem>
         </Stack>
       </ModalBody>
