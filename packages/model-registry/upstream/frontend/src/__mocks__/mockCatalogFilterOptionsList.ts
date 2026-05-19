@@ -5,6 +5,7 @@ import {
   ModelCatalogNumberFilterKey,
   ModelCatalogProvider,
   ModelCatalogTask,
+  ValidatedConfiguration,
   AllLanguageCode,
   UseCaseOptionValue,
   DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME,
@@ -110,6 +111,10 @@ export const mockCatalogFilterOptionsList = (
         ModelCatalogTensorType.INT8,
         ModelCatalogTensorType.MXFP4,
       ],
+    },
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+      type: 'string',
+      values: [ValidatedConfiguration.TOOL_CALLING],
     },
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
       type: 'string',
