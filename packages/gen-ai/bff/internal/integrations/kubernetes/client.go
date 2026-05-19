@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -15,7 +15,7 @@ import (
 // ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
 var ErrExternalModelNotFound = errors.New("external model not found")
 
-const ComponenetLabelValue = "llama-stack"
+const ComponentLabelValue = "ogx"
 
 type KubernetesClientInterface interface {
 	// Namespace access
@@ -30,11 +30,11 @@ type KubernetesClientInterface interface {
 	// Identity
 	GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error)
 
-	// LlamaStack Distribution
-	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
-	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
-	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error)
-	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
+	// OGX Server (OGXServer CR)
+	GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error)
+	CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
+	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error)
+	DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error)
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
 
 	// NemoGuardrails operations

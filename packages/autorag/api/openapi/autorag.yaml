@@ -578,7 +578,7 @@ paths:
       operationId: getPipelineRuns
       summary: Get Pipeline Runs
       description: >-
-        Returns pipeline runs filtered to the auto-discovered AutoRAG managed pipeline version.
+        Returns pipeline runs across all versions of the auto-discovered AutoRAG managed pipeline.
         The AutoRAG pipeline is automatically discovered in the namespace by name prefix.
         Returns 500 if no managed AutoRAG pipeline is found in the namespace.
     post:
