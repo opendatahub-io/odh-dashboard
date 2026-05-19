@@ -391,24 +391,42 @@ paths:
             example: 'genai-lls'
         - name: sources
           in: query
+          style: form
+          explode: false
           description: >-
-            Comma-separated list of model source types to include in the response.
-            Valid values: namespace, custom_endpoint, maas.
-            Defaults to 'namespace,custom_endpoint' if not specified.
-            Use 'namespace,custom_endpoint,maas' to include all model types.
+            Model source types to include in the response.
+            Defaults to namespace and custom_endpoint when not specified.
           required: false
           schema:
-            type: string
-            example: 'namespace,custom_endpoint,maas'
+            type: array
+            items:
+              type: string
+              enum:
+                - namespace
+                - custom_endpoint
+                - maas
+            default:
+              - namespace
+              - custom_endpoint
+            example:
+              - namespace
+              - custom_endpoint
+              - maas
           examples:
             default:
-              value: 'namespace,custom_endpoint'
+              value:
+                - namespace
+                - custom_endpoint
               summary: Default sources (namespace and custom endpoints)
             withMaas:
-              value: 'namespace,custom_endpoint,maas'
+              value:
+                - namespace
+                - custom_endpoint
+                - maas
               summary: Include MaaS models
             onlyMaas:
-              value: 'maas'
+              value:
+                - maas
               summary: Only MaaS models
       responses:
         '200':
@@ -728,7 +746,7 @@ paths:
   /gen-ai/api/v1/maas/tokens:
     summary: Manage MaaS ephemeral API keys
     description: >-
-      Issue new ephemeral API keys and revoke existing tokens for MaaS service authentication.
+      Issue new ephemeral API keys for MaaS service authentication.
       All keys created through Gen AI Studio are ephemeral (short-lived, max 1h TTL)
       and are excluded from the MaaS API key list by default.
       Requires namespace parameter for proper multi-tenant isolation.
@@ -751,11 +769,13 @@ paths:
         creates ephemeral keys (max 1h TTL), which are excluded from the
         MaaS API key list by default.
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - subscription
               properties:
                 name:
                   type: string
@@ -777,9 +797,8 @@ paths:
                 subscription:
                   type: string
                   description: >-
-                    Optional MaaS subscription name to bind the ephemeral API key to.
-                    When provided, the key is scoped to this subscription.
-                    When omitted, the user's highest-priority accessible subscription is used by MaaS.
+                    MaaS subscription name to bind the ephemeral API key to.
+                    The handler rejects requests that omit this field.
                   example: 'premium-subscription'
             example:
               expiresIn: '1h'
