@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, PageSection, Spinner, Content, ContentVariants } from '@patternfly/react-core';
-import { URL_PREFIX } from '~/app/utilities/const';
+import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 
 const MainPage: React.FC = () => {
   const [bffStatus, setBffStatus] = React.useState<{
@@ -9,11 +9,11 @@ const MainPage: React.FC = () => {
   } | null>(null);
 
   React.useEffect(() => {
-    fetch(`${URL_PREFIX}/api/healthcheck`)
+    fetch(`${URL_PREFIX}/api/${BFF_API_VERSION}/status`)
       .then((res) => res.json())
-      .then((data: { status: string }) => {
+      .then((data: { ready: boolean }) => {
         setBffStatus({
-          connected: data.status === 'OK',
+          connected: data.ready === true,
           message: `Hello from Agent Ops BFF!`,
         });
       })
