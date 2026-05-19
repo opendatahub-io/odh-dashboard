@@ -41,7 +41,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -76,7 +76,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -103,7 +103,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 
 	t.Run("should return error for invalid JSON", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", strings.NewReader("invalid json"))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", strings.NewReader("invalid json"))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -124,7 +124,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -157,7 +157,7 @@ func TestMaaSIssueTokenHandler(t *testing.T) {
 		assert.NoError(t, err)
 
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens", bytes.NewBuffer(requestBody))
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/maas/tokens?namespace=test-namespace", bytes.NewBuffer(requestBody))
 		assert.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 

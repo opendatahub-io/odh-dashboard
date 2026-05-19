@@ -8,7 +8,7 @@ import (
 )
 
 // MaaSClientInterface defines the interface for MaaS (Model as a Service) client operations.
-// NOTE: This interface is deprecated and will be removed once all LlamaStack paths
+// Deprecated: this interface will be removed once all LlamaStack paths
 // (POST /api/v1/lsd/responses, POST /api/v1/lsd/install) are migrated to use inter-BFF communication.
 type MaaSClientInterface interface {
 	ListModels(ctx context.Context, authToken string) ([]models.MaaSModel, error)

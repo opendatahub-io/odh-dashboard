@@ -31,7 +31,7 @@ func (r *MaaSModelsRepository) ListModels(ctx context.Context, authToken string)
 
 // IssueToken creates a new ephemeral token with specified TTL.
 // The MaaS client is expected to be in the context (created by AttachMaaSClient middleware).
-// NOTE: This method is deprecated and will be removed once all LlamaStack paths
+// Deprecated: this method will be removed once all LlamaStack paths
 // (POST /api/v1/lsd/responses, POST /api/v1/lsd/install) are migrated to use inter-BFF communication.
 func (r *MaaSModelsRepository) IssueToken(ctx context.Context, request models.MaaSTokenRequest) (*models.MaaSTokenResponse, error) {
 	// Get ready-to-use MaaS client from context using helper
