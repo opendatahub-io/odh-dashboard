@@ -1,0 +1,142 @@
+DEFAULT_ENV_FILE := .env
+ifneq ("$(wildcard $(DEFAULT_ENV_FILE))","")
+include ${DEFAULT_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEFAULT_ENV_FILE})
+endif
+
+DEV_ENV_FILE := .env.development
+ifneq ("$(wildcard $(DEV_ENV_FILE))","")
+include ${DEV_ENV_FILE}
+export $(shell sed 's/=.*//' ${DEV_ENV_FILE})
+endif
+
+ENV_FILE := .env.local
+ifneq ("$(wildcard $(ENV_FILE))","")
+include ${ENV_FILE}
+export $(shell sed 's/=.*//' ${ENV_FILE})
+endif
+
+.PHONY: all
+all: build
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+
+############ Dev Environment ############
+
+.PHONY: dev-install-dependencies
+dev-install-dependencies: ## Install dependencies for frontend
+	cd frontend && npm install
+
+.PHONY: dev-bff-mock
+dev-bff-mock: ## Run BFF with all mocks enabled
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug
+
+.PHONY: dev-bff
+dev-bff: ## Run BFF connecting to real services
+	cd bff && make run PORT=4000 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=$(or ${INSECURE_SKIP_VERIFY},false) DEV_MODE=true DEPLOYMENT_MODE=standalone LOG_LEVEL=debug STATIC_ASSETS_DIR=../frontend/dist
+
+.PHONY: dev-frontend
+dev-frontend: ## Run only the frontend in development mode
+	cd frontend && DEPLOYMENT_MODE=standalone STYLE_THEME=mui-theme npm run start:dev
+
+.PHONY: dev-start-mock
+dev-start-mock: ## Run frontend and BFF (all mocks) in development mode
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-mock dev-frontend
+
+.PHONY: dev-start
+dev-start: ## Run frontend and BFF connecting to real services
+	@trap 'exit 0' INT; \
+	AUTH_METHOD=user_token make -j 2 dev-bff dev-frontend
+
+########### Dev Federated ###########
+.PHONY: dev-start-federated
+dev-start-federated:
+	@trap 'exit 0' INT; \
+	make -j 2 dev-bff-federated dev-frontend-federated
+
+.PHONY: dev-frontend-federated
+dev-frontend-federated:
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme PORT=9111 PROXY_PORT=4021 npm run start:dev
+
+.PHONY: dev-bff-federated
+dev-bff-federated:
+	cd bff && make run PORT=4021 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_CLIENT_PORT=8085 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=$(or ${INSECURE_SKIP_VERIFY},false)
+
+############ E2E Test Targets ############
+# These targets are used by the GitHub Actions e2e workflow to start BFFs
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+
+E2E_BFF_PORT ?= 4021
+
+.PHONY: dev-bff-e2e-mock
+dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+
+.PHONY: dev-bff-e2e-cluster
+dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
+############ Build ############
+
+.PHONY: docker-build
+docker-build:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+
+.PHONY: docker-build-standalone
+docker-build-standalone:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+
+.PHONY: docker-build-federated
+docker-build-federated:
+	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly-theme -t ${IMG_UI_FEDERATED} .
+
+.PHONY: docker-buildx
+docker-buildx:
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+
+.PHONY: docker-buildx-standalone
+docker-buildx-standalone:
+	docker buildx build --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+
+.PHONY: docker-buildx-federated
+docker-buildx-federated:
+	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly-theme --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+
+############ Push ############
+
+.PHONY: docker-push
+docker-push:
+	${CONTAINER_TOOL} push ${IMG_UI}
+
+.PHONY: docker-push-standalone
+docker-push-standalone:
+	${CONTAINER_TOOL} push ${IMG_UI_STANDALONE}
+
+.PHONY: docker-push-federated
+docker-push-federated:
+	${CONTAINER_TOOL} push ${IMG_UI_FEDERATED}
+
+############ Component Build ############
+.PHONY: frontend-build
+frontend-build:
+	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+
+.PHONY: frontend-build-standalone
+frontend-build-standalone:
+	cd frontend && DEPLOYMENT_MODE=standalone npm run build:prod
+
+.PHONY: bff-build
+bff-build:
+	cd bff && make build
+
+.PHONY: build
+build: frontend-build bff-build
+
+############ Run mocked ########
+.PHONY: run-local-mocked
+run-local-mocked: frontend-build-standalone bff-build
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true AUTH_METHOD=disabled DEV_MODE=true

@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Agent Ops REST API
+  version: 1.0.0
+  description: REST API Agent Ops BFF
+  license:
+    name: Apache 2.0
+    url: "https://www.apache.org/licenses/LICENSE-2.0"
+servers:
+  - url: "https://localhost:8080"
+  - url: "http://localhost:8080"
+paths:
+  /healthcheck:
+    summary: Path targeted for healthcheck purposes.
+    description: >-
+      The REST endpoint/path used to allow a healthcheck update.
+    get:
+      tags:
+        - K8SOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/HealthCheckResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: healthcheck
+      summary: HealthCheck
+      description: HealthCheck endpoint.
+  /api/v1/status:
+    summary: Path used to get agent-ops component status.
+    description: >-
+      The REST endpoint/path used to check agent-ops component status.
+    get:
+      tags:
+        - AgentOpsOperation
+      responses:
+        "200":
+          $ref: "#/components/responses/StatusResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      operationId: getStatus
+      summary: Get Status
+      description: Returns the status of the agent-ops components.
+components:
+  schemas:
+    HealthCheckModel:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "OK"
+        version:
+          type: string
+          example: "1.0.0"
+      required:
+        - status
+    StatusResponse:
+      type: object
+      properties:
+        ready:
+          type: boolean
+          example: true
+      required:
+        - ready
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - code
+            - message
+  responses:
+    HealthCheckResponse:
+      description: Successful healthcheck response.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/HealthCheckModel"
+    StatusResponse:
+      description: Successful status response.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/StatusResponse"
+    InternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

@@ -240,6 +240,14 @@ aliases:
     - pnaik1
     - ederign
 
+  # Agent Ops
+  agent-ops-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  agent-ops-reviewers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+
   # MLflow
   mlflow-approvers:
     - caponetto
