@@ -831,7 +831,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
   });
 
   it('should navigate to subscriptions tab', () => {
-    apiKeysPage.visit();
+    apiKeysPage.visitKeysAndSubs();
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
@@ -844,7 +844,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     apiKeysPage.findRows().should('have.length', 2);
 
     apiKeysPage.findSubscriptionsTab().click();
-    cy.url().should('include', '/maas/tokens/subscriptions');
+    cy.url().should('include', '/maas/keys-and-subs/subscriptions');
     apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
 
     cy.contains('Models available to you through your subscriptions, with token limits.').should(

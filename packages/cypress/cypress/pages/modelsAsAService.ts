@@ -15,6 +15,11 @@ class APIKeysPage {
     this.wait();
   }
 
+  visitKeysAndSubs(): void {
+    cy.visitWithLogin('/maas/keys-and-subs');
+    this.wait();
+  }
+
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();

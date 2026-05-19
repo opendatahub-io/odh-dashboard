@@ -18,7 +18,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
-      navigate(`${URL_PREFIX}/tokens/${String(tabKey)}`);
+      navigate(`${URL_PREFIX}/keys-and-subs/${String(tabKey)}`);
     },
     [navigate],
   );

@@ -103,9 +103,9 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     properties: {
       id: 'maas-tokens-subscriptions-view',
       title: 'API keys and subscriptions',
-      href: '/maas/tokens',
+      href: '/maas/keys-and-subs',
       section: 'gen-ai-studio',
-      path: '/maas/tokens/*',
+      path: '/maas/keys-and-subs/*',
     },
   },
   {
@@ -135,6 +135,16 @@ const ODH_EXTENSIONS: ODHExtensions[] = [
     },
     properties: {
       path: '/maas/tokens/*',
+      component: () => import('./MaaSWrapper'),
+    },
+  },
+  {
+    type: 'app.route',
+    flags: {
+      required: [MODEL_AS_SERVICE_ID, MAAS_MY_SUBSCRIPTIONS],
+    },
+    properties: {
+      path: '/maas/keys-and-subs/*',
       component: () => import('./MaaSWrapper'),
     },
   },
