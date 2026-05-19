@@ -82,6 +82,12 @@ describe('API Keys Page', () => {
     cy.wait('@initialSearch');
   });
 
+  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    apiKeysPage.findSubscriptionsTab().should('not.exist');
+    apiKeysPage.findApiKeysTab().should('not.exist');
+  });
+
   it('should display the API keys table page with active keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage

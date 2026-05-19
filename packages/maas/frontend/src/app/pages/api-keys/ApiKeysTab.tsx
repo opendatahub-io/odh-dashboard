@@ -1,4 +1,4 @@
-import { PageSection } from '@patternfly/react-core';
+import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import { useApiKeysTableState } from '~/app/hooks/useApiKeysTableState';
@@ -42,7 +42,13 @@ const ApiKeysTab: React.FC = () => {
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
   if (!loaded || !isMaasAdminLoaded) {
-    return null;
+    return (
+      <PageSection isFilled>
+        <Bullseye>
+          <Spinner />
+        </Bullseye>
+      </PageSection>
+    );
   }
 
   return (
