@@ -178,7 +178,6 @@ function AutomlConfigure({
     const lastSegment = initialFileKey.split('/').pop();
     const fileName = lastSegment || initialFileKey;
     const ext = fileName && fileName.includes('.') ? fileName.split('.').pop()! : '';
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return { name: fileName, path: `/${initialFileKey}`, type: ext };
   });
   const [isTrainingDataFileUploading, setIsTrainingDataFileUploading] = useState(false);

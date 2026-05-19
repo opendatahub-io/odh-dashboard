@@ -877,7 +877,6 @@ function AutoragConfigure({
                                       onClick={openExperimentSettings}
                                       isDisabled={
                                         !inputDataBucketName ||
-                                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                                         !inputDataKeyValue ||
                                         form.formState.isSubmitting ||
                                         isModelsLoading ||
@@ -909,13 +908,7 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>
-                                          {generationModels.length
-                                            ? `${generationModels.length} foundation model${
-                                                generationModels.length === 1 ? '' : 's'
-                                              }`
-                                            : 'No foundation models'}
-                                        </Content>
+                                        <Content>{`${generationModels.length || 'No'} foundation models`}</Content>
                                         {!!generationModels.length && (
                                           <Popover
                                             bodyContent={
@@ -952,13 +945,7 @@ function AutoragConfigure({
                                         spacer={{ default: 'spacerNone' }}
                                         gap={{ default: 'gapSm' }}
                                       >
-                                        <Content>
-                                          {embeddingModels.length
-                                            ? `${embeddingModels.length} embedding model${
-                                                embeddingModels.length === 1 ? '' : 's'
-                                              }`
-                                            : 'No embedding models'}
-                                        </Content>
+                                        <Content>{`${embeddingModels.length || 'No'} embedding models`}</Content>
                                         {!!embeddingModels.length && (
                                           <Popover
                                             bodyContent={
