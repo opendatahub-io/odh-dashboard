@@ -108,19 +108,41 @@ When conflicts are detected:
    - Continue the sync: `cd packages/<package-name> && npm run update-subtree -- --continue`
    - Repeat this phase if more conflicts are encountered
 
-### Phase 4: Run Tests
+### Phase 4: Lint and Tests
 
-After the sync completes successfully, run tests. Check which test scripts are available in the package's upstream frontend:
+After the sync completes successfully, run lint and tests. Check which scripts are available in the package's upstream frontend:
 
 ```bash
 cd packages/<package-name>/upstream/frontend && cat package.json | grep -E '"test:|"type-check'
 ```
 
-Run whichever of these are available:
+**Step 1: Lint (required before creating a PR)**
+
+Run lint first — CI will reject the PR if this fails:
+
+```bash
+cd packages/<package-name>/upstream/frontend && npm run test:lint
+```
+
+If lint fails, try auto-fixing:
+
+```bash
+cd packages/<package-name>/upstream/frontend && npm run test:fix
+```
+
+After auto-fix, re-run `test:lint` to confirm all issues are resolved. If issues remain that can't be auto-fixed, fix them manually. Stage and commit any lint fixes:
+
+```bash
+git add packages/<package-name> && git commit -m "Fix lint issues from upstream sync"
+```
+
+**Step 2: Unit tests**
 
 ```bash
 cd packages/<package-name>/upstream/frontend && npm run test:unit
 ```
+
+**Step 3: Type check**
 
 ```bash
 cd packages/<package-name>/upstream/frontend && npm run test:type-check
