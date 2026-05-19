@@ -11,9 +11,9 @@ import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationFiel
 import { numReplicasFieldSchema } from './fields/NumReplicasField';
 import { runtimeArgsFieldSchema } from './fields/RuntimeArgsField';
 import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesField';
-import { modelServerSelectFieldSchema } from './fields/ModelServerTemplateSelectField';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
+import { getStateKey } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -52,21 +52,21 @@ export const useModelDeploymentWizardValidation = (
   );
   const modelDeploymentStepValidation = useZodFormValidation(
     {
-      modelServer: state.modelServer.data,
-      modelFormatState: state.modelFormatState.modelFormat,
-      numReplicas: state.numReplicas.data,
+      numReplicas: state.numReplicas.data ?? 0,
+      ...(state.modelFormatState.isVisible && {
+        modelFormatState: state.modelFormatState.modelFormat,
+      }),
       ...step2Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = state[field.id];
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
     z.object({
-      modelServer: modelServerSelectFieldSchema,
-      modelFormatState: modelFormatFieldSchema,
       numReplicas: numReplicasFieldSchema,
+      ...(state.modelFormatState.isVisible && { modelFormatState: modelFormatFieldSchema }),
       ...step2Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
@@ -82,7 +82,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[field.id] = resolveFieldValue(field, state);
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -93,7 +93,7 @@ export const useModelDeploymentWizardValidation = (
       environmentVariables: environmentVariablesFieldSchema,
       ...step3Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[field.id] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
