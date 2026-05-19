@@ -296,6 +296,7 @@ export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.LICENSE]: string;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
@@ -362,6 +363,7 @@ export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.LICENSE]: string[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];

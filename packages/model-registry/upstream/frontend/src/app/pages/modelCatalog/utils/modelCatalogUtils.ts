@@ -34,6 +34,7 @@ import {
   CatalogModelCustomPropertyKey,
   ModelType,
   ModelCatalogTask,
+  MATCH_ALL_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
 import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
@@ -353,6 +354,10 @@ const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
 const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
 const inFilter = (k: string, values: string[]) =>
   `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
+const andFilter = (k: string, values: string[]) => values.map((v) => eqFilter(k, v)).join(' AND ');
+
+const isMatchAllFilter = (filterId: string): boolean =>
+  MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
 
 /**
  * Check if a filter key has the artifacts.* prefix.
@@ -446,7 +451,7 @@ const serializeFilterEntry = (
       case 1:
         return eqFilter(queryKey, data[0]);
       default:
-        return inFilter(queryKey, data);
+        return isMatchAllFilter(filterId) ? andFilter(queryKey, data) : inFilter(queryKey, data);
     }
   }
 
