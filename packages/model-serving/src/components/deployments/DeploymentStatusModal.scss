@@ -1,0 +1,13 @@
+.deployment-status-modal {
+  &__content-height {
+    height: 500px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__filled-stack-item {
+    overflow-y: auto;
+    min-height: 0;
+  }
+}

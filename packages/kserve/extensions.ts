@@ -13,6 +13,7 @@ import type {
   ModelServingPlatformFetchDeploymentStatus,
   ModelServingDeploymentFormDataExtension,
   ModelServingDeploy,
+  ModelServingDeploymentProgressStepsExtension,
   WizardField2Extension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
@@ -78,6 +79,7 @@ const extensions: (
   | WizardField2Extension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
+  | ModelServingDeploymentProgressStepsExtension<KServeDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -257,6 +259,17 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
+  {
+    type: 'model-serving.deployment/progress-steps',
+    properties: {
+      platform: KSERVE_ID,
+      useProgressSteps: () =>
+        import('./src/deploymentProgressSteps').then((m) => m.useKServeProgressSteps),
+    },
+    flags: {
+      required: [SupportedArea.K_SERVE],
+    },
+  } satisfies ModelServingDeploymentProgressStepsExtension<KServeDeployment>,
 ];
 
 export default extensions;

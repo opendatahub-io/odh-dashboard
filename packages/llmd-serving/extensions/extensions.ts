@@ -3,6 +3,7 @@ import type {
   DeploymentWizardFieldExtension,
   ModelServingDeploy,
   ModelServingDeploymentFormDataExtension,
+  ModelServingDeploymentProgressStepsExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
   ModelServingDeploymentTransformExtension,
@@ -105,6 +106,7 @@ const extensions: (
   | WizardField2Extension<GatewaySelectFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
+  | ModelServingDeploymentProgressStepsExtension<LLMdDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -275,6 +277,17 @@ const extensions: (
         import('../src/deployments/status').then((m) => m.patchDeploymentStoppedStatus),
     },
   },
+  {
+    type: 'model-serving.deployment/progress-steps',
+    properties: {
+      platform: LLMD_SERVING_ID,
+      useProgressSteps: () =>
+        import('../src/deployments/deploymentProgressSteps').then((m) => m.useLLMdProgressSteps),
+    },
+    flags: {
+      required: [LLMD_SERVING_ID],
+    },
+  } satisfies ModelServingDeploymentProgressStepsExtension<LLMdDeployment>,
 ];
 
 export default extensions;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Spinner } from '@patternfly/react-core';
+import { Button, Spinner } from '@patternfly/react-core';
 import { Td, Tbody } from '@patternfly/react-table';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
@@ -16,6 +16,7 @@ import DeploymentLastDeployed from '../DeploymentLastDeployed';
 import DeploymentStatus from '../DeploymentStatus';
 import DeployedModelsVersion from '../DeployedModelsVersion';
 import ModelServingStopModal from '../ModelServingStopModal';
+import DeploymentStatusModal from '../DeploymentStatusModal';
 import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
@@ -54,6 +55,7 @@ export const DeploymentRow: React.FC<{
   const [isExpanded, setExpanded] = React.useState(false);
   const [dontShowModalValue] = useStopModalPreference();
   const [isOpenConfirm, setOpenConfirm] = React.useState(false);
+  const [isStatusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const { watchDeployment } = useModelDeploymentNotification(deployment);
 
@@ -159,6 +161,7 @@ export const DeploymentRow: React.FC<{
             bodyContent={deployment.status?.message}
             defaultHeaderContent="Inference Service Status"
             stoppedStates={deployment.status?.stoppedStates}
+            onClick={() => setStatusModalOpen(true)}
           />
         </Td>
         <Td dataLabel="State toggle">
@@ -219,6 +222,54 @@ export const DeploymentRow: React.FC<{
                 .then((resolvedFunction) => resolvedFunction(deployment, true));
             }
           }}
+        />
+      )}
+      {isStatusModalOpen && (
+        <DeploymentStatusModal
+          deployment={deployment}
+          onClose={() => setStatusModalOpen(false)}
+          buttons={
+            <>
+              {startStopActionExtension && deployment.status?.stoppedStates ? (
+                deployment.status.stoppedStates.isStopped ? (
+                  <Button
+                    key="start"
+                    variant="primary"
+                    onClick={() => {
+                      onStart();
+                      setStatusModalOpen(false);
+                    }}
+                    data-testid="status-modal-start"
+                  >
+                    Start deployment
+                  </Button>
+                ) : (
+                  <Button
+                    key="stop"
+                    variant="primary"
+                    onClick={() => {
+                      onStop();
+                      setStatusModalOpen(false);
+                    }}
+                    data-testid="status-modal-stop"
+                  >
+                    Stop deployment
+                  </Button>
+                )
+              ) : null}
+              <Button
+                key="edit"
+                variant="link"
+                onClick={() => {
+                  navigateToDeploymentWizard(deployment.model.metadata.namespace);
+                  setStatusModalOpen(false);
+                }}
+                data-testid="status-modal-edit"
+              >
+                Edit deployment
+              </Button>
+            </>
+          }
         />
       )}
     </>

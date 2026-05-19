@@ -533,3 +533,29 @@ export const isModelServingExcludeDeployment = (
   extension: Extension,
 ): extension is ModelServingExcludeDeploymentExtension =>
   extension.type === 'model-serving.platform/exclude-deployment';
+
+//// Deployment progress steps (status modal)
+
+export type DeploymentProgressStepStatus = 'pending' | 'success' | 'danger' | 'warning' | 'info';
+
+export type DeploymentProgressStep = {
+  id: string;
+  title: string;
+  status: DeploymentProgressStepStatus;
+  description?: string;
+  children?: DeploymentProgressStep[];
+};
+
+export type ModelServingDeploymentProgressStepsExtension<D extends Deployment = Deployment> =
+  Extension<
+    'model-serving.deployment/progress-steps',
+    {
+      platform: D['modelServingPlatformId'];
+      useProgressSteps: CodeRef<(deployment: D) => DeploymentProgressStep[]>;
+    }
+  >;
+
+export const isModelServingDeploymentProgressSteps = <D extends Deployment = Deployment>(
+  extension: Extension,
+): extension is ModelServingDeploymentProgressStepsExtension<D> =>
+  extension.type === 'model-serving.deployment/progress-steps';
