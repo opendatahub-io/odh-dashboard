@@ -118,6 +118,7 @@ jobs:
           SECONDARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL }}
         run: |
           # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
           rm -f ~/.kube/config 2>/dev/null || true
 
           # Extract credentials from test-variables.yml
@@ -935,6 +936,7 @@ jobs:
           fi
 
           # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
           rm -f "$HOME/.kube/config" 2>/dev/null || true
 
           echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
