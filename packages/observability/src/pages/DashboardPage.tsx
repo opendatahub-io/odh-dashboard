@@ -42,17 +42,6 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  if (!loaded) {
-    return (
-      <ApplicationsPage
-        title={DASHBOARD_PAGE_TITLE}
-        description={DASHBOARD_PAGE_DESCRIPTION}
-        loaded={false}
-        empty={false}
-      />
-    );
-  }
-
   if (error) {
     return (
       <ApplicationsPage
@@ -62,6 +51,17 @@ const DashboardPage: React.FC = () => {
         empty={false}
         loadError={error}
         errorMessage={PERSES_LOAD_ERROR_TITLE}
+      />
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <ApplicationsPage
+        title={DASHBOARD_PAGE_TITLE}
+        description={DASHBOARD_PAGE_DESCRIPTION}
+        loaded={false}
+        empty={false}
       />
     );
   }
