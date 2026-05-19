@@ -57,7 +57,12 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                    <Label variant="outline" isClickable status="success" icon={<CheckCircleIcon />}>
+                    <Label
+                      variant="outline"
+                      isClickable
+                      status="success"
+                      icon={<CheckCircleIcon />}
+                    >
                       Validated
                     </Label>
                   </Popover>
