@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import type { ComponentType, CSSProperties } from 'react';
 
 export type DisplayNameAnnotations = Partial<{
@@ -169,7 +170,6 @@ export type FeatureImportanceData = {
 
 export type ConfusionMatrixData = Partial<Record<string, Partial<Record<string, number>>>>;
 
-/* eslint-disable camelcase */
 export type ModelRegistry = {
   id: string;
   name: string;
@@ -200,4 +200,31 @@ export type RegisterModelRequest = {
   model_format_name?: string;
   model_format_version?: string;
 };
-/* eslint-enable camelcase */
+
+export type RocCurveEntry = {
+  auc: number;
+  fpr: number[];
+  tpr: number[];
+  thresholds: (number | string)[];
+};
+
+export type MulticlassRocCurveEntry = RocCurveEntry & {
+  support: number;
+};
+
+export type BinaryRocCurveData = {
+  task_type: 'binary';
+  roc_curve: RocCurveEntry;
+};
+
+export type MulticlassRocCurveData = {
+  task_type: 'multiclass';
+  classes: (string | number)[];
+  roc_curve: {
+    auc_macro: number;
+    auc_weighted: number;
+    per_class: Record<string, MulticlassRocCurveEntry>;
+  };
+};
+
+export type RocCurveData = BinaryRocCurveData | MulticlassRocCurveData;
