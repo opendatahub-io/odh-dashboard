@@ -263,19 +263,24 @@ module.exports = smp.wrap(
             );
 
             // Build per-service proxy entries only for verified services.
-            // Port-forward tunnels raw TCP so we connect via HTTPS.
-            const localProxyEntries = availableLocalServices.map((ps) => ({
-              context: [ps.path],
-              target: `https://${ps.localService.host || 'localhost'}:${ps.localService.port}`,
-              secure: false,
-              changeOrigin: true,
-              pathRewrite: { [`^${ps.path}`]: ps.pathRewrite ?? '' },
-              headers,
-              onProxyReq: (proxyReq) => {
-                const currentToken = getCurrentToken();
-                proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
-              },
-            }));
+            // Port-forward tunnels raw TCP, so use the same scheme the cluster service expects.
+            const localProxyEntries = availableLocalServices.map((ps) => {
+              const scheme = ps.tls === false ? 'http' : 'https';
+              return {
+                context: [ps.path],
+                target: `${scheme}://${ps.localService.host || 'localhost'}:${
+                  ps.localService.port
+                }`,
+                secure: false,
+                changeOrigin: true,
+                pathRewrite: { [`^${ps.path}`]: ps.pathRewrite ?? '' },
+                headers,
+                onProxyReq: (proxyReq) => {
+                  const currentToken = getCurrentToken();
+                  proxyReq.setHeader('Authorization', `Bearer ${currentToken}`);
+                },
+              };
+            });
 
             // Auto-spawn port-forwards for the verified services
             const activeChildren = new Map();
