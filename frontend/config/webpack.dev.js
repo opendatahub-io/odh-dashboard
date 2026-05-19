@@ -223,6 +223,12 @@ module.exports = smp.wrap(
               headers['x-forwarded-access-token'] = token;
             }
 
+            const K8S_NAME_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
+            const MAX_K8S_NAME_LEN = 63;
+            const isValidK8sName = (value) =>
+              value.length > 0 && value.length <= MAX_K8S_NAME_LEN && K8S_NAME_RE.test(value);
+            const isValidPort = (port) => Number.isInteger(port) && port >= 1 && port <= 65535;
+
             // Collect proxyService entries that have a localService AND whose
             // cluster service actually exists, so we don't create dead proxy
             // routes or remove gateway fallbacks for absent services.
@@ -232,6 +238,18 @@ module.exports = smp.wrap(
                 .filter((ps) => {
                   const namespace = ps.service.namespace || odhProject;
                   const svcName = ps.service.name;
+                  if (!isValidK8sName(svcName) || !isValidK8sName(namespace)) {
+                    console.warn(
+                      `Skipping local service: invalid k8s name "${svcName}" or namespace "${namespace}"`,
+                    );
+                    return false;
+                  }
+                  const localPort = ps.localService.port ?? ps.service.port;
+                  const remotePort = ps.service.port;
+                  if (!isValidPort(localPort) || !isValidPort(remotePort)) {
+                    console.warn(`Skipping local service ${svcName}: port out of range`);
+                    return false;
+                  }
                   try {
                     execFileSync('oc', ['get', 'svc', svcName, '-n', namespace], {
                       stdio: 'ignore',
@@ -261,6 +279,7 @@ module.exports = smp.wrap(
 
             // Auto-spawn port-forwards for the verified services
             const activeChildren = new Map();
+            const claimedLocalPorts = new Set();
             let stopping = false;
 
             const cleanup = () => {
@@ -288,6 +307,15 @@ module.exports = smp.wrap(
               const remotePort = ps.service.port;
               const namespace = ps.service.namespace || odhProject;
               const svcName = ps.service.name;
+              const childKey = `${namespace}:${svcName}:${localPort}`;
+
+              if (claimedLocalPorts.has(localPort)) {
+                console.warn(
+                  `Skipping port-forward for ${childKey}: local port ${localPort} already in use by another forward`,
+                );
+                return;
+              }
+              claimedLocalPorts.add(localPort);
 
               const startPortForward = () => {
                 console.info(
@@ -298,17 +326,17 @@ module.exports = smp.wrap(
                   ['port-forward', `svc/${svcName}`, `${localPort}:${remotePort}`, '-n', namespace],
                   { stdio: ['ignore', 'pipe', 'pipe'] },
                 );
-                activeChildren.set(svcName, current);
+                activeChildren.set(childKey, current);
                 current.stderr.on('data', (data) =>
-                  console.warn(`[port-forward ${svcName}]`, String(data).trim()),
+                  console.warn(`[port-forward ${childKey}]`, String(data).trim()),
                 );
                 current.on('error', (err) =>
-                  console.warn(`Port-forward for ${svcName} failed: ${err.message}`),
+                  console.warn(`Port-forward for ${childKey} failed: ${err.message}`),
                 );
                 current.on('exit', (code) => {
                   if (!stopping) {
                     console.info(
-                      `Port-forward for ${svcName} dropped (code ${code}), restarting...`,
+                      `Port-forward for ${childKey} dropped (code ${code}), restarting...`,
                     );
                     setTimeout(() => !stopping && startPortForward(), 1000);
                   }

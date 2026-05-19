@@ -37,6 +37,7 @@ const startDevPortForwards = (
   }
 
   const activeChildren = new Map<string, ChildProcess>();
+  const claimedLocalPorts = new Set<number>();
   let stopping = false;
 
   const cleanup = () => {
@@ -64,15 +65,25 @@ const startDevPortForwards = (
     const namespace = ps.service.namespace || process.env.OC_PROJECT || 'opendatahub';
     const localPort = ps.localService?.port ?? ps.service.port;
     const remotePort = ps.service.port;
+    const childKey = `${namespace}:${svcName}:${localPort}`;
 
     if (!isValidK8sName(svcName) || !isValidK8sName(namespace)) {
-      fastify.log.warn(`Skipping port-forward: invalid service name or namespace for "${svcName}"`);
+      fastify.log.warn(
+        `Skipping port-forward: invalid service name or namespace for "${childKey}"`,
+      );
       return;
     }
     if (!isValidPort(localPort) || !isValidPort(remotePort)) {
-      fastify.log.warn(`Skipping port-forward for ${svcName}: port out of range`);
+      fastify.log.warn(`Skipping port-forward for ${childKey}: port out of range`);
       return;
     }
+    if (claimedLocalPorts.has(localPort)) {
+      fastify.log.warn(
+        `Skipping port-forward for ${childKey}: local port ${localPort} already in use by another forward`,
+      );
+      return;
+    }
+    claimedLocalPorts.add(localPort);
 
     try {
       execFileSync('oc', ['get', 'svc', svcName, '-n', namespace], { stdio: 'ignore' });
@@ -88,14 +99,14 @@ const startDevPortForwards = (
         ['port-forward', `svc/${svcName}`, `${localPort}:${remotePort}`, '-n', namespace],
         { stdio: ['ignore', 'pipe', 'pipe'] },
       );
-      activeChildren.set(svcName, child);
+      activeChildren.set(childKey, child);
       child.stderr?.on('data', () => {
-        fastify.log.warn(`[port-forward ${svcName}] stderr output received`);
+        fastify.log.warn(`[port-forward ${childKey}] stderr output received`);
       });
-      child.on('error', () => fastify.log.warn(`Port-forward for ${svcName} failed to start`));
+      child.on('error', () => fastify.log.warn(`Port-forward for ${childKey} failed to start`));
       child.on('exit', () => {
         if (!stopping) {
-          fastify.log.info(`Port-forward for ${svcName} exited, restarting`);
+          fastify.log.info(`Port-forward for ${childKey} exited, restarting`);
           startPortForward();
         }
       });
