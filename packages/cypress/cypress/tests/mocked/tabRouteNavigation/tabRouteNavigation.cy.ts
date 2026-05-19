@@ -29,7 +29,7 @@ const initCatalogOnlyIntercepts = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Removed' },
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
       },
     }),

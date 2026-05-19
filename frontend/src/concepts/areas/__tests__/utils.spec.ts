@@ -228,7 +228,7 @@ describe('isAreaAvailable', () => {
           mockDashboardConfig({ disableModelCatalog: false, disableModelRegistry: true }).spec,
           mockDscStatus({
             components: {
-              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Removed' },
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
             },
           }),
           mockDsciStatus({}),
@@ -245,7 +245,7 @@ describe('isAreaAvailable', () => {
           mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: true }).spec,
           mockDscStatus({
             components: {
-              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Removed' },
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
             },
           }),
           mockDsciStatus({}),
