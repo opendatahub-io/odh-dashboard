@@ -85,7 +85,7 @@ export const isKServeServingRuntimeFieldActive = (
   }
 
   // Generative models without LLMInferenceServiceConfig flow: always show (no alternative)
-  if (vLLMDeploymentOnMaaSEnabled === false) {
+  if (!vLLMDeploymentOnMaaSEnabled) {
     if (modelType?.type === ServingRuntimeModelType.GENERATIVE) {
       return true;
     }
@@ -251,7 +251,7 @@ export const KServeServingRuntimeFieldWizardField: KServeServingRuntimeFieldType
   id: 'kserve/modelServer',
   step: 'modelDeployment',
   type: 'replacement',
-  formId: 'modelServer',
+  stateKey: 'modelServer',
   isActive: isKServeServingRuntimeFieldActive,
   reducerFunctions: {
     resolveDependencies: (formData) => ({

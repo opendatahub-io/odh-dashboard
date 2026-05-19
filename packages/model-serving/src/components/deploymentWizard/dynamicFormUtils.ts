@@ -58,35 +58,35 @@ export const getFieldDependencies = (
 /**
  * Determines where in the form state a field's data is stored.
  *
- * The formId allows multiple platform-specific fields to share the same form slot.
+ * The stateKey allows multiple platform-specific fields to share the same form slot.
  * For example, kserve and llmd-serving both manage the "modelServer" form field
  * but with different implementations:
- * - kserve field: { id: 'kserve/modelServer', formId: 'modelServer' }
- * - llmd field: { id: 'llmd/modelServer', formId: 'modelServer' }
+ * - kserve field: { id: 'kserve/modelServer', stateKey: 'modelServer' }
+ * - llmd field: { id: 'llmd/modelServer', stateKey: 'modelServer' }
  *
  * Both store their data at state.modelServer, and only the active field is used
  * based on the isActive() predicate.
  *
  * @param field The wizard field to get the form id for
- * @returns The formId if explicitly set, otherwise falls back to the field's id
+ * @returns The stateKey if explicitly set, otherwise falls back to the field's id
  *
  * @example
  * // Platform-specific field sharing a form slot
  * const kserveField = {
  *   id: 'kserve/modelServer',
- *   formId: 'modelServer',  // Shares slot with other platform fields
+ *   stateKey: 'modelServer',  // Shares slot with other platform fields
  *   // ...
  * };
- * getFormId(kserveField); // Returns 'modelServer'
+ * getStateKey(kserveField); // Returns 'modelServer'
  *
  * @example
  * // Standard field without shared slot
  * const standardField = {
  *   id: 'externalRoute',
- *   // formId not set
+ *   // stateKey not set
  * };
- * getFormId(standardField); // Returns 'externalRoute'
+ * getStateKey(standardField); // Returns 'externalRoute'
  */
-export const getFormId = (field: WizardField<unknown>): string => {
-  return field.formId ?? field.id;
+export const getStateKey = (field: WizardField<unknown>): string => {
+  return field.stateKey ?? field.id;
 };

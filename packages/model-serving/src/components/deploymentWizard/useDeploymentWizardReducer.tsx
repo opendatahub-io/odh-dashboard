@@ -7,7 +7,7 @@ import type {
   WizardFormData,
   WizardStateOverrides,
 } from './types';
-import { getFieldDependencies, getFormId, useActiveFields } from './dynamicFormUtils';
+import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
 
 ///// Field type stuff
 
@@ -81,7 +81,7 @@ export const wizardFormReducer = (
         ...state,
         initialValues: {
           ...state.initialValues,
-          [getFormId(field)]: initialValue,
+          [getStateKey(field)]: initialValue,
         },
       };
     }
@@ -137,7 +137,8 @@ export const useDeploymentWizardReducer = (
           ...action,
           payload: {
             ...action.payload,
-            existingFieldData: action.payload.existingFieldData ?? initialData?.[getFormId(field)],
+            existingFieldData:
+              action.payload.existingFieldData ?? initialData?.[getStateKey(field)],
             dependencies:
               action.payload.dependencies ?? getFieldDependencies(field, mergedStateRef.current),
           },
@@ -156,7 +157,7 @@ export const useDeploymentWizardReducer = (
     for (const prevField of prevActiveFields.current) {
       const isGone = !activeFields.some((f) => f.id === prevField.id);
       if (isGone) {
-        dispatch({ type: 'clearFieldData', payload: { id: getFormId(prevField) } });
+        dispatch({ type: 'clearFieldData', payload: { id: getStateKey(prevField) } });
       }
     }
 
@@ -173,13 +174,13 @@ export const useDeploymentWizardReducer = (
           field.shouldResetOnDependencyChange &&
           field.shouldResetOnDependencyChange(prevDependencies, dependencies)
         ) {
-          dispatch({ type: 'clearFieldData', payload: { id: getFormId(field) } });
+          dispatch({ type: 'clearFieldData', payload: { id: getStateKey(field) } });
         }
         dispatch({
           type: 'initFieldData',
           payload: {
             field,
-            existingFieldData: initialData?.[getFormId(field)],
+            existingFieldData: initialData?.[getStateKey(field)],
             externalData: field.id in externalDataMap ? externalDataMap[field.id] : undefined,
             dependencies,
           },
@@ -194,7 +195,7 @@ export const useDeploymentWizardReducer = (
   const computedOverrides = React.useMemo((): WizardStateOverrides => {
     let overrides: WizardStateOverrides = {};
     for (const field of activeFields) {
-      const storedValue: unknown = formState[getFormId(field)];
+      const storedValue: unknown = formState[getStateKey(field)];
       if (storedValue == null) {
         continue;
       }

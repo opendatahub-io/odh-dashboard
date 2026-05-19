@@ -2,7 +2,7 @@ import React from 'react';
 import { resolveFieldValue, type GenericFieldProps, WizardField } from '../types';
 import type { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 import type { ExternalDataMap } from '../ExternalDataLoader';
-import { getFieldDependencies, getFormId } from '../dynamicFormUtils';
+import { getFieldDependencies, getStateKey } from '../dynamicFormUtils';
 
 const hasDisabledOverride = (value: unknown): value is { isDisabled: boolean } =>
   typeof value === 'object' &&
@@ -18,29 +18,29 @@ type CommonProps = {
 
 type GenericFieldRendererProps = CommonProps &
   (
-    | { parentId: string; fieldId?: never; formId?: never }
-    | { fieldId: string; parentId?: never; formId?: never }
-    | { formId: string; parentId?: never; fieldId?: never }
+    | { parentId: string; fieldId?: never; stateKey?: never }
+    | { fieldId: string; parentId?: never; stateKey?: never }
+    | { stateKey: string; parentId?: never; fieldId?: never }
   );
 
 export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
   parentId,
   fieldId,
-  formId,
+  stateKey,
   wizardState,
   externalData,
   isEditing,
   isDisabled,
 }) => {
   const fields: WizardField[] = React.useMemo(() => {
-    if (formId) {
-      return wizardState.fields.filter((f) => f.formId === formId);
+    if (stateKey) {
+      return wizardState.fields.filter((f) => f.stateKey === stateKey);
     }
     if (fieldId) {
       return wizardState.fields.filter((f) => f.id === fieldId);
     }
     return wizardState.fields.filter((f) => f.parentId === parentId);
-  }, [parentId, fieldId, formId, wizardState.fields]);
+  }, [parentId, fieldId, stateKey, wizardState.fields]);
 
   return (
     <>
@@ -49,19 +49,19 @@ export const GenericFieldRenderer: React.FC<GenericFieldRendererProps> = ({
         return (
           <React.Fragment key={field.id}>
             <FieldComponent
-              id={getFormId(field)}
+              id={getStateKey(field)}
               value={resolveFieldValue(field, wizardState.state)}
-              initialValue={wizardState.initialData?.[getFormId(field)]}
+              initialValue={wizardState.initialData?.[getStateKey(field)]}
               onChange={(value: unknown) => {
                 wizardState.dispatch({
                   type: 'setFieldData',
-                  payload: { id: getFormId(field), data: value },
+                  payload: { id: getStateKey(field), data: value },
                 });
               }}
               externalData={externalData?.[field.id] ?? undefined}
               dependencies={getFieldDependencies(field, wizardState.state)}
               isEditing={isEditing}
-              isDisabled={isDisabled || hasDisabledOverride(wizardState.state[getFormId(field)])}
+              isDisabled={isDisabled || hasDisabledOverride(wizardState.state[getStateKey(field)])}
             />
           </React.Fragment>
         );

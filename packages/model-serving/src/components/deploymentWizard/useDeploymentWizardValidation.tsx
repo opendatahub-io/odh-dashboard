@@ -13,7 +13,7 @@ import { runtimeArgsFieldSchema } from './fields/RuntimeArgsField';
 import { environmentVariablesFieldSchema } from './fields/EnvironmentVariablesField';
 import { modelFormatFieldSchema } from './fields/ModelFormatField';
 import { isValidProjectName } from './fields/ProjectSection';
-import { getFormId } from './dynamicFormUtils';
+import { getStateKey } from './dynamicFormUtils';
 
 export type ModelDeploymentWizardValidation = {
   modelSource: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
@@ -57,7 +57,7 @@ export const useModelDeploymentWizardValidation = (
         modelFormatState: state.modelFormatState.modelFormat,
       }),
       ...step2Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[getFormId(field)] = resolveFieldValue(field, state);
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -66,7 +66,7 @@ export const useModelDeploymentWizardValidation = (
       ...(state.modelFormatState.isVisible && { modelFormatState: modelFormatFieldSchema }),
       ...step2Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[getFormId(field)] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),
@@ -82,7 +82,7 @@ export const useModelDeploymentWizardValidation = (
       runtimeArgs: state.runtimeArgs.data,
       environmentVariables: state.environmentVariables.data,
       ...step3Fields.reduce<Record<string, unknown>>((acc, field) => {
-        acc[getFormId(field)] = resolveFieldValue(field, state);
+        acc[getStateKey(field)] = resolveFieldValue(field, state);
         return acc;
       }, {}),
     },
@@ -93,7 +93,7 @@ export const useModelDeploymentWizardValidation = (
       environmentVariables: environmentVariablesFieldSchema,
       ...step3Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
         if (field.reducerFunctions.validationSchema) {
-          acc[getFormId(field)] = field.reducerFunctions.validationSchema;
+          acc[getStateKey(field)] = field.reducerFunctions.validationSchema;
         }
         return acc;
       }, {}),

@@ -36,7 +36,7 @@ import {
 } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { NIMModelLocationKey } from './fields/modelLocationFields/NIMModelLocation';
-import { getFormId } from './dynamicFormUtils';
+import { getStateKey } from './dynamicFormUtils';
 import type { ModelServingClusterSettings } from '../../concepts/useModelServingClusterSettings';
 
 export enum ConnectionTypeRefs {
@@ -234,7 +234,7 @@ export type WizardField<
   Dependencies extends Record<string, unknown> = Record<string, unknown>,
 > = DeploymentWizardFieldBase<string> & {
   type: 'addition' | 'replacement';
-  formId?: string;
+  stateKey?: string;
   parentId?: string;
   step?: 'modelSource' | 'modelDeployment' | 'advancedOptions' | 'summary'; // used for validation of the entire step. Ideally this should be dynamic from the parent field.
   reducerFunctions: {
@@ -281,7 +281,7 @@ export type WizardField<
 /**
  * Resolves the effective field value from wizard state.
  *
- * Retrieves the stored value from state using the field's formId (or id as fallback),
+ * Retrieves the stored value from state using the field's stateKey (or id as fallback),
  * then applies the field's getFieldData transformation if defined.
  *
  * @param field The wizard field to resolve
@@ -292,12 +292,12 @@ export const resolveFieldValue = (
   field: WizardField,
   state: WizardFormData['state'],
 ): unknown | undefined => {
-  const formId = getFormId(field);
-  if (!(formId in state)) {
+  const stateKey = getStateKey(field);
+  if (!(stateKey in state)) {
     return undefined;
   }
 
-  const storedValue: unknown = state[formId];
+  const storedValue: unknown = state[stateKey];
   if (storedValue == null) {
     return undefined;
   }

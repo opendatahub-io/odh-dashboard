@@ -51,7 +51,7 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           />
         )}
         <GenericFieldRenderer
-          formId="modelServer"
+          stateKey="modelServer"
           wizardState={wizardState}
           externalData={externalData}
           isEditing={wizardState.initialData?.isEditing}
