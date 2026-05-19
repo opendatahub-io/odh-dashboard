@@ -39,6 +39,7 @@ contract-test-results
 # Claude
 CLAUDE.md
 .claude/settings.local.json
+.claude/mlflow/
 
 # Playwright MCP
 .playwright-mcp/

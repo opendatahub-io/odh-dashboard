@@ -1,7 +1,7 @@
 ---
 name: preflight
-description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review coderabbit,claude,style, --help."
-argument-hint: "[PR] [--fix] [--local] [--review coderabbit,claude,style] [--help]"
+description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review X,Y, --skip-review X,Y, --help."
+argument-hint: "[PR] [--fix] [--local] [--review X,Y] [--skip-review X,Y] [--help]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
@@ -26,14 +26,16 @@ Flags:
   --fix                 Fix failing checks after reporting
   --local               Ignore PR even if one exists, run everything locally
   --review X,Y          Run specific reviewers without asking
-                        Options: coderabbit, claude, style
+                        Options: coderabbit, claude, style, rbac
+  --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
   --help                Show this help
 
 Examples:
   /preflight                                  Check current branch (auto-detect PR)
   /preflight 1234                             Check PR #1234
   /preflight --fix                            Check and fix current branch
-  /preflight --review coderabbit,style        Run specific reviewers
+  /preflight --review coderabbit,style,rbac    Run specific reviewers
+  /preflight --skip-review coderabbit         Run all reviewers except CodeRabbit
   /preflight 1234 --review claude --fix       Check PR, run Claude review, fix issues
 
 How it works:
@@ -48,7 +50,8 @@ How it works:
 Parse these from `$ARGUMENTS` before processing:
 - `--fix` — after reporting, fix failing checks without asking
 - `--local` — ignore PR even if one exists, run everything locally
-- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`)
+- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
+- `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
 - `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
 
@@ -124,10 +127,11 @@ Report what's there — CodeRabbit threads with severity, human threads, review 
 
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 
-If `--review` flag was passed, use those reviewers directly. Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:
+If `--review` flag was passed, use those reviewers directly. If `--skip-review` flag was passed, run all reviewers except the listed ones (no interactive prompt). Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:
 - "CodeRabbit CLI" — run `coderabbit review --agent` (requires CLI installed)
 - "Claude review" — invoke `/review` built-in skill
 - "Style review" — invoke `/style-review` for code style and pattern checks
+- "RBAC review" — invoke `/rbac-review` for Kubernetes RBAC permission enforcement checks
 - "Skip review" — no review
 
 Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or errors), report the failure clearly — don't silently fall back to something else.

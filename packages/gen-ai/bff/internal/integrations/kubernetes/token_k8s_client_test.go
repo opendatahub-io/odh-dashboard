@@ -26,8 +26,8 @@ import (
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 )
 
-func TestCanListLlamaStackDistributions(t *testing.T) {
-	t.Run("should create proper SAR request for LlamaStackDistribution resources", func(t *testing.T) {
+func TestCanListOGXServers(t *testing.T) {
+	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {
 		// Create a mock config
 		config := &rest.Config{
 			Host: "https://test-cluster.example.com",
@@ -49,7 +49,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		// We expect an error because we don't have a real Kubernetes cluster
 		// but the method should be callable and return appropriate error
@@ -72,7 +72,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, nil, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, nil, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -96,7 +96,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -120,7 +120,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -128,15 +128,15 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 	})
 }
 
-func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
+func TestCanListOGXServersSARStructure(t *testing.T) {
 	t.Run("should create correct SAR request structure", func(t *testing.T) {
 		// Test that we can create the SAR request with correct parameters
 		sar := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
 					Verb:      "list",
-					Group:     "llamastack.io",
-					Resource:  "llamastackdistributions",
+					Group:     "ogx.io",
+					Resource:  "ogxservers",
 					Namespace: "test-namespace",
 				},
 			},
@@ -144,8 +144,8 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 
 		// Verify the SAR structure
 		assert.Equal(t, "list", sar.Spec.ResourceAttributes.Verb)
-		assert.Equal(t, "llamastack.io", sar.Spec.ResourceAttributes.Group)
-		assert.Equal(t, "llamastackdistributions", sar.Spec.ResourceAttributes.Resource)
+		assert.Equal(t, "ogx.io", sar.Spec.ResourceAttributes.Group)
+		assert.Equal(t, "ogxservers", sar.Spec.ResourceAttributes.Resource)
 		assert.Equal(t, "test-namespace", sar.Spec.ResourceAttributes.Namespace)
 	})
 }

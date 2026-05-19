@@ -9,6 +9,7 @@ export const mockRequest: CreateResponseRequest = {
   stream: false,
 };
 
+// BFF-processed response: text is clean, annotations are resolved
 export const responseWithAnnotations: BackendResponseData = {
   id: 'response-with-sources',
   model: 'test-model',
@@ -35,6 +36,7 @@ export const responseWithAnnotations: BackendResponseData = {
   ],
 };
 
+// BFF strips citation markers from text and adds annotations
 export const responseWithInlineTokens: BackendResponseData = {
   id: 'response-with-tokens',
   model: 'test-model',
@@ -43,15 +45,15 @@ export const responseWithInlineTokens: BackendResponseData = {
   output: [
     {
       id: 'output-1',
-      type: 'completion_message',
+      type: 'message',
       content: [
         {
           type: 'output_text',
-          text: 'Here is the info <|file-abc123def456|>.',
+          text: 'Here is the info .',
           annotations: [
             {
               type: 'file_citation',
-              file_id: 'file-abc123def456',
+              file_id: 'abc123de-f456-7890-abcd-ef1234567890',
               filename: 'document.pdf',
             },
           ],
@@ -69,7 +71,7 @@ export const responseWithMultipleSources: BackendResponseData = {
   output: [
     {
       id: 'output-1',
-      type: 'completion_message',
+      type: 'message',
       content: [
         {
           type: 'output_text',
@@ -88,7 +90,7 @@ export const responseWithMultipleSources: BackendResponseData = {
             {
               type: 'file_citation',
               file_id: 'file-333',
-              filename: 'report1.pdf', // Duplicate filename
+              filename: 'report1.pdf',
             },
           ],
         },
@@ -110,6 +112,35 @@ export const responseWithoutAnnotations: BackendResponseData = {
         {
           type: 'output_text',
           text: 'Plain response without sources.',
+        },
+      ],
+    },
+  ],
+};
+
+// BFF-processed response from OGX 1.0.0 file_search_call:
+// - Text is clean (BFF stripped markers)
+// - Annotations are resolved to filenames (BFF used file_search_call.results.attributes)
+export const responseWithFileSearchCall: BackendResponseData = {
+  id: 'response-file-search',
+  model: 'test-model',
+  status: 'completed',
+  created_at: 1755721063,
+  output: [
+    {
+      id: 'msg-1',
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'Here is the answer.',
+          annotations: [
+            {
+              type: 'file_citation',
+              file_id: 'e6053358-ab61-48cb-a600-2d04dfcbb51b',
+              filename: 'rag-testing-story.txt',
+            },
+          ],
         },
       ],
     },
@@ -145,6 +176,7 @@ export const streamingCompletedEventWithAnnotations = JSON.stringify({
   },
 });
 
+// BFF-processed streaming completed event: text is clean, annotations resolved
 export const streamingCompletedEventWithMultipleTokens = JSON.stringify({
   type: 'response.completed',
   response: {
@@ -155,21 +187,51 @@ export const streamingCompletedEventWithMultipleTokens = JSON.stringify({
     output: [
       {
         id: 'output-1',
-        type: 'completion_message',
+        type: 'message',
         content: [
           {
             type: 'output_text',
-            text: 'Info from <|file-aaa111|> and <|file-bbb222|>.',
+            text: 'Info from  and .',
             annotations: [
               {
                 type: 'file_citation',
-                file_id: 'file-aaa111',
+                file_id: 'aaa11100-0000-0000-0000-000000000001',
                 filename: 'doc1.pdf',
               },
               {
                 type: 'file_citation',
-                file_id: 'file-bbb222',
+                file_id: 'bbb22200-0000-0000-0000-000000000002',
                 filename: 'doc2.pdf',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+});
+
+// BFF-processed streaming completed event with file_search_call results
+export const streamingCompletedEventWithFileSearchCall = JSON.stringify({
+  type: 'response.completed',
+  response: {
+    id: 'resp-ogx',
+    model: 'test-model',
+    status: 'completed',
+    created_at: 1755721063,
+    output: [
+      {
+        id: 'msg-1',
+        type: 'message',
+        content: [
+          {
+            type: 'output_text',
+            text: 'Here is the answer.',
+            annotations: [
+              {
+                type: 'file_citation',
+                file_id: 'e6053358-ab61-48cb-a600-2d04dfcbb51b',
+                filename: 'rag-testing-story.txt',
               },
             ],
           },

@@ -23,13 +23,20 @@ export const isLLMInferenceServiceActive = (
 
 /**
  *
- * @returns `true` if Generative is selected and legacyVLLM is false (items on step 2)
+ * @returns `true` if Generative is selected and legacyVLLM is false (only possible with vLLM on MaaS enabled)
  */
 export const isGenerativeNonLegacy = (
   wizardState: RecursivePartial<WizardFormData['state']>,
 ): boolean => {
-  return (
-    wizardState.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-    wizardState.modelType.data.legacyVLLM !== true
-  );
+  const modelType = wizardState.modelType?.data;
+  const vLLMDeploymentOnMaaSEnabled = wizardState.devFeatureFlags?.vLLMDeploymentOnMaaS;
+
+  if (
+    vLLMDeploymentOnMaaSEnabled &&
+    modelType?.type === ServingRuntimeModelType.GENERATIVE &&
+    !modelType.legacyVLLM
+  ) {
+    return true;
+  }
+  return false;
 };

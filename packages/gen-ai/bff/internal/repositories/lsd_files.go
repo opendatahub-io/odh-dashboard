@@ -19,7 +19,7 @@ func NewFilesRepository() *FilesRepository {
 }
 
 // UploadFile uploads a file and adds it to a vector store, transforming the result for BFF use.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *FilesRepository) UploadFile(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -33,7 +33,7 @@ func (r *FilesRepository) UploadFile(ctx context.Context, params llamastack.Uplo
 }
 
 // ListFiles lists files with optional filtering parameters.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *FilesRepository) ListFiles(ctx context.Context, params llamastack.ListFilesParams) ([]openai.FileObject, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -47,7 +47,7 @@ func (r *FilesRepository) ListFiles(ctx context.Context, params llamastack.ListF
 }
 
 // GetFile retrieves a file by ID.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *FilesRepository) GetFile(ctx context.Context, fileID string) (*openai.FileObject, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -61,7 +61,7 @@ func (r *FilesRepository) GetFile(ctx context.Context, fileID string) (*openai.F
 }
 
 // DeleteFile deletes a file by ID.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *FilesRepository) DeleteFile(ctx context.Context, fileID string) error {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)

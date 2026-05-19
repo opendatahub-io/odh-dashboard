@@ -61,13 +61,13 @@ describe('TaskAssistantSection', () => {
     expect(screen.getByTestId('task-assistant-section')).toBeInTheDocument();
   });
 
-  it('should show the title "Task assistant"', () => {
+  it('should show the title "Task shortcuts"', () => {
     mockUseResolvedExtensions
       .mockReturnValueOnce([[makeGroupExtension('g1', '1')], true, []])
       .mockReturnValueOnce([[makeItemExtension('t1', 'g1', '1')], true, []]);
 
     renderSection();
-    expect(screen.getByText('Task assistant')).toBeInTheDocument();
+    expect(screen.getByText('Task shortcuts')).toBeInTheDocument();
   });
 
   describe('expanded state', () => {
@@ -84,14 +84,6 @@ describe('TaskAssistantSection', () => {
           true,
           [],
         ]);
-    });
-
-    it('should show the description text', () => {
-      renderSection();
-
-      expect(
-        screen.getByText(/Task Assistant provides personalized entry points/),
-      ).toBeInTheDocument();
     });
 
     it('should render group cards sorted by order', () => {
