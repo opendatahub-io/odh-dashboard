@@ -1,4 +1,4 @@
-package llamastack
+package ogx
 
 import (
 	"context"
@@ -13,19 +13,19 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-// LlamaStackClient communicates with a LlamaStack Distribution server using
+// OGXClient communicates with a Open GenAI Stack Distribution server using
 // direct HTTP calls.
-type LlamaStackClient struct {
+type OGXClient struct {
 	httpClient *http.Client
 	baseURL    string
 	authToken  string
 }
 
-// NewLlamaStackClient creates a new client configured for Llama Stack.
-// llama-stack v0.4.0+ removed the `/v1/openai/v1/` routes.
+// NewOGXClient creates a new client configured for Open GenAI Stack.
+// ogx v0.4.0+ removed the `/v1/openai/v1/` routes.
 // All endpoints are now served directly under `/v1/`.
-// See: https://github.com/llamastack/llama-stack/releases/tag/v0.4.0
-func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *LlamaStackClient {
+// See: https://github.com/ogx/ogx/releases/tag/v0.4.0
+func NewOGXClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *OGXClient {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: insecureSkipVerify,
 		MinVersion:         tls.VersionTLS13,
@@ -41,20 +41,20 @@ func NewLlamaStackClient(baseURL string, authToken string, insecureSkipVerify bo
 		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
 	}
 
-	return &LlamaStackClient{
+	return &OGXClient{
 		httpClient: httpClient,
 		baseURL:    baseURL,
 		authToken:  authToken,
 	}
 }
 
-// ListModels retrieves all available models from LlamaStack.
-// Deserializes into LlamaStackNativeModel structs so that upstream schema
+// ListModels retrieves all available models from OGX.
+// Deserializes into OGXNativeModel structs so that upstream schema
 // changes are surfaced explicitly rather than hidden behind the OpenAI SDK.
-func (c *LlamaStackClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
+func (c *OGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/models", nil)
 	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for LlamaStack models: %s", err.Error()))
+		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack models: %s", err.Error()))
 	}
 
 	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens,
@@ -74,8 +74,8 @@ func (c *LlamaStackClient) ListModels(ctx context.Context) ([]models.LlamaStackN
 	const maxModelsResponseBytes = 2 << 20 // 2 MiB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxModelsResponseBytes))
 	if err != nil {
-		return nil, NewLlamaStackError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read LlamaStack models response body: %s", err.Error()),
+		return nil, NewOGXError(ErrCodeInternalError,
+			fmt.Sprintf("failed to read Open GenAI Stack models response body: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
@@ -83,30 +83,30 @@ func (c *LlamaStackClient) ListModels(ctx context.Context) ([]models.LlamaStackN
 		return nil, mapHTTPStatusToError(resp.StatusCode, body, "models")
 	}
 
-	// LlamaStack wraps the models array in a { "data": [...] } envelope.
+	// Open GenAI Stack wraps the models array in a { "data": [...] } envelope.
 	var envelope struct {
-		Data []models.LlamaStackNativeModel `json:"data"`
+		Data []models.OGXNativeModel `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		// If the envelope format changed, try parsing as a bare array as a fallback.
-		var bare []models.LlamaStackNativeModel
+		var bare []models.OGXNativeModel
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
 		}
-		return nil, NewLlamaStackError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse LlamaStack models response: %s", err.Error()),
+		return nil, NewOGXError(ErrCodeInternalError,
+			fmt.Sprintf("failed to parse Open GenAI Stack models response: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
 	return envelope.Data, nil
 }
 
-// ListProviders retrieves all registered providers from LlamaStack via
+// ListProviders retrieves all registered providers from Open GenAI Stack via
 // the native /v1/providers (not part of the OpenAI-compatible API).
-func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+func (c *OGXClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/providers", nil)
 	if err != nil {
-		return nil, NewConnectionError(fmt.Sprintf("failed to create request for LlamaStack providers: %s", err.Error()))
+		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack providers: %s", err.Error()))
 	}
 
 	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens,
@@ -127,8 +127,8 @@ func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaSta
 	const maxProvidersResponseBytes = 1 << 20 // 1 MiB
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProvidersResponseBytes))
 	if err != nil {
-		return nil, NewLlamaStackError(ErrCodeInternalError,
-			fmt.Sprintf("failed to read LlamaStack providers response body: %s", err.Error()),
+		return nil, NewOGXError(ErrCodeInternalError,
+			fmt.Sprintf("failed to read Open GenAI Stack providers response body: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 
@@ -136,18 +136,18 @@ func (c *LlamaStackClient) ListProviders(ctx context.Context) ([]models.LlamaSta
 		return nil, mapHTTPStatusToError(resp.StatusCode, body, "providers")
 	}
 
-	// LlamaStack wraps the providers array in a { "data": [...] } envelope.
+	// Open GenAI Stack wraps the providers array in a { "data": [...] } envelope.
 	var envelope struct {
-		Data []models.LlamaStackProvider `json:"data"`
+		Data []models.OGXProvider `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		// If the envelope format changed, try parsing as a bare array as a fallback.
-		var bare []models.LlamaStackProvider
+		var bare []models.OGXProvider
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
 		}
-		return nil, NewLlamaStackError(ErrCodeInternalError,
-			fmt.Sprintf("failed to parse LlamaStack providers response: %s", err.Error()),
+		return nil, NewOGXError(ErrCodeInternalError,
+			fmt.Sprintf("failed to parse Open GenAI Stack providers response: %s", err.Error()),
 			http.StatusInternalServerError)
 	}
 

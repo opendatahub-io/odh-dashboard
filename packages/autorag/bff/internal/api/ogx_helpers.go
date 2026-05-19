@@ -6,24 +6,24 @@ import (
 	"net/http"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 )
 
-// handleLlamaStackClientError maps LlamaStack client errors to appropriate HTTP status codes and sends the response.
+// handleOGXClientError maps Open GenAI Stack client errors to appropriate HTTP status codes and sends the response.
 // Uses errors.As to unwrap the error chain, since repository errors are wrapped with fmt.Errorf("...: %w", err).
-func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Request, err error) {
-	var llamastackErr *llamastack.LlamaStackError
-	if errors.As(err, &llamastackErr) {
-		statusCode := llamastackErr.StatusCode
+func (app *App) handleOGXClientError(w http.ResponseWriter, r *http.Request, err error) {
+	var ogxErr *ogx.OGXError
+	if errors.As(err, &ogxErr) {
+		statusCode := ogxErr.StatusCode
 		if statusCode == 0 {
-			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(llamastackErr.Code)
+			statusCode = app.getDefaultStatusCodeForOGXClientError(ogxErr.Code)
 		}
 
 		if statusCode >= 500 {
 			app.LogError(r, err)
 		}
 
-		httpError := app.mapLlamaStackClientErrorToHTTPError(llamastackErr, statusCode)
+		httpError := app.mapOGXClientErrorToHTTPError(ogxErr, statusCode)
 		app.errorResponse(w, r, httpError)
 		return
 	}
@@ -32,26 +32,26 @@ func (app *App) handleLlamaStackClientError(w http.ResponseWriter, r *http.Reque
 	app.serverErrorResponse(w, r, err)
 }
 
-// getDefaultStatusCodeForLlamaStackClientError returns default HTTP status codes for LlamaStackError codes
-func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) int {
+// getDefaultStatusCodeForOGXClientError returns default HTTP status codes for OGXError codes
+func (app *App) getDefaultStatusCodeForOGXClientError(errorCode string) int {
 	switch errorCode {
-	case llamastack.ErrCodeInvalidRequest:
+	case ogx.ErrCodeInvalidRequest:
 		return http.StatusBadRequest
-	case llamastack.ErrCodeUnauthorized:
+	case ogx.ErrCodeUnauthorized:
 		return http.StatusUnauthorized
-	case llamastack.ErrCodeNotFound:
+	case ogx.ErrCodeNotFound:
 		return http.StatusNotFound
-	case llamastack.ErrCodeConnectionFailed:
+	case ogx.ErrCodeConnectionFailed:
 		return http.StatusBadGateway
-	case llamastack.ErrCodeTimeout, llamastack.ErrCodeServerUnavailable:
+	case ogx.ErrCodeTimeout, ogx.ErrCodeServerUnavailable:
 		return http.StatusServiceUnavailable
 	default:
 		return http.StatusInternalServerError
 	}
 }
 
-// mapLlamaStackClientErrorToHTTPError converts LlamaStackError to HTTP error with appropriate codes
-func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.HTTPError {
+// mapOGXClientErrorToHTTPError converts OGXError to HTTP error with appropriate codes
+func (app *App) mapOGXClientErrorToHTTPError(lsErr *ogx.OGXError, statusCode int) *integrations.HTTPError {
 	var code string
 	var message string
 
@@ -79,8 +79,8 @@ func (app *App) mapLlamaStackClientErrorToHTTPError(lsErr *llamastack.LlamaStack
 			code = "server_error"
 			message = "The server encountered a problem and could not process your request"
 		} else {
-			code = "llamastack_error"
-			message = fmt.Sprintf("LlamaStack client error (HTTP %d): %s", statusCode, lsErr.Message)
+			code = "ogx_error"
+			message = fmt.Sprintf("Open GenAI Stack client error (HTTP %d): %s", statusCode, lsErr.Message)
 		}
 	}
 

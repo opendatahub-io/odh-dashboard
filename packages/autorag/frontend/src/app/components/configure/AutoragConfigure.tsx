@@ -67,7 +67,7 @@ import type { File as S3File } from '~/app/components/common/FileExplorer/FileEx
 import SecretSelector, { SecretSelection } from '~/app/components/common/SecretSelector';
 import useReconfigureSafeEffect from '~/app/hooks/useReconfigureSafeEffect';
 import { useS3FileUploadMutation } from '~/app/hooks/mutations';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
 import {
   ConfigureSchema,
@@ -194,7 +194,7 @@ function AutoragConfigure({
   const { isSubmitting } = formState;
 
   const [
-    llamaStackSecretName,
+    ogxSecretName,
     inputDataSecretName,
     inputDataBucketName,
     testDataSecretName,
@@ -203,7 +203,7 @@ function AutoragConfigure({
   ] = useWatch({
     control: form.control,
     name: [
-      'llama_stack_secret_name',
+      'ogx_secret_name',
       'input_data_secret_name',
       'input_data_bucket_name',
       'test_data_secret_name',
@@ -218,14 +218,14 @@ function AutoragConfigure({
     data: allModelsData,
     isError: isModelsError,
     isLoading: isModelsLoading,
-  } = useLlamaStackModelsQuery(namespace ?? '', llamaStackSecretName);
+  } = useOgxModelsQuery(namespace ?? '', ogxSecretName);
   const { mutateAsync: uploadFileToS3 } = useS3FileUploadMutation('');
 
   useEffect(() => {
     if (isModelsError) {
       notification.error(
         'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
+        'Check that the Open GenAI Stack secret is valid and try again.',
       );
     }
   }, [isModelsError, notification]);
@@ -235,8 +235,8 @@ function AutoragConfigure({
   useEffect(() => {
     modelsInitialized.current = false;
     setValue('generation_models', []);
-    setValue('embeddings_models', []);
-  }, [llamaStackSecretName, setValue]);
+    setValue('embedding_models', []);
+  }, [ogxSecretName, setValue]);
 
   useEffect(() => {
     // Initialize available generation and embedding models into the form data
@@ -250,7 +250,7 @@ function AutoragConfigure({
           .map((model) => model.id)
           .toSorted((a, b) => a.localeCompare(b)),
         // eslint-disable-next-line camelcase
-        embeddings_models: allModelsData.models
+        embedding_models: allModelsData.models
           .filter((model) => model.type === 'embedding')
           .map((model) => model.id)
           .toSorted((a, b) => a.localeCompare(b)),
@@ -938,7 +938,7 @@ function AutoragConfigure({
                                 ) : (
                                   <Watch
                                     control={form.control}
-                                    name="embeddings_models"
+                                    name="embedding_models"
                                     render={(embeddingModels) => (
                                       <Flex
                                         alignItems={{ default: 'alignItemsCenter' }}
