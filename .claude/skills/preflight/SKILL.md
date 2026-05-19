@@ -1,7 +1,7 @@
 ---
 name: preflight
-description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review X,Y, --skip-review X,Y, --help."
-argument-hint: "[PR] [--fix] [--local] [--review X,Y] [--skip-review X,Y] [--help]"
+description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review X,Y, --skip-review X,Y, --ci, --help."
+argument-hint: "[PR] [--fix] [--local] [--review X,Y] [--skip-review X,Y] [--ci] [--help]"
 disable-model-invocation: true
 allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
@@ -10,7 +10,9 @@ allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKIL
 
 Pre-merge readiness check. Gather context, review code, run checks, report results. Interactive by default — asks the user before making decisions. Never skip a check silently.
 
-Never push. Never comment on the PR.
+Never push. Never comment on the PR (unless `--ci` flag is passed).
+
+**Efficiency:** Minimize tool call round trips. Combine independent commands into single Bash calls using `&&` or `;`. For example, gather PR metadata, sync status, and changed files in one call rather than separate calls.
 
 ## --help
 
@@ -28,6 +30,8 @@ Flags:
   --review X,Y          Run specific reviewers without asking
                         Options: coderabbit, claude, style, rbac
   --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
+  --ci                  Non-interactive CI mode: skip all prompts, post results
+                        as a PR comment when done
   --help                Show this help
 
 Examples:
@@ -52,6 +56,7 @@ Parse these from `$ARGUMENTS` before processing:
 - `--local` — ignore PR even if one exists, run everything locally
 - `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
 - `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
+- `--ci` — non-interactive CI mode. Implies `--fix` behavior for decision points (no asking). Posts the results table as a PR comment via `gh pr comment` when done. Overrides "Never comment on the PR".
 - `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
 
