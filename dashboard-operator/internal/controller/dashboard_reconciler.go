@@ -82,12 +82,14 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	deployer := deploy.NewDeployer(
+		deploy.WithFieldOwner("dashboard-operator"),
 		deploy.WithLabel(labels.PlatformPartOf, strings.ToLower(v1alpha1.DashboardKind)),
 		deploy.WithApplyOrder(),
 	)
 
 	if err := deployer.Deploy(ctx, deploy.DeployInput{
 		Client:    r.Client,
+		Owner:     dashboard,
 		Release:   deploy.ReleaseInfo{Type: string(r.Platform)},
 		Resources: allResources,
 	}); err != nil {

@@ -27,14 +27,19 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 }
 
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
-	params := computeKustomizeVariables(dashboard, platform)
+	computed := computeKustomizeVariables(dashboard, platform)
 	for k, v := range resolveImageParams() {
-		params[k] = v
+		computed[k] = v
 	}
 
 	for _, m := range manifests {
-		if err := writeParamsEnv(m.String(), params); err != nil {
-			return fmt.Errorf("failed to write params.env to %s: %w", m.String(), err)
+		manifestPath := m.String()
+		params := readExistingParams(manifestPath + "/params.env")
+		for k, v := range computed {
+			params[k] = v
+		}
+		if err := writeParamsEnv(manifestPath, params); err != nil {
+			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
 		}
 	}
 

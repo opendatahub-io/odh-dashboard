@@ -60,6 +60,24 @@ func computeKustomizeVariables(dashboard *v1alpha1.Dashboard, platform cluster.P
 	return params
 }
 
+func readExistingParams(path string) map[string]string {
+	params := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return params
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if k, v, ok := strings.Cut(line, "="); ok {
+			params[k] = v
+		}
+	}
+	return params
+}
+
 func resolveImageParams() map[string]string {
 	params := map[string]string{}
 	for paramKey, envVar := range imagesMap {
