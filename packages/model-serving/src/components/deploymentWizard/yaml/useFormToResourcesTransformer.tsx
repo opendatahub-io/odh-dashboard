@@ -1,11 +1,11 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { type Deployment } from '../../../../extension-points';
 import {
-  AssembleModelResourceFn,
-  DeploymentAssemblyResources,
+  type AssembleModelResourceFn,
+  type DeploymentAssemblyResources,
   isAssembleModelResourceExtension,
-  type Deployment,
-} from '../../../../extension-points';
+} from '../../../../extension-points/deployment-wizard';
 import type { WizardFormData } from '../types';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 

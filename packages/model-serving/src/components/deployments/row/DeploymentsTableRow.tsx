@@ -20,11 +20,11 @@ import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
-  isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
   type DeployedModelServingDetails,
 } from '../../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
