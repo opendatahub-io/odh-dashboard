@@ -3,8 +3,13 @@ import {
   BreadcrumbItem,
   Button,
   Drawer,
+  DrawerActions,
+  DrawerCloseButton,
   DrawerContent,
   DrawerContentBody,
+  DrawerHead,
+  DrawerPanelBody,
+  DrawerPanelContent,
   Skeleton,
   Split,
   SplitItem,
@@ -13,7 +18,7 @@ import {
 import { CogIcon, OpenDrawerRightIcon, RedoIcon, StopCircleIcon } from '@patternfly/react-icons';
 import { ApplicationsPage } from 'mod-arch-shared';
 import React from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import AutoragHeader from '~/app/components/common/AutoragHeader/AutoragHeader';
 import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun';
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
@@ -28,13 +33,33 @@ import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
+import type { ResponsesTemplate } from '~/app/types/autoragPattern';
+
+const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
+
+type DrawerContentType =
+  | { type: 'run-details' }
+  | {
+      type: 'playground';
+      secretName: string;
+      responsesTemplate: ResponsesTemplate;
+      patternName: string;
+    };
 
 function AutoragResultsPage(): React.JSX.Element {
   const { namespace, runId } = useParams();
+  const location = useLocation();
   const { namespaces, namespacesLoaded, namespacesLoadError } =
     useNamespaceSelectorWithPersistence();
-  const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
-  const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
+  const [drawerContent, setDrawerContent] = React.useState<DrawerContentType | null>(null);
+  const isDrawerOpen = drawerContent !== null;
+  const handleDrawerClose = React.useCallback(() => setDrawerContent(null), []);
+
+  // Close drawer on route changes
+  const locationKey = location.key;
+  React.useEffect(() => {
+    setDrawerContent(null);
+  }, [locationKey]);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
@@ -149,16 +174,66 @@ function AutoragResultsPage(): React.JSX.Element {
     ],
   );
 
+  const handleTryInPlayground = React.useCallback(
+    (patternName: string) => {
+      const pattern = patterns[patternName];
+      const responsesTemplate = pattern.settings.responses_template;
+      const secretName = contextValue.parameters?.ogx_secret_name;
+      if (!responsesTemplate || !secretName) {
+        return;
+      }
+      setDrawerContent({
+        type: 'playground',
+        secretName,
+        responsesTemplate,
+        patternName,
+      });
+    },
+    [patterns, contextValue.parameters?.ogx_secret_name],
+  );
+
   return (
     <AutoragResultsContext.Provider value={contextValue}>
-      <Drawer isExpanded={isDrawerOpen}>
+      <Drawer
+        isExpanded={isDrawerOpen}
+        position={drawerContent?.type === 'playground' ? 'bottom' : 'end'}
+      >
         <DrawerContent
           panelContent={
-            <AutoragInputParametersPanel
-              onClose={handleDrawerClose}
-              parameters={contextValue.parameters}
-              isLoading={pipelineRunPending}
-            />
+            drawerContent?.type === 'run-details' ? (
+              <AutoragInputParametersPanel
+                onClose={handleDrawerClose}
+                parameters={contextValue.parameters}
+                isLoading={pipelineRunPending}
+              />
+            ) : drawerContent?.type === 'playground' ? (
+              <DrawerPanelContent
+                defaultSize="78%"
+                maxSize="78%"
+                focusTrap={{ enabled: true }}
+                data-testid="playground-drawer-panel"
+              >
+                <DrawerHead>
+                  <DrawerActions>
+                    <DrawerCloseButton
+                      onClick={handleDrawerClose}
+                      data-testid="playground-drawer-close"
+                    />
+                  </DrawerActions>
+                </DrawerHead>
+                <DrawerPanelBody style={{ overflow: 'auto' }}>
+                  <React.Suspense fallback={null}>
+                    <EmbeddedPlayground
+                      namespace={namespace ?? ''}
+                      secretName={drawerContent.secretName}
+                      responsesTemplate={drawerContent.responsesTemplate}
+                      patternName={drawerContent.patternName}
+                      bffBasePath="/gen-ai/api/v1"
+                    />
+                  </React.Suspense>
+                </DrawerPanelBody>
+              </DrawerPanelContent>
+            ) : undefined
           }
         >
           <DrawerContentBody>
@@ -218,8 +293,12 @@ function AutoragResultsPage(): React.JSX.Element {
                     <Button
                       variant="link"
                       icon={<OpenDrawerRightIcon />}
-                      onClick={() => setIsDrawerOpen((prev) => !prev)}
-                      aria-expanded={isDrawerOpen}
+                      onClick={() =>
+                        setDrawerContent((prev) =>
+                          prev?.type === 'run-details' ? null : { type: 'run-details' },
+                        )
+                      }
+                      aria-expanded={drawerContent?.type === 'run-details'}
                       data-testid="run-details-button"
                     >
                       Run details
@@ -250,7 +329,7 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              <AutoragResults />
+              <AutoragResults onTryInPlayground={handleTryInPlayground} />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>

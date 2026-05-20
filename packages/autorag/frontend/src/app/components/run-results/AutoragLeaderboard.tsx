@@ -306,11 +306,13 @@ const MetricCell: React.FC<{ value: number | string }> = ({ value }) => {
 type AutoragLeaderboardProps = {
   onViewDetails?: (patternName: string) => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
+  onTryInPlayground?: (patternName: string) => void;
 };
 
 function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
+  onTryInPlayground,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
@@ -1021,6 +1023,14 @@ function AutoragLeaderboard({
                         title: 'Save as inference notebook',
                         onClick: () => onSaveNotebook?.(entry.pattern, 'inference'),
                       },
+                      ...(patterns[entry.pattern].settings.responses_template && onTryInPlayground
+                        ? [
+                            {
+                              title: 'Try in Playground',
+                              onClick: () => onTryInPlayground(entry.pattern),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </Td>

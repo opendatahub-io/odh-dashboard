@@ -3,6 +3,8 @@ import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
+import useEmbeddedChatbotMessages from './hooks/useEmbeddedChatbotMessages';
+import { useEmbeddedMessagesConfig } from './context/EmbeddedMessagesContext';
 import {
   useChatbotConfigStore,
   selectSystemInstruction,
@@ -111,7 +113,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     [configId],
   );
 
-  const messagesHook = useChatbotMessages({
+  const embeddedConfig = useEmbeddedMessagesConfig();
+
+  const standardMessagesHook = useChatbotMessages({
     configId,
     modelId: selectedModel,
     systemInstruction,
@@ -134,6 +138,29 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     promptVersion: activePrompt?.version ?? 0,
     promptName: activePrompt?.name ?? '',
   });
+
+  const embeddedMessagesHook = useEmbeddedChatbotMessages({
+    bffBasePath: embeddedConfig?.bffBasePath ?? '',
+    namespace: embeddedConfig?.namespace ?? '',
+    secretName: embeddedConfig?.secretName ?? '',
+    responsesTemplate: embeddedConfig?.responsesTemplate ?? {
+      model: '',
+      stream: true,
+      store: false,
+      input: [],
+      // eslint-disable-next-line camelcase
+      metadata: { autorag_run_id: '', rag_pattern_name: '' },
+      instructions: '',
+      tools: [],
+      // eslint-disable-next-line camelcase
+      tool_choice: { type: '' },
+      include: [],
+    },
+    username,
+  });
+
+  // Use embedded hook when embedded config is present, otherwise standard
+  const messagesHook = embeddedConfig ? embeddedMessagesHook : standardMessagesHook;
 
   // Expose the messages hook to parent and update when it changes
   React.useEffect(() => {

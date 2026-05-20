@@ -42,6 +42,7 @@ import {
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
+import { usePlaygroundFeatureConfig } from './context/PlaygroundFeatureConfigContext';
 
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
@@ -117,6 +118,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
+  const featureConfig = usePlaygroundFeatureConfig();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
@@ -423,54 +425,64 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
       />
-      <ViewCodeModal
-        isOpen={isViewCodeModalOpen}
-        onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
-        input={lastInput}
-        files={fileManagement.files}
-        mcpServers={mcpServers}
-        mcpServerTokens={mcpServerTokens}
-        namespace={namespace?.name}
-      />
-      <ChatModal
-        isOpen={isNewChatModalOpen}
-        onClose={() => setIsNewChatModalOpen(false)}
-        onConfirm={() => {
-          messageHooksRef.current.forEach((hook) => hook.clearConversation());
-          if (isCompareMode) {
-            fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
-          }
-          setIsNewChatModalOpen(false);
-        }}
-      />
+      {featureConfig.showViewCodeModal && (
+        <ViewCodeModal
+          isOpen={isViewCodeModalOpen}
+          onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
+          input={lastInput}
+          files={fileManagement.files}
+          mcpServers={mcpServers}
+          mcpServerTokens={mcpServerTokens}
+          namespace={namespace?.name}
+        />
+      )}
+      {featureConfig.showNewChatModal && (
+        <ChatModal
+          isOpen={isNewChatModalOpen}
+          onClose={() => setIsNewChatModalOpen(false)}
+          onConfirm={() => {
+            messageHooksRef.current.forEach((hook) => hook.clearConversation());
+            if (isCompareMode) {
+              fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
+            }
+            setIsNewChatModalOpen(false);
+          }}
+        />
+      )}
 
       {/* Main layout */}
-      <Drawer isExpanded={isDrawerExpanded} isInline position="left">
+      <Drawer
+        isExpanded={isDrawerExpanded && featureConfig.showSystemInstructions}
+        isInline
+        position="left"
+      >
         <Divider />
         <DrawerContent
           panelContent={
-            <ChatbotSettingsPanel
-              configId={activePaneConfigId}
-              alerts={alerts}
-              sourceManagement={sourceManagement}
-              fileManagement={fileManagement}
-              initialServerStatuses={mcpServerStatusesFromRoute}
-              mcpServers={mcpServers}
-              mcpServersLoaded={mcpServersLoaded}
-              mcpServersLoadError={mcpServersLoadError}
-              mcpServerTokens={mcpServerTokens}
-              onMcpServerTokensChange={setMcpServerTokens}
-              checkMcpServerStatus={checkMcpServerStatus}
-              onCloseClick={() => setIsDrawerExpanded(false)}
-              onActiveConfigChange={setActivePaneConfigId}
-              defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
-            />
+            featureConfig.showSystemInstructions ? (
+              <ChatbotSettingsPanel
+                configId={activePaneConfigId}
+                alerts={alerts}
+                sourceManagement={sourceManagement}
+                fileManagement={fileManagement}
+                initialServerStatuses={mcpServerStatusesFromRoute}
+                mcpServers={mcpServers}
+                mcpServersLoaded={mcpServersLoaded}
+                mcpServersLoadError={mcpServersLoadError}
+                mcpServerTokens={mcpServerTokens}
+                onMcpServerTokensChange={setMcpServerTokens}
+                checkMcpServerStatus={checkMcpServerStatus}
+                onCloseClick={() => setIsDrawerExpanded(false)}
+                onActiveConfigChange={setActivePaneConfigId}
+                defaultActiveTabKey={openSettingsToTab === 'mcp' ? 3 : undefined}
+              />
+            ) : undefined
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {/* Single mode header */}
-              {!isCompareMode && (
+              {!isCompareMode && featureConfig.showModelPicker && (
                 <ChatbotPaneHeader
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
@@ -527,7 +539,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   !primarySelectedModel ||
                   Array.from(disabledStates.values()).some(Boolean)
                 }
-                showAttachButton={!isCompareMode}
+                showAttachButton={!isCompareMode && featureConfig.showRagToggle}
                 onAttach={handleAttach}
                 onShowErrorAlert={alertManagement.onShowErrorAlert}
                 isDarkMode={isDarkMode}

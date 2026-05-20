@@ -374,6 +374,10 @@ func (app *App) Routes() http.Handler {
 	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
 	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
 
+	// Responses passthrough — forwards pre-built OGX API request bodies as-is.
+	// Uses secret-based OGX client (falls back to CR-based discovery when no secretName provided).
+	apiRouter.POST(constants.ResponsesPassthroughPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.LlamaStackPassthroughResponseHandler))))
+
 	// Vector Stores (LlamaStack)
 	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
 	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))

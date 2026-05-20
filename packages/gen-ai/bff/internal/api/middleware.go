@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strings"
 
@@ -493,6 +495,153 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		// Attach to context
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
 		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+// validateIP checks an IP address against the SSRF blocklist.
+// Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
+// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.
+func validateIP(ip net.IP) error {
+	if ip.IsLoopback() {
+		return fmt.Errorf("loopback addresses are not allowed")
+	}
+	if ip.IsLinkLocalUnicast() {
+		return fmt.Errorf("link-local addresses are not allowed")
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("unspecified addresses are not allowed")
+	}
+	return nil
+}
+
+// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
+// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
+// services typically run as cluster-internal services with private IPs.
+func isValidOGXURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme %q: only http and https are allowed", parsedURL.Scheme)
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return fmt.Errorf("URL must contain a host")
+	}
+
+	// Check IP literals directly
+	if ip := net.ParseIP(host); ip != nil {
+		return validateIP(ip)
+	}
+
+	// Resolve DNS hostnames and validate all resulting IPs.
+	// If DNS resolution fails, allow it through — the hostname may only be resolvable
+	// inside the cluster (e.g., svc.cluster.local). The HTTP client will fail with a
+	// connection error later, which is handled as a 502 Bad Gateway.
+	ips, err := net.LookupIP(host)
+	if err == nil {
+		for _, ip := range ips {
+			if err := validateIP(ip); err != nil {
+				return fmt.Errorf("hostname %q resolves to blocked address: %w", host, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// AttachOGXClientFromSecret creates an OGX client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain OGX_CLIENT_BASE_URL and OGX_CLIENT_API_KEY.
+// This middleware must be used after AttachNamespace middleware.
+//
+// // TODO: Standardize secret key names across all consumers (AutoRAG, gen-ai, etc.)
+//
+// When the secretName query parameter is absent, this middleware falls back to the existing
+// OGXServer CR-based discovery (AttachOGXClient behavior) for backwards compatibility.
+func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		// Read secretName query parameter — when absent, fall back to CR-based discovery
+		secretName := r.URL.Query().Get("secretName")
+		if secretName == "" {
+			// No secret specified — delegate to existing OGX CR-based client attachment
+			app.AttachOGXClient(next)(w, r, ps)
+			return
+		}
+
+		// Get namespace from context (set by AttachNamespace middleware)
+		namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+		if !ok || namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing namespace in context - ensure AttachNamespace middleware is used first"))
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var llamaStackClient llamastack.LlamaStackClientInterface
+
+		if app.config.MockLSClient {
+			logger.Debug("MOCK MODE: creating mock LlamaStack client from secret", "namespace", namespace, "secretName", secretName)
+			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		} else {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+			if err != nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+				return
+			}
+
+			// Read OGX connection URL from secret
+			// TODO: Standardize secret key names across all consumers (AutoRAG, gen-ai, etc.)
+			baseURL, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, "OGX_CLIENT_BASE_URL")
+			if err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("failed to read OGX_CLIENT_BASE_URL from secret %q: %w", secretName, err))
+				return
+			}
+			if baseURL == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q has empty value for OGX_CLIENT_BASE_URL", secretName))
+				return
+			}
+
+			// SSRF validation
+			if err := isValidOGXURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid OGX_CLIENT_BASE_URL in secret %q: %w", secretName, err))
+				return
+			}
+
+			// Read API key from secret (optional — empty string is valid for unauthenticated OGX)
+			apiKey, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, "OGX_CLIENT_API_KEY")
+			if err != nil {
+				// Key missing from secret — treat as no API key
+				logger.Debug("OGX_CLIENT_API_KEY not found in secret, proceeding without API key",
+					"secretName", secretName, "error", err)
+				apiKey = ""
+			}
+
+			logger.Debug("Creating LlamaStack client from secret",
+				"namespace", namespace,
+				"secretName", secretName,
+				"serviceURL", baseURL)
+
+			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
+		}
+
+		// Attach ready-to-use client to context
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
 	}
 }
 

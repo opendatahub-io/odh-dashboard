@@ -13,7 +13,8 @@
   "exports": {
     ".": "./src/core/index.ts",
     "./extension-points": "./src/extension-points/index.ts",
-    "./testing": "./src/testing/utils.ts"
+    "./testing": "./src/testing/utils.ts",
+    "./types": "./src/types/index.ts"
   },
   "dependencies": {
     "@openshift/dynamic-plugin-sdk": "^5.0.1"

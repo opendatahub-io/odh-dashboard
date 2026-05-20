@@ -400,6 +400,155 @@ export const createResponse =
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
 
+/**
+ * Passthrough request for embedded chatbot mode.
+ * Sends a raw Responses API body directly to the BFF, bypassing the
+ * normal LSD-aware flow. The BFF proxies to the OGX instance using
+ * the specified connection secret.
+ *
+ * Always uses streaming (BFF forces stream: true).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createPassthroughResponse = (
+  bffBasePath: string,
+  namespace: string,
+  secretName: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: Record<string, any>,
+  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  abortSignal?: AbortSignal,
+): Promise<SimplifiedResponseData> => {
+  const url = `${bffBasePath}/api/v1/passthrough/responses?namespace=${encodeURIComponent(namespace)}&secret_name=${encodeURIComponent(secretName)}`;
+
+  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
+  // TODO P2: Add code snippet export (curl, Python) for the Responses API request — see Phase 6.2
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorBody = await response.text();
+            const errorData = JSON.parse(errorBody);
+            errorMessage = errorData?.error?.message || errorMessage;
+          } catch {
+            // ignore
+          }
+
+          // Differentiated error messages for embedded mode
+          if (response.status === 502 || response.status === 503) {
+            throw new Error(
+              'The OGX instance is not responding. Check that the instance is running and reachable.',
+            );
+          }
+          if (response.status === 404) {
+            throw new Error(
+              `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
+            );
+          }
+          if (response.status === 403) {
+            throw new Error(
+              'You do not have permission to access this resource. Contact your administrator.',
+            );
+          }
+          throw new Error(errorMessage);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Unable to read stream');
+        }
+
+        let fullContent = '';
+        let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
+        const decoder = new TextDecoder();
+
+        try {
+          let done = false;
+          while (!done) {
+            const result = await reader.read();
+            done = result.done;
+
+            if (!done && result.value) {
+              const chunk = decoder.decode(result.value, { stream: true });
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.error) {
+                      await reader.cancel('Streaming error');
+                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      return;
+                    }
+
+                    if (data.delta && data.type === 'response.output_text.delta') {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.completed' && data.response) {
+                      completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      metricsData = data.metrics;
+                    }
+                  } catch {
+                    // ignore malformed lines
+                  }
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const annotations = completeResponseData?.output
+          ? extractAnnotationsFromOutput(completeResponseData.output)
+          : [];
+        const sources = buildSourcesFromAnnotations(annotations);
+        const finalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
+
+        resolve({
+          id: completeResponseData?.id || 'passthrough-response',
+          model: completeResponseData?.model || 'unknown',
+          status: completeResponseData?.status || 'completed',
+          created_at: completeResponseData?.created_at || Date.now(),
+          content: finalContent,
+          ...(sources.length > 0 && { sources }),
+          ...(metricsData && { metrics: metricsData }),
+        });
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          reject(new Error('Response stopped by user'));
+          return;
+        }
+        reject(
+          error instanceof Error ? error : new Error('Failed to generate passthrough response'),
+        );
+      });
+  });
+};
+
 const modArchRestGET =
   <T>(path: string) =>
   (hostPath: string, baseQueryParams: Record<string, unknown> = {}): ModArchRestGET<T> =>
