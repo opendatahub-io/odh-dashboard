@@ -1,10 +1,4 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
-import {
-  enablePromptManagementFeatures,
-  disablePromptManagementFeatures,
-  isMlflowOperatorManaged,
-  doesMlflowCRExist,
-} from '../../../utils/oc_commands/mlflow';
 import { deleteOpenShiftProject, createOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
@@ -16,8 +10,6 @@ import type { PromptManagementTestData } from '../../../types';
 describe('Verify Prompt Management page', () => {
   let testData: PromptManagementTestData;
   let projectName: string;
-  let operatorWasManaged = true;
-  let crExisted = true;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -27,32 +19,10 @@ describe('Verify Prompt Management page', () => {
         projectName = `${fixtureData.projectName}-${uuid}`;
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
-      .then(() => createOpenShiftProject(projectName))
-      .then(() =>
-        isMlflowOperatorManaged().then((v) => {
-          operatorWasManaged = v;
-        }),
-      )
-      .then(() =>
-        doesMlflowCRExist().then((v) => {
-          crExisted = v;
-        }),
-      )
-      .then(() => {
-        cy.step(
-          `Pre-test state: operator=${operatorWasManaged ? 'Managed' : 'Removed'}, CR=${
-            crExisted ? 'exists' : 'absent'
-          }`,
-        );
-      })
-      .then(() => {
-        cy.step('Enable all features required for Prompt Management');
-        return enablePromptManagementFeatures();
-      });
+      .then(() => createOpenShiftProject(projectName));
   });
 
   after(() => {
-    disablePromptManagementFeatures(operatorWasManaged, crExisted);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

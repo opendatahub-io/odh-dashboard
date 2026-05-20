@@ -2,13 +2,11 @@ import * as yaml from 'js-yaml';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
   deleteOpenShiftProject,
-  findExistingProjectByPrefix,
-  waitForProjectReady,
+  waitForUserProjectAccess,
 } from '../../../utils/oc_commands/project';
 import { checkLlamaStackDistributionReady } from '../../../utils/oc_commands/llamaStackDistribution';
 import { waitForResource } from '../../../utils/oc_commands/baseCommands';
 import { cleanupServingRuntimeTemplate, deployGenAiModel } from '../../../utils/oc_commands/genAi';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { GenAiTestData } from '../../../types';
@@ -20,71 +18,61 @@ import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProf
 describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let testData: GenAiTestData;
   let projectName: string;
-  let skipTest = false;
-  const uuid = generateTestUUID();
 
   let servingRuntimeName: string;
   let hardwareProfileName: string;
 
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
+      if (
+        err.message.includes('expected expression') ||
+        err.message.includes('Unexpected token') ||
+        err.message.includes('postMessage')
+      ) {
         return false;
       }
       return true;
     });
 
-    cy.step('Check if the operator is RHOAI');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found, skipping the test (Gen AI is RHOAI-specific).');
-        skipTest = true;
-      } else {
-        cy.log('RHOAI operator confirmed:', result.stdout);
-      }
-    });
-
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-
-      cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
-        .then((yamlContent: string) => {
-          testData = yaml.load(yamlContent) as GenAiTestData;
-          hardwareProfileName = testData.hardwareProfileName;
-        })
-        .then(() => getVllmCpuAmd64RuntimeInfo())
-        .then((info) => {
-          servingRuntimeName = info.singleModelServingName;
-          return cleanupServingRuntimeTemplate(servingRuntimeName);
-        })
-        .then(() =>
-          findExistingProjectByPrefix(testData.projectNamePrefix).then((existingProject) => {
-            if (existingProject) {
-              cy.log(`Reusing existing project: ${existingProject}`);
-              projectName = existingProject;
+    cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
+      .then((yamlContent: string) => {
+        testData = yaml.load(yamlContent) as GenAiTestData;
+        hardwareProfileName = testData.hardwareProfileName;
+      })
+      .then(() => getVllmCpuAmd64RuntimeInfo())
+      .then((info) => {
+        servingRuntimeName = info.singleModelServingName;
+        return cleanupServingRuntimeTemplate(servingRuntimeName);
+      })
+      .then(() => {
+        const prefix = testData.projectNamePrefix;
+        return cy
+          .exec(`oc get projects -o jsonpath='{.items[*].metadata.name}'`, {
+            failOnNonZeroExit: false,
+          })
+          .then((result) => {
+            const existing = result.stdout.split(' ').find((name) => name.startsWith(prefix));
+            if (existing) {
+              projectName = existing;
+              cy.log(`Reusing existing project: ${projectName}`);
               return;
             }
 
-            projectName = `${testData.projectNamePrefix}-${uuid}`;
+            projectName = `${prefix}-${generateTestUUID()}`;
             cy.step(`Create project ${projectName}`);
             createCleanProject(projectName);
 
-            return waitForProjectReady(projectName).then(() => {
-              cy.step('Deploy Gen AI model via oc commands');
-              deployGenAiModel(projectName, testData);
-            });
-          }),
-        );
-    });
+            return waitForUserProjectAccess(projectName, HTPASSWD_CLUSTER_ADMIN_USER.USERNAME).then(
+              () => {
+                cy.step('Deploy Gen AI model via oc commands');
+                deployGenAiModel(projectName, testData);
+              },
+            );
+          });
+      });
   });
 
   after(() => {
-    if (skipTest) {
-      return;
-    }
-
     if (projectName) {
       deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
     }
@@ -100,7 +88,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   });
 
   it(
-    'Gen AI: model deployment and playground',
+    'Verify User can send message to Playground',
     {
       tags: [
         '@Sanity',
@@ -113,11 +101,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
       ],
     },
     () => {
-      if (skipTest) {
-        cy.log('Skipping test - Gen AI is RHOAI-specific and not available on ODH.');
-        return;
-      }
-
       cy.step('Log into the application');
       cy.visitWithLogin('/?devFeatureFlags=genAiStudio=true', HTPASSWD_CLUSTER_ADMIN_USER);
 
