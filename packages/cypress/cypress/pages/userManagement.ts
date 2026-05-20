@@ -41,7 +41,7 @@ class GroupSettingSection extends Contextual<HTMLElement> {
   }
 
   findDuplicateError() {
-    return this.find().findByText('This group has already been added.');
+    return this.find().findByTestId('duplicate-group-error');
   }
 
   addGroup(name: string) {

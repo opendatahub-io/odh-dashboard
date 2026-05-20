@@ -173,7 +173,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                       />
                       {isDuplicate && (
                         <HelperText isLiveRegion className="pf-v6-u-mt-sm">
-                          <HelperTextItem variant="error">
+                          <HelperTextItem data-testid="duplicate-group-error" variant="error">
                             This group has already been added.
                           </HelperTextItem>
                         </HelperText>
@@ -181,7 +181,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                     </>
                   </Td>
                   <Td dataLabel="Date created" />
-                  <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
+                  <Td isActionCell modifier="nowrap" className="pf-v6-u-text-align-right">
                     <Split>
                       <SplitItem>
                         <Button
@@ -219,7 +219,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                     <Content component="p">{row.name}</Content>
                   </Td>
                   <Td dataLabel="Date created">
-                    {createdDate && (
+                    {createdDate ? (
                       <Content component="p">
                         <Timestamp
                           date={createdDate}
@@ -231,9 +231,11 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                           {relativeTime(Date.now(), createdDate.getTime())}
                         </Timestamp>
                       </Content>
+                    ) : (
+                      '-'
                     )}
                   </Td>
-                  <Td isActionCell modifier="nowrap" style={{ textAlign: 'right' }}>
+                  <Td isActionCell modifier="nowrap" className="pf-v6-u-text-align-right">
                     {isLastGroup ? (
                       <Tooltip content="At least one group must be selected.">
                         <Button
