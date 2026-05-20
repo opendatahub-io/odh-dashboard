@@ -426,7 +426,8 @@ const useChatbotMessages = ({
           );
         };
 
-        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        // Check for mock error scenarios (MOCK: prefix required) - DEVELOPMENT ONLY
+        // Example: type "MOCK:timeout" to trigger a timeout error
         if (process.env.NODE_ENV === 'development') {
           const mockScenario = findMockScenario(message);
           if (mockScenario) {
@@ -557,7 +558,8 @@ const useChatbotMessages = ({
       } else {
         // Handle non-streaming response
 
-        // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
+        // Check for mock error scenarios (MOCK: prefix required) - DEVELOPMENT ONLY
+        // Example: type "MOCK:timeout" to trigger a timeout error
         if (process.env.NODE_ENV === 'development') {
           const mockScenario = findMockScenario(message);
           if (mockScenario) {

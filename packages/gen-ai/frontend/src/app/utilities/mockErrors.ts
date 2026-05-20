@@ -13,6 +13,14 @@ interface MockScenario {
   microcopyKey?: string;
 }
 
+/**
+ * Mock error scenarios for testing error handling in development.
+ *
+ * USAGE: To trigger a mock error, type "MOCK:" followed by the trigger name.
+ * Example: typing "MOCK:timeout" will simulate a timeout error.
+ *
+ * This requires explicit opt-in to prevent accidental triggering on common words.
+ */
 export const MOCK_SCENARIOS: MockScenario[] = [
   // ── Full failures ──────────────────────────────────────────────
   // BFF error codes (actual codes from BFF error handling)
@@ -374,21 +382,15 @@ export const MOCK_SCENARIOS: MockScenario[] = [
 /**
  * Check if a message matches any mock error scenario.
  * Returns the first matching scenario, or undefined if no match.
- * Uses exact match or opt-in token to prevent accidental triggering.
+ * Requires MOCK: prefix to prevent accidental triggering on common English words.
  *
- * Valid formats:
- * - Exact trigger: "max_tokens"
- * - Opt-in token: "MOCK:max_tokens" (must match exactly after prefix)
+ * Valid format:
+ * - "MOCK:timeout" (case-insensitive, must match exactly after prefix)
  */
 export function findMockScenario(message: string): MockScenario | undefined {
   const lower = message.toLowerCase().trim();
 
-  // Check for exact match first
-  if (MOCK_SCENARIOS.some((s) => lower === s.trigger)) {
-    return MOCK_SCENARIOS.find((s) => lower === s.trigger);
-  }
-
-  // Check for MOCK: prefix with exact trigger match
+  // Only accept MOCK: prefix format to prevent accidental triggering
   if (lower.startsWith('mock:')) {
     const triggerPart = lower.slice(5).trim(); // Remove "mock:" prefix
     return MOCK_SCENARIOS.find((s) => triggerPart === s.trigger);
