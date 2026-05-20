@@ -219,24 +219,27 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
-    hostPath,
-    '/lsd/responses',
-    toCreateResponseRecord(request),
-    baseQueryParams,
-    fetchOpts,
-  ).then((response) => {
-    if (response.error) {
-      const err = Object.assign(new Error(response.error.message), {
-        code: response.error.code,
-      });
-      throw err;
-    }
-    if (response.data) {
-      return transformBackendResponse(response.data);
-    }
-    throw new Error('Invalid response format');
-  });
+  return restCREATE<{
+    data?: BackendResponseData;
+    error?: {
+      component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'llama_stack' | 'bff';
+      code: string;
+      message: string;
+      tool_name?: string;
+      retriable: boolean;
+    };
+  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
+    (response) => {
+      if (response.error) {
+        // Preserve the full ApiError structure from BFF
+        throw { error: response.error };
+      }
+      if (response.data) {
+        return transformBackendResponse(response.data);
+      }
+      throw new Error('Invalid response format');
+    },
+  );
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -258,17 +261,33 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          let errorCode: string | undefined;
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
-            errorMessage = errorData?.error?.message || errorMessage;
-            errorCode = errorData?.error?.code;
+            if (errorData?.error) {
+              // Preserve the full ApiError structure from BFF
+              throw { error: errorData.error };
+            }
           } catch {
-            // ignore
+            // If parsing fails or no structured error, create a generic ApiError
+            throw {
+              error: {
+                component: 'bff' as const,
+                code: `http_${response.status}`,
+                message: `HTTP error! status: ${response.status}`,
+                retriable: false,
+              },
+            };
           }
-          throw Object.assign(new Error(errorMessage), { code: errorCode });
+          // Fallback if errorData exists but has no error field
+          throw {
+            error: {
+              component: 'bff' as const,
+              code: `http_${response.status}`,
+              message: `HTTP error! status: ${response.status}`,
+              retriable: false,
+            },
+          };
         }
 
         const reader = response.body?.getReader();
@@ -299,11 +318,11 @@ const streamCreateResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      const errMsg = data.error.message || 'An error occurred during streaming';
                       if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
-                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                      // Preserve the full ApiError structure from BFF
+                      reject({ error: data.error });
                       return;
                     }
 

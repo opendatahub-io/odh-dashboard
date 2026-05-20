@@ -95,83 +95,18 @@ interface UseChatbotMessagesProps {
 }
 
 /**
- * Extracts a user-friendly error message from an error object
- * Handles both structured API errors and generic Error objects
+ * Type guard to check if an error is an ApiError
  */
-const getErrorMessage = (error: unknown): string => {
-  // Check if this is a structured error with error.error.message (mod-arch format)
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'error' in error &&
-    typeof error.error === 'object' &&
-    error.error !== null &&
-    'message' in error.error &&
-    typeof error.error.message === 'string'
-  ) {
-    return error.error.message;
-  }
-
-  // Check if this is a standard Error object
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  // Fallback for unknown error types
-  return ERROR_MESSAGES.GENERIC_ERROR;
-};
-
-/**
- * Extracts the error category/code from an error object
- * Returns undefined if no category is found
- */
-const getErrorCategory = (error: unknown): string | undefined => {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    'error' in error &&
-    typeof error.error === 'object' &&
-    error.error !== null &&
-    'code' in error.error &&
-    typeof error.error.code === 'string'
-  ) {
-    return error.error.code;
-  }
-  return undefined;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/**
- * Safely normalizes an unknown error to ApiError format
- */
-const normalizeToApiError = (error: unknown): ApiError => {
-  // Handle primitives, null, undefined, and arrays
-  if (!isRecord(error)) {
-    return {
-      error: { component: 'bff', code: 'unknown', message: String(error), retriable: false },
-    };
-  }
-
-  // Check if error has nested error object (mod-arch format)
-  if ('error' in error && isRecord(error.error)) {
-    // Has nested error - preserve it
-    return {
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      error: error.error as ApiError['error'],
-    };
-  }
-
-  // Fallback for unknown shape - preserve any nested info
-  const fallbackMessage = typeof error.message === 'string' ? error.message : 'An error occurred';
-  return {
-    error: isRecord(error.error)
-      ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        (error.error as ApiError['error'])
-      : { component: 'bff', code: 'unknown', message: fallbackMessage, retriable: false },
-  };
-};
+const isApiError = (error: unknown): error is ApiError =>
+  typeof error === 'object' &&
+  error !== null &&
+  'error' in error &&
+  typeof error.error === 'object' &&
+  error.error !== null &&
+  'component' in error.error &&
+  'code' in error.error &&
+  'message' in error.error &&
+  'retriable' in error.error;
 
 const useChatbotMessages = ({
   configId,
@@ -701,50 +636,54 @@ const useChatbotMessages = ({
         }
       }
     } catch (error) {
-      // Check if this is an abort error
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === 'AbortError' ||
-          error.message.includes('aborted') ||
-          error.message === 'Response stopped by user');
-
       // If we're clearing the conversation, silently ignore all errors
       // Messages are already reset to initial state
       if (isClearingRef.current) {
         return;
       }
 
-      const rawErrorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
-      // Extract error category from the error object
-      const errorCategory = getErrorCategory(error);
+      // BFF returns structured ApiError - if not, create a generic one
+      const apiError: ApiError = isApiError(error)
+        ? error
+        : {
+            error: {
+              component: 'bff',
+              code: 'unknown',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Sorry, I encountered an error while processing your request. Please try again.',
+              retriable: false,
+            },
+          };
 
       // Log error details for debugging
-      if (errorCategory) {
-        // eslint-disable-next-line no-console
-        console.error('Response API error:', {
-          category: errorCategory,
-          message: getErrorMessage(error),
-        });
-      }
+      // eslint-disable-next-line no-console
+      console.error('Response API error:', {
+        component: apiError.error.component,
+        code: apiError.error.code,
+        message: apiError.error.message,
+      });
 
-      const errorCode =
-        error instanceof Error && 'code' in error && typeof error.code === 'string'
-          ? error.code
-          : undefined;
+      // Check if this is an abort error (from user stopping or clearing)
+      const isAbortError =
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.includes('aborted') ||
+          error.message === 'Response stopped by user');
+
+      // Handle guardrail violations with custom messages
       const errorMessage = (() => {
-        if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
           return GUARDRAIL_MESSAGES.INPUT_VIOLATION;
         }
-        if (errorCode === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
           return GUARDRAIL_MESSAGES.OUTPUT_VIOLATION;
         }
-        return rawErrorMessage;
+        return apiError.error.message;
       })();
 
-      if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+      if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
       }
 
@@ -786,10 +725,8 @@ const useChatbotMessages = ({
       // Use ref to track streaming content (avoids stale messages snapshot)
       const hadPartialContent = streamingReceivedRef.current;
 
-      // Classify the error for UI rendering - normalize to ApiError format
-      const normalizedError = normalizeToApiError(error);
-
-      const errorClassification = classifyError(normalizedError, {
+      // Classify the error for UI rendering - error is already in ApiError format
+      const errorClassification = classifyError(apiError, {
         modelName: modelDisplayName,
         wasStreamStarted: isStreamingEnabled,
         wasResponseGenerated: hadPartialContent,
