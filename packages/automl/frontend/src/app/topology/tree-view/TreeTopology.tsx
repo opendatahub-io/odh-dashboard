@@ -11,7 +11,14 @@ import {
   action,
   GRAPH_LAYOUT_END_EVENT,
 } from '@patternfly/react-topology';
-import { Bullseye, Spinner } from '@patternfly/react-core';
+import {
+  Bullseye,
+  Spinner,
+  Content,
+  ContentVariants,
+  Flex,
+  FlexItem,
+} from '@patternfly/react-core';
 import { treeComponentFactory } from './treeFactories';
 import { transformPipelineData, createMockPipelineData } from './transformPipelineData';
 import type { PipelineVisualizationData } from './types';
@@ -33,9 +40,10 @@ class NoopLayout implements Layout {
 type TreeTopologyProps = {
   className?: string;
   data?: PipelineVisualizationData;
+  loading?: boolean;
 };
 
-const TreeTopology: React.FC<TreeTopologyProps> = ({ className, data }) => {
+const TreeTopology: React.FC<TreeTopologyProps> = ({ className, data, loading }) => {
   const [controller, setController] = React.useState<Visualization | null>(null);
 
   // Use provided data or fall back to mock data
@@ -43,6 +51,11 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({ className, data }) => {
   const { nodes, edges } = React.useMemo(() => transformPipelineData(pipelineData), [pipelineData]);
 
   React.useEffect(() => {
+    // Skip initialization if loading
+    if (loading) {
+      return;
+    }
+
     const viz = new Visualization();
     viz.setFitToScreenOnLayout(true);
 
@@ -74,17 +87,35 @@ const TreeTopology: React.FC<TreeTopologyProps> = ({ className, data }) => {
     return () => {
       viz.removeEventListener(GRAPH_LAYOUT_END_EVENT, onLayoutEnd);
     };
-  }, []);
+  }, [loading]);
 
   // Update visualization when data changes
   React.useEffect(() => {
-    if (controller) {
+    if (controller && !loading) {
       controller.fromModel({ nodes, edges }, true);
       requestAnimationFrame(() => {
         controller.getGraph().fit(80);
       });
     }
-  }, [controller, nodes, edges]);
+  }, [controller, nodes, edges, loading]);
+
+  // Show loading state while models are being fetched
+  if (loading) {
+    return (
+      <div className={className} data-testid="tree-topology-loading">
+        <Bullseye style={{ height: '100%', minHeight: 200 }}>
+          <Flex direction={{ default: 'column' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <Spinner size="lg" />
+            </FlexItem>
+            <FlexItem>
+              <Content component={ContentVariants.p}>Loading...</Content>
+            </FlexItem>
+          </Flex>
+        </Bullseye>
+      </div>
+    );
+  }
 
   if (!controller) {
     return (

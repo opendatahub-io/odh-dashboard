@@ -33,8 +33,8 @@ const MODEL_GENERATION_STEPS = [
 // Final steps after all models converge
 const FINAL_STEPS = ['Model evaluation', 'Select best model'];
 
-// Placeholder models shown when model generation fails before producing any models
-const FAILED_PLACEHOLDER_MODELS = [
+// Placeholder models shown when model generation fails or hasn't started yet
+const PLACEHOLDER_MODELS = [
   { id: 'placeholder-1', name: 'Model 1' },
   { id: 'placeholder-2', name: 'Model 2' },
   { id: 'placeholder-3', name: 'Model 3' },
@@ -99,6 +99,11 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
 
   const { models, selectedModel, runState } = data;
 
+  // Determine pipeline phase based on run state and model availability
+  const isRunning = runState === 'running';
+  const isInputLoaderPhase = isRunning && models.length === 0;
+  const isModelGenerationPhase = isRunning && models.length > 0;
+
   // X positions for different stages
   let currentX = X_START;
 
@@ -107,7 +112,15 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
   INPUT_DATA_LOADER_STEPS.forEach((stepName, index) => {
     const nodeId = `input-${index}`;
     inputDataLoaderNodeIds.push(nodeId);
-    nodes.push(createNode(nodeId, stepName, currentX, Y_CENTER));
+
+    // Determine node type for input loader steps
+    let inputNodeType: TreeNodeData['nodeType'] = 'standard';
+    if (isInputLoaderPhase) {
+      // First node is in-progress (spinning), rest are pending (hourglass)
+      inputNodeType = index === 0 ? 'in-progress' : 'pending';
+    }
+
+    nodes.push(createNode(nodeId, stepName, currentX, Y_CENTER, inputNodeType));
     currentX += X_GAP * 0.8;
   });
 
@@ -125,9 +138,10 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
   // === Model Generation Section (per model) ===
   const lastModelStepIds: string[] = [];
 
-  // Use placeholder models if failed with no models, otherwise use actual models
+  // Use placeholder models if failed or input loader still running
   const isFailedWithNoModels = runState === 'failed' && models.length === 0;
-  const displayModels = isFailedWithNoModels ? FAILED_PLACEHOLDER_MODELS : models;
+  const needsPlaceholderModels = isFailedWithNoModels || isInputLoaderPhase;
+  const displayModels = needsPlaceholderModels ? PLACEHOLDER_MODELS : models;
   const displayYPositions = calculatePipelineYPositions(displayModels.length);
 
   displayModels.forEach((model, modelIndex) => {
@@ -135,11 +149,21 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
     const pipelinePrefix = `p${modelIndex + 1}`;
     const pipelineNodeIds: string[] = [];
 
-    // Determine node type - use 'failed' for placeholder models
-    const pipelineNodeType: TreeNodeData['nodeType'] = isFailedWithNoModels ? 'failed' : 'standard';
-    const badgeNodeType: TreeNodeData['nodeType'] = isFailedWithNoModels
-      ? 'failed'
-      : 'pipeline-start';
+    // Determine node type based on state
+    let pipelineNodeType: TreeNodeData['nodeType'] = 'standard';
+    let badgeNodeType: TreeNodeData['nodeType'] = 'pipeline-start';
+
+    if (isFailedWithNoModels) {
+      pipelineNodeType = 'failed';
+      badgeNodeType = 'failed';
+    } else if (isInputLoaderPhase) {
+      // Input loader still running - show model gen as pending
+      pipelineNodeType = 'pending';
+      badgeNodeType = 'pending';
+    } else if (isModelGenerationPhase) {
+      // Models exist but still running - show as in-progress
+      pipelineNodeType = 'in-progress';
+    }
 
     // Pipeline badge (P1, P2, etc.)
     const badgeId = `${pipelinePrefix}-badge`;
@@ -191,11 +215,12 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
 
     // Determine node type based on run state and selection
     let nodeType: TreeNodeData['nodeType'] = 'standard';
-    if (isLastStep) {
+    if (runState === 'running') {
+      // Show final steps as pending when still running
+      nodeType = 'pending';
+    } else if (isLastStep) {
       if (runState === 'completed' && selectedModel) {
         nodeType = 'success';
-      } else if (runState === 'running') {
-        nodeType = 'in-progress';
       } else if (runState === 'failed') {
         nodeType = 'failed';
       }

@@ -45,7 +45,12 @@ function AutomlResults(): React.JSX.Element {
   const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
 
   // Transform models data for tree view visualization
-  const treeViewData = useTreeViewData(models, pipelineRun?.state, modelsLoading);
+  const treeViewData = useTreeViewData(models, pipelineRun?.state);
+
+  // Determine if we should show loading state:
+  // Only show loading spinner when actively fetching, not when pipeline is running with no models yet
+  const hasModels = Object.keys(models).length > 0;
+  const showTreeLoading = modelsLoading && !hasModels;
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);
@@ -174,7 +179,11 @@ function AutomlResults(): React.JSX.Element {
               <Title headingLevel="h3">Pipeline Visualization (POC)</Title>
             </FlexItem>
           </Flex>
-          <TreeTopology className="automl-tree-topology-container" data={treeViewData} />
+          <TreeTopology
+            className="automl-tree-topology-container"
+            data={treeViewData}
+            loading={showTreeLoading}
+          />
         </StackItem>
         <StackItem>
           <AutomlLeaderboard

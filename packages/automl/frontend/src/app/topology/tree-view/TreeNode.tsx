@@ -10,7 +10,7 @@ import {
 
 export type TreeNodeData = {
   label: string;
-  nodeType: 'standard' | 'pipeline-start' | 'success' | 'in-progress' | 'failed';
+  nodeType: 'standard' | 'pipeline-start' | 'success' | 'in-progress' | 'pending' | 'failed';
   pipelineId?: string;
 };
 
@@ -30,11 +30,43 @@ const getNodeColor = (nodeType: TreeNodeData['nodeType']): string => {
     case 'pipeline-start':
       return '#0066CC'; // PF blue
     case 'in-progress':
-      return '#0066CC';
+      return '#0066CC'; // PF blue
+    case 'pending':
+      return '#6A6E73'; // PF gray
     default:
       return '#151515'; // PF black
   }
 };
+
+const HourglassIcon: React.FC<{ size: number }> = ({ size }) => (
+  <g transform={`translate(${-size / 2}, ${-size / 2})`}>
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="#6A6E73">
+      <path d="M8 8.5l3.5 3.5v2h-7v-2L8 8.5zm0-1L4.5 4V2h7v2L8 7.5zM3 1h10v4l-3 3 3 3v4H3v-4l3-3-3-3V1z" />
+    </svg>
+  </g>
+);
+
+const SpinnerIcon: React.FC<{ size: number }> = ({ size }) => (
+  <g>
+    <circle
+      r={size / 2 - 2}
+      fill="none"
+      stroke="#0066CC"
+      strokeWidth={2}
+      strokeDasharray={`${(size - 4) * Math.PI * 0.75} ${(size - 4) * Math.PI * 0.25}`}
+      strokeLinecap="round"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        from="0"
+        to="360"
+        dur="1s"
+        repeatCount="indefinite"
+      />
+    </circle>
+  </g>
+);
 
 const isTreeNodeData = (data: unknown): data is TreeNodeData => {
   if (typeof data !== 'object' || data === null) {
@@ -72,6 +104,43 @@ const TreeNodeInner: React.FC<{
   const strokeWidth = selected ? 3 : hover ? 2 : 0;
   const strokeColor = '#0066CC';
 
+  const renderNodeContent = () => {
+    // Pending state - show hourglass icon
+    if (nodeType === 'pending') {
+      return <HourglassIcon size={radius * 2} />;
+    }
+
+    // In-progress state - show spinning circle
+    if (nodeType === 'in-progress') {
+      return <SpinnerIcon size={radius * 2} />;
+    }
+
+    // Default - show filled circle
+    return (
+      <>
+        <circle
+          r={radius}
+          fill={getNodeColor(nodeType)}
+          stroke={strokeWidth > 0 ? strokeColor : 'none'}
+          strokeWidth={strokeWidth}
+        />
+        {/* Pipeline badge text (P1, P2, etc.) */}
+        {pipelineId && (
+          <text
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="#FFFFFF"
+            fontSize="12px"
+            fontWeight="bold"
+            fontFamily="RedHatText, sans-serif"
+          >
+            {pipelineId}
+          </text>
+        )}
+      </>
+    );
+  };
+
   return (
     <g
       ref={hoverRef}
@@ -79,27 +148,7 @@ const TreeNodeInner: React.FC<{
       style={{ cursor: 'pointer' }}
       data-testid={`tree-node-${node.getId()}`}
     >
-      {/* Node circle */}
-      <circle
-        r={radius}
-        fill={getNodeColor(nodeType)}
-        stroke={strokeWidth > 0 ? strokeColor : 'none'}
-        strokeWidth={strokeWidth}
-      />
-
-      {/* Pipeline badge text (P1, P2, etc.) */}
-      {pipelineId && (
-        <text
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="#FFFFFF"
-          fontSize="12px"
-          fontWeight="bold"
-          fontFamily="RedHatText, sans-serif"
-        >
-          {pipelineId}
-        </text>
-      )}
+      {renderNodeContent()}
 
       {/* Label below node */}
       {label && (

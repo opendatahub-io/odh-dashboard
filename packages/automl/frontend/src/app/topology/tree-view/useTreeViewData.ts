@@ -15,19 +15,10 @@ import type { PipelineVisualizationData } from './types';
 export const useTreeViewData = (
   models: Record<string, AutomlModel>,
   runState?: string,
-  modelsLoading?: boolean,
 ): PipelineVisualizationData =>
   React.useMemo(() => {
     // Extract model names from the models record
     const modelNames = Object.keys(models);
-
-    // If still loading and no models yet, show placeholder
-    if (modelsLoading && modelNames.length === 0) {
-      return {
-        models: [],
-        runState: 'running',
-      };
-    }
 
     // Convert to PipelineModelData format
     const pipelineModels = modelNames.map((name) => ({
@@ -35,7 +26,7 @@ export const useTreeViewData = (
       name,
     }));
 
-    // Determine run state for visualization
+    // Determine run state for visualization based on actual pipeline state
     let visualRunState: PipelineVisualizationData['runState'];
     if (runState) {
       const upperState = runState.toUpperCase();
@@ -61,4 +52,4 @@ export const useTreeViewData = (
       selectedModel,
       runState: visualRunState,
     };
-  }, [models, runState, modelsLoading]);
+  }, [models, runState]);
