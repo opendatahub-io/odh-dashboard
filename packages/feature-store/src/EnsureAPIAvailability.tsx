@@ -22,14 +22,14 @@ const EnsureFeatureStoreAPIAvailability: React.FC<EnsureFeatureStoreAPIAvailabil
   }
 
   return (
-    <PageSection hasBodyWrapper={false} isFilled>
+    <PageSection hasBodyWrapper={false} isFilled aria-live="polite" aria-busy>
       <EmptyState
         headingLevel="h1"
         titleText="Loading"
         variant={EmptyStateVariant.lg}
         data-id="loading-empty-state"
       >
-        <Spinner size="xl" />
+        <Spinner size="xl" aria-label="Loading feature store API" />
       </EmptyState>
     </PageSection>
   );
