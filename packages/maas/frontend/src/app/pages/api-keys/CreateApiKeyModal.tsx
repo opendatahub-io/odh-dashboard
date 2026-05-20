@@ -93,7 +93,7 @@ const createApiKeySchema = z
 type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
-  onClose: () => void;
+  onClose: (created?: boolean) => void;
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
@@ -202,7 +202,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
+    <Modal variant={ModalVariant.medium} isOpen onClose={() => onClose()}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -512,7 +512,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           <Button
             key="close"
             variant="primary"
-            onClick={onClose}
+            onClick={() => onClose(true)}
             data-testid="close-api-key-button"
           >
             Close
@@ -542,7 +542,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
               >
                 Create API key
               </Button>
-              <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
+              <Button key="cancel" variant="link" onClick={() => onClose()} isDisabled={isCreating}>
                 Cancel
               </Button>
             </StackItem>
