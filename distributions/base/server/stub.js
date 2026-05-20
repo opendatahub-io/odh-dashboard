@@ -31,8 +31,10 @@ const server = http.createServer((req, res) => {
   }
 
   // Static file serving (production mode)
-  const safePath = path.normalize(req.url).replace(/^(\.\.[/\\])+/, '');
-  const filePath = path.join(PUBLIC_DIR, safePath === '/' ? 'index.html' : safePath);
+  const requestPath = new URL(req.url || '/', 'http://localhost').pathname;
+  const safePath = path.posix.normalize(requestPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  const relativePath = safePath.replace(/^[/\\]+/, '');
+  const filePath = path.resolve(PUBLIC_DIR, relativePath || 'index.html');
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
     res.end('Forbidden');
