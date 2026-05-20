@@ -1,9 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+type Theme = 'light' | 'dark';
+
 type ThemeContextProps = {
-  theme: string;
-  setTheme: (theme: string) => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 };
+
+const THEME_KEY = 'app-shell.theme';
 
 const ThemeContext = createContext<ThemeContextProps>({
   theme: 'light',
@@ -12,13 +16,23 @@ const ThemeContext = createContext<ThemeContextProps>({
 
 export const useThemeContext = (): ThemeContextProps => useContext(ThemeContext);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<string>(
-    () => localStorage.getItem('app-shell.theme') || 'light',
-  );
+const readTheme = (): Theme => {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+};
 
-  const setTheme = useCallback((t: string) => {
-    localStorage.setItem('app-shell.theme', t);
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setThemeState] = useState<Theme>(readTheme);
+
+  const setTheme = useCallback((t: Theme) => {
+    try {
+      localStorage.setItem(THEME_KEY, t);
+    } catch {
+      // no-op: storage unavailable
+    }
     setThemeState(t);
   }, []);
 
