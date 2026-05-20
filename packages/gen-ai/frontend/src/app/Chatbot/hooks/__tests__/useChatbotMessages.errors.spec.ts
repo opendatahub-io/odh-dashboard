@@ -80,9 +80,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should extract error message from mod-arch error format', async () => {
       const mockError = {
         error: {
+          component: 'model' as const,
           code: 'invalid_model_config',
           message:
             'The model configuration is invalid. Please check parameters like max_tokens, chat_template, or prompt length.',
+          retriable: false,
         },
       };
 
@@ -108,9 +110,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle RAG vector store not found error', async () => {
       const mockError = {
         error: {
+          component: 'rag' as const,
           code: 'rag_vector_store_not_found',
           message:
             'The vector store was not found. Please verify that the vector store exists and you have access to it.',
+          retriable: false,
         },
       };
 
@@ -136,9 +140,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle guardrails violation error', async () => {
       const mockError = {
         error: {
+          component: 'guardrails' as const,
           code: 'guardrails_violation',
           message:
             'Content was blocked by guardrails. Please modify your input or adjust guardrails settings.',
+          retriable: false,
         },
       };
 
@@ -164,9 +170,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle MCP tool errors', async () => {
       const mockError = {
         error: {
+          component: 'mcp' as const,
           code: 'mcp_error',
           message:
             'An error occurred while invoking the MCP tool. Please check the tool configuration and try again.',
+          retriable: false,
         },
       };
 
@@ -192,9 +200,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle model timeout error', async () => {
       const mockError = {
         error: {
+          component: 'model' as const,
           code: 'model_timeout',
           message:
             'The model request timed out. The model may be overloaded or the request is too complex. Please try again or simplify your request.',
+          retriable: true,
         },
       };
 
@@ -220,9 +230,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle model overloaded error', async () => {
       const mockError = {
         error: {
+          component: 'model' as const,
           code: 'model_overloaded',
           message:
             'The model is currently overloaded or out of resources. Please try again in a few moments.',
+          retriable: true,
         },
       };
 
@@ -248,9 +260,11 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should handle unsupported feature error', async () => {
       const mockError = {
         error: {
+          component: 'model' as const,
           code: 'unsupported_feature',
           message:
             'The selected model does not support this feature (e.g., tools, images, streaming). Please choose a different model or disable the unsupported feature.',
+          retriable: false,
         },
       };
 
@@ -321,13 +335,15 @@ describe('useChatbotMessages - Error Handling', () => {
   });
 
   describe('Error Logging', () => {
-    it('should log error category and message to console', async () => {
+    it('should log error details to console with component, code, and message', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const mockError = {
         error: {
+          component: 'bff' as const,
           code: 'invalid_parameter',
           message: 'temperature out of range',
+          retriable: false,
         },
       };
 
@@ -343,7 +359,8 @@ describe('useChatbotMessages - Error Handling', () => {
 
       await waitFor(() => {
         expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
-          category: 'invalid_parameter',
+          component: 'bff',
+          code: 'invalid_parameter',
           message: 'temperature out of range',
         });
       });
@@ -351,7 +368,7 @@ describe('useChatbotMessages - Error Handling', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should not log when error has no category', async () => {
+    it('should log wrapped Error objects with generic ApiError structure', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
       const mockError = new Error('Simple error');
@@ -367,12 +384,13 @@ describe('useChatbotMessages - Error Handling', () => {
       await result.current.handleMessageSend('Test message');
 
       await waitFor(() => {
-        const { messages } = result.current;
-        expect(messages.length).toBeGreaterThan(1);
+        // Error objects are wrapped in generic ApiError structure and logged
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
+          component: 'bff',
+          code: 'unknown',
+          message: 'Simple error',
+        });
       });
-
-      // Should not log categorized error
-      expect(consoleErrorSpy).not.toHaveBeenCalledWith('Response API error:', expect.any(Object));
 
       consoleErrorSpy.mockRestore();
     });
@@ -397,8 +415,10 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should call classifyError with correct context for non-streaming error', async () => {
       const mockError = {
         error: {
+          component: 'model' as const,
           code: 'model_timeout',
           message: 'Request timed out',
+          retriable: true,
         },
       };
 
@@ -435,8 +455,10 @@ describe('useChatbotMessages - Error Handling', () => {
     it('should call classifyError with wasStreamStarted: true when streaming is enabled', async () => {
       const mockError = {
         error: {
+          component: 'bff' as const,
           code: 'stream_lost',
           message: 'Connection lost',
+          retriable: false,
         },
       };
 
@@ -501,8 +523,10 @@ describe('useChatbotMessages - Error Handling', () => {
 
       const mockError = {
         error: {
+          component: 'bff' as const,
           code: 'test_code',
           message: 'Test error message',
+          retriable: false,
         },
       };
 
@@ -537,7 +561,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { code: 'timeout', message: 'Timeout' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'timeout',
+          message: 'Timeout',
+          retriable: true,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -570,7 +601,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { code: 'max_tokens', message: 'Token limit exceeded' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'max_tokens',
+          message: 'Token limit exceeded',
+          retriable: false,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -602,7 +640,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { message: 'Error' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'unknown',
+          message: 'Error',
+          retriable: true,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
         content: 'Success on retry',
         metadata: {},
@@ -654,7 +699,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { message: 'Error' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'unknown',
+          message: 'Error',
+          retriable: true,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValueOnce(mockError).mockResolvedValueOnce({
         response: 'Success',
         metadata: {},
@@ -704,7 +756,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { message: 'Error' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'unknown',
+          message: 'Error',
+          retriable: true,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -754,7 +813,14 @@ describe('useChatbotMessages - Error Handling', () => {
     });
 
     it('should use getLlamaModelDisplayName for modelName in classifyError', async () => {
-      const mockError = { error: { message: 'Error' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'unknown',
+          message: 'Error',
+          retriable: false,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -798,7 +864,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { code: 'rag_down', message: 'RAG service unavailable' } };
+      const mockError = {
+        error: {
+          component: 'rag' as const,
+          code: 'rag_down',
+          message: 'RAG service unavailable',
+          retriable: false,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
@@ -830,7 +903,14 @@ describe('useChatbotMessages - Error Handling', () => {
         },
       }));
 
-      const mockError = { error: { code: 'stream_lost', message: 'Connection reset' } };
+      const mockError = {
+        error: {
+          component: 'bff' as const,
+          code: 'stream_lost',
+          message: 'Connection reset',
+          retriable: true,
+        },
+      };
       const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
       mockUseGenAiAPI.mockReturnValue({
         api: { createResponse: mockCreateResponse },
