@@ -117,6 +117,10 @@ jobs:
           SECONDARY_SERVER: ${{ secrets.OC_SERVER }}
           SECONDARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL }}
         run: |
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f ~/.kube/config 2>/dev/null || true
+
           # Extract credentials from test-variables.yml
           TEST_VARS_FILE="/tmp/test-variables.yml"
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
@@ -930,6 +934,10 @@ jobs:
             echo "Check that OC_SERVER_PRIMARY/OC_SERVER secrets are configured" >&2
             exit 1
           fi
+
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f "$HOME/.kube/config" 2>/dev/null || true
 
           echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
