@@ -169,6 +169,8 @@ const PipelineRunTableRow: React.FC<PipelineRunTableRowProps> = ({
         onClick: () => setIsArchiveModalOpen(true),
       },
     ];
+    // `run` is used in closures but only specific fields affect the result;
+    // listing them individually avoids re-creating actions on unrelated run changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     runType,
