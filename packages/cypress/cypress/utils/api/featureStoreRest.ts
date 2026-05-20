@@ -44,7 +44,9 @@ export const getFeatureCount = (routeUrl: string, project: string): Cypress.Chai
     })
     .then((response) => {
       if (response.status !== 200 || !response.body || !('features' in response.body)) {
-        throw new Error(`Failed to get feature count: ${response.status}`);
+        throw new Error(
+          `Failed to get feature count: ${response.status} - ${JSON.stringify(response.body)}`,
+        );
       }
       const count = response.body.features.length;
       cy.log(`Feature count: ${count}`);
