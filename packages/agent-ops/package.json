@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/agent-ops",
   "description": "Agent Ops plugin.",
   "version": "0.0.0",
+  "exports": {
+    "./extensions": "./frontend/src/odh/extensions.ts"
+  },
   "module-federation": {
     "name": "agentOps",
     "remoteEntry": "/remoteEntry.js",
@@ -10,7 +13,7 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/_bff/agent-ops/api",
+        "path": "/agent-ops/api",
         "pathRewrite": "/api"
       }
     ],
@@ -38,9 +41,7 @@
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9111 -s -L",
     "cypress:server:dev": "cd frontend && DEPLOYMENT_MODE=federated PORT=9111 PROXY_PORT=4021 npm run start:dev",
-    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9111",
-    "lint": "cd frontend && npm run lint",
-    "lint:fix": "cd frontend && npm run lint:fix"
+    "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9111"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",

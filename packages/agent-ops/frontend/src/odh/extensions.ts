@@ -1,8 +1,19 @@
-import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  NavExtension,
+  RouteExtension,
+  AreaExtension,
+} from '@odh-dashboard/plugin-core/extension-points';
 
 const AGENT_OPS = 'agent-ops';
 
-const extensions: (NavExtension | RouteExtension)[] = [
+const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
+  {
+    type: 'app.area',
+    properties: {
+      id: AGENT_OPS,
+      featureFlags: ['agentOps'],
+    },
+  },
   {
     type: 'app.navigation/section',
     flags: {
@@ -11,7 +22,8 @@ const extensions: (NavExtension | RouteExtension)[] = [
     properties: {
       id: 'agent-ops',
       title: 'Agent Ops',
-      group: '4_agent_ops',
+      group: '7_agent_ops_studio',
+      iconRef: () => import('./AgentOpsNavIcon'),
     },
   },
   {
@@ -20,21 +32,21 @@ const extensions: (NavExtension | RouteExtension)[] = [
       required: [AGENT_OPS],
     },
     properties: {
-      id: 'agent-ops-my-agents',
-      title: 'My Agents',
-      href: '/agent-ops-bff/main-view',
+      id: 'agent-ops-view',
+      title: 'Agent Ops',
+      href: '/agent-ops/main-view',
       section: 'agent-ops',
-      path: '/agent-ops-bff/main-view/*',
-      label: 'WIP',
+      path: '/agent-ops/main-view/*',
+      label: 'Tech Preview',
     },
   },
   {
     type: 'app.route',
     flags: {
-      required: [AGENT_OPS],
+      required: [],
     },
     properties: {
-      path: '/agent-ops-bff/main-view/*',
+      path: '/agent-ops/main-view/*',
       component: () => import('./AgentOpsWrapper'),
     },
   },

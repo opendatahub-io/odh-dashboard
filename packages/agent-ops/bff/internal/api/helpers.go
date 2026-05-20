@@ -9,12 +9,21 @@ import (
 	"strings"
 )
 
-// WriteJSON marshals data as JSON, sets headers, and writes the response.
+type Envelope[D any, M any] struct {
+	Data     D `json:"data"`
+	Metadata M `json:"metadata,omitempty"`
+}
+
+type None *struct{}
+
 func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
-	js, err := json.Marshal(data)
+
+	js, err := json.MarshalIndent(data, "", "\t")
+
 	if err != nil {
 		return err
 	}
+
 	js = append(js, '\n')
 
 	for key, value := range headers {
@@ -24,18 +33,24 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, err = w.Write(js)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-// ReadJSON decodes a JSON request body into dst with size limits and strict field checking.
 func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-	const maxBytes = 1_048_576
-	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+
+	maxBytes := 1_048_576
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
 	err := dec.Decode(dst)
+
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
@@ -78,4 +93,16 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 	}
 
 	return nil
+}
+
+func ParseURLTemplate(tmpl string, params map[string]string) string {
+	args := make([]string, len(params)*2)
+
+	for k, v := range params {
+		args = append(args, ":"+k, v)
+	}
+
+	r := strings.NewReplacer(args...)
+
+	return r.Replace(tmpl)
 }

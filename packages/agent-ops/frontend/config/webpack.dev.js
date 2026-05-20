@@ -13,7 +13,7 @@ setupDotenvFilesForEnv({ env: 'development' });
 const webpackCommon = require('./webpack.common.js');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
-const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
@@ -27,43 +27,28 @@ const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules'
 const AUTH_METHOD = process.env._AUTH_METHOD;
 const BASE_PATH = PUBLIC_PATH;
 
-// Get the kubeconfig token at startup as a fallback for standalone dev mode.
-const getKubeconfigToken = () => {
-  try {
-    const token = execSync(
-      "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
-    )
-      .toString()
-      .trim();
-    const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
-      .toString()
-      .trim();
-    console.info('Logged in as user:', username);
-    return token;
-  } catch (error) {
-    console.error('Failed to get Kubernetes token:', error.message);
-    return '';
+const getProxyHeaders = () => {
+  if (AUTH_METHOD === 'user_token') {
+    try {
+      const token = execSync(
+        "kubectl config view --raw --minify --flatten -o jsonpath='{.users[].user.token}'",
+      )
+        .toString()
+        .trim();
+      const username = execSync("kubectl auth whoami -o jsonpath='{.status.userInfo.username}'")
+        .toString()
+        .trim();
+      console.info('Logged in as user:', username);
+      return {
+        Authorization: `Bearer ${token}`,
+        'x-forwarded-access-token': token,
+      };
+    } catch (error) {
+      console.error('Failed to get Kubernetes token:', error.message);
+      return {};
+    }
   }
-};
-
-const fallbackToken = AUTH_METHOD === 'user_token' ? getKubeconfigToken() : '';
-
-// When using user_token auth, dynamically forward the authorization header from the
-// incoming request if present (e.g. from a host backend proxy with dev impersonation).
-// Fall back to the kubeconfig token captured at startup for standalone dev mode.
-const onProxyReq = (proxyReq, req) => {
-  if (AUTH_METHOD !== 'user_token') {
-    return;
-  }
-  const incomingAuth = req.headers.authorization;
-  if (incomingAuth) {
-    proxyReq.setHeader('Authorization', incomingAuth);
-    const token = incomingAuth.replace(/^Bearer\s+/i, '');
-    proxyReq.setHeader('x-forwarded-access-token', token);
-  } else if (fallbackToken) {
-    proxyReq.setHeader('Authorization', `Bearer ${fallbackToken}`);
-    proxyReq.setHeader('x-forwarded-access-token', fallbackToken);
-  }
+  return {};
 };
 
 module.exports = smp.wrap(
@@ -94,15 +79,14 @@ module.exports = smp.wrap(
         open: false,
         proxy: [
           {
-            context: ['/api', '/_bff/agent-ops/api'],
+            context: ['/api', '/agent-ops/api', '/healthcheck'],
             target: {
               host: PROXY_HOST,
               protocol: PROXY_PROTOCOL,
               port: PROXY_PORT,
             },
-            pathRewrite: { '^/_bff/agent-ops/api': '/api' },
             changeOrigin: true,
-            onProxyReq,
+            headers: getProxyHeaders(),
           },
         ],
         devMiddleware: {
@@ -118,9 +102,7 @@ module.exports = smp.wrap(
         onListening: (devServer) => {
           if (devServer) {
             console.log(
-              `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${
-                devServer.server.address().port
-              }\x1b[0m`,
+              `\x1b[32m✓ Dashboard available at: \x1b[4mhttp://localhost:${devServer.server.address().port}\x1b[0m`,
             );
           }
         },

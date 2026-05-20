@@ -7,12 +7,13 @@ const { setupWebpackDotenvFilesForEnv } = require('./dotenv');
 const { name } = require('../package.json');
 
 const RELATIVE_DIRNAME = process.env._RELATIVE_DIRNAME;
-const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR;
+const IS_PROJECT_ROOT_DIR = process.env._IS_PROJECT_ROOT_DIR === 'true';
 const IMAGES_DIRNAME = process.env._IMAGES_DIRNAME;
 const PUBLIC_PATH = process.env._PUBLIC_PATH;
 const SRC_DIR = process.env._SRC_DIR;
 const COMMON_DIR = process.env._COMMON_DIR;
 const DIST_DIR = process.env._DIST_DIR;
+const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../../frontend/src');
 const ROOT_NODE_MODULES = path.resolve(RELATIVE_DIRNAME, '../../../node_modules');
 const { _OUTPUT_ONLY: OUTPUT_ONLY, FAVICON, PRODUCT_NAME, COVERAGE } = process.env;
 const BASE_PATH = PUBLIC_PATH;
@@ -244,6 +245,7 @@ module.exports = (env) => ({
     extensions: ['.js', '.ts', '.tsx', '.jsx'],
     alias: {
       '~': path.resolve(SRC_DIR),
+      '@odh-dashboard/internal': path.resolve(RELATIVE_DIRNAME, '../../../frontend/src'),
     },
     symlinks: false,
     cacheWithContext: false,

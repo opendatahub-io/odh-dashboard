@@ -13,11 +13,14 @@ const moduleFederationConfig = {
       singleton: true,
       requiredVersion: deps['@patternfly/react-core'],
     },
-    '@odh-dashboard/internal': { singleton: true, requiredVersion: '*' },
-    '@odh-dashboard/plugin-core': { singleton: true, requiredVersion: '*' },
+    '@odh-dashboard/plugin-core': {
+      singleton: true,
+      requiredVersion: '0.0.0',
+    },
   },
   exposes: {
     './extensions': './src/odh/extensions',
+    './extension-points': './src/odh/extension-points',
   },
   runtime: false,
   // Enable runtime for proper HMR in development

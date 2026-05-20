@@ -7,8 +7,11 @@ import (
 )
 
 const (
-	// AuthMethodDisabled disables authentication, useful for local development and testing.
-	AuthMethodDisabled = "disabled"
+	// AuthMethodInternal uses the credentials of the running backend.
+	// If running inside the cluster, it uses the pod's service account.
+	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
+	// This is the default authentication method.
+	AuthMethodInternal = "internal"
 
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
@@ -59,25 +62,50 @@ func (d DeploymentMode) IsFederatedMode() bool {
 	return d == DeploymentModeFederated
 }
 
-// EnvConfig holds all configuration values parsed from CLI flags and environment variables.
 type EnvConfig struct {
-	Port              int
-	MockK8Client      bool
-	MockHTTPClient    bool
-	DevMode           bool
-	DeploymentMode    DeploymentMode
-	DevModeClientPort int
-	StaticAssetsDir   string
-	LogLevel          slog.Level
-	AllowedOrigins    []string
+	Port               int
+	MockK8Client       bool
+	MockHTTPClient     bool
+	DevMode            bool
+	DeploymentMode     DeploymentMode
+	DevModeClientPort  int
+	DevModeCatalogPort int
+	StaticAssetsDir    string
+	LogLevel           slog.Level
+	AllowedOrigins     []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
+	// If provided, the application will attempt to load these files and add the
+	// certificates to the HTTP client's Root CAs for outbound TLS connections.
+	// Missing or unreadable files are ignored.
 	BundlePaths []string
 
 	// ─── AUTH ───────────────────────────────────────────────────
-	AuthMethod      string
+	// Specifies the authentication method used by the server.
+	// Valid values: "internal" or "user_token"
+	AuthMethod string
+
+	// Header used to extract the authentication token.
+	// Default is "Authorization" and can be overridden via CLI/env for proxy integration scenarios.
 	AuthTokenHeader string
+
+	// Optional prefix to strip from the token header value.
+	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────
+	// TLS verification settings for HTTP client connections to the Client
+	// InsecureSkipVerify when true, skips TLS certificate verification (useful for development/local setups)
+	// Default is false (secure) for production environments
 	InsecureSkipVerify bool
+
+	// ─── BFF INTER-COMMUNICATION ─────────────────────────────────
+	// MockBFFClients enables mock mode for BFF inter-communication clients.
+	// When true, BFF clients return mock responses instead of making real HTTP calls.
+	MockBFFClients bool
+
+	// ─── DEPRECATED ─────────────────────────────────────────────
+	// The following fields are deprecated and maintained for backward compatibility
+	// Use DeploymentMode instead
+	StandaloneMode    bool
+	FederatedPlatform bool
 }

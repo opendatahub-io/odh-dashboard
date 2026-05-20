@@ -146,7 +146,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   setupDotenvFile(path.resolve(RELATIVE_DIRNAME, '.env'));
 
   const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'standalone';
-  const AUTH_METHOD = process.env.AUTH_METHOD || 'user_token';
+  const AUTH_METHOD = process.env.AUTH_METHOD || 'internal';
   const IMAGES_DIRNAME = process.env.IMAGES_DIRNAME || 'images';
   const PUBLIC_PATH = process.env.PUBLIC_PATH || '/';
   const SRC_DIR = path.resolve(RELATIVE_DIRNAME, process.env.SRC_DIR || TS_BASE_URL || 'src');
@@ -161,7 +161,7 @@ const setupDotenvFilesForEnv = ({ env }) => {
   const OUTPUT_ONLY = process.env._OUTPUT_ONLY === 'true';
 
   process.env._RELATIVE_DIRNAME = RELATIVE_DIRNAME;
-  process.env._IS_PROJECT_ROOT_DIR = IS_ROOT;
+  process.env._IS_PROJECT_ROOT_DIR = IS_ROOT ? 'true' : 'false';
   process.env._IMAGES_DIRNAME = IMAGES_DIRNAME;
   process.env._PUBLIC_PATH = PUBLIC_PATH;
   process.env._SRC_DIR = SRC_DIR;
