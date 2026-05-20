@@ -98,9 +98,6 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
     [schemaData, filterData],
   );
 
-  const isFilteredEmpty = schemaData.length > 0 && filteredSchemaData.length === 0;
-  const isTrulyEmpty = schemaData.length === 0;
-
   return (
     <Table
       data-testid="feature-view-schema-table"
@@ -113,11 +110,13 @@ const FeatureViewSchemaTable: React.FC<FeatureViewSchemaTableProps> = ({ feature
           <EmptyState
             headingLevel="h6"
             icon={SearchIcon}
-            titleText={isTrulyEmpty ? 'No schema data available' : 'No results match your filters'}
+            titleText={
+              schemaData.length === 0 ? 'No schema data available' : 'No results match your filters'
+            }
             variant={EmptyStateVariant.lg}
             data-testid="feature-view-schema-empty-state"
           >
-            {isFilteredEmpty && (
+            {schemaData.length > 0 && filteredSchemaData.length === 0 && (
               <>
                 <EmptyStateBody>Adjust or clear your filters to see schema rows.</EmptyStateBody>
                 <EmptyStateFooter>
