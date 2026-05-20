@@ -1,0 +1,87 @@
+/* eslint-disable camelcase */
+import '@testing-library/jest-dom';
+import { buildPRCurveLines } from '~/app/components/run-results/AutomlModelDetailsModal/components/PrecisionRecallChart';
+import type { PrecisionRecallData } from '~/app/types';
+
+const binaryData: PrecisionRecallData = {
+  task_type: 'binary',
+  precision_recall_curve: {
+    average_precision: 0.95,
+    precision: [0.5, 0.7, 0.9, 1.0],
+    recall: [1.0, 0.8, 0.5, 0.0],
+    thresholds: [0.2, 0.5, 0.8],
+    baseline_precision: 0.5,
+  },
+};
+
+const multiclassData: PrecisionRecallData = {
+  task_type: 'multiclass',
+  classes: ['A', 'B'],
+  precision_recall_curve: {
+    average_precision_macro: 0.85,
+    average_precision_weighted: 0.86,
+    per_class: {
+      A: {
+        average_precision: 0.9,
+        precision: [0.4, 0.7, 1.0],
+        recall: [1.0, 0.6, 0.0],
+        thresholds: [0.3, 0.7],
+        baseline_precision: 0.4,
+      },
+      B: {
+        average_precision: 0.8,
+        precision: [0.3, 0.6, 1.0],
+        recall: [1.0, 0.5, 0.0],
+        thresholds: [0.4, 0.8],
+        baseline_precision: 0.3,
+      },
+    },
+  },
+};
+
+describe('buildPRCurveLines', () => {
+  it('should produce a single curve for binary data', () => {
+    const lines = buildPRCurveLines(binaryData);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].label).toBe('Model');
+    expect(lines[0].ap).toBe(0.95);
+    expect(lines[0].points).toHaveLength(4);
+  });
+
+  it('should map binary recall to x and precision to y', () => {
+    const lines = buildPRCurveLines(binaryData);
+    expect(lines[0].points[0]).toEqual({
+      name: 'Model recall: 1.000, precision: 0.500',
+      x: 1.0,
+      y: 0.5,
+      index: 0,
+    });
+    expect(lines[0].points[1]).toEqual({
+      name: 'Model recall: 0.800, precision: 0.700',
+      x: 0.8,
+      y: 0.7,
+      index: 0,
+    });
+  });
+
+  it('should produce one curve per class for multiclass data', () => {
+    const lines = buildPRCurveLines(multiclassData);
+    expect(lines).toHaveLength(2);
+    expect(lines[0].label).toBe('A');
+    expect(lines[0].ap).toBe(0.9);
+    expect(lines[1].label).toBe('B');
+    expect(lines[1].ap).toBe(0.8);
+  });
+
+  it('should assign sequential indices to multiclass curves', () => {
+    const lines = buildPRCurveLines(multiclassData);
+    expect(lines[0].points[0].index).toBe(0);
+    expect(lines[1].points[0].index).toBe(1);
+  });
+
+  it('should have correct point count matching recall array length', () => {
+    const lines = buildPRCurveLines(multiclassData);
+    expect(lines[0].points).toHaveLength(3);
+    expect(lines[1].points).toHaveLength(3);
+  });
+});

@@ -228,3 +228,28 @@ export type MulticlassRocCurveData = {
 };
 
 export type RocCurveData = BinaryRocCurveData | MulticlassRocCurveData;
+
+export type PrecisionRecallEntry = {
+  average_precision: number;
+  precision: number[];
+  recall: number[];
+  thresholds: (number | string)[];
+  baseline_precision: number;
+};
+
+export type BinaryPrecisionRecallData = {
+  task_type: 'binary';
+  precision_recall_curve: PrecisionRecallEntry;
+};
+
+export type MulticlassPrecisionRecallData = {
+  task_type: 'multiclass';
+  classes: (string | number)[];
+  precision_recall_curve: {
+    average_precision_macro: number;
+    average_precision_weighted: number;
+    per_class: Record<string, PrecisionRecallEntry>;
+  };
+};
+
+export type PrecisionRecallData = BinaryPrecisionRecallData | MulticlassPrecisionRecallData;

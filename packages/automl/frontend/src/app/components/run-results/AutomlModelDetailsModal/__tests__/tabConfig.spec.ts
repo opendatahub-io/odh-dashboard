@@ -12,6 +12,7 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'precision-recall',
     ]);
   });
 
@@ -23,6 +24,7 @@ describe('getVisibleTabs', () => {
       'feature-summary',
       'model-evaluation',
       'confusion-matrix',
+      'precision-recall',
     ]);
   });
 
@@ -39,7 +41,11 @@ describe('getVisibleTabs', () => {
     const evaluationTabs = tabs.filter((t) => t.section === 'Evaluation');
 
     expect(modelViewerTabs.map((t) => t.key)).toEqual(['model-information', 'feature-summary']);
-    expect(evaluationTabs.map((t) => t.key)).toEqual(['model-evaluation', 'confusion-matrix']);
+    expect(evaluationTabs.map((t) => t.key)).toEqual([
+      'model-evaluation',
+      'confusion-matrix',
+      'precision-recall',
+    ]);
   });
 
   it('should have a component for every tab definition', () => {

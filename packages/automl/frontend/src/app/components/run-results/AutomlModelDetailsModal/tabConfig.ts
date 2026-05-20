@@ -12,6 +12,7 @@ import ModelInformationTab from './tabs/ModelInformationTab';
 import FeatureSummaryTab from './tabs/FeatureSummaryTab';
 import ModelEvaluationTab from './tabs/ModelEvaluationTab';
 import ConfusionMatrixTab from './tabs/ConfusionMatrixTab';
+import PrecisionRecallTab from './tabs/PrecisionRecallTab';
 
 export type TabContentProps = {
   model: AutomlModel;
@@ -79,6 +80,14 @@ export const TAB_DEFINITIONS: TabDefinition[] = [
     section: 'Evaluation',
     visibleFor: CLASSIFICATION_TYPES,
     component: ConfusionMatrixTab,
+  },
+  {
+    key: 'precision-recall',
+    label: 'Precision recall',
+    tooltip: 'Precision-recall curve showing the trade-off between precision and recall',
+    section: 'Evaluation',
+    visibleFor: CLASSIFICATION_TYPES,
+    component: PrecisionRecallTab,
   },
 ];
 
