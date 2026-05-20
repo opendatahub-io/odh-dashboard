@@ -24,11 +24,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
 
   retryableBefore(() => {
     Cypress.on('uncaught:exception', (err) => {
-      if (
-        err.message.includes('expected expression') ||
-        err.message.includes('Unexpected token') ||
-        err.message.includes('postMessage')
-      ) {
+      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
         return false;
       }
       return true;
