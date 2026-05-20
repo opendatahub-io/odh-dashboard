@@ -2,7 +2,6 @@
 description: Pull request creation guidelines for odh-dashboard — must use PR template
 globs: 
 alwaysApply: false
-paths: []
 ---
 
 # Pull Request Creation
