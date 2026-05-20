@@ -15,6 +15,10 @@
       {
         "path": "/agent-ops/api",
         "pathRewrite": "/api"
+      },
+      {
+        "path": "/agent-ops/healthcheck",
+        "pathRewrite": "/healthcheck"
       }
     ],
     "local": {
