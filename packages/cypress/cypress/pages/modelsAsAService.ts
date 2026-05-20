@@ -15,6 +15,11 @@ class APIKeysPage {
     this.wait();
   }
 
+  visitKeysAndSubs(): void {
+    cy.visitWithLogin('/maas/keys-and-subs');
+    this.wait();
+  }
+
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
@@ -26,6 +31,14 @@ class APIKeysPage {
 
   findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-page-description');
+  }
+
+  findApiKeysTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-keys-tab');
+  }
+
+  findSubscriptionsTab(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-tab');
   }
 
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
