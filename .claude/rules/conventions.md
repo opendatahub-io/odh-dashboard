@@ -2,6 +2,12 @@
 description: Coding conventions for TypeScript, React, PatternFly, and backend patterns in ODH Dashboard
 globs: "**/*.ts,**/*.tsx,**/*.js,**/*.jsx"
 alwaysApply: false
+paths:
+  - "frontend/src/**/*.ts"
+  - "frontend/src/**/*.tsx"
+  - "backend/src/**/*.ts"
+  - "packages/*/frontend/src/**/*.ts"
+  - "packages/*/frontend/src/**/*.tsx"
 ---
 
 # ODH Dashboard Coding Conventions

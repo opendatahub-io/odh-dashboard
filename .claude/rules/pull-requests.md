@@ -1,3 +1,11 @@
+---
+description: Pull request creation guidelines for odh-dashboard — must use PR template
+globs: ".github/pull_request_template.md"
+alwaysApply: false
+paths:
+  - ".github/pull_request_template.md"
+---
+
 # Pull Request Creation
 
 When creating a pull request targeting `opendatahub-io/odh-dashboard`, you **MUST** use the PR template at `.github/pull_request_template.md` as the PR body structure. Read the template, fill in every section following the HTML comment instructions within it, and include the full checklist. This rule does not apply to PRs targeting other repositories.

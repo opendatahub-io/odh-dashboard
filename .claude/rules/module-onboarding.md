@@ -2,6 +2,9 @@
 description: Guide for creating a new module/package in the ODH Dashboard monorepo
 globs: "packages/**"
 alwaysApply: false
+paths:
+  - "packages/plugin-template/**"
+  - "packages/*/package.json"
 ---
 
 # Module Onboarding — Creating a New Package

@@ -2,6 +2,9 @@
 description: React component, hook, and page development conventions for ODH Dashboard
 globs: "**/*.tsx,**/*.ts"
 alwaysApply: false
+paths:
+  - "frontend/src/**/*.tsx"
+  - "packages/*/frontend/src/**/*.tsx"
 ---
 
 # React Development — ODH Dashboard

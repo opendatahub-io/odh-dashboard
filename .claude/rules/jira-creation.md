@@ -2,6 +2,8 @@
 description: Guidelines for creating Jira issues in the RHOAIENG project with proper formatting and field configuration
 globs: 
 alwaysApply: false
+paths:
+  - ".claude/rules/jira-creation.md"
 ---
 
 # Creating Jira Issues in RHOAIENG Project
