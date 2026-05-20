@@ -1,4 +1,4 @@
-import { Bullseye, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
+import { Content, Divider, Flex, FlexItem, MenuItem, Truncate } from '@patternfly/react-core';
 import React from 'react';
 import SearchSelector from '@odh-dashboard/internal/components/searchSelector/SearchSelector';
 import { FeatureStoreProject } from '../../types/featureStoreProjects';
@@ -38,6 +38,7 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
       dataTestId="feature-store-project-selector"
       isFullWidth
       minWidth="250px"
+      toggleLabelledBy="feature-store-project-selector-label"
       searchFocusOnOpen
       searchPlaceholder="Feature store name"
       onSearchChange={(value) => setSearchText(value)}
@@ -75,7 +76,9 @@ const FeatureStoreProjectSelector: React.FC<FeatureStoreProjectSelectorProps> = 
   return (
     <Flex spaceItems={{ default: 'spaceItemsSm' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>
-        <Bullseye>Feature store</Bullseye>
+        <Content id="feature-store-project-selector-label" component="p" style={{ marginBlock: 0 }}>
+          Feature store
+        </Content>
       </FlexItem>
       <FlexItem>{selector}</FlexItem>
     </Flex>

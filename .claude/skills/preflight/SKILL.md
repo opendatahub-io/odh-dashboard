@@ -1,16 +1,19 @@
 ---
 name: preflight
-description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review X,Y, --skip-review X,Y, --help."
-argument-hint: "[PR] [--fix] [--local] [--review X,Y] [--skip-review X,Y] [--help]"
+description: "Pre-merge readiness check for a PR or local branch. Gathers context, runs reviews and checks, reports a results table. Interactive by default — asks what to review and whether to fix. Supports flags: --fix, --local, --review X,Y, --skip-review X,Y, --ci, --help."
+argument-hint: "[PR] [--fix] [--local] [--review X,Y] [--skip-review X,Y] [--ci] [--help]"
 disable-model-invocation: true
-allowed-tools: Bash(gh *) Bash(git *) Bash(npm *) Bash(npx *) Bash(${CLAUDE_SKILL_DIR}/scripts/*)
 ---
 
 # Preflight
 
 Pre-merge readiness check. Gather context, review code, run checks, report results. Interactive by default — asks the user before making decisions. Never skip a check silently.
 
-Never push. Never comment on the PR.
+Never push (unless `--fix --ci` — push after committing fixes). Never comment on the PR (unless `--ci` flag is passed).
+
+**CI sandbox constraints (when running in GitHub Actions):**
+- **No `/tmp/` writes** — the sandbox only allows file writes within the workspace directory. Use the Write tool to create files in the workspace root (e.g., `preflight-comment.md`).
+- **No writes to `.claude/`** — this directory is treated as sensitive. Write temp files to the workspace root instead.
 
 ## --help
 
@@ -28,6 +31,8 @@ Flags:
   --review X,Y          Run specific reviewers without asking
                         Options: coderabbit, claude, style, rbac
   --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
+  --ci                  Non-interactive CI mode: skip all prompts, post results
+                        as a PR review when done
   --help                Show this help
 
 Examples:
@@ -52,8 +57,21 @@ Parse these from `$ARGUMENTS` before processing:
 - `--local` — ignore PR even if one exists, run everything locally
 - `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
 - `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
+- `--ci` — non-interactive CI mode. Skips all interactive prompts (no `AskUserQuestion`). Posts the results as a PR review using the template in [references/ci-comment-template.md](references/ci-comment-template.md).
 - `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
+
+## Execution
+
+**First, call TaskCreate for each applicable task before running any commands:**
+
+- Task 1: "Gather context" — PR metadata, sync status, changed files, Jira key
+- Task 2: "Run reviews" — fetch existing or run local reviewers
+- Task 3: "Run checks" — CI, lint, type-check, tests, PR body, Jira, coverage
+- Task 4: "Fix failing checks" — ONLY create this task if `--fix` was passed
+- Task 5: "Write results and post comment" — ONLY create this task if `--ci` was passed
+
+Then work through each task in order. Mark each task `in_progress` when starting and `completed` when done. You are not done until TaskList shows all tasks completed.
 
 ## Step 0: Prerequisites
 
@@ -147,13 +165,21 @@ Statuses:
 
 ⏭️ means CI ran this on the exact same commit. If a check can't run (OOM, missing tool), that's ❌ or ⚠️ — never ⏭️. If a check doesn't apply (no PR body because no PR), use ➖.
 
-Print a results table with every check, its status, and details. End with a verdict: any ❌ → **NOT READY**, all ✅ with ⚠️ → **READY WITH WARNINGS**, all ✅ → **READY**.
+Print the results using the format from [references/ci-comment-template.md](references/ci-comment-template.md). This format is used for both terminal output and PR comments. End with a verdict: any ❌ → **NOT READY**, all ✅ with ⚠️ → **READY WITH WARNINGS**, all ✅ → **READY**.
+
+If `--ci` was passed, post everything as a **single PR review** — inline comments on files + the full report as the review summary body. **You MUST follow the format in [references/ci-comment-template.md](references/ci-comment-template.md) exactly.** No standalone PR comments.
+
+- If `--ci` without `--fix`: post the review now and skip Step 4.
+- If `--ci` with `--fix`: do NOT post yet — wait until after Step 4 so the review reflects the post-fix state.
+- If no `--ci`: just print results to terminal, do not post a review.
 
 ## Step 4: Fix
 
+If `--ci` was passed without `--fix`, skip this step.
+
 If `--fix` was passed, proceed directly.
 
-If no `--fix` flag, use AskUserQuestion:
+If no `--fix` and no `--ci` flag, use AskUserQuestion:
 - "Fix failing checks"
 - "Done — just wanted the report"
 
@@ -163,6 +189,8 @@ If fixing:
 2. **Review fixes** — PR: invoke `coderabbit-autofix` (decline commit/push), then fix human threads. Local: fix issues from Step 2 review.
 3. **CI/lint/test fixes** — fix specific errors in files changed by this branch. Don't auto-format directories. Don't fix pre-existing issues.
 4. **Cleanup** — `/simplify` on changed files, lint those files. Skip if nothing changed.
-5. **Commit** — one commit, descriptive message, `Co-Authored-By` + `Signed-off-by`. Never push.
+5. **Commit** — one commit, descriptive message, `Co-Authored-By` + `Signed-off-by`.
+6. **Push** — only if `--ci` was also passed (`--fix --ci`). Push to the PR branch: `git push`. In interactive mode (no `--ci`), never push.
+7. **Recalculate** — re-run lint and type-check on changed files. Update the checks table with post-fix results. The review must reflect the current state, not the pre-fix state.
 
-After fixing, run lint and type-check on changed files to verify. Print updated table — ⏭️ checks keep original status (nothing pushed), local checks get updated.
+If `--ci` was passed, now post the PR review with the updated results (see template).

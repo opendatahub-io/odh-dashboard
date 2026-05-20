@@ -2,6 +2,10 @@
 description: ODH Dashboard monorepo architecture, package boundaries, and BFF structure
 globs: "packages/**,frontend/**,backend/**"
 alwaysApply: false
+paths:
+  - "packages/**"
+  - "frontend/**"
+  - "backend/**"
 ---
 
 # ODH Dashboard Architecture
