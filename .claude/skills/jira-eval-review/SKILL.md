@@ -61,19 +61,20 @@ If no explicit "Acceptance Criteria" section exists, look for:
 
 Review Jira comments on the issue (already fetched in Phase 1 with `comment_limit=50`) for clarifications, additional requirements, scope changes, or other useful information that may refine or supplement the acceptance criteria extracted from the description.
 
-#### 1b. Traverse parent hierarchy and linked issues
+#### 1b. Traverse parent hierarchy and linked issues for context
 
-The target issue should contain its own acceptance criteria. Parent epics/stories and linked issues provide **context** to enhance understanding of the target issue's AC — they are not independent sources of criteria. Parent issues are typically broader in scope than the individual issue. Use parent, linked, and child issues only to clarify ambiguous criteria, fill in implicit requirements, or understand the broader feature context.
+The target issue should contain its own acceptance criteria. Parent epics/stories and linked issues provide **read-only context** to enhance understanding of the target issue's AC — they are **not** independent sources of criteria. Never add a criterion to the evaluation list because it appeared in a parent or linked issue. Use these issues only to clarify ambiguous criteria, fill in implicit requirements, or understand the broader feature context.
 
-**MANDATORY: Always walk the full parent chain.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Context from any ancestor level may be needed to fully understand the child task's criteria. The only valid reason to stop is reaching an issue with no `parent` field (the root).
+**MANDATORY: Always walk the full parent chain of the target issue.** Do NOT stop early because a parent "seems unrelated" or "is too far up." Context from any ancestor level may be needed to fully understand the child task's criteria. The only valid reason to stop is reaching an issue with no `parent` field (the root).
 
 **Cycle detection:** Maintain a set of already-visited issue keys. Before fetching any issue (parent or linked), check whether it has already been visited. If so, skip it and continue. This prevents infinite loops from circular issue links.
 
-1. **Parent issue** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks` (no `comment_limit` — comments are only reviewed on the target issue) and extract any acceptance criteria from its description. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Fetch **every** ancestor regardless of whether intermediate levels contain criteria — a grandparent or great-grandparent may still have relevant acceptance criteria even if the immediate parent does not.
-2. **Linked issues** — check the issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), call `jira_get_issue` for the linked issue key with `fields=summary,description,issuetype` and extract criteria from its description. Only follow links where the relationship suggests the linked issue may contain requirements. Skip "is cloned by" (clones are often modified entirely and are unreliable), "duplicates", and other non-requirement relationships.
-3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
+**Traversal scope:**
 
-De-duplicate criteria that appear in multiple issues. When a criterion appears in both the direct issue and a parent, keep it once under the target issue — do not attribute it to the parent.
+1. **Parent chain (target issue only)** — check the issue's `parent` field. If a parent exists, call `jira_get_issue` for the parent key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks` and `update_history=false` (parent fetches are for context only — do not pollute the user's Jira view history). Do **not** pass `comment_limit` — comments are only reviewed on the target issue. **Always** continue up the hierarchy (parent-of-parent) until there is no further parent (i.e., the `parent` field is absent or null). Read each ancestor's description for context that clarifies the target issue's criteria.
+2. **Linked issues (target issue only, single level)** — check the target issue's `issuelinks` field. For each link (e.g., "is blocked by", "is part of", "implements"), call `jira_get_issue` for the linked issue key with `fields=summary,description,issuetype` and `update_history=false`. Do **not** traverse parents or links of linked issues — only the target issue's direct links are in scope. Skip "duplicates", "is cloned by", and other non-requirement relationships — clones are often modified entirely and are unreliable. If more than 10 linked issues exist, process the first 10 and note in the report that additional links were skipped.
+3. **Subtasks** — if the provided issue is an epic or story with subtasks, do **not** traverse downward. Criteria flow from parent to child, not the reverse.
+4. **Rate-limit errors** — if the Atlassian MCP returns a rate-limit or throttling error during traversal, stop traversal, report which issues were successfully fetched, and continue the evaluation with the context gathered so far. Do not silently retry.
 
 #### 1c. Handle no criteria found
 
@@ -85,9 +86,9 @@ Do **not** fall back to using the issue summary as a criterion. Without explicit
 
 #### 1d. Organize criteria for the report
 
-**Filter out test-related criteria.** Unless the issue itself is specifically about testing (e.g., "add unit tests for X", "fix flaky E2E test"), drop any acceptance criteria that are solely about adding or updating tests (e.g., "Add/Update Cypress mocked tests", "Add/Update unit tests"). This skill focuses on evaluating the core feature or fix — test coverage is handled separately.
+**Filter out test-related criteria.** Unless the issue itself is specifically about testing (e.g., "add unit tests for X", "fix flaky E2E test"), drop any acceptance criteria that are solely about adding or updating tests. This includes boilerplate items from the ticket template such as "Add/Update Cypress mocked tests" and "Add/Update unit tests for hooks/functions." This skill focuses on evaluating the core feature or fix — test coverage is handled separately.
 
-Store each criterion as a numbered item from the target issue. Do not label criteria by source issue — the target issue owns all its criteria, and parent/linked issues only provide context.
+Store each criterion as a numbered item. Do not label criteria by source issue — the target issue owns all its criteria, and parent/linked issues only provide context.
 
 If the PR references **multiple Jira issues** (e.g., the PR title or body mentions several issue keys), evaluate each issue's criteria separately and enumerate them in the report with issue key prefixes to distinguish them.
 
@@ -155,7 +156,6 @@ Present the report in this format:
 ## Jira Evaluation Review
 
 **Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
-**Related issues analyzed:** {list of parent/linked issue keys with links, or "none" if only the direct issue}
 **PR:** [#{number}]({url}) — {title}
 **Status:** {N}/{total} criteria satisfied{, M partial if any}
 
