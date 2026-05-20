@@ -69,7 +69,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should create response with required parameters only", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello, how are you?",
+			Input: llamastack.InputUnion{Text: "Hello, how are you?"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -115,11 +115,11 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		temperature := 0.7
 
 		payload := CreateResponseRequest{
-			Input: "Tell me about AI",
+			Input: llamastack.InputUnion{Text: "Tell me about AI"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "What is machine learning?"},
-				{Role: "assistant", Content: "Machine learning is a subset of AI."},
+				{Role: "user", Content: llamastack.InputUnion{Text: "What is machine learning?"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Machine learning is a subset of AI."}},
 			},
 			Temperature:  &temperature,
 			Instructions: "You are a helpful AI assistant.",
@@ -153,7 +153,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should accept subscription field without affecting non-MaaS response", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:        "Hello from MaaS",
+			Input:        llamastack.InputUnion{Text: "Hello from MaaS"},
 			Model:        testutil.GetTestLlamaStackModel(),
 			Subscription: "premium-subscription",
 		}
@@ -212,7 +212,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should return error when model is missing", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello, world!",
+			Input: llamastack.InputUnion{Text: "Hello, world!"},
 		}
 
 		req, err := createJSONRequest(payload)
@@ -238,7 +238,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should return error when allowed_tools contains empty string", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP with allowed_tools validation",
+			Input: llamastack.InputUnion{Text: "Test MCP with allowed_tools validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -274,12 +274,12 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle chat context correctly", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Continue the conversation",
+			Input: llamastack.InputUnion{Text: "Continue the conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "Hello"},
-				{Role: "assistant", Content: "Hi there! How can I help you?"},
-				{Role: "user", Content: "Tell me about AI"},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Hello"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Hi there! How can I help you?"}},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Tell me about AI"}},
 			},
 		}
 
@@ -314,7 +314,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NotNil(t, app.repositories.Responses)
 
 		payload := CreateResponseRequest{
-			Input: "Test unified repository",
+			Input: llamastack.InputUnion{Text: "Test unified repository"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -374,7 +374,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should validate MCP server parameters in request", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP server integration",
+			Input: llamastack.InputUnion{Text: "Test MCP server integration"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -402,7 +402,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle MCP server validation errors", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP validation",
+			Input: llamastack.InputUnion{Text: "Test MCP validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -434,7 +434,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle missing MCP server URL validation", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP validation",
+			Input: llamastack.InputUnion{Text: "Test MCP validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -466,7 +466,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should create response with previous response ID", func() {
 		t := GinkgoT()
 		firstPayload := CreateResponseRequest{
-			Input: "First message in conversation",
+			Input: llamastack.InputUnion{Text: "First message in conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -492,7 +492,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		require.True(t, ok, "expected id to be a string")
 
 		payload := CreateResponseRequest{
-			Input:              "Continue our conversation",
+			Input:              llamastack.InputUnion{Text: "Continue our conversation"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: prevResponseID,
 		}
@@ -524,7 +524,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should reject invalid previous response ID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:              "Continue our conversation",
+			Input:              llamastack.InputUnion{Text: "Continue our conversation"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: "invalid-response-id-does-not-exist",
 		}
@@ -551,7 +551,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle empty previous response ID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:              "Hello, how are you?",
+			Input:              llamastack.InputUnion{Text: "Hello, how are you?"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: "",
 		}
@@ -585,11 +585,11 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should reject request with both chat_context and previous_response_id", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Continue our conversation",
+			Input: llamastack.InputUnion{Text: "Continue our conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "Hello"},
-				{Role: "assistant", Content: "Hi there!"},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Hello"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Hi there!"}},
 			},
 			PreviousResponseID: "prev-response-123",
 		}
@@ -620,7 +620,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
-			Input:          "What is machine learning?",
+			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
 			Model:          testutil.GetTestLlamaStackModel(),
 			VectorStoreIDs: []string{vsID},
 		}
@@ -651,6 +651,143 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "completed", responseData["status"])
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
+
+	It("should create response with multimodal input (text + vision image)", func() {
+		t := GinkgoT()
+
+		lsClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+
+		// Upload a small PNG image to the OGX Files API with purpose "vision"
+		imgData := []byte{
+			0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+			0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 pixel
+			0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // RGB, 8-bit
+			0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, // IDAT chunk
+			0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00, // compressed
+			0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, // data
+			0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, // IEND chunk
+			0x44, 0xAE, 0x42, 0x60, 0x82,
+		}
+		uploadResult, err := lsClient.UploadFile(context.Background(), llamastack.UploadFileParams{
+			Reader:      bytes.NewReader(imgData),
+			Filename:    "test_pixel.png",
+			ContentType: "image/png",
+			Purpose:     "vision",
+		})
+		require.NoError(t, err, "vision file upload to OGX must succeed")
+		require.NotEmpty(t, uploadResult.FileID, "must get a file_id back")
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Parts: []llamastack.InputContentPart{
+				{Type: "input_text", Text: "What do you see in this image? Reply in one sentence."},
+				{Type: "input_image", FileID: uploadResult.FileID},
+			}},
+			Model: testutil.GetTestLlamaStackModel(),
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, lsClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Equal(t, http.StatusCreated, rr.Code, "multimodal response failed: %s", string(body))
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		responseData, ok := response["data"].(map[string]interface{})
+		require.True(t, ok, "expected data to be a map")
+		assert.NotEmpty(t, responseData["id"])
+		assert.Equal(t, "completed", responseData["status"])
+
+		output := responseData["output"].([]interface{})
+		require.Greater(t, len(output), 0, "expected at least one output item")
+		lastItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", lastItem["type"])
+		assert.Equal(t, "assistant", lastItem["role"])
+
+		content := lastItem["content"].([]interface{})
+		require.Greater(t, len(content), 0, "expected content in response")
+		textPart := content[0].(map[string]interface{})
+		assert.Equal(t, "output_text", textPart["type"])
+		assert.NotEmpty(t, textPart["text"], "vision model should return text describing the image")
+	})
+
+	It("should create response with multimodal chat_context follow-up", func() {
+		t := GinkgoT()
+
+		lsClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+
+		imgData := []byte{
+			0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+			0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+			0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+			0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+			0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+			0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC,
+			0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+			0x44, 0xAE, 0x42, 0x60, 0x82,
+		}
+		uploadResult, err := lsClient.UploadFile(context.Background(), llamastack.UploadFileParams{
+			Reader:      bytes.NewReader(imgData),
+			Filename:    "test_followup.png",
+			ContentType: "image/png",
+			Purpose:     "vision",
+		})
+		require.NoError(t, err)
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Text: "What colors did you see? Reply in one sentence."},
+			Model: testutil.GetTestLlamaStackModel(),
+			ChatContext: []ChatContextMessage{
+				{
+					Role: "user",
+					Content: llamastack.ContentUnion{Parts: []llamastack.InputContentPart{
+						{Type: "input_text", Text: "Describe this image briefly."},
+						{Type: "input_image", FileID: uploadResult.FileID},
+					}},
+				},
+				{
+					Role:    "assistant",
+					Content: llamastack.ContentUnion{Text: "The image appears to be a small test image."},
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, lsClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Equal(t, http.StatusCreated, rr.Code, "multimodal follow-up failed: %s", string(body))
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		responseData, ok := response["data"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "completed", responseData["status"])
+	})
 })
 
 var _ = Describe("StreamingContextCancellation", func() {
@@ -672,7 +809,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 	It("should stop streaming when context is cancelled (simulating stop button)", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Tell me a long story",
+			Input:  llamastack.InputUnion{Text: "Tell me a long story"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -732,7 +869,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 	It("should handle immediate context cancellation (already cancelled)", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Hello",
+			Input:  llamastack.InputUnion{Text: "Hello"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -773,7 +910,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 
 	It("should cleanup resources when context is cancelled", func() {
 		payload := CreateResponseRequest{
-			Input:  "Test cleanup",
+			Input:  llamastack.InputUnion{Text: "Test cleanup"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -860,7 +997,7 @@ var _ = Describe("ResponseMetrics", func() {
 	It("should include metrics with latency and usage in non-streaming response", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello",
+			Input: llamastack.InputUnion{Text: "Hello"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -934,7 +1071,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should emit response.metrics event at end of stream", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Hello",
+			Input:  llamastack.InputUnion{Text: "Hello"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -1014,7 +1151,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
-			Input:          "What is machine learning?",
+			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
 			Model:          testutil.GetTestLlamaStackModel(),
 			Stream:         true,
 			VectorStoreIDs: []string{vsID},
@@ -1978,7 +2115,7 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 	t.Run("non-streaming RAG strips markers and produces annotations", func(t *testing.T) {
 		params := llamastack.CreateResponseParams{
-			Input:          "What is AI?",
+			Input:          llamastack.InputUnion{Text: "What is AI?"},
 			Model:          "test-model",
 			VectorStoreIDs: []string{"vs_mock123"},
 		}
@@ -2013,7 +2150,7 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 	t.Run("streaming RAG strips markers and produces annotations in completed event", func(t *testing.T) {
 		params := llamastack.CreateResponseParams{
-			Input:          "What is AI?",
+			Input:          llamastack.InputUnion{Text: "What is AI?"},
 			Model:          "test-model",
 			VectorStoreIDs: []string{"vs_mock123"},
 		}
