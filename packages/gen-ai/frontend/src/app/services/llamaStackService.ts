@@ -9,6 +9,7 @@ import {
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  ApiErrorClass,
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
@@ -17,6 +18,7 @@ import {
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -232,7 +234,7 @@ const postCreateResponse = (
     (response) => {
       if (response.error) {
         // Preserve the full ApiError structure from BFF
-        throw { error: response.error };
+        throw new ApiErrorClass(response.error);
       }
       if (response.data) {
         return transformBackendResponse(response.data);
@@ -261,7 +263,7 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
-          let errorData: { error?: unknown } | null = null;
+          let errorData: unknown = null;
           try {
             const errorBody = await response.text();
             errorData = JSON.parse(errorBody);
@@ -269,20 +271,18 @@ const streamCreateResponse = (
             // JSON parsing failed - will use fallback below
           }
 
-          if (errorData?.error) {
+          if (isApiError(errorData)) {
             // Preserve the full ApiError structure from BFF
-            throw { error: errorData.error };
+            throw new ApiErrorClass(errorData.error);
           }
 
           // Fallback: no structured error or parsing failed
-          throw {
-            error: {
-              component: 'bff' as const,
-              code: `http_${response.status}`,
-              message: `HTTP error! status: ${response.status}`,
-              retriable: false,
-            },
-          };
+          throw new ApiErrorClass({
+            component: 'bff' as const,
+            code: `http_${response.status}`,
+            message: `HTTP error! status: ${response.status}`,
+            retriable: false,
+          });
         }
 
         const reader = response.body?.getReader();
@@ -385,18 +385,8 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        // Check if it's already an ApiError structure - preserve it
-        const isApiError =
-          typeof error === 'object' &&
-          error !== null &&
-          'error' in error &&
-          typeof error.error === 'object' &&
-          'component' in error.error &&
-          'code' in error.error &&
-          'message' in error.error &&
-          'retriable' in error.error;
-
-        if (isApiError) {
+        // Preserve ApiError instances (class or plain object), wrap everything else
+        if (isApiError(error)) {
           reject(error);
         } else {
           reject(

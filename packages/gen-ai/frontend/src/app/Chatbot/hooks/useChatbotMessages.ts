@@ -10,6 +10,7 @@ import {
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailInlineConfig,
+  isApiError,
   MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
@@ -93,20 +94,6 @@ interface UseChatbotMessagesProps {
   promptVersion?: number;
   promptName?: string;
 }
-
-/**
- * Type guard to check if an error is an ApiError
- */
-const isApiError = (error: unknown): error is ApiError =>
-  typeof error === 'object' &&
-  error !== null &&
-  'error' in error &&
-  typeof error.error === 'object' &&
-  error.error !== null &&
-  'component' in error.error &&
-  'code' in error.error &&
-  'message' in error.error &&
-  'retriable' in error.error;
 
 const useChatbotMessages = ({
   configId,

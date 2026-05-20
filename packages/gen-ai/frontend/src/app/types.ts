@@ -678,3 +678,42 @@ export interface ApiError {
     retriable: boolean;
   };
 }
+
+/**
+ * Custom error class that extends Error and carries structured API error payload.
+ * Preserves stack traces and works with instanceof checks while maintaining
+ * the ApiError structure for error handling logic.
+ */
+export class ApiErrorClass extends Error implements ApiError {
+  error: ApiError['error'];
+
+  constructor(error: ApiError['error']) {
+    super(error.message);
+    this.name = 'ApiError';
+    this.error = error;
+    // Maintains proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiErrorClass.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is an ApiError (class instance or plain object).
+ * Works with both ApiErrorClass instances and legacy plain object throws.
+ */
+export function isApiError(error: unknown): error is ApiError {
+  if (typeof error !== 'object' || error === null || !('error' in error)) {
+    return false;
+  }
+
+  const errorObj = error.error;
+  if (typeof errorObj !== 'object' || errorObj === null) {
+    return false;
+  }
+
+  return (
+    'component' in errorObj &&
+    'code' in errorObj &&
+    'message' in errorObj &&
+    'retriable' in errorObj
+  );
+}

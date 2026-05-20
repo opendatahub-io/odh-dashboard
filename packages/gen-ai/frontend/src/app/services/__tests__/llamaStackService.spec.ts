@@ -498,7 +498,7 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toEqual({
+        ).rejects.toMatchObject({
           error: {
             component: 'bff',
             code: 'internal_error',
@@ -523,7 +523,7 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toEqual({
+        ).rejects.toMatchObject({
           error: {
             component: 'bff',
             code: 'http_500',
@@ -597,7 +597,7 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toEqual({
+        ).rejects.toMatchObject({
           error: {
             component: 'model',
             code: 'model_error',
@@ -640,7 +640,7 @@ describe('llamaStackService', () => {
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockStreamingRequest, {
             onStreamData: mockStreamData,
           }),
-        ).rejects.toEqual({
+        ).rejects.toMatchObject({
           error: {
             component: 'bff',
             code: 'stream_error',
