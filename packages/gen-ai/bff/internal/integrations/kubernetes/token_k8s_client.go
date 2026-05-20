@@ -1373,18 +1373,25 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Value: "~/.llama/faiss",
 		},
 		{
-			Name:  "VLLM_MAX_TOKENS",
-			Value: "4096",
-		},
-		{
 			Name:  "SENTENCE_TRANSFORMERS_HOME",
 			Value: "/opt/app-root/src/.cache/huggingface/hub",
 		},
 	}
 
-	// Add token environment variables from existing secrets
+	// Add per-model token and max_tokens environment variables
 	for i, model := range installModels {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
+
+		// Per-model max_tokens: use user-specified value or default to 4096
+		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
+		maxTokensValue := "4096"
+		if model.MaxTokens != nil {
+			maxTokensValue = strconv.Itoa(*model.MaxTokens)
+		}
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  maxTokensEnvName,
+			Value: maxTokensValue,
+		})
 
 		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
 			// Only reference the secret if it actually exists and has a valid name
