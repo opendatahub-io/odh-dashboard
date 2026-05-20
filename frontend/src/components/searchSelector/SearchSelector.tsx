@@ -16,7 +16,7 @@ import {
   Truncate,
 } from '@patternfly/react-core';
 
-type ManualSearchSelectorOpts = {
+export type ManualSearchSelectorOpts = {
   menuClose: () => void;
 };
 
@@ -156,7 +156,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
                 : children}
             </MenuList>
           </MenuContent>
-          {menuFooter != null &&
+          {menuFooter !== undefined &&
             (typeof menuFooter === 'function'
               ? menuFooter({ menuClose: () => setIsOpen(false) })
               : menuFooter)}

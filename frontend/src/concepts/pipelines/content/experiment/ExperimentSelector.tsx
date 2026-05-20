@@ -56,6 +56,7 @@ const InnerExperimentSelector: React.FC<
         isDisabled={totalSize === 0}
         menuFooter={({ menuClose }) =>
           loaded ? (
+            // pf-v6-c-menu__footer: no MenuFooter React component in PF v6; revisit on PF upgrade
             <div className="pf-v6-c-menu__footer">
               <Divider />
               <Button
@@ -65,7 +66,7 @@ const InnerExperimentSelector: React.FC<
                   menuClose();
                   setIsModalOpen(true);
                 }}
-                style={{ paddingLeft: '20px' }}
+                style={{ paddingLeft: 'var(--pf-t--global--spacer--lg)' }}
               >
                 Create new run group
               </Button>
