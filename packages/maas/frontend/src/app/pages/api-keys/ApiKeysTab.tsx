@@ -1,12 +1,16 @@
 import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
+import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
 import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
 import { useApiKeysTableState } from '~/app/hooks/useApiKeysTableState';
-import { APIKey } from '~/app/types/api-key';
+import { APIKey, APIKeySearchRequest } from '~/app/types/api-key';
 import CreateApiKeyModal from './CreateApiKeyModal';
+import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
+
+const EXISTENCE_CHECK_REQUEST: APIKeySearchRequest = { pagination: { limit: 1, offset: 0 } };
 
 const ApiKeysTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -35,13 +39,22 @@ const ApiKeysTab: React.FC = () => {
     onClearFilters,
   } = useApiKeysTableState();
 
+  const [existenceResponse, existenceLoaded, , refreshExistence] =
+    useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
+  const hasAnyApiKeys = response.data.length > 0 || existenceResponse.data.length > 0;
+
+  const refreshAll = React.useCallback(() => {
+    refresh();
+    refreshExistence();
+  }, [refresh, refreshExistence]);
+
   const apiKeys = response.data;
   const hasMore = response.has_more;
   const { subscriptionDetails } = response;
 
   const activeApiKeys = apiKeys.filter((apiKey) => apiKey.status === 'active');
 
-  if (!loaded || !isMaasAdminLoaded) {
+  if (!loaded || !isMaasAdminLoaded || (!hasAnyApiKeys && !existenceLoaded)) {
     return (
       <PageSection isFilled>
         <Bullseye>
@@ -51,13 +64,29 @@ const ApiKeysTab: React.FC = () => {
     );
   }
 
+  if (existenceLoaded && !hasAnyApiKeys) {
+    return (
+      <>
+        {isModalOpen && (
+          <CreateApiKeyModal
+            onClose={() => {
+              setIsModalOpen(false);
+              refreshAll();
+            }}
+          />
+        )}
+        <EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />
+      </>
+    );
+  }
+
   return (
     <>
       {isModalOpen && (
         <CreateApiKeyModal
           onClose={() => {
             setIsModalOpen(false);
-            refresh();
+            refreshAll();
           }}
         />
       )}
@@ -88,7 +117,7 @@ const ApiKeysTab: React.FC = () => {
               onStatusToggle={onStatusToggle}
               onStatusClear={onStatusClear}
               activeApiKeys={activeApiKeys}
-              refresh={refresh}
+              refresh={refreshAll}
               onClearFilters={onClearFilters}
             />
           }
@@ -100,7 +129,7 @@ const ApiKeysTab: React.FC = () => {
           onClose={(revoked) => {
             setRevokeApiKey(undefined);
             if (revoked) {
-              refresh();
+              refreshAll();
             }
           }}
         />
