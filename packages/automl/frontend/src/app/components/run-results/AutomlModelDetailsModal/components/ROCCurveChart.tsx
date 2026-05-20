@@ -241,7 +241,9 @@ const ROCCurveChart: React.FC<ROCCurveChartProps> = ({ rocCurveData }) => {
           </FlexItem>
         </Flex>
       ) : (
-        chart
+        <Flex justifyContent={{ default: 'justifyContentCenter' }}>
+          <FlexItem>{chart}</FlexItem>
+        </Flex>
       )}
     </div>
   );
