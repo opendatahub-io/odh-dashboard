@@ -634,6 +634,20 @@ const useChatbotMessages = ({
       } else {
         // Handle non-streaming response
 
+        // Create initial bot message placeholder BEFORE the API call
+        // This ensures botMessageId is always defined for error handling
+        botMessageId = getId();
+        const placeholderBotMessage: MessageProps = {
+          id: botMessageId,
+          role: 'bot',
+          content: '',
+          name: modelDisplayName,
+          avatar: botAvatar,
+          isLoading: true, // Show loading dots
+          timestamp: new Date().toLocaleString(),
+        };
+        setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
+
         // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
         if (process.env.NODE_ENV === 'development') {
           const mockScenario = findMockScenario(message);
@@ -665,18 +679,22 @@ const useChatbotMessages = ({
             }
           : {};
 
-        const botMessage: ChatbotMessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: response.content || 'No response received',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-          ...(toolResponse && { toolResponse }),
-          ...sourcesProps,
-          ...(response.metrics && { metrics: response.metrics }),
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        // Update the placeholder message with the full response
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: response.content || 'No response received',
+                  isLoading: false,
+                  ...(toolResponse && { toolResponse }),
+                  ...sourcesProps,
+                  ...(response.metrics && { metrics: response.metrics }),
+                }
+              : msg,
+          ),
+        );
+
         // Update last response metrics for pane header display
         if (response.metrics) {
           setLastResponseMetrics(response.metrics);
@@ -845,23 +863,20 @@ const useChatbotMessages = ({
           }),
         );
       } else {
-        // For non-streaming, add error message as new bot message
-        const newBotId = getId();
-        const botErrorMessage: ChatbotMessageProps = {
-          id: newBotId,
-          role: 'bot',
-          content: '', // No content, error alert will be shown
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-          errorClassification,
-          onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
-        };
-        // Assign botMessageId so handleRetry can filter it out on retry.
-        // This assignment is late (after handleRetry is defined), but handleRetry captures
-        // the variable reference, not the value, so it reads the correct ID when invoked.
-        botMessageId = newBotId;
-        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+        // For non-streaming, update the placeholder bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageId
+              ? {
+                  ...msg,
+                  content: '', // No content, error alert will be shown
+                  isLoading: false,
+                  errorClassification,
+                  onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                }
+              : msg,
+          ),
+        );
       }
     } finally {
       setIsMessageSendButtonDisabled(false);

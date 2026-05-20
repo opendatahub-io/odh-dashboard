@@ -47,19 +47,8 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
       setCopied(true);
       copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
-      try {
-        const textArea = document.createElement('textarea');
-        textArea.value = rawError;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setCopied(true);
-        copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
-      } catch {
-        // Silently fail - clipboard functionality is non-critical
-      }
+      // Silently fail - clipboard functionality is non-critical
+      // navigator.clipboard.writeText is supported in all target browsers
     }
   };
 
