@@ -6,7 +6,7 @@ import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeysTab from './ApiKeysTab';
 import SubscriptionsTab from './SubscriptionsTab';
 
-const API_KEYS_TAB = 'api-keys';
+const API_KEYS_TAB = 'tokens';
 const SUBSCRIPTIONS_TAB = 'subscriptions';
 const VALID_TABS = [API_KEYS_TAB, SUBSCRIPTIONS_TAB];
 
