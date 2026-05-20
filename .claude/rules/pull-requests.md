@@ -1,6 +1,6 @@
 ---
 description: Pull request creation guidelines for odh-dashboard — must use PR template
-globs: ".github/pull_request_template.md"
+globs: 
 alwaysApply: false
 paths: []
 ---
