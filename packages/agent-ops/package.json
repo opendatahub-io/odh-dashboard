@@ -49,7 +49,8 @@
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "mod-arch-core": "^1.10.1"
   },
   "devDependencies": {
     "@odh-dashboard/contract-tests": "*",
