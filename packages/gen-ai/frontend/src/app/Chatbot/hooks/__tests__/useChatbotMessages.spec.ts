@@ -14,14 +14,17 @@ import {
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
-jest.mock('~/app/utilities/utils', () => ({
-  getId: jest.fn(() => 'mock-id'),
-  getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
-  splitLlamaModelId: jest.fn((modelId: string) => ({
-    providerId: 'provider-id',
-    id: modelId,
-  })),
-}));
+jest.mock('~/app/utilities/utils', () => {
+  let idCounter = 0;
+  return {
+    getId: jest.fn(() => `mock-id-${idCounter++}`),
+    getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+    splitLlamaModelId: jest.fn((modelId: string) => ({
+      providerId: 'provider-id',
+      id: modelId,
+    })),
+  };
+});
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
   ToolResponseCardTitle: jest.fn(() => 'ToolResponseCardTitle'),
@@ -237,7 +240,14 @@ describe('useChatbotMessages', () => {
     });
 
     it('should handle API errors', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -259,7 +269,14 @@ describe('useChatbotMessages', () => {
     });
 
     it('should re-enable send button even when errors occur', async () => {
-      mockCreateResponse.mockRejectedValueOnce(new Error('API Error'));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: 'API Error',
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -301,7 +318,14 @@ describe('useChatbotMessages', () => {
 
     it('should display error message from streaming error', async () => {
       const customErrorMessage = 'Custom streaming error message';
-      mockCreateResponse.mockRejectedValueOnce(new Error(customErrorMessage));
+      mockCreateResponse.mockRejectedValueOnce({
+        error: {
+          component: 'bff',
+          code: 'unknown',
+          message: customErrorMessage,
+          retriable: false,
+        },
+      });
 
       const { result } = renderHook(() => useChatbotMessages(createDefaultHookProps()));
 
@@ -327,12 +351,19 @@ describe('useChatbotMessages', () => {
 
       // Mock streaming response that will error
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           // Simulate some streaming before error
           if (opts?.onStreamData) {
             opts.onStreamData('Hello ');
           }
-          return Promise.reject(new Error(streamingErrorMessage));
+          return Promise.reject({
+            error: {
+              component: 'bff',
+              code: 'streaming_error',
+              message: streamingErrorMessage,
+              retriable: false,
+            },
+          });
         },
       );
 
@@ -565,7 +596,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }
@@ -620,7 +651,7 @@ describe('useChatbotMessages', () => {
       };
 
       mockCreateResponse.mockImplementation(
-        (request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
+        (_request: CreateResponseRequest, opts?: { onStreamData?: (chunk: string) => void }) => {
           if (opts?.onStreamData) {
             opts.onStreamData('Streaming content');
           }

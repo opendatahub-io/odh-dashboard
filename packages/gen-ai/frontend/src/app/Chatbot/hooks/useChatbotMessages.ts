@@ -339,6 +339,20 @@ const useChatbotMessages = ({
     let botMessageId: string | undefined;
 
     try {
+      // Create placeholder bot message FIRST (before any validation that could throw)
+      // This ensures error handling can update the message consistently
+      botMessageId = getId();
+      const placeholderBotMessage: MessageProps = {
+        id: botMessageId,
+        role: 'bot',
+        content: '',
+        name: modelDisplayName,
+        avatar: botAvatar,
+        isLoading: true,
+        timestamp: new Date().toLocaleString(),
+      };
+      setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
+
       if (!modelId) {
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
@@ -400,19 +414,6 @@ const useChatbotMessages = ({
       abortControllerRef.current = new AbortController();
 
       if (isStreamingEnabled) {
-        // Create initial bot message for streaming with loading state
-        botMessageId = getId();
-        const streamingBotMessage: MessageProps = {
-          id: botMessageId,
-          role: 'bot',
-          content: '',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          isLoading: true, // Show loading dots until first content
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
-
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
@@ -568,20 +569,6 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
-
-        // Create initial bot message placeholder BEFORE the API call
-        // This ensures botMessageId is always defined for error handling
-        botMessageId = getId();
-        const placeholderBotMessage: MessageProps = {
-          id: botMessageId,
-          role: 'bot',
-          content: '',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          isLoading: true, // Show loading dots
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
 
         // Check for mock error scenarios (trigger words) - DEVELOPMENT ONLY
         if (process.env.NODE_ENV === 'development') {
