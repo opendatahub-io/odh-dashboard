@@ -561,6 +561,47 @@ describe('Pipeline runs', () => {
           );
         });
 
+        it('per-row kebab Compare runs navigates to MLflow when MLflow metadata is present', () => {
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.wait('@mlflowStatus');
+
+          activeRunsTable
+            .getRowByName(mockActiveRuns[0].display_name)
+            .findKebabAction('Compare runs')
+            .click();
+
+          verifyRelativeURL(
+            `/develop-train/mlflow/experiments/compare-runs?runs=%5B%22mlflow-run-aaa%22%5D&experiments=%5B%226%22%5D&workspace=${projectName}`,
+          );
+        });
+
+        it('per-row kebab Compare runs falls back to KFP when MLflow metadata is absent', () => {
+          cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
+          interceptMlflowStatus();
+          interceptDSPAMlflowIntegration(projectName);
+          const runWithoutMlflow = buildMockRunKF({
+            display_name: 'Run without mlflow kebab',
+            run_id: 'run-no-mlflow-kebab',
+            experiment_id: 'test-experiment-1',
+            state: RuntimeStateKF.SUCCEEDED,
+          });
+          activeRunsTable.mockGetActiveRuns([runWithoutMlflow], projectName);
+          pipelineRunsGlobal.visit(projectName, 'active');
+          cy.wait('@mlflowStatus');
+
+          activeRunsTable
+            .getRowByName(runWithoutMlflow.display_name)
+            .findKebabAction('Compare runs')
+            .click();
+
+          verifyRelativeURL(
+            `/develop-train/pipelines/runs/${projectName}/compare-runs?compareRuns=${runWithoutMlflow.run_id}`,
+          );
+        });
+
         it('navigate to MLflow experiment details from active run row', () => {
           cy.interceptOdh('GET /api/config', mockDashboardConfig({ mlflowPipelines: true }));
           interceptMlflowStatus();
