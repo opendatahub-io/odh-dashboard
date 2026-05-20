@@ -32,16 +32,16 @@ func newMinimalTestApp() *App {
 
 func validCreateRequest() models.CreateAutoRAGRunRequest {
 	return models.CreateAutoRAGRunRequest{
-		DisplayName:          "test-run",
-		Description:          "a test run",
-		TestDataSecretName:   "test-secret",
-		TestDataBucketName:   "test-bucket",
-		TestDataKey:          "test-key",
-		InputDataSecretName:  "input-secret",
-		InputDataBucketName:  "input-bucket",
-		InputDataKey:         "input-key",
-		LlamaStackSecretName: "llama-secret",
-		OptimizationMetric:   "faithfulness",
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TestDataSecretName:  "test-secret",
+		TestDataBucketName:  "test-bucket",
+		TestDataKey:         "test-key",
+		InputDataSecretName: "input-secret",
+		InputDataBucketName: "input-bucket",
+		InputDataKey:        "input-key",
+		OGXSecretName:       "ogx-secret",
+		OptimizationMetric:  "faithfulness",
 	}
 }
 
@@ -134,7 +134,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		body := validCreateRequest()
 		body.EmbeddingsModels = []string{"model-a", "model-b"}
 		body.GenerationModels = []string{"gen-model"}
-		body.LlamaStackVectorIOProviderID = "vectordb-1"
+		body.VectorIOProviderID = "vectordb-1"
 		maxPatterns := 10
 		body.OptimizationMaxRagPatterns = &maxPatterns
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
@@ -151,7 +151,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "PENDING", response.Data.State)
 		assert.NotNil(t, response.Data.PipelineVersionReference)
 		assert.NotNil(t, response.Data.RuntimeConfig)
-		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
+		assert.Equal(t, "vectordb-1", response.Data.RuntimeConfig.Parameters["vector_io_provider_id"])
 		assert.Equal(t, float64(10), response.Data.RuntimeConfig.Parameters["optimization_max_rag_patterns"])
 	})
 }
@@ -357,7 +357,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "input-secret", params["input_data_secret_name"])
 		assert.Equal(t, "input-bucket", params["input_data_bucket_name"])
 		assert.Equal(t, "input-key", params["input_data_key"])
-		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
+		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
 		assert.Equal(t, "faithfulness", params["optimization_metric"])
 	})
 

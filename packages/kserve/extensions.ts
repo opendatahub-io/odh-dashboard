@@ -25,9 +25,42 @@ import {
   SupportedArea,
 } from '@odh-dashboard/internal/concepts/areas/index';
 import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField';
+import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
+
+const kserveServingRuntimeFieldExtension: WizardField2Extension<
+  KServeServingRuntimeFieldType,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field2',
+  properties: {
+    platform: KSERVE_ID,
+    field: () =>
+      import('./src/wizardFields/servingRuntime/KServeServingRuntimeField').then(
+        (m) => m.KServeServingRuntimeFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
+
+const kserveTimeoutFieldExtension: WizardField2Extension<
+  WizardField<TimeoutFieldValue, undefined>,
+  KServeDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field2',
+  properties: {
+    platform: KSERVE_ID,
+    field: () =>
+      import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
+  },
+  flags: {
+    required: [SupportedArea.K_SERVE],
+  },
+};
 
 const extensions: (
   | AreaExtension
@@ -41,6 +74,7 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
+  | WizardField2Extension<KServeServingRuntimeFieldType, KServeDeployment>
   | WizardField2Extension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
@@ -193,17 +227,8 @@ const extensions: (
       required: [SupportedArea.K_SERVE],
     },
   },
-  {
-    type: 'model-serving.deployment/wizard-field2',
-    properties: {
-      platform: KSERVE_ID,
-      field: () =>
-        import('./src/wizardFields/timeout/TimeoutField').then((m) => m.TimeoutFieldWizardField),
-    },
-    flags: {
-      required: [SupportedArea.K_SERVE],
-    },
-  },
+  kserveServingRuntimeFieldExtension,
+  kserveTimeoutFieldExtension,
   {
     type: 'model-serving.deployment/wizard-field-apply',
     properties: {

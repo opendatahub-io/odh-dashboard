@@ -35,6 +35,10 @@ const IntegrationInstructionsPopover: React.FC<IntegrationInstructionsPopoverPro
           permission to access the feature store.
           <br />
           <br />
+          To see which projects have the required permissions, click{' '}
+          <strong>View connected workbenches</strong>.
+          <br />
+          <br />
           In a compatible project, create or edit a workbench and select the desired feature store
           in the <strong>Feature stores</strong> field.
         </p>

@@ -58,6 +58,10 @@ class APIKeysPage {
     return cy.findByTestId('dashboard-empty-table-state');
   }
 
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-state-title');
+  }
+
   findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('create-api-key-button');
   }

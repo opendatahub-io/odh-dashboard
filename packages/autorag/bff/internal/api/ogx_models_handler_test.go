@@ -11,48 +11,48 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
 
-// newLSDHandlerTestApp creates a lightweight App wired with a mock LlamaStack client factory
-// and a discard logger, for testing LSD handler logic in isolation (no envtest needed).
+// newOGXHandlerTestApp creates a lightweight App wired with a mock Open GenAI Stack client factory
+// and a discard logger, for testing OGX handler logic in isolation (no envtest needed).
 // A non-nil logger is required because error paths call app.logger.Error via serverErrorResponse.
-func newLSDHandlerTestApp(t *testing.T) *App {
+func newOGXHandlerTestApp(t *testing.T) *App {
 	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return &App{
-		config:                  config.EnvConfig{Port: 4000},
-		logger:                  logger,
-		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		repositories:            repositories.NewRepositories(logger),
+		config:           config.EnvConfig{Port: 4000},
+		logger:           logger,
+		ogxClientFactory: ogxmocks.NewMockClientFactory(),
+		repositories:     repositories.NewRepositories(logger),
 	}
 }
 
-// newHandlerTestRequest creates a GET request with the LlamaStack client already injected into
-// context, simulating what AttachLlamaStackClientFromSecret middleware does in production.
+// newHandlerTestRequest creates a GET request with the Open GenAI Stack client already injected into
+// context, simulating what AttachOGXClientFromSecret middleware does in production.
 func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	rr := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models?namespace=test-namespace&secretName=test-secret", nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models?namespace=test-namespace&secretName=test-secret", nil)
 	assert.NoError(t, err)
 
-	llamaStackClient := app.llamaStackClientFactory.CreateClient("http://test", "token", false, nil)
-	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+	ogxClient := app.ogxClientFactory.CreateClient("http://test", "token", false, nil)
+	ctx := context.WithValue(req.Context(), constants.OGXClientKey, ogxClient)
 	req = req.WithContext(ctx)
 
 	return rr, req
 }
 
-func TestLlamaStackModelsHandler_Success(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+func TestOGXModelsHandler_Success(t *testing.T) {
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return all models successfully", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackModelsHandler(rr, req, nil)
+		app.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
@@ -75,7 +75,7 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 
 	t.Run("should have correct stable API model structure", func(t *testing.T) {
 		rr, req := newHandlerTestRequest(t, app)
-		app.LlamaStackModelsHandler(rr, req, nil)
+		app.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -102,12 +102,12 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 		assert.Equal(t, "ollama://models/llama3.2:3b", firstModel["resource_path"])
 	})
 
-	t.Run("should return empty array when LlamaStack has no models", func(t *testing.T) {
-		emptyApp := newLSDHandlerTestApp(t)
-		emptyApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
+	t.Run("should return empty array when Open GenAI Stack has no models", func(t *testing.T) {
+		emptyApp := newOGXHandlerTestApp(t)
+		emptyApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
-		emptyApp.LlamaStackModelsHandler(rr, req, nil)
+		emptyApp.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 		assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
@@ -123,17 +123,17 @@ func TestLlamaStackModelsHandler_Success(t *testing.T) {
 	})
 }
 
-func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
-	app := newLSDHandlerTestApp(t)
+func TestOGXModelsHandler_ErrorCases(t *testing.T) {
+	app := newOGXHandlerTestApp(t)
 
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models", nil) // no ?namespace=
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models", nil) // no ?namespace=
 		assert.NoError(t, err)
 
 		// Run through the full middleware chain — AttachNamespace rejects the request before
 		// the handler is reached, verifying the end-to-end 400 behaviour.
-		app.AttachNamespace(app.LlamaStackModelsHandler)(rr, req, nil)
+		app.AttachNamespace(app.OGXModelsHandler)(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
@@ -145,13 +145,13 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 500 when LlamaStack client is missing from context", func(t *testing.T) {
+	t.Run("should return 500 when Open GenAI Stack client is missing from context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/lsd/models", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models", nil)
 		assert.NoError(t, err)
 
 		// Don't add client to context - simulate middleware failure
-		app.LlamaStackModelsHandler(rr, req, nil)
+		app.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
@@ -163,12 +163,12 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 500 when LlamaStack client returns error", func(t *testing.T) {
-		errApp := newLSDHandlerTestApp(t)
-		errApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
+	t.Run("should return 500 when Open GenAI Stack client returns error", func(t *testing.T) {
+		errApp := newOGXHandlerTestApp(t)
+		errApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
-		errApp.LlamaStackModelsHandler(rr, req, nil)
+		errApp.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 
@@ -180,12 +180,12 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 502 when LlamaStack client returns a connection error", func(t *testing.T) {
-		lsErrApp := newLSDHandlerTestApp(t)
-		lsErrApp.llamaStackClientFactory.(*lsmocks.MockClientFactory).SetMockClient(&mockLlamaStackErrClient{})
+	t.Run("should return 502 when Open GenAI Stack client returns a connection error", func(t *testing.T) {
+		ogxErrApp := newOGXHandlerTestApp(t)
+		ogxErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
 
-		rr, req := newHandlerTestRequest(t, lsErrApp)
-		lsErrApp.LlamaStackModelsHandler(rr, req, nil)
+		rr, req := newHandlerTestRequest(t, ogxErrApp)
+		ogxErrApp.OGXModelsHandler(rr, req, nil)
 
 		assert.Equal(t, http.StatusBadGateway, rr.Code)
 
@@ -203,38 +203,38 @@ func TestLlamaStackModelsHandler_ErrorCases(t *testing.T) {
 // mockErrorClient is a mock client that always returns a generic error
 type mockErrorClient struct{}
 
-var _ ls.LlamaStackClientInterface = (*mockErrorClient)(nil)
+var _ ogx.OGXClientInterface = (*mockErrorClient)(nil)
 
-func (m *mockErrorClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
+func (m *mockErrorClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
 	return nil, assert.AnError
 }
 
-func (m *mockErrorClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
+func (m *mockErrorClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
 	return nil, assert.AnError
 }
 
 // mockEmptyClient is a mock client that returns an empty models list
 type mockEmptyClient struct{}
 
-var _ ls.LlamaStackClientInterface = (*mockEmptyClient)(nil)
+var _ ogx.OGXClientInterface = (*mockEmptyClient)(nil)
 
-func (m *mockEmptyClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
-	return []models.LlamaStackNativeModel{}, nil
+func (m *mockEmptyClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
+	return []models.OGXNativeModel{}, nil
 }
 
-func (m *mockEmptyClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
-	return []models.LlamaStackProvider{}, nil
+func (m *mockEmptyClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
+	return []models.OGXProvider{}, nil
 }
 
-// mockLlamaStackErrClient is a mock client that returns a typed LlamaStackError (connection failure)
-type mockLlamaStackErrClient struct{}
+// mockOGXErrClient is a mock client that returns a typed OGXError (connection failure)
+type mockOGXErrClient struct{}
 
-var _ ls.LlamaStackClientInterface = (*mockLlamaStackErrClient)(nil)
+var _ ogx.OGXClientInterface = (*mockOGXErrClient)(nil)
 
-func (m *mockLlamaStackErrClient) ListModels(ctx context.Context) ([]models.LlamaStackNativeModel, error) {
-	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
+func (m *mockOGXErrClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
+	return nil, ogx.NewConnectionError("mock: could not reach Open GenAI Stack server")
 }
 
-func (m *mockLlamaStackErrClient) ListProviders(ctx context.Context) ([]models.LlamaStackProvider, error) {
-	return nil, ls.NewConnectionError("mock: could not reach LlamaStack server")
+func (m *mockOGXErrClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
+	return nil, ogx.NewConnectionError("mock: could not reach Open GenAI Stack server")
 }
