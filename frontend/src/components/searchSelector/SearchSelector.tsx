@@ -32,6 +32,7 @@ type SearchSelectorProps = {
   isDisabled?: boolean;
   isFullWidth?: boolean;
   dataTestId: string;
+  menuFooter?: ((opts: ManualSearchSelectorOpts) => React.ReactNode) | React.ReactNode;
   minWidth?: string;
   onSearchChange: (newValue: string) => void;
   onSearchClear: () => void;
@@ -52,6 +53,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   isLoading,
   isDisabled,
   isFullWidth,
+  menuFooter,
   minWidth,
   onSearchChange,
   onSearchClear,
@@ -154,6 +156,10 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
                 : children}
             </MenuList>
           </MenuContent>
+          {menuFooter != null &&
+            (typeof menuFooter === 'function'
+              ? menuFooter({ menuClose: () => setIsOpen(false) })
+              : menuFooter)}
         </Menu>
       }
     />
