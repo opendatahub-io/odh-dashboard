@@ -21,7 +21,8 @@ const getApplicationsNamespace = (): string => {
  * Build an oc patch command with JSON merge strategy.
  */
 const buildPatchCommand = (resource: string, patchJson: object, namespace: string): string => {
-  return `oc patch ${resource} -n ${namespace} --type=merge -p '${JSON.stringify(patchJson)}'`;
+  const escaped = JSON.stringify(patchJson).replace(/"/g, '\\"');
+  return `oc patch ${resource} -n ${namespace} --type=merge -p "${escaped}"`;
 };
 
 /**
