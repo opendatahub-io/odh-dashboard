@@ -11,12 +11,14 @@ import type {
   DeployedModelServingDetails,
   ModelServingStartStopAction,
   ModelServingPlatformFetchDeploymentStatus,
+} from '@odh-dashboard/model-serving/extension-points';
+import type {
   ModelServingDeploymentFormDataExtension,
   ModelServingDeploy,
-  WizardField2Extension,
+  WizardFieldExtension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
-} from '@odh-dashboard/model-serving/extension-points';
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
 // eslint-disable-next-line no-restricted-syntax
@@ -30,11 +32,11 @@ import type { KServeDeployment } from './src/deployments';
 
 export const KSERVE_ID = 'kserve';
 
-const kserveServingRuntimeFieldExtension: WizardField2Extension<
+const kserveServingRuntimeFieldExtension: WizardFieldExtension<
   KServeServingRuntimeFieldType,
   KServeDeployment
 > = {
-  type: 'model-serving.deployment/wizard-field2',
+  type: 'model-serving.deployment/wizard-field',
   properties: {
     platform: KSERVE_ID,
     field: () =>
@@ -47,11 +49,11 @@ const kserveServingRuntimeFieldExtension: WizardField2Extension<
   },
 };
 
-const kserveTimeoutFieldExtension: WizardField2Extension<
+const kserveTimeoutFieldExtension: WizardFieldExtension<
   WizardField<TimeoutFieldValue, undefined>,
   KServeDeployment
 > = {
-  type: 'model-serving.deployment/wizard-field2',
+  type: 'model-serving.deployment/wizard-field',
   properties: {
     platform: KSERVE_ID,
     field: () =>
@@ -74,8 +76,8 @@ const extensions: (
   | ModelServingStartStopAction<KServeDeployment>
   | ModelServingPlatformFetchDeploymentStatus<KServeDeployment>
   | ModelServingDeploy<KServeDeployment>
-  | WizardField2Extension<KServeServingRuntimeFieldType, KServeDeployment>
-  | WizardField2Extension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
+  | WizardFieldExtension<KServeServingRuntimeFieldType, KServeDeployment>
+  | WizardFieldExtension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
 )[] = [
