@@ -221,6 +221,42 @@ describe('isAreaAvailable', () => {
       });
     });
 
+    describe('catalog areas independent of MODEL_REGISTRY', () => {
+      it('should enable Model Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MODEL_CATALOG,
+          mockDashboardConfig({ disableModelCatalog: false, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ disableModelCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should enable MCP Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MCP_CATALOG,
+          mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+    });
+
     describe('devFlags', () => {
       it('should enable area if dev flag is true', () => {
         const testDevArea = 'TestDevArea';

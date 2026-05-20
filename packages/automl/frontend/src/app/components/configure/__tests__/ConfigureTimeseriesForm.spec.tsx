@@ -45,11 +45,10 @@ describe('ConfigureTimeseriesForm', () => {
       );
 
       const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
-      // Should have 4 skeletons: target, timestamp_column, id_column, known_covariates
-      expect(skeletons.length).toBe(4);
+      // Should have 3 skeletons: timestamp_column, id_column, known_covariates
+      expect(skeletons.length).toBe(3);
 
       // Verify selects are not rendered
-      expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('timestamp_column-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('id_column-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('known_covariates_names-select')).not.toBeInTheDocument();
@@ -70,9 +69,8 @@ describe('ConfigureTimeseriesForm', () => {
       );
 
       const skeletons = container.querySelectorAll('.pf-v6-c-skeleton');
-      expect(skeletons.length).toBe(4);
+      expect(skeletons.length).toBe(3);
 
-      expect(screen.queryByTestId('target-select')).not.toBeInTheDocument();
       expect(screen.queryByTestId('timestamp_column-select')).not.toBeInTheDocument();
     });
 
@@ -90,7 +88,6 @@ describe('ConfigureTimeseriesForm', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByTestId('target-select')).toBeInTheDocument();
       expect(screen.getByTestId('timestamp_column-select')).toBeInTheDocument();
       expect(screen.getByTestId('id_column-select')).toBeInTheDocument();
       expect(screen.getByTestId('known_covariates_names-select')).toBeInTheDocument();
@@ -98,15 +95,10 @@ describe('ConfigureTimeseriesForm', () => {
   });
 
   describe('column exclusivity', () => {
-    // Note: Column exclusivity is implemented in ConfigureTimeseriesForm via the clearColumnFromOtherFields function.
-    // Complex interaction tests are challenging with the current testing setup due to async form state updates.
-    // The functionality is verified through manual testing and E2E tests.
-
-    it('should render clearColumnFromOtherFields logic', () => {
-      // This test verifies the component renders without errors when column exclusivity logic is present
+    it('should render with pre-selected column values', () => {
       render(
         // eslint-disable-next-line camelcase
-        <TestWrapper defaultValues={{ target: 'value', timestamp_column: 'timestamp' }}>
+        <TestWrapper defaultValues={{ timestamp_column: 'timestamp' }}>
           <ConfigureTimeseriesForm
             columns={mockColumns}
             isLoadingColumns={false}
@@ -118,7 +110,6 @@ describe('ConfigureTimeseriesForm', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByTestId('target-select')).toHaveTextContent('value');
       expect(screen.getByTestId('timestamp_column-select')).toHaveTextContent('timestamp');
     });
   });
@@ -138,29 +129,28 @@ describe('ConfigureTimeseriesForm', () => {
         </TestWrapper>,
       );
 
-      expect(screen.getByTestId('target-select')).toBeDisabled();
       expect(screen.getByTestId('timestamp_column-select')).toBeDisabled();
       expect(screen.getByTestId('id_column-select')).toBeDisabled();
       expect(screen.getByTestId('known_covariates_names-select')).toBeDisabled();
     });
 
-    it('should show error message when columnsError is present', () => {
-      const errorMessage = 'Failed to load columns';
+    it('should show danger status on selects when columnsError is present', () => {
       render(
         <TestWrapper>
           <ConfigureTimeseriesForm
             columns={[]}
             isLoadingColumns={false}
             isFetchingColumns={false}
-            columnsError={new Error(errorMessage)}
+            columnsError={new Error('Failed to load columns')}
             isFileSelected
             formIsSubmitting={false}
           />
         </TestWrapper>,
       );
 
-      // Error should appear in target field (first field with error display)
-      expect(screen.getByText(errorMessage)).toBeInTheDocument();
+      expect(screen.getByTestId('timestamp_column-select')).toHaveClass('pf-m-danger');
+      expect(screen.getByTestId('id_column-select')).toHaveClass('pf-m-danger');
+      expect(screen.getByTestId('known_covariates_names-select')).toHaveClass('pf-m-danger');
     });
 
     it('should not disable prediction_length input when loading columns', () => {

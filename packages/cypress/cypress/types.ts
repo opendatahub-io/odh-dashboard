@@ -690,30 +690,6 @@ export type PipelineTestData = {
   pipelineUrl: string;
 };
 
-export type TiersTestData = {
-  projectName: string;
-  name: string;
-  description: string;
-  level: number;
-  groups: string[];
-  tokenRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  requestRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  editGroup: string;
-  editTokenRateLimitUnit: string;
-  editRequestRateLimitUnit: string;
-  tierDeploymentOption: string;
-  groupsCount: number;
-  limits: string;
-};
-
 export type PromptManagementPromptData = {
   name: string;
   versionLabel: string;

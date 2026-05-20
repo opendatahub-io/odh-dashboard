@@ -86,8 +86,8 @@ func TestMcpDeploymentListReturnsDeployments(t *testing.T) {
 			}
 			return models.McpDeploymentList{
 				Items: []models.McpDeployment{
-					{Name: "kubernetes-mcp", Phase: models.McpDeploymentPhaseRunning},
-					{Name: "slack-mcp", Phase: models.McpDeploymentPhasePending},
+					{Name: "kubernetes-mcp", Conditions: []models.McpDeploymentCondition{{Type: "Ready", Status: "True", Reason: "Available"}}},
+					{Name: "slack-mcp", Conditions: []models.McpDeploymentCondition{{Type: "Ready", Status: "False", Reason: "Initializing"}}},
 				},
 				Size: 2,
 			}, nil
@@ -243,7 +243,7 @@ func TestMcpDeploymentCreateReturnsCreated(t *testing.T) {
 				Namespace:         namespace,
 				CreationTimestamp: "2026-03-26T10:00:00Z",
 				Image:             req.Image,
-				Phase:             models.McpDeploymentPhasePending,
+				Conditions:        []models.McpDeploymentCondition{},
 			}, nil
 		},
 	}
@@ -268,8 +268,8 @@ func TestMcpDeploymentCreateReturnsCreated(t *testing.T) {
 	if resp.Data.Name != "github-mcp" {
 		t.Fatalf("expected name 'github-mcp', got %q", resp.Data.Name)
 	}
-	if resp.Data.Phase != models.McpDeploymentPhasePending {
-		t.Fatalf("expected phase Pending, got %q", resp.Data.Phase)
+	if len(resp.Data.Conditions) != 0 {
+		t.Fatalf("expected empty conditions, got %+v", resp.Data.Conditions)
 	}
 }
 
@@ -421,7 +421,7 @@ func TestMcpDeploymentUpdateReturnsOK(t *testing.T) {
 				Namespace:         namespace,
 				CreationTimestamp: "2026-03-10T14:30:00Z",
 				Image:             *req.Image,
-				Phase:             models.McpDeploymentPhaseRunning,
+				Conditions:        []models.McpDeploymentCondition{{Type: "Ready", Status: "True", Reason: "Available"}},
 			}, nil
 		},
 	}
@@ -577,7 +577,7 @@ func TestMcpDeploymentGetReturnsDeployment(t *testing.T) {
 				UID:               "abc-123",
 				CreationTimestamp: "2026-03-10T14:30:00Z",
 				Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
-				Phase:             models.McpDeploymentPhaseRunning,
+				Conditions:        []models.McpDeploymentCondition{{Type: "Ready", Status: "True", Reason: "Available"}},
 			}, nil
 		},
 	}

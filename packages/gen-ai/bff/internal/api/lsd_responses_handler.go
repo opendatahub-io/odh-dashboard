@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -26,11 +27,15 @@ import (
 var supportedEventTypes = map[string]bool{
 	"response.created":            true, // Response generation started
 	"response.content_part.added": true, // New content part added to response
-	"response.output_text.delta":  true, // Text delta/chunk for streaming text
-	"response.content_part.done":  true, // Content part completed
-	"response.completed":          true, // Response generation completed
-	"response.refusal.delta":      true, // Refusal text
-	"response.refusal.done":       true, // Refusal text completed
+	// NOTE: delta events may contain raw citation markers (<|uuid|>) during
+	// streaming. These are ephemeral display-only tokens; the final cleaned
+	// text and annotations are sent via the response.completed event, which
+	// the frontend uses for the definitive render.
+	"response.output_text.delta": true, // Text delta/chunk for streaming text
+	"response.content_part.done": true, // Content part completed
+	"response.completed":         true, // Response generation completed
+	"response.refusal.delta":     true, // Refusal text
+	"response.refusal.done":      true, // Refusal text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -93,11 +98,21 @@ type ContentItem struct {
 	Annotations []interface{} `json:"annotations,omitempty"` // For content annotations
 }
 
-// SearchResult represents search results with essential fields
+// SearchResult represents search results from file_search_call
 type SearchResult struct {
-	Score    float64 `json:"score"`
-	Text     string  `json:"text"`
-	Filename string  `json:"filename,omitempty"`
+	Score      float64                `json:"score"`
+	Text       string                 `json:"text"`
+	FileID     string                 `json:"file_id,omitempty"`
+	Filename   string                 `json:"filename,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+}
+
+// FileCitationAnnotation represents a resolved file citation in output_text
+type FileCitationAnnotation struct {
+	Type     string `json:"type"`
+	FileID   string `json:"file_id"`
+	Filename string `json:"filename"`
+	Index    int    `json:"index"`
 }
 
 // ResponseMetrics contains timing and usage metrics for the response
@@ -186,6 +201,106 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	_ = json.Unmarshal(responseJSON, &responseData)
 
 	return responseData
+}
+
+// citationMarkerRegex matches OGX citation markers: UUIDs and file-prefixed IDs
+var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_-]+)\|>`)
+
+// extractAttributeString extracts a string value from an OGX attributes map.
+// Attributes can be plain strings or union-typed objects with OfString/OfFloat/OfBool fields
+// (as returned by the OpenAI Go SDK for typed attribute values).
+func extractAttributeString(attrs map[string]interface{}, key string) string {
+	val, ok := attrs[key]
+	if !ok {
+		return ""
+	}
+	if s, ok := val.(string); ok {
+		return s
+	}
+	if m, ok := val.(map[string]interface{}); ok {
+		if s, ok := m["OfString"].(string); ok && s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+// processResponseCitations extracts citation markers from output text, resolves them
+// to human-readable filenames using file_search_call results, and replaces them with
+// proper annotations. This handles the upstream OGX bug where the server's regex is
+// too restrictive to match the actual document IDs from file processors.
+func processResponseCitations(responseData *ResponseData) {
+	// Build citation map from file_search_call results: file_id → filename
+	citationFiles := make(map[string]string)
+	for _, item := range responseData.Output {
+		if item.Type != "file_search_call" {
+			continue
+		}
+		for _, result := range item.Results {
+			fileID := result.FileID
+			if fileID == "" {
+				fileID = result.Filename
+			}
+			if fileID == "" {
+				continue
+			}
+
+			// The actual filename lives in attributes["filename"] (from chunk metadata).
+			// result.Filename is the document_id (raw UUID), not the human-readable name.
+			// The OGX SDK serializes attributes as union types with OfString/OfFloat/OfBool fields.
+			filename := extractAttributeString(result.Attributes, "filename")
+			if filename == "" {
+				filename = fileID
+			}
+			citationFiles[fileID] = filename
+		}
+	}
+
+	// Always run the stripping loop even when citationFiles is empty -- markers
+	// must never leak to the client regardless of whether results were returned.
+	for i, item := range responseData.Output {
+		if item.Type != "message" {
+			continue
+		}
+		for j, content := range item.Content {
+			if content.Type != "output_text" || content.Text == "" {
+				continue
+			}
+
+			matches := citationMarkerRegex.FindAllStringSubmatchIndex(content.Text, -1)
+			if len(matches) == 0 {
+				continue
+			}
+
+			var annotations []interface{}
+			cleanText := content.Text
+			offset := 0
+
+			for _, match := range matches {
+				fullStart, fullEnd := match[0], match[1]
+				groupStart, groupEnd := match[2], match[3]
+				fileID := content.Text[groupStart:groupEnd]
+
+				if filename, ok := citationFiles[fileID]; ok {
+					annotations = append(annotations, FileCitationAnnotation{
+						Type:     "file_citation",
+						FileID:   fileID,
+						Filename: filename,
+						Index:    fullStart - offset,
+					})
+				}
+
+				cleanText = cleanText[:fullStart-offset] + cleanText[fullEnd-offset:]
+				offset += fullEnd - fullStart
+			}
+
+			responseData.Output[i].Content[j].Text = cleanText
+			if len(annotations) > 0 {
+				existing := responseData.Output[i].Content[j].Annotations
+				responseData.Output[i].Content[j].Annotations = append(existing, annotations...)
+			}
+		}
+	}
 }
 
 // extractUsage extracts usage data from a LlamaStack response
@@ -476,9 +591,12 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			firstTokenTime = &now
 		}
 
-		// Extract usage from completed event
+		// Extract usage and process citations from completed event
 		if streamingEvent.Type == "response.completed" {
 			usage = extractUsageFromEvent(event)
+			if streamingEvent.Response != nil {
+				processResponseCitations(streamingEvent.Response)
+			}
 		}
 
 		// Convert clean streaming event to JSON
@@ -550,6 +668,9 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
+
+	// Process citation markers into proper annotations before moderation or returning
+	processResponseCitations(&responseData)
 
 	// Output moderation: check the assistant response before returning to the client.
 	if hasOutputModeration(params.GuardrailOpts) {

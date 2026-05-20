@@ -59,7 +59,7 @@ const DataSetDetailsTabs: React.FC<DataSetDetailsTabsProps> = ({ dataSet }) => {
           <Table aria-label="Features table" data-testid="features-table" variant="compact">
             <Thead>
               <Tr>
-                <Th>Feature</Th>
+                <Th>Name</Th>
                 <Th
                   info={{
                     popover:

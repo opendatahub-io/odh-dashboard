@@ -14,6 +14,10 @@ import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines/global/PipelineCoreProjectSelector';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
@@ -72,6 +76,11 @@ const MlflowExperimentsPage: React.FC = () => {
             <PipelineCoreProjectSelector
               getRedirectPath={mlflowExperimentsBaseRoute}
               queryParamNamespace={WORKSPACE_QUERY_PARAM}
+              onProjectChange={(projectName) =>
+                fireLinkTrackingEvent(MlflowTrackingEvents.PROJECT_SWITCHED, {
+                  projectName,
+                })
+              }
             />
           </FlexItem>
           <FlexItem>

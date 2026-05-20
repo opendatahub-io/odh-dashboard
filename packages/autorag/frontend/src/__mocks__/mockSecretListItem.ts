@@ -42,12 +42,12 @@ export const mockStorageSecret = (overrides: MockSecretListItemOptions = {}): Se
     ...overrides,
   });
 
-export const mockLLSSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
+export const mockOGXSecret = (overrides: MockSecretListItemOptions = {}): SecretListItem =>
   mockSecretListItem({
-    type: 'lls',
+    type: 'ogx',
     data: {
-      LLAMA_STACK_CLIENT_API_KEY: '[REDACTED]',
-      LLAMA_STACK_CLIENT_BASE_URL: '[REDACTED]',
+      OGX_CLIENT_API_KEY: '[REDACTED]',
+      OGX_CLIENT_BASE_URL: '[REDACTED]',
     },
     ...overrides,
   });

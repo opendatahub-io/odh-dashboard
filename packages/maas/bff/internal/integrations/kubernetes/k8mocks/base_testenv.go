@@ -1,16 +1,13 @@
 package k8mocks
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
 
-	"go.yaml.in/yaml/v3"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -144,16 +141,6 @@ func setupMock(mockK8sClient kubernetes.Interface, mockDynamicClient dynamic.Int
 	}
 
 	err = createNamespace(mockK8sClient, ctx, "openshift-ingress")
-	if err != nil {
-		return err
-	}
-
-	err = createMaaSTiersConfigMap(mockK8sClient, ctx, "maas-api", "tier-to-group-mapping")
-	if err != nil {
-		return err
-	}
-
-	err = createMaaSLimitPolicies(mockDynamicClient, ctx, "openshift-ingress")
 	if err != nil {
 		return err
 	}
@@ -455,83 +442,6 @@ func createService(k8sClient kubernetes.Interface, ctx context.Context, name str
 	_, err := k8sClient.CoreV1().Services(namespace).Create(ctx, service, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create service: %w", err)
-	}
-
-	return nil
-}
-
-func createMaaSTiersConfigMap(k8sClient kubernetes.Interface, ctx context.Context, namespace, cmName string) error {
-	cmTiers := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      cmName,
-		},
-		Data: map[string]string{
-			"tiers": `
-- name: tier0
-  groups:
-    - tier0-users
-    - system:authenticated
-  level: 0
-- name: tier1
-  groups:
-    - tier1-users
-    - tier1-group
-  level: 1`,
-		},
-	}
-
-	_, err := k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, cmTiers, metav1.CreateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create tiers ConfigMap %s: %w", namespace, err)
-	}
-
-	return nil
-}
-
-func createMaaSLimitPolicies(k8sClient dynamic.Interface, ctx context.Context, namespace string) error {
-	projectRoot, err := getProjectRoot()
-	if err != nil {
-		return err
-	}
-	rateLimitPath := filepath.Join(projectRoot, "internal", "testdata", "rate-limit-policy.yaml")
-	rateLimitYaml, err := os.ReadFile(rateLimitPath)
-	if err != nil {
-		return err
-	}
-
-	var rateLimit map[string]interface{}
-	err = yaml.Unmarshal(rateLimitYaml, &rateLimit)
-	if err != nil {
-		return err
-	}
-
-	_, err = k8sClient.Resource(constants.RatePolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: rateLimit}, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
-	tokenLimitPath := filepath.Join(projectRoot, "internal", "testdata", "token-limit-policy.yaml")
-	tokenLimitYaml, err := os.ReadFile(tokenLimitPath)
-	if err != nil {
-		return err
-	}
-
-	decoder := yaml.NewDecoder(bytes.NewReader(tokenLimitYaml))
-	for {
-		var tokenLimit map[string]interface{}
-		err = decoder.Decode(&tokenLimit)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("failed to decode token limit policy: %w", err)
-		}
-
-		_, err = k8sClient.Resource(constants.TokenPolicyGvr).Namespace(namespace).Create(ctx, &unstructured.Unstructured{Object: tokenLimit}, metav1.CreateOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to create token limit policy: %w", err)
-		}
 	}
 
 	return nil

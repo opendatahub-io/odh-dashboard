@@ -11,7 +11,7 @@ testMessage: 'Hello, this is a test message.'
 # Hardware Profile configuration
 hardwareProfileResourceYamlPath: 'resources/hardwareProfile/gen_ai_hardware_profile.yaml'
 hardwareProfileName: 'cypress-gen-ai-hardware-profile'
-hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: Request = 1 Cores; Limit = 1 Cores; Memory: Request = 8 GiB; Limit = 8 GiB'
+hardwareProfileDeploymentSize: 'cypress-gen-ai-hardware-profile Compatible CPU: Default = 1 Cores, Max = 4 Cores; Memory: Default = 8 GiB, Max = 16 GiB'
 # Playground resources
 configMapName: 'llama-stack-config'
 playgroundServiceName: 'lsd-genai-playground-service'

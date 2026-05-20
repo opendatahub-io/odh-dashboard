@@ -11,10 +11,13 @@ import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
 
 const title = 'Entities';
-const description =
-  'Select a feature store to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
+const description = `Select a feature store to view and manage its entities. ${getFeatureStoreObjectDescription(
+  FeatureStoreObject.ENTITIES,
+).trim()}`;
 
 const FeatureStoreEntities = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();

@@ -484,6 +484,12 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
 		tools = append(tools, fileSearchTool)
+
+		// Request file_search_call results so the BFF can build citation annotations
+		// from result attributes (deterministic filename resolution)
+		apiParams.Include = []responses.ResponseIncludable{
+			responses.ResponseIncludableFileSearchCallResults,
+		}
 	}
 
 	// Add MCP servers if provided
@@ -578,7 +584,7 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 
 	headerValue := string(jsonBytes)
 	return []option.RequestOption{
-		option.WithHeader("x-llamastack-provider-data", headerValue),
+		option.WithHeader("x-ogx-provider-data", headerValue),
 	}
 }
 
