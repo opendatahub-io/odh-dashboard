@@ -2,6 +2,13 @@ import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/internal/k8sTypes';
 import type { ComponentCodeRef } from '../core/types';
 
+export type NavTrackingEvent = {
+  /** The analytics event name to fire. */
+  name: string;
+  /** A tag identifying the UI pathway (e.g. 'sidebar-nav'). */
+  section: string;
+};
+
 /**
  * Adds a navigation item to the host application.
  */
@@ -21,6 +28,8 @@ export type HrefNavItemExtension = Extension<
      * A successful match will highlight the item as active.
      */
     path?: string;
+    /** Optional tracking event fired when the nav item is clicked. */
+    trackingEvent?: NavTrackingEvent;
   }
 >;
 

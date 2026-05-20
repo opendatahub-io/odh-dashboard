@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MLflowPromptVersion } from '~/app/types';
 import PromptDrawer from '~/app/Chatbot/components/promptManagementModal/promptDrawer';
 
@@ -87,7 +87,24 @@ describe('PromptDrawer', () => {
   it('should render version selector with correct options', () => {
     render(<PromptDrawer {...defaultProps} selectedVersion={2} />);
 
-    expect(screen.getByRole('button', { name: 'Version 2' })).toBeInTheDocument();
+    const toggle = screen.getByTestId('prompt-version-select');
+    expect(toggle).toHaveTextContent('Version 2');
+
+    fireEvent.click(toggle);
+
+    const options = screen.getAllByRole('option');
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent('Version 2');
+    expect(options[1]).toHaveTextContent('Version 1');
+
+    expect(screen.getByRole('option', { name: 'Version 2' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('option', { name: 'Version 1' })).not.toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
   });
 
   it('should render close button in drawer', () => {

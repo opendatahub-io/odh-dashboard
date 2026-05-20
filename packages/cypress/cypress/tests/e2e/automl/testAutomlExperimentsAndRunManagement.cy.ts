@@ -75,10 +75,10 @@ describe('AutoML Experiments List and Run Management E2E', { testIsolation: fals
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
-      cy.step('Select task type and label column');
-      automlConfigurePage.findTaskTypeCard('binary').click();
-      automlConfigurePage.findLabelColumnSelect().should('not.be.disabled').click();
+      cy.step('Select target column and task type');
+      automlConfigurePage.findTargetColumnSelect().should('not.be.disabled').click();
       automlConfigurePage.findSelectOption(new RegExp(testData.labelColumn as string)).click();
+      automlConfigurePage.findTaskTypeCard('binary').click();
 
       cy.step('Set top N models to minimize run time');
       automlConfigurePage.setTopN(testData.topN as number);

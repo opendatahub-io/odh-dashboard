@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  Button,
+  ClipboardCopy,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -16,7 +18,10 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
+import { isTerminalState } from '~/app/hooks/queries';
 import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import './AutomlInputParametersPanel.scss';
 
@@ -110,6 +115,10 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
   parameters,
   isLoading,
 }) => {
+  const { namespace } = useParams();
+  const { pipelineRun, modelsLoading, modelsBasePath } = useAutomlResultsContext();
+  const pipelineRef = pipelineRun?.pipeline_version_reference;
+
   const entries: [string, unknown][] = React.useMemo(() => {
     if (!parameters) {
       return [];
@@ -154,11 +163,53 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
             ))}
           </Stack>
         ) : (
-          <DescriptionList>
-            {entries.map(([key, value], index) => (
-              <React.Fragment key={key}>
-                {index > 0 && <Divider />}
-                <DescriptionListGroup data-testid={`parameter-${key}`}>
+          <>
+            <DescriptionList>
+              {pipelineRun?.run_id && (
+                <>
+                  <DescriptionListGroup data-testid="parameter-run-id">
+                    <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ClipboardCopy
+                        isReadOnly
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        data-testid="clipboard-run-id"
+                      >
+                        {pipelineRun.run_id}
+                      </ClipboardCopy>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <Divider />
+                </>
+              )}
+              <DescriptionListGroup data-testid="parameter-output-directory">
+                <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  ) : modelsBasePath ? (
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      data-testid="clipboard-output-directory"
+                    >
+                      {modelsBasePath}
+                    </ClipboardCopy>
+                  ) : (
+                    'Not available'
+                  )}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+            <Divider className="pf-v6-u-mt-lg" />
+            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg pf-v6-u-mb-md">
+              Input parameters
+            </Title>
+            <DescriptionList>
+              {entries.map(([key, value]) => (
+                <DescriptionListGroup key={key} data-testid={`parameter-${key}`}>
                   <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
                   <DescriptionListDescription>
                     <Content component="p" className="odh-automl-input-parameters-panel__value">
@@ -166,9 +217,51 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              </React.Fragment>
-            ))}
-          </DescriptionList>
+              ))}
+            </DescriptionList>
+            {(pipelineRef || pipelineRun?.run_id) && (
+              <div>
+                <Divider className="pf-v6-u-mt-lg pf-v6-u-mb-lg" />
+                <Stack hasGutter>
+                  {pipelineRef && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-definition"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
+                          />
+                        )}
+                      >
+                        View pipeline definition
+                      </Button>
+                    </StackItem>
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                  {pipelineRun?.run_id && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-run"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
+                          />
+                        )}
+                      >
+                        View pipeline run
+                      </Button>
+                    </StackItem>
+                  )}
+                </Stack>
+              </div>
+            )}
+          </>
         )}
       </DrawerPanelBody>
     </DrawerPanelContent>

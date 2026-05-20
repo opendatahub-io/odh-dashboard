@@ -117,6 +117,10 @@ jobs:
           SECONDARY_SERVER: ${{ secrets.OC_SERVER }}
           SECONDARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL }}
         run: |
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f ~/.kube/config 2>/dev/null || true
+
           # Extract credentials from test-variables.yml
           TEST_VARS_FILE="/tmp/test-variables.yml"
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
@@ -289,7 +293,7 @@ jobs:
           # =================================================================
           # Smart Test Selection: Detect changed areas and resolve CI tags
           #
-          # Layer 1: Turbo detects changed packages (including frontend "//" workspace)
+          # Layer 1: Turbo detects changed packages (including frontend workspace)
           #          → reads e2eCiTags from each package.json (self-service, teams opt in)
           # Layer 2: For frontend changes detected by Layer 1, git diff identifies
           #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
@@ -340,8 +344,8 @@ jobs:
           # --- Layer 2: Frontend sub-area detection ---
           # Turbo sees the entire frontend as one workspace. When it changes,
           # use git diff to identify which sub-areas were modified.
-          # Note: Turbo reports the root/frontend workspace as "//"
-          if echo "$CHANGED_PACKAGES" | grep -qx "//"; then
+          # Turbo may report the frontend workspace as "//" or "odh-dashboard-frontend"
+          if echo "$CHANGED_PACKAGES" | grep -qxE "//|odh-dashboard-frontend"; then
             echo ""
             echo "🔍 Frontend changed — detecting sub-areas via git diff..."
 
@@ -847,8 +851,8 @@ jobs:
           # Clean old webpack logs (>2 days old)
           find /tmp -name "webpack_*.log" -type f -mtime +2 -delete 2>/dev/null || true
           
-          # Note: ~/.cache/Cypress is managed by actions/cache and should not be cleaned here
-          # to avoid removing the Cypress binary on shared self-hosted runners
+          # Note: .cache/Cypress is managed by actions/cache (workspace-local via CYPRESS_CACHE_FOLDER)
+          # and should not be cleaned here to avoid removing the Cypress binary mid-run
           
           # Clean old temporary yaml files (>2 days old)
           find /tmp -name "cypress-yaml-*.yaml" -type f -mtime +2 -delete 2>/dev/null || true
@@ -930,6 +934,10 @@ jobs:
             echo "Check that OC_SERVER_PRIMARY/OC_SERVER secrets are configured" >&2
             exit 1
           fi
+
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f "$HOME/.kube/config" 2>/dev/null || true
 
           echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
@@ -1110,7 +1118,7 @@ jobs:
         if: needs.get-test-tags.outputs.bff_packages != '[]'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: false
 
       - name: Start BFF Services

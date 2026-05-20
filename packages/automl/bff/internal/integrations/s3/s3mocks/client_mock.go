@@ -242,11 +242,11 @@ func (m *MockS3Client) GetCSVSchema(_ context.Context, _ string, key string) (s3
 
 	return s3int.CSVSchemaResult{
 		Columns: []s3int.ColumnSchema{
-			{Name: "id", Type: "integer"},
-			{Name: "name", Type: "string"},
-			{Name: "score", Type: "double"},
-			{Name: "is_active", Type: "bool", Values: []interface{}{true, false}},
-			{Name: "created_at", Type: "timestamp"},
+			{Name: "id", Type: "integer", TaskType: "regression"},
+			{Name: "name", Type: "string", TaskType: "multiclass"},
+			{Name: "score", Type: "double", TaskType: "regression"},
+			{Name: "is_active", Type: "bool", TaskType: "binary", Values: []interface{}{true, false}},
+			{Name: "created_at", Type: "timestamp", TaskType: "multiclass"},
 		},
 		ParseWarnings: 0,
 	}, nil

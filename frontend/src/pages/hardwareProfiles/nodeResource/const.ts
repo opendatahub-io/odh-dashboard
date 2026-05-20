@@ -104,12 +104,29 @@ export const DEFAULT_CPU_IDENTIFIER = 'cpu';
 export const DEFAULT_MEMORY_IDENTIFIER = 'memory';
 
 export const DEFAULT_PRIORITY_CLASS = 'None';
+export const NO_PRIORITY_OPTIONS_CONFIGURED_LABEL = 'No priority options configured';
+
+export const NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_LABEL = 'Add node selectors and tolerations';
+
+export const NODE_SELECTORS_AND_TOLERATIONS_STRATEGY_POPOVER_NAME =
+  'Node selectors and tolerations';
+
+export const LOCAL_QUEUE_FIELD_DESCRIPTION =
+  'Type the name of an existing local queue. Hardware profiles using this workload allocation strategy are only accessible to Kueue-enabled projects.';
+
+export const LOCAL_QUEUE_WORKLOAD_ALLOCATION_STRATEGY_RADIO_LABEL = 'Specify local queue';
+
+export const LOCAL_QUEUE_NAMES_CASE_SENSITIVE_HELPER = 'Local queue names are case-sensitive.';
 
 export const HARDWARE_PROFILE_RESOURCE_ALLOCATION_HELP = {
   localQueue:
-    'Local queue is an entry point for users to submit their workloads for shared resource management provided by Kueue.',
+    'Local queue uses Kueue to automatically queue jobs and manage resources based on workload priority.',
   workloadPriority:
-    "The workload priority determines how the workload is handled within Kueue's resource management system. For example, you might assign production workloads a higher priority than development workloads.",
+    "Workload priority determines how the workload is handled within Kueue's resource management system. For example, you might assign production workloads a higher priority than development workloads.",
+  workloadPriorityOptions:
+    'Priority options are determined by the configuration of the specified local queue.',
+  nodeSelectorsAndTolerations:
+    'Manually add node selectors and tolerations for more fine-grained scheduling of workloads.',
   nodeSelectors:
     'Node selectors are added to a pod spec to allow the pod to be scheduled on nodes with matching labels.',
   tolerations:

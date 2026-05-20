@@ -144,12 +144,14 @@ describe('useS3GetFileSchemaQuery', () => {
   });
 
   it('should parse response data correctly', async () => {
+    /* eslint-disable camelcase -- matches API response field name */
     const mockColumns = [
-      { name: 'id', type: 'integer' },
-      { name: 'name', type: 'string' },
-      { name: 'age', type: 'double' },
-      { name: 'status', type: 'string', values: ['active', 'inactive'] },
+      { name: 'id', type: 'integer', task_type: 'binary' },
+      { name: 'name', type: 'string', task_type: 'multiclass' },
+      { name: 'age', type: 'double', task_type: 'regression' },
+      { name: 'status', type: 'string', task_type: 'binary', values: ['active', 'inactive'] },
     ];
+    /* eslint-enable camelcase */
 
     const mockResponse = {
       data: {

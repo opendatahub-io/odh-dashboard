@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 )
@@ -89,6 +90,9 @@ type MockPipelineServerClient struct {
 	LastRetryRunID string
 	// LastDeleteRunID records the last runID passed to DeleteRun for test assertions
 	LastDeleteRunID string
+	// ListPipelineVersionsErr, when non-nil, is returned by ListPipelineVersions
+	// instead of the normal mock response.
+	ListPipelineVersionsErr error
 }
 
 // pipelineDisplayName returns the DisplayName used for the AutoML pipeline fixture,
@@ -165,12 +169,16 @@ func (m *MockPipelineServerClient) ListRuns(ctx context.Context, params *pipelin
 	// Apply filtering if filter parameter is provided
 	filteredRuns := allRuns
 	if params != nil && params.Filter != "" {
-		pipelineVersionID := extractPipelineVersionIDFromFilter(params.Filter)
-		if pipelineVersionID != "" {
+		versionIDs := extractPipelineVersionIDsFromFilter(params.Filter)
+		if len(versionIDs) > 0 {
+			allowed := make(map[string]bool, len(versionIDs))
+			for _, id := range versionIDs {
+				allowed[id] = true
+			}
 			var matched []models.KFPipelineRun
 			for _, run := range allRuns {
 				if run.PipelineVersionReference != nil &&
-					run.PipelineVersionReference.PipelineVersionID == pipelineVersionID {
+					allowed[run.PipelineVersionReference.PipelineVersionID] {
 					matched = append(matched, run)
 				}
 			}
@@ -488,26 +496,35 @@ func cloneRunWithVariant(template *models.KFPipelineRun, index int) models.KFPip
 	return run
 }
 
-// extractPipelineVersionIDFromFilter parses the filter JSON and extracts pipeline_version_id if present
-func extractPipelineVersionIDFromFilter(filter string) string {
+// extractPipelineVersionIDsFromFilter parses the filter JSON and extracts pipeline_version_id values.
+// Supports both EQUALS (single string_value) and IN (string_values.values array) operations.
+func extractPipelineVersionIDsFromFilter(filter string) []string {
 	var filterObj struct {
 		Predicates []struct {
-			Key         string `json:"key"`
-			StringValue string `json:"string_value"`
+			Key          string `json:"key"`
+			StringValue  string `json:"string_value"`
+			StringValues struct {
+				Values []string `json:"values"`
+			} `json:"string_values"`
 		} `json:"predicates"`
 	}
 
 	if err := json.Unmarshal([]byte(filter), &filterObj); err != nil {
-		return ""
+		return nil
 	}
 
 	for _, predicate := range filterObj.Predicates {
 		if predicate.Key == "pipeline_version_id" {
-			return predicate.StringValue
+			if len(predicate.StringValues.Values) > 0 {
+				return predicate.StringValues.Values
+			}
+			if predicate.StringValue != "" {
+				return []string{predicate.StringValue}
+			}
 		}
 	}
 
-	return ""
+	return nil
 }
 
 // GetRun returns a mock pipeline run by ID
@@ -768,6 +785,9 @@ func (m *MockPipelineServerClient) ListPipelines(ctx context.Context, filter str
 // matching the sort order requested by the real pipeline server client.
 // When PipelineNames is set, returns versions for any matching pipeline ID derived from names.
 func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.ListPipelineVersionsErr != nil {
+		return nil, m.ListPipelineVersionsErr
+	}
 	if len(m.PipelineNames) > 0 {
 		for _, name := range m.PipelineNames {
 			ids := DeriveMockIDsFromName(m.Namespace, name)
@@ -777,12 +797,19 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 						{
 							PipelineID:        ids.PipelineID,
 							PipelineVersionID: ids.LatestVersionID,
-							DisplayName:       "v1.0.0",
+							DisplayName:       fmt.Sprintf("%s-%s", name, constants.DefaultPipelineVersionSuffix),
 							Description:       "Pipeline version",
 							CreatedAt:         "2026-02-23T10:00:00Z",
 						},
+						{
+							PipelineID:        ids.PipelineID,
+							PipelineVersionID: ids.OldVersionID,
+							DisplayName:       fmt.Sprintf("%s-3.4.0", name),
+							Description:       "Initial pipeline version",
+							CreatedAt:         "2026-02-20T10:00:00Z",
+						},
 					},
-					TotalSize:     1,
+					TotalSize:     2,
 					NextPageToken: "",
 				}, nil
 			}
@@ -805,14 +832,14 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 					{
 						PipelineID:        tabIDs.PipelineID,
 						PipelineVersionID: tabIDs.LatestVersionID,
-						DisplayName:       "v1.0.0",
+						DisplayName:       fmt.Sprintf("autogluon-tabular-training-pipeline-%s", constants.DefaultPipelineVersionSuffix),
 						Description:       "Managed AutoML tabular pipeline version",
 						CreatedAt:         "2026-02-23T10:00:00Z",
 					},
 					{
 						PipelineID:        tabIDs.PipelineID,
 						PipelineVersionID: tabIDs.OldVersionID,
-						DisplayName:       "v0.x.x",
+						DisplayName:       "autogluon-tabular-training-pipeline-3.4.0",
 						Description:       "Initial AutoML tabular pipeline version",
 						CreatedAt:         "2026-02-20T10:00:00Z",
 					},
@@ -825,19 +852,25 @@ func (m *MockPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 
 	// Only return versions for this namespace's AutoML timeseries pipeline
 	if pipelineID == ids.PipelineID {
+		// In namespace mode the pipeline is "autogluon-timeseries-training-pipeline";
+		// in non-namespace mode it's the default prefix ("automl").
+		pipelineName := "autogluon-timeseries-training-pipeline"
+		if m.Namespace == "" {
+			pipelineName = m.pipelineDisplayName()
+		}
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{
 					PipelineID:        ids.PipelineID,
 					PipelineVersionID: ids.LatestVersionID,
-					DisplayName:       "v2.0.0",
+					DisplayName:       fmt.Sprintf("%s-%s", pipelineName, constants.DefaultPipelineVersionSuffix),
 					Description:       "Updated AutoML pipeline with improved metrics",
 					CreatedAt:         "2026-02-23T10:00:00Z",
 				},
 				{
 					PipelineID:        ids.PipelineID,
 					PipelineVersionID: ids.OldVersionID,
-					DisplayName:       "v1.0.0",
+					DisplayName:       fmt.Sprintf("%s-3.4.0", pipelineName),
 					Description:       "Initial AutoML pipeline version",
 					CreatedAt:         "2026-02-20T10:00:00Z",
 				},
