@@ -124,6 +124,47 @@ class APIKeysPage {
   }
 }
 
+class MySubscriptionsPage {
+  visit(subName: string): void {
+    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
+    cy.wait('@getSubscriptionInfo');
+    cy.wait('@initialSearch');
+    this.wait();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('my-subscription-details-section').should('exist');
+    cy.testA11y();
+  }
+
+  findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('my-subscription-details-section');
+  }
+
+  findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-section');
+  }
+
+  findApiKeysTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-api-keys-table');
+  }
+
+  getRow(name: string): APIKeyTableRow {
+    return new APIKeyTableRow(() =>
+      this.findApiKeysTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-api-key-button');
+  }
+}
+
 class APIKeyTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Name"]');
@@ -250,6 +291,10 @@ class CreateApiKeyModal extends Modal {
 
   findSubscriptionToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-subscription-toggle');
+  }
+
+  findSubscriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscriptionToggle().find('[role="combobox"]');
   }
 
   findSubscriptionOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1088,3 +1133,4 @@ export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
+export const mySubscriptionsPage = new MySubscriptionsPage();

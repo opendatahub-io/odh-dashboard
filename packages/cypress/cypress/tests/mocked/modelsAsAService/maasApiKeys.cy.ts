@@ -15,11 +15,12 @@ import {
   copyApiKeyModal,
   createApiKeyModal,
   subscriptionPopover,
-  subscriptionsTab,
+  MySubscriptionsPage,
 } from '../../../pages/modelsAsAService';
 import {
   mockAPIKeys,
   mockCreateAPIKeyResponse,
+  mockSubscriptionInfo,
   mockSubscriptionListItems,
 } from '../../../utils/maasUtils';
 
@@ -833,13 +834,23 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
     );
+
     cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
-      mockSearchResponse(
-        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
-        mockSubscriptionDetails,
-      ),
-    ).as('initialSearch');
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: 'premium-team-sub' } },
+      { data: mockSubscriptionInfo('premium-team-sub') },
+    ).as('getSubscriptionInfo');
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', (req) => {
+      const subscriptionFilter = req.body?.data?.filters?.subscription as string | undefined;
+      const keys = mockAPIKeys().filter(
+        (key) =>
+          (!subscriptionFilter || key.subscription === subscriptionFilter) &&
+          (key.status === 'active' || key.status === 'expired'),
+      );
+      return mockSearchResponse(keys, mockSubscriptionDetails);
+    }).as('initialSearch');
+
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
@@ -939,5 +950,61 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     subscriptionsTab.findSortByModelButton().click();
     cy.findByTestId('empty-models').should('exist');
     subscriptionsTab.findModelsTable().should('not.exist');
+  });
+
+  it('should show the correct data on the my subscriptions view page', () => {
+    mySubscriptionsPage.visit('premium-team-sub');
+    mySubscriptionsPage.findTitle().should('contain.text', 'Premium Team Subscription');
+    mySubscriptionsPage.findDetailsSection().should('exist');
+    mySubscriptionsPage.findDetailsSection().should('contain.text', 'premium-team-sub');
+    mySubscriptionsPage.findDetailsSection().should('contain.text', 'Premium Team');
+    mySubscriptionsPage.findModelsSection().should('contain.text', 'granite-3-8b-instruct');
+    mySubscriptionsPage.findModelsSection().should('contain.text', 'flan-t5-small');
+    mySubscriptionsPage.findModelsSection().should('contain.text', '100,000 / 24 hours');
+    mySubscriptionsPage.findModelsSection().should('contain.text', '200,000 / 24 hours');
+    mySubscriptionsPage.findApiKeysTable().should('exist');
+    mySubscriptionsPage.findApiKeysTable().should('contain.text', 'production-backend');
+    mySubscriptionsPage.findApiKeysTable().should('contain.text', 'ci-pipeline');
+    mySubscriptionsPage.findApiKeysTable().should('contain.text', 'old-service-key');
+    mySubscriptionsPage.findApiKeysTable().should('not.contain.text', 'development-testing');
+  });
+  it('should prefill the api key form with the subscription details', () => {
+    mySubscriptionsPage.visit('premium-team-sub');
+    mySubscriptionsPage.findCreateApiKeyButton().click();
+    createApiKeyModal.findSubscriptionInput().should('have.value', 'Premium Team');
+    createApiKeyModal.findSubscriptionToggle().should('have.attr', 'disabled');
+  });
+  it('should revoke an api key from the my subscriptions view page', () => {
+    mySubscriptionsPage.visit('premium-team-sub');
+    mySubscriptionsPage.findApiKeysTable().should('exist');
+    mySubscriptionsPage.findApiKeysTable().should('contain.text', 'production-backend');
+    mySubscriptionsPage.getRow('production-backend').findKebabAction('Revoke').click();
+
+    revokeAPIKeyModal.shouldBeOpen();
+    revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+    revokeAPIKeyModal.findRevokeConfirmationInput().type('incorrect');
+    revokeAPIKeyModal.findRevokeButton().should('be.disabled');
+    revokeAPIKeyModal.findRevokeConfirmationInput().clear().type('production-backend');
+    revokeAPIKeyModal.findRevokeButton().should('be.enabled');
+
+    cy.interceptOdh(
+      'DELETE /maas/api/v1/api-keys/:id',
+      { path: { id: 'key-prod-backend-001' } },
+      {
+        data: {
+          id: 'key-prod-backend-001',
+          name: 'production-backend',
+          description: 'Production API key for backend service',
+          status: 'revoked',
+          creationDate: '2026-01-07T11:54:34.521671447-05:00',
+        },
+      },
+    ).as('deleteApiKey');
+
+    revokeAPIKeyModal.findRevokeButton().click();
+
+    cy.wait('@deleteApiKey').then((interception) => {
+      expect(interception.response?.statusCode).to.eq(200);
+    });
   });
 });

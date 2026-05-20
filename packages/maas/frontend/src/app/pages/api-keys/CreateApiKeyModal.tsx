@@ -94,16 +94,22 @@ type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
+  initialSubscription?: string;
+  lockSubscription?: boolean;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
+  onClose,
+  initialSubscription = '',
+  lockSubscription = false,
+}) => {
   const [subscriptions, subscriptionsLoaded, subscriptionsError] = useUserSubscriptions();
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
     expirationOption: '30d',
     customDays: '',
-    subscription: '',
+    subscription: initialSubscription,
   });
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -387,7 +393,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                     onSelect={(_e, value) =>
                       setFormData({ ...formData, subscription: String(value) })
                     }
-                    isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                    isDisabled={
+                      lockSubscription || !subscriptionsLoaded || subscriptions.length === 0
+                    }
                     placeholder="Select a subscription"
                     dataTestId="api-key-subscription-toggle"
                     previewDescription={false}

@@ -12,6 +12,7 @@ import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
+import ViewMySubscriptionPage from './pages/subscriptions/mySubscriptions/viewMySubscriptionPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -46,6 +47,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
         <Route path="/:tab" element={<ApiKeysAndSubscriptionsPage />} />
+        <Route path="/subscriptions/:subscriptionName" element={<ViewMySubscriptionPage />} />
         <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
       </Routes>
     );

@@ -51,6 +51,8 @@ export type MaasModelsSectionProps = {
   addModelsButtonTestId?: string;
   addModelsButtonAriaLabel?: string;
   resourceType?: string;
+  title?: string;
+  showProjectColumn?: boolean;
 };
 
 const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
@@ -72,9 +74,13 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
   tableAriaLabel = `${resourceType} models`,
   addModelsButtonTestId = 'add-models-button',
   addModelsButtonAriaLabel,
+  title = 'Models',
+  showProjectColumn = true,
 }) => {
   const [openKebabIndex, setOpenKebabIndex] = React.useState<number | null>(null);
-  const visibleColumns = COLUMNS.filter((col) => !hideColumns.includes(col.key));
+  const visibleColumns = showProjectColumn
+    ? COLUMNS.filter((col) => !hideColumns.includes(col.key))
+    : COLUMNS.filter((col) => col.key !== 'project' && !hideColumns.includes(col.key));
 
   const table = modelRefSummaries.length > 0 && (
     <Table aria-label={tableAriaLabel} variant="compact" data-testid={tableTestId}>
@@ -255,7 +261,7 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
         <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
           <FlexItem>
             <Title headingLevel={titleHeadingLevel} size={titleSize}>
-              Models
+              {title}
             </Title>
           </FlexItem>
           <FlexItem>
