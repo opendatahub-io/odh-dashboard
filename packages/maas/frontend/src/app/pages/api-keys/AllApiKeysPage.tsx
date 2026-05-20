@@ -13,6 +13,7 @@ import {
 } from '~/app/types/api-key';
 import { ApiKeySortField } from './allKeys/columns';
 import CreateApiKeyModal from './CreateApiKeyModal';
+import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
@@ -22,6 +23,7 @@ type SortDirection = 'asc' | 'desc';
 const DEFAULT_SORT_FIELD: ApiKeySortField = 'created_at';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 const DEFAULT_PER_PAGE = 50;
+const EXISTENCE_CHECK_REQUEST: APIKeySearchRequest = { pagination: { limit: 1, offset: 0 } };
 
 const AllApiKeysPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -48,6 +50,16 @@ const AllApiKeysPage: React.FC = () => {
   );
 
   const [response, loaded, error, refresh] = useFetchApiKeys(searchRequest);
+
+  const [existenceResponse, existenceLoaded, , refreshExistence] =
+    useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
+  const hasAnyApiKeys = response.data.length > 0 || existenceResponse.data.length > 0;
+
+  const refreshAll = React.useCallback(() => {
+    refresh();
+    refreshExistence();
+  }, [refresh, refreshExistence]);
+
   const [localUsername, setLocalUsername] = React.useState('');
 
   const apiKeys = response.data;
@@ -115,56 +127,16 @@ const AllApiKeysPage: React.FC = () => {
   }, []);
 
   return (
-    <ApplicationsPage
-      title="API keys"
-      description="Manage API keys that can be used to authenticate with model endpoints."
-      loaded={loaded}
-      loadError={error}
-      empty={false}
-    >
+    <>
       {isModalOpen && (
         <CreateApiKeyModal
-          onClose={() => {
+          onClose={(created) => {
             setIsModalOpen(false);
-            refresh();
+            if (created) {
+              refreshAll();
+            }
           }}
         />
-      )}
-
-      {loaded && isMaasAdminLoaded && (
-        <PageSection isFilled>
-          <ApiKeysTable
-            onRevokeApiKey={setRevokeApiKey}
-            apiKeys={apiKeys}
-            subscriptionDetails={subscriptionDetails}
-            hasMore={hasMore}
-            page={page}
-            perPage={perPage}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSetPage={onSetPage}
-            onPerPageSelect={onPerPageSelect}
-            onSort={onSort}
-            onClearFilters={onClearFilters}
-            isFetching={isFetching}
-            isMaasAdmin={isMaasAdmin}
-            toolbarContent={
-              <ApiKeysToolbar
-                isMaasAdmin={isMaasAdmin}
-                setIsModalOpen={setIsModalOpen}
-                filterData={filterData}
-                localUsername={localUsername}
-                setLocalUsername={setLocalUsername}
-                onUsernameChange={onUsernameChange}
-                onStatusToggle={onStatusToggle}
-                onStatusClear={onStatusClear}
-                activeApiKeys={activeApiKeys}
-                refresh={refresh}
-                onClearFilters={onClearFilters}
-              />
-            }
-          />
-        </PageSection>
       )}
       {revokeApiKey && revokeApiKey.name && (
         <RevokeApiKeyModal
@@ -172,12 +144,56 @@ const AllApiKeysPage: React.FC = () => {
           onClose={(revoked) => {
             setRevokeApiKey(undefined);
             if (revoked) {
-              refresh();
+              refreshAll();
             }
           }}
         />
       )}
-    </ApplicationsPage>
+      <ApplicationsPage
+        title="API keys"
+        description="Manage API keys that can be used to authenticate with model endpoints."
+        loaded={loaded && (response.data.length > 0 || existenceLoaded)}
+        loadError={error}
+        empty={loaded && existenceLoaded && !error && !hasAnyApiKeys}
+        emptyStatePage={<EmptyApiKeysPage onCreateApiKey={() => setIsModalOpen(true)} />}
+      >
+        {loaded && isMaasAdminLoaded && (
+          <PageSection isFilled>
+            <ApiKeysTable
+              onRevokeApiKey={setRevokeApiKey}
+              apiKeys={apiKeys}
+              subscriptionDetails={subscriptionDetails}
+              hasMore={hasMore}
+              page={page}
+              perPage={perPage}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSetPage={onSetPage}
+              onPerPageSelect={onPerPageSelect}
+              onSort={onSort}
+              onClearFilters={onClearFilters}
+              isFetching={isFetching}
+              isMaasAdmin={isMaasAdmin}
+              toolbarContent={
+                <ApiKeysToolbar
+                  isMaasAdmin={isMaasAdmin}
+                  setIsModalOpen={setIsModalOpen}
+                  filterData={filterData}
+                  localUsername={localUsername}
+                  setLocalUsername={setLocalUsername}
+                  onUsernameChange={onUsernameChange}
+                  onStatusToggle={onStatusToggle}
+                  onStatusClear={onStatusClear}
+                  activeApiKeys={activeApiKeys}
+                  refresh={refreshAll}
+                  onClearFilters={onClearFilters}
+                />
+              }
+            />
+          </PageSection>
+        )}
+      </ApplicationsPage>
+    </>
   );
 };
 
