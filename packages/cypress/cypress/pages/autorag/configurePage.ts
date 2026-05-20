@@ -25,11 +25,11 @@ class AutoragConfigurePage {
   }
 
   findOgxSecretSelector() {
-    return cy.findByTestId('lls-secret-selector');
+    return cy.findByTestId('ogx-secret-selector');
   }
 
   findAddOgxConnectionButton() {
-    return cy.findByTestId('add-lls-connection-button');
+    return cy.findByTestId('add-ogx-connection-button');
   }
 
   findNextButton() {
