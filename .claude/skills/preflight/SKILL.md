@@ -32,7 +32,7 @@ Flags:
                         Options: coderabbit, claude, style, rbac
   --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
   --ci                  Non-interactive CI mode: skip all prompts, post results
-                        as a PR comment when done
+                        as a PR review when done
   --help                Show this help
 
 Examples:
@@ -57,7 +57,7 @@ Parse these from `$ARGUMENTS` before processing:
 - `--local` — ignore PR even if one exists, run everything locally
 - `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
 - `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
-- `--ci` — non-interactive CI mode. Skips all interactive prompts (no `AskUserQuestion`). Posts the results as a PR comment using the template in [references/ci-comment-template.md](references/ci-comment-template.md). Overrides "Never comment on the PR".
+- `--ci` — non-interactive CI mode. Skips all interactive prompts (no `AskUserQuestion`). Posts the results as a PR review using the template in [references/ci-comment-template.md](references/ci-comment-template.md).
 - `--help` — print usage and stop
 - No flags — interactive mode: ask the user what to do at decision points
 
@@ -169,8 +169,9 @@ Print the results using the format from [references/ci-comment-template.md](refe
 
 If `--ci` was passed, post everything as a **single PR review** — inline comments on files + the full report as the review summary body. **You MUST follow the format in [references/ci-comment-template.md](references/ci-comment-template.md) exactly.** No standalone PR comments.
 
-If `--fix` was NOT passed, post the review now and skip Step 4.
-If `--fix` was passed, do NOT post yet — wait until after Step 4 so the review reflects the post-fix state.
+- If `--ci` without `--fix`: post the review now and skip Step 4.
+- If `--ci` with `--fix`: do NOT post yet — wait until after Step 4 so the review reflects the post-fix state.
+- If no `--ci`: just print results to terminal, do not post a review.
 
 ## Step 4: Fix
 
