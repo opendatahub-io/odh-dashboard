@@ -17,6 +17,7 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
   promptManagement: false,
+  mySubscriptions: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
@@ -246,6 +247,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],
+  },
+  [SupportedArea.MY_SUBSCRIPTIONS]: {
+    featureFlags: ['mySubscriptions'],
   },
 };
 
