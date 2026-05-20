@@ -81,9 +81,11 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
 
   const codeBlockRef = React.useRef<HTMLDivElement>(null);
 
-  // Fix PatternFly CodeBlock accessibility issue: remove invalid lang attribute
-  // PatternFly v6 CodeBlock sets a lang attribute that isn't a valid ISO language code
-  // This causes accessibility violations. We remove it since error messages are plain text.
+  // TODO: Remove when PatternFly fixes invalid lang attribute on CodeBlock.
+  // See https://github.com/patternfly/patternfly-react/issues/11272
+  // PatternFly v6 CodeBlock sets a lang attribute that isn't a valid ISO language code,
+  // causing accessibility violations. We remove it since error messages are plain text.
+  // This workaround is fragile and will break if PF changes its DOM structure.
   React.useEffect(() => {
     if (codeBlockRef.current) {
       const codeBlockElement = codeBlockRef.current.querySelector('.pf-v6-c-code-block');
