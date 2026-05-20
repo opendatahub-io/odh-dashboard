@@ -3,8 +3,7 @@ description: Guide for creating a new module/package in the ODH Dashboard monore
 globs: "packages/**"
 alwaysApply: false
 paths:
-  - "packages/plugin-template/**"
-  - "packages/*/package.json"
+  - "packages/**"
 ---
 
 # Module Onboarding — Creating a New Package

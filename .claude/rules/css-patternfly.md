@@ -5,6 +5,8 @@ alwaysApply: false
 paths:
   - "**/*.scss"
   - "**/*.css"
+  - "**/*.tsx"
+  - "**/*.ts"
 ---
 
 # CSS & PatternFly — ODH Dashboard

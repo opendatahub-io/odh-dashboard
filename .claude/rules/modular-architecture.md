@@ -3,11 +3,9 @@ description: Modular Architecture — Module Federation, plugin/extension system
 globs: "packages/**,frontend/src/plugins/**,frontend/config/**"
 alwaysApply: false
 paths:
+  - "packages/**"
   - "frontend/src/plugins/**"
   - "frontend/config/**"
-  - "packages/plugin-core/**"
-  - "packages/plugin-template/**"
-  - "packages/app-config/src/module-federation.ts"
 ---
 
 # Modular Architecture — ODH Dashboard
