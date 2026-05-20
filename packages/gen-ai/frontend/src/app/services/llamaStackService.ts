@@ -261,25 +261,20 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
+          let errorData: { error?: unknown } | null = null;
           try {
             const errorBody = await response.text();
-            const errorData = JSON.parse(errorBody);
-            if (errorData?.error) {
-              // Preserve the full ApiError structure from BFF
-              throw { error: errorData.error };
-            }
+            errorData = JSON.parse(errorBody);
           } catch {
-            // If parsing fails or no structured error, create a generic ApiError
-            throw {
-              error: {
-                component: 'bff' as const,
-                code: `http_${response.status}`,
-                message: `HTTP error! status: ${response.status}`,
-                retriable: false,
-              },
-            };
+            // JSON parsing failed - will use fallback below
           }
-          // Fallback if errorData exists but has no error field
+
+          if (errorData?.error) {
+            // Preserve the full ApiError structure from BFF
+            throw { error: errorData.error };
+          }
+
+          // Fallback: no structured error or parsing failed
           throw {
             error: {
               component: 'bff' as const,
@@ -390,7 +385,24 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
+        // Check if it's already an ApiError structure - preserve it
+        const isApiError =
+          typeof error === 'object' &&
+          error !== null &&
+          'error' in error &&
+          typeof error.error === 'object' &&
+          'component' in error.error &&
+          'code' in error.error &&
+          'message' in error.error &&
+          'retriable' in error.error;
+
+        if (isApiError) {
+          reject(error);
+        } else {
+          reject(
+            error instanceof Error ? error : new Error('Failed to generate streaming response'),
+          );
+        }
       });
   });
 
