@@ -118,7 +118,7 @@ const FeatureStoreDataSourcesTableRow: React.FC<FeatureStoreDataSourcesTableRowT
         <FeatureStoreTimestamp date={dataSource.meta.createdTimestamp} />,
         'data-source-created',
       )}
-      {renderTableCell('Owner', dataSource.owner ?? '-', 'data-source-owner')}
+      {renderTableCell('Owner', dataSource.owner?.trim() || '--', 'data-source-owner')}
     </Tr>
   );
 };

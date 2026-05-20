@@ -26,6 +26,43 @@ export type BaseFeatureStoreToolbarProps = {
 
 export type FeatureStoreToolbarProps = BaseFeatureStoreToolbarProps & Partial<TagFilterProps>;
 
+/** Placeholder for filters */
+export function getSearchFilterPlaceholder(
+  filterKey: string,
+  filterOptions: Record<string, string>,
+  explicitPlaceholder?: string,
+): string {
+  if (explicitPlaceholder) {
+    return explicitPlaceholder;
+  }
+  const label = filterOptions[filterKey];
+  if (filterKey === 'tags') {
+    return `Filter by tag`;
+  }
+  if (!label) {
+    return `Filter by ${filterKey}`;
+  }
+  const labelLower = label.toLowerCase();
+  const excludedKeys = new Set([
+    'owner',
+    'type',
+    'created',
+    'updated',
+    'tag',
+    'storeType',
+    'valueType',
+    'joinKey',
+  ]);
+  if (excludedKeys.has(filterKey)) {
+    return `Filter by ${labelLower}`;
+  }
+  // Labels that already end with " name" (e.g. "Entity name") must not append another " name".
+  if (labelLower.endsWith(' name')) {
+    return `Filter by ${labelLower}`;
+  }
+  return `Filter by ${labelLower} name`;
+}
+
 const TagMultiInput: React.FC<{
   tagFilters?: string[];
   onTagFilterAdd?: (tag: string) => void;
@@ -60,7 +97,7 @@ const TagMultiInput: React.FC<{
       value={localValue}
       onChange={handleInputChange}
       onKeyDown={handleKeyDown}
-      placeholder="Filter tags or press enter to add tag"
+      placeholder="Filter by tag"
       aria-label="Search or add tag filter"
     />
   );
@@ -96,12 +133,12 @@ export function createDefaultFilterOptionRenders(
         />
       );
     } else {
-      result[key] = ({ onChange, value, ...props }) => (
+      result[key] = ({ onChange, value, placeholder, ...props }) => (
         <SearchInput
           {...props}
           value={value || ''}
           onChange={(_event, v) => onChange(v)}
-          placeholder={`Filter by ${filterOptions[key].toLowerCase()}`}
+          placeholder={getSearchFilterPlaceholder(key, filterOptions, placeholder)}
         />
       );
     }
