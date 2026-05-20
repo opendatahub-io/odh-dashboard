@@ -609,6 +609,7 @@ export type FeatureStoreTestData = {
 };
 
 export type GenAiTestData = {
+  projectNamePrefix: string;
   projectDescription: string;
   connectionName: string;
   connectionDescription: string;
