@@ -8,6 +8,8 @@ paths:
   - "**/module-federation.ts"
   - "**/useAppExtensions.ts"
   - "**/ExtensibilityContext.tsx"
+  - "**/extensions.ts"
+  - "**/extension-points.ts"
   - "**/odh/extensions.ts"
   - "**/odh/extension-points.ts"
 ---
