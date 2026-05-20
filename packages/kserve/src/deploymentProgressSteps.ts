@@ -1,5 +1,8 @@
 import React from 'react';
-import type { InferenceServiceKind, EventKind } from '@odh-dashboard/internal/k8sTypes';
+import type { InferenceServiceKind, EventKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import type {
   DeploymentProgressStep,
   DeploymentProgressStepStatus,
@@ -68,11 +71,41 @@ const stepStatus = (ready: boolean, error: boolean): DeploymentProgressStepStatu
   return 'pending';
 };
 
+const isPodReady = (pod: PodKind): boolean => {
+  const containerStatuses = pod.status?.containerStatuses ?? [];
+  return (
+    pod.status?.phase === 'Running' &&
+    containerStatuses.length > 0 &&
+    containerStatuses.every((cs) => cs.ready)
+  );
+};
+
 export const useKServeProgressSteps = (deployment: KServeDeployment): DeploymentProgressStep[] => {
   const { model: isvc } = deployment;
   const { namespace, name } = isvc.metadata;
 
   const [allEvents] = useWatchDeploymentEvents(namespace);
+
+  const [allPods] = useK8sWatchResourceList<PodKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(PodModel),
+      namespace,
+    },
+    PodModel,
+  );
+
+  const deploymentPods = React.useMemo(
+    () => allPods.filter((pod) => pod.metadata.name.startsWith(`${name}-predictor-`)),
+    [allPods, name],
+  );
+
+  const readyPodCount = React.useMemo(
+    () => deploymentPods.filter(isPodReady).length,
+    [deploymentPods],
+  );
+  const totalPodCount = deploymentPods.length;
+  const desiredReplicas = isvc.spec.predictor.minReplicas ?? 1;
 
   const podEvents = React.useMemo(
     () => filterDeploymentEvents(allEvents, name, new Set(['pod'])),
@@ -165,6 +198,19 @@ export const useKServeProgressSteps = (deployment: KServeDeployment): Deployment
     const allModelResourcesReady = modelResourcesChildren.every((s) => s.status === 'success');
     const anyModelResourceFailed = modelResourcesChildren.some((s) => s.status === 'danger');
 
+    const allReplicasReady = readyPodCount >= desiredReplicas && desiredReplicas > 0;
+    const modelResourcesReady =
+      allModelResourcesReady && (desiredReplicas <= 1 || allReplicasReady);
+    const replicaDescription = (() => {
+      if (predictorCondition?.reason === 'ProgressDeadlineExceeded') {
+        return predictorCondition.message;
+      }
+      if (desiredReplicas > 1 && totalPodCount > 0) {
+        return `${readyPodCount}/${desiredReplicas} pods ready`;
+      }
+      return undefined;
+    })();
+
     return [
       {
         id: 'deployment-requested',
@@ -175,10 +221,10 @@ export const useKServeProgressSteps = (deployment: KServeDeployment): Deployment
         id: 'model-resources',
         title: 'Model resources',
         status: stepStatus(
-          allModelResourcesReady,
+          modelResourcesReady,
           anyModelResourceFailed || Boolean(isProgressDeadlineExceeded),
         ),
-        description: isProgressDeadlineExceeded ? predictorCondition.message : undefined,
+        description: replicaDescription,
         children: modelResourcesChildren,
       },
       {
@@ -199,5 +245,5 @@ export const useKServeProgressSteps = (deployment: KServeDeployment): Deployment
         description: readyCondition?.status === 'False' ? readyCondition.message : undefined,
       },
     ];
-  }, [isvc, sortedPodEvents]);
+  }, [isvc, sortedPodEvents, readyPodCount, totalPodCount, desiredReplicas]);
 };

@@ -1,5 +1,8 @@
 import React from 'react';
-import type { EventKind } from '@odh-dashboard/internal/k8sTypes';
+import type { EventKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import { PodModel } from '@odh-dashboard/internal/api/models/k8s';
+import { groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import type {
   DeploymentProgressStep,
   DeploymentProgressStepStatus,
@@ -84,12 +87,48 @@ const stepStatus = (ready: boolean, error: boolean): DeploymentProgressStepStatu
   return 'pending';
 };
 
+const isPodReady = (pod: PodKind): boolean => {
+  const containerStatuses = pod.status?.containerStatuses ?? [];
+  return (
+    pod.status?.phase === 'Running' &&
+    containerStatuses.length > 0 &&
+    containerStatuses.every((cs) => cs.ready)
+  );
+};
+
 export const useLLMdProgressSteps = (deployment: LLMdDeployment): DeploymentProgressStep[] => {
   const llmisvc = deployment.model;
   const { namespace } = llmisvc.metadata;
   const { name } = llmisvc.metadata;
 
   const [allEvents] = useWatchDeploymentEvents(namespace);
+
+  const [allPods] = useK8sWatchResourceList<PodKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(PodModel),
+      namespace,
+    },
+    PodModel,
+  );
+
+  const modelPods = React.useMemo(
+    () =>
+      allPods.filter(
+        (pod) =>
+          pod.metadata.name.startsWith(`${name}-kserve-`) &&
+          !pod.metadata.name.includes('router-scheduler'),
+      ),
+    [allPods, name],
+  );
+  const routerPods = React.useMemo(
+    () => allPods.filter((pod) => pod.metadata.name.startsWith(`${name}-kserve-router-scheduler-`)),
+    [allPods, name],
+  );
+
+  const modelReadyCount = React.useMemo(() => modelPods.filter(isPodReady).length, [modelPods]);
+  const routerReadyCount = React.useMemo(() => routerPods.filter(isPodReady).length, [routerPods]);
+  const desiredReplicas = llmisvc.spec.replicas ?? 1;
 
   const crEvents = React.useMemo(
     () => filterDeploymentEvents(allEvents, name, new Set(['cr'])),
@@ -196,14 +235,39 @@ export const useLLMdProgressSteps = (deployment: LLMdDeployment): DeploymentProg
       },
     ];
 
+    const allModelReplicasReady = modelReadyCount >= desiredReplicas && desiredReplicas > 0;
     const allModelWorkloadReady =
-      mainWorkloadReady || modelWorkloadChildren.every((s) => s.status === 'success');
+      mainWorkloadReady ||
+      (modelWorkloadChildren.every((s) => s.status === 'success') &&
+        (desiredReplicas <= 1 || allModelReplicasReady));
     const anyModelWorkloadFailed =
       mainWorkloadFailed || modelWorkloadChildren.some((s) => s.status === 'danger');
+    const modelWorkloadDescription = (() => {
+      if (mainWorkloadCondition?.message) {
+        return desiredReplicas > 1 && modelPods.length > 0
+          ? `${modelReadyCount}/${desiredReplicas} pods ready — ${mainWorkloadCondition.message}`
+          : mainWorkloadCondition.message;
+      }
+      if (desiredReplicas > 1 && modelPods.length > 0) {
+        return `${modelReadyCount}/${desiredReplicas} pods ready`;
+      }
+      return undefined;
+    })();
 
     const routerReady = routerCondition?.status === 'True';
     const routerFailed = routerCondition?.reason === 'ProgressDeadlineExceeded';
     const anyRouterFailed = routerFailed || routerChildren.some((s) => s.status === 'danger');
+    const routerDescription = (() => {
+      if (routerCondition?.message) {
+        return routerPods.length > 1
+          ? `${routerReadyCount}/${routerPods.length} pods ready — ${routerCondition.message}`
+          : routerCondition.message;
+      }
+      if (routerPods.length > 1) {
+        return `${routerReadyCount}/${routerPods.length} pods ready`;
+      }
+      return undefined;
+    })();
 
     return [
       {
@@ -221,14 +285,14 @@ export const useLLMdProgressSteps = (deployment: LLMdDeployment): DeploymentProg
         id: 'model-workload',
         title: 'Model workload',
         status: stepStatus(allModelWorkloadReady, anyModelWorkloadFailed),
-        description: mainWorkloadCondition?.message,
+        description: modelWorkloadDescription,
         children: modelWorkloadChildren,
       },
       {
         id: 'router-scheduler',
         title: 'Router / scheduler',
         status: stepStatus(routerReady, anyRouterFailed),
-        description: routerCondition?.message,
+        description: routerDescription,
         children: [
           ...routerChildren,
           {
@@ -255,5 +319,15 @@ export const useLLMdProgressSteps = (deployment: LLMdDeployment): DeploymentProg
         description: readyCondition?.status === 'False' ? readyCondition.message : undefined,
       },
     ];
-  }, [llmisvc, crEvents, modelPodEvents, routerPodEvents]);
+  }, [
+    llmisvc,
+    crEvents,
+    modelPodEvents,
+    routerPodEvents,
+    modelPods,
+    routerPods,
+    modelReadyCount,
+    routerReadyCount,
+    desiredReplicas,
+  ]);
 };
