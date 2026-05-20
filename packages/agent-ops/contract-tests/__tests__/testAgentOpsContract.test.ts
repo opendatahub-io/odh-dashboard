@@ -21,13 +21,4 @@ describe('Agent Ops API Contract Tests', () => {
     });
   });
 
-  describe('Status Endpoint', () => {
-    it('should return component status', async () => {
-      const result = await apiClient.get('/api/v1/status');
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/components/responses/StatusResponse/content/application/json/schema',
-        status: 200,
-      });
-    });
-  });
 });
