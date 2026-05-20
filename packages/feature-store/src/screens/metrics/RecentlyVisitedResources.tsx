@@ -85,11 +85,7 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
           titleText="Error loading recently visited resources"
           variant={EmptyStateVariant.lg}
           data-testid="recently-visited-resources-error-state"
-        >
-          <EmptyStateBody>
-            Unable to load recently viewed resources. Try again later.
-          </EmptyStateBody>
-        </EmptyState>
+        />
       );
     }
 
