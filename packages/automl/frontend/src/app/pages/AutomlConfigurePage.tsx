@@ -85,6 +85,18 @@ function AutomlConfigurePage({
 
   const onCancel = useCallback(() => navigate(-1), [navigate]);
 
+  const handleBackToCreate = useCallback(() => {
+    const createFieldSet = new Set<string>(createFields);
+    type DefaultKey = keyof typeof configureSchema.defaults;
+    const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
+    for (const key of Object.keys(configureSchema.defaults)) {
+      if (!createFieldSet.has(key) && isDefaultKey(key)) {
+        form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
+      }
+    }
+    setStep('create');
+  }, [form]);
+
   const createActions = (
     <>
       <ActionListItem>
@@ -118,12 +130,7 @@ function AutomlConfigurePage({
         </Button>
       </ActionListItem>
       <ActionListItem>
-        <Button
-          variant="link"
-          onClick={() => {
-            setStep('create');
-          }}
-        >
+        <Button variant="link" onClick={handleBackToCreate}>
           Back
         </Button>
       </ActionListItem>

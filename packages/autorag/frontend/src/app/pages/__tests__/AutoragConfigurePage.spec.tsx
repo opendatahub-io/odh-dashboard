@@ -556,6 +556,38 @@ describe('AutoragConfigurePage', () => {
       expect(nameInput).toHaveValue('Preserved Name');
       expect(descriptionInput).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      await user.click(selectLlsSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file or folder' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      await user.click(selectLlsSecretButton);
+      await user.click(nextButton);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file or folder' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+    });
   });
 
   describe('Configure step - Create run', () => {

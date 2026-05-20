@@ -88,6 +88,18 @@ function AutoragConfigurePage({
 
   const onCancel = useCallback(() => navigate(-1), [navigate]);
 
+  const handleBackToCreate = useCallback(() => {
+    const createFieldSet = new Set<string>(createFields);
+    type DefaultKey = keyof typeof configureSchema.defaults;
+    const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
+    for (const key of Object.keys(configureSchema.defaults)) {
+      if (!createFieldSet.has(key) && isDefaultKey(key)) {
+        form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
+      }
+    }
+    setStep('create');
+  }, [form]);
+
   const createActions = (
     <>
       <ActionListItem>
@@ -127,9 +139,7 @@ function AutoragConfigurePage({
         <Button
           variant="link"
           isDisabled={form.formState.isSubmitting}
-          onClick={() => {
-            setStep('create');
-          }}
+          onClick={handleBackToCreate}
         >
           Back
         </Button>

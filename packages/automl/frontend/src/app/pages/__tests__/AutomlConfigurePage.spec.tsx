@@ -425,6 +425,43 @@ describe('AutomlConfigurePage', () => {
       expect(nameInputAfterBack).toHaveValue('Preserved Name');
       expect(descriptionInputAfterBack).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file from bucket' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      const nextButtonAgain = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButtonAgain).toBeEnabled();
+      });
+      await user.click(nextButtonAgain);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Configure step - Create run', () => {
