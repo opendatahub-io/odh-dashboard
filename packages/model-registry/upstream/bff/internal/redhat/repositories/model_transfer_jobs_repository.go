@@ -50,7 +50,7 @@ func (r *ProjectScopedJobsRepository) CreateScopedClient(
 ) (k8s.KubernetesClientInterface, error) {
 	namespaces, err := r.listOpenShiftProjects(ctx, client, bearerToken)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrProjectsAPIUnavailable, err)
+		return nil, err
 	}
 
 	cfg, err := restConfigForClient(client)
@@ -167,12 +167,12 @@ func (r *ProjectScopedJobsRepository) listOpenShiftProjects(ctx context.Context,
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrProjectsAPIUnavailable, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("projects API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("%w: status %d", ErrProjectsAPIUnavailable, resp.StatusCode)
 	}
 
 	var projectList projectListResponse
