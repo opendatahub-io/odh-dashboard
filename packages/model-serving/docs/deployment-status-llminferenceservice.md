@@ -7,39 +7,40 @@
 ```
 1. Deployment requested
 2. Resources created
-   ├── Secrets & service accounts ← Created events on LLMISVC
-   ├── Services                   ← Created events on LLMISVC
-   ├── Inference pool             ← Created events on LLMISVC
-   └── HTTP route                 ← Created events on LLMISVC
+   ├── (dynamic sub-steps from Created events)
 3. Model workload
-   ├── Pod scheduled              ← Pod event for <name>-kserve-* pod
-   ├── Model downloaded           ← storage-initializer completed
-   └── Model server started       ← main container running
+   ├── Pod scheduled
+   ├── Model downloaded
+   └── Model server started
 4. Router / scheduler
-   ├── Pod scheduled              ← Pod event for <name>-kserve-router-scheduler-* pod
-   ├── Tokenizer ready            ← tokenizer container running
-   └── Scheduler started          ← main container running
-5. Presets combined               ← condition PresetsCombined: True
-6. Deployment ready               ← condition Ready: True
+   ├── Pod scheduled
+   ├── Tokenizer ready
+   ├── Scheduler started
+   ├── HTTP routes ready
+   └── Inference pool ready
+5. Presets combined
+6. Deployment ready
 ```
 
-| Step | Signal source |
-|------|---------------|
-| Deployment requested | LLMISVC exists and not stopped |
-| Resources created | LLMISVC events `reason=Created` (one per child resource) |
-| Model workload | Condition `MainWorkloadReady: True` |
-| Router / scheduler | Conditions `SchedulerWorkloadReady: True` + `HTTPRoutesReady: True` + `InferencePoolReady: True` |
-| Presets combined | `status.conditions[PresetsCombined].status = True` |
-| Deployment ready | `status.conditions[Ready].status = True` |
+Steps 3 and 4 progress independently — the model workload may be ready while the router is still starting, or vice versa.
 
-**Error steps** (shown only when relevant):
-- Pod scheduling failed → replaces "Pod scheduled" in either workload section
-- Model server crashed → replaces "Model server started" (model pod `BackOff`/`Unhealthy`)
-- Scheduler crashed → replaces "Scheduler started" (router pod `BackOff`)
-- Progress deadline exceeded → timeout on model workload or router (Deployment `reason=ProgressDeadlineExceeded`)
-- Gateway not ready → replaces "HTTP route" (`GatewaysNotReady`)
-
-**Note:** Steps 3 and 4 can progress independently — the model workload may be ready while the router is still starting, or vice versa.
+| Step | Sub-step | Success signal | Error signal | Fallback (events expired) |
+|------|----------|---------------|-------------|--------------------------|
+| **Deployment requested** | | LLMISVC exists, `stop` annotation absent | — | Always derivable |
+| **Resources created** | | LLMISVC events `reason=Created` exist, or any `status.conditions` present | — | `status.conditions` length > 0 → resources were created |
+| | *(dynamic)* | One sub-step per LLMISVC event `reason=Created`; title = `event.message` (e.g. `"Created v1.Deployment emily/llmd-cpu-kserve"`) | — | Events expire; parent still shows success from conditions |
+| **Model workload** | | All children green, or `MainWorkloadReady: True` | Any child red, or `MainWorkloadReady.reason = ProgressDeadlineExceeded\|MinimumReplicasUnavailable`; description from `MainWorkloadReady.message` | `MainWorkloadReady: True` → all children green |
+| | Pod scheduled | Model pod event `reason=Scheduled` (pod name matches `<name>-kserve-*`, excludes `router-scheduler`) | Model pod event `reason=FailedScheduling` | `MainWorkloadReady: True` |
+| | Model downloaded | Model pod event `reason=Started` where `message` contains `storage-initializer` | — | `MainWorkloadReady: True` |
+| | Model server started | Model pod event `reason=Started` where `message` contains `main` | Model pod event `reason=BackOff\|Unhealthy` where `message` contains `main` | `MainWorkloadReady: True` |
+| **Router / scheduler** | | All children green, or `RouterReady: True` | Any child red, or `RouterReady.reason = ProgressDeadlineExceeded`; description from `RouterReady.message` | `RouterReady: True` → all children green |
+| | Pod scheduled | Router pod event `reason=Scheduled` (pod name matches `<name>-kserve-router-scheduler-*`) | Router pod event `reason=FailedScheduling` | `RouterReady: True` |
+| | Tokenizer ready | Router pod event `reason=Started` where `message` contains `tokenizer` | — | `RouterReady: True` |
+| | Scheduler started | Router pod event `reason=Started` where `message` contains `main` | Router pod event `reason=BackOff\|Unhealthy` where `message` contains `main` | `RouterReady: True` |
+| | HTTP routes ready | `status.conditions[HTTPRoutesReady].status = "True"` | `HTTPRoutesReady.status = "False"` | Always derivable from LLMISVC status |
+| | Inference pool ready | `status.conditions[InferencePoolReady].status = "True"` | `InferencePoolReady.status = "False"` | Always derivable from LLMISVC status |
+| **Presets combined** | | `status.conditions[PresetsCombined].status = "True"` | `PresetsCombined.status = "False"` | Always derivable from LLMISVC status |
+| **Deployment ready** | | `status.conditions[Ready].status = "True"` | `Ready.status = "False"` and not stopped; description from `Ready.message` | Always derivable from LLMISVC status |
 
 ---
 

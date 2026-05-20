@@ -8,35 +8,34 @@
 ```
 1. Deployment requested
 2. NIM provisioning
-   ├── Cache PVC created          ← NIMService condition NIM_CACHE_PVC_CREATED: True
-   └── InferenceService created   ← child ISVC exists in namespace
+   ├── Cache PVC created
+   └── InferenceService created
 3. Model resources
-   ├── Pod scheduled              ← Pod event on child ISVC pod
-   ├── Model downloaded           ← storage-initializer completed
-   ├── Model server started       ← kserve-container running
-   └── Auth proxy started         ← kube-rbac-proxy running
-4. Model loaded                   ← child ISVC modelStatus.activeModelState = Loaded
-5. Ingress ready                  ← child ISVC condition IngressReady: True
-6. Deployment ready               ← NIMService condition Ready: True
+   ├── Pod scheduled
+   ├── Model downloaded
+   ├── Model server started
+   └── Auth proxy started
+4. Model loaded
+5. Ingress ready
+6. Deployment ready
 ```
 
-| Step | Signal source |
-|------|---------------|
-| Deployment requested | NIMService exists |
-| Cache PVC created | `status.conditions[NIM_CACHE_PVC_CREATED].status = True` (may be absent if PVC is user-provided) |
-| InferenceService created | Child ISVC with same name exists in namespace |
-| Model resources | Same Pod events as InferenceService (via child ISVC pods) |
-| Model loaded | Child ISVC `status.modelStatus.states.activeModelState = Loaded` |
-| Ingress ready | Child ISVC `status.conditions[IngressReady].status = True` |
-| Deployment ready | NIMService `status.conditions[Ready].status = True` |
+Step 2 is unique to NIM — the operator must provision the PVC and InferenceService before the standard KServe Pod lifecycle begins. Steps 3–5 are identical to InferenceService, sourced from the child ISVC.
 
-**Error steps** (shown only when relevant):
-- PVC creation failed → replaces "Cache PVC created"
-- InferenceService failed → NIMService event `reason=Failed` with message
-- Pod scheduling failed → same as InferenceService
-- Model download/server failures → same as InferenceService (via child ISVC)
-
-**Note:** Step 2 is unique to NIM — the operator must provision the PVC and InferenceService before the standard KServe Pod lifecycle begins. Steps 3–5 are identical to InferenceService, sourced from the child ISVC.
+| Step | Sub-step | Success signal | Error signal | Fallback (events expired) |
+|------|----------|---------------|-------------|--------------------------|
+| **Deployment requested** | | NIMService exists | — | Always derivable |
+| **NIM provisioning** | | Both children green | Either child red | Always derivable from NIMService/ISVC status |
+| | Cache PVC created | NIMService `status.conditions[NIM_CACHE_PVC_CREATED].status = "True"` | `NIM_CACHE_PVC_CREATED.status = "False"` | May be absent if PVC is user-provided (skip step) |
+| | InferenceService created | Child ISVC with same name exists in namespace | NIMService event `reason=Failed` | Watch for child ISVC resource existence |
+| **Model resources** | | All children green | Any child red, or child ISVC `PredictorReady.reason = ProgressDeadlineExceeded` | Child ISVC `PredictorReady: True` → all children green |
+| | Pod scheduled | Pod event `reason=Scheduled` on child ISVC pod | Pod event `reason=FailedScheduling` | Child ISVC `PredictorReady: True` or `modelStatus = Loaded` |
+| | Model downloaded | Pod event `reason=Started` where `message` contains `storage-initializer` | Pod event `reason=BackOff` where `message` contains `storage-initializer` | Child ISVC `PredictorReady: True` or `modelStatus = Loaded` |
+| | Model server started | Pod event `reason=Started` where `message` contains `kserve-container` | Pod event `reason=BackOff\|Unhealthy` where `message` contains `kserve-container`; also child ISVC `modelStatus.lastFailureInfo.message` | Child ISVC `PredictorReady: True` or `modelStatus = Loaded` |
+| | Auth proxy started | Pod event `reason=Started` where `message` contains `kube-rbac-proxy` or `oauth-proxy` | — | Child ISVC `PredictorReady: True` or `modelStatus = Loaded` |
+| **Model loaded** | | Child ISVC `status.modelStatus.states.activeModelState = "Loaded"` | `targetModelState = "FailedToLoad"`; description from `lastFailureInfo.reason` | Always derivable from child ISVC status |
+| **Ingress ready** | | Child ISVC `status.conditions[IngressReady].status = "True"` | — | Always derivable from child ISVC status |
+| **Deployment ready** | | NIMService `status.conditions[Ready].status = "True"` | `Ready.status = "False"`; description from NIMService event `reason=NotReady\|Failed` | Always derivable from NIMService status |
 
 ---
 

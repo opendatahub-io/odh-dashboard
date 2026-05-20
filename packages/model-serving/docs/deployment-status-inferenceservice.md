@@ -8,30 +8,25 @@
 1. Deployment requested
 2. Model resources
    ├── Pod scheduled
-   ├── Model downloaded          ← storage-initializer completed
-   ├── Model server started      ← kserve-container running
-   └── Auth proxy started        ← kube-rbac-proxy running
-3. Model loaded                  ← modelStatus.activeModelState = Loaded
-4. Ingress ready                 ← condition IngressReady: True
-5. Deployment ready              ← condition Ready: True
+   ├── Model downloaded
+   ├── Model server started
+   └── Auth proxy started
+3. Model loaded
+4. Ingress ready
+5. Deployment ready
 ```
 
-| Step | Signal source |
-|------|---------------|
-| Deployment requested | ISVC exists and not stopped |
-| Pod scheduled | Pod event `reason=Scheduled` |
-| Model downloaded | storage-initializer init container completed (Pod event `reason=Started`) |
-| Model server started | Pod event `reason=Started` for `kserve-container` |
-| Auth proxy started | Pod event `reason=Started` for `kube-rbac-proxy` |
-| Model loaded | `status.modelStatus.states.activeModelState = Loaded` |
-| Ingress ready | `status.conditions[IngressReady].status = True` |
-| Deployment ready | `status.conditions[Ready].status = True` |
-
-**Error steps** (shown only when relevant):
-- Pod scheduling failed → replaces "Pod scheduled" (Pod condition `reason=Unschedulable`)
-- Model download failed → replaces "Model downloaded" (storage-initializer `CrashLoopBackOff`)
-- Model server crashed → replaces "Model server started" (`modelStatus.lastFailureInfo`)
-- Progress deadline exceeded → timeout error after "Model resources" (Deployment `reason=ProgressDeadlineExceeded`)
+| Step | Sub-step | Success signal | Error signal | Fallback (events expired) |
+|------|----------|---------------|-------------|--------------------------|
+| **Deployment requested** | | ISVC exists, `stop` annotation absent | — | Always derivable |
+| **Model resources** | | All children green | Any child red, or `PredictorReady.reason = ProgressDeadlineExceeded` | `PredictorReady: True` → all children green |
+| | Pod scheduled | Pod event `reason=Scheduled` | Pod event `reason=FailedScheduling` | `PredictorReady: True` or `modelStatus = Loaded` |
+| | Model downloaded | Pod event `reason=Started` where `message` contains `storage-initializer` | Pod event `reason=BackOff` where `message` contains `storage-initializer` | `PredictorReady: True` or `modelStatus = Loaded` |
+| | Model server started | Pod event `reason=Started` where `message` contains `kserve-container` | Pod event `reason=BackOff\|Unhealthy` where `message` contains `kserve-container`; also `modelStatus.lastFailureInfo.message` | `PredictorReady: True` or `modelStatus = Loaded` |
+| | Auth proxy started | Pod event `reason=Started` where `message` contains `kube-rbac-proxy` or `oauth-proxy` | — | `PredictorReady: True` or `modelStatus = Loaded` |
+| **Model loaded** | | `status.modelStatus.states.activeModelState = "Loaded"` or `targetModelState = "Loaded"` | `targetModelState = "FailedToLoad"`; description from `lastFailureInfo.reason` | Always derivable from ISVC status |
+| **Ingress ready** | | `status.conditions[IngressReady].status = "True"` | — | Always derivable from ISVC status |
+| **Deployment ready** | | `status.conditions[Ready].status = "True"` | `Ready.status = "False"` and not stopped; description from `Ready.message` | Always derivable from ISVC status |
 
 ---
 
