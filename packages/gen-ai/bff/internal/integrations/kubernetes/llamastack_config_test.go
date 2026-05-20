@@ -1106,6 +1106,19 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 		require.NotNil(t, foundModel, "Model should be found in parsed config")
 		assert.NotNil(t, foundModel.MaxTokens, "MaxTokens should be set")
 		assert.Equal(t, 8192, *foundModel.MaxTokens)
+
+		// Verify provider-level max_tokens also uses the user value
+		var foundProvider *Provider
+		for i := range parsedConfig.Providers.Inference {
+			if parsedConfig.Providers.Inference[i].ProviderID == "test-provider" {
+				foundProvider = &parsedConfig.Providers.Inference[i]
+				break
+			}
+		}
+		require.NotNil(t, foundProvider, "Provider should be found in parsed config")
+		providerMaxTokens, ok := foundProvider.Config["max_tokens"]
+		require.True(t, ok, "Provider config should contain max_tokens")
+		assert.Equal(t, 8192, providerMaxTokens)
 	})
 
 	t.Run("should not include max_tokens in model configuration when not provided", func(t *testing.T) {
@@ -1114,6 +1127,9 @@ func TestAddVLLMProviderAndModel_WithMaxTokens(t *testing.T) {
 
 		yamlStr, err := config.ToYAML()
 		require.NoError(t, err)
+
+		// Verify provider-level falls back to env var template
+		assert.Contains(t, yamlStr, "${env.VLLM_MAX_TOKENS:=4096}")
 
 		// Parse back and verify
 		var parsedConfig LlamaStackConfig
