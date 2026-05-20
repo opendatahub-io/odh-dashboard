@@ -564,8 +564,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -580,7 +580,7 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      await user.click(selectLlsSecretButton);
+      await user.click(selectOgxSecretButton);
       await user.click(nextButton);
 
       expect(
@@ -602,8 +602,8 @@ describe('AutoragConfigurePage', () => {
       await user.type(nameInput, 'Test Experiment');
 
       // Select Open GenAI Stack secret
-      const selectLlsSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -655,8 +655,8 @@ describe('AutoragConfigurePage', () => {
       await user.type(nameInput, 'Test Experiment');
 
       // Select Open GenAI Stack secret
-      const selectLlsSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -700,8 +700,8 @@ describe('AutoragConfigurePage', () => {
       await user.type(nameInput, 'Test Experiment');
 
       // Select Open GenAI Stack secret
-      const selectLlsSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -746,8 +746,8 @@ describe('AutoragConfigurePage', () => {
       await user.type(nameInput, 'Test Experiment');
 
       // Select Open GenAI Stack secret
-      const selectLlsSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -788,8 +788,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Upload Immediate Test');
 
-      const selectLlsSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
