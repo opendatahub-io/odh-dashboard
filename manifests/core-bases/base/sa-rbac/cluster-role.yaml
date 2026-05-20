@@ -216,13 +216,13 @@ rules:
     resources:
       - auths
   - apiGroups:
-      - llamastack.io
+      - ogx.io
     verbs:
       - get
       - list
       - watch
     resources:
-      - llamastackdistributions
+      - ogxservers
   - apiGroups:
       - trustyai.opendatahub.io
     verbs:
