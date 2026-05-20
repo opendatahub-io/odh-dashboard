@@ -6,8 +6,8 @@ import {
   NotificationContextProvider,
   BrowserStorageContextProvider,
 } from 'mod-arch-core';
-import { URL_PREFIX } from '~/app/utilities/const';
-import MainPage from '~/app/pages/MainPage';
+import { URL_PREFIX } from '../app/utilities/const';
+import MainPage from '../app/pages/MainPage';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
