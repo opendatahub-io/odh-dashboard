@@ -90,7 +90,7 @@ class ModelRegistry {
     return cy.findByTestId('empty-model-registries-state');
   }
 
-  findUnavailableModelRegistry() {
+  findUnavailableModelRegistryState() {
     return cy.findByTestId('unavailable-model-registry');
   }
 

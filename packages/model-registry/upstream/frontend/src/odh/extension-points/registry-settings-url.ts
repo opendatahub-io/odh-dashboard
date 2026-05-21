@@ -1,4 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { createExtensionGuard } from '@odh-dashboard/plugin-core/extension-points';
 
 /**
  * Extension point for providing the model registry settings URL.
@@ -19,6 +20,6 @@ export type RegistrySettingsUrlExtension = Extension<
   }
 >;
 
-export const isRegistrySettingsUrlExtension = (
-  extension: Extension,
-): extension is RegistrySettingsUrlExtension => extension.type === 'model-registry.settings/url';
+export const isRegistrySettingsUrlExtension = createExtensionGuard<RegistrySettingsUrlExtension>(
+  'model-registry.settings/url',
+);

@@ -1,61 +1,14 @@
 import * as React from 'react';
-import { CogIcon, ExclamationCircleIcon } from '@patternfly/react-icons';
+import { CogIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
-import {
-  Bullseye,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
-  EmptyStateActions,
-  EmptyStateVariant,
-  PageSection,
-} from '@patternfly/react-core';
+import { Bullseye } from '@patternfly/react-core';
 import { ProjectObjectType, typedEmptyImage, WhosMyAdministrator } from 'mod-arch-shared';
 import { useResolvedExtensions, useExtensions } from '@odh-dashboard/plugin-core';
 import EmptyModelRegistryState from '~/app/pages/modelRegistry/screens/components/EmptyModelRegistryState';
 import ModelRegistryCoreLoader from '~/app/pages/modelRegistry/ModelRegistryCoreLoader';
 import { isAdminCheckExtension, isRegistrySettingsUrlExtension } from '~/odh/extension-points';
 import { REGISTRY_SETTINGS_PAGE_TITLE, REGISTRY_SETTINGS_URL } from '~/odh/const';
-
-type OdhUnavailableModelRegistryProps = {
-  registryDisplayName: string;
-  isAdmin: boolean;
-  settingsUrl: string;
-  settingsTitle: string;
-};
-
-const OdhUnavailableModelRegistry: React.FC<OdhUnavailableModelRegistryProps> = ({
-  registryDisplayName,
-  isAdmin,
-  settingsUrl,
-  settingsTitle,
-}) => (
-  <PageSection hasBodyWrapper={false} isFilled data-testid="unavailable-model-registry">
-    <EmptyState
-      headingLevel="h1"
-      icon={ExclamationCircleIcon}
-      titleText="Model registry unavailable"
-      variant={EmptyStateVariant.lg}
-    >
-      <EmptyStateBody>
-        {isAdmin
-          ? `The ${registryDisplayName} registry is currently unavailable. Check the registry configuration in settings to troubleshoot the issue.`
-          : `The ${registryDisplayName} registry is currently unavailable. It might still be starting up, or there might be a configuration error. Wait a few minutes and try again. If the problem persists, contact your administrator.`}
-      </EmptyStateBody>
-      <EmptyStateFooter>
-        <EmptyStateActions>
-          {isAdmin ? (
-            <Link to={settingsUrl} data-testid="registry-settings-link">
-              Go to <b>{settingsTitle}</b>
-            </Link>
-          ) : (
-            <WhosMyAdministrator linkTestId="whos-my-admin-link" />
-          )}
-        </EmptyStateActions>
-      </EmptyStateFooter>
-    </EmptyState>
-  </PageSection>
-);
+import OdhUnavailableModelRegistry from './OdhUnavailableModelRegistry';
 
 type OdhModelRegistryCoreLoaderProps = {
   getInvalidRedirectPath: (modelRegistry: string) => string;
@@ -71,17 +24,16 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
   const [adminCheckExtensions, adminCheckExtensionsLoaded] =
     useResolvedExtensions(isAdminCheckExtension);
   const registrySettingsUrlExtensions = useExtensions(isRegistrySettingsUrlExtension);
-
   const settingsUrl =
     registrySettingsUrlExtensions.length > 0
       ? registrySettingsUrlExtensions[0].properties.url
       : REGISTRY_SETTINGS_URL;
-
   const settingsTitle =
     registrySettingsUrlExtensions.length > 0
       ? registrySettingsUrlExtensions[0].properties.title
       : REGISTRY_SETTINGS_PAGE_TITLE;
 
+  // Create the ODH-specific empty state based on admin status
   const createEmptyStatePage = (isAdmin: boolean) => {
     const adminTitle = 'Create a model registry';
     const adminDescription =
@@ -128,6 +80,7 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     return renderUnavailablePage;
   };
 
+  // If an admin check extension is provided and loaded, use it
   if (adminCheckExtensionsLoaded && adminCheckExtensions.length > 0) {
     const AdminCheckComponent = adminCheckExtensions[0].properties.component.default;
     return (
@@ -148,6 +101,7 @@ const OdhModelRegistryCoreLoader: React.FC<OdhModelRegistryCoreLoaderProps> = ({
     );
   }
 
+  // Fallback: no admin check extension, default to non-admin view
   return (
     <ModelRegistryCoreLoader
       getInvalidRedirectPath={getInvalidRedirectPath}
