@@ -235,6 +235,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
+    ...(backendResponse.metrics?.trace_id && { traceId: backendResponse.metrics.trace_id }),
   };
 };
 
@@ -410,6 +411,7 @@ const streamCreateResponse = (
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(metricsData?.trace_id && { traceId: metricsData.trace_id }),
         });
       })
       .catch((error) => {

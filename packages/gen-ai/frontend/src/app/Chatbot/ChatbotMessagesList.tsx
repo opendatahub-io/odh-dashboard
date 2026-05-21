@@ -1,4 +1,6 @@
 import React from 'react';
+import { Button, Tooltip } from '@patternfly/react-core';
+import { SearchIcon } from '@patternfly/react-icons';
 import { Message } from '@patternfly/chatbot';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
@@ -13,6 +15,7 @@ type ChatbotMessagesListProps = {
   modelDisplayName?: string;
   /** Shown as a bot message when the conversation is empty and not loading */
   placeholderContent?: string;
+  onViewTrace?: (traceId: string) => void;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -22,6 +25,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isStreamingWithoutContent = false,
   modelDisplayName = 'Bot',
   placeholderContent,
+  onViewTrace,
 }) => {
   // Show loading dots only for non-streaming requests
   // During streaming, loading dots are handled within the bot message itself
@@ -41,8 +45,8 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         />
       )}
       {messageList.map((message, index) => {
-        // Destructure metrics from message to avoid passing it to PatternFly Message component
-        const { metrics, ...messageProps } = message;
+        // Destructure custom fields to avoid passing them to PatternFly Message component
+        const { metrics, traceId, ...messageProps } = message;
 
         // Build extraContent with metrics if present (for bot messages)
         const extraContent =
@@ -50,11 +54,38 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
             ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
             : undefined;
 
+        // Add "View Trace" action button for bot messages with a trace ID
+        const traceAction =
+          message.role === 'bot' && traceId && onViewTrace ? (
+            <Tooltip content="View trace in MLflow">
+              <Button
+                variant="plain"
+                aria-label="View trace"
+                data-testid="view-trace-button"
+                onClick={() => onViewTrace(traceId)}
+                size="sm"
+              >
+                <SearchIcon />
+              </Button>
+            </Tooltip>
+          ) : undefined;
+
+        const actionsContent = traceAction
+          ? {
+              endContent: (
+                <>
+                  {extraContent?.endContent}
+                  {traceAction}
+                </>
+              ),
+            }
+          : extraContent;
+
         return (
           <React.Fragment key={message.id}>
             <Message
               {...messageProps}
-              extraContent={extraContent}
+              extraContent={actionsContent}
               data-testid={`chatbot-message-${message.role}`}
             />
             {index === messageList.length - 1 && <div ref={scrollRef} />}

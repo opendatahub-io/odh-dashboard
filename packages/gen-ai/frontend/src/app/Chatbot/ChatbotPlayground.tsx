@@ -35,6 +35,7 @@ import ViewCodeModal from './components/ViewCodeModal';
 import ChatModal from './components/ChatModal';
 import ChatbotPane from './ChatbotPane';
 import CloseChatCompareModal from './components/CloseChatCompareModal';
+import TraceDrawerPanel from './components/TraceDrawerPanel';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
@@ -154,6 +155,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   // UI state — can be controlled externally (e.g. from header Settings button)
   const [isDrawerExpandedInternal, setIsDrawerExpandedInternal] = React.useState(true);
   const [pendingCloseConfigId, setPendingCloseConfigId] = React.useState<string | null>(null);
+  const [selectedTraceId, setSelectedTraceId] = React.useState<string | null>(null);
   const isDrawerExpanded = isDrawerExpandedProp ?? isDrawerExpandedInternal;
   const setIsDrawerExpanded = setIsDrawerExpandedProp ?? setIsDrawerExpandedInternal;
 
@@ -407,6 +409,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
+          onViewTrace={setSelectedTraceId}
         />
       </ChatbotContent>
     </Chatbot>
@@ -468,71 +471,87 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }
         >
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-              {/* Single mode header */}
-              {!isCompareMode && (
-                <ChatbotPaneHeader
-                  selectedModel={primarySelectedModel || ''}
-                  onModelChange={setSelectedModel}
-                  metrics={metricsStates.get(primaryConfigId)}
-                  isLoading={loadingStates.get(primaryConfigId)}
-                  hasDivider
-                  isDarkMode={isDarkMode}
-                />
-              )}
-
-              {/* Chat panes */}
-              <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                {configIds.map((configId, index) => (
-                  <React.Fragment key={configId}>
-                    {isCompareMode && index > 0 && (
-                      <Divider orientation={{ default: 'vertical' }} />
-                    )}
-                    <div
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {isCompareMode ? (
-                        <ComparePaneWrapper
-                          configId={configId}
-                          displayLabel={getConfigDisplayLabel(index)}
-                          onModelChange={handleModelChange(configId)}
-                          onClose={() => setPendingCloseConfigId(configId)}
-                          metrics={metricsStates.get(configId)}
-                          isLoading={loadingStates.get(configId)}
-                          isSettingsOpen={isDrawerExpanded}
-                          isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
-                        >
-                          {renderChatbotContent(configId, index)}
-                        </ComparePaneWrapper>
-                      ) : (
-                        renderChatbotContent(configId, index)
-                      )}
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
-
-              {/* Message input */}
-              <ChatbotMessageInput
-                onSendMessage={handleSendMessage}
-                onStopStreaming={handleStopStreaming}
-                isLoading={Array.from(loadingStates.values()).some(Boolean)}
-                isSendDisabled={
-                  !modelsLoaded ||
-                  !primarySelectedModel ||
-                  Array.from(disabledStates.values()).some(Boolean)
+            <Drawer isExpanded={!!selectedTraceId} isInline position="right">
+              <DrawerContent
+                panelContent={
+                  selectedTraceId && namespace?.name ? (
+                    <TraceDrawerPanel
+                      traceId={selectedTraceId}
+                      namespace={namespace.name}
+                      onClose={() => setSelectedTraceId(null)}
+                    />
+                  ) : undefined
                 }
-                showAttachButton={!isCompareMode}
-                onAttach={handleAttach}
-                onShowErrorAlert={alertManagement.onShowErrorAlert}
-                isDarkMode={isDarkMode}
-              />
-            </div>
+              >
+                <DrawerContentBody style={{ padding: 0, height: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    {/* Single mode header */}
+                    {!isCompareMode && (
+                      <ChatbotPaneHeader
+                        selectedModel={primarySelectedModel || ''}
+                        onModelChange={setSelectedModel}
+                        metrics={metricsStates.get(primaryConfigId)}
+                        isLoading={loadingStates.get(primaryConfigId)}
+                        hasDivider
+                        isDarkMode={isDarkMode}
+                      />
+                    )}
+
+                    {/* Chat panes */}
+                    <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+                      {configIds.map((configId, index) => (
+                        <React.Fragment key={configId}>
+                          {isCompareMode && index > 0 && (
+                            <Divider orientation={{ default: 'vertical' }} />
+                          )}
+                          <div
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {isCompareMode ? (
+                              <ComparePaneWrapper
+                                configId={configId}
+                                displayLabel={getConfigDisplayLabel(index)}
+                                onModelChange={handleModelChange(configId)}
+                                onClose={() => setPendingCloseConfigId(configId)}
+                                metrics={metricsStates.get(configId)}
+                                isLoading={loadingStates.get(configId)}
+                                isSettingsOpen={isDrawerExpanded}
+                                isActiveConfig={isDrawerExpanded && configId === activePaneConfigId}
+                              >
+                                {renderChatbotContent(configId, index)}
+                              </ComparePaneWrapper>
+                            ) : (
+                              renderChatbotContent(configId, index)
+                            )}
+                          </div>
+                        </React.Fragment>
+                      ))}
+                    </div>
+
+                    {/* Message input */}
+                    <ChatbotMessageInput
+                      onSendMessage={handleSendMessage}
+                      onStopStreaming={handleStopStreaming}
+                      isLoading={Array.from(loadingStates.values()).some(Boolean)}
+                      isSendDisabled={
+                        !modelsLoaded ||
+                        !primarySelectedModel ||
+                        Array.from(disabledStates.values()).some(Boolean)
+                      }
+                      showAttachButton={!isCompareMode}
+                      onAttach={handleAttach}
+                      onShowErrorAlert={alertManagement.onShowErrorAlert}
+                      isDarkMode={isDarkMode}
+                    />
+                  </div>
+                </DrawerContentBody>
+              </DrawerContent>
+            </Drawer>
           </DrawerContentBody>
         </DrawerContent>
       </Drawer>

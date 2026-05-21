@@ -107,6 +107,7 @@ type ResponseMetrics struct {
 	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
 	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
 	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+	TraceID            string     `json:"trace_id,omitempty"`               // OTel trace ID for MLflow trace lookup
 }
 
 // UsageData contains token usage information from LlamaStack
@@ -540,6 +541,9 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			Usage:              usage,
 		},
 	}
+	if span := trace.SpanFromContext(ctx); span.SpanContext().HasTraceID() {
+		metricsEvent.Metrics.TraceID = span.SpanContext().TraceID().String()
+	}
 	eventData, err := json.Marshal(metricsEvent)
 	if err != nil {
 		app.logger.Error("failed to marshal metrics event", "error", err)
@@ -598,6 +602,9 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+	}
+	if span := trace.SpanFromContext(ctx); span.SpanContext().HasTraceID() {
+		responseData.Metrics.TraceID = span.SpanContext().TraceID().String()
 	}
 
 	// Set output on the BFF root span for MLflow trace display
