@@ -38,7 +38,19 @@
   },
   "dependencies": {
     "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@patternfly/chatbot": "^6.5.0",
+    "@patternfly/patternfly": "^6.5.0",
+    "@patternfly/quickstarts": "^6.5.0",
+    "@patternfly/react-catalog-view-extension": "^6.4.0",
+    "@patternfly/react-charts": "^8.5.0",
+    "@patternfly/react-code-editor": "^6.5.0",
+    "@patternfly/react-core": "^6.5.0",
+    "@patternfly/react-drag-drop": "^6.5.0",
+    "@patternfly/react-log-viewer": "^6.4.0",
+    "@patternfly/react-table": "^6.5.0",
+    "@patternfly/react-templates": "^6.4.3",
+    "@patternfly/react-topology": "^6.5.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
