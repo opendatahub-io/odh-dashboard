@@ -1,5 +1,1 @@
-export type {
-  PlaygroundFeatureConfig,
-  ResponsesTemplate,
-  EmbeddableChatbotPlaygroundProps,
-} from './embeddable-chatbot';
+export type { ResponsesTemplate, EmbeddableChatbotPlaygroundProps } from './embeddable-chatbot';

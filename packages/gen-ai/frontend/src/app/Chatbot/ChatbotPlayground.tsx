@@ -42,7 +42,7 @@ import {
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
 } from './store';
-import { usePlaygroundFeatureConfig } from './context/PlaygroundFeatureConfigContext';
+import { useIsEmbeddedPlayground } from './context/EmbeddedMessagesContext';
 
 /**
  * Wrapper for compare mode panes that subscribes to Zustand store for reactive model updates.
@@ -122,7 +122,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
-  const featureConfig = usePlaygroundFeatureConfig();
+  const isEmbedded = useIsEmbeddedPlayground();
   const { models, modelsLoaded, aiModels, maasModels, lastInput, setLastInput } =
     React.useContext(ChatbotContext);
 
@@ -431,7 +431,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         isUploading={sourceManagement.isUploading}
         uploadProgress={sourceManagement.uploadProgress}
       />
-      {featureConfig.showViewCodeModal && (
+      {!isEmbedded && (
         <ViewCodeModal
           isOpen={isViewCodeModalOpen}
           onToggle={() => setIsViewCodeModalOpen(!isViewCodeModalOpen)}
@@ -442,7 +442,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           namespace={namespace?.name}
         />
       )}
-      {featureConfig.showNewChatModal && (
+      {!isEmbedded && (
         <ChatModal
           isOpen={isNewChatModalOpen}
           onClose={() => setIsNewChatModalOpen(false)}
@@ -457,15 +457,11 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
       )}
 
       {/* Main layout */}
-      <Drawer
-        isExpanded={isDrawerExpanded && featureConfig.showSystemInstructions}
-        isInline
-        position="left"
-      >
+      <Drawer isExpanded={isDrawerExpanded && !isEmbedded} isInline position="left">
         <Divider />
         <DrawerContent
           panelContent={
-            featureConfig.showSystemInstructions ? (
+            !isEmbedded ? (
               <ChatbotSettingsPanel
                 configId={activePaneConfigId}
                 alerts={alerts}
@@ -488,7 +484,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           <DrawerContentBody style={{ padding: 0, height: '100%' }}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
               {/* Single mode header */}
-              {!isCompareMode && featureConfig.showModelPicker && (
+              {!isCompareMode && !isEmbedded && (
                 <ChatbotPaneHeader
                   selectedModel={primarySelectedModel || ''}
                   onModelChange={setSelectedModel}
@@ -545,7 +541,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                   !primarySelectedModel ||
                   Array.from(disabledStates.values()).some(Boolean)
                 }
-                showAttachButton={!isCompareMode && featureConfig.showRagToggle}
+                showAttachButton={!isCompareMode && !isEmbedded}
                 onAttach={handleAttach}
                 onShowErrorAlert={alertManagement.onShowErrorAlert}
                 isDarkMode={isDarkMode}

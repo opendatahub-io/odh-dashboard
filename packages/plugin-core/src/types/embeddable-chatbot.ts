@@ -1,22 +1,6 @@
 import type React from 'react';
 
 /**
- * Configuration for which playground features are visible in embedded mode.
- * When used standalone (full mode), all flags default to `true`.
- * When provided via the embedded wrapper, flags default to `false`.
- */
-type PlaygroundFeatureConfig = {
-  showModelPicker?: boolean;
-  showMcpServerConfig?: boolean;
-  showRagToggle?: boolean;
-  showCompareMode?: boolean;
-  showViewCodeModal?: boolean;
-  showNewChatModal?: boolean;
-  showSystemInstructions?: boolean;
-  showGuardrailConfig?: boolean;
-};
-
-/**
  * OpenAI Responses API template structure used by AutoRAG to define
  * how queries should be sent to the OGX instance.
  */
@@ -64,11 +48,10 @@ type EmbeddableChatbotPlaygroundProps = {
   responsesTemplate: ResponsesTemplate;
   patternName?: string;
   bffBasePath: string;
-  features?: PlaygroundFeatureConfig;
   /** Custom content rendered in place of the default welcome prompt when no messages are present. */
   welcomeContent?: React.ReactNode;
   /** Custom text for the initial bot message. Pass empty string to hide it entirely. */
   placeholderBotContent?: string;
 };
 
-export type { PlaygroundFeatureConfig, ResponsesTemplate, EmbeddableChatbotPlaygroundProps };
+export type { ResponsesTemplate, EmbeddableChatbotPlaygroundProps };

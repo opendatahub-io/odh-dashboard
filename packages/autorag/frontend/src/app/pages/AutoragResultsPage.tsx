@@ -2,29 +2,9 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Button,
-  Card,
-  CardBody,
-  Content,
-  ContentVariants,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
   Drawer,
-  DrawerActions,
-  DrawerCloseButton,
   DrawerContent,
   DrawerContentBody,
-  DrawerHead,
-  DrawerPanelBody,
-  DrawerPanelContent,
-  Flex,
-  FlexItem,
-  Label,
-  MenuToggle,
-  Select,
-  SelectList,
-  SelectOption,
   Skeleton,
   Split,
   SplitItem,
@@ -39,6 +19,8 @@ import InvalidPipelineRun from '~/app/components/empty-states/InvalidPipelineRun
 import InvalidProject from '~/app/components/empty-states/InvalidProject';
 import AutoragResults from '~/app/components/run-results/AutoragResults';
 import AutoragInputParametersPanel from '~/app/components/run-results/AutoragInputParametersPanel';
+import PlaygroundDrawerPanel from '~/app/components/run-results/PlaygroundDrawerPanel';
+import type { PlaygroundPatternInfo } from '~/app/components/run-results/PlaygroundDrawerPanel';
 import StopRunModal from '~/app/components/run-results/StopRunModal';
 import { AutoragResultsContext, getAutoragContext } from '~/app/context/AutoragResultsContext';
 import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
@@ -49,23 +31,12 @@ import { useAutoragResults } from '~/app/hooks/useAutoragResults';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import {
   formatMetricName,
-  formatPatternName,
   getOptimizedMetricForRAG,
   isRunTerminatable,
   isRunRetryable,
   parseErrorStatus,
 } from '~/app/utilities/utils';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
-
-const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
-
-type PlaygroundPatternInfo = {
-  patternName: string;
-  modelId: string;
-  optimizedMetricName: string;
-  optimizedMetricValue: number | string;
-  chunkMethod: string;
-};
 
 type DrawerContentType =
   | { type: 'run-details' }
@@ -84,7 +55,6 @@ function AutoragResultsPage(): React.JSX.Element {
   const [drawerContent, setDrawerContent] = React.useState<DrawerContentType | null>(null);
   const isDrawerOpen = drawerContent !== null;
   const handleDrawerClose = React.useCallback(() => setDrawerContent(null), []);
-  const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
 
   // Close drawer on route changes
   const locationKey = location.key;
@@ -248,127 +218,15 @@ function AutoragResultsPage(): React.JSX.Element {
                 isLoading={pipelineRunPending}
               />
             ) : drawerContent?.type === 'playground' ? (
-              <DrawerPanelContent
-                defaultSize="50%"
-                minSize="400px"
-                data-testid="playground-drawer-panel"
-              >
-                <DrawerHead>
-                  <Flex
-                    justifyContent={{ default: 'justifyContentSpaceBetween' }}
-                    alignItems={{ default: 'alignItemsCenter' }}
-                  >
-                    <FlexItem>
-                      <Select
-                        isOpen={isPatternSelectOpen}
-                        onOpenChange={setIsPatternSelectOpen}
-                        onSelect={(_e, value) => {
-                          if (typeof value === 'string') {
-                            handleTryInPlayground(value);
-                          }
-                          setIsPatternSelectOpen(false);
-                        }}
-                        selected={drawerContent.patternInfo.patternName}
-                        toggle={(toggleRef) => (
-                          <MenuToggle
-                            ref={toggleRef}
-                            onClick={() => setIsPatternSelectOpen((prev) => !prev)}
-                            isExpanded={isPatternSelectOpen}
-                            variant="plainText"
-                            style={{ fontSize: 'var(--pf-t--global--font--size--heading--h2)' }}
-                            data-testid="playground-pattern-select"
-                          >
-                            {formatPatternName(drawerContent.patternInfo.patternName)}
-                          </MenuToggle>
-                        )}
-                      >
-                        <SelectList>
-                          {Object.entries(patterns)
-                            .filter(([, p]) => p.settings.responses_template)
-                            .map(([name]) => (
-                              <SelectOption key={name} value={name}>
-                                {formatPatternName(name)}
-                              </SelectOption>
-                            ))}
-                        </SelectList>
-                      </Select>
-                    </FlexItem>
-                    <FlexItem>
-                      <Label color="blue">Read-only</Label>
-                    </FlexItem>
-                  </Flex>
-                  <DrawerActions>
-                    <DrawerCloseButton
-                      onClick={handleDrawerClose}
-                      data-testid="playground-drawer-close"
-                    />
-                  </DrawerActions>
-                </DrawerHead>
-                <DrawerPanelBody
-                  hasNoPadding
-                  style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
-                >
-                  <div className="pf-v6-u-p-md" style={{ flexShrink: 0 }}>
-                    <Card isCompact>
-                      <CardBody>
-                        <DescriptionList
-                          isHorizontal
-                          isCompact
-                          columnModifier={{ default: '2Col' }}
-                        >
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Pattern</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {formatPatternName(drawerContent.patternInfo.patternName)}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Model</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {drawerContent.patternInfo.modelId}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>
-                              {drawerContent.patternInfo.optimizedMetricName}
-                            </DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {typeof drawerContent.patternInfo.optimizedMetricValue === 'number'
-                                ? drawerContent.patternInfo.optimizedMetricValue.toFixed(2)
-                                : drawerContent.patternInfo.optimizedMetricValue}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                          <DescriptionListGroup>
-                            <DescriptionListTerm>Chunk method</DescriptionListTerm>
-                            <DescriptionListDescription>
-                              {drawerContent.patternInfo.chunkMethod.charAt(0).toUpperCase() +
-                                drawerContent.patternInfo.chunkMethod.slice(1)}
-                            </DescriptionListDescription>
-                          </DescriptionListGroup>
-                        </DescriptionList>
-                        <Content component={ContentVariants.small} className="pf-v6-u-mt-md">
-                          This is a read-only evaluation. Ask questions to test this pattern&apos;s
-                          responses and see which documents it retrieves.
-                        </Content>
-                      </CardBody>
-                    </Card>
-                  </div>
-                  <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-                    <React.Suspense fallback={null}>
-                      <EmbeddedPlayground
-                        key={drawerContent.patternInfo.patternName}
-                        namespace={namespace ?? ''}
-                        secretName={drawerContent.secretName}
-                        responsesTemplate={drawerContent.responsesTemplate}
-                        patternName={drawerContent.patternInfo.patternName}
-                        bffBasePath="/gen-ai/api/v1"
-                        placeholderBotContent={`Ask a question about your documents to see how ${formatPatternName(drawerContent.patternInfo.patternName)} responds.`}
-                        welcomeContent={<></>}
-                      />
-                    </React.Suspense>
-                  </div>
-                </DrawerPanelBody>
-              </DrawerPanelContent>
+              <PlaygroundDrawerPanel
+                namespace={namespace ?? ''}
+                secretName={drawerContent.secretName}
+                responsesTemplate={drawerContent.responsesTemplate}
+                patternInfo={drawerContent.patternInfo}
+                patterns={patterns}
+                onClose={handleDrawerClose}
+                onSelectPattern={handleTryInPlayground}
+              />
             ) : undefined
           }
         >

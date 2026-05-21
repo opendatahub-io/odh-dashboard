@@ -203,8 +203,8 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	return responseData
 }
 
-// citationMarkerRegex matches OGX citation markers: UUIDs and file-prefixed IDs
-var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_-]+)\|>`)
+// citationMarkerRegex matches OGX citation markers: UUIDs, file-prefixed IDs, and filenames
+var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_.\-]+)\|>`)
 
 // extractAttributeString extracts a string value from an OGX attributes map.
 // Attributes can be plain strings or union-typed objects with OfString/OfFloat/OfBool fields

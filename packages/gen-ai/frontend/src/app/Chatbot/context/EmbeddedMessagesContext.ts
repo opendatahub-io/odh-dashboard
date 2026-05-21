@@ -18,4 +18,7 @@ export const EmbeddedMessagesContext = React.createContext<EmbeddedMessagesConfi
 export const useEmbeddedMessagesConfig = (): EmbeddedMessagesConfig | null =>
   React.useContext(EmbeddedMessagesContext);
 
+export const useIsEmbeddedPlayground = (): boolean =>
+  React.useContext(EmbeddedMessagesContext) !== null;
+
 export type { EmbeddedMessagesConfig };

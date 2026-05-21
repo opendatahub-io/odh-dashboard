@@ -13,10 +13,6 @@ import { GenAiContext } from '~/app/context/GenAiContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ChatbotPlayground from './ChatbotPlayground';
-import {
-  PlaygroundFeatureConfigContext,
-  EMBEDDED_FEATURE_CONFIG,
-} from './context/PlaygroundFeatureConfigContext';
 import { EmbeddedMessagesContext } from './context/EmbeddedMessagesContext';
 import { createChatbotConfigStore, ChatbotConfigStoreContext, DEFAULT_CONFIG_ID } from './store';
 
@@ -42,7 +38,6 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   patternName: _patternName,
   bffBasePath,
-  features,
   welcomeContent,
   placeholderBotContent,
 }) => {
@@ -61,28 +56,17 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
     [],
   );
 
-  // Merge embedded defaults with any overrides from the host
-  const featureConfig = React.useMemo(
-    () => ({
-      ...EMBEDDED_FEATURE_CONFIG,
-      ...features,
-    }),
-    [features],
-  );
-
   // Scoped Zustand store — does not share state with the singleton
   const scopedStore = React.useMemo(
     () =>
       createChatbotConfigStore({
-        skipSessionStorage: !featureConfig.showMcpServerConfig,
+        skipSessionStorage: true,
         initialConfig: {
           selectedModel: responsesTemplate.model,
           isStreamingEnabled: true,
         },
       }),
-    // Only recreate if the model changes (template identity)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [responsesTemplate.model, featureConfig.showMcpServerConfig],
+    [responsesTemplate.model],
   );
 
   // Stub ChatbotContext — synthesize minimal state from the template
@@ -160,19 +144,17 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
             <GenAiContext.Provider value={stubGenAiContextValue}>
               <ChatbotContext.Provider value={stubChatbotContextValue}>
                 <ChatbotConfigStoreContext.Provider value={scopedStore}>
-                  <PlaygroundFeatureConfigContext.Provider value={featureConfig}>
-                    <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
-                      <ChatbotPlayground
-                        isViewCodeModalOpen={isViewCodeModalOpen}
-                        setIsViewCodeModalOpen={setIsViewCodeModalOpen}
-                        isNewChatModalOpen={isNewChatModalOpen}
-                        setIsNewChatModalOpen={setIsNewChatModalOpen}
-                        activePaneConfigId={DEFAULT_CONFIG_ID}
-                        welcomeContent={welcomeContent}
-                        placeholderBotContent={placeholderBotContent}
-                      />
-                    </EmbeddedMessagesContext.Provider>
-                  </PlaygroundFeatureConfigContext.Provider>
+                  <EmbeddedMessagesContext.Provider value={embeddedMessagesConfig}>
+                    <ChatbotPlayground
+                      isViewCodeModalOpen={isViewCodeModalOpen}
+                      setIsViewCodeModalOpen={setIsViewCodeModalOpen}
+                      isNewChatModalOpen={isNewChatModalOpen}
+                      setIsNewChatModalOpen={setIsNewChatModalOpen}
+                      activePaneConfigId={DEFAULT_CONFIG_ID}
+                      welcomeContent={welcomeContent}
+                      placeholderBotContent={placeholderBotContent}
+                    />
+                  </EmbeddedMessagesContext.Provider>
                 </ChatbotConfigStoreContext.Provider>
               </ChatbotContext.Provider>
             </GenAiContext.Provider>
