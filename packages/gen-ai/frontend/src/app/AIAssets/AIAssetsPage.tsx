@@ -15,6 +15,7 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute, genAiAiAssetsTabRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
@@ -49,6 +50,9 @@ export const AIAssetsPage: React.FC = () => {
             if (namespace) {
               navigate(genAiAiAssetsTabRoute(namespace, String(tabKey)));
             }
+            fireMiscTrackingEvent('Available Endpoints Tab Switched', {
+              source: String(tabKey),
+            });
           }}
           aria-label="AI Assets tabs"
           role="region"
