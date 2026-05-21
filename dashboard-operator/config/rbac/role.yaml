@@ -38,7 +38,6 @@ rules:
       - secrets
       - services
       - serviceaccounts
-      - namespaces
       - persistentvolumeclaims
     verbs:
       - get
@@ -48,6 +47,15 @@ rules:
       - update
       - patch
       - delete
+  # Namespace read access for platform detection
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - get
+      - list
+      - watch
   - apiGroups:
       - apps
     resources:

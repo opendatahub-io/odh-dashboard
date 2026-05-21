@@ -2,10 +2,11 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +43,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	dashboard := &v1alpha1.Dashboard{}
 	if err := r.Get(ctx, req.NamespacedName, dashboard); err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 
@@ -103,7 +104,11 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
-	if err != nil {
+
+	switch {
+	case errors.Is(err, ErrDashboardRouteNotReady):
+		logger.Info("Dashboard route not yet available, URL will be populated on next reconcile")
+	case err != nil:
 		logger.Error(err, "Failed to extract dashboard URL")
 		setReadyCondition(dashboard, metav1.ConditionFalse, "URLExtractionFailed", err.Error())
 
@@ -112,9 +117,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 
 		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
+	default:
+		dashboard.Status.URL = url
 	}
-
-	dashboard.Status.URL = url
 
 	setReadyCondition(dashboard, metav1.ConditionTrue, "ReconcileSuccess", "Dashboard reconciled successfully")
 

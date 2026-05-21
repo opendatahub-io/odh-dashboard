@@ -31,9 +31,13 @@ spec:
                   fieldPath: metadata.namespace
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
+          volumeMounts:
+            - name: manifests-work
+              mountPath: /opt/manifests/dashboard
           ports:
             - containerPort: 8080
               name: metrics
@@ -60,5 +64,8 @@ spec:
             requests:
               cpu: 10m
               memory: 64Mi
+      volumes:
+        - name: manifests-work
+          emptyDir: {}
       serviceAccountName: dashboard-operator
       terminationGracePeriodSeconds: 10

@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -20,6 +22,8 @@ import (
 
 const conditionTypeReady = "Ready"
 
+var ErrDashboardRouteNotReady = errors.New("dashboard route not yet ready")
+
 func manifestSets(basePath string, platform cluster.Platform) []render.ManifestInfo {
 	return []render.ManifestInfo{
 		defaultManifestInfo(basePath, platform),
@@ -28,16 +32,12 @@ func manifestSets(basePath string, platform cluster.Platform) []render.ManifestI
 
 func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.ManifestInfo, platform cluster.Platform) error {
 	computed := computeKustomizeVariables(dashboard, platform)
-	for k, v := range resolveImageParams() {
-		computed[k] = v
-	}
+	maps.Copy(computed, resolveImageParams())
 
 	for _, m := range manifests {
 		manifestPath := m.String()
 		params := readExistingParams(manifestPath + "/params.env")
-		for k, v := range computed {
-			params[k] = v
-		}
+		maps.Copy(params, computed)
 		if err := writeParamsEnv(manifestPath, params); err != nil {
 			return fmt.Errorf("failed to write params.env to %s: %w", manifestPath, err)
 		}
@@ -74,7 +74,7 @@ func extractDashboardURL(ctx context.Context, cli client.Client, namespace strin
 		}
 	}
 
-	return "", nil
+	return "", ErrDashboardRouteNotReady
 }
 
 func setReadyCondition(dashboard *v1alpha1.Dashboard, status metav1.ConditionStatus, reason, message string) {
