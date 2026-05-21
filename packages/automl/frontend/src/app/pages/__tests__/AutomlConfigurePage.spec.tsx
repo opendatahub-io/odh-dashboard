@@ -1049,6 +1049,35 @@ describe('AutomlConfigurePage', () => {
         expect(screen.getByText('Target column')).toBeInTheDocument();
         expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Documents')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+      });
     });
   });
 

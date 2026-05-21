@@ -1236,6 +1236,34 @@ describe('AutoragConfigurePage', () => {
         const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
         expect(input).toHaveValue(10);
       });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+      });
     });
   });
 
