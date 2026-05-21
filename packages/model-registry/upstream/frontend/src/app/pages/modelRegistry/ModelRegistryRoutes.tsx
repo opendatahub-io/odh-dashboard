@@ -9,6 +9,7 @@ import {
   isModelRegistryDetailsTabExtension,
 } from '~/odh/extension-points';
 import ModelRegistry from './screens/ModelRegistry';
+
 import RegisteredModelsArchive from './screens/RegisteredModelsArchive/RegisteredModelsArchive';
 import { ModelVersionsTab } from './screens/ModelVersions/const';
 import ModelVersions from './screens/ModelVersions/ModelVersions';

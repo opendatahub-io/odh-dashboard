@@ -196,13 +196,12 @@ describe('Model Registry core', () => {
     // Navigate to the unavailable registry (app would redirect to first registry; we go there directly)
     cy.visit(modelRegistryUrl(unavailableRegistryName));
 
-    modelRegistry.findUnavailableModelRegistry().should('exist');
+    modelRegistry.findUnavailableModelRegistryState().should('exist');
     cy.contains('Model registry unavailable').should('be.visible');
     cy.contains('The Unavailable Registry Example registry is currently unavailable').should(
       'be.visible',
     );
-    cy.findByTestId('whos-my-admin-link').should('exist');
-    // View details button should not be present when registry is unavailable
+    modelRegistry.findWhosMyAdministratorLink().should('exist');
     modelRegistry.findViewDetailsButton().should('not.exist');
   });
 
