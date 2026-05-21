@@ -197,3 +197,18 @@ updates:
   # excluded from Dependabot. Their deps are managed by their upstream repos
   # and synced in via the upstream-sync workflow. The dependency-validation
   # workflow still audits them when upstream syncs land.
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    target-branch: "dependabot-testing"
+    labels:
+      - "dependencies"
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
