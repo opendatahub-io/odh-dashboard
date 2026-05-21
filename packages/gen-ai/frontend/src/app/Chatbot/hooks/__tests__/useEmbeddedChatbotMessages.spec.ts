@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import type { ResponsesTemplate } from '@odh-dashboard/plugin-core/types';
-import { buildRequestBody, USER_QUERY_PLACEHOLDER } from '../useEmbeddedChatbotMessages';
-import type { ChatbotMessageProps } from '../useChatbotMessages';
+import {
+  buildRequestBody,
+  USER_QUERY_PLACEHOLDER,
+} from '~/app/Chatbot/hooks/useEmbeddedChatbotMessages';
+import type { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 
 const mockTemplate: ResponsesTemplate = {
   model: 'vllm/llama-3',
