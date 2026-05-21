@@ -16,11 +16,12 @@ import (
 // idle connections after 30 seconds). SSE comments (lines starting with ':')
 // are silently ignored by all conforming clients per the SSE specification.
 type sseHeartbeat struct {
-	writer  http.ResponseWriter
-	flusher http.Flusher
-	mu      *sync.Mutex
-	logger  *slog.Logger
-	stopCh  chan struct{}
+	writer   http.ResponseWriter
+	flusher  http.Flusher
+	mu       *sync.Mutex
+	logger   *slog.Logger
+	stopCh   chan struct{}
+	stopOnce sync.Once
 }
 
 func newSSEHeartbeat(w http.ResponseWriter, f http.Flusher, mu *sync.Mutex, logger *slog.Logger) *sseHeartbeat {
@@ -60,5 +61,6 @@ func (h *sseHeartbeat) start(ctx context.Context) {
 }
 
 func (h *sseHeartbeat) stop() {
-	close(h.stopCh)
+	// Ensure we only close the stopCh once to avoid panics
+	h.stopOnce.Do(func() { close(h.stopCh) })
 }
