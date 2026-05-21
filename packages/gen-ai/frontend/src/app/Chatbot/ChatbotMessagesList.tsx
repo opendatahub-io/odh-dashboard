@@ -1,7 +1,11 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { SearchIcon } from '@patternfly/react-icons';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { Message } from '@patternfly/chatbot';
+import {
+  MLFLOW_PROXY_BASE_PATH,
+  WORKSPACE_QUERY_PARAM,
+} from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
@@ -15,7 +19,7 @@ type ChatbotMessagesListProps = {
   modelDisplayName?: string;
   /** Shown as a bot message when the conversation is empty and not loading */
   placeholderContent?: string;
-  onViewTrace?: (traceId: string) => void;
+  namespace?: string;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -25,7 +29,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isStreamingWithoutContent = false,
   modelDisplayName = 'Bot',
   placeholderContent,
-  onViewTrace,
+  namespace,
 }) => {
   // Show loading dots only for non-streaming requests
   // During streaming, loading dots are handled within the bot message itself
@@ -54,18 +58,23 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
             ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
             : undefined;
 
-        // Add "View Trace" action button for bot messages with a trace ID
+        // TODO: Replace hardcoded cluster URL and experiment ID with dynamic values from BFF config or env vars
         const traceAction =
-          message.role === 'bot' && traceId && onViewTrace ? (
-            <Tooltip content="View trace in MLflow">
+          message.role === 'bot' && traceId && namespace ? (
+            <Tooltip content="View trace details in MLflow">
               <Button
-                variant="plain"
+                variant="link"
                 aria-label="View trace"
                 data-testid="view-trace-button"
-                onClick={() => onViewTrace(traceId)}
+                component="a"
+                href={`https://rh-ai.apps.rhoai-autorag-pool-gzkqj.aws.rh-ods.com${MLFLOW_PROXY_BASE_PATH}/#/experiments/6/traces?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}&selectedEvaluationId=tr-${traceId}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 size="sm"
+                icon={<ExternalLinkAltIcon />}
+                iconPosition="end"
               >
-                <SearchIcon />
+                View trace
               </Button>
             </Tooltip>
           ) : undefined;

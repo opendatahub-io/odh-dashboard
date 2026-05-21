@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Button,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
@@ -7,6 +8,7 @@ import {
   DrawerPanelContent,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
 import {
   MLFLOW_PROXY_BASE_PATH,
   WORKSPACE_QUERY_PARAM,
@@ -19,7 +21,8 @@ type TraceDrawerPanelProps = {
 };
 
 const TraceDrawerPanel: React.FC<TraceDrawerPanelProps> = ({ traceId, namespace, onClose }) => {
-  const mlflowTraceUrl = `${MLFLOW_PROXY_BASE_PATH}/#/traces/tr-${traceId}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+  const mlflowTracePath = `${MLFLOW_PROXY_BASE_PATH}/#/traces/tr-${traceId}?${WORKSPACE_QUERY_PARAM}=${encodeURIComponent(namespace)}`;
+  const mlflowTraceUrl = `${window.location.origin}${mlflowTracePath}`;
 
   return (
     <DrawerPanelContent defaultSize="50%" minSize="400px" isResizable>
@@ -28,6 +31,18 @@ const TraceDrawerPanel: React.FC<TraceDrawerPanelProps> = ({ traceId, namespace,
           Trace Details
         </Title>
         <DrawerActions>
+          <Button
+            variant="link"
+            icon={<ExternalLinkAltIcon />}
+            iconPosition="end"
+            component="a"
+            href={mlflowTraceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            size="sm"
+          >
+            Open in MLflow
+          </Button>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
