@@ -201,7 +201,7 @@ const DataSetDetailsView: React.FC<DataSetDetailsViewProps> = ({ dataSet }) => {
         <FlexItem>
           <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsLg' }}>
             <FlexItem>
-              <Title headingLevel="h3" data-testid="feature-tags">
+              <Title headingLevel="h3" data-testid="data-set-feature-tags">
                 Tags
               </Title>
             </FlexItem>

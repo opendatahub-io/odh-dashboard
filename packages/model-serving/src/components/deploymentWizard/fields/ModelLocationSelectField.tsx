@@ -25,7 +25,7 @@ import { isGeneratedSecretName } from '@odh-dashboard/internal/api/k8s/secrets';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
-import { ModelLocationInputFields } from './ModelLocationInputFields';
+import { hasOnlyExtensionFields, ModelLocationInputFields } from './ModelLocationInputFields';
 import { NIMModelLocationOption } from './modelLocationFields/NIMModelLocation';
 import { useEnabledModelServingConnectionTypes } from './modelLocationFields/useEnabledConnectionTypes';
 import { isModelLocationType, ModelLocationData, ModelLocationType } from '../types';
@@ -374,7 +374,7 @@ export const ModelLocationSelectField: React.FC<ModelLocationSelectFieldProps> =
             />
           </StackItem>
           <ZodErrorHelperText zodIssue={validationIssues} />
-          {modelLocation && (
+          {modelLocation && !hasOnlyExtensionFields(modelLocation) && (
             <StackItem>
               <ModelLocationInputFields
                 wizardState={wizardState}
