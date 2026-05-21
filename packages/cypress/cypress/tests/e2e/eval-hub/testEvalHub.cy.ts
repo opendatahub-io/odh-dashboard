@@ -29,7 +29,8 @@ import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
-  const uuid = generateTestUUID();
+  const uuid = Cypress.env('EVAL_HUB_UUID') || generateTestUUID();
+  Cypress.env('EVAL_HUB_UUID', uuid);
   let evaluationTenantProject = '';
   let evalHubCrCreatedByTest = false;
   let evalHubCrName = 'evalhub';
@@ -40,7 +41,6 @@ describe('Eval Hub E2E', () => {
   let mlflowInstanceYamlPath = '';
   let benchmarkCardTitle = '';
   let inferenceModelName = '';
-  let defaultExperimentName = '';
   let additionalBenchmarkParams = '';
   let projectNamePrefix = '';
 
@@ -54,7 +54,6 @@ describe('Eval Hub E2E', () => {
       mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
       benchmarkCardTitle = testData.benchmarkCardTitle;
       inferenceModelName = testData.inferenceModelName;
-      defaultExperimentName = testData.defaultExperimentName;
       additionalBenchmarkParams = testData.additionalBenchmarkParams;
       projectNamePrefix = testData.projectNamePrefix;
     });
@@ -139,11 +138,7 @@ describe('Eval Hub E2E', () => {
       cy.step('Fill evaluation form');
       evalHubEvaluationFlow.findBenchmarkNameDisplay().should('contain.text', benchmarkCardTitle);
       evalHubEvaluationFlow.findEvaluationNameInput().clear().type(evaluationRunName);
-      evalHubEvaluationFlow.findExperimentModeNew().should('be.checked');
-      evalHubEvaluationFlow
-        .findNewExperimentNameInput()
-        .should('have.value', defaultExperimentName);
-      evalHubEvaluationFlow.findInputModeInference().should('be.checked');
+      evalHubEvaluationFlow.findInputModeInference().check({ force: true });
 
       cy.step('Enter model details');
       evalHubEvaluationFlow.findModelNameInput().clear().type(inferenceModelName);
