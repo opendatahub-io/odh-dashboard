@@ -419,6 +419,7 @@ Labels that categorize issues by functional area. Format: `dashboard-area-{area}
 | `dashboard-area-autorag` | AutoRAG |
 | `dashboard-area-observability` | Observability |
 | `dashboard-area-applications` | Applications |
+| `dashboard-area-feast` | Feature Store / Feast |
 
 ## Area Label Signal Mapping
 
@@ -466,6 +467,7 @@ Matched against issue summary, description text, and **Jira labels** (non-area l
 | `dashboard-area-autorag` | AutoRAG, AutoX, autorag experiment, RAG pattern evaluation, autorag leaderboard, pattern details, optimization metric, faithfulness, answer correctness, context correctness, RAG patterns, vector store provider, Milvus (in AutoRAG context), chunking, embedding model, retrieval method, generation model, autorag configure, S3 file explorer (in AutoRAG context), Docling, text extraction (in AutoRAG context), test data file | |
 | `dashboard-area-observability` | observability, observability dashboard, Perses, PersesDashboard, PersesBoard, metrics dashboard, time range selector, Prometheus datasource | |
 | `dashboard-area-applications` | application, enabled application, explore application, ISV | |
+| `dashboard-area-feast` | Feature Store, Feast, feature view, feature service, feature entity, data source, saved dataset, feast registry, feature-store-ui, lineage graph, feature store project, feature store overview, feature store metrics | `FeatureStore` |
 | `dashboard-area-consistencies` | consistency, shared pattern, common component, UX consistency | |
 
 ### Code Path Signals
@@ -501,6 +503,7 @@ Matched against file paths from linked PRs, code references in descriptions, or 
 | `dashboard-area-automl` | `packages/automl/` |
 | `dashboard-area-autorag` | `packages/autorag/` |
 | `dashboard-area-observability` | `packages/observability/`, `manifests/observability/` |
+| `dashboard-area-feast` | `packages/feature-store/`, `frontend/src/pages/projects/screens/spawner/featureStore/`, `frontend/src/api/featureStore/`, `backend/src/routes/api/featurestores/` |
 | `dashboard-area-applications` | `frontend/src/pages/enabledApplications/`, `frontend/src/pages/exploreApplication/` |
 | `dashboard-area-bff` | *(cross-cutting -- shared patterns span `packages/*/bff/`)* |
 | `dashboard-area-security` | *(cross-cutting -- no dedicated directory)* |
@@ -523,6 +526,7 @@ Non-area labels on the issue that serve as keyword-equivalent signals for area m
 | `dashboard-area-genai` | `gen-ai`, `genai` |
 | `dashboard-area-maas` | `maas`, `MaaS` |
 | `dashboard-area-model-registry` | `model-registry` |
+| `dashboard-area-feast` | `feature-store`, `feast` |
 | `dashboard-area-pipelines` | `ai-pipelines` |
 
 Jira label matches have the **same confidence level as keyword matches** -- they are a content signal (reporters chose the label deliberately). They contribute to the multi-signal requirement like any other keyword dimension.
@@ -592,6 +596,7 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-model-registry` | Green |
 | `dashboard-area-distributed-workloads` | Green |
 | `dashboard-area-mcp` | Green |
+| `dashboard-area-feast` | Tangerine |
 | `dashboard-area-automl` | Purple |
 | `dashboard-area-autorag` | Purple |
 
