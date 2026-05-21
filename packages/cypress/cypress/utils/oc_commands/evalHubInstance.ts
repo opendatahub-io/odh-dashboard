@@ -84,3 +84,21 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
   cy.log(`Deleting Eval Hub E2E database placeholder secret: ${cmd}`);
   return cy.exec(cmd, { failOnNonZeroExit: false });
 };
+
+/**
+ * Polls until at least one Job in the namespace has a `Complete` condition.
+ * Use after submitting an evaluation to wait for the lm-eval Job to finish.
+ */
+export const waitForEvaluationJobComplete = (
+  namespace: string,
+  timeoutMs = 900000,
+): Cypress.Chainable<Cypress.Exec> => {
+  const pollIntervalMs = 10000;
+  const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
+
+  return pollUntilSuccess(
+    `oc get jobs -n ${namespace} -o json | jq -e '.items[] | select(.status.conditions[]? | select(.type == "Complete" and .status == "True"))'`,
+    `Evaluation job Complete in ${namespace}`,
+    { maxAttempts, pollIntervalMs },
+  );
+};

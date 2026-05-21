@@ -1,5 +1,3 @@
-import { pollUntilSuccess } from '../utils/oc_commands/baseCommands';
-
 /**
  * Evaluations (Eval Hub) area — selectors and URL helpers for live-cluster E2E.
  * LM eval is gated by `disableLMEval` on OdhDashboardConfig; dev sessions override via query (see `useDevFeatureFlags`).
@@ -35,17 +33,8 @@ class EvaluationsPage {
     return cy.findByTestId('evaluations-table', options);
   }
 
-  /** Waits for the evaluation Job to complete on the backend, then verifies the UI. */
-  assertEvaluationComplete(evaluationName: string, namespace: string, timeoutMs = 900000) {
-    const pollIntervalMs = 10000;
-    const maxAttempts = Math.ceil(timeoutMs / pollIntervalMs);
-
-    pollUntilSuccess(
-      `oc get jobs -n ${namespace} -o json | jq -e '.items[] | select(.status.conditions[]? | select(.type == "Complete" and .status == "True"))'`,
-      `Evaluation job Complete in ${namespace}`,
-      { maxAttempts, pollIntervalMs },
-    );
-
+  /** Reloads the page and asserts the evaluation row shows a completed status. */
+  assertEvaluationCompleteInUI(evaluationName: string) {
     cy.reload();
     this.findPageTitle().should('be.visible', { timeout: 30000 });
     this.findEvaluationsTable({ timeout: 30000 })

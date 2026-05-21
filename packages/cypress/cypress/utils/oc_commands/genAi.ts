@@ -1,20 +1,6 @@
 import { checkInferenceServiceState } from './modelServing';
 import { createCleanHardwareProfile } from './hardwareProfiles';
-import type { CommandLineResult, GenAiTestData } from '../../types';
-
-/**
- * Get the applications namespace from Cypress environment.
- * @throws Error if APPLICATIONS_NAMESPACE is not configured.
- */
-const getApplicationsNamespace = (): string => {
-  const namespace = Cypress.env('APPLICATIONS_NAMESPACE');
-  if (!namespace) {
-    throw new Error(
-      'APPLICATIONS_NAMESPACE is not configured. Set CY_TEST_CONFIG to point to your test-variables.yml file.',
-    );
-  }
-  return namespace;
-};
+import type { GenAiTestData } from '../../types';
 
 /**
  * Deploy a Gen AI model via oc commands, bypassing the UI wizard.

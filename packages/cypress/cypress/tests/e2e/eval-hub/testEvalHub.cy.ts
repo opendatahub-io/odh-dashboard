@@ -1,15 +1,8 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
-import {
-  addUserToProject,
-  deleteOpenShiftProject,
-  findExistingProjectByPrefix,
-  waitForProjectReady,
-} from '../../../utils/oc_commands/project';
-import { getCustomResource } from '../../../utils/oc_commands/customResources';
+import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { isTrustyAIStackAvailable } from '../../../utils/oc_commands/dsc';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
 import type { EvalHubTestData } from '../../../types';
 import { createCleanProject } from '../../../utils/projectChecker';
@@ -17,6 +10,7 @@ import {
   deleteEvalHubCr,
   deleteEvalHubE2eDatabaseSecret,
   ensureEvalHubCrReady,
+  waitForEvaluationJobComplete,
 } from '../../../utils/oc_commands/evalHubInstance';
 import { deleteMlflowCr, ensureMlflowCrReady } from '../../../utils/oc_commands/mlflowInstance';
 import {
@@ -34,7 +28,6 @@ import { evalHubEvaluationFlow } from '../../../pages/evalHubEvaluationFlow';
  */
 describe('Eval Hub E2E', () => {
   let testData: EvalHubTestData;
-  let skipTest = false;
   const uuid = generateTestUUID();
   let evaluationTenantProject = '';
   let evalHubCrCreatedByTest = false;
@@ -42,95 +35,55 @@ describe('Eval Hub E2E', () => {
   let mlflowCrCreatedByTest = false;
   let hardwareProfileName = '';
   let vllmEndpointUrl = '';
+  let evalHubInstanceYamlPath = '';
+  let mlflowInstanceYamlPath = '';
+  let benchmarkCardTitle = '';
+  let inferenceModelName = '';
+  let defaultExperimentName = '';
+  let additionalBenchmarkParams = '';
+  let projectNamePrefix = '';
 
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
-        return false;
-      }
-      return true;
-    });
-
-    cy.step('Confirm RHOAI operator');
-    getCustomResource('redhat-ods-operator', 'Deployment', 'name=rhods-operator').then((result) => {
-      if (!result.stdout.includes('rhods-operator')) {
-        cy.log('RHOAI operator not found; skipping Eval Hub E2E.');
-        skipTest = true;
-      }
-    });
-
-    cy.step('Confirm TrustyAI on DataScienceCluster');
-    cy.then(() => {
-      if (skipTest) {
-        return;
-      }
-      return isTrustyAIStackAvailable().then((ok) => {
-        if (!ok) {
-          cy.log('TrustyAI not available on DataScienceCluster; skipping Eval Hub E2E.');
-          skipTest = true;
-        }
-      });
+    cy.fixture('e2e/eval-hub/testEvalHub.yaml', 'utf8').then((yamlContent: string) => {
+      testData = yaml.load(yamlContent) as EvalHubTestData;
+      evalHubCrName = testData.evalHubCrName;
+      hardwareProfileName = testData.hardwareProfileName;
+      evalHubInstanceYamlPath = testData.evalHubInstanceResourceYamlPath;
+      mlflowInstanceYamlPath = testData.mlflowInstanceResourceYamlPath;
+      benchmarkCardTitle = testData.benchmarkCardTitle;
+      inferenceModelName = testData.inferenceModelName;
+      defaultExperimentName = testData.defaultExperimentName;
+      additionalBenchmarkParams = testData.additionalBenchmarkParams;
+      projectNamePrefix = testData.projectNamePrefix;
     });
 
     cy.then(() => {
-      if (skipTest) return;
-      return cy.fixture('e2e/eval-hub/testEvalHub.yaml', 'utf8').then((yamlContent: string) => {
-        testData = yaml.load(yamlContent) as EvalHubTestData;
-        evalHubCrName = testData.evalHubCrName;
-        hardwareProfileName = testData.hardwareProfileName;
-      });
-    });
-
-    cy.then(() => {
-      if (skipTest) return;
-      const yamlPath = testData.evalHubInstanceResourceYamlPath;
-
       cy.step('Ensure EvalHub CR is Ready');
-      return ensureEvalHubCrReady(evalHubCrName, yamlPath).then((created) => {
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
         evalHubCrCreatedByTest = created;
       });
     });
 
     cy.then(() => {
-      if (skipTest) return;
-      const yamlPath = testData.mlflowInstanceResourceYamlPath;
-
       cy.step('Ensure MLflow CR is Available');
-      return ensureMlflowCrReady(yamlPath).then((created) => {
+      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
         mlflowCrCreatedByTest = created;
       });
     });
 
     cy.then(() => {
-      if (skipTest) return;
-      return findExistingProjectByPrefix(testData.projectNamePrefix).then((existingProject) => {
-        if (existingProject) {
-          cy.log(`Reusing existing tenant project: ${existingProject}`);
-          evaluationTenantProject = existingProject;
-          vllmEndpointUrl = getVllmEndpointUrl(testData, existingProject);
-          return;
-        }
-
-        evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
-        cy.step(`Create ephemeral project ${evaluationTenantProject}`);
-        createCleanProject(evaluationTenantProject);
-
-        return waitForProjectReady(evaluationTenantProject).then(() => {
-          addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
-          setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
-          grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
-          vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
-          cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
-        });
-      });
+      evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
+      cy.step(`Create ephemeral project ${evaluationTenantProject}`);
+      createCleanProject(evaluationTenantProject);
+      addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
+      setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
+      grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
+      vllmEndpointUrl = getVllmEndpointUrl(testData, evaluationTenantProject);
+      cy.log(`vLLM endpoint: ${vllmEndpointUrl}`);
     });
   });
 
   after(() => {
-    if (skipTest) {
-      return;
-    }
-
     if (evaluationTenantProject) {
       cy.step(`Delete ephemeral tenant project ${evaluationTenantProject}`);
       deleteOpenShiftProject(evaluationTenantProject, { wait: false, ignoreNotFound: true });
@@ -158,18 +111,7 @@ describe('Eval Hub E2E', () => {
     {
       tags: ['@Sanity', '@SanitySet1', '@EvalHub', '@NonConcurrent'],
     },
-    function evalHubInferenceE2E() {
-      if (skipTest) {
-        this.skip();
-      }
-
-      const {
-        benchmarkCardTitle,
-        inferenceModelName,
-        defaultExperimentName,
-        additionalBenchmarkParams,
-        projectNamePrefix,
-      } = testData;
+    () => {
       const extraParams = additionalBenchmarkParams.trim();
       const evaluationRunName = `e2e-eval-${evaluationTenantProject.replace(
         `${projectNamePrefix}-`,
@@ -220,8 +162,11 @@ describe('Eval Hub E2E', () => {
 
       evaluationsPage.assertEvaluationsTableContains(evaluationRunName);
 
-      cy.step('Wait for evaluation to complete');
-      evaluationsPage.assertEvaluationComplete(evaluationRunName, evaluationTenantProject);
+      cy.step('Wait for evaluation job to complete on backend');
+      waitForEvaluationJobComplete(evaluationTenantProject);
+
+      cy.step('Verify evaluation shows completed in UI');
+      evaluationsPage.assertEvaluationCompleteInUI(evaluationRunName);
     },
   );
 });
