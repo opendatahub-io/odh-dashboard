@@ -102,6 +102,8 @@ type ChatbotPlaygroundProps = {
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
   isDrawerExpanded?: boolean;
   setIsDrawerExpanded?: (expanded: boolean) => void;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
 };
 
 const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
@@ -115,6 +117,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   clearAllMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
   setIsDrawerExpanded: setIsDrawerExpandedProp,
+  welcomeContent,
+  placeholderBotContent,
 }) => {
   const { username } = useUserContext();
   const { namespace } = React.useContext(GenAiContext);
@@ -405,6 +409,8 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           mcpServerTokens={mcpServerTokens}
           namespace={namespace?.name}
           showWelcomePrompt
+          welcomeContent={welcomeContent}
+          placeholderBotContent={placeholderBotContent}
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}

@@ -1,3 +1,5 @@
+import type React from 'react';
+
 /**
  * Configuration for which playground features are visible in embedded mode.
  * When used standalone (full mode), all flags default to `true`.
@@ -63,6 +65,10 @@ type EmbeddableChatbotPlaygroundProps = {
   patternName?: string;
   bffBasePath: string;
   features?: PlaygroundFeatureConfig;
+  /** Custom content rendered in place of the default welcome prompt when no messages are present. */
+  welcomeContent?: React.ReactNode;
+  /** Custom text for the initial bot message. Pass empty string to hide it entirely. */
+  placeholderBotContent?: string;
 };
 
 export type { PlaygroundFeatureConfig, ResponsesTemplate, EmbeddableChatbotPlaygroundProps };

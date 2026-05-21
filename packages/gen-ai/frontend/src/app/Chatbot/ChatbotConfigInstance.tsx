@@ -34,6 +34,8 @@ interface ChatbotConfigInstanceProps {
   mcpServerTokens: Map<string, TokenInfo>;
   namespace?: string;
   showWelcomePrompt?: boolean;
+  welcomeContent?: React.ReactNode;
+  placeholderBotContent?: string;
   welcomeDescription?: string;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
@@ -49,6 +51,8 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   mcpServerTokens,
   namespace,
   showWelcomePrompt = false,
+  welcomeContent,
+  placeholderBotContent: placeholderBotContentProp,
   welcomeDescription = 'Welcome to the playground',
   onMessagesHookReady,
   configIndex,
@@ -171,25 +175,27 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
 
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && messagesHook.messages.length === 0 && (
-        <ChatbotWelcomePrompt
-          title={username ? `Hello, ${username}` : 'Hello'}
-          description={welcomeDescription}
-          data-testid="chatbot-welcome-prompt"
-          style={{
-            cursor: 'default',
-            pointerEvents: 'none',
-          }}
-          prompts={sampleWelcomePrompts}
-        />
-      )}
+      {showWelcomePrompt &&
+        messagesHook.messages.length === 0 &&
+        (welcomeContent ?? (
+          <ChatbotWelcomePrompt
+            title={username ? `Hello, ${username}` : 'Hello'}
+            description={welcomeDescription}
+            data-testid="chatbot-welcome-prompt"
+            style={{
+              cursor: 'default',
+              pointerEvents: 'none',
+            }}
+            prompts={sampleWelcomePrompts}
+          />
+        ))}
       <ChatbotMessages
         messageList={messagesHook.messages}
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
-        placeholderContent={PLACEHOLDER_BOT_CONTENT}
+        placeholderContent={placeholderBotContentProp ?? PLACEHOLDER_BOT_CONTENT}
       />
     </MessageBox>
   );

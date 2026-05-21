@@ -418,7 +418,8 @@ export const createPassthroughResponse = (
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> => {
-  const url = `${bffBasePath}/api/v1/passthrough/responses?namespace=${encodeURIComponent(namespace)}&secret_name=${encodeURIComponent(secretName)}`;
+  const base = bffBasePath.endsWith('/api/v1') ? bffBasePath : `${bffBasePath}/api/v1`;
+  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
 
   // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
   // TODO P2: Add code snippet export (curl, Python) for the Responses API request — see Phase 6.2

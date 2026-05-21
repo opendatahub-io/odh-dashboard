@@ -43,6 +43,8 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
   patternName: _patternName,
   bffBasePath,
   features,
+  welcomeContent,
+  placeholderBotContent,
 }) => {
   // Scoped QueryClient — not shared with the main app
   const queryClient = React.useMemo(
@@ -166,6 +168,8 @@ const EmbeddableChatbotPlayground: React.FC<EmbeddableChatbotPlaygroundProps> = 
                         isNewChatModalOpen={isNewChatModalOpen}
                         setIsNewChatModalOpen={setIsNewChatModalOpen}
                         activePaneConfigId={DEFAULT_CONFIG_ID}
+                        welcomeContent={welcomeContent}
+                        placeholderBotContent={placeholderBotContent}
                       />
                     </EmbeddedMessagesContext.Provider>
                   </PlaygroundFeatureConfigContext.Provider>

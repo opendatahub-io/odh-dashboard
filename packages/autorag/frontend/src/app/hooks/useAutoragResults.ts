@@ -311,7 +311,7 @@ export function useAutoragResults(
       // DEBUG ONLY — do not commit: inject responses_template for playground testing
       /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions,no-param-reassign, camelcase */
       (patternData as any).settings.responses_template = {
-        model: patternData.settings.generation.model_id,
+        model: 'vllm-inference/meta-llama/Llama-3.3-70B-Instruct',
         stream: false,
         store: true,
         input: [
