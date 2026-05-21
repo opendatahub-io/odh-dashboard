@@ -12,7 +12,7 @@ import {
   Popover,
   Skeleton,
 } from '@patternfly/react-core';
-import { ChartBarIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
@@ -23,6 +23,7 @@ import {
   getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { useTempDevFeatureAvailable, TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 
@@ -32,10 +33,10 @@ type ModelCatalogCardProps = {
 };
 
 const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) => {
-  // Extract labels from customProperties and check for validated label
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
+  const isToolCallingEnabled = useTempDevFeatureAvailable(TempDevFeature.ToolCallingConfiguration);
 
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
@@ -56,7 +57,12 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                    <Label color="purple" isClickable icon={<ChartBarIcon />}>
+                    <Label
+                      variant="outline"
+                      isClickable
+                      status="success"
+                      icon={<CheckCircleIcon />}
+                    >
                       Validated
                     </Label>
                   </Popover>
@@ -94,6 +100,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
       <CardFooter>
         <ModelCatalogLabels
           tasks={model.tasks ?? []}
+          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
           provider={model.provider}
           labels={allLabels.filter((label) => label !== 'validated')}
           numLabels={isValidated ? 2 : 3}

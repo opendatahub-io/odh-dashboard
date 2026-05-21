@@ -12,11 +12,11 @@ import {
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
+  ContentAnnotation,
   CreateResponseRequest,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
-  GuardrailsStatus,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -28,7 +28,6 @@ import {
   MLflowRegisterPromptRequest,
   OutputItem,
   ResponseMetrics,
-  SafetyConfigResponse,
   NemoGuardrailsStatus,
   SimplifiedResponseData,
   SourceItem,
@@ -52,6 +51,7 @@ import {
   MaaSTokenResponse,
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
+import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -95,76 +95,17 @@ const getMessageFromError = (error: unknown): string | undefined => {
   return undefined;
 };
 
-/**
- * Regex pattern to match file citation tokens in the format <|file-{id}|>
- */
-const FILE_CITATION_PATTERN = /<\|file-([a-f0-9]+)\|>/g;
+const isFileCitation = (annotation: ContentAnnotation): annotation is FileCitationAnnotation =>
+  annotation.type === 'file_citation' &&
+  'file_id' in annotation &&
+  typeof annotation.file_id === 'string' &&
+  'filename' in annotation &&
+  typeof annotation.filename === 'string';
 
 /**
- * Result of processing file citations from content and annotations
- */
-type ProcessedContentResult = {
-  content: string;
-  sources: SourceItem[];
-};
-
-/**
- * Processes file citation tokens and annotations - removes inline tokens from text
- * and extracts unique source filenames for the PatternFly SourcesCard component.
- * @param content - The text content that may contain file citation tokens
- * @param annotations - Array of file citation annotations with file_id to filename mappings
- * @returns ProcessedContentResult - Content with tokens removed and sources array
- */
-const processFileCitations = (
-  content: string,
-  annotations: FileCitationAnnotation[],
-): ProcessedContentResult => {
-  // Remove all file citation tokens from the content (if any exist)
-  const processedContent = content.replace(FILE_CITATION_PATTERN, '').trim();
-
-  if (annotations.length === 0) {
-    return { content: processedContent, sources: [] };
-  }
-
-  // Collect unique filenames from annotations
-  const allFilenames = new Set<string>();
-  for (const annotation of annotations) {
-    if (annotation.filename) {
-      allFilenames.add(annotation.filename);
-    }
-  }
-
-  // Convert to SourceItem array for PatternFly SourcesCard
-  const sources: SourceItem[] = Array.from(allFilenames).map((filename) => ({
-    title: filename,
-    link: '#', // Placeholder link (onClick prevents navigation)
-    hasShowMore: false,
-  }));
-
-  return { content: processedContent, sources };
-};
-
-/**
- * Type guard to check if an annotation is a file citation
- */
-function isFileCitationAnnotation(annotation: unknown): annotation is FileCitationAnnotation {
-  if (typeof annotation !== 'object' || annotation === null) {
-    return false;
-  }
-  return (
-    'type' in annotation &&
-    annotation.type === 'file_citation' &&
-    'file_id' in annotation &&
-    typeof annotation.file_id === 'string' &&
-    'filename' in annotation &&
-    typeof annotation.filename === 'string'
-  );
-}
-
-/**
- * Extracts file citation annotations from the backend response output array
- * @param output - Array of output items from backend response
- * @returns FileCitationAnnotation[] - Array of file citation annotations
+ * Extracts file citation annotations from BFF-processed response output.
+ * The BFF handles citation marker extraction and filename resolution,
+ * so annotations are already populated on output_text content items.
  */
 const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnotation[] => {
   if (!output || output.length === 0) {
@@ -172,12 +113,13 @@ const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnota
   }
 
   const annotations: FileCitationAnnotation[] = [];
+
   for (const item of output) {
     if (item.content && Array.isArray(item.content)) {
       for (const contentItem of item.content) {
         if (contentItem.annotations && Array.isArray(contentItem.annotations)) {
           for (const annotation of contentItem.annotations) {
-            if (isFileCitationAnnotation(annotation)) {
+            if (isFileCitation(annotation)) {
               annotations.push(annotation);
             }
           }
@@ -187,6 +129,23 @@ const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnota
   }
 
   return annotations;
+};
+
+/**
+ * Builds sources array from BFF-provided annotations (already resolved to filenames).
+ */
+const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): SourceItem[] => {
+  const uniqueFilenames = new Set<string>();
+  for (const annotation of annotations) {
+    if (annotation.filename) {
+      uniqueFilenames.add(annotation.filename);
+    }
+  }
+  return Array.from(uniqueFilenames).map((filename) => ({
+    title: filename,
+    link: '#',
+    hasShowMore: false,
+  }));
 };
 
 /**
@@ -222,9 +181,9 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  const rawContent = extractContentFromOutput(backendResponse.output);
+  const content = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
-  const { content, sources } = processFileCitations(rawContent, annotations);
+  const sources = buildSourcesFromAnnotations(annotations);
 
   return {
     id: backendResponse.id,
@@ -239,7 +198,6 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
   };
 };
 
-// Non-streaming POST path via mod-arch restCREATE
 const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknown> => ({
   input: r.input,
   model: r.model,
@@ -249,8 +207,7 @@ const toCreateResponseRecord = (r: CreateResponseRequest): Record<string, unknow
   instructions: r.instructions,
   stream: r.stream,
   mcp_servers: r.mcp_servers,
-  input_shield_id: r.input_shield_id,
-  output_shield_id: r.output_shield_id,
+  guardrail_config: r.guardrail_config,
   model_source_type: r.model_source_type,
   subscription: r.subscription,
 });
@@ -261,12 +218,25 @@ const postCreateResponse = (
   request: CreateResponseRequest,
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
-  // Map abortSignal to signal for standard fetch API compatibility
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return modArchRestCREATE<BackendResponseData, Record<string, unknown>>('/lsd/responses')(
+  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
     hostPath,
+    '/lsd/responses',
+    toCreateResponseRecord(request),
     baseQueryParams,
-  )(toCreateResponseRecord(request), fetchOpts).then((data) => transformBackendResponse(data));
+    fetchOpts,
+  ).then((response) => {
+    if (response.error) {
+      const err = Object.assign(new Error(response.error.message), {
+        code: response.error.code,
+      });
+      throw err;
+    }
+    if (response.data) {
+      return transformBackendResponse(response.data);
+    }
+    throw new Error('Invalid response format');
+  });
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -289,14 +259,16 @@ const streamCreateResponse = (
       .then(async (response) => {
         if (!response.ok) {
           let errorMessage = `HTTP error! status: ${response.status}`;
+          let errorCode: string | undefined;
           try {
             const errorBody = await response.text();
             const errorData = JSON.parse(errorBody);
             errorMessage = errorData?.error?.message || errorMessage;
+            errorCode = errorData?.error?.code;
           } catch {
             // ignore
           }
-          throw new Error(errorMessage);
+          throw Object.assign(new Error(errorMessage), { code: errorCode });
         }
 
         const reader = response.body?.getReader();
@@ -328,7 +300,10 @@ const streamCreateResponse = (
                     if (data.error) {
                       await reader.cancel('Streaming error');
                       const errMsg = data.error.message || 'An error occurred during streaming';
-                      reject(new Error(errMsg));
+                      if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
                       return;
                     }
 
@@ -336,17 +311,12 @@ const streamCreateResponse = (
                       fullContent += data.delta;
                       onStreamData(data.delta);
                     } else if (data.type === 'response.refusal.delta') {
-                      // Check event type first, then guard content appending on non-empty data.delta
-                      // This ensures receivedRefusal flag and tracking fire on first non-empty delta
                       if (data.delta) {
                         const isFirstRefusal = !receivedRefusal;
                         if (isFirstRefusal) {
                           receivedRefusal = true;
                           fullContent = '';
-                          // Track guardrail violation on first non-empty refusal delta
-                          fireMiscTrackingEvent('Guardrail Activated', {
-                            violationDetected: true,
-                          });
+                          fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                         }
                         fullContent += data.delta;
                         onStreamData(data.delta, isFirstRefusal);
@@ -375,21 +345,21 @@ const streamCreateResponse = (
           ? extractMCPToolCallData(completeResponseData.output)
           : undefined;
 
-        // Extract annotations and process file citations
+        // BFF processes citations in response.completed -- annotations are ready to use
         const annotations = completeResponseData?.output
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
-        const { content: processedContent, sources } = processFileCitations(
-          fullContent,
-          annotations,
-        );
+        const sources = buildSourcesFromAnnotations(annotations);
+        const finalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
 
         resolve({
           id: completeResponseData?.id || 'streaming-response',
           model: completeResponseData?.model || request.model,
           status: completeResponseData?.status || 'completed',
           created_at: completeResponseData?.created_at || Date.now(),
-          content: processedContent,
+          content: finalContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
@@ -401,9 +371,7 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        const errorMessage =
-          error instanceof Error ? error.message : 'Failed to generate streaming response';
-        reject(new Error(errorMessage));
+        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
       });
   });
 
@@ -659,9 +627,6 @@ export const getMaaSModels = modArchRestGET<MaaSModel[]>('/maas/models');
 export const generateMaaSToken = modArchRestCREATE<MaaSTokenResponse, MaaSTokenRequest>(
   '/maas/tokens',
 );
-
-export const getGuardrailsStatus = modArchRestGET<GuardrailsStatus>('/guardrails/status');
-export const getSafetyConfig = modArchRestGET<SafetyConfigResponse>('/lsd/safety');
 
 /** NemoGuardrails Endpoints */
 export const getNemoGuardrailsStatus =

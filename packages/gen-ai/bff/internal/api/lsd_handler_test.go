@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,10 +39,10 @@ func cleanupTestNamespace(ctx context.Context, namespace string) {
 	}
 	_ = testK8sClient.Delete(ctx, configMap)
 
-	lsdList := &lsdapi.LlamaStackDistributionList{}
-	_ = testK8sClient.List(ctx, lsdList, client.InNamespace(namespace))
-	for _, lsd := range lsdList.Items {
-		_ = testK8sClient.Delete(ctx, &lsd)
+	ogxList := &ogxapi.OGXServerList{}
+	_ = testK8sClient.List(ctx, ogxList, client.InNamespace(namespace))
+	for _, item := range ogxList.Items {
+		_ = testK8sClient.Delete(ctx, &item)
 	}
 }
 
@@ -340,7 +340,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "LlamaStackDistribution already exists in namespace mock-test-namespace-2")
+		assert.Contains(t, errorMap["message"], "OGXServer already exists in namespace mock-test-namespace-2")
 	})
 })
 
@@ -917,7 +917,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok, "Data should be a map")
 
-		assert.Equal(t, "LlamaStackDistribution deleted successfully", dataMap["data"])
+		assert.Equal(t, "OGXServer deleted successfully", dataMap["data"])
 	})
 
 	It("should return error when request body is missing", func() {
@@ -988,7 +988,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "lsd name cannot be empty")
+		assert.Contains(t, errorMap["message"], "ogx server name cannot be empty")
 	})
 
 	It("should return error when namespace is missing from context", func() {
@@ -1063,7 +1063,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "LlamaStackDistribution with name 'non-existent-lsd' not found")
+		assert.Contains(t, errorMap["message"], "OGXServer with name 'non-existent-lsd' not found")
 	})
 
 	It("should return error when no LSDs found in namespace", func() {
@@ -1106,6 +1106,6 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "no LlamaStackDistribution found in namespace mock-test-namespace-1 with OpenDataHubDashboardLabelKey annotation")
+		assert.Contains(t, errorMap["message"], "no OGXServer found in namespace mock-test-namespace-1 with OpenDataHubDashboardLabelKey annotation")
 	})
 })

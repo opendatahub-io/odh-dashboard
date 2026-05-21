@@ -18,6 +18,8 @@ import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/c
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
 import { SourceLabel, type CatalogSource } from '~/app/modelCatalogTypes';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
 
 type FilteredModelsInterceptConfig = {
   returnModelsForFilters?: boolean;
@@ -348,6 +350,132 @@ describe('Model Catalog Page', () => {
       expect(url).to.include('provider%3D%27Google%27');
     });
   });
+
+  it('should not display validated configuration filter when feature flag is off', () => {
+    initIntercepts({});
+    modelCatalog.visit();
+    modelCatalog.findFilter('Validated configuration').should('not.exist');
+  });
+
+  describe('Validated Configuration Filter (feature flag on)', () => {
+    beforeEach(() => {
+      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
+    });
+
+    afterEach(() => {
+      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
+    });
+
+    it('checkbox should filter models', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated configuration', 'tool-calling')
+        .scrollIntoView()
+        .click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        expect(interception.request.url).to.include('validatedTasks%3D%27tool-calling%27');
+      });
+    });
+
+    it('should work combined with other filters', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated configuration', 'tool-calling')
+        .scrollIntoView()
+        .click();
+      cy.wait('@getFilteredModels');
+
+      modelCatalog.findFilterCheckbox('Provider', 'Google').click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        const { url } = interception.request;
+        expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+        expect(url).to.include('provider%3D%27Google%27');
+      });
+    });
+
+    it('should not show helper text when only one option exists', () => {
+      initIntercepts({});
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated configuration', 'tool-calling')
+        .scrollIntoView()
+        .click();
+      cy.contains('Showing models with all selected configurations').should('not.exist');
+    });
+
+    describe('with multiple options', () => {
+      const multiOptionFilterOptions = mockCatalogFilterOptionsList({
+        filters: {
+          ...mockCatalogFilterOptionsList().filters,
+          [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+            type: 'string',
+            values: ['tool-calling', 'text-generation', 'question-answering'],
+          },
+        },
+      });
+
+      const initMultiOptionIntercepts = (props: HandlersProps) => {
+        initIntercepts(props);
+        cy.interceptApi(
+          `GET /api/:apiVersion/model_catalog/models/filter_options`,
+          {
+            path: { apiVersion: MODEL_CATALOG_API_VERSION },
+            query: { namespace: 'kubeflow' },
+          },
+          multiOptionFilterOptions,
+        );
+      };
+
+      it('should show helper text when an option is selected', () => {
+        initMultiOptionIntercepts({});
+        modelCatalog.visit();
+        modelCatalog
+          .findFilterCheckbox('Validated configuration', 'tool-calling')
+          .scrollIntoView()
+          .click();
+        cy.contains('Showing models with all selected configurations').should('be.visible');
+      });
+
+      it('should send AND conditions instead of IN for multiple selections', () => {
+        initMultiOptionIntercepts({ includeAllModelsIntercept: true });
+        setupFilteredModelsIntercept({
+          returnModelsForFilters: true,
+          modelsToReturn: [mockCatalogModel({})],
+        });
+
+        modelCatalog.visit();
+        modelCatalog
+          .findFilterCheckbox('Validated configuration', 'tool-calling')
+          .scrollIntoView()
+          .click();
+        cy.wait('@getFilteredModels');
+
+        modelCatalog.findFilterCheckbox('Validated configuration', 'text-generation').click();
+
+        cy.wait('@getFilteredModels').then((interception) => {
+          const { url } = interception.request;
+          expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+          expect(url).to.include('AND');
+          expect(url).to.include('validatedTasks%3D%27text-generation%27');
+          expect(url).to.not.include('IN');
+        });
+      });
+    });
+  });
 });
 
 describe('Performance Empty State', () => {
@@ -488,6 +616,54 @@ describe('Performance Empty State', () => {
 
       modelCatalog.findEmptyStateResetFiltersButton().click();
       modelCatalog.findPerformanceEmptyState().should('be.visible');
+    });
+  });
+
+  describe('Single Category Empty State Actions', () => {
+    beforeEach(() => {
+      initIntercepts({
+        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        hasValidatedModels: false,
+      });
+      setupFilteredModelsIntercept({ returnModelsForFilters: false });
+      modelCatalog.visit();
+    });
+
+    it('should show single-category title and description when performance empty state is displayed', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .should('contain.text', 'No performance data available')
+        .and('not.contain.text', 'in selected category');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .should(
+          'contain.text',
+          'No models have performance data available. Turn off model performance view to see all models.',
+        );
+    });
+
+    it('should not show "View all models with performance data" button when single category', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .contains('button', /View all models with performance data/i)
+        .should('not.exist');
+    });
+
+    it('should turn off toggle when clicking "Turn off model performance view" in single category', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog.findSetPerformanceOffLink().click();
+
+      modelCatalog.findPerformanceViewToggleValue().should('not.be.checked');
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
     });
   });
 

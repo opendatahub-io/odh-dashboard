@@ -9,7 +9,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
@@ -127,12 +127,12 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
 	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 
-	// Create a scheme with LSD types for the new client
+	// Create a scheme with OGXServer types for the new client
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
-	if err := lsdapi.AddToScheme(scheme); err != nil {
+	if err := ogxapi.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
@@ -196,7 +196,7 @@ func (f *DisabledAuthClientFactory) GetClient(ctx context.Context) (k8s.Kubernet
 			initErr = err
 			return
 		}
-		if err := lsdapi.AddToScheme(scheme); err != nil {
+		if err := ogxapi.AddToScheme(scheme); err != nil {
 			initErr = err
 			return
 		}
@@ -257,7 +257,7 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 	return nil
 }
 
-// ConfigurableMockTokenClientFactory allows configuring CanListLlamaStackDistributions behavior
+// ConfigurableMockTokenClientFactory allows configuring CanListOGXServers behavior
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed bool
 	CanListLSDError   error
@@ -292,7 +292,7 @@ func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity
 	return "mockUser", nil
 }
 
-func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	if c.CanListLSDError != nil {
 		return false, c.CanListLSDError
 	}

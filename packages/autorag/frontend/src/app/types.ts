@@ -109,32 +109,31 @@ export type PipelineRun = {
   state_history?: PipelineRunStateHistoryEntry[];
 };
 
-export type LlamaStackModelType = 'llm' | 'embedding';
+export type OgxModelType = 'llm' | 'embedding';
 
-export type LlamaStackModel = {
+export type OgxModel = {
   id: string;
-  type: LlamaStackModelType;
+  type: OgxModelType;
   provider: string;
   resource_path: string;
 };
 
-export type LlamaStackModelsResponse = {
-  models: LlamaStackModel[];
+export type OgxModelsResponse = {
+  models: OgxModel[];
 };
 
-export type LlamaStackVectorStoreProvider = {
+export type OgxVectorStoreProvider = {
   provider_id: string;
   provider_type: string;
 };
 
-export type LlamaStackVectorStoreProvidersResponse = {
-  vector_store_providers: LlamaStackVectorStoreProvider[];
+export type OgxVectorStoreProvidersResponse = {
+  vector_store_providers: OgxVectorStoreProvider[];
 };
 
-export type LlamaStackFilteredVectorStoreProvidersResponse =
-  LlamaStackVectorStoreProvidersResponse & {
-    totalProviderCount: number;
-  };
+export type OgxFilteredVectorStoreProvidersResponse = OgxVectorStoreProvidersResponse & {
+  totalProviderCount: number;
+};
 
 export type SecretListItem = {
   uuid: string;

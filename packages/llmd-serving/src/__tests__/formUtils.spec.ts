@@ -39,12 +39,22 @@ describe('isLLMInferenceServiceActive', () => {
 });
 
 describe('isGenerativeNonLegacy', () => {
-  it('returns true for GENERATIVE model type with legacyVLLM false', () => {
+  it('returns true for GENERATIVE model type with legacyVLLM false and vLLMDeploymentOnMaaS enabled', () => {
     expect(
       isGenerativeNonLegacy({
         modelType: { data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false } },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: true },
       }),
     ).toBe(true);
+  });
+
+  it('returns false for GENERATIVE model type with legacyVLLM false when vLLMDeploymentOnMaaS is disabled', () => {
+    expect(
+      isGenerativeNonLegacy({
+        modelType: { data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false } },
+        devFeatureFlags: { vLLMDeploymentOnMaaS: false },
+      }),
+    ).toBe(false);
   });
 
   it('returns false for GENERATIVE model type with legacyVLLM true', () => {

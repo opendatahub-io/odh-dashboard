@@ -93,7 +93,7 @@ const createApiKeySchema = z
 type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
-  onClose: () => void;
+  onClose: (created?: boolean) => void;
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
@@ -158,10 +158,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
     createApiKeySchema,
   );
 
-  const isFormValid = () => {
-    const result = createApiKeySchema.safeParse(formData);
-    return result.success;
-  };
+  const isFormValid = getFieldValidation(undefined, true).length === 0;
 
   const selectedOption = EXPIRATION_OPTIONS.find((opt) => opt.value === formData.expirationOption);
 
@@ -205,7 +202,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
   const hiddenToken = createdToken ? formatApiKeyHiddenPreview(createdToken) : '';
 
   return (
-    <Modal variant={ModalVariant.medium} isOpen onClose={onClose}>
+    <Modal variant={ModalVariant.medium} isOpen onClose={() => onClose()}>
       <ModalHeader title={createdToken ? 'API key created' : 'Create API key'} />
       <ModalBody>
         {createdToken ? (
@@ -425,6 +422,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                         hideColumns={['project']}
                         titleHeadingLevel="h3"
                         titleSize="md"
+                        resourceType="subscription"
                       />
                     </FormGroup>
                   </>
@@ -514,7 +512,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
           <Button
             key="close"
             variant="primary"
-            onClick={onClose}
+            onClick={() => onClose(true)}
             data-testid="close-api-key-button"
           >
             Close
@@ -538,13 +536,13 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
                 key="create"
                 variant="primary"
                 onClick={handleSubmit}
-                isDisabled={!isFormValid() || isCreating || subscriptions.length === 0}
+                isDisabled={!isFormValid || isCreating || subscriptions.length === 0}
                 isLoading={isCreating}
                 data-testid="submit-create-api-key-button"
               >
                 Create API key
               </Button>
-              <Button key="cancel" variant="link" onClick={onClose} isDisabled={isCreating}>
+              <Button key="cancel" variant="link" onClick={() => onClose()} isDisabled={isCreating}>
                 Cancel
               </Button>
             </StackItem>

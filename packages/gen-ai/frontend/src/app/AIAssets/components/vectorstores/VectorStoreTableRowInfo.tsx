@@ -9,6 +9,7 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { InfoCircleIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ExternalVectorStoreSummary } from '~/app/types';
 
 type VectorStoreTableRowInfoProps = {
@@ -24,6 +25,13 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
       <Popover
         position="right"
         isVisible={isOpen}
+        shouldOpen={() => {
+          setIsOpen(true);
+          fireMiscTrackingEvent('Available Endpoints Vector Store Info Viewed', {
+            collectionName: store.vector_store_name,
+            providerType: store.provider_type,
+          });
+        }}
         shouldClose={() => setIsOpen(false)}
         headerContent="Vector store details"
         bodyContent={
@@ -36,6 +44,12 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 hoverTip="Copy provider ID"
                 clickTip="Copied"
                 aria-label="Copy provider ID"
+                onCopy={() =>
+                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                    copyTarget: 'provider_id',
+                    collectionName: store.vector_store_name,
+                  })
+                }
               >
                 {store.provider_id}
               </ClipboardCopy>
@@ -48,6 +62,12 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
                 hoverTip="Copy provider type"
                 clickTip="Copied"
                 aria-label="Copy provider type"
+                onCopy={() =>
+                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                    copyTarget: 'provider_type',
+                    collectionName: store.vector_store_name,
+                  })
+                }
               >
                 {store.provider_type}
               </ClipboardCopy>
@@ -56,7 +76,17 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
               <Content style={{ fontWeight: 'var(--pf-t--global--font--weight--body--bold)' }}>
                 Vector store ID
               </Content>
-              <ClipboardCopy hoverTip="Copy ID" clickTip="Copied" aria-label="Copy vector store ID">
+              <ClipboardCopy
+                hoverTip="Copy ID"
+                clickTip="Copied"
+                aria-label="Copy vector store ID"
+                onCopy={() =>
+                  fireMiscTrackingEvent('Available Endpoints Vector Store Info Copied', {
+                    copyTarget: 'vector_store_id',
+                    collectionName: store.vector_store_name,
+                  })
+                }
+              >
                 {store.vector_store_id}
               </ClipboardCopy>
             </StackItem>
@@ -67,7 +97,6 @@ const VectorStoreTableRowInfo: React.FC<VectorStoreTableRowInfoProps> = ({ store
           variant={ButtonVariant.plain}
           aria-label="More info"
           style={{ paddingTop: 0, paddingBottom: 0 }}
-          onClick={() => setIsOpen(!isOpen)}
         >
           <InfoCircleIcon />
         </Button>

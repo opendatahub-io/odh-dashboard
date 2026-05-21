@@ -83,6 +83,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableAdminConnectionTypes: false,
       disableFeatureStore: false,
       genAiStudio: false,
+      guardrails: false,
       automl: false,
       autorag: false,
       modelAsService: true,
@@ -101,6 +102,7 @@ export const blankDashboardCR: DashboardConfig = {
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
+      mySubscriptions: false,
     },
     notebookController: {
       enabled: true,

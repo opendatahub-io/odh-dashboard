@@ -2,6 +2,9 @@
 description: Cypress mock test creation and maintenance guidelines for isolated component testing
 globs: "packages/cypress/cypress/tests/mocked/**,packages/*/frontend/src/__tests__/cypress/**"
 alwaysApply: false
+paths:
+  - "packages/cypress/cypress/tests/mocked/**"
+  - "packages/*/frontend/src/__tests__/cypress/**"
 ---
 
 # Cypress Mock Test Rules

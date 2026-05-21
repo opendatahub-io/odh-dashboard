@@ -207,7 +207,7 @@ const FeatureStoreLineageToolbar: React.FC<FeatureStoreLineageToolbarProps> = ({
         <MultiSelection
           value={getEntityOptions}
           setValue={(selections: SelectionOptions[]) => handleSelectionChange('entity', selections)}
-          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Search entities...'}
+          placeholder={!lineageDataLoaded ? 'Loading lineage...' : 'Filter by entity name'}
           ariaLabel="Search entities"
           isDisabled={!lineageDataLoaded}
         />

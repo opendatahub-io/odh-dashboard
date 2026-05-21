@@ -91,6 +91,7 @@ function AutomlConfigurePage({
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-next-button"
           isDisabled={!configureSchema.base.shape.display_name.safeParse(displayName).success}
         >
           Next
@@ -110,6 +111,7 @@ function AutomlConfigurePage({
         <Button
           type="submit"
           variant="primary"
+          data-testid="automl-create-run-button"
           isDisabled={!form.formState.isValid || form.formState.isSubmitting}
         >
           {sourceRunId ? 'Create new run' : 'Create run'}

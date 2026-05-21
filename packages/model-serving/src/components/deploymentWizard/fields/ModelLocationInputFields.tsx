@@ -29,6 +29,7 @@ import { CustomTypeSelectField } from './modelLocationFields/CustomTypeSelectFie
 import usePvcs from '../../../concepts/usePvcs';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { resolveConnectionType } from '../utils';
+import { UseModelDeploymentWizardState } from '../useDeploymentWizard';
 
 export type ModelLocationDataField = {
   data: ModelLocationData | undefined;
@@ -182,6 +183,8 @@ export const isValidModelLocationData = (
           `pvc://${modelLocationData.additionalFields.pvcConnection}/`,
         )
       );
+    case ModelLocationType.NIM:
+      return true;
     default:
       return (
         modelLocationData.type === ModelLocationType.NEW &&
@@ -258,7 +261,12 @@ export const modelLocationDataSchema = z.object({
   }),
 });
 
+// NIM-specific fields are provided by the nim-serving plugin via WizardField extensions.
+export const hasOnlyExtensionFields = (modelLocation: ModelLocationData['type']): boolean =>
+  modelLocation === ModelLocationType.NIM;
+
 type ModelLocationInputFieldsProps = {
+  wizardState: UseModelDeploymentWizardState;
   modelLocation: ModelLocationData['type'];
   connections: Connection[];
   connectionTypes: ConnectionTypeConfigMapObj[];
@@ -275,6 +283,7 @@ type ModelLocationInputFieldsProps = {
 };
 
 export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> = ({
+  wizardState,
   modelLocation,
   connections,
   connectionTypes,
@@ -370,6 +379,7 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
         ) : null}
         {selectedConnectionType || modelLocationData?.connection ? (
           <NewConnectionField
+            wizardState={wizardState}
             connectionType={selectedConnectionType}
             setModelLocationData={setModelLocationData}
             modelLocationData={modelLocationData}
@@ -379,7 +389,6 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (modelLocation === ModelLocationType.PVC) {
     return (
       <PvcSelectField
@@ -411,6 +420,11 @@ export const ModelLocationInputFields: React.FC<ModelLocationInputFieldsProps> =
         }}
       />
     );
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (hasOnlyExtensionFields(modelLocation)) {
+    return null;
   }
 
   return <Alert variant="warning" title="There was a problem fetching connections" />;

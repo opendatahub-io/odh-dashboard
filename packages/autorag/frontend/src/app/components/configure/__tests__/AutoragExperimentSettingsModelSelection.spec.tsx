@@ -6,9 +6,9 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import AutoragExperimentSettingsModelSelection from '~/app/components/configure/AutoragExperimentSettingsModelSelection';
-import { LlamaStackModelType } from '~/app/types';
+import { OgxModelType } from '~/app/types';
 
 jest.mock('~/app/hooks/queries');
 jest.mock('react-router', () => ({
@@ -25,7 +25,7 @@ jest.mock('mod-arch-shared', () => ({
   }) => <button {...props}>{icon}</button>,
 }));
 
-const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
+const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const MOCK_MODELS = [
   { id: 'llama-8b', type: 'llm' as const, provider: 'ollama', resource_path: 'ollama://llama-8b' },
@@ -46,14 +46,14 @@ const MOCK_MODELS = [
 const mockModelsImplementation = (
   _namespace: string,
   _secretName?: string,
-  modelType?: LlamaStackModelType,
+  modelType?: OgxModelType,
 ) =>
   ({
     data: {
       models: modelType ? MOCK_MODELS.filter((m) => m.type === modelType) : MOCK_MODELS,
     },
     isLoading: false,
-  }) as unknown as ReturnType<typeof useLlamaStackModelsQuery>;
+  }) as unknown as ReturnType<typeof useOgxModelsQuery>;
 
 const configureSchema = createConfigureSchema();
 
@@ -64,7 +64,7 @@ const FormWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     defaultValues: {
       ...configureSchema.defaults,
       generation_models: MOCK_MODELS.filter((m) => m.type === 'llm').map((m) => m.id),
-      embeddings_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
+      embedding_models: MOCK_MODELS.filter((m) => m.type === 'embedding').map((m) => m.id),
     },
   });
   return <FormProvider {...form}>{children}</FormProvider>;
@@ -80,15 +80,15 @@ const renderComponent = () =>
 describe('AutoragExperimentSettingsModelSelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseLlamaStackModelsQuery.mockImplementation(mockModelsImplementation);
+    mockUseOgxModelsQuery.mockImplementation(mockModelsImplementation);
   });
 
   describe('Rendering', () => {
     it('should show a spinner when loading', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: true,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
       expect(screen.getByLabelText('Loading models')).toBeInTheDocument();
@@ -225,17 +225,17 @@ describe('AutoragExperimentSettingsModelSelection', () => {
     const manyModelsImplementation = (
       _namespace: string,
       _secretName?: string,
-      modelType?: LlamaStackModelType,
+      modelType?: OgxModelType,
     ) =>
       ({
         data: {
           models: modelType === 'llm' ? MANY_LLM_MODELS : [MOCK_MODELS[2]],
         },
         isLoading: false,
-      }) as unknown as ReturnType<typeof useLlamaStackModelsQuery>;
+      }) as unknown as ReturnType<typeof useOgxModelsQuery>;
 
     const renderWithManyModels = () => {
-      mockUseLlamaStackModelsQuery.mockImplementation(manyModelsImplementation);
+      mockUseOgxModelsQuery.mockImplementation(manyModelsImplementation);
 
       const FormWrapperMany: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const form = useForm({
@@ -244,7 +244,7 @@ describe('AutoragExperimentSettingsModelSelection', () => {
           defaultValues: {
             ...configureSchema.defaults,
             generation_models: MANY_LLM_MODELS.map((m) => m.id),
-            embeddings_models: ['minilm-v2'],
+            embedding_models: ['minilm-v2'],
           },
         });
         return <FormProvider {...form}>{children}</FormProvider>;
@@ -282,10 +282,10 @@ describe('AutoragExperimentSettingsModelSelection', () => {
 
   describe('Empty state', () => {
     it('should show empty message when no models are available', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: { models: [] },
         isLoading: false,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
       expect(screen.getAllByText('No models available.').length).toBeGreaterThan(0);

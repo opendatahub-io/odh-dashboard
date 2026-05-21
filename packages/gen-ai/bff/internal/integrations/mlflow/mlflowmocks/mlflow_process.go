@@ -18,7 +18,7 @@ import (
 const (
 	defaultMLflowPort    = 5001
 	defaultMLflowVersion = "3.9.0"
-	healthTimeout        = 30 * time.Second
+	healthTimeout        = 90 * time.Second
 	healthPoll           = 2 * time.Second
 	shutdownWait         = 5 * time.Second
 )

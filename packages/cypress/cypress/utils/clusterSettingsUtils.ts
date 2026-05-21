@@ -99,7 +99,7 @@ export const checkUserNotInRHODSUserGroups = (userName: string): Cypress.Chainab
   cy.step('Check if user is in RHODS user groups');
   return getOdhDashboardConfigGroupsConfig()
     .then((result: CommandLineResult) => {
-      if (result.code === 0 && result.stdout && result.stdout.trim() !== '') {
+      if (result.exitCode === 0 && result.stdout && result.stdout.trim() !== '') {
         try {
           const groupsConfig = JSON.parse(result.stdout);
           const allowedGroups = groupsConfig.allowedGroups || [];
@@ -114,7 +114,7 @@ export const checkUserNotInRHODSUserGroups = (userName: string): Cypress.Chainab
               failOnNonZeroExit: false,
             })
             .then((userGroupsResult: CommandLineResult) => {
-              if (userGroupsResult.code === 0 && userGroupsResult.stdout) {
+              if (userGroupsResult.exitCode === 0 && userGroupsResult.stdout) {
                 const userGroups = userGroupsResult.stdout.trim().split(/\s+/).filter(Boolean);
                 cy.log(`User groups: ${JSON.stringify(userGroups)}`);
 

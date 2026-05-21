@@ -1318,6 +1318,7 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  guardrails?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -1334,6 +1335,8 @@ export type DashboardCommonConfig = {
   llmGatewayField?: boolean;
   promptManagement?: boolean;
   nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
