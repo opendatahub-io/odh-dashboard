@@ -8,10 +8,20 @@ const MAX_PAGES = 100;
 
 type PaginatedResponse = { pagination: Partial<FeatureStorePagination> & Record<string, unknown> };
 
-/** Merges `relationships` maps from all page responses into a single object. */
+/** Merges `relationships` maps from all page responses, concatenating arrays per key. */
 export const mergeRelationships = <R>(
   allResponses: { relationships?: Record<string, R[]> }[],
-): Record<string, R[]> => Object.assign({}, ...allResponses.map((r) => r.relationships));
+): Record<string, R[]> => {
+  const merged: Record<string, R[]> = {};
+  for (const { relationships } of allResponses) {
+    if (relationships) {
+      for (const [key, value] of Object.entries(relationships)) {
+        merged[key] = key in merged ? [...merged[key], ...value] : value;
+      }
+    }
+  }
+  return merged;
+};
 
 /** Fetches all pages from a paginated /all endpoint using `pagination.has_next`. */
 export const fetchAllPages = async <T extends PaginatedResponse, TItem>(
