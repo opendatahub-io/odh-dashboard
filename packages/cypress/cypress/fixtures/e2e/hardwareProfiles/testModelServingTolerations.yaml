@@ -3,7 +3,7 @@ modelServingTolerationsTestNamespace: "hw-model-deployment"
 resourceYamlPath: "resources/hardwareProfile/model_tolerations.yaml"
 hardwareProfileName: "cypress-hardware-profile-model"
 tolerationValue: "PreferNoSchedule"
-hardwareProfileDeploymentSize: "cypress-hardware-profile-model Compatible CPU: Request = 2 Cores; Limit = 2 Cores; Memory: Request = 4 GiB; Limit = 4 GiB"
+hardwareProfileDeploymentSize: "cypress-hardware-profile-model Compatible CPU: Default = 2 Cores, Max = 4 Cores; Memory: Default = 4 GiB, Max = 8 GiB"
 modelName: "hw-model"
 modelFilePath: "flan-t5-small/flan-t5-small-caikit"
 modelFormat: 'openvino_ir - opset13'

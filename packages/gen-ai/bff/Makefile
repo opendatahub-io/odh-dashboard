@@ -36,7 +36,7 @@ MLFLOW_PORT ?= 5001
 MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 # Llama Stack test server configuration (used by mock/test mode only)
-TEST_LLAMA_STACK_VERSION ?= 0.7.0
+TEST_LLAMA_STACK_VERSION ?= 1.0.0
 TEST_LLAMA_STACK_PORT ?= 18321
 TEST_LLAMA_STACK_DIR ?= testdata/llamastack
 TEST_LLAMA_STACK_DATA ?= $(shell pwd)/$(TEST_LLAMA_STACK_DIR)/.data
@@ -49,12 +49,10 @@ TEST_LLAMA_STACK_PROVIDER ?= gemini
 TEST_LLAMA_STACK_MODEL_ID ?= models/gemini-2.5-flash
 TEST_LLAMA_STACK_EMBEDDING_MODEL_ID ?= models/gemini-embedding-001
 TEST_LLAMA_STACK_EMBEDDING_DIMENSION ?= 128
-TEST_LLAMA_STACK_SHIELD_MODEL_ID ?= models/gemini-2.5-flash
 
-# Prefixed model refs (derived from above, used by Go tests and shield)
+# Prefixed model refs (derived from above, used by Go tests)
 TEST_LLAMA_STACK_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_MODEL_ID)
 TEST_LLAMA_STACK_EMBEDDING_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID)
-TEST_LLAMA_STACK_SHIELD_MODEL ?= $(TEST_LLAMA_STACK_PROVIDER)/$(TEST_LLAMA_STACK_SHIELD_MODEL_ID)
 
 .PHONY: all
 all: build
@@ -95,7 +93,6 @@ test: fmt vet envtest uv ## Runs the full test suite.
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
-	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	go test ./...
 
 .PHONY: build
@@ -164,20 +161,19 @@ llamastack-up: uv ## Start local Llama Stack server in replay mode (Ctrl+C to st
 	@echo "Starting Llama Stack in REPLAY mode on port $(TEST_LLAMA_STACK_PORT)..."
 	SQLITE_STORE_DIR=$(TEST_LLAMA_STACK_DATA) \
 	GEMINI_API_KEY=dummy-key-for-replay \
-	LLAMA_STACK_TEST_INFERENCE_MODE=replay \
-	LLAMA_STACK_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
-	LLAMA_STACK_TEST_STACK_CONFIG_TYPE=server \
+	OGX_TEST_INFERENCE_MODE=replay \
+	OGX_TEST_RECORDING_DIR=$(TEST_LLAMA_STACK_RECORDINGS) \
+	OGX_TEST_STACK_CONFIG_TYPE=server \
 	LLAMA_STACK_TEST_ID=$(TEST_LLAMA_STACK_TEST_ID) \
 	TEST_LLAMA_STACK_PROVIDER=$(TEST_LLAMA_STACK_PROVIDER) \
 	TEST_LLAMA_STACK_MODEL_ID=$(TEST_LLAMA_STACK_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL_ID=$(TEST_LLAMA_STACK_EMBEDDING_MODEL_ID) \
 	TEST_LLAMA_STACK_EMBEDDING_DIMENSION=$(TEST_LLAMA_STACK_EMBEDDING_DIMENSION) \
 	TEST_LLAMA_STACK_EMBEDDING_MODEL=$(TEST_LLAMA_STACK_EMBEDDING_MODEL) \
-	TEST_LLAMA_STACK_SHIELD_MODEL=$(TEST_LLAMA_STACK_SHIELD_MODEL) \
 	$(UV) run --default-index https://pypi.org/simple/ --index https://test.pypi.org/simple/ \
 		--index-strategy unsafe-first-match --no-build-package psycopg2-binary --no-build-package asyncpg \
-		--with llama-stack==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
-		llama stack run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
+		--with ogx==$(TEST_LLAMA_STACK_VERSION) --with-requirements $(TEST_LLAMA_STACK_DIR)/requirements.txt \
+		ogx run $(TEST_LLAMA_STACK_CONFIG) --port $(TEST_LLAMA_STACK_PORT)
 
 .PHONY: llamastack-down
 llamastack-down: ## Stop local Llama Stack server and remove ephemeral data.
@@ -196,7 +192,7 @@ llamastack-record: ## Record Llama Stack fixtures by running Go tests against re
 	fi
 	@rm -rf $(TEST_LLAMA_STACK_RECORDINGS)/recordings
 	@echo "Cleared previous recordings"
-	LLAMA_STACK_TEST_INFERENCE_MODE=record $(MAKE) test
+	OGX_TEST_INFERENCE_MODE=record $(MAKE) test
 	@COUNT=$$(find $(TEST_LLAMA_STACK_RECORDINGS)/recordings -name "*.json" 2>/dev/null | wc -l | tr -d ' '); \
 	echo "  Recording complete! $${COUNT} JSON files";
 
@@ -213,7 +209,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
 UV ?= $(LOCALBIN)/uv
 
 ## Tool Versions
-GOLANGCI_LINT_VERSION ?= v2.1.0
+GOLANGCI_LINT_VERSION ?= v2.12.2
 ENVTEST_VERSION ?= release-0.19
 
 .PHONY: envtest

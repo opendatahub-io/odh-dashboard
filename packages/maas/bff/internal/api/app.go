@@ -192,7 +192,6 @@ func (app *App) Routes() http.Handler {
 
 	// MaaS routes
 
-	attachTierHandlers(apiRouter, app)
 	attachAPIKeyHandlers(apiRouter, app)
 	attachSubscriptionHandlers(apiRouter, app)
 	attachPolicyHandlers(apiRouter, app)

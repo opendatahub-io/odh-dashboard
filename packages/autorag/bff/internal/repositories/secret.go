@@ -16,10 +16,10 @@ var storageTypeRequiredKeys = map[string][]string{
 	},
 }
 
-var llsTypeRequiredKeys = map[string][]string{
-	"lls": {
-		"LLAMA_STACK_CLIENT_API_KEY",
-		"LLAMA_STACK_CLIENT_BASE_URL",
+var ogxTypeRequiredKeys = map[string][]string{
+	"ogx": {
+		"OGX_CLIENT_API_KEY",
+		"OGX_CLIENT_BASE_URL",
 	},
 }
 
@@ -37,7 +37,7 @@ func NewSecretRepository() *SecretRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "lls": filter for secrets matching LLS (Llama Stack) requirements
+//   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
 	k8sService *corek8s.K8sService,
 	ctx context.Context,
@@ -55,8 +55,8 @@ func (r *SecretRepository) GetFilteredSecrets(
 		filtered = secretInfos
 	case "storage":
 		filtered = corek8s.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
-	case "lls":
-		filtered = corek8s.FilterSecretInfos(secretInfos, llsTypeRequiredKeys)
+	case "ogx":
+		filtered = corek8s.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -86,13 +86,13 @@ func detectType(secret corek8s.SecretInfo, secretType string) string {
 		return secret.Type
 	}
 	switch secretType {
-	case "lls":
-		return "lls"
+	case "ogx":
+		return "ogx"
 	case "storage":
 		return corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
-		if corek8s.SecretInfoHasAllKeys(secret, llsTypeRequiredKeys["lls"]) {
-			return "lls"
+		if corek8s.SecretInfoHasAllKeys(secret, ogxTypeRequiredKeys["ogx"]) {
+			return "ogx"
 		}
 		return corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
 	}

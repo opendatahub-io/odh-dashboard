@@ -22,7 +22,6 @@
 | **Router** | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer. |
 | **Token authentication** | Secrets via `deployUtils.setUpTokenAuth`; wizard `tokenAuthField`. |
 | **Deployment strategy** | Rolling vs recreate via `deploymentStrategyField`. |
-| **MaaS tier** | `MAAS_TIERS_ANNOTATION` when `model-as-service` area is active. |
 | **Hardware profile paths** | `LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS` JSONPaths for `applyHardwareProfileConfig`. |
 | **External route** | Public route via LLM-d gateway; `externalRouteField`. |
 | **isLLMdDeployActive** | `deployUtils.ts`; true only when `disableLLMd` is off and `K_SERVE` area exists. |
@@ -35,7 +34,6 @@
 | `@odh-dashboard/kserve` | Package | Shared KServe utilities and types |
 | `@odh-dashboard/internal` | Package | Hardware profiles, k8s types, flags / areas |
 | `LLMInferenceService` CRD | Kubernetes API | Group `serving.kserve.io`, `v1alpha1` |
-| `packages/maas` | Package | MaaS tier annotation when model-as-service flag is on |
 | Main ODH Dashboard | Host application | Loads extensions; model-serving wizard and table |
 
 ## Known Issues / Gotchas

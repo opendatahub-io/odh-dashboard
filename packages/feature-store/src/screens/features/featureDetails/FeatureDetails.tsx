@@ -13,6 +13,7 @@ import {
 import { PathMissingIcon, SearchIcon } from '@patternfly/react-icons';
 import { t_global_spacer_xs as ExtraSmallSpacerSize } from '@patternfly/react-tokens';
 import { Link, useParams } from 'react-router-dom';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureDetailsTabs from './FeatureDetailsTab';
 import useFeatureByName from '../../../apiHooks/useFeatureByName';
@@ -74,8 +75,8 @@ const FeatureDetails = (): React.ReactElement => {
 
   if (!featureLoaded && !featureLoadError) {
     return (
-      <Bullseye>
-        <Spinner />
+      <Bullseye aria-live="polite" aria-busy>
+        <Spinner aria-label="Loading feature details" />
       </Bullseye>
     );
   }

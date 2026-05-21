@@ -139,9 +139,10 @@ const LLMConfigOptionsField: LLMConfigOptionsFieldType['component'] = ({
 };
 
 export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
-  id: 'modelServer',
+  id: 'llmd-serving/modelServer',
   step: 'modelDeployment',
   type: 'replacement',
+  stateKey: 'modelServer',
   isActive: isGenerativeNonLegacy,
   reducerFunctions: {
     resolveDependencies: (formData) => ({

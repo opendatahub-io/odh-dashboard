@@ -9,8 +9,8 @@ type Repositories struct {
 	HealthCheck     *HealthCheckRepository
 	User            *UserRepository
 	Namespace       *NamespaceRepository
-	LSDModels       *LSDModelsRepository
-	LSDVectorStores *LSDVectorStoresRepository
+	OGXModels       *OGXModelsRepository
+	OGXVectorStores *OGXVectorStoresRepository
 	Secret          *SecretRepository
 	S3              *S3Repository
 	Pipelines       *PipelinesRepository
@@ -21,8 +21,8 @@ func NewRepositories(pipelinesService *corepipelines.PipelinesService, pipelines
 		HealthCheck:     NewHealthCheckRepository(),
 		User:            NewUserRepository(),
 		Namespace:       NewNamespaceRepository(),
-		LSDModels:       NewLSDModelsRepository(),
-		LSDVectorStores: NewLSDVectorStoresRepository(),
+		OGXModels:       NewOGXModelsRepository(),
+		OGXVectorStores: NewOGXVectorStoresRepository(),
 		Secret:          NewSecretRepository(),
 		S3:              NewS3Repository(),
 		Pipelines:       NewPipelinesRepository(pipelinesService, pipelinesCfg),

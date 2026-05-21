@@ -2,6 +2,8 @@ import {
   Bullseye,
   Button,
   EmptyState,
+  EmptyStateBody,
+  EmptyStateVariant,
   PageSection,
   Spinner,
   Tab,
@@ -41,13 +43,13 @@ const FeatureViewsTabContent: React.FC<{
 }> = ({ featureViewsWithServices, currentProject }) => {
   return (
     <Table
-      aria-label="Data sources table"
-      data-testid="feature-view-data-sources-table"
+      aria-label="Data source feature views table"
+      data-testid="data-source-feature-views-table"
       variant="compact"
     >
       <Thead>
         <Tr>
-          <Th width={20}>Feature View</Th>
+          <Th width={20}>Name</Th>
           <Th width={20}>Feature service consumers</Th>
         </Tr>
       </Thead>
@@ -85,8 +87,8 @@ const SchemaTabContent: React.FC<{
 }> = ({ dataSource }) => {
   return (
     <Table
-      aria-label="Data sources table"
-      data-testid="feature-view-data-sources-table"
+      aria-label="Data source schema table"
+      data-testid="data-source-schema-table"
       variant="compact"
     >
       <Thead>
@@ -144,11 +146,14 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
   }, [featureViews, dataSource.project, currentProject]);
 
   const emptyState = (
-    <EmptyState>
-      <EmptyState icon={SearchIcon} />
-      <Title headingLevel="h5" size="lg" data-testid="data-source-feature-views-empty-state-title">
-        No feature views found
-      </Title>
+    <EmptyState
+      headingLevel="h5"
+      icon={SearchIcon}
+      titleText="No feature views found"
+      variant={EmptyStateVariant.lg}
+      data-testid="data-source-feature-views-empty-state-title"
+    >
+      <EmptyStateBody>No feature views use this data source.</EmptyStateBody>
     </EmptyState>
   );
 
@@ -193,8 +198,12 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
               projectName={dataSource.project || currentProject || ''}
             />
           ) : !featureViewsLoaded ? (
-            <Bullseye>
-              <Spinner size="xl" data-testid="loading-spinner" />
+            <Bullseye aria-live="polite" aria-busy>
+              <Spinner
+                size="xl"
+                aria-label="Loading feature views for this data source"
+                data-testid="loading-spinner"
+              />
             </Bullseye>
           ) : featureViewsWithServices.length > 0 ? (
             <>

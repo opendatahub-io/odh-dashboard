@@ -18,7 +18,7 @@ func NewModelsRepository() *ModelsRepository {
 }
 
 // ListModels retrieves all available models and transforms them for BFF use.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *ModelsRepository) ListModels(ctx context.Context) ([]openai.Model, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
