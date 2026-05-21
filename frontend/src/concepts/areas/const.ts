@@ -25,6 +25,7 @@ export const devTemporaryFeatureFlags = {
   disableProjectScoped: true,
   mlflowPipelines: false,
   nimWizard: false,
+  agentOps: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -171,11 +172,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_CATALOG]: {
     featureFlags: ['disableModelCatalog'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.MCP_CATALOG]: {
     featureFlags: ['mcpCatalog'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
@@ -219,6 +220,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   [SupportedArea.RAY_JOBS]: {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.RAY],
+  },
+  [SupportedArea.AGENT_OPS]: {
+    featureFlags: ['agentOps'],
   },
   [SupportedArea.MLFLOW]: {
     requiredComponents: [DataScienceStackComponent.MLFLOW],

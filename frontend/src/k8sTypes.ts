@@ -1336,6 +1336,7 @@ export type DashboardCommonConfig = {
   promptManagement?: boolean;
   nimWizard?: boolean;
   mySubscriptions?: boolean;
+  agentOps?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

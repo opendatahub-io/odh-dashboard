@@ -2,6 +2,10 @@
 description: ODH Dashboard monorepo architecture, package boundaries, and BFF structure
 globs: "packages/**,frontend/**,backend/**"
 alwaysApply: false
+paths:
+  - "packages/**"
+  - "frontend/**"
+  - "backend/**"
 ---
 
 # ODH Dashboard Architecture
@@ -38,7 +42,7 @@ These packages have a `module-federation` config in `package.json`, their own we
 
 These packages export extensions but have **no** `module-federation` config. They are compiled directly into the host bundle at build time — no separate webpack build, no `remoteEntry.js`, no standalone dev server:
 
-- `feature-store` — Feature Store
+- `feature-store` — Feature Store (read-only Feast UI; no BFF, proxies through main dashboard backend)
 - `kserve` — KServe integration
 - `llmd-serving` — LLM serving
 - `model-serving` — Model Serving UI
