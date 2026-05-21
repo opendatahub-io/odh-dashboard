@@ -117,6 +117,7 @@ const extensions: (
       title: 'Gen AI studio',
       group: '4_gen_ai_studio',
       iconRef: () => import('./GenAiStudioNavIcon'),
+      dataAttributes: { 'data-tour': 'nav-gen-ai-studio' },
     },
   },
   {

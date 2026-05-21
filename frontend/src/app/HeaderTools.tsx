@@ -14,7 +14,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@patternfly/react-core';
-import { QuestionCircleIcon, MoonIcon, SunIcon } from '@patternfly/react-icons';
+import { QuestionCircleIcon, MoonIcon, SunIcon, BoltIcon } from '@patternfly/react-icons';
 import { COMMUNITY_LINK, DOC_LINK, SUPPORT_LINK, DEV_MODE, EXT_CLUSTER } from '#~/utilities/const';
 import useNotification from '#~/utilities/useNotification';
 import { updateImpersonateSettings } from '#~/services/impersonateService';
@@ -26,6 +26,7 @@ import { useAppContext } from './AppContext';
 import { useThemeContext } from './ThemeContext';
 import { logout } from './appUtils';
 import FeatureFlagLauncher, { FeatureFlagLauncherProps } from './featureFlags/FeatureFlagLauncher';
+import { openWhatsNewTour } from './whatsNew/whatsNewEvent';
 
 interface HeaderToolsProps {
   onNotificationsClick: () => void;
@@ -149,6 +150,19 @@ const HeaderTools: React.FC<Props> = ({ onNotificationsClick, ...devFeatureFlags
     <Toolbar isFullHeight>
       <ToolbarContent>
         <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+          <ToolbarItem>
+            <Tooltip content="What's new in 3.4" position="bottom">
+              <Button
+                variant="plain"
+                aria-label="What's new"
+                onClick={openWhatsNewTour}
+                className="odh-whats-new-btn"
+                data-testid="whats-new-button"
+              >
+                <BoltIcon />
+              </Button>
+            </Tooltip>
+          </ToolbarItem>
           <ToolbarItem>
             <Tooltip content="Notifications" position="bottom">
               <NotificationBadge

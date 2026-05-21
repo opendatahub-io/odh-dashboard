@@ -29,6 +29,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskI
       section: 'develop-and-train',
       href: '/develop-train/training-jobs',
       path: '/develop-train/training-jobs/*',
+      dataAttributes: { 'data-tour': 'nav-training-jobs' },
     },
   },
   {

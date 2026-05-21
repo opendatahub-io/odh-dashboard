@@ -16,7 +16,7 @@ type Props = {
 
 export const NavItemTabRoute: React.FC<Props> = ({
   extension: {
-    properties: { id, href, path, dataAttributes, title, iconRef },
+    properties: { id, href, path, dataAttributes, title, iconRef, label, labelColor, labelVariant },
   },
 }) => {
   const allTabExtensions = useExtensions<TabRouteTabExtension>(isTabRouteTabExtension);
@@ -38,6 +38,9 @@ export const NavItemTabRoute: React.FC<Props> = ({
           title={title}
           navIcon={iconRef ? <NavIcon componentRef={iconRef} /> : null}
           statusIcon={null}
+          label={label}
+          labelColor={labelColor}
+          labelVariant={labelVariant}
         />
       </Link>
     </NavItem>
