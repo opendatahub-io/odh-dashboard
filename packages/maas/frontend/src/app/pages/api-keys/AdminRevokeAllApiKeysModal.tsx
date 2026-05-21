@@ -98,17 +98,13 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
       data-testid="admin-revoke-all-api-keys-modal"
       elementToFocus="#admin-revoke-username-input"
     >
-      <ModalHeader title="Revoke all active keys for a single user?" titleIconVariant="warning" />
+      <ModalHeader title="Revoke user API keys?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            Enter a username to view their API keys. All active keys for this user will be
-            permanently invalidated. This action cannot be undone.
-          </StackItem>
-
-          <StackItem>
-            Revoked keys will remain visible with a Revoked status but can no longer be used for
-            authentication.
+            Type a username to view a user’s API keys. The user’s API keys will be revoked, and any
+            applications or services currently using them will lose access. The keys will remain
+            visible from within OpenShift AI, but can no longer be used for authentication.
           </StackItem>
 
           <StackItem>
@@ -118,11 +114,14 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                 handleSearch();
               }}
             >
-              <FormGroup
-                label="Enter username to revoke their keys"
-                isRequired
-                fieldId="admin-revoke-username-input"
-              >
+              <FormGroup label="Username" isRequired fieldId="admin-revoke-username-input">
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem>
+                      Type a username and click the search icon to view the user’s keys.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
                 <InputGroup>
                   <InputGroupItem isFill>
                     <TextInput
@@ -131,7 +130,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                       aria-label="Enter username to search"
                       value={username}
                       onChange={(_e, val) => setUsername(val)}
-                      placeholder="Enter username"
+                      placeholder="Type username"
                     />
                   </InputGroupItem>
                   <InputGroupItem>
@@ -146,24 +145,6 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
                     </Button>
                   </InputGroupItem>
                 </InputGroup>
-                {!hasSearched && (
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        Enter a username and click search to view their keys
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                )}
-                {!searching && hasSearched && !searchError && activeKeys.length > 0 && (
-                  <FormHelperText>
-                    <HelperText>
-                      <HelperTextItem>
-                        {activeKeys.length} active key(s) found for {searchedUsername}
-                      </HelperTextItem>
-                    </HelperText>
-                  </FormHelperText>
-                )}
               </FormGroup>
             </Form>
           </StackItem>
@@ -201,7 +182,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
               ) : (
                 <StackItem>
                   <Title headingLevel="h4" data-testid="admin-revoke-keys-found-alert">
-                    Most recently used active keys for {searchedUsername}
+                    <b>{searchedUsername}</b>’s API keys
                   </Title>
                   <Table aria-label="Active API keys" variant="compact">
                     <Thead>
@@ -256,7 +237,7 @@ const AdminRevokeAllApiKeysModal: React.FC<AdminRevokeAllApiKeysModalProps> = ({
           onClick={handleRevoke}
           data-testid="admin-revoke-keys-button"
         >
-          Permanently revoke all keys
+          Revoke all keys
         </Button>
         <Button
           variant="link"

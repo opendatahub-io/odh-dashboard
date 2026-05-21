@@ -6,7 +6,6 @@ import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
 import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
-import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
 import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 import { ExternalDataMap } from '../ExternalDataLoader';
 
@@ -21,8 +20,6 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   wizardState,
   externalData,
 }) => {
-  const vLLMDeploymentOnMaaS = wizardState.fields.some((field) => field.id === 'modelServer');
-
   if (!wizardState.loaded.modelDeploymentLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -53,19 +50,12 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             isEditing={wizardState.initialData?.isEditing}
           />
         )}
-        {vLLMDeploymentOnMaaS ? (
-          <GenericFieldRenderer
-            fieldId="modelServer"
-            wizardState={wizardState}
-            externalData={externalData}
-            isEditing={wizardState.initialData?.isEditing}
-          />
-        ) : (
-          <ModelServerTemplateSelectField
-            modelServerState={wizardState.state.modelServer}
-            isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
-          />
-        )}
+        <GenericFieldRenderer
+          stateKey="modelServer"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
+        />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>
     </Form>

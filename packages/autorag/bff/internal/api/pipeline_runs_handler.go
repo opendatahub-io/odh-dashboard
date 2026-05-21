@@ -20,8 +20,9 @@ type PipelineRunEnvelope Envelope[*models.PipelineRun, None]
 
 // PipelineRunsHandler handles GET /api/v1/pipeline-runs
 //
-// Returns pipeline runs for the auto-discovered AutoRAG pipeline version.
-// The pipeline is discovered via the AttachDiscoveredPipeline middleware.
+// Returns pipeline runs across all versions of the auto-discovered AutoRAG
+// managed pipeline. The pipeline is discovered via the AttachDiscoveredPipeline
+// middleware; runs are aggregated by repositories.PipelineRuns.GetPipelineRuns.
 //
 // Query Parameters:
 //   - namespace: Kubernetes namespace (required, validated by middleware)
@@ -82,11 +83,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 
 	pageToken := query.Get("nextPageToken")
 
-	// Call repository to get pipeline runs for the discovered AutoRAG pipeline version.
+	// Call repository to get pipeline runs across all versions of the discovered AutoRAG pipeline.
 	runsData, err := app.repositories.PipelineRuns.GetPipelineRuns(
 		client,
 		ctx,
-		discovered.PipelineVersionID,
+		discovered.PipelineID,
 		pageSize,
 		pageToken,
 		constants.PipelineTypeAutoRAG,
@@ -114,10 +115,11 @@ func (app *App) PipelineRunsHandler(w http.ResponseWriter, r *http.Request, _ ht
 // in the namespace before returning it. This prevents users from accessing runs from other
 // pipelines that may exist in the same namespace.
 //
-// Validation includes:
+// Validation is performed by resolveOwnedRun, which checks:
 //   - PipelineVersionReference must exist (defense-in-depth for data integrity)
-//   - Pipeline ID must match discovered AutoRAG pipeline
-//   - Pipeline version ID must match discovered AutoRAG pipeline version
+//   - PipelineID must match the discovered AutoRAG pipeline (version is intentionally
+//     not checked, so runs from older pipeline versions remain accessible after a
+//     version bump)
 //
 // Error Responses:
 //   - 400: Missing runId
@@ -189,8 +191,7 @@ func (app *App) resolveOwnedRun(
 	}
 
 	if discovered == nil ||
-		run.PipelineVersionReference.PipelineID != discovered.PipelineID ||
-		run.PipelineVersionReference.PipelineVersionID != discovered.PipelineVersionID {
+		run.PipelineVersionReference.PipelineID != discovered.PipelineID {
 		app.notFoundResponse(w, r)
 		return nil, nil, false
 	}
@@ -253,6 +254,48 @@ func (app *App) TerminatePipelineRunHandler(w http.ResponseWriter, r *http.Reque
 	// Ownership and state confirmed — terminate the run
 	if err := app.repositories.PipelineRuns.TerminatePipelineRun(client, r.Context(), run.RunID); err != nil {
 		app.mapMutationError(w, r, err, "terminate")
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// deletableStates lists the run states that are eligible for deletion.
+var deletableStates = map[string]bool{
+	"SUCCEEDED": true,
+	"FAILED":    true,
+	"CANCELED":  true,
+}
+
+// DeletePipelineRunHandler handles DELETE /api/v1/pipeline-runs/:runId
+//
+// Permanently deletes a completed, failed, or canceled AutoRAG pipeline run. The run must belong
+// to the discovered AutoRAG pipeline in the namespace.
+//
+// Security: This endpoint validates that the requested run belongs to the AutoRAG pipeline
+// in the namespace before deleting it. This prevents users from deleting runs from
+// other pipelines that may exist in the same namespace.
+//
+// Only runs in SUCCEEDED, FAILED, or CANCELED state can be deleted.
+//
+// Error Responses:
+//   - 400: Missing runId or run is not in a deletable state
+//   - 404: Run not found, run belongs to a different pipeline, or no AutoRAG pipeline discovered
+//   - 500: Missing pipeline server client (middleware misconfiguration) or Pipeline Server error
+func (app *App) DeletePipelineRunHandler(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	client, run, ok := app.resolveOwnedRun(w, r, params)
+	if !ok {
+		return
+	}
+
+	runState := strings.ToUpper(run.State)
+	if !deletableStates[runState] {
+		app.badRequestResponse(w, r, fmt.Errorf("run %s is in state %s and cannot be deleted; only SUCCEEDED, FAILED, or CANCELED runs can be deleted", run.RunID, runState))
+		return
+	}
+
+	if err := app.repositories.PipelineRuns.DeletePipelineRun(client, r.Context(), run.RunID); err != nil {
+		app.mapMutationError(w, r, err, "delete")
 		return
 	}
 

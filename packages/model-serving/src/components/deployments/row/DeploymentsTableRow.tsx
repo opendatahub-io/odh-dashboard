@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from '@patternfly/react-core';
 import { Td, Tbody } from '@patternfly/react-table';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
@@ -95,19 +96,22 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && pathsLoaded && (
-          <Td
-            {...{
-              'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
-              expand: {
-                rowIndex,
-                expandId: `${deployment.modelServingPlatformId}-model-row-item`,
-                isExpanded,
-                onToggle: () => setExpanded(!isExpanded),
-              },
-            }}
-          />
-        )}
+        {showExpandedToggle &&
+          (pathsLoaded ? (
+            <Td
+              {...{
+                'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+                expand: {
+                  rowIndex,
+                  expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                  isExpanded,
+                  onToggle: () => setExpanded(!isExpanded),
+                },
+              }}
+            />
+          ) : (
+            <Td />
+          ))}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
             {metricsExtension &&
@@ -139,10 +143,13 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell
-          deployment={deployment}
-          hardwareProfilePaths={hardwareProfilePaths}
-        />
+        {formDataResolved ? (
+          <DeploymentHardwareProfileCell deployment={deployment} />
+        ) : (
+          <Td dataLabel="Hardware profile">
+            <Spinner size="md" />
+          </Td>
+        )}
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>

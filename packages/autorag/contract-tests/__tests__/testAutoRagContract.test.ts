@@ -47,21 +47,21 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Models Endpoint', () => {
+  describe('OGX Models Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD models list', async () => {
+      it('should successfully retrieve OGX models list', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=default&secretName=test-ogx-secret',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/LSDModelsResponse/content/application/json/schema',
+          ref: '#/components/responses/OGXModelsResponse/content/application/json/schema',
           status: 200,
         });
       });
 
       it('should return models with expected data structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -83,14 +83,14 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Error Cases', () => {
       it('should return 400 when namespace query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models?secretName=test-lls-secret');
+        const result = await apiClient.get('/api/v1/ogx/models?secretName=test-ogx-secret');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 when secretName query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models?namespace=default');
+        const result = await apiClient.get('/api/v1/ogx/models?namespace=default');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -98,7 +98,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=default&secretName=INVALID_NAME',
+          '/api/v1/ogx/models?namespace=default&secretName=INVALID_NAME',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -107,7 +107,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/models?namespace=INVALID_NS&secretName=test-lls-secret',
+          '/api/v1/ogx/models?namespace=INVALID_NS&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -115,7 +115,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 when both query parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/models');
+        const result = await apiClient.get('/api/v1/ogx/models');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -123,21 +123,21 @@ describe('AutoRAG API Contract Tests', () => {
     });
   });
 
-  describe('LSD Vector Store Providers Endpoint', () => {
+  describe('OGX Vector Store Providers Endpoint', () => {
     describe('Success Cases', () => {
-      it('should successfully retrieve LSD vector store providers list', async () => {
+      it('should successfully retrieve OGX vector store providers list', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/components/responses/LSDVectorStoresResponse/content/application/json/schema',
+          ref: '#/components/responses/OGXVectorStoresResponse/content/application/json/schema',
           status: 200,
         });
       });
 
       it('should return vector store providers with expected data structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -167,7 +167,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Response Structure', () => {
       it('should return a valid array in vector_store_providers field', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(true);
         if (result.success) {
@@ -182,14 +182,14 @@ describe('AutoRAG API Contract Tests', () => {
 
     describe('Error Cases', () => {
       it('should return 400 when namespace query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores?secretName=test-lls-secret');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores?secretName=test-ogx-secret');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
       });
 
       it('should return 400 when secretName query parameter is missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores?namespace=default');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores?namespace=default');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -197,7 +197,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=default&secretName=INVALID_NAME',
+          '/api/v1/ogx/vector-stores?namespace=default&secretName=INVALID_NAME',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -206,7 +206,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when namespace is an invalid DNS-1123 label', async () => {
         const result = await apiClient.get(
-          '/api/v1/lsd/vector-stores?namespace=INVALID_NS&secretName=test-lls-secret',
+          '/api/v1/ogx/vector-stores?namespace=INVALID_NS&secretName=test-ogx-secret',
         );
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -214,7 +214,7 @@ describe('AutoRAG API Contract Tests', () => {
       });
 
       it('should return 400 when both query parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/lsd/vector-stores');
+        const result = await apiClient.get('/api/v1/ogx/vector-stores');
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
         expect(result.error?.data).toHaveProperty('error');
@@ -270,8 +270,8 @@ describe('AutoRAG API Contract Tests', () => {
         verifyAvailableKeysField(result);
       });
 
-      it('should retrieve lls secrets when type=lls', async () => {
-        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=lls');
+      it('should retrieve ogx secrets when type=ogx', async () => {
+        const result = await apiClient.get('/api/v1/secrets?namespace=default&type=ogx');
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/SecretsResponse/content/application/json/schema',
           status: 200,
@@ -566,10 +566,10 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Success Cases', () => {
       it('should successfully download a file from S3', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=test-file.pdf',
+          '/api/v1/s3/files/test-file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -578,7 +578,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Missing Parameters', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -588,7 +588,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when secretName parameter is missing', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -598,26 +598,8 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret',
         );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when key parameter is missing', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when all parameters are missing', async () => {
-        const result = await apiClient.get('/api/v1/s3/file');
         expect(result.success).toBe(false);
         if (!result.success) {
           expect(result.error.status).toBe(400);
@@ -628,7 +610,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Empty Parameters', () => {
       it('should return 400 for empty namespace', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -638,7 +620,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for empty secretName', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -648,17 +630,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 400 for empty bucket', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=&key=file.pdf',
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 for empty key', async () => {
-        const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -670,7 +642,7 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Error Cases - Secret Issues', () => {
       it('should return 404 when secret does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -680,7 +652,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 404 when namespace does not exist', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
         );
         expect(result.success).toBe(false);
         if (!result.success) {
@@ -692,22 +664,22 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Bucket Parameter Fallback', () => {
       it('should accept request without bucket query parameter when secret has AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket',
         );
         // Mock S3 should succeed when bucket is provided via secret's AWS_S3_BUCKET field
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should allow bucket query parameter to override secret AWS_S3_BUCKET', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret-with-bucket&bucket=override-bucket',
         );
         // Mock S3 validates that query parameter bucket can override secret's AWS_S3_BUCKET
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -716,21 +688,23 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Key Format Variations', () => {
       it('should handle nested key structure', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=folder/subfolder/file.pdf',
+          `/api/v1/s3/files/${encodeURIComponent(
+            'folder/subfolder/file.pdf',
+          )}?namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         // Mock S3 should return file data for valid key formats
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should handle key with special characters', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=my-file_v2.0.pdf',
+          '/api/v1/s3/files/my-file_v2.0.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -738,10 +712,10 @@ describe('AutoRAG API Contract Tests', () => {
       it('should handle URL-encoded key', async () => {
         const encodedKey = encodeURIComponent('documents/my file.pdf');
         const result = await apiClient.get(
-          `/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=${encodedKey}`,
+          `/api/v1/s3/files/${encodedKey}?namespace=default&secretName=test-secret&bucket=my-bucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -750,21 +724,23 @@ describe('AutoRAG API Contract Tests', () => {
     describe('Valid Bucket and Key Formats', () => {
       it('should accept simple key format', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=mybucket',
         );
         // Mock S3 validates parameter parsing and returns mock file data
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
 
       it('should accept key with multiple path segments', async () => {
         const result = await apiClient.get(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=mybucket&key=documents/2024/file.pdf',
+          `/api/v1/s3/files/${encodeURIComponent(
+            'documents/2024/file.pdf',
+          )}?namespace=default&secretName=test-secret&bucket=mybucket`,
         );
         expect(result).toMatchContract(apiSchema, {
-          ref: '#/paths/~1api~1v1~1s3~1file/get/responses/200',
+          ref: '#/paths/~1api~1v1~1s3~1files~1{key}/get/responses/200',
           status: 200,
         });
       }, 8000);
@@ -1150,7 +1126,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1168,11 +1144,11 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           optimization_metric: 'answer_correctness',
-          embeddings_models: ['model-a', 'model-b'],
+          embedding_models: ['model-a', 'model-b'],
           generation_models: ['gen-model-1'],
-          llama_stack_vector_io_provider_id: 'vectordb-123',
+          vector_io_provider_id: 'vectordb-123',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1189,7 +1165,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result).toMatchContract(apiSchema, {
           ref: '#/components/responses/CreatePipelineRunResponse/content/application/json/schema',
@@ -1206,7 +1182,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 'minio-secret',
           input_data_bucket_name: 'autorag',
           input_data_key: 'documents/',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
         });
         expect(result.success).toBe(false);
         expect(result.error?.status).toBe(400);
@@ -1232,7 +1208,7 @@ describe('AutoRAG API Contract Tests', () => {
           input_data_secret_name: 's',
           input_data_bucket_name: 'b',
           input_data_key: 'k',
-          llama_stack_secret_name: 's',
+          ogx_secret_name: 's',
           optimization_metric: 'invalid_metric',
         });
         expect(result.success).toBe(false);
@@ -1316,6 +1292,62 @@ describe('AutoRAG API Contract Tests', () => {
         }
       });
     });
+
+    describe('Delete Pipeline Run', () => {
+      it('should delete a succeeded pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-abc123-def456?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should delete a failed pipeline run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-mno345-pqr678?namespace=test-namespace',
+        );
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.response.status).toBe(200);
+        }
+      });
+
+      it('should return 400 when attempting to delete an active (RUNNING) run', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/run-ghi789-jkl012?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(400);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          });
+        }
+      });
+
+      it('should return 404 for non-existent run ID', async () => {
+        const result = await apiClient.delete(
+          '/api/v1/pipeline-runs/non-existent-run-id?namespace=test-namespace',
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error.status).toBe(404);
+          expect({
+            status: result.error.status,
+            data: result.error.data,
+          }).toMatchContract(apiSchema, {
+            ref: '#/components/responses/NotFound/content/application~1json/schema',
+            status: 404,
+          });
+        }
+      });
+    });
   });
 
   describe('S3 File Upload (POST)', () => {
@@ -1333,7 +1365,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when namespace parameter is missing', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -1345,7 +1377,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when secretName parameter is missing', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -1357,19 +1389,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 400 when bucket parameter is missing and secret has no AWS_S3_BUCKET', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&key=file.pdf',
-          form,
-        );
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error.status).toBe(400);
-        }
-      });
-
-      it('should return 400 when key parameter is missing', async () => {
-        const form = buildFormDataWithFile();
-        const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret',
           form,
         );
         expect(result.success).toBe(false);
@@ -1384,7 +1404,7 @@ describe('AutoRAG API Contract Tests', () => {
         const form = new FormData();
         form.append('other', 'value');
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -1456,7 +1476,7 @@ describe('AutoRAG API Contract Tests', () => {
 
       it('should return 413 when declared Content-Length exceeds max upload body size', async () => {
         const path =
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf';
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket';
         const response = await postS3WithDeclaredContentLength(
           path,
           s3PostMaxDeclaredBodyBytes + 1,
@@ -1480,7 +1500,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 when secret does not exist', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&secretName=non-existent-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=non-existent-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -1492,7 +1512,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 404 when namespace does not exist', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=non-existent-namespace&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result.success).toBe(false);
@@ -1506,7 +1526,7 @@ describe('AutoRAG API Contract Tests', () => {
       it('should return 201 with S3UploadSuccess when all parameters and file part are valid', async () => {
         const form = buildFormDataWithFile();
         const result = await apiClient.postFormData(
-          '/api/v1/s3/file?namespace=default&secretName=test-secret&bucket=my-bucket&key=file.pdf',
+          '/api/v1/s3/files/file.pdf?namespace=default&secretName=test-secret&bucket=my-bucket',
           form,
         );
         expect(result).toMatchContract(apiSchema, {

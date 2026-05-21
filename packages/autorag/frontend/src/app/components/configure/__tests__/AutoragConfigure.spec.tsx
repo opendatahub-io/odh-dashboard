@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
@@ -8,7 +9,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
 const mockNotificationError = jest.fn();
@@ -93,11 +94,12 @@ jest.mock('~/app/hooks/useNotification', () => ({
 // Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useLlamaStackModelsQuery: jest.fn().mockReturnValue({
+  useOgxModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
+    isError: false,
   }),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+  useOgxVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
@@ -220,7 +222,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
+const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -261,6 +263,25 @@ const renderWithQueryClient = (
 
 const renderComponent = (defaultValues?: Partial<typeof configureSchema.defaults>) =>
   renderWithQueryClient(<AutoragConfigure />, defaultValues);
+
+const renderWithInitialValues = (
+  initialValues: Parameters<typeof AutoragConfigure>[0]['initialValues'] & {
+    initialInputDataSecret?: Parameters<typeof AutoragConfigure>[0]['initialInputDataSecret'];
+  },
+  defaultValues?: Partial<typeof configureSchema.defaults>,
+) => {
+  const { initialInputDataSecret, ...schemaValues } = initialValues;
+  return renderWithQueryClient(
+    <AutoragConfigure
+      initialValues={schemaValues}
+      initialInputDataSecret={initialInputDataSecret}
+    />,
+    {
+      ...defaultValues,
+      ...schemaValues,
+    },
+  );
+};
 
 describe('AutoragConfigure', () => {
   beforeEach(() => {
@@ -665,7 +686,7 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -679,7 +700,7 @@ describe('AutoragConfigure', () => {
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -691,6 +712,23 @@ describe('AutoragConfigure', () => {
       // The "Selected models" card should show model counts
       expect(screen.getByText(/1 foundation model/)).toBeInTheDocument();
       expect(screen.getByText(/1 embedding model/)).toBeInTheDocument();
+    });
+  });
+
+  describe('Model error handling', () => {
+    it('should show error notification when model loading fails', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderComponent();
+
+      expect(mockNotificationError).toHaveBeenCalledWith(
+        'Failed to load models',
+        'Check that the Open GenAI Stack secret is valid and try again.',
+      );
     });
   });
 
@@ -783,6 +821,150 @@ describe('AutoragConfigure', () => {
     });
   });
 
+  describe('reconfigure with initialValues', () => {
+    it('should show the selected secret value when initialInputDataSecret is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('Test Secret 1');
+    });
+
+    it('should show the selected input data file when input_data_key is provided', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'my-data/input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'my-data/input.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      // The file table should show the file name extracted from the key
+      const table = screen.getByRole('grid', { name: 'Selected input data file' });
+      expect(table).toBeInTheDocument();
+      expect(screen.getByText('input.pdf')).toBeInTheDocument();
+    });
+
+    it('should show the optimization metric from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'answer_correctness',
+          optimization_max_rag_patterns: 8,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'answer_correctness',
+          optimization_max_rag_patterns: 8,
+        },
+      );
+
+      expect(screen.getByTestId('optimization-metric-select')).toHaveTextContent(
+        'Answer correctness',
+      );
+    });
+
+    it('should show the max RAG patterns value from initialValues', () => {
+      renderWithInitialValues(
+        {
+          initialInputDataSecret: {
+            uuid: 'secret-1',
+            name: 'Test Secret 1',
+            data: { AWS_S3_BUCKET: 'test-bucket-1', AWS_DEFAULT_REGION: 'us-east-1' },
+            type: 's3',
+            invalid: false,
+          },
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 12,
+        },
+        {
+          input_data_secret_name: 'Test Secret 1',
+          input_data_bucket_name: 'test-bucket-1',
+          input_data_key: 'data.pdf',
+          test_data_secret_name: 'Test Secret 1',
+          test_data_bucket_name: 'test-bucket-1',
+          test_data_key: 'eval.json',
+          optimization_metric: 'faithfulness',
+          optimization_max_rag_patterns: 12,
+        },
+      );
+
+      const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
+      expect(input).toHaveValue(12);
+    });
+  });
+
   describe('invalid secret selection', () => {
     it('should disable "Browse bucket" button when selected secret is invalid', () => {
       renderComponent();
@@ -824,7 +1006,39 @@ describe('AutoragConfigure', () => {
       expect(browseButton).toBeEnabled();
     });
 
+    it('should disable "Edit" button when model loading fails', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
+      renderComponent();
+
+      // Select a valid secret
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+
+      // Browse and select a file
+      fireEvent.click(screen.getByRole('button', { name: 'Browse bucket' }));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+
+      // Edit button should be disabled due to model error
+      const editButton = screen.getByRole('button', { name: 'Edit' });
+      expect(editButton).toBeDisabled();
+    });
+
     it('should enable "Edit" button when a file/folder is selected', () => {
+      mockUseOgxModelsQuery.mockReturnValue({
+        data: {
+          models: [
+            // eslint-disable-next-line camelcase
+            { id: 'llm-model', type: 'llm', provider: 'ollama', resource_path: 'ollama://llm' },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
+
       renderComponent();
 
       // Select a valid secret

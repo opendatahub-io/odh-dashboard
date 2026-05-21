@@ -5,9 +5,11 @@ import {
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
+  isRunDeletable,
   parseErrorStatus,
   getOptimizedMetricForRAG,
   formatMetricValue,
+  generateReconfigureName,
 } from '~/app/utilities/utils';
 
 describe('isRunTerminatable', () => {
@@ -82,6 +84,33 @@ describe('isRunRetryable', () => {
   it('should return false for undefined or empty state', () => {
     expect(isRunRetryable(undefined)).toBe(false);
     expect(isRunRetryable('')).toBe(false);
+  });
+});
+
+describe('isRunDeletable', () => {
+  it('should return true for terminal states', () => {
+    expect(isRunDeletable('SUCCEEDED')).toBe(true);
+    expect(isRunDeletable('FAILED')).toBe(true);
+    expect(isRunDeletable('CANCELED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunDeletable('succeeded')).toBe(true);
+    expect(isRunDeletable('Succeeded')).toBe(true);
+    expect(isRunDeletable('failed')).toBe(true);
+    expect(isRunDeletable('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunDeletable('RUNNING')).toBe(false);
+    expect(isRunDeletable('PENDING')).toBe(false);
+    expect(isRunDeletable('PAUSED')).toBe(false);
+    expect(isRunDeletable('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunDeletable(undefined)).toBe(false);
+    expect(isRunDeletable('')).toBe(false);
   });
 });
 
@@ -248,5 +277,104 @@ describe('formatMetricValue', () => {
   it('should return string values as-is', () => {
     expect(formatMetricValue('N/A')).toBe('N/A');
     expect(formatMetricValue('invalid')).toBe('invalid');
+  });
+});
+
+describe('generateReconfigureName', () => {
+  it('should append " - 1" to a name without a suffix', () => {
+    expect(generateReconfigureName('my-run')).toBe('my-run - 1');
+  });
+
+  it('should increment an existing numeric suffix', () => {
+    expect(generateReconfigureName('my-run - 1')).toBe('my-run - 2');
+  });
+
+  it('should handle multiple increments', () => {
+    expect(generateReconfigureName('my-run - 99')).toBe('my-run - 100');
+  });
+
+  it('should handle a name that ends with a number but not the suffix pattern', () => {
+    expect(generateReconfigureName('experiment-42')).toBe('experiment-42 - 1');
+  });
+
+  it('should handle an empty string', () => {
+    expect(generateReconfigureName('')).toBe(' - 1');
+  });
+
+  it('should handle a name with spaces and a suffix', () => {
+    expect(generateReconfigureName('my experiment run - 5')).toBe('my experiment run - 6');
+  });
+
+  it('should not truncate a name that fits exactly at the 250-char limit', () => {
+    // " - 1" is 4 chars, so a 246-char base + " - 1" = 250 total
+    const base = 'a'.repeat(246);
+    const result = generateReconfigureName(base);
+    expect(result).toBe(`${base} - 1`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should truncate and add ellipsis when the result would exceed 250 chars', () => {
+    // 248-char base + " - 1" (4 chars) = 252, exceeds 250
+    const base = 'a'.repeat(248);
+    const result = generateReconfigureName(base);
+    // max base = 250 - 4 (" - 1") - 3 ("...") = 243
+    expect(result).toBe(`${'a'.repeat(243)}... - 1`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should truncate when incrementing a suffix would exceed the limit', () => {
+    // base(244) + " - 99" = 249 chars. Incrementing → base(244) + " - 100" = 250.
+    const base = 'b'.repeat(244);
+    const original = `${base} - 99`;
+    expect(Array.from(original).length).toBe(249);
+    const result = generateReconfigureName(original);
+    // " - 100" is 6 chars, base(244) + " - 100" = 250 → fits
+    expect(result).toBe(`${base} - 100`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should truncate when incrementing from 2 to 3 digit suffix pushes past the limit', () => {
+    // base(245) + " - 99" = 250 chars. Incrementing → base(245) + " - 100" = 251 → truncate
+    const base = 'c'.repeat(245);
+    const original = `${base} - 99`;
+    expect(Array.from(original).length).toBe(250);
+    const result = generateReconfigureName(original);
+    // suffix " - 100" is 6 chars, max base = 250 - 6 - 3 = 241
+    expect(result).toBe(`${'c'.repeat(241)}... - 100`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should handle truncation with multi-byte unicode characters', () => {
+    // Each emoji is 1 code point but multiple UTF-16 code units
+    const base = '\u{1F600}'.repeat(248); // 248 code points of emoji
+    const result = generateReconfigureName(base);
+    // " - 1" is 4 chars, "..." is 3, max base = 250 - 4 - 3 = 243 code points
+    expect(result).toBe(`${'\u{1F600}'.repeat(243)}... - 1`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should correctly increment very large suffix numbers beyond Number.MAX_SAFE_INTEGER', () => {
+    const bigNum = '9999999999999999999999999999999999';
+    const expected = '10000000000000000000000000000000000';
+    const result = generateReconfigureName(`run - ${bigNum}`);
+    expect(result).toBe(`run - ${expected}`);
+  });
+
+  it('should truncate when a very large suffix number causes overflow', () => {
+    const bigNum = '9999999999999999999999999999999999'; // 34 digits
+    const expected = '10000000000000000000000000000000000'; // 35 digits
+    const base = 'x'.repeat(246);
+    const result = generateReconfigureName(`${base} - ${bigNum}`);
+    // suffix " - 10000000000000000000000000000000000" is 38 chars
+    // max base = 250 - 38 - 3 = 209
+    expect(result).toBe(`${'x'.repeat(209)}... - ${expected}`);
+    expect(Array.from(result).length).toBe(250);
+  });
+
+  it('should cap result at 250 chars even when suffix alone is extremely long', () => {
+    // Pathological case: suffix so long that "..." + suffix > 250
+    const hugeNum = '1'.repeat(260); // 260-digit number
+    const result = generateReconfigureName(`run - ${hugeNum}`);
+    expect(Array.from(result).length).toBeLessThanOrEqual(250);
   });
 });

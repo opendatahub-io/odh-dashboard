@@ -1,5 +1,7 @@
 import * as React from 'react';
 import { ModelRegistry } from '~/app/types';
+export declare const MODEL_REGISTRY_SELECTED_STORAGE_KEY = "kubeflow.dashboard.model.registry.selected";
+export declare const MODEL_REGISTRY_FAVORITE_STORAGE_KEY = "kubeflow.dashboard.model.registry.favorite";
 export type ModelRegistrySelectorContextType = {
     modelRegistriesLoaded: boolean;
     modelRegistriesLoadError?: Error;

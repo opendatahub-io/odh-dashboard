@@ -216,6 +216,7 @@ const extensions: (
     },
     flags: {
       required: [LLMD_SERVING_ID],
+      disallowed: [SupportedArea.VLLM_ON_MAAS],
     },
   },
   {

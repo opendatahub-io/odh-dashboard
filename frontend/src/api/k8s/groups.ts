@@ -6,6 +6,7 @@ import { groupVersionKind } from '#~/api/k8sUtils';
 import { useAccessReview } from '#~/api/useAccessReview';
 import useK8sWatchResourceList from '#~/utilities/useK8sWatchResourceList';
 import { CustomWatchK8sResult } from '#~/types';
+import { K8sStatusError } from '#~/api/errorUtils';
 
 const accessReviewResource: AccessReviewResourceAttributes = {
   group: 'user.openshift.io',
@@ -30,6 +31,12 @@ export const useGroups = (): CustomWatchK8sResult<GroupKind[]> => {
       return [[], false, undefined];
     }
     if (!allowList) {
+      return [[], true, undefined];
+    }
+    // On BYOIDC clusters (e.g. Keycloak), the Group CRD does not exist and the watch
+    // returns a 404 K8sStatus. Treat this as loaded with no groups so the page does not hang.
+    // Other errors (5xx, network failures) are propagated so the page can surface them.
+    if (error instanceof K8sStatusError && error.statusObject.code === 404) {
       return [[], true, undefined];
     }
     return [groupData, loaded, error];

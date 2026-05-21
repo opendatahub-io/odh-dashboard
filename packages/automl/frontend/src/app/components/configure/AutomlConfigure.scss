@@ -1,3 +1,16 @@
+.automl-configure__form-field {
+  max-width: 922px;
+}
+
+.automl-configure__column-type-badge {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: var(--pf-t--global--font--size--xs);
+  display: inline-block;
+  width: 4rem;
+  margin-right: var(--pf-t--global--spacer--sm);
+}
+
 .automl-configure__toggle-group-full-width {
   .pf-v6-c-toggle-group__item {
     flex: 1 0 0;

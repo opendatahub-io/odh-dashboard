@@ -1,3 +1,9 @@
+import {
+  modelVersionArchiveDetailsUrl,
+  modelVersionArchiveUrl,
+  modelVersionListUrl,
+  modelVersionUrl,
+} from '~/app/pages/modelRegistry/screens/routeUtils';
 import { TableRow } from '~/__tests__/cypress/cypress/pages/components/table';
 import { Modal } from '~/__tests__/cypress/cypress/pages/components/Modal';
 
@@ -57,9 +63,7 @@ class ModelVersionArchive {
   visit() {
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(
-      `/model-registry/${preferredModelRegistry}/registered-models/${rmId}/versions/archive`,
-    );
+    cy.visit(modelVersionArchiveUrl(rmId, preferredModelRegistry));
     this.wait();
   }
 
@@ -67,15 +71,13 @@ class ModelVersionArchive {
     const mvId = '2';
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(
-      `/model-registry/${preferredModelRegistry}/registered-models/${rmId}/versions/archive/${mvId}`,
-    );
+    cy.visit(modelVersionArchiveDetailsUrl(mvId, rmId, preferredModelRegistry));
   }
 
   visitModelVersionList() {
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(`/model-registry/${preferredModelRegistry}/registered-models/${rmId}/versions`);
+    cy.visit(modelVersionListUrl(rmId, preferredModelRegistry));
     this.wait();
   }
 
@@ -83,9 +85,7 @@ class ModelVersionArchive {
     const mvId = '3';
     const rmId = '1';
     const preferredModelRegistry = 'modelregistry-sample';
-    cy.visit(
-      `/model-registry/${preferredModelRegistry}/registered-models/${rmId}/versions/${mvId}`,
-    );
+    cy.visit(modelVersionUrl(mvId, rmId, preferredModelRegistry));
     this.wait();
   }
 

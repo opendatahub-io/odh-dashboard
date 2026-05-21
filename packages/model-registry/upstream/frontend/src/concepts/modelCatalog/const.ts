@@ -4,6 +4,7 @@ export enum ModelCatalogStringFilterKey {
   LICENSE = 'license',
   LANGUAGE = 'language',
   TENSOR_TYPE = 'tensor_type.string_value',
+  VALIDATED_CONFIGURATION = 'validatedTasks',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
   HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
@@ -182,6 +183,17 @@ export const MODEL_CATALOG_TASK_NAME_MAPPING = {
   [ModelCatalogTask.TEXT_TO_TEXT]: 'Text-to-text',
   [ModelCatalogTask.TOOL_CALLING]: 'Tool calling',
   [ModelCatalogTask.VIDEO_TO_TEXT]: 'Video-to-text',
+};
+
+export enum ValidatedConfiguration {
+  TOOL_CALLING = 'tool-calling',
+}
+
+export const MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING: Record<
+  ValidatedConfiguration,
+  string
+> = {
+  [ValidatedConfiguration.TOOL_CALLING]: 'Tool calling',
 };
 
 export const MODEL_CATALOG_TASK_DESCRIPTION = {
@@ -444,6 +456,17 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.TASK,
   ModelCatalogStringFilterKey.LANGUAGE,
   ModelCatalogStringFilterKey.TENSOR_TYPE,
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
+];
+
+/**
+ * Filters that use AND logic when multiple values are selected.
+ * Standard filters use OR (IN operator): items matching ANY selected value.
+ * AND filters require items to match ALL selected values.
+ * Add a filter key here to switch it from OR to AND behavior.
+ */
+export const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
 ];
 
 /**
@@ -550,6 +573,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: 'Tensor type',
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: 'Validated configuration',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
   // Latency field names - all use "Latency" as category name

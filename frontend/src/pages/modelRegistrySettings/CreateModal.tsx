@@ -37,6 +37,7 @@ import {
   constructRequestBody,
   findConfigMap,
   findSecureDBType,
+  hasDatabaseInvalidChars,
   isClusterWideCABundleEnabled,
   isOpenshiftCAbundleEnabled,
   isValidPort,
@@ -391,6 +392,10 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
 
   const hasContent = (value: string): boolean => !!value.trim().length;
 
+  const isDatabaseEmpty = !hasContent(database);
+  const hasInvalidDatabaseChars = hasDatabaseInvalidChars(database);
+  const hasDatabaseError = isDatabaseEmpty || hasInvalidDatabaseChars;
+
   const canSubmit = () => {
     const isValidName = isK8sNameDescriptionDataValid(nameDesc);
 
@@ -406,7 +411,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
       hasContent(port) &&
       isValidPort(port) &&
       hasContent(username) &&
-      hasContent(database) &&
+      !hasDatabaseError &&
       (!addSecureDB || (secureDBInfo.isValid && !configSecretsError))
     );
   };
@@ -587,13 +592,17 @@ const CreateModal: React.FC<CreateModalProps> = ({ onClose, refresh, modelRegist
                             onBlur={() => setIsDatabaseTouched(true)}
                             onChange={(_e, value) => setDatabase(value)}
                             validated={
-                              isDatabaseTouched && !hasContent(database) ? 'error' : 'default'
+                              (isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars
+                                ? 'error'
+                                : 'default'
                             }
                           />
-                          {isDatabaseTouched && !hasContent(database) && (
+                          {((isDatabaseTouched && isDatabaseEmpty) || hasInvalidDatabaseChars) && (
                             <HelperText>
                               <HelperTextItem variant="error" data-testid="mr-database-error">
-                                Database cannot be empty
+                                {isDatabaseEmpty
+                                  ? 'Database cannot be empty'
+                                  : 'Database name must not contain the "?" character'}
                               </HelperTextItem>
                             </HelperText>
                           )}

@@ -475,7 +475,7 @@ describe('llamaStackService', () => {
           { onStreamData: mockStreamData },
         );
 
-        expect(result.content).toBe('World');
+        expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
       });
 

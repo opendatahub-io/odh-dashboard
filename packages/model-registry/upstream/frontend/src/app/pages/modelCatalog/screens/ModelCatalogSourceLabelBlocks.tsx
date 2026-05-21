@@ -62,17 +62,12 @@ const ModelCatalogSourceLabelBlocks: React.FC = () => {
     return null;
   }
 
-  const activeCategoryCount = blocks.length - 1;
-  if (activeCategoryCount <= 1) {
-    return null;
-  }
-
   const handleToggleClick = (label: string) => {
     updateSelectedSourceLabel(label);
   };
 
   return (
-    <ToggleGroup aria-label="Source label selection" className="pf-v6-u-pb-xl pf-v6-u-pt-xl">
+    <ToggleGroup aria-label="Source label selection" className="pf-v6-u-pb-md">
       {blocks.map((block) => (
         <ToggleGroupItem
           buttonId={block.id}

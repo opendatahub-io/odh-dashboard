@@ -31,6 +31,16 @@ export const isRunRetryable = (state: string | undefined): boolean => {
 };
 
 /**
+ * Whether the run is in a terminal state where it can be deleted.
+ */
+export const isRunDeletable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
+  );
+};
+
+/**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
  * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
  * @param error - The error object to parse
@@ -73,6 +83,44 @@ export function sanitizeFilename(str: string): string {
       .replace(/^[.\s]+|[.\s]+$/g, '')
       .trim() || 'unknown'
   );
+}
+
+/**
+ * Maximum character length for a display name (matches configure.schema.ts validation).
+ * Measured in Unicode code points via Array.from().
+ */
+const MAX_DISPLAY_NAME_LENGTH = 250;
+
+/**
+ * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.
+ * If the result exceeds {@link MAX_DISPLAY_NAME_LENGTH}, the base name is truncated
+ * and `...` is inserted so the full string (with suffix) fits within the limit.
+ *
+ * Examples:
+ *  - "my-run" → "my-run - 1"
+ *  - "my-run - 1" → "my-run - 2"
+ *  - "my-run - 99" → "my-run - 100"
+ *  - (248-char name) → "(244-char)... - 1"
+ */
+export function generateReconfigureName(originalName: string): string {
+  const match = originalName.match(/^(.*) - (\d+)$/);
+  const baseName = match ? match[1] : originalName;
+  const nextNum = match ? (BigInt(match[2]) + 1n).toString() : '1';
+  const suffix = ` - ${nextNum}`;
+
+  const result = `${baseName}${suffix}`;
+  const codePoints = Array.from(result);
+  if (codePoints.length <= MAX_DISPLAY_NAME_LENGTH) {
+    return result;
+  }
+
+  const ellipsis = '...';
+  const suffixLen = Array.from(suffix).length;
+  const maxBaseLen = Math.max(0, MAX_DISPLAY_NAME_LENGTH - suffixLen - ellipsis.length);
+  const truncatedBase = Array.from(baseName).slice(0, maxBaseLen).join('');
+  return Array.from(`${truncatedBase}${ellipsis}${suffix}`)
+    .slice(0, MAX_DISPLAY_NAME_LENGTH)
+    .join('');
 }
 
 export function downloadBlob(blob: Blob, filename: string): void {

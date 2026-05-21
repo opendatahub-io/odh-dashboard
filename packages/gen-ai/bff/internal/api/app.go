@@ -18,6 +18,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mcp"
@@ -42,10 +44,12 @@ type App struct {
 	openAPI                 *OpenAPIHandler
 	kubernetesClientFactory k8s.KubernetesClientFactory
 	llamaStackClientFactory llamastack.LlamaStackClientFactory
+	nemoClientFactory       nemopkg.NemoClientFactory
 	maasClientFactory       maas.MaaSClientFactory
 	mcpClientFactory        mcp.MCPClientFactory
 	mlflowClientFactory     mlflowpkg.MLflowClientFactory
 	mlflowExternalURL       string
+	nemoGuardrailsURL       string
 	bffClientFactory        bffclient.BFFClientFactory
 	dashboardNamespace      string
 	memoryStore             cache.MemoryStore
@@ -113,6 +117,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	} else {
 		logger.Info("Using real LlamaStack client factory", "url", cfg.LlamaStackURL)
 		llamaStackClientFactory = llamastack.NewRealClientFactory()
+	}
+
+	// Initialize NeMo Guardrails client factory
+	var nemoClientFactory nemopkg.NemoClientFactory
+	if cfg.MockNemoClient {
+		logger.Info("Using mock NeMo Guardrails client factory")
+		nemoClientFactory = nemomocks.NewMockClientFactory()
+	} else {
+		logger.Info("Using real NeMo Guardrails client factory", "url", cfg.NemoGuardrailsURL)
+		nemoClientFactory = nemopkg.NewRealClientFactory()
 	}
 
 	// Initialize MaaS client factory - clients will be created per request
@@ -286,10 +300,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		openAPI:                 openAPIHandler,
 		kubernetesClientFactory: k8sFactory,
 		llamaStackClientFactory: llamaStackClientFactory,
+		nemoClientFactory:       nemoClientFactory,
 		maasClientFactory:       maasClientFactory,
 		mcpClientFactory:        mcpFactory,
 		mlflowClientFactory:     mlflowFactory,
 		mlflowExternalURL:       mlflowExternalURL,
+		nemoGuardrailsURL:       cfg.NemoGuardrailsURL,
 		bffClientFactory:        bffFactory,
 		dashboardNamespace:      dashboardNamespace,
 		memoryStore:             memStore,
@@ -353,26 +369,26 @@ func (app *App) Routes() http.Handler {
 	// LlamaStack API routes
 
 	// Models (LlamaStack)
-	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackModelsHandler))))
+	apiRouter.GET(constants.ModelsListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackModelsHandler))))
 
-	// Responses (LlamaStack)
-	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachLlamaStackClient(app.LlamaStackCreateResponseHandler)))))
+	// Responses (LlamaStack) — NeMo client is attached for guardrails moderation
+	apiRouter.POST(constants.ResponsesPath, app.AttachNamespace(app.RequireAccessToService(app.AttachMaaSClient(app.AttachNemoClient(app.AttachOGXClient(app.LlamaStackCreateResponseHandler))))))
 
 	// Vector Stores (LlamaStack)
-	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoresHandler))))
-	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackCreateVectorStoreHandler))))
-	apiRouter.DELETE(constants.VectorStoresDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreHandler))))
+	apiRouter.GET(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoresHandler))))
+	apiRouter.POST(constants.VectorStoresListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackCreateVectorStoreHandler))))
+	apiRouter.DELETE(constants.VectorStoresDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteVectorStoreHandler))))
 
 	// Files (LlamaStack)
-	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListFilesHandler))))
-	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler))))
+	apiRouter.GET(constants.FilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListFilesHandler))))
+	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
-	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
 
 	// Vector Store Files (LlamaStack)
-	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackListVectorStoreFilesHandler))))
-	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
-	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClient(app.LlamaStackDeleteVectorStoreFileHandler))))
+	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
+	apiRouter.POST(constants.VectorStoreFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler)))) // Alias to FilesUploadPath
+	apiRouter.DELETE(constants.VectorStoreFilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteVectorStoreFileHandler))))
 
 	// Code Exporter (Template-only)
 	apiRouter.POST(constants.CodeExporterPath, app.AttachNamespace(app.CodeExporterHandler))
@@ -396,17 +412,18 @@ func (app *App) Routes() http.Handler {
 	// BFF Configuration endpoint
 	apiRouter.GET(constants.ConfigPath, app.BFFConfigHandler)
 
-	// Llama Stack Distribution status endpoint
-	apiRouter.GET(constants.LlamaStackDistributionStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
+	// OGX server status endpoint (URL remains /lsd/status)
+	apiRouter.GET(constants.OGXServerStatusPath, app.AttachNamespace(app.LlamaStackDistributionStatusHandler))
 
-	// Llama Stack Distribution install endpoint
-	apiRouter.POST(constants.LlamaStackDistributionInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
+	// OGX server install endpoint (URL remains /lsd/install)
+	apiRouter.POST(constants.OGXServerInstallPath, app.AttachMaaSClient(app.AttachNamespace(app.LlamaStackDistributionInstallHandler)))
 
-	// Llama Stack Distribution delete endpoint
-	apiRouter.DELETE(constants.LlamaStackDistributionDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
+	// OGX server delete endpoint (URL remains /lsd/delete)
+	apiRouter.DELETE(constants.OGXServerDeletePath, app.AttachNamespace(app.LlamaStackDistributionDeleteHandler))
 
-	// LSD Safety Config endpoint - returns configured guardrail models and shields
-	apiRouter.GET(constants.LSDSafetyPath, app.AttachNamespace(app.LSDSafetyConfigHandler))
+	// NemoGuardrails endpoints
+	apiRouter.POST(constants.NemoGuardrailsInitPath, app.AttachNamespace(app.NemoGuardrailsInitHandler))
+	apiRouter.GET(constants.NemoGuardrailsStatusPath, app.AttachNamespace(app.NemoGuardrailsStatusHandler))
 
 	// MCP Client endpoints
 	apiRouter.GET(constants.MCPToolsPath, app.AttachNamespace(app.MCPToolsHandler))

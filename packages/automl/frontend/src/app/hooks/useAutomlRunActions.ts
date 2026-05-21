@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
+  useDeletePipelineRunMutation,
   useRetryPipelineRunMutation,
   useTerminatePipelineRunMutation,
 } from '~/app/hooks/mutations';
@@ -9,12 +10,14 @@ import { useNotification } from '~/app/hooks/useNotification';
 type AutomlRunActions = {
   handleRetry: () => Promise<void>;
   handleConfirmStop: () => Promise<void>;
+  handleDelete: () => Promise<void>;
   isRetrying: boolean;
   isTerminating: boolean;
+  isDeleting: boolean;
 };
 
 /**
- * Encapsulates retry and stop (terminate) actions for a pipeline run,
+ * Encapsulates retry, stop (terminate), and delete actions for a pipeline run,
  * including mutation state and toast notifications.
  */
 export const useAutomlRunActions = (
@@ -26,6 +29,7 @@ export const useAutomlRunActions = (
   const notification = useNotification();
   const retryMutation = useRetryPipelineRunMutation(namespace, runId);
   const terminateMutation = useTerminatePipelineRunMutation(namespace, runId);
+  const deleteMutation = useDeletePipelineRunMutation(namespace, runId);
 
   const handleRetry = React.useCallback(async () => {
     try {
@@ -40,7 +44,7 @@ export const useAutomlRunActions = (
         'Failed to retry run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      return;
+      throw error;
     }
     try {
       await onActionComplete?.();
@@ -62,7 +66,7 @@ export const useAutomlRunActions = (
         'Failed to stop run',
         error instanceof Error ? error.message : 'An unknown error occurred',
       );
-      return;
+      throw error;
     }
     try {
       await onActionComplete?.();
@@ -71,10 +75,34 @@ export const useAutomlRunActions = (
     }
   }, [terminateMutation, queryClient, runId, namespace, onActionComplete, notification]);
 
+  const handleDelete = React.useCallback(async () => {
+    try {
+      await deleteMutation.mutateAsync();
+      await queryClient.invalidateQueries({ queryKey: ['pipelineRun', runId, namespace] });
+      notification.success(
+        'Run deleted successfully',
+        'The pipeline run has been permanently removed',
+      );
+    } catch (error) {
+      notification.error(
+        'Failed to delete run',
+        error instanceof Error ? error.message : 'An unknown error occurred',
+      );
+      throw error;
+    }
+    try {
+      await onActionComplete?.();
+    } catch {
+      // Caller refresh failure should not mask a successful delete.
+    }
+  }, [deleteMutation, queryClient, runId, namespace, onActionComplete, notification]);
+
   return {
     handleRetry,
     handleConfirmStop,
+    handleDelete,
     isRetrying: retryMutation.isPending,
     isTerminating: terminateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 };

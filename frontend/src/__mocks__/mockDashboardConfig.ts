@@ -58,6 +58,9 @@ export type MockDashboardConfigType = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -115,6 +118,9 @@ export const mockDashboardConfig = ({
   vLLMDeploymentOnMaaS = false,
   llmGatewayField = false,
   promptManagement = false,
+  nimWizard = false,
+  mySubscriptions = false,
+  agentOps = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -295,6 +301,9 @@ export const mockDashboardConfig = ({
       vLLMDeploymentOnMaaS,
       llmGatewayField,
       promptManagement,
+      nimWizard,
+      mySubscriptions,
+      agentOps,
     },
     notebookController: {
       enabled: !disableNotebookController,

@@ -9,8 +9,8 @@ import AutomlRunsTableRow, {
   getStatusLabelProps,
 } from '~/app/components/AutomlRunsTable/AutomlRunsTableRow';
 
-const mockHandleRetry = jest.fn();
-const mockHandleConfirmStop = jest.fn();
+const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
+const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('~/app/hooks/useAutomlRunActions', () => ({
   useAutomlRunActions: () => ({
@@ -237,13 +237,32 @@ describe('AutomlRunsTableRow', () => {
       jest.clearAllMocks();
     });
 
-    it('should not show kebab menu for succeeded runs', () => {
+    it('should show reconfigure and delete actions for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutomlRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
         </MemoryRouter>,
       );
-      expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.getByTestId('delete-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
+    });
+
+    it('should only show reconfigure action for canceling runs', async () => {
+      render(
+        <MemoryRouter>
+          <AutomlRunsTableRow run={{ ...mockRun, state: 'CANCELING' }} namespace={mockNamespace} />
+        </MemoryRouter>,
+      );
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('delete-run-action')).not.toBeInTheDocument();
     });
 
     it('should show stop action for running runs', async () => {

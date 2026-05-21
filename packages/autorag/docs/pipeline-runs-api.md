@@ -381,11 +381,11 @@ The request body accepts AutoRAG-specific parameters. The BFF translates these i
 | `input_data_secret_name` | string | Yes | Name of the K8s secret containing input data credentials |
 | `input_data_bucket_name` | string | Yes | S3 bucket name for input data |
 | `input_data_key` | string | Yes | Object key within the input data bucket |
-| `llama_stack_secret_name` | string | Yes | Name of the K8s secret for LlamaStack access |
-| `embeddings_models` | string[] | No | List of embedding model identifiers |
+| `ogx_secret_name` | string | Yes | Name of the K8s secret for Open GenAI Stack access |
+| `embedding_models` | string[] | No | List of embedding model identifiers |
 | `generation_models` | string[] | No | List of generation model identifiers |
 | `optimization_metric` | string | No | Metric to optimize: `faithfulness` (default), `answer_correctness`, or `context_correctness` |
-| `llama_stack_vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in llama-stack (e.g. llama-stack Milvus) |
+| `vector_io_provider_id` | string | No | Vector I/O provider identifier as registered in ogx (e.g. ogx Milvus) |
 | `optimization_max_rag_patterns` | integer | No | Maximum number of RAG patterns to evaluate during optimization (min: 4, max: 20) |
 
 **Notes:**
@@ -411,7 +411,7 @@ curl -X POST "http://localhost:4000/api/v1/pipeline-runs?namespace=my-namespace"
     "input_data_secret_name": "minio-secret",
     "input_data_bucket_name": "autorag",
     "input_data_key": "documents/",
-    "llama_stack_secret_name": "llama-secret",
+    "ogx_secret_name": "llama-secret",
     "optimization_metric": "faithfulness"
   }'
 ```
@@ -440,7 +440,7 @@ Returns `200 OK` with the created pipeline run:
         "input_data_secret_name": "minio-secret",
         "input_data_bucket_name": "autorag",
         "input_data_key": "documents/",
-        "llama_stack_secret_name": "llama-secret"
+        "ogx_secret_name": "llama-secret"
       }
     },
     "state": "PENDING",
@@ -467,7 +467,7 @@ Returns `200 OK` with the created pipeline run:
 {
   "error": {
     "code": "400",
-    "message": "missing required fields: display_name, test_data_secret_name, llama_stack_secret_name"
+    "message": "missing required fields: display_name, test_data_secret_name, ogx_secret_name"
   }
 }
 ```
@@ -621,6 +621,55 @@ async function retryPipelineRun(namespace, runId, token) {
   }
 }
 ```
+
+## Delete Pipeline Run
+
+### Endpoint
+
+```http
+DELETE /api/v1/pipeline-runs/{runId}
+```
+
+Permanently deletes a pipeline run that is in a terminal state (SUCCEEDED, FAILED, or CANCELED). The run must belong to the discovered AutoRAG pipeline in the namespace. This action cannot be undone.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to delete |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to the discovered AutoRAG pipeline before deleting
+- Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `400 Bad Request` if the run is not in an deletable state
+- Prevents users from deleting runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X DELETE "http://localhost:4001/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in SUCCEEDED, FAILED, or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 ## Pipeline Discovery
 

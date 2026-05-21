@@ -19,6 +19,7 @@ import { isMLflowConsoleLink } from '#~/app/AppLauncher.tsx';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 import { mlflowExperimentsPath, WORKSPACE_QUERY_PARAM } from '#~/routes/pipelines/mlflow';
+import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 
 const MLFLOW_DEFAULT_PATH = '/experiments';
 
@@ -42,6 +43,13 @@ const MLflowCard: React.FC = () => {
   const { consoleLinks } = useWatchConsoleLinks();
   const mlflowLink = consoleLinks.find((link) => isMLflowConsoleLink(link.metadata?.name));
   const projectName = currentProject.metadata.name;
+
+  const handleGoToExperiments = React.useCallback(() => {
+    fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
+      from: window.location.pathname,
+      section: 'project-overview',
+    });
+  }, []);
 
   if (!mlflowLink) {
     return null;
@@ -80,6 +88,7 @@ const MLflowCard: React.FC = () => {
               component={(props: React.ComponentProps<'a'>) => (
                 <Link {...props} to={mlflowExperimentsPath} />
               )}
+              onClick={handleGoToExperiments}
             >
               Go to <strong>Experiments</strong>
             </Button>
@@ -95,7 +104,7 @@ const MLflowCard: React.FC = () => {
               icon={<ExternalLinkAltIcon />}
               iconPosition="right"
               onClick={() =>
-                fireLinkTrackingEvent('Launch MLflow clicked', {
+                fireLinkTrackingEvent(MlflowTrackingEvents.LAUNCH_CLICKED, {
                   from: window.location.pathname,
                   href: mlflowWorkspaceHref,
                   section: 'project-overview',

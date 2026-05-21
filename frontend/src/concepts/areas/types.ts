@@ -57,6 +57,7 @@ export enum SupportedArea {
   PERFORMANCE_METRICS = 'performance-metrics',
   TRUSTY_AI = 'trusty-ai',
   NIM_MODEL = 'nim-model',
+  NIM_WIZARD = 'nim-wizard',
   SERVING_RUNTIME_PARAMS = 'serving-runtime-params',
   MODEL_AS_SERVICE = 'model-as-service',
   MAAS_AUTH_POLICIES = 'maas-auth-policies',
@@ -64,6 +65,7 @@ export enum SupportedArea {
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
+  MY_SUBSCRIPTIONS = 'my-subscriptions',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -95,6 +97,9 @@ export enum SupportedArea {
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
 
+  /* Agent Ops */
+  AGENT_OPS = 'agent-ops',
+
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
@@ -120,6 +125,7 @@ export enum DataScienceStackComponent {
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
 }

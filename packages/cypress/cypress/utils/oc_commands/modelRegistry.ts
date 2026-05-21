@@ -38,7 +38,7 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
   const checkCommand = `oc get deployment ${deploymentName} -n ${operatorNamespace} -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}'`;
 
   return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to check operator memory limit: ${maskedStderr}`);
       return cy.wrap(false);
@@ -60,7 +60,7 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
     return cy
       .exec(patchCommand, { failOnNonZeroExit: false })
       .then((patchResult: CommandLineResult) => {
-        if (patchResult.code !== 0) {
+        if (patchResult.exitCode !== 0) {
           cy.log(`Failed to patch operator memory: ${patchResult.stderr}`);
           return cy.wrap(false);
         }
@@ -72,7 +72,7 @@ export const ensureOperatorMemoryLimit = (deploymentName: string): Cypress.Chain
         return cy
           .exec(rolloutCommand, { failOnNonZeroExit: false, timeout: 120000 })
           .then((rolloutResult: CommandLineResult) => {
-            if (rolloutResult.code === 0) {
+            if (rolloutResult.exitCode === 0) {
               cy.log('Operator rollout completed successfully');
               return cy.wrap(true);
             }
@@ -110,7 +110,7 @@ export const createModelRegistryDatabaseViaYAML = (
     )
     .then((checkResult: CommandLineResult) => {
       const readyReplicas = parseInt(checkResult.stdout.trim()) || 0;
-      if (checkResult.code === 0 && readyReplicas > 0) {
+      if (checkResult.exitCode === 0 && readyReplicas > 0) {
         cy.log(
           `Model registry database '${databaseName}' already exists and is ready, skipping creation`,
         );
@@ -133,7 +133,7 @@ export const createModelRegistryDatabaseViaYAML = (
             .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
             .then((result) => {
               cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
-              return result;
+              return cy.wrap(result);
             });
         });
     })
@@ -164,7 +164,7 @@ export const waitForModelRegistryDatabase = (
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Database wait stderr: ${maskedStderr}`);
       }
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     });
 };
 
@@ -214,7 +214,7 @@ export const createPostgresDatabaseViaYAML = (
     )
     .then((checkResult: CommandLineResult) => {
       const readyReplicas = parseInt(checkResult.stdout.trim()) || 0;
-      if (checkResult.code === 0 && readyReplicas > 0) {
+      if (checkResult.exitCode === 0 && readyReplicas > 0) {
         cy.log(
           `PostgreSQL database '${databaseName}' already exists and is ready, skipping creation`,
         );
@@ -237,7 +237,7 @@ export const createPostgresDatabaseViaYAML = (
             .then(() => cy.exec(`oc apply -f ${tempFile}`, { failOnNonZeroExit: false }))
             .then((result) => {
               cy.exec(`rm -f ${tempFile}`, { failOnNonZeroExit: false });
-              return result;
+              return cy.wrap(result);
             });
         });
     })
@@ -266,7 +266,7 @@ export const waitForPostgresDatabase = (databaseName: string): Cypress.Chainable
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`PostgreSQL database wait stderr: ${maskedStderr}`);
       }
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     });
 };
 
@@ -308,7 +308,7 @@ export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<
       failOnNonZeroExit: false,
     })
     .then((existsResult: CommandLineResult) => {
-      if (existsResult.code !== 0) {
+      if (existsResult.exitCode !== 0) {
         cy.log(`PostgreSQL database '${databaseName}' does not exist, nothing to delete`);
         return cy.wrap(true);
       }
@@ -332,7 +332,7 @@ export const deletePostgresDatabase = (databaseName: string): Cypress.Chainable<
               })
               .then((checkResult: CommandLineResult) => {
                 // Database is gone!
-                if (checkResult.code !== 0) {
+                if (checkResult.exitCode !== 0) {
                   cy.log(
                     `PostgreSQL database '${databaseName}' successfully deleted after ${attempts} attempts`,
                   );
@@ -391,7 +391,7 @@ export const deleteModelRegistryDatabase = (
       failOnNonZeroExit: false,
     })
     .then((existsResult: CommandLineResult) => {
-      if (existsResult.code !== 0) {
+      if (existsResult.exitCode !== 0) {
         cy.log(`Model registry database '${databaseName}' does not exist, nothing to delete`);
         return cy.wrap(true);
       }
@@ -415,7 +415,7 @@ export const deleteModelRegistryDatabase = (
               })
               .then((checkResult: CommandLineResult) => {
                 // Database is gone!
-                if (checkResult.code !== 0) {
+                if (checkResult.exitCode !== 0) {
                   cy.log(
                     `Model registry database '${databaseName}' successfully deleted after ${attempts} attempts`,
                   );
@@ -465,7 +465,7 @@ export const checkModelRegistry = (registryName: string): Cypress.Chainable<bool
     if (result.stdout) {
       cy.log(`Command output: ${result.stdout}`);
     }
-    return cy.wrap(result.code === 0);
+    return cy.wrap(result.exitCode === 0);
   });
 };
 
@@ -488,7 +488,7 @@ export const checkModelRegistryAvailable = (registryName: string): Cypress.Chain
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Wait stderr: ${maskedStderr}`);
       }
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     })
     .then((isAvailable) => {
       if (isAvailable) {
@@ -580,7 +580,7 @@ export const getModelRegistryDatabaseConfig = (
   const command = `oc get modelregistry.modelregistry.opendatahub.io ${registryName} -n ${targetNamespace} -o json`;
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       cy.log(`Failed to get ModelRegistry CR: ${maskedStderr}`);
       return cy.wrap({
@@ -678,7 +678,7 @@ export const cleanupRegisteredModelsFromDatabase = (
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
-      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+      if (podResult.exitCode !== 0 || !podResult.stdout.trim()) {
         cy.log(`No MySQL pod found for database '${databaseName}', skipping database cleanup`);
         return;
       }
@@ -705,7 +705,7 @@ export const cleanupRegisteredModelsFromDatabase = (
       return cy
         .exec(cleanupCommand, { failOnNonZeroExit: false })
         .then((cleanupResult: CommandLineResult) => {
-          if (cleanupResult.code === 0) {
+          if (cleanupResult.exitCode === 0) {
             cy.log('Database cleanup completed successfully');
           } else {
             cy.log(`Database cleanup failed: ${cleanupResult.stderr}`);
@@ -730,7 +730,7 @@ export const checkModelExistsInDatabase = (
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
-      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+      if (podResult.exitCode !== 0 || !podResult.stdout.trim()) {
         cy.log(`No MySQL pod found for database '${databaseName}', cannot verify model existence`);
         return cy.wrap(false);
       }
@@ -747,7 +747,7 @@ export const checkModelExistsInDatabase = (
       return cy
         .exec(verifyCommand, { failOnNonZeroExit: false })
         .then((verifyResult: CommandLineResult) => {
-          if (verifyResult.code === 0) {
+          if (verifyResult.exitCode === 0) {
             const count = parseInt(verifyResult.stdout.trim(), 10);
             const exists = count > 0;
             cy.log(`Model '${modelName}' exists in database: ${exists}`);
@@ -773,7 +773,7 @@ export const checkDefaultDatabaseExists = (registryName: string): Cypress.Chaina
   cy.log(`Checking if default database '${registryName}' exists for registry '${registryName}'`);
 
   return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`Default database '${registryName}' does not exist`);
       return cy.wrap(false);
     }
@@ -805,7 +805,7 @@ export const waitForDefaultDatabase = (registryName: string): Cypress.Chainable<
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`Default database wait stderr: ${maskedStderr}`);
       }
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     });
 };
 
@@ -828,7 +828,7 @@ export const deleteDefaultDatabase = (registryName: string): Cypress.Chainable<b
       failOnNonZeroExit: false,
     })
     .then((existsResult: CommandLineResult) => {
-      if (existsResult.code !== 0) {
+      if (existsResult.exitCode !== 0) {
         cy.log(`Default database '${registryName}' does not exist, nothing to delete`);
         return cy.wrap(true);
       }
@@ -852,7 +852,7 @@ export const deleteDefaultDatabase = (registryName: string): Cypress.Chainable<b
               })
               .then((checkResult: CommandLineResult) => {
                 // Database is gone!
-                if (checkResult.code !== 0) {
+                if (checkResult.exitCode !== 0) {
                   cy.log(
                     `Default database '${registryName}' successfully deleted after ${attempts} attempts`,
                   );
@@ -897,7 +897,7 @@ export const checkModelVersionExistsInDatabase = (
   return cy
     .exec(findPodCommand, { failOnNonZeroExit: false })
     .then((podResult: CommandLineResult) => {
-      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+      if (podResult.exitCode !== 0 || !podResult.stdout.trim()) {
         cy.log(
           `No MySQL pod found for database '${databaseName}', cannot verify version existence`,
         );
@@ -916,7 +916,7 @@ export const checkModelVersionExistsInDatabase = (
       return cy
         .exec(verifyCommand, { failOnNonZeroExit: false })
         .then((verifyResult: CommandLineResult) => {
-          if (verifyResult.code === 0) {
+          if (verifyResult.exitCode === 0) {
             const count = parseInt(verifyResult.stdout.trim(), 10);
             const exists = count > 0;
             cy.log(`Version '${versionName}' exists in database: ${exists}`);
@@ -984,7 +984,7 @@ export const checkModelTransferJobPodStarted = (
         const maskedStderr = maskSensitiveInfo(result.stderr);
         cy.log(`oc wait stderr: ${maskedStderr}`);
       }
-      return cy.wrap(result.code === 0);
+      return cy.wrap(result.exitCode === 0);
     });
 };
 
@@ -1010,7 +1010,7 @@ export const checkCustomPropertiesInDatabase = (
       failOnNonZeroExit: false,
     })
     .then((podResult: CommandLineResult) => {
-      if (podResult.code !== 0 || !podResult.stdout.trim()) {
+      if (podResult.exitCode !== 0 || !podResult.stdout.trim()) {
         cy.log(
           `No MySQL pod found for database '${databaseName}', cannot verify custom properties`,
         );
@@ -1030,7 +1030,7 @@ export const checkCustomPropertiesInDatabase = (
       return cy
         .exec(verifyCommand, { failOnNonZeroExit: false })
         .then((verifyResult: CommandLineResult) => {
-          if (verifyResult.code !== 0) {
+          if (verifyResult.exitCode !== 0) {
             cy.log(`Database query failed: ${verifyResult.stderr}`);
             return cy.wrap(false);
           }

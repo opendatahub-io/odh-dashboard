@@ -37,6 +37,16 @@ export const isRunRetryable = (state: string | undefined): boolean => {
 };
 
 /**
+ * Whether the run is in a terminal state where it can be deleted.
+ */
+export const isRunDeletable = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return (
+    s === RuntimeStateKF.SUCCEEDED || s === RuntimeStateKF.FAILED || s === RuntimeStateKF.CANCELED
+  );
+};
+
+/**
  * Extracts HTTP status from Error.message when handleRestFailures (mod-arch-core)
  * has flattened AxiosError to a plain Error, so 403/404/503 branches can still run.
  * @param error - The error object to parse
@@ -73,7 +83,7 @@ export const getTaskType = (pipelineRun?: PipelineRun): TaskType | undefined => 
 };
 
 /**
- * Determines if a task type is tabular.
+ * Determines if a pipelineRun's task type is tabular.
  * @param pipelineRun - The pipeline run to check
  * @returns true if the task type is tabular, false otherwise
  */
@@ -90,20 +100,22 @@ export const isTabularRun = (pipelineRun?: PipelineRun): boolean => {
 /* eslint-disable camelcase */
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   f1: 'F₁',
-  mae: 'MAE',
-  mape: 'MAPE',
-  mase: 'MASE',
+  mean_absolute_error: 'MAE',
+  mean_absolute_percentage_error: 'MAPE',
+  mean_absolute_scaled_error: 'MASE',
+  mean_squared_error: 'MSE',
+  median_absolute_error: 'MedAE',
   mcc: 'MCC',
-  mse: 'MSE',
+  pearsonr: 'Pearson r',
   r2: 'R²',
-  rmse: 'RMSE',
-  rmsle: 'RMSLE',
-  rmsse: 'RMSSE',
   roc_auc: 'ROC AUC',
-  smape: 'SMAPE',
-  sql: 'SQL',
-  wape: 'WAPE',
-  wql: 'WQL',
+  root_mean_squared_error: 'RMSE',
+  root_mean_squared_logarithmic_error: 'RMSLE',
+  root_mean_squared_scaled_error: 'RMSSE',
+  scaled_quantile_loss: 'SQL',
+  symmetric_mean_absolute_percentage_error: 'SMAPE',
+  weighted_absolute_percentage_error: 'WAPE',
+  weighted_quantile_loss: 'WQL',
 };
 /* eslint-enable camelcase */
 
@@ -162,7 +174,7 @@ export function getOptimizedMetricForTask(taskType: string): string {
     case TASK_TYPE_REGRESSION:
       return 'r2';
     case TASK_TYPE_TIMESERIES:
-      return 'mase';
+      return 'mean_absolute_scaled_error';
     default:
       return 'Unknown metric';
   }
@@ -188,6 +200,44 @@ export function computeRankMap(
   });
 
   return Object.fromEntries(sorted.map((name, i) => [name, i + 1]));
+}
+
+/**
+ * Maximum character length for a display name (matches configure.schema.ts validation).
+ * Measured in Unicode code points via Array.from().
+ */
+const MAX_DISPLAY_NAME_LENGTH = 250;
+
+/**
+ * Generates a reconfigure display name by appending or incrementing a ` - N` suffix.
+ * If the result exceeds {@link MAX_DISPLAY_NAME_LENGTH}, the base name is truncated
+ * and `...` is inserted so the full string (with suffix) fits within the limit.
+ *
+ * Examples:
+ *  - "my-run" → "my-run - 1"
+ *  - "my-run - 1" → "my-run - 2"
+ *  - "my-run - 99" → "my-run - 100"
+ *  - (248-char name) → "(244-char)... - 1"
+ */
+export function generateReconfigureName(originalName: string): string {
+  const match = originalName.match(/^(.*) - (\d+)$/);
+  const baseName = match ? match[1] : originalName;
+  const nextNum = match ? (BigInt(match[2]) + 1n).toString() : '1';
+  const suffix = ` - ${nextNum}`;
+
+  const result = `${baseName}${suffix}`;
+  const codePoints = Array.from(result);
+  if (codePoints.length <= MAX_DISPLAY_NAME_LENGTH) {
+    return result;
+  }
+
+  const ellipsis = '...';
+  const suffixLen = Array.from(suffix).length;
+  const maxBaseLen = Math.max(0, MAX_DISPLAY_NAME_LENGTH - suffixLen - ellipsis.length);
+  const truncatedBase = Array.from(baseName).slice(0, maxBaseLen).join('');
+  return Array.from(`${truncatedBase}${ellipsis}${suffix}`)
+    .slice(0, MAX_DISPLAY_NAME_LENGTH)
+    .join('');
 }
 
 /** Trigger a browser download for a Blob. */

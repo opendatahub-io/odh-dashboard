@@ -1,0 +1,100 @@
+import '@testing-library/jest-dom';
+import * as React from 'react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { McpDeployment } from '~/odh/types/mcpDeploymentTypes';
+import McpDeploymentsTable from '~/odh/pages/mcpDeployments/McpDeploymentsTable';
+import {
+  createMockDeployment,
+  createReadyConditions,
+  createInitializingConditions,
+  createFailedConditions,
+} from './mcpDeploymentTestUtils';
+
+const mockDeployments: McpDeployment[] = [
+  createMockDeployment({
+    name: 'kubernetes-mcp',
+    uid: 'uid-1',
+    conditions: createReadyConditions(),
+  }),
+  createMockDeployment({
+    name: 'slack-mcp',
+    uid: 'uid-2',
+    creationTimestamp: '2026-03-14T11:00:00Z',
+    image: 'quay.io/mcp-servers/slack:0.5.0',
+    conditions: createInitializingConditions(),
+  }),
+  createMockDeployment({
+    name: 'jira-mcp',
+    uid: 'uid-3',
+    creationTimestamp: '2026-03-08T16:45:00Z',
+    image: 'quay.io/mcp-servers/jira:1.2.0',
+    conditions: createFailedConditions(),
+  }),
+];
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
+
+describe('McpDeploymentsTable', () => {
+  const onDeleteClick = jest.fn();
+  const onEditClick = jest.fn();
+  const onClearFilters = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should call onDeleteClick when Delete is selected from the kebab menu', async () => {
+    const user = userEvent.setup();
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    const row = screen.getByTestId('mcp-deployment-row-kubernetes-mcp');
+    const actionsButton = within(row).getByRole('button', { name: /kebab toggle/i });
+    await user.click(actionsButton);
+    await user.click(screen.getByRole('menuitem', { name: /^delete$/i }));
+
+    expect(onDeleteClick).toHaveBeenCalledWith(mockDeployments[0]);
+  });
+
+  it('should render all deployment rows', () => {
+    render(
+      <McpDeploymentsTable
+        deployments={mockDeployments}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.getByTestId('mcp-deployment-row-kubernetes-mcp')).toBeInTheDocument();
+    expect(screen.getByTestId('mcp-deployment-row-slack-mcp')).toBeInTheDocument();
+    expect(screen.getByTestId('mcp-deployment-row-jira-mcp')).toBeInTheDocument();
+  });
+
+  it('should show empty table view when deployments list is empty', () => {
+    render(
+      <McpDeploymentsTable
+        deployments={[]}
+        onClearFilters={onClearFilters}
+        onDeleteClick={onDeleteClick}
+        onEditClick={onEditClick}
+      />,
+      { wrapper },
+    );
+
+    expect(screen.queryByTestId('mcp-deployment-row-kubernetes-mcp')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /clear all filters/i })).toBeInTheDocument();
+  });
+});
