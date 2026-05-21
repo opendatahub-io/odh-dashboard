@@ -1,8 +1,11 @@
 import {
+  Bullseye,
   Button,
   Card,
   CardBody,
+  ClipboardCopyButton,
   CodeBlock,
+  CodeBlockAction,
   CodeBlockCode,
   Content,
   ContentVariants,
@@ -25,6 +28,10 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Spinner,
+  Tab,
+  Tabs,
+  TabTitleText,
 } from '@patternfly/react-core';
 import { CodeIcon } from '@patternfly/react-icons';
 import React from 'react';
@@ -32,6 +39,72 @@ import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPatte
 import { formatPatternName } from '~/app/utilities/utils';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
+
+const generateCurlSnippet = (template: ResponsesTemplate): string => {
+  const body = JSON.stringify(template, null, 2);
+  return `curl -X POST https://<HOSTNAME>/v1/responses \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer <API_KEY>" \\
+  -d '${body}'`;
+};
+
+const generateNodeSnippet = (template: ResponsesTemplate): string => {
+  const body = JSON.stringify(template, null, 2)
+    .split('\n')
+    .map((line, i) => (i === 0 ? line : `  ${line}`))
+    .join('\n');
+  return `import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://<HOSTNAME>/v1",
+  apiKey: "<API_KEY>",
+});
+
+const response = await client.responses.create(${body});
+
+console.log(response.output);`;
+};
+
+const generateGoSnippet = (template: ResponsesTemplate): string => {
+  const body = JSON.stringify(template, null, 2)
+    .split('\n')
+    .map((line, i) =>
+      i === 0 ? `\tpayload := []byte(${JSON.stringify(line)}` : `\t\t${JSON.stringify(line)}`,
+    )
+    .join(' +\n');
+  const lines = [
+    'package main',
+    '',
+    'import (',
+    '\t"bytes"',
+    '\t"fmt"',
+    '\t"io"',
+    '\t"net/http"',
+    ')',
+    '',
+    'func main() {',
+    `${body})`,
+    '',
+    '\treq, err := http.NewRequest("POST", "https://<HOSTNAME>/v1/responses", bytes.NewBuffer(payload))',
+    '\tif err != nil {',
+    '\t\tpanic(err)',
+    '\t}',
+    '',
+    '\treq.Header.Set("Content-Type", "application/json")',
+    '\treq.Header.Set("Authorization", "Bearer <API_KEY>")',
+    '',
+    '\tresp, err := http.DefaultClient.Do(req)',
+    '\tif err != nil {',
+    '\t\tpanic(err)',
+    '\t}',
+    '\tdefer resp.Body.Close()',
+    '',
+    '\tbody, _ := io.ReadAll(resp.Body)',
+    '\tfmt.Println(string(body))',
+    '}',
+  ];
+  return lines.join('\n');
+};
 
 type PlaygroundPatternInfo = {
   patternName: string;
@@ -62,6 +135,14 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
 }) => {
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
+  const [activeCodeTab, setActiveCodeTab] = React.useState(0);
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = React.useCallback((text: string) => {
+    void navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, []);
 
   return (
     <>
@@ -107,15 +188,20 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               </Select>
             </FlexItem>
             <FlexItem>
-              <Button
-                variant="secondary"
-                icon={<CodeIcon />}
-                onClick={() => setIsViewCodeModalOpen(true)}
-                data-testid="playground-view-code-button"
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                spaceItems={{ default: 'spaceItemsSm' }}
               >
-                View Code
-              </Button>
-              <Label color="blue">Read-only</Label>
+                <Button
+                  variant="secondary"
+                  icon={<CodeIcon />}
+                  onClick={() => setIsViewCodeModalOpen(true)}
+                  data-testid="playground-view-code-button"
+                >
+                  View Code
+                </Button>
+                <Label color="blue">Read-only</Label>
+              </Flex>
             </FlexItem>
           </Flex>
           <DrawerActions>
@@ -164,7 +250,13 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             </Card>
           </div>
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-            <React.Suspense fallback={null}>
+            <React.Suspense
+              fallback={
+                <Bullseye>
+                  <Spinner />
+                </Bullseye>
+              }
+            >
               <EmbeddedPlayground
                 key={patternInfo.patternName}
                 namespace={namespace}
@@ -187,11 +279,79 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
         variant="large"
         data-testid="playground-view-code-modal"
       >
-        <ModalHeader title="Response payload" />
-        <ModalBody>
-          <CodeBlock>
-            <CodeBlockCode>{JSON.stringify(responsesTemplate, null, 2)}</CodeBlockCode>
-          </CodeBlock>
+        <ModalHeader title={`${formatPatternName(patternInfo.patternName)} — Response payload`} />
+        <ModalBody style={{ height: '60vh' }}>
+          <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
+            Use these code snippets to query this pattern programmatically via the Responses API.
+            Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with your OGX
+            instance URL and credentials.
+          </Content>
+          <Tabs
+            activeKey={activeCodeTab}
+            onSelect={(_e, key) => setActiveCodeTab(Number(key))}
+            data-testid="view-code-tabs"
+          >
+            <Tab eventKey={0} title={<TabTitleText>curl</TabTitleText>}>
+              <CodeBlock
+                className="pf-v6-u-mt-md"
+                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id="copy-curl"
+                      aria-label="Copy curl snippet"
+                      onClick={() => handleCopy(generateCurlSnippet(responsesTemplate))}
+                      variant="plain"
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+              >
+                <CodeBlockCode>{generateCurlSnippet(responsesTemplate)}</CodeBlockCode>
+              </CodeBlock>
+            </Tab>
+            <Tab eventKey={1} title={<TabTitleText>Node.js</TabTitleText>}>
+              <CodeBlock
+                className="pf-v6-u-mt-md"
+                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id="copy-nodejs"
+                      aria-label="Copy Node.js snippet"
+                      onClick={() => handleCopy(generateNodeSnippet(responsesTemplate))}
+                      variant="plain"
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+              >
+                <CodeBlockCode>{generateNodeSnippet(responsesTemplate)}</CodeBlockCode>
+              </CodeBlock>
+            </Tab>
+            <Tab eventKey={2} title={<TabTitleText>Go</TabTitleText>}>
+              <CodeBlock
+                className="pf-v6-u-mt-md"
+                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id="copy-go"
+                      aria-label="Copy Go snippet"
+                      onClick={() => handleCopy(generateGoSnippet(responsesTemplate))}
+                      variant="plain"
+                    >
+                      {copied ? 'Copied' : 'Copy'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+              >
+                <CodeBlockCode>{generateGoSnippet(responsesTemplate)}</CodeBlockCode>
+              </CodeBlock>
+            </Tab>
+          </Tabs>
         </ModalBody>
       </Modal>
     </>
