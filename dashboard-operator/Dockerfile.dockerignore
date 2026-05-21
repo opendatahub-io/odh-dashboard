@@ -13,7 +13,9 @@ tests/
 scripts/
 !scripts/prepare-production-manifest.js
 
-# Local .env images
+# Local .env files
+**/.env
+**/.env.local
 **/.env.development
 **/.env.test
 
