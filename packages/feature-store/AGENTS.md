@@ -79,12 +79,10 @@ npm run test-unit        # Run unit tests
 npm run type-check       # Type check feature-store only
 ```
 
-## Known Issues
+## Notes for agents
 
 - Filename typo: `useFeatureStoreEnitites.ts` -- fix only with a coordinated rename of all imports across the package.
-- Detail views rely on `include_relationships=true`; omitting it yields incomplete lineage-related data.
-- Lineage graph needs `/api/v1/lineage/complete`; older Feast builds may show an empty graph.
-- Nav visibility controlled by `disableFeatureStore` on `OdhDashboardConfig` and `FeatureStore` CRDs labeled `feature-store-ui=enabled`.
+- See [Developer notes](docs/overview.md#developer-notes) in `docs/overview.md`.
 
 ## Related Code (Outside This Package)
 

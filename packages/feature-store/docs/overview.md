@@ -83,7 +83,7 @@ Located in [`backend/src/routes/api/featurestores/`](../../../backend/src/routes
 
 Shared utilities are in `featureStoreUtils.ts`: ConfigMap parsing, service info extraction, proxy URL construction, and authenticated HTTP requests.
 
-## Known Issues / Gotchas
+## Developer notes
 
 - Detail views rely on `include_relationships=true`; omitting it yields incomplete lineage-related data.
 - Lineage graph needs `/api/v1/lineage/complete`; older Feast builds may show an empty graph without a clear error.
