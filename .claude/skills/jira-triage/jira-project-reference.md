@@ -571,7 +571,6 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-consistencies` | Monarch |
 | `dashboard-area-security` | Monarch |
 | `dashboard-area-cluster-settings` | Monarch |
-| `dashboard-area-cypress` | Monarch |
 | `dashboard-area-applications` | Monarch |
 | `dashboard-area-observability` | Monarch |
 | `dashboard-area-workbenches` | Razzmatazz |
@@ -582,7 +581,6 @@ An area label can appear on issues belonging to any team. This mapping provides 
 | `dashboard-area-hardware-profiles` | Razzmatazz |
 | `dashboard-area-user-management` | Razzmatazz |
 | `dashboard-area-performance` | Razzmatazz |
-| `dashboard-area-e2e` | Razzmatazz |
 | `dashboard-area-model-serving` | Zaffre |
 | `dashboard-area-maas` | Onyx |
 | `dashboard-area-connection-types` | Zaffre |
@@ -608,6 +606,11 @@ The `dashboard-area-manifests` label covers **Kubernetes/OLM/kustomize YAML in t
 These area labels have no observed scrum co-occurrence. Assign based on context or leave unassigned:
 
 `dashboard-area-edge`, `dashboard-area-accelerators`, `dashboard-area-cluster-storage`, `dashboard-area-trusty-ai`, `dashboard-area-documentation`
+
+The following area labels are **intentionally unmapped** — they provide context but do not determine team ownership on their own:
+
+- `dashboard-area-e2e` — contextual label indicating e2e test involvement; does not determine team ownership. The feature under test determines the team.
+- `dashboard-area-cypress` — weak signal toward Monarch (framework/infra); yields to any co-occurring feature-area label for scrum routing. When it is the only area label, fall back to keyword analysis (Path B) or leave unassigned.
 
 ### Team keyword / feature associations
 
