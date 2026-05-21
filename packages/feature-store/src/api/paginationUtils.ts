@@ -2,11 +2,11 @@ import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
 import { FEATURE_STORE_PAGE_SIZE } from '../const';
+import { FeatureStorePagination } from '../types/global';
 
 const MAX_PAGES = 100;
 
-// eslint-disable-next-line camelcase
-type PaginatedResponse = { pagination: { has_next?: boolean; [key: string]: unknown } };
+type PaginatedResponse = { pagination: Partial<FeatureStorePagination> & Record<string, unknown> };
 
 /** Merges `relationships` maps from all page responses into a single object. */
 export const mergeRelationships = <R>(
