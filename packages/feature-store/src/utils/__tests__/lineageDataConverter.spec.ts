@@ -91,7 +91,9 @@ describe('convertFeatureViewLineageToVisualizationData', () => {
 
     const currentNode = nodes.find((n) => n.name === 'driver_stats');
     expect(currentNode?.highlighted).toBe(true);
-    expect(currentNode?.description).toBe('Currently viewing this feature view');
+    expect(currentNode?.description).toBe(
+      'The current feature view detail page is the selected feature view.',
+    );
   });
 
   it('does not mark non-current nodes as highlighted', () => {

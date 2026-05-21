@@ -358,7 +358,7 @@ export const convertFeatureViewLineageToVisualizationData = (
       ...(nodeFeatures && { features: nodeFeatures }),
       ...(isCurrentFeatureView && {
         highlighted: true,
-        description: 'Currently viewing this feature view',
+        description: 'The current feature view detail page is the selected feature view.',
       }),
     });
   });
