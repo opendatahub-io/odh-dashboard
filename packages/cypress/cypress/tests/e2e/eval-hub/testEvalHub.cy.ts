@@ -1,6 +1,7 @@
 import * as yaml from 'js-yaml';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { addUserToProject, deleteOpenShiftProject } from '../../../utils/oc_commands/project';
+import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import { cleanupHardwareProfiles } from '../../../utils/oc_commands/hardwareProfiles';
@@ -44,6 +45,7 @@ describe('Eval Hub E2E', () => {
   let projectNamePrefix = '';
 
   retryableBefore(() => {
+    ensureAdminOcSession();
     cy.fixture('e2e/eval-hub/testEvalHub.yaml', 'utf8').then((yamlContent: string) => {
       testData = yaml.load(yamlContent) as EvalHubTestData;
       evalHubCrName = testData.evalHubCrName;
@@ -84,6 +86,8 @@ describe('Eval Hub E2E', () => {
   });
 
   after(() => {
+    ensureAdminOcSession();
+
     if (evaluationTenantProject) {
       cy.step(`Delete ephemeral tenant project ${evaluationTenantProject}`);
       deleteOpenShiftProject(evaluationTenantProject, { wait: false, ignoreNotFound: true });
