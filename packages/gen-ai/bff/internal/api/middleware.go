@@ -20,6 +20,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
+	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
 )
 
@@ -167,7 +168,7 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 			return
 		}
 
-		// Apply LlamaStack authorization check to all endpoints that require namespace access
+		// Apply OGXServer-backed service authorization check to all endpoints that require namespace access
 		// This ensures consistent security across all services (LlamaStack, MCP, etc.)
 		// Check if namespace is present in context (set by AttachNamespace middleware)
 		if namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string); ok && namespace != "" {
@@ -178,9 +179,9 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 				return
 			}
 
-			// Perform SubjectAccessReview to check if user can list LlamaStackDistribution resources
+			// Perform SubjectAccessReview to check if user can list OGXServer resources
 			// This ensures users have proper permissions to access any service in the namespace
-			allowed, err := k8sClient.CanListLlamaStackDistributions(ctx, identity, namespace)
+			allowed, err := k8sClient.CanListOGXServers(ctx, identity, namespace)
 			if err != nil {
 				app.handleK8sClientError(w, r, err)
 				return
@@ -217,11 +218,11 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// AttachLlamaStackClient middleware creates a LlamaStack client for the namespace and attaches it to context.
+// AttachOGXClient middleware creates a LlamaStack client for the namespace and attaches it to context.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Gets the LlamaStack URL from the namespace-specific LlamaStackDistribution resource's status.serviceURL field.
-func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+// Gets the LlamaStack URL from the namespace-specific OGXServer resource's status.serviceURL field.
+func (app *App) AttachOGXClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
@@ -263,32 +264,32 @@ func (app *App) AttachLlamaStackClient(next func(http.ResponseWriter, *http.Requ
 					return
 				}
 
-				// Get LlamaStackDistribution list using existing client method
-				lsdList, err := k8sClient.GetLlamaStackDistributions(ctx, identity, namespace)
+				// Get OGXServer list using existing client method
+				ogxList, err := k8sClient.GetOGXServers(ctx, identity, namespace)
 				if err != nil {
-					app.serverErrorResponse(w, r, fmt.Errorf("failed to get LlamaStackDistributions: %w", err))
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get OGXServers: %w", err))
 					return
 				}
 
-				if len(lsdList.Items) == 0 {
-					app.serverErrorResponse(w, r, fmt.Errorf("no LlamaStackDistribution found in namespace %q", namespace))
+				if len(ogxList.Items) == 0 {
+					app.serverErrorResponse(w, r, fmt.Errorf("no OGXServer found in namespace %q", namespace))
 					return
 				}
-				if len(lsdList.Items) > 1 {
-					app.logger.Warn(fmt.Sprintf("warning: %d LlamaStackDistributions found in namespace %q, using the first", len(lsdList.Items), namespace))
+				if len(ogxList.Items) > 1 {
+					logger.Warn(fmt.Sprintf("warning: %d OGXServers found in namespace %q, using the first", len(ogxList.Items), namespace))
 				}
 
-				lsd := lsdList.Items[0]
-				serviceURL = lsd.Status.ServiceURL
+				ogxServer := ogxList.Items[0]
+				serviceURL = ogxServer.Status.ServiceURL
 
 				if serviceURL == "" {
-					app.serverErrorResponse(w, r, fmt.Errorf("LlamaStackDistribution %s has no service url", lsd.Name))
+					app.serverErrorResponse(w, r, fmt.Errorf("OGXServer %s has no service url", ogxServer.Name))
 					return
 				}
 
-				logger.Debug("Using ServiceURL from LlamaStackDistribution",
+				logger.Debug("Using ServiceURL from OGXServer",
 					"namespace", namespace,
-					"lsdName", lsd.Name,
+					"ogxServerName", ogxServer.Name,
 					"serviceURL", serviceURL)
 			}
 
@@ -339,24 +340,16 @@ func (app *App) AttachMaaSClient(next func(http.ResponseWriter, *http.Request, h
 		} else {
 			var serviceURL string
 
-			// Configuration Priority:
-			// 1. MAAS_URL env var (if set for local dev) - works even without cluster domain
-			// 2. Autodiscovered endpoint (production default) - requires cluster domain
-			// 3. MaaS unavailable - attach nil and let handler decide if it's needed
-
 			if app.config.MaaSURL != "" {
-				// Priority 1: Use environment variable if explicitly set
 				serviceURL = app.config.MaaSURL
 				logger.Debug("Using MAAS_URL environment variable (developer override)",
 					"serviceURL", serviceURL)
 			} else if app.clusterDomain != "" {
-				// Priority 2: Autodiscovery using cached cluster domain (from service account at startup)
 				serviceURL = fmt.Sprintf("https://maas.%s/maas-api", app.clusterDomain)
 				logger.Debug("Using autodiscovered MaaS endpoint from cached cluster domain",
 					"clusterDomain", app.clusterDomain,
 					"serviceURL", serviceURL)
 			} else {
-				// Priority 3: MaaS unavailable - neither env var nor cluster domain available
 				logger.Debug("MaaS unavailable: no MAAS_URL configured and cluster domain not available")
 				ctx = context.WithValue(ctx, constants.MaaSClientKey, nil)
 				next(w, r.WithContext(ctx), ps)
@@ -500,5 +493,74 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 		// Attach to context
 		ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget("maas")), client)
 		next(w, r.WithContext(ctx), ps)
+	}
+}
+
+// AttachNemoClient middleware creates a NeMo Guardrails client and attaches it to context.
+// Mirrors AttachOGXClient: uses the user's forwarded token and discovers the service URL
+// from the NemoGuardrails CR (trustyai.opendatahub.io/v1alpha1) when NEMO_GUARDRAILS_URL is not set.
+func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+		logger := helper.GetContextLoggerFromReq(r)
+
+		var nemoClient nemopkg.NemoClientInterface
+
+		if app.config.MockNemoClient {
+			logger.Debug("MOCK MODE: creating mock NeMo Guardrails client")
+			nemoClient = app.nemoClientFactory.CreateClient("", "", app.config.InsecureSkipVerify, app.rootCAs)
+		} else {
+			identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+			if !ok || identity == nil {
+				app.serverErrorResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+				return
+			}
+
+			var serviceURL string
+
+			if app.config.NemoGuardrailsURL != "" {
+				// Developer override — same pattern as LLAMA_STACK_URL
+				serviceURL = app.config.NemoGuardrailsURL
+				logger.Debug("Using NEMO_GUARDRAILS_URL environment variable (developer override)",
+					"serviceURL", serviceURL)
+			} else {
+				// Auto-discover from NemoGuardrails CR in the request namespace
+				namespace, _ := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+				k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+					return
+				}
+
+				discoveredURL, err := k8sClient.GetNemoGuardrailsServiceURL(ctx, identity, namespace)
+				if err != nil {
+					app.serverErrorResponse(w, r, fmt.Errorf("failed to discover NemoGuardrails service: %w", err))
+					return
+				}
+
+				if discoveredURL == "" {
+					logger.Debug("NeMo Guardrails unavailable: no NemoGuardrails CR found in namespace", "namespace", namespace)
+					ctx = context.WithValue(ctx, constants.NemoClientKey, nil)
+					next(w, r.WithContext(ctx), ps)
+					return
+				}
+
+				serviceURL = discoveredURL
+				logger.Debug("Discovered NemoGuardrails service URL from CR",
+					"namespace", namespace,
+					"serviceURL", serviceURL)
+			}
+
+			logger.Debug("Creating NeMo Guardrails client",
+				"serviceURL", serviceURL,
+				"hasAuthToken", identity.Token != "")
+
+			nemoClient = app.nemoClientFactory.CreateClient(serviceURL, identity.Token, app.config.InsecureSkipVerify, app.rootCAs)
+		}
+
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
 	}
 }

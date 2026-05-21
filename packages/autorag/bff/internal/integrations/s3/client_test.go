@@ -276,6 +276,58 @@ func TestValidateAndNormalizeEndpoint_AcceptsIPv6UniqueLocal(t *testing.T) {
 	assert.Equal(t, "https://[fc00::1]:9000", result)
 }
 
+// ---------------------------------------------------------------------------
+// S3 connect timeout configuration tests
+// ---------------------------------------------------------------------------
+
+// TestNewRealS3Client_TransportHasConnectTimeout verifies that NewRealS3Client applies
+// s3ConnectTimeout to the HTTP transport's TLS handshake timeout and configures
+// a non-nil DialContext (the dial timeout cannot be read back from the function
+// value, but a nil check confirms the custom dialer was set).
+func TestNewRealS3Client_TransportHasConnectTimeout(t *testing.T) {
+	t.Parallel()
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		Region:          "us-east-1",
+		EndpointURL:     "https://10.0.0.1:9000",
+	}, S3ClientOptions{})
+	require.NoError(t, err)
+
+	httpClient, ok := client.s3Client.Options().HTTPClient.(*http.Client)
+	require.True(t, ok, "HTTPClient should be *http.Client")
+	transport, ok := httpClient.Transport.(*http.Transport)
+	require.True(t, ok, "Transport should be *http.Transport")
+
+	assert.Equal(t, s3ConnectTimeout, transport.TLSHandshakeTimeout,
+		"TLSHandshakeTimeout should equal s3ConnectTimeout")
+	assert.NotNil(t, transport.DialContext,
+		"DialContext should be set to a custom dialer with s3ConnectTimeout")
+}
+
+func TestNewRealS3Client_CreatesClientWithValidCredentials(t *testing.T) {
+	t.Parallel()
+	// Use a literal IP to avoid DNS resolution dependency in tests.
+	client, err := NewRealS3Client(&S3Credentials{
+		AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+		SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		Region:          "us-east-1",
+		EndpointURL:     "https://1.2.3.4:443",
+	}, S3ClientOptions{})
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestBuildS3AWSConfig_SetsRetryMaxAttemptsToOne(t *testing.T) {
+	t.Parallel()
+	cfg := buildS3AWSConfig(&S3Credentials{
+		AccessKeyID:     "test-key",
+		SecretAccessKey: "test-secret",
+		Region:          "us-east-1",
+	})
+	assert.Equal(t, 1, cfg.RetryMaxAttempts)
+}
+
 // mockS3CodedError simulates AWS SDK errors that implement ErrorCode().
 type mockS3CodedError struct {
 	msg  string

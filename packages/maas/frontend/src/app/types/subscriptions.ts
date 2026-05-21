@@ -10,6 +10,7 @@ export type MaaSSubscription = {
   modelRefs: ModelSubscriptionRef[];
   tokenMetadata?: TokenMetadata;
   creationTimestamp?: string;
+  deletionTimestamp?: string;
 };
 
 export type ModelSubscriptionRef = {
@@ -113,6 +114,7 @@ export type MaaSAuthPolicy = {
   modelRefs: ModelRef[];
   subjects: SubjectSpec;
   meteringMetadata?: TokenMetadata;
+  deletionTimestamp?: string;
 };
 
 export type SubscriptionInfoResponse = {
@@ -138,6 +140,9 @@ export type BillingRateInfo = {
 
 export type ModelRefInfo = {
   name: string;
+  display_name?: string;
+  source?: string;
+  description?: string;
   namespace?: string;
   token_rate_limits?: TokenRateLimitInfo[];
   billing_rate?: BillingRateInfo;
@@ -148,6 +153,7 @@ export type UserSubscription = {
   subscription_description: string;
   display_name?: string;
   priority: number;
+  key_count?: number;
   model_refs: ModelRefInfo[];
   organization_id?: string;
   cost_center?: string;

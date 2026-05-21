@@ -2,9 +2,11 @@ import { appChrome } from './appChrome';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
+const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true';
+
 class PromptManagement {
   visit(workspace?: string) {
-    const qs = workspace ? `?workspace=${workspace}` : '';
+    const qs = workspace ? `?workspace=${workspace}&${GEN_AI_DEV_FLAG}` : `?${GEN_AI_DEV_FLAG}`;
     cy.visitWithLogin(`/gen-ai-studio/prompts${qs}`);
     this.wait();
   }
@@ -36,7 +38,19 @@ class PromptManagement {
   }
 
   findProjectSelector() {
-    return cy.findByTestId('project-selector-dropdown');
+    return cy.findByTestId('project-selector-toggle', { timeout: 30000 });
+  }
+
+  findProjectInDropdown(name: string) {
+    return cy.findByRole('menuitem', { name });
+  }
+
+  shouldHaveWorkspace(workspace: string) {
+    cy.url().should('include', `workspace=${workspace}`);
+  }
+
+  findErrorEmptyState() {
+    return cy.findByTestId('empty-state-title', { timeout: 10000 });
   }
 
   findPromptsSearchInput() {
@@ -93,23 +107,11 @@ class PromptManagement {
     return cy.findByRole('radio', { name: 'Preview' });
   }
 
-  findDarkThemeToggle() {
-    return cy.findByTestId('dark-theme-toggle');
-  }
-
-  findLightThemeToggle() {
-    return cy.findByTestId('light-theme-toggle');
-  }
-
   getMlflowDarkModeStorageValue(): Cypress.Chainable<string | null> {
     return cy.window().then((win) => {
       const value = win.localStorage.getItem(MLFLOW_DARK_MODE_KEY);
       return cy.wrap<string | null>(value);
     });
-  }
-
-  getHtmlDarkModeClass(): Cypress.Chainable<boolean> {
-    return cy.document().then((doc) => doc.documentElement.classList.contains('pf-v6-theme-dark'));
   }
 }
 

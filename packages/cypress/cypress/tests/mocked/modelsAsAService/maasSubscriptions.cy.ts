@@ -28,7 +28,7 @@ const setupCommonIntercepts = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
@@ -61,7 +61,7 @@ describe('Subscriptions Page', () => {
       );
 
     subscriptionsPage.findTable().should('exist');
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
     const premiumRow = subscriptionsPage.getRow('Premium Team Subscription');
@@ -96,7 +96,7 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().should('exist').type('premium');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().should('exist').click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     premiumRow.findKebabAction('View details').should('exist');
     premiumRow.findKebabAction('Edit').should('exist');
@@ -107,17 +107,34 @@ describe('Subscriptions Page', () => {
     subscriptionsPage.findFilterInput().type('Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     subscriptionsPage.findFilterInput().type('enterprise');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
 
     subscriptionsPage.findFilterInput().type('general users');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
-    subscriptionsPage.findRows().should('have.length', 5);
+    subscriptionsPage.findRows().should('have.length', 6);
+  });
+
+  it('should disable the action buttons for a deleting subscription in the table and view page', () => {
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    });
+    cy.interceptOdh(
+      'GET /maas/api/v1/subscription-info/:name',
+      { path: { name: 'deleting-sub' } },
+      { data: mockSubscriptionInfo('deleting-sub') },
+    );
+    subscriptionsPage.visit();
+    subscriptionsPage.getRow('deleting-sub').findActionsToggle().should('be.disabled');
+    cy.visit(`/maas/subscriptions/view/deleting-sub`);
+    viewSubscriptionPage.findActionsToggle().click();
+    viewSubscriptionPage.findDeleteActionButton().should('be.disabled');
+    viewSubscriptionPage.findEditActionButton().should('be.disabled');
   });
 
   it('should delete a subscription', () => {
@@ -140,7 +157,7 @@ describe('Subscriptions Page', () => {
         data: { message: "MaaSSubscription 'premium-team-sub' deleted successfully" },
       });
     });
-    subscriptionsPage.findRows().should('have.length', 4);
+    subscriptionsPage.findRows().should('have.length', 5);
     subscriptionsPage.findTable().should('not.contain', 'premium-team-sub');
   });
 });
@@ -240,14 +257,6 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findDisplayNameInput().type('Test Subscription');
     createSubscriptionPage.findDescriptionInput().type('A test subscription');
 
-    // Verify the priority does not conflict with existing subscriptions.
-    // The mock subscriptions have priorities 10 and 0, so default should be non-conflicting.
-    createSubscriptionPage.findPriorityInput().clear();
-    createSubscriptionPage.findPriorityInput().type('10');
-    createSubscriptionPage
-      .findPriorityValidationError()
-      .should('contain.text', 'Priority 10 is already used by');
-
     // Testing out max and min priority values
     createSubscriptionPage.findPriorityInput().clear();
     createSubscriptionPage.findPriorityInput().type('-1000000');
@@ -265,12 +274,9 @@ describe('Subscription Create Page', () => {
     createSubscriptionPage.findPriorityInput().type('99999999999'); // Out of range the input will snap to 1000000
     createSubscriptionPage.findPriorityInput().should('have.value', '1000000');
 
-    // Set a non-conflicting priority
+    // Set a priority
     createSubscriptionPage.findPriorityInput().clear();
     createSubscriptionPage.findPriorityInput().type('5');
-    createSubscriptionPage
-      .findPriorityValidationError()
-      .should('not.contain.text', 'is already used by');
 
     // Select groups and add a custom one
     createSubscriptionPage.selectGroup('premium-users');
@@ -400,7 +406,7 @@ describe('Edit Subscription Page', () => {
     editSubscriptionPage.findPolicyChangeWarning().should('exist');
     editSubscriptionPage
       .findPolicyChangeWarning()
-      .should('contain.text', 'Policies are not automatically updated');
+      .should('contain.text', 'Authorization policies are not automatically updated');
   });
 
   it('should navigate to subscriptions list on cancel', () => {

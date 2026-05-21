@@ -16,6 +16,7 @@ import ConfigureFormGroup from '~/app/components/common/ConfigureFormGroup';
 import { MAX_PREDICTION_LENGTH } from '~/app/schemas/configure.schema';
 import { getTypeAcronym } from '~/app/utilities/columnUtils';
 import LoadingFormField from './LoadingFormField';
+import './AutomlConfigure.scss';
 
 interface Column {
   name: string;
@@ -40,20 +41,16 @@ function ConfigureTimeseriesForm({
   formIsSubmitting,
 }: ConfigureTimeseriesFormProps): React.JSX.Element {
   const { control, watch, setValue } = useFormContext();
-  const [isTargetOpen, setIsTargetOpen] = useState(false);
   const [isTimestampColumnOpen, setIsTimestampColumnOpen] = useState(false);
   const [isIdColumnOpen, setIsIdColumnOpen] = useState(false);
   const [isKnownCovariatesOpen, setIsKnownCovariatesOpen] = useState(false);
 
-  const targetValue = watch('target');
+  const targetColumnValue = watch('target_column');
   const timestampValue = watch('timestamp_column');
   const idValue = watch('id_column');
   const knownCovariatesValue = watch('known_covariates_names');
 
   const clearColumnFromOtherFields = (selectedColumn: string, currentField: string) => {
-    if (currentField !== 'target' && targetValue === selectedColumn) {
-      setValue('target', '', { shouldValidate: true });
-    }
     if (currentField !== 'timestamp_column' && timestampValue === selectedColumn) {
       setValue('timestamp_column', '', { shouldValidate: true });
     }
@@ -74,86 +71,7 @@ function ConfigureTimeseriesForm({
 
   return (
     <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
-      <StackItem>
-        <ConfigureFormGroup
-          label="Target column"
-          labelHelp={{
-            header: 'Target column',
-            body: 'Name of the column containing the numeric values to forecast (the time series values).',
-          }}
-          isRequired
-        >
-          <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
-            <Controller
-              control={control}
-              name="target"
-              render={({ field }) => (
-                <Select
-                  id="target-select"
-                  isOpen={isTargetOpen}
-                  onOpenChange={setIsTargetOpen}
-                  onSelect={(_event, value) => {
-                    if (typeof value === 'string') {
-                      clearColumnFromOtherFields(value, 'target');
-                      field.onChange(value);
-                    }
-                    setIsTargetOpen(false);
-                  }}
-                  selected={field.value}
-                  maxMenuHeight="200px"
-                  toggle={(toggleRef) => (
-                    <MenuToggle
-                      ref={toggleRef}
-                      onClick={() => setIsTargetOpen((prev) => !prev)}
-                      isExpanded={isTargetOpen}
-                      isDisabled={
-                        !isFileSelected ||
-                        columns.length === 0 ||
-                        !!columnsError ||
-                        formIsSubmitting
-                      }
-                      isFullWidth
-                      data-testid="target-select"
-                      status={columnsError ? 'danger' : undefined}
-                    >
-                      {field.value || 'Select a column'}
-                    </MenuToggle>
-                  )}
-                >
-                  <SelectList>
-                    {columns.map((column) => (
-                      <SelectOption key={column.name} value={column.name}>
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
-                          {getTypeAcronym(column.type)}
-                        </span>
-                        {column.name}
-                      </SelectOption>
-                    ))}
-                  </SelectList>
-                </Select>
-              )}
-            />
-            {columnsError && (
-              <FormHelperText>
-                <HelperText>
-                  <HelperTextItem variant="error">{columnsError.message}</HelperTextItem>
-                </HelperText>
-              </FormHelperText>
-            )}
-          </LoadingFormField>
-        </ConfigureFormGroup>
-      </StackItem>
-
-      <StackItem>
+      <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
           label="Timestamp column"
           labelHelp={{
@@ -204,20 +122,9 @@ function ConfigureTimeseriesForm({
                       <SelectOption
                         key={column.name}
                         value={column.name}
-                        // FYI - Technically this field should only support timestamp cols but
-                        // since our type is an estimation, we should leave this open for now
-                        // isDisabled={column.type !== 'timestamp'}
+                        isDisabled={column.name === targetColumnValue}
                       >
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}
@@ -231,7 +138,7 @@ function ConfigureTimeseriesForm({
         </ConfigureFormGroup>
       </StackItem>
 
-      <StackItem>
+      <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
           label="ID column"
           labelHelp={{
@@ -279,17 +186,12 @@ function ConfigureTimeseriesForm({
                 >
                   <SelectList>
                     {columns.map((column) => (
-                      <SelectOption key={column.name} value={column.name}>
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                      <SelectOption
+                        key={column.name}
+                        value={column.name}
+                        isDisabled={column.name === targetColumnValue}
+                      >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}
@@ -303,7 +205,7 @@ function ConfigureTimeseriesForm({
         </ConfigureFormGroup>
       </StackItem>
 
-      <StackItem>
+      <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
           label="Known covariates"
           labelHelp={{
@@ -368,17 +270,9 @@ function ConfigureTimeseriesForm({
                         value={column.name}
                         hasCheckbox
                         isSelected={field.value?.includes(column.name)}
+                        isDisabled={column.name === targetColumnValue}
                       >
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            display: 'inline-block',
-                            width: '4rem',
-                            marginRight: '0.5rem',
-                          }}
-                        >
+                        <span className="automl-configure__column-type-badge">
                           {getTypeAcronym(column.type)}
                         </span>
                         {column.name}
@@ -392,7 +286,7 @@ function ConfigureTimeseriesForm({
         </ConfigureFormGroup>
       </StackItem>
 
-      <StackItem>
+      <StackItem className="automl-configure__form-field">
         <ConfigureFormGroup
           label="Prediction length"
           labelHelp={{

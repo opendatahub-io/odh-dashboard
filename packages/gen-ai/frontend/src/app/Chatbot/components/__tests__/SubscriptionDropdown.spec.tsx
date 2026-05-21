@@ -134,8 +134,12 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier', description: 'Higher rate limits' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        {
+          name: 'premium-sub',
+          displayName: 'Premium Subscription',
+          description: 'Higher rate limits',
+        },
       ],
     });
 
@@ -154,8 +158,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -176,8 +180,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
 
@@ -187,7 +191,9 @@ describe('SubscriptionDropdown', () => {
       </TestWrapper>,
     );
 
-    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent('Premium Tier');
+    expect(screen.getByTestId('subscription-selector-toggle')).toHaveTextContent(
+      'Premium Subscription',
+    );
   });
 
   it('falls back to name when displayName is absent', () => {
@@ -210,8 +216,8 @@ describe('SubscriptionDropdown', () => {
     const model = createMaaSModel({
       id: 'test-model',
       subscriptions: [
-        { name: 'basic-sub', displayName: 'Basic Tier' },
-        { name: 'premium-sub', displayName: 'Premium Tier' },
+        { name: 'basic-sub', displayName: 'Basic Subscription' },
+        { name: 'premium-sub', displayName: 'Premium Subscription' },
       ],
     });
     const otherModel = createMaaSModel({

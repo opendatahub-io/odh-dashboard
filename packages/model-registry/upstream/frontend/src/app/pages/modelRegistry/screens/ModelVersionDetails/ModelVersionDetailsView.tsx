@@ -105,11 +105,12 @@ const ModelVersionDetailsView: React.FC<ModelVersionDetailsViewProps> = ({
             refresh={refresh}
             isArchiveModel={isArchiveVersion}
             isExpandable
+            modelTypeFallbackCustomProperties={mv.customProperties}
           />
         </StackItem>
       )}
       <StackItem>
-        <Card>
+        <Card data-testid="version-details-card">
           <CardHeader>
             <Title headingLevel="h2">Version details</Title>
           </CardHeader>

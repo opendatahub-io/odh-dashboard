@@ -41,6 +41,8 @@ type SearchSelectorProps = {
   searchValue: string;
   toggleContent: React.ReactNode | string;
   toggleVariant?: React.ComponentProps<typeof MenuToggle>['variant'];
+  toggleAriaLabel?: string;
+  toggleLabelledBy?: string;
   appendTo?: 'inline' | (() => HTMLElement) | HTMLElement;
 };
 
@@ -59,6 +61,8 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   searchValue,
   toggleContent,
   toggleVariant,
+  toggleAriaLabel,
+  toggleLabelledBy,
   appendTo = 'inline',
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -66,6 +70,17 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
   const menuRef = React.useRef(null);
   const searchRef = React.useRef<HTMLInputElement | null>(null);
   const popperProps = { minWidth, maxWidth: 'trigger', appendTo };
+  const toggleValueId = toggleLabelledBy ? `${dataTestId}-toggle-value` : undefined;
+  const toggleContents =
+    typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />;
+  const labelledToggleContents =
+    toggleValueId !== undefined ? <span id={toggleValueId}>{toggleContents}</span> : toggleContents;
+  const toggleAriaProps =
+    toggleLabelledBy && toggleValueId
+      ? { 'aria-labelledby': `${toggleLabelledBy} ${toggleValueId}` }
+      : toggleAriaLabel
+      ? { 'aria-label': toggleAriaLabel }
+      : undefined;
 
   return (
     <MenuContainer
@@ -94,8 +109,9 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
           isFullWidth={isFullWidth}
           data-testid={`${dataTestId}-toggle`}
           variant={toggleVariant}
+          {...toggleAriaProps}
         >
-          {typeof toggleContent !== 'string' ? toggleContent : <Truncate content={toggleContent} />}
+          {labelledToggleContents}
         </MenuToggle>
       }
       menu={

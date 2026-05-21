@@ -68,7 +68,7 @@ const extensions: (NavExtension | TabRoutePageExtension)[] = [
       path: '/ai-hub/mcp-servers/*',
       group: '2_mcp_servers',
       section: 'ai-hub',
-      objectType: 'model-catalog',
+      objectType: 'mcp-catalog',
     },
   },
   {

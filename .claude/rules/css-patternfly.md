@@ -2,6 +2,11 @@
 description: CSS and PatternFly v6 styling conventions for ODH Dashboard
 globs: "**/*.scss,**/*.css,**/*.tsx,**/*.ts"
 alwaysApply: false
+paths:
+  - "**/*.scss"
+  - "**/*.css"
+  - "**/*.tsx"
+  - "**/*.ts"
 ---
 
 # CSS & PatternFly — ODH Dashboard
@@ -89,10 +94,11 @@ Follow the project's BEM-like convention. Custom block-level classes must be nam
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Block | `{prefix}-{name}` | `odh-card`, `autorag-leaderboard` |
-| Element | `{prefix}-{block}__{element}` | `odh-card__footer`, `autorag-leaderboard__header` |
-| Modifier | `m-{modifier}` or `{prefix}-m-{modifier}` | `m-disabled`, `m-is-selected`, `odh-m-doc` |
-| Utility | `{prefix}-u-{name}` | `odh-u-spin`, `odh-u-scrollable` |
+| Block | `odh-{name}` | `odh-card`, `odh-list-item` |
+| Element | `odh-{block}__{element}` | `odh-card__footer`, `odh-list-item__doc-text` |
+| Modifier | `m-{modifier}` or `odh-m-{modifier}` | `m-disabled`, `m-is-selected`, `odh-m-doc` |
+| Utility | `odh-u-{name}` | `odh-u-scrollable` |
+| Shared utility | `ai-u-{name}` | `ai-u-spin` (from mod-arch-shared) |
 
 ## PF Component Overrides
 

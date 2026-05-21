@@ -7,8 +7,11 @@ import {
   interceptArtifactsList,
   interceptPerformanceArtifactsList,
 } from '~/__tests__/cypress/cypress/support/interceptHelpers/modelCatalog';
-import { mockCatalogModelArtifact } from '~/__mocks__';
+import { mockCatalogModelArtifact, mockCatalogModel } from '~/__mocks__';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { ModelCatalogTask } from '~/concepts/modelCatalog/const';
 
 describe('Model Catalog Details Page', () => {
   beforeEach(() => {
@@ -199,5 +202,180 @@ describe('Model Catalog Details Page - Filter State Management', () => {
 
     // The alert should show indicating filters were updated
     modelCatalog.findPerformanceFiltersUpdatedAlert().should('be.visible');
+  });
+});
+
+describe('Model Catalog Details Page - Edge Cases', () => {
+  beforeEach(() => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', [
+      mockModelRegistry({ name: 'modelregistry-sample' }),
+    ]).as('getModelRegistries');
+  });
+
+  it('should show "No description" when model has no description', () => {
+    const modelWithoutDescription = mockCatalogModel({
+      name: 'no-description-model',
+      description: undefined,
+    });
+
+    setupModelCatalogIntercepts({ customNonValidatedModel: modelWithoutDescription });
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    modelCatalog.findDetailsDescription().should('contain.text', 'No description');
+  });
+
+  it('should show model card markdown when readme exists', () => {
+    setupModelCatalogIntercepts({});
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    modelCatalog.findModelCardMarkdown().should('exist');
+  });
+
+  it('should show "No model card" when model has no readme', () => {
+    const modelWithoutReadme = mockCatalogModel({
+      name: 'no-readme-model',
+      readme: undefined,
+    });
+
+    setupModelCatalogIntercepts({ customNonValidatedModel: modelWithoutReadme });
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.contains('No model card').should('be.visible');
+  });
+
+  it('should show "N/A" for provider when provider is not set', () => {
+    const modelWithoutProvider = mockCatalogModel({
+      name: 'no-provider-model',
+      provider: undefined,
+    });
+
+    setupModelCatalogIntercepts({ customNonValidatedModel: modelWithoutProvider });
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.findAllByText('N/A').should('have.length.at.least', 1);
+  });
+
+  it('should show error alert when artifacts fail to load', () => {
+    setupModelCatalogIntercepts({});
+
+    cy.intercept(
+      {
+        method: 'GET',
+        url: new RegExp(
+          `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/sources/.*/artifacts/.*`,
+        ),
+      },
+      { statusCode: 500, body: { message: 'Failed to load artifacts' } },
+    ).as('getArtifactsError');
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.wait('@getArtifactsError');
+    cy.get('.pf-v6-c-alert.pf-m-danger').should('be.visible');
+  });
+
+  it('should show spinner while artifacts are loading', () => {
+    setupModelCatalogIntercepts({});
+
+    cy.intercept(
+      {
+        method: 'GET',
+        url: new RegExp(
+          `/model-registry/api/${MODEL_CATALOG_API_VERSION}/model_catalog/sources/.*/artifacts/.*`,
+        ),
+      },
+      (req) => {
+        req.on('response', (res) => {
+          res.setDelay(10000);
+        });
+      },
+    ).as('getArtifactsSlow');
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+
+    cy.findByRole('progressbar').should('exist');
+  });
+});
+
+describe('Model Catalog Details Page - Validated Configurations Card', () => {
+  beforeEach(() => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', [
+      mockModelRegistry({ name: 'modelregistry-sample' }),
+    ]).as('getModelRegistries');
+  });
+
+  describe('with feature flag enabled', () => {
+    beforeEach(() => {
+      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
+      setupValidatedModelIntercepts({});
+      interceptArtifactsList();
+      modelCatalog.visit();
+      modelCatalog.findLoadingState().should('not.exist');
+      modelCatalog.findModelCatalogDetailLink().first().click();
+      modelCatalog.findBreadcrumb().should('exist');
+    });
+
+    it('should display the validated configurations card with tool calling content', () => {
+      modelCatalog.findValidatedConfigurationsCard().should('be.visible');
+      modelCatalog
+        .findValidatedConfigurationsCard()
+        .should('contain.text', 'Validated configurations');
+      modelCatalog.findToolCallingCard().should('be.visible');
+      modelCatalog.findToolCallingCard().should('contain.text', 'Tool Calling');
+    });
+
+    it('should show CLI args inside the tool calling card when expanded', () => {
+      modelCatalog.findToolCallingToggle().click();
+      modelCatalog.findToolCallingCard().should('contain.text', '--enable-auto-tool-choice');
+      modelCatalog.findToolCallingCard().should('contain.text', '--tool-call-parser granite');
+    });
+  });
+
+  describe('with feature flag disabled', () => {
+    it('should not display the validated configurations card', () => {
+      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
+      setupValidatedModelIntercepts({});
+      interceptArtifactsList();
+      modelCatalog.visit();
+      modelCatalog.findLoadingState().should('not.exist');
+      modelCatalog.findModelCatalogDetailLink().first().click();
+      modelCatalog.findBreadcrumb().should('exist');
+      modelCatalog.findValidatedConfigurationsCard().should('not.exist');
+    });
+  });
+
+  describe('for a non-validated model', () => {
+    it('should not display the validated configurations card', () => {
+      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
+      setupModelCatalogIntercepts({
+        customNonValidatedModel: mockCatalogModel({
+          name: 'non-validated-model',
+          tasks: [ModelCatalogTask.TEXT_GENERATION],
+        }),
+      });
+      modelCatalog.visit();
+      modelCatalog.findLoadingState().should('not.exist');
+      modelCatalog.findModelCatalogDetailLink().first().click();
+      modelCatalog.findBreadcrumb().should('exist');
+      modelCatalog.findValidatedConfigurationsCard().should('not.exist');
+    });
   });
 });

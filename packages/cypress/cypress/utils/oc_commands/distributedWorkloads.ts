@@ -68,9 +68,9 @@ export const deleteKueueResources = (
   // Use ';' so each delete runs independently — '&&' would skip
   // ClusterQueue/ResourceFlavor if LocalQueue deletion fails or hangs.
   const ocCommand = [
-    `oc delete LocalQueue ${localQueueName} -n ${projectName}${ignoreFlag}`,
-    `oc delete ClusterQueue ${clusterQueueName}${ignoreFlag}`,
-    `oc delete ResourceFlavor ${resourceFlavor}${ignoreFlag}`,
+    `oc delete LocalQueue ${localQueueName} -n ${projectName} --wait=false${ignoreFlag}`,
+    `oc delete ClusterQueue ${clusterQueueName} --wait=false${ignoreFlag}`,
+    `oc delete ResourceFlavor ${resourceFlavor} --wait=false${ignoreFlag}`,
   ].join(' ; ');
 
   cy.log(`Executing: ${ocCommand}`);
@@ -81,13 +81,13 @@ export const deleteKueueResources = (
   };
 
   return cy.exec(ocCommand, execOptions).then((result) => {
-    if (result.code !== 0 && !ignoreNotFound) {
-      throw new Error(`Command failed with code ${result.code}`);
+    if (result.exitCode !== 0 && !ignoreNotFound) {
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       Cypress.log({
         name: 'WARN',
-        message: `Kueue resource deletion returned code ${result.code} (ignored)\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+        message: `Kueue resource deletion returned code ${result.exitCode} (ignored)\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
       });
     }
     return cy.wrap(result);

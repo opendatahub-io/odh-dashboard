@@ -1,13 +1,47 @@
 import * as React from 'react';
-import { ToolbarItem, Toolbar, ToolbarContent, Button } from '@patternfly/react-core';
+import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import FilterToolbar from '@odh-dashboard/internal/components/FilterToolbar';
 import { useNavigate } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
+import {
+  AuthPoliciesFilterDataType,
+  AuthPoliciesFilterOptions,
+  authPoliciesFilterOptions,
+} from './const';
 
-const AuthPoliciesToolbar: React.FC = () => {
+type AuthPoliciesToolbarProps = {
+  filterData: AuthPoliciesFilterDataType;
+  onFilterUpdate: (
+    key: AuthPoliciesFilterOptions,
+    value?: string | { label: string; value: string },
+  ) => void;
+};
+
+const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
+  filterData,
+  onFilterUpdate,
+}) => {
   const navigate = useNavigate();
   return (
-    <Toolbar>
-      <ToolbarContent>
+    <FilterToolbar<AuthPoliciesFilterOptions>
+      data-testid="auth-policies-table-toolbar"
+      filterOptions={authPoliciesFilterOptions}
+      filterOptionRenders={{
+        [AuthPoliciesFilterOptions.keyword]: ({ onChange, ...props }) => (
+          <SearchInput
+            {...props}
+            aria-label="Filter by keyword"
+            placeholder="Filter by name or description"
+            onChange={(_event, value) => onChange(value)}
+            data-testid="auth-policies-filter-name-input"
+            style={{ width: '30ch' }}
+          />
+        ),
+      }}
+      filterData={filterData}
+      onFilterUpdate={onFilterUpdate}
+    >
+      <ToolbarGroup>
         <ToolbarItem>
           <Button
             variant="primary"
@@ -17,8 +51,8 @@ const AuthPoliciesToolbar: React.FC = () => {
             Create authorization policy
           </Button>
         </ToolbarItem>
-      </ToolbarContent>
-    </Toolbar>
+      </ToolbarGroup>
+    </FilterToolbar>
   );
 };
 

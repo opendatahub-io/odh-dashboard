@@ -5,6 +5,7 @@ export const techPreviewFlags = {
   genAiStudio: false,
   automl: false,
   autorag: false,
+  guardrails: false,
   modelAsService: true,
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
@@ -16,12 +17,15 @@ export const techPreviewFlags = {
   vLLMDeploymentOnMaaS: false,
   llmGatewayField: false,
   promptManagement: false,
+  mySubscriptions: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 export const devTemporaryFeatureFlags = {
   disableKueue: true,
   disableProjectScoped: true,
   mlflowPipelines: false,
+  nimWizard: false,
+  agentOps: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -168,11 +172,11 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MODEL_CATALOG]: {
     featureFlags: ['disableModelCatalog'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.MCP_CATALOG]: {
     featureFlags: ['mcpCatalog'],
-    reliantAreas: [SupportedArea.MODEL_REGISTRY],
+    requiredComponents: [DataScienceStackComponent.MODEL_REGISTRY],
   },
   [SupportedArea.MODEL_REGISTRY]: {
     featureFlags: ['disableModelRegistry'],
@@ -217,6 +221,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
     featureFlags: ['trainingJobs'],
     requiredComponents: [DataScienceStackComponent.RAY],
   },
+  [SupportedArea.AGENT_OPS]: {
+    featureFlags: ['agentOps'],
+  },
   [SupportedArea.MLFLOW]: {
     requiredComponents: [DataScienceStackComponent.MLFLOW],
   },
@@ -244,6 +251,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.MAAS_AUTH_POLICIES]: {
     featureFlags: ['maasAuthPolicies'],
+  },
+  [SupportedArea.MY_SUBSCRIPTIONS]: {
+    featureFlags: ['mySubscriptions'],
   },
 };
 

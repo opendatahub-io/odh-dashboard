@@ -36,6 +36,15 @@ jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView', 
   default: () => <div data-testid="empty-view">Empty</div>,
 }));
 
+jest.mock('~/app/hooks/useAutomlRunActions', () => ({
+  useAutomlRunActions: () => ({
+    handleRetry: jest.fn(),
+    handleConfirmStop: jest.fn(),
+    isRetrying: false,
+    isTerminating: false,
+  }),
+}));
+
 const mockRuns: PipelineRun[] = [
   {
     run_id: 'r1',

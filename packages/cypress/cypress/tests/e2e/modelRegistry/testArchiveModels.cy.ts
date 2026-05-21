@@ -90,6 +90,7 @@ describe('Verify that models and versions can be archived and restored via model
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)

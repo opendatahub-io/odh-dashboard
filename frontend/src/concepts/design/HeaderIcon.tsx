@@ -25,6 +25,7 @@ const HeaderIcon: React.FC<HeaderIconProps> = ({
   sectionType,
 }) => (
   <div
+    aria-hidden
     style={{
       display,
       width: size,

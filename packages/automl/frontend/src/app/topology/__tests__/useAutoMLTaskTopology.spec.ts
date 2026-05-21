@@ -80,9 +80,9 @@ describe('useAutoMLTaskTopology', () => {
     const renderResult = testHook(useAutoMLTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
-    expect(nodes[0].label).toBe('Test Data Loader');
-    expect(nodes[1].label).toBe('Documents Sampling');
-    expect(nodes[2].label).toBe('Text Extraction');
+    expect(nodes[0].label).toBe('Test data loader');
+    expect(nodes[1].label).toBe('Documents sampling');
+    expect(nodes[2].label).toBe('Text extraction');
   });
 
   it('should humanize unknown task names via fallback', () => {
@@ -100,7 +100,7 @@ describe('useAutoMLTaskTopology', () => {
       },
     };
     const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
-    expect(renderResult.result.current[0].label).toBe('My Custom Task');
+    expect(renderResult.result.current[0].label).toBe('My custom task');
   });
 
   it('should use terminal fallback status when run is succeeded but task has no details', () => {
@@ -182,5 +182,91 @@ describe('useAutoMLTaskTopology', () => {
     nodes.forEach((node) => {
       expect(node.data?.runStatus).toBeUndefined();
     });
+  });
+
+  it('should map title-cased API display name to Model selection via normalized lookup', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            someTaskId: {
+              taskInfo: { name: 'Autogluon Timeseries Models Selection' },
+              dependentTasks: ['loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    expect(renderResult.result.current[1].label).toBe('Model selection');
+  });
+
+  it('should map autogluon-timeseries-models-selection task id to Model selection label', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'autogluon-timeseries-models-selection': {
+              taskInfo: { name: 'unexpected-api-name' },
+              dependentTasks: ['loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes[1].label).toBe('Model selection');
+  });
+
+  it('should assign wider layout width to longer resolved labels', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            short: {
+              taskInfo: { name: 'short' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'very-long-task-name-for-layout': {
+              taskInfo: { name: 'very-long-task-name-for-layout' },
+              dependentTasks: ['short'],
+              componentRef: { name: '' },
+            },
+            tail: {
+              taskInfo: { name: 'tail' },
+              dependentTasks: ['very-long-task-name-for-layout'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutoMLTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(3);
+    const shortW = nodes[0].width;
+    const longW = nodes[1].width;
+    const tailW = nodes[2].width;
+    if (shortW === undefined || longW === undefined || tailW === undefined) {
+      throw new Error('expected layout width on every topology node');
+    }
+    expect(longW).toBeGreaterThan(shortW);
+    expect(longW).toBeGreaterThan(tailW);
   });
 });

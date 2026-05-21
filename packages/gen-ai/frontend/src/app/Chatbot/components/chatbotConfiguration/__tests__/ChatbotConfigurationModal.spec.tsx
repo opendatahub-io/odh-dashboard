@@ -23,6 +23,7 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
 
 const mockInstallLSD = jest.fn();
+const mockInitNemoGuardrails = jest.fn();
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 
 beforeEach(() => {
@@ -35,10 +36,12 @@ beforeEach(() => {
     apiAvailable: true,
     api: {
       installLSD: mockInstallLSD,
+      initNemoGuardrails: mockInitNemoGuardrails,
     },
   });
 
   mockInstallLSD.mockResolvedValue({ data: null });
+  mockInitNemoGuardrails.mockResolvedValue({ name: 'nemoguardrails' });
 });
 
 jest.mock('~/app/Chatbot/components/chatbotConfiguration/ChatbotConfigurationTable', () => ({
@@ -337,6 +340,37 @@ describe('ChatbotConfigurationModal guardrails configuration', () => {
       expect(mockInstallLSD).toHaveBeenCalledWith(
         expect.objectContaining({ enable_guardrails: true }),
       );
+    });
+  });
+
+  it('swallows a conflict error from initNemoGuardrails and completes submit', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    mockInitNemoGuardrails.mockRejectedValue(
+      Object.assign(new Error('already initialized'), { code: 'conflict' }),
+    );
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(mockInstallLSD).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/Error configuring playground/i)).not.toBeInTheDocument();
+  });
+
+  it('surfaces non-conflict errors from initNemoGuardrails', async () => {
+    const user = userEvent.setup();
+    (useGuardrailsEnabled as jest.Mock).mockReturnValue(true);
+    mockInitNemoGuardrails.mockRejectedValue(
+      Object.assign(new Error('internal server error'), { code: 'server_error' }),
+    );
+    renderModalWithContext({ allModels });
+
+    await user.click(screen.getByRole('button', { name: /create/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Error configuring playground/i)).toBeInTheDocument();
     });
   });
 });

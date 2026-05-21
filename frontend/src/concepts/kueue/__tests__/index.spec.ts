@@ -358,7 +358,7 @@ describe('getKueueStatusInfo', () => {
     const info = getKueueStatusInfo(KueueWorkloadStatus.Admitted);
     expect(info.label).toBe('Starting');
     expect(info.color).toBe('blue');
-    expect(info.iconClassName).toBe('odh-u-spin');
+    expect(info.iconClassName).toBe('ai-u-spin');
   });
 
   it('should return correct info for Complete', () => {

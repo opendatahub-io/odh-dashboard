@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { useS3ListFilesQuery, fetchS3File } from '~/app/hooks/queries';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
@@ -6,9 +6,11 @@ import type { PipelineRun, S3CommonPrefix } from '~/app/types';
 
 type UseAutoragResultsReturn = {
   patterns: Record<string, AutoragPattern>;
+  failedPatterns: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  refetch: () => void;
   ragPatternsBasePath?: string;
 };
 
@@ -56,7 +58,9 @@ export function useAutoragResults(
   const {
     data: templatesOptimizationData,
     isLoading: isTemplatesOptimizationLoading,
+    isFetching: isTemplatesOptimizationFetching,
     isError: isTemplatesOptimizationError,
+    refetch: refetchTemplatesOptimization,
   } = useS3ListFilesQuery(namespace, templatesOptimizationPath);
 
   // Step 1b: Extract the non-deterministic UUID directory
@@ -87,14 +91,20 @@ export function useAutoragResults(
   }, [templatesOptimizationData]);
 
   // Step 2: List pattern directories (Pattern1, Pattern2, etc.) from {uuid}/rag_patterns/
-  const ragPatternsPath = nonDeterministicId
+  const candidateRagPatternsPrefix = nonDeterministicId
     ? `${rootDir}/${runId}/${patternGenerationDir}/${nonDeterministicId}/rag_patterns`
     : undefined;
   const {
     data: ragPatternsData,
     isLoading: isRagPatternsLoading,
     isError: isRagPatternsError,
-  } = useS3ListFilesQuery(namespace, ragPatternsPath);
+  } = useS3ListFilesQuery(namespace, candidateRagPatternsPrefix);
+
+  // Only expose ragPatternsBasePath when S3 listing succeeded and returned results
+  const ragPatternsBasePath =
+    isRagPatternsLoading || isRagPatternsError || !ragPatternsData?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- ragPatternsData can be undefined when query is disabled
+      ? undefined
+      : candidateRagPatternsPrefix;
 
   // Step 2b: Extract pattern directory names
   const patternDirectories = React.useMemo(() => {
@@ -156,7 +166,7 @@ export function useAutoragResults(
       patternDirectories.length === 0
     ) {
       return new Error(
-        `No pattern directories found in ${ragPatternsPath}/. Expected pattern directories like Pattern1, Pattern2, etc.`,
+        `No pattern directories found in ${ragPatternsBasePath}/. Expected pattern directories like Pattern1, Pattern2, etc.`,
       );
     }
 
@@ -170,7 +180,7 @@ export function useAutoragResults(
     isRagPatternsLoading,
     ragPatternsData,
     patternDirectories,
-    ragPatternsPath,
+    ragPatternsBasePath,
   ]);
 
   // Step 3: Fetch pattern.json for each pattern directory
@@ -178,7 +188,7 @@ export function useAutoragResults(
     queries: patternDirectories.map(({ name, directory }) => {
       const patternJsonPath = `${directory}pattern.json`;
       return {
-        queryKey: ['s3File', namespace, name, patternJsonPath],
+        queryKey: ['autorag', 's3File', namespace, name, patternJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace || !patternJsonPath) {
             throw new Error('namespace and key are required');
@@ -328,11 +338,24 @@ export function useAutoragResults(
     (isRagPatternsError ? new Error('Failed to list RAG patterns directory') : undefined) ||
     (patternQueries.isError ? new Error('Failed to fetch pattern data') : undefined);
 
+  const queryClient = useQueryClient();
+  const refetch = React.useCallback(() => {
+    refetchTemplatesOptimization();
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['autorag', 's3File', namespace] });
+  }, [refetchTemplatesOptimization, queryClient, namespace]);
+
   return {
     patterns,
-    isLoading: isTemplatesOptimizationLoading || isRagPatternsLoading || patternQueries.isPending,
+    failedPatterns: patternQueries.failedPatterns,
+    isLoading:
+      isTemplatesOptimizationLoading ||
+      (!templatesOptimizationData && isTemplatesOptimizationFetching) ||
+      isRagPatternsLoading ||
+      patternQueries.isPending,
     isError: hasError,
     error,
-    ragPatternsBasePath: ragPatternsPath,
+    refetch,
+    ragPatternsBasePath,
   };
 }

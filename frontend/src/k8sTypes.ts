@@ -22,6 +22,8 @@ import {
 } from './types';
 import { ModelServingSize } from './pages/modelServing/screens/types';
 
+export type { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+
 export enum KnownLabels {
   DASHBOARD_RESOURCE = 'opendatahub.io/dashboard',
   PROJECT_SHARING = 'opendatahub.io/project-sharing',
@@ -1316,6 +1318,7 @@ export type DashboardCommonConfig = {
   trainingJobs: boolean;
   disableFeatureStore?: boolean;
   genAiStudio?: boolean;
+  guardrails?: boolean;
   automl?: boolean;
   autorag?: boolean;
   modelAsService?: boolean;
@@ -1331,6 +1334,9 @@ export type DashboardCommonConfig = {
   vLLMDeploymentOnMaaS?: boolean;
   llmGatewayField?: boolean;
   promptManagement?: boolean;
+  nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition
