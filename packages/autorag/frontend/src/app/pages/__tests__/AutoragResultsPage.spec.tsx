@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { MemoryRouter } from 'react-router';
 import AutoragResultsPage from '~/app/pages/AutoragResultsPage';
 import type { AutoragPattern } from '~/app/types/autoragPattern';
 import type { PipelineRun } from '~/app/types';
@@ -243,9 +244,11 @@ const createTestQueryClient = () =>
 const renderPage = () => {
   const queryClient = createTestQueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>
-      <AutoragResultsPage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <AutoragResultsPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 };
 
@@ -933,17 +936,21 @@ describe('AutoragResultsPage', () => {
       const testQueryClient = createTestQueryClient();
 
       const { rerender } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);
 
       rerender(
-        <QueryClientProvider client={testQueryClient}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={testQueryClient}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(mockNotification.warning).toHaveBeenCalledTimes(1);

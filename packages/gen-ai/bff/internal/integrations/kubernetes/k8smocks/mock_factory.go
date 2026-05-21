@@ -261,12 +261,20 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	GetClientError    error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (f *ConfigurableMockTokenClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	if f.GetClientError != nil {
+		return nil, f.GetClientError
+	}
 	return &ConfigurableMockKubernetesClient{
 		CanListLSDAllowed: f.CanListLSDAllowed,
 		CanListLSDError:   f.CanListLSDError,
+		SecretValues:      f.SecretValues,
+		SecretError:       f.SecretError,
 	}, nil
 }
 
@@ -286,6 +294,8 @@ type ConfigurableMockKubernetesClient struct {
 	k8s.KubernetesClientInterface
 	CanListLSDAllowed bool
 	CanListLSDError   error
+	SecretValues      map[string]map[string]string // secretName → key → value
+	SecretError       error
 }
 
 func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
@@ -305,8 +315,18 @@ func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.C
 }
 
 func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
-	// Return error to simulate inability to access Secret
-	return "", fmt.Errorf("mock: secret not accessible")
+	if c.SecretError != nil {
+		return "", c.SecretError
+	}
+	if c.SecretValues != nil {
+		if secret, ok := c.SecretValues[secretName]; ok {
+			if val, ok := secret[secretKey]; ok {
+				return val, nil
+			}
+			return "", fmt.Errorf("key %q not found in secret %q", secretKey, secretName)
+		}
+	}
+	return "", fmt.Errorf("mock: secret %q not found", secretName)
 }
 
 // Helper functions to create k8s error types for testing

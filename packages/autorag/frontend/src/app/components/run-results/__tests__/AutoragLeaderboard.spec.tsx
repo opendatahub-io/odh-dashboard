@@ -199,6 +199,7 @@ interface RenderWithContextOptions {
   patternsError?: boolean;
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
+  onTryInPlayground?: (patternName: string) => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
@@ -211,6 +212,7 @@ const renderWithContext = ({
   patternsError,
   patternsLoadError,
   onRetryPatterns,
+  onTryInPlayground,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
@@ -242,7 +244,7 @@ const renderWithContext = ({
           path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
-              <AutoragLeaderboard />
+              <AutoragLeaderboard onTryInPlayground={onTryInPlayground} />
             </AutoragResultsContext.Provider>
           }
         />
@@ -995,6 +997,130 @@ describe('AutoragLeaderboard component', () => {
       expect(patternLink).toBeInTheDocument();
       expect(patternLink.tagName).toBe('BUTTON');
       expect(patternLink).toHaveTextContent('Advanced RAG');
+    });
+  });
+
+  // ========================================================================
+  // Try in Playground Action
+  // ========================================================================
+
+  describe('Try in Playground action', () => {
+    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
+      'pattern-1': {
+        ...createMockPattern('Pattern With Template', {
+          faithfulness: 0.85,
+          answer_correctness: 0.82,
+          context_correctness: 0.88,
+        }),
+        settings: {
+          ...createMockPattern('Pattern With Template', {}).settings,
+          responses_template: {
+            model: 'vllm/llama-3',
+            stream: false,
+            store: true,
+            input: [
+              {
+                type: 'message' as const,
+                role: 'user' as const,
+                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
+              },
+            ],
+            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
+            instructions: 'Answer from file_search results.',
+            tools: [
+              {
+                type: 'file_search' as const,
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+                ranking_options: {
+                  search_mode: 'hybrid',
+                  ranker_strategy: 'rrf',
+                  ranker_k: 60,
+                  ranker_alpha: 0.5,
+                },
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      },
+      'pattern-2': createMockPattern('Pattern Without Template', {
+        faithfulness: 0.92,
+        answer_correctness: 0.89,
+        context_correctness: 0.94,
+      }),
+    };
+
+    it('should show "Try in Playground" action when pattern has responses_template', () => {
+      const onTryInPlayground = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onTryInPlayground,
+      });
+
+      // Pattern with template should have the action (rank 2 since it has lower score)
+      // Pattern without template is rank 1 (higher score)
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      // Open kebab for pattern-1 (which has template — rank 2)
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      const playgroundAction = screen.getByText('Try in Playground');
+      expect(playgroundAction).toBeInTheDocument();
+    });
+
+    it('should call onTryInPlayground when "Try in Playground" is clicked', () => {
+      const onTryInPlayground = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onTryInPlayground,
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      // Open kebab for pattern-1 (rank 2 — has template)
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      const playgroundAction = screen.getByText('Try in Playground');
+      fireEvent.click(playgroundAction);
+
+      expect(onTryInPlayground).toHaveBeenCalledWith('pattern-1');
+    });
+
+    it('should not show "Try in Playground" when pattern lacks responses_template', () => {
+      const onTryInPlayground = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onTryInPlayground,
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      // Open kebab for pattern-2 (rank 1 — no template)
+      const row1 = rows[0];
+      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      expect(screen.queryByText('Try in Playground')).not.toBeInTheDocument();
+    });
+
+    it('should not show "Try in Playground" when onTryInPlayground is not provided', () => {
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      expect(screen.queryByText('Try in Playground')).not.toBeInTheDocument();
     });
   });
 

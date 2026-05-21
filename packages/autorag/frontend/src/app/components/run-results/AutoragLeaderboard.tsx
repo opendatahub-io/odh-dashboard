@@ -47,6 +47,7 @@ import './AutoragLeaderboard.scss';
 type LeaderboardEntry = {
   rank: number;
   pattern: string;
+  patternKey: string;
   metrics: Record<string, { mean: number | string }>;
   optimizedMetricValue: number | string;
   chunkingMethod: string;
@@ -499,6 +500,7 @@ function AutoragLeaderboard({
 
         return {
           rank: 0, // Will be assigned after sorting by optimized metric initially
+          patternKey: patternName,
           pattern: pattern.name || patternName,
           metrics,
           optimizedMetricValue,
@@ -1011,11 +1013,12 @@ function AutoragLeaderboard({
                 >
                   <ActionsColumn
                     items={[
-                      ...(patterns[entry.pattern].settings.responses_template && onTryInPlayground
+                      ...(patterns[entry.patternKey].settings.responses_template &&
+                      onTryInPlayground
                         ? [
                             {
                               title: 'Try in Playground',
-                              onClick: () => onTryInPlayground(entry.pattern),
+                              onClick: () => onTryInPlayground(entry.patternKey),
                             },
                           ]
                         : []),

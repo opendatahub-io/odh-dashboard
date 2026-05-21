@@ -37,74 +37,9 @@ import { CodeIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
+import { generateCurlSnippet, generateGoSnippet, generateNodeSnippet } from './playgroundSnippets';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
-
-const generateCurlSnippet = (template: ResponsesTemplate): string => {
-  const body = JSON.stringify(template, null, 2);
-  return `curl -X POST https://<HOSTNAME>/v1/responses \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer <API_KEY>" \\
-  -d '${body}'`;
-};
-
-const generateNodeSnippet = (template: ResponsesTemplate): string => {
-  const body = JSON.stringify(template, null, 2)
-    .split('\n')
-    .map((line, i) => (i === 0 ? line : `  ${line}`))
-    .join('\n');
-  return `import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://<HOSTNAME>/v1",
-  apiKey: "<API_KEY>",
-});
-
-const response = await client.responses.create(${body});
-
-console.log(response.output);`;
-};
-
-const generateGoSnippet = (template: ResponsesTemplate): string => {
-  const body = JSON.stringify(template, null, 2)
-    .split('\n')
-    .map((line, i) =>
-      i === 0 ? `\tpayload := []byte(${JSON.stringify(line)}` : `\t\t${JSON.stringify(line)}`,
-    )
-    .join(' +\n');
-  const lines = [
-    'package main',
-    '',
-    'import (',
-    '\t"bytes"',
-    '\t"fmt"',
-    '\t"io"',
-    '\t"net/http"',
-    ')',
-    '',
-    'func main() {',
-    `${body})`,
-    '',
-    '\treq, err := http.NewRequest("POST", "https://<HOSTNAME>/v1/responses", bytes.NewBuffer(payload))',
-    '\tif err != nil {',
-    '\t\tpanic(err)',
-    '\t}',
-    '',
-    '\treq.Header.Set("Content-Type", "application/json")',
-    '\treq.Header.Set("Authorization", "Bearer <API_KEY>")',
-    '',
-    '\tresp, err := http.DefaultClient.Do(req)',
-    '\tif err != nil {',
-    '\t\tpanic(err)',
-    '\t}',
-    '\tdefer resp.Body.Close()',
-    '',
-    '\tbody, _ := io.ReadAll(resp.Body)',
-    '\tfmt.Println(string(body))',
-    '}',
-  ];
-  return lines.join('\n');
-};
 
 type PlaygroundPatternInfo = {
   patternName: string;

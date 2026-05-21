@@ -8,7 +8,64 @@ import { ResponseMetrics } from '~/app/types';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
 import { ChatbotMessageProps, UseChatbotMessagesReturn } from './useChatbotMessages';
 
-const USER_QUERY_PLACEHOLDER = '<user_query_placeholder>';
+export const USER_QUERY_PLACEHOLDER = '<user_query_placeholder>';
+
+/**
+ * Builds the OGX request body by substituting the user query into the template
+ * and appending multi-turn conversation history.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const buildRequestBody = (
+  responsesTemplate: ResponsesTemplate,
+  userMessage: string,
+  previousMessages: ChatbotMessageProps[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Record<string, any> => {
+  if (!responsesTemplate.input[0]?.content[0]?.text) {
+    throw new Error(
+      'The responses template for this pattern is invalid. Expected input[0].content[0].text to exist.',
+    );
+  }
+
+  const templateText = responsesTemplate.input[0].content[0].text;
+  const substitutedText = templateText.includes(USER_QUERY_PLACEHOLDER)
+    ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
+    : userMessage;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inputMessages: any[] = [
+    {
+      type: 'message',
+      role: 'user',
+      content: [{ type: 'input_text', text: substitutedText }],
+    },
+  ];
+
+  previousMessages.forEach((msg) => {
+    if (msg.content) {
+      inputMessages.push({
+        type: 'message',
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: [{ type: 'input_text', text: msg.content }],
+      });
+    }
+  });
+
+  if (previousMessages.length > 0) {
+    inputMessages.push({
+      type: 'message',
+      role: 'user',
+      content: [{ type: 'input_text', text: userMessage }],
+    });
+  }
+
+  return {
+    ...responsesTemplate,
+    input: inputMessages,
+    store: false,
+    stream: true,
+  };
+};
 
 type UseEmbeddedChatbotMessagesProps = {
   bffBasePath: string;
@@ -98,80 +155,9 @@ const useEmbeddedChatbotMessages = ({
     }, 0);
   }, []);
 
-  /**
-   * Builds the request body by substituting the user query into the template
-   * and appending multi-turn conversation history.
-   */
-  const buildRequestBody = React.useCallback(
-    (userMessage: string, previousMessages: ChatbotMessageProps[]) => {
-      // Validate template structure
-      if (!responsesTemplate.input[0]?.content[0]?.text) {
-        throw new Error(
-          'The responses template for this pattern is invalid. Expected input[0].content[0].text to exist.',
-        );
-      }
-
-      // Single-pass replacement of placeholder in the template message text
-      const templateText = responsesTemplate.input[0].content[0].text;
-      const substitutedText = templateText.includes(USER_QUERY_PLACEHOLDER)
-        ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
-        : userMessage;
-
-      // Build input array: original template message with substituted query
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inputMessages: any[] = [
-        {
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: substitutedText,
-            },
-          ],
-        },
-      ];
-
-      // Multi-turn: append previous assistant/user messages after the template message
-      previousMessages.forEach((msg) => {
-        if (msg.content) {
-          inputMessages.push({
-            type: 'message',
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: [
-              {
-                type: 'input_text',
-                text: msg.content,
-              },
-            ],
-          });
-        }
-      });
-
-      // Append the current user message for multi-turn (only if there are previous messages)
-      if (previousMessages.length > 0) {
-        inputMessages.push({
-          type: 'message',
-          role: 'user',
-          content: [
-            {
-              type: 'input_text',
-              text: userMessage,
-            },
-          ],
-        });
-      }
-
-      return {
-        ...responsesTemplate,
-        input: inputMessages,
-        // store: true would accumulate throwaway data on the OGX instance
-        // since playground conversations are ephemeral
-        store: false,
-        // BFF forces stream: true
-        stream: true,
-      };
-    },
+  const buildRequestBodyFn = React.useCallback(
+    (userMessage: string, previousMessages: ChatbotMessageProps[]) =>
+      buildRequestBody(responsesTemplate, userMessage, previousMessages),
     [responsesTemplate],
   );
 
@@ -193,7 +179,7 @@ const useEmbeddedChatbotMessages = ({
     let botMessageId: string | undefined;
 
     try {
-      const requestBody = buildRequestBody(message, messages);
+      const requestBody = buildRequestBodyFn(message, messages);
 
       abortControllerRef.current = new AbortController();
 

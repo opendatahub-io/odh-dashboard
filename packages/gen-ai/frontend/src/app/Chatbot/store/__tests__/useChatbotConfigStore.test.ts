@@ -1252,4 +1252,75 @@ describe('useChatbotConfigStore', () => {
       expect(state.configurations[newConfigId!]?.activePrompt?.template).toBe('Test template');
     });
   });
+
+  describe('createChatbotConfigStore (factory)', () => {
+    it('should create an independent store instance', () => {
+      const { createChatbotConfigStore } = jest.requireActual(
+        '~/app/Chatbot/store/useChatbotConfigStore',
+      );
+      const scopedStore = createChatbotConfigStore();
+      const state = scopedStore.getState();
+
+      expect(state.configIds).toEqual([DEFAULT_CONFIG_ID]);
+      expect(state.configurations[DEFAULT_CONFIG_ID]).toBeDefined();
+    });
+
+    it('should apply initialConfig overrides', () => {
+      const { createChatbotConfigStore } = jest.requireActual(
+        '~/app/Chatbot/store/useChatbotConfigStore',
+      );
+      const scopedStore = createChatbotConfigStore({
+        initialConfig: {
+          selectedModel: 'custom-model',
+          isStreamingEnabled: false,
+        },
+      });
+      const state = scopedStore.getState();
+
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('custom-model');
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.isStreamingEnabled).toBe(false);
+    });
+
+    it('should not share state with the singleton store', () => {
+      const { createChatbotConfigStore } = jest.requireActual(
+        '~/app/Chatbot/store/useChatbotConfigStore',
+      );
+      const scopedStore = createChatbotConfigStore({
+        initialConfig: { selectedModel: 'scoped-model' },
+      });
+
+      // Singleton should still have default
+      const singletonState = useChatbotConfigStore.getState();
+      expect(singletonState.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('');
+
+      // Scoped should have its own value
+      const scopedState = scopedStore.getState();
+      expect(scopedState.configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe('scoped-model');
+    });
+
+    it('should skip sessionStorage when skipSessionStorage is true', () => {
+      const { createChatbotConfigStore } = jest.requireActual(
+        '~/app/Chatbot/store/useChatbotConfigStore',
+      );
+      const scopedStore = createChatbotConfigStore({ skipSessionStorage: true });
+      const state = scopedStore.getState();
+
+      expect(state.configurations[DEFAULT_CONFIG_ID]?.mcpToolSelections).toEqual({});
+    });
+
+    it('should support store actions (updateSelectedModel)', () => {
+      const { createChatbotConfigStore } = jest.requireActual(
+        '~/app/Chatbot/store/useChatbotConfigStore',
+      );
+      const scopedStore = createChatbotConfigStore();
+
+      act(() => {
+        scopedStore.getState().updateSelectedModel(DEFAULT_CONFIG_ID, 'new-model');
+      });
+
+      expect(scopedStore.getState().configurations[DEFAULT_CONFIG_ID]?.selectedModel).toBe(
+        'new-model',
+      );
+    });
+  });
 });
