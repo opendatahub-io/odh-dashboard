@@ -274,6 +274,11 @@ func (s *AsyncModerationState) FlushPendingChunks(sendFunc func([]*StreamingEven
 
 // handleStreamingResponseWithModeration handles streaming response with guardrails moderation
 func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *http.Request, ctx context.Context, params llamastack.CreateResponseParams, inputMessages []nemo.Message) {
+	// Track start time for latency and TTFT calculation
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
+
 	// Check if ResponseWriter supports streaming - fail fast if not
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -358,6 +363,20 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 				continue
 			}
 
+			// Track TTFT on first text delta event
+			if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+				now := time.Now()
+				firstTokenTime = &now
+			}
+
+			// Extract usage and process citations from completed event
+			if streamingEvent.Type == "response.completed" {
+				usage = extractUsageFromEvent(event)
+				if streamingEvent.Response != nil {
+					processResponseCitations(streamingEvent.Response)
+				}
+			}
+
 			if eventData, err := json.Marshal(streamingEvent); err == nil {
 				_ = sendEvent(eventData) // Best effort - client may have disconnected
 			}
@@ -367,6 +386,22 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			app.logger.Error("Streaming error", "error", err)
 			sendGuardrailError("Streaming error occurred", "500")
 		}
+
+		latencyMs := time.Since(startTime).Milliseconds()
+		metricsEvent := MetricsEvent{
+			Type: "response.metrics",
+			Metrics: ResponseMetrics{
+				LatencyMs:          latencyMs,
+				TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+				Usage:              usage,
+			},
+		}
+		eventData, err := json.Marshal(metricsEvent)
+		if err != nil {
+			app.logger.Error("failed to marshal metrics event", "error", err)
+			return
+		}
+		_ = sendEvent(eventData)
 		return
 	}
 
@@ -441,6 +476,10 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 
 		// Handle output moderation for text delta events
 		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
+			if firstTokenTime == nil {
+				now := time.Now()
+				firstTokenTime = &now
+			}
 			// Initialize chunk if needed
 			if currentChunk == nil {
 				currentChunk = modState.CreateChunk()
@@ -494,8 +533,11 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			// NOTE: Async moderation chunks accumulated before this point contain
 			// raw citation markers (<|uuid|>). This is low-risk because markers are
 			// structured tokens that guardrail models won't misinterpret as harmful.
-			if streamingEvent.Type == "response.completed" && streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
+			if streamingEvent.Type == "response.completed" {
+				usage = extractUsageFromEvent(event)
+				if streamingEvent.Response != nil {
+					processResponseCitations(streamingEvent.Response)
+				}
 			}
 
 			// Now send the completion event
@@ -528,4 +570,21 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		app.logger.Error("Streaming error", "error", err)
 		sendGuardrailError("Streaming error occurred", "500")
 	}
+
+	// Send metrics event after stream completes
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+		},
+	}
+	eventData, err := json.Marshal(metricsEvent)
+	if err != nil {
+		app.logger.Error("failed to marshal metrics event", "error", err)
+		return
+	}
+	_ = sendEvent(eventData)
 }
