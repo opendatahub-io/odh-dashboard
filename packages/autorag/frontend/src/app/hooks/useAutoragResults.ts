@@ -308,49 +308,6 @@ export function useAutoragResults(
       }
 
       // S3 data already matches AutoragPattern schema
-      // DEBUG ONLY — do not commit: inject responses_template for playground testing
-      /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/consistent-type-assertions,no-param-reassign, camelcase */
-      (patternData as any).settings.responses_template = {
-        model: 'vllm-inference/meta-llama/Llama-3.3-70B-Instruct',
-        stream: false,
-        store: true,
-        input: [
-          {
-            type: 'message',
-            role: 'user',
-            content: [
-              {
-                type: 'input_text',
-                text: '<user_query_placeholder>',
-              },
-            ],
-          },
-        ],
-        metadata: {
-          autorag_run_id: '012345678',
-          rag_pattern_name: patternData.name,
-        },
-        instructions:
-          'Please answer the question using only information found in file_search results. If the question is unanswerable, say you cannot answer. Respond in the same language as the user question.',
-        tools: [
-          {
-            type: 'file_search',
-            vector_store_ids: [patternData.settings.vector_store.collection_name],
-            max_num_results: 5,
-            ranking_options: {
-              search_mode: 'hybrid',
-              ranker_strategy: 'rrf',
-              ranker_k: 60,
-              ranker_alpha: 0.5,
-            },
-          },
-        ],
-        tool_choice: {
-          type: 'file_search',
-        },
-        include: ['file_search_call.results'],
-      };
-      /* eslint-enable @typescript-eslint/no-explicit-any, no-param-reassign, camelcase */
       results[patternName] = patternData;
     });
 

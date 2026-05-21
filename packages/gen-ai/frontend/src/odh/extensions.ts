@@ -40,11 +40,7 @@ const extensions: (
       featureFlags: [GEN_AI_STUDIO],
       customCondition: ({ dscStatus }) =>
         ['Managed', 'Unmanaged'].includes(
-          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ??
-            // TODO: Remove LLAMA_STACK_OPERATOR fallback once all clusters report 'ogx'
-            dscStatus?.components?.[DataScienceStackComponent.LLAMA_STACK_OPERATOR]
-              ?.managementState ??
-            '',
+          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
         ),
     },
   },
