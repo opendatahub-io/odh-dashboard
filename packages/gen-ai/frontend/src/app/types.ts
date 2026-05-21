@@ -156,6 +156,7 @@ export type OutputItem = {
   role?: string;
   status?: string;
   content?: ContentItem[];
+  output?: string;
 };
 
 export type BackendResponseData = {

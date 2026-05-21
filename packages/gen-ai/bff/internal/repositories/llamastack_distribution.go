@@ -9,57 +9,52 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type LlamaStackDistributionRepository struct{}
+type OGXServerRepository struct{}
 
-func NewLlamaStackDistributionRepository() *LlamaStackDistributionRepository {
-	return &LlamaStackDistributionRepository{}
+func NewOGXServerRepository() *OGXServerRepository {
+	return &OGXServerRepository{}
 }
 
-// GetLlamaStackDistributionStatus checks for the status of LSD in the given namespace
-func (r *LlamaStackDistributionRepository) GetLlamaStackDistributionStatus(
+// GetOGXServerStatus checks for the status of the OGXServer CR in the given namespace.
+func (r *OGXServerRepository) GetOGXServerStatus(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
-) (*models.LlamaStackDistributionModel, error) {
-	// Get the raw LSD list from the client
-	lsdList, err := client.GetLlamaStackDistributions(ctx, identity, namespace)
+) (*models.OGXServerModel, error) {
+	ogxList, err := client.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	// If no LSD resources found, return nil (this is not an error, just an empty list)
-	if len(lsdList.Items) == 0 {
+	if len(ogxList.Items) == 0 {
 		return nil, nil
 	}
 
-	// Get the first LSD resource (assuming one per namespace)
-	lsd := lsdList.Items[0]
+	ogxServer := ogxList.Items[0]
 
-	// Extract the required fields directly from the typed struct
-	name := lsd.Name
-	phase := string(lsd.Status.Phase)
-	version := lsd.Status.Version.LlamaStackServerVersion
+	name := ogxServer.Name
+	phase := string(ogxServer.Status.Phase)
+	version := ogxServer.Status.Version.ServerVersion
 
 	distributionConfig := map[string]interface{}{
-		"activeDistribution":     lsd.Status.DistributionConfig.ActiveDistribution,
-		"providers":              lsd.Status.DistributionConfig.Providers,
-		"availableDistributions": lsd.Status.DistributionConfig.AvailableDistributions,
+		"activeDistribution":     ogxServer.Status.DistributionConfig.ActiveDistribution,
+		"providers":              ogxServer.Status.DistributionConfig.Providers,
+		"availableDistributions": ogxServer.Status.DistributionConfig.AvailableDistributions,
 	}
 
-	// Create the model
-	lsdModel := &models.LlamaStackDistributionModel{
+	ogxModel := &models.OGXServerModel{
 		Name:               name,
 		Phase:              phase,
 		Version:            version,
 		DistributionConfig: distributionConfig,
 	}
 
-	return lsdModel, nil
+	return ogxModel, nil
 }
 
-// InstallLlamaStackDistribution installs a new LlamaStackDistribution with the specified models
-func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
+// InstallOGXServer installs an OGXServer with the specified models.
+func (r *OGXServerRepository) InstallOGXServer(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
@@ -67,38 +62,35 @@ func (r *LlamaStackDistributionRepository) InstallLlamaStackDistribution(
 	installmodels []models.InstallModel,
 	vectorStores []models.InstallVectorStore,
 	maasClient maas.MaaSClientInterface,
-) (*models.LlamaStackDistributionInstallModel, error) {
-	lsd, err := client.InstallLlamaStackDistribution(ctx, identity, namespace, installmodels, vectorStores, maasClient)
+) (*models.OGXServerInstallModel, error) {
+	ogxServer, err := client.InstallOGXServer(ctx, identity, namespace, installmodels, vectorStores, maasClient)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the response model
-	installModel := &models.LlamaStackDistributionInstallModel{
-		Name:       lsd.Name,
+	installModel := &models.OGXServerInstallModel{
+		Name:       ogxServer.Name,
 		HTTPStatus: "200",
 	}
 
 	return installModel, nil
 }
 
-// DeleteLlamaStackDistribution deletes a LlamaStackDistribution with the specified name
-func (r *LlamaStackDistributionRepository) DeleteLlamaStackDistribution(
+// DeleteOGXServer deletes an OGXServer with the specified name.
+func (r *OGXServerRepository) DeleteOGXServer(
 	client kubernetes.KubernetesClientInterface,
 	ctx context.Context,
 	identity *integrations.RequestIdentity,
 	namespace string,
 	name string,
-) (*models.LlamaStackDistributionDeleteResponse, error) {
-	// Call the Kubernetes client to delete the LSD (validation logic is now in the client)
-	_, err := client.DeleteLlamaStackDistribution(ctx, identity, namespace, name)
+) (*models.OGXServerDeleteResponse, error) {
+	_, err := client.DeleteOGXServer(ctx, identity, namespace, name)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the response model
-	deleteModel := &models.LlamaStackDistributionDeleteResponse{
-		Data: "LlamaStackDistribution deleted successfully",
+	deleteModel := &models.OGXServerDeleteResponse{
+		Data: "OGXServer deleted successfully",
 	}
 
 	return deleteModel, nil

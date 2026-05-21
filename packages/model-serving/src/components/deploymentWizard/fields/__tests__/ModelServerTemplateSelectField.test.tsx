@@ -24,7 +24,7 @@ const mockOption: ModelServerOption = {
 
 const makeModelServerState = (
   overrides: Partial<ModelServerSelectField> = {},
-): ModelServerSelectField => ({
+): ModelServerSelectField & Required<Pick<ModelServerSelectField, 'setData' | 'options'>> => ({
   data: undefined,
   setData: jest.fn(),
   options: [],

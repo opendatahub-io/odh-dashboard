@@ -4,7 +4,7 @@ import { Entity } from '../../types/entities';
 export const columns: SortableData<Entity>[] = [
   {
     field: 'spec.name',
-    label: 'Entity name',
+    label: 'Name',
     width: 60,
     sortable: (a, b): number => a.spec.name.localeCompare(b.spec.name),
   },
@@ -76,7 +76,7 @@ export const columns: SortableData<Entity>[] = [
 ];
 
 export const entityTableFilterOptions: Record<string, string> = {
-  entity: 'Entity name',
+  entity: 'Entity',
   project: 'Feature store',
   tag: 'Tags',
   joinKey: 'Join key',

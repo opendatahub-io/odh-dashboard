@@ -35,9 +35,12 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
   values?: (string | number)[];
 };
 
@@ -47,7 +50,9 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -160,7 +165,7 @@ export function useS3GetFileSchemaQuery(
       const columns = result?.data?.columns;
 
       if (!Array.isArray(columns)) {
-        return [];
+        throw new Error('Unexpected API response: column data is missing or invalid');
       }
 
       try {

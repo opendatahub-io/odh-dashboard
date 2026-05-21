@@ -40,7 +40,6 @@
 
 ## Known Issues / Gotchas
 
-- Filename typo: `useFeatureStoreEnitites.ts` — fix only with a coordinated rename of all imports.
 - Detail views rely on `include_relationships=true`; omitting it yields incomplete lineage-related data.
 - Lineage graph needs `/api/v1/lineage/complete`; older Feast builds may show an empty graph without a clear error.
 - No write path in the UI — manage objects outside the dashboard (Feast SDK, CI, etc.).

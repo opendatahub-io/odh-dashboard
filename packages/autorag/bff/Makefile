@@ -1,6 +1,6 @@
 PORT ?= 4000
 MOCK_K8S_CLIENT ?= false
-MOCK_LS_CLIENT ?= false
+MOCK_OGX_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
 MOCK_S3_CLIENT ?= false
@@ -80,7 +80,7 @@ run: fmt vet envtest ## Runs the project.
 		--mock-http-client="$(MOCK_HTTP_CLIENT)" \
 		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
 		--mock-s3-client="$(MOCK_S3_CLIENT)" \
-		--mock-ls-client="$(MOCK_LS_CLIENT)" \
+		--mock-ogx-client="$(MOCK_OGX_CLIENT)" \
 		--dev-mode="$(DEV_MODE)" \
 		--dev-mode-client-port="$(DEV_MODE_CLIENT_PORT)" \
 		--deployment-mode="$(DEPLOYMENT_MODE)" \

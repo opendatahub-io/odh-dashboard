@@ -188,7 +188,7 @@ export const GatewaySelectField: GatewaySelectFieldType = {
     getInitialFieldData: (existingFieldData?: GatewaySelectFieldData): GatewaySelectFieldData =>
       existingFieldData ?? { selection: undefined },
   },
-  shouldResetOnDependencyChange: true,
+  shouldResetOnDependencyChange: () => true,
   externalDataHook: useGatewayOptions,
   component: GatewaySelectFieldComponent,
   getReviewSections: getGatewayReviewSection,
