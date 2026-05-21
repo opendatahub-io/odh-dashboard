@@ -363,17 +363,21 @@ const buildOgxConfig = (namespace: string): string => {
   const config = {
     version: '2',
     distro_name: 'rh',
-    apis: [
-      'responses',
-      'datasetio',
-      'files',
-      'inference',
-      'safety',
-      'scoring',
-      'tool_runtime',
-      'vector_io',
-    ],
+    apis: ['inference', 'vector_io', 'files', 'tool_runtime', 'responses'],
     providers: {
+      files: [
+        {
+          provider_id: 'meta-reference-files',
+          provider_type: 'inline::localfs',
+          config: {
+            storage_dir: '/opt/app-root/src/.llama/distributions/rh/files',
+            metadata_store: { table_name: 'files_metadata', backend: 'sql_default' },
+          },
+        },
+      ],
+      tool_runtime: [
+        { provider_id: 'file-search', provider_type: 'inline::file-search', config: {} },
+      ],
       inference: [
         {
           provider_id: 'sentence-transformers',
@@ -422,39 +426,6 @@ const buildOgxConfig = (namespace: string): string => {
           },
         },
       ],
-      files: [
-        {
-          provider_id: 'meta-reference-files',
-          provider_type: 'inline::localfs',
-          config: {
-            storage_dir: '/opt/app-root/src/.llama/distributions/rh/files',
-            metadata_store: { table_name: 'files_metadata', backend: 'sql_default' },
-          },
-        },
-      ],
-      datasetio: [
-        {
-          provider_id: 'huggingface',
-          provider_type: 'remote::huggingface',
-          config: {
-            kvstore: { namespace: 'datasetio::huggingface', backend: 'kv_default' },
-          },
-        },
-      ],
-      scoring: [
-        { provider_id: 'basic', provider_type: 'inline::basic', config: {} },
-        { provider_id: 'llm-as-judge', provider_type: 'inline::llm-as-judge', config: {} },
-      ],
-      eval: [],
-      tool_runtime: [
-        { provider_id: 'file-search', provider_type: 'inline::file-search', config: {} },
-        {
-          provider_id: 'model-context-protocol',
-          provider_type: 'remote::model-context-protocol',
-          config: {},
-        },
-      ],
-      safety: [],
     },
     metadata_store: {
       type: 'sqlite',
@@ -481,7 +452,7 @@ const buildOgxConfig = (namespace: string): string => {
       default_provider_id: 'milvus-remote',
       default_embedding_model: {
         provider_id: 'sentence-transformers',
-        model_id: INLINE_EMBEDDING_MODEL_ID,
+        model_id: 'all-MiniLM-L6-v2',
       },
     },
     registered_resources: {
