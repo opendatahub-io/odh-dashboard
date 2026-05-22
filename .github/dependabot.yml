@@ -15,185 +15,29 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     target-branch: "main"
     labels:
       # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
       - "dependencies"
+
+    cooldown:
+      default-days: 14
+      semver-major-days: 30
+      semver-minor-days: 14
+      semver-patch-days: 14
+
+    # Only patch versions to limit scope during test phase
     ignore:
       - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
     groups:
       patternfly:
         applies-to: version-updates
         patterns:
           - "@patternfly/*"
-      production-deps:
+      patch-updates:
         applies-to: version-updates
-        dependency-type: production
         exclude-patterns:
           - "@patternfly/*"
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-        exclude-patterns:
-          - "@patternfly/*"
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/automl/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/autorag/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/eval-hub/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/gen-ai/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/maas/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  - package-ecosystem: npm
-    directory: /packages/mlflow/frontend
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    target-branch: "main"
-    labels:
-      # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
-      - "dependencies"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
-    groups:
-      production-deps:
-        applies-to: version-updates
-        dependency-type: production
-      dev-deps:
-        applies-to: version-updates
-        dependency-type: development
-      security-patches:
-        applies-to: security-updates
-        patterns:
-          - "*"
-
-  # Upstream-synced packages (model-registry, notebooks) are intentionally
-  # excluded from Dependabot. Their deps are managed by their upstream repos
-  # and synced in via the upstream-sync workflow. The dependency-validation
-  # workflow still audits them when upstream syncs land.
