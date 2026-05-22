@@ -38,7 +38,13 @@
   },
   "dependencies": {
     "@odh-dashboard/app-config": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/plugin-core": "*",
+    "@patternfly/react-charts": "^8.4.1",
+    "@patternfly/react-code-editor": "^6.4.3",
+    "@patternfly/react-core": "^6.4.3",
+    "@patternfly/react-drag-drop": "^6.4.3",
+    "@patternfly/react-table": "^6.4.3",
+    "@patternfly/react-templates": "^6.4.3"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"
