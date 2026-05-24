@@ -13,25 +13,23 @@ const X_GAP = 130;
 const Y_CENTER = 250;
 const Y_PIPELINE_GAP = 100;
 
-// Input data loader steps (maps to first part of pipeline)
+// Input data loader steps (automl_data_loader section)
 const INPUT_DATA_LOADER_STEPS = [
-  'Read dataset',
-  'Split holdout data',
-  'Read training data',
-  'Preprocessing',
-  'Model selection',
+  'Read train data',
+  'Data sampling',
+  'Train/test split',
+  'Data preprocessing',
+  'Models selection',
 ];
 
-// Model generation steps (maps to each model's pipeline)
-const MODEL_GENERATION_STEPS = [
-  'Hyperparameter optimization',
-  'Feature engineering',
-  'Hyperparameter optimization',
-  'Ensemble creation',
-];
+// Model training steps before model name (autogluon_models_training section)
+const MODEL_PRE_STEPS = ['Features engineering', 'Base models training', 'Bagging', 'Stacking'];
 
-// Final steps after all models converge
-const FINAL_STEPS = ['Model evaluation', 'Select best model'];
+// Model training steps after model name
+const MODEL_POST_STEPS = ['Full retrain'];
+
+// Final steps after all models converge (leaderboard_evaluation section)
+const FINAL_STEPS = ['Evaluation', 'Select best model'];
 
 // Placeholder models shown when model generation fails or hasn't started yet
 const PLACEHOLDER_MODELS = [
@@ -151,43 +149,47 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
 
     // Determine node type based on state
     let pipelineNodeType: TreeNodeData['nodeType'] = 'standard';
-    let badgeNodeType: TreeNodeData['nodeType'] = 'pipeline-start';
+    let modelNodeType: TreeNodeData['nodeType'] = 'model-name';
 
     if (isFailedWithNoModels) {
       pipelineNodeType = 'failed';
-      badgeNodeType = 'failed';
+      modelNodeType = 'failed';
     } else if (isInputLoaderPhase) {
       // Input loader still running - show model gen as pending
       pipelineNodeType = 'pending';
-      badgeNodeType = 'pending';
+      modelNodeType = 'pending';
     } else if (isModelGenerationPhase) {
       // Models exist but still running - show as in-progress
       pipelineNodeType = 'in-progress';
+      modelNodeType = 'model-name';
     }
 
-    // Pipeline badge (P1, P2, etc.)
-    const badgeId = `${pipelinePrefix}-badge`;
-    nodes.push(
-      createNode(badgeId, '', pipelineStartX, pipelineY, badgeNodeType, `P${modelIndex + 1}`),
-    );
-    pipelineNodeIds.push(badgeId);
+    let stepX = pipelineStartX;
 
-    // Connect from model selection to pipeline badge
-    const lastInputNodeId = inputDataLoaderNodeIds[inputDataLoaderNodeIds.length - 1];
-    edges.push(createEdge(`e-input-to-${pipelinePrefix}`, lastInputNodeId, badgeId));
-
-    // Model name node
-    let stepX = pipelineStartX + X_GAP * 0.8;
-    const modelNodeId = `${pipelinePrefix}-model`;
-    nodes.push(createNode(modelNodeId, model.name, stepX, pipelineY, pipelineNodeType));
-    pipelineNodeIds.push(modelNodeId);
-
-    // Model generation steps
-    MODEL_GENERATION_STEPS.forEach((stepName, stepIndex) => {
-      stepX += X_GAP;
-      const stepNodeId = `${pipelinePrefix}-step-${stepIndex}`;
+    // Pre-model steps (Features engineering, Base models training, Bagging, Stacking)
+    MODEL_PRE_STEPS.forEach((stepName, stepIndex) => {
+      const stepNodeId = `${pipelinePrefix}-pre-${stepIndex}`;
       nodes.push(createNode(stepNodeId, stepName, stepX, pipelineY, pipelineNodeType));
       pipelineNodeIds.push(stepNodeId);
+      stepX += X_GAP;
+    });
+
+    // Connect from model selection to first pre-step
+    const lastInputNodeId = inputDataLoaderNodeIds[inputDataLoaderNodeIds.length - 1];
+    edges.push(createEdge(`e-input-to-${pipelinePrefix}`, lastInputNodeId, pipelineNodeIds[0]));
+
+    // Model name node (colored)
+    const modelNodeId = `${pipelinePrefix}-model`;
+    nodes.push(createNode(modelNodeId, model.name, stepX, pipelineY, modelNodeType));
+    pipelineNodeIds.push(modelNodeId);
+    stepX += X_GAP;
+
+    // Post-model steps (Full retrain)
+    MODEL_POST_STEPS.forEach((stepName, stepIndex) => {
+      const stepNodeId = `${pipelinePrefix}-post-${stepIndex}`;
+      nodes.push(createNode(stepNodeId, stepName, stepX, pipelineY, pipelineNodeType));
+      pipelineNodeIds.push(stepNodeId);
+      stepX += X_GAP;
     });
 
     // Connect pipeline nodes
@@ -219,10 +221,13 @@ export const transformPipelineData = (data: PipelineVisualizationData): TreeTopo
       // Show final steps as pending when still running
       nodeType = 'pending';
     } else if (isLastStep) {
+      // "Select best model" uses special final-select type
       if (runState === 'completed' && selectedModel) {
-        nodeType = 'success';
+        nodeType = 'final-select';
       } else if (runState === 'failed') {
         nodeType = 'failed';
+      } else {
+        nodeType = 'final-select';
       }
     }
 

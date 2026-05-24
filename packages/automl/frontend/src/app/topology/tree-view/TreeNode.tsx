@@ -10,7 +10,15 @@ import {
 
 export type TreeNodeData = {
   label: string;
-  nodeType: 'standard' | 'pipeline-start' | 'success' | 'in-progress' | 'pending' | 'failed';
+  nodeType:
+    | 'standard'
+    | 'model-name'
+    | 'final-select'
+    | 'in-progress'
+    | 'pending'
+    | 'failed'
+    | 'pipeline-start'
+    | 'success';
   pipelineId?: string;
 };
 
@@ -18,29 +26,25 @@ type TreeNodeProps = {
   element: GraphElement;
 } & WithSelectionProps;
 
-const NODE_RADIUS = 8;
-const PIPELINE_BADGE_RADIUS = 16;
+// Node sizes
+const STANDARD_RADIUS = 12;
+const MODEL_NAME_RADIUS = 16;
+const FINAL_SELECT_RADIUS = 28;
 
-const getNodeColor = (nodeType: TreeNodeData['nodeType']): string => {
-  switch (nodeType) {
-    case 'success':
-      return '#3E8635'; // PF green
-    case 'failed':
-      return '#C9190B'; // PF red
-    case 'pipeline-start':
-      return '#0066CC'; // PF blue
-    case 'in-progress':
-      return '#0066CC'; // PF blue
-    case 'pending':
-      return '#6A6E73'; // PF gray
-    default:
-      return '#151515'; // PF black
-  }
+// Colors
+const COLORS = {
+  stroke: '#FFFFFF', // White stroke for hollow nodes
+  strokeDark: '#151515', // Dark stroke alternative
+  modelFill: '#73C5C5', // Cyan/teal for model names
+  finalFill: '#8B5CF6', // Purple for final selection
+  pendingStroke: '#6A6E73', // Gray for pending
+  failedFill: '#C9190B', // Red for failed
+  inProgressStroke: '#0066CC', // Blue for in-progress
 };
 
 const HourglassIcon: React.FC<{ size: number }> = ({ size }) => (
   <g transform={`translate(${-size / 2}, ${-size / 2})`}>
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="#6A6E73">
+    <svg width={size} height={size} viewBox="0 0 16 16" fill={COLORS.pendingStroke}>
       <path d="M8 8.5l3.5 3.5v2h-7v-2L8 8.5zm0-1L4.5 4V2h7v2L8 7.5zM3 1h10v4l-3 3 3 3v4H3v-4l3-3-3-3V1z" />
     </svg>
   </g>
@@ -51,7 +55,7 @@ const SpinnerIcon: React.FC<{ size: number }> = ({ size }) => (
     <circle
       r={size / 2 - 2}
       fill="none"
-      stroke="#0066CC"
+      stroke={COLORS.inProgressStroke}
       strokeWidth={2}
       strokeDasharray={`${(size - 4) * Math.PI * 0.75} ${(size - 4) * Math.PI * 0.25}`}
       strokeLinecap="round"
@@ -80,6 +84,17 @@ const isTreeNodeData = (data: unknown): data is TreeNodeData => {
   );
 };
 
+const getNodeRadius = (nodeType: TreeNodeData['nodeType']): number => {
+  switch (nodeType) {
+    case 'final-select':
+      return FINAL_SELECT_RADIUS;
+    case 'model-name':
+      return MODEL_NAME_RADIUS;
+    default:
+      return STANDARD_RADIUS;
+  }
+};
+
 const TreeNodeInner: React.FC<{
   node: Node;
   onSelect?: (e: React.MouseEvent) => void;
@@ -98,11 +113,9 @@ const TreeNodeInner: React.FC<{
   const data = isTreeNodeData(rawData) ? rawData : undefined;
   const label = data?.label ?? '';
   const nodeType = data?.nodeType ?? 'standard';
-  const pipelineId = data?.pipelineId;
 
-  const radius = pipelineId ? PIPELINE_BADGE_RADIUS : NODE_RADIUS;
-  const strokeWidth = selected ? 3 : hover ? 2 : 0;
-  const strokeColor = '#0066CC';
+  const radius = getNodeRadius(nodeType);
+  const hoverStrokeWidth = selected ? 3 : hover ? 2 : 0;
 
   const renderNodeContent = () => {
     // Pending state - show hourglass icon
@@ -115,31 +128,56 @@ const TreeNodeInner: React.FC<{
       return <SpinnerIcon size={radius * 2} />;
     }
 
-    // Default - show filled circle
-    return (
-      <>
+    // Failed state - red filled circle
+    if (nodeType === 'failed') {
+      return (
         <circle
           r={radius}
-          fill={getNodeColor(nodeType)}
-          stroke={strokeWidth > 0 ? strokeColor : 'none'}
-          strokeWidth={strokeWidth}
+          fill={COLORS.failedFill}
+          stroke={hoverStrokeWidth > 0 ? COLORS.inProgressStroke : 'none'}
+          strokeWidth={hoverStrokeWidth}
         />
-        {/* Pipeline badge text (P1, P2, etc.) */}
-        {pipelineId && (
-          <text
-            textAnchor="middle"
-            dominantBaseline="central"
-            fill="#FFFFFF"
-            fontSize="12px"
-            fontWeight="bold"
-            fontFamily="RedHatText, sans-serif"
-          >
-            {pipelineId}
-          </text>
-        )}
-      </>
+      );
+    }
+
+    // Model name - filled cyan circle
+    if (nodeType === 'model-name') {
+      return (
+        <circle
+          r={radius}
+          fill={COLORS.modelFill}
+          stroke={hoverStrokeWidth > 0 ? COLORS.inProgressStroke : 'none'}
+          strokeWidth={hoverStrokeWidth}
+        />
+      );
+    }
+
+    // Final select - large purple filled circle
+    if (nodeType === 'final-select') {
+      return (
+        <circle
+          r={radius}
+          fill={COLORS.finalFill}
+          stroke={hoverStrokeWidth > 0 ? COLORS.inProgressStroke : 'none'}
+          strokeWidth={hoverStrokeWidth}
+        />
+      );
+    }
+
+    // Standard - hollow circle (stroke only)
+    return (
+      <circle
+        r={radius}
+        fill="none"
+        stroke={COLORS.stroke}
+        strokeWidth={3}
+        opacity={hover ? 0.8 : 1}
+      />
     );
   };
+
+  // Calculate label position based on node size
+  const labelY = radius + 16;
 
   return (
     <g
@@ -153,9 +191,9 @@ const TreeNodeInner: React.FC<{
       {/* Label below node */}
       {label && (
         <text
-          y={radius + 14}
+          y={labelY}
           textAnchor="middle"
-          fill="#151515"
+          fill="#FFFFFF"
           fontSize="11px"
           fontFamily="RedHatText, sans-serif"
           style={{ pointerEvents: 'none' }}
