@@ -24,6 +24,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	maasmocks "github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -650,11 +651,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "completed", responseData["status"])
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
-
 })
-
-// Note: InputShieldID/OutputShieldID moderation tests were removed. Moderation tests
-// will be added once the guardrail_config request field is wired into the handler.
 
 var _ = Describe("StreamingContextCancellation", func() {
 	var app App
@@ -1693,4 +1690,370 @@ func TestGetGuardrailModelEndpointAndKey_MaaS(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "not found in MaaS catalog")
 	})
+}
+
+func TestProcessResponseCitations(t *testing.T) {
+	t.Run("should extract citations and clean text", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							Score:  0.85,
+							Text:   "Relevant content",
+							FileID: "e6053358-ab61-48cb-a600-2d04dfcbb51b",
+							Attributes: map[string]interface{}{
+								"filename": "report.pdf",
+							},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Here is the answer <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Here is the answer .", rd.Output[1].Content[0].Text)
+		require.Len(t, rd.Output[1].Content[0].Annotations, 1)
+
+		ann, ok := rd.Output[1].Content[0].Annotations[0].(FileCitationAnnotation)
+		require.True(t, ok)
+		assert.Equal(t, "file_citation", ann.Type)
+		assert.Equal(t, "e6053358-ab61-48cb-a600-2d04dfcbb51b", ann.FileID)
+		assert.Equal(t, "report.pdf", ann.Filename)
+	})
+
+	t.Run("should handle multiple citations from different files", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							FileID: "id-1",
+							Attributes: map[string]interface{}{
+								"filename": "doc1.pdf",
+							},
+						},
+						{
+							FileID: "id-2",
+							Attributes: map[string]interface{}{
+								"filename": "doc2.pdf",
+							},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Fact one <|id-1|> and fact two <|id-2|>.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Fact one  and fact two .", rd.Output[1].Content[0].Text)
+		require.Len(t, rd.Output[1].Content[0].Annotations, 2)
+
+		ann1 := rd.Output[1].Content[0].Annotations[0].(FileCitationAnnotation)
+		assert.Equal(t, "doc1.pdf", ann1.Filename)
+
+		ann2 := rd.Output[1].Content[0].Annotations[1].(FileCitationAnnotation)
+		assert.Equal(t, "doc2.pdf", ann2.Filename)
+	})
+
+	t.Run("should not modify response without file_search_call results", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Plain response without citations.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Plain response without citations.", rd.Output[0].Content[0].Text)
+		assert.Nil(t, rd.Output[0].Content[0].Annotations)
+	})
+
+	t.Run("should handle markers with no matching file_search_call result", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							FileID: "known-id",
+							Attributes: map[string]interface{}{
+								"filename": "known.pdf",
+							},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Cited <|known-id|> and unknown <|unknown-id|>.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Cited  and unknown .", rd.Output[1].Content[0].Text)
+		require.Len(t, rd.Output[1].Content[0].Annotations, 1)
+		ann := rd.Output[1].Content[0].Annotations[0].(FileCitationAnnotation)
+		assert.Equal(t, "known.pdf", ann.Filename)
+	})
+
+	t.Run("should extract filename from union-typed attributes (OfString format)", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							FileID: "e6053358-ab61-48cb-a600-2d04dfcbb51b",
+							Attributes: map[string]interface{}{
+								"filename": map[string]interface{}{
+									"OfBool":   false,
+									"OfFloat":  float64(0),
+									"OfString": "rag-testing-story.txt",
+								},
+							},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Info <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Info .", rd.Output[1].Content[0].Text)
+		require.Len(t, rd.Output[1].Content[0].Annotations, 1)
+		ann := rd.Output[1].Content[0].Annotations[0].(FileCitationAnnotation)
+		assert.Equal(t, "rag-testing-story.txt", ann.Filename)
+	})
+
+	t.Run("should strip markers even when citation map is empty", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Answer <|e6053358-ab61-48cb-a600-2d04dfcbb51b|> with markers.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Answer  with markers.", rd.Output[0].Content[0].Text)
+		assert.Nil(t, rd.Output[0].Content[0].Annotations)
+	})
+
+	t.Run("should preserve existing annotations when adding new citations", func(t *testing.T) {
+		existingAnnotation := map[string]interface{}{
+			"type": "url_citation",
+			"url":  "https://example.com",
+		}
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							FileID: "file-abc",
+							Attributes: map[string]interface{}{
+								"filename": "doc.pdf",
+							},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type:        "output_text",
+							Text:        "Answer <|file-abc|>.",
+							Annotations: []interface{}{existingAnnotation},
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Answer .", rd.Output[1].Content[0].Text)
+		require.Len(t, rd.Output[1].Content[0].Annotations, 2)
+
+		assert.Equal(t, existingAnnotation, rd.Output[1].Content[0].Annotations[0])
+		ann := rd.Output[1].Content[0].Annotations[1].(FileCitationAnnotation)
+		assert.Equal(t, "file_citation", ann.Type)
+		assert.Equal(t, "file-abc", ann.FileID)
+		assert.Equal(t, "doc.pdf", ann.Filename)
+	})
+
+	t.Run("should use fileID as filename when attributes lack filename", func(t *testing.T) {
+		rd := &ResponseData{
+			Output: []OutputItem{
+				{
+					Type: "file_search_call",
+					Results: []SearchResult{
+						{
+							FileID:     "raw-uuid",
+							Attributes: map[string]interface{}{},
+						},
+					},
+				},
+				{
+					Type: "message",
+					Content: []ContentItem{
+						{
+							Type: "output_text",
+							Text: "Info <|raw-uuid|>.",
+						},
+					},
+				},
+			},
+		}
+
+		processResponseCitations(rd)
+
+		assert.Equal(t, "Info .", rd.Output[1].Content[0].Text)
+		ann := rd.Output[1].Content[0].Annotations[0].(FileCitationAnnotation)
+		assert.Equal(t, "raw-uuid", ann.Filename)
+	})
+}
+
+func TestMockRAGCitationPipeline(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	mockClient := lsmocks.NewMockLlamaStackClient()
+
+	app := App{
+		config:       config.EnvConfig{Port: 4000},
+		logger:       logger,
+		repositories: repositories.NewRepositories(),
+	}
+
+	t.Run("non-streaming RAG strips markers and produces annotations", func(t *testing.T) {
+		params := llamastack.CreateResponseParams{
+			Input:          "What is AI?",
+			Model:          "test-model",
+			VectorStoreIDs: []string{"vs_mock123"},
+		}
+
+		resp, err := mockClient.CreateResponse(context.Background(), params)
+		require.NoError(t, err)
+
+		rd := convertToResponseData(resp)
+		processResponseCitations(&rd)
+
+		var messageItem *OutputItem
+		for i, item := range rd.Output {
+			if item.Type == "message" {
+				messageItem = &rd.Output[i]
+			}
+		}
+		require.NotNil(t, messageItem, "expected a message output item")
+		require.Greater(t, len(messageItem.Content), 0)
+
+		text := messageItem.Content[0].Text
+		assert.NotContains(t, text, "<|", "raw citation markers must be stripped")
+
+		require.NotNil(t, messageItem.Content[0].Annotations, "expected annotations")
+		require.Greater(t, len(messageItem.Content[0].Annotations), 0)
+
+		ann, ok := messageItem.Content[0].Annotations[0].(FileCitationAnnotation)
+		require.True(t, ok, "expected FileCitationAnnotation type")
+		assert.Equal(t, "file_citation", ann.Type)
+		assert.Equal(t, "e6053358-ab61-48cb-a600-2d04dfcbb51b", ann.FileID)
+		assert.Equal(t, "mock_document.txt", ann.Filename, "filename must be resolved from attributes")
+	})
+
+	t.Run("streaming RAG strips markers and produces annotations in completed event", func(t *testing.T) {
+		params := llamastack.CreateResponseParams{
+			Input:          "What is AI?",
+			Model:          "test-model",
+			VectorStoreIDs: []string{"vs_mock123"},
+		}
+
+		stream, err := mockClient.CreateResponseStream(context.Background(), params)
+		require.NoError(t, err)
+
+		var completedResponse *ResponseData
+		for stream.Next() {
+			event := stream.Current()
+			se := convertToStreamingEvent(event)
+			if se.Type == "response.completed" && se.Response != nil {
+				processResponseCitations(se.Response)
+				completedResponse = se.Response
+			}
+		}
+		require.NoError(t, stream.Err())
+		require.NotNil(t, completedResponse, "expected a response.completed event")
+
+		var messageItem *OutputItem
+		for i, item := range completedResponse.Output {
+			if item.Type == "message" {
+				messageItem = &completedResponse.Output[i]
+			}
+		}
+		require.NotNil(t, messageItem, "expected a message output item")
+		require.Greater(t, len(messageItem.Content), 0)
+
+		text := messageItem.Content[0].Text
+		assert.NotContains(t, text, "<|", "raw citation markers must be stripped")
+
+		require.NotNil(t, messageItem.Content[0].Annotations, "expected annotations")
+		require.Greater(t, len(messageItem.Content[0].Annotations), 0)
+
+		ann, ok := messageItem.Content[0].Annotations[0].(FileCitationAnnotation)
+		require.True(t, ok, "expected FileCitationAnnotation type")
+		assert.Equal(t, "file_citation", ann.Type)
+		assert.Equal(t, "e6053358-ab61-48cb-a600-2d04dfcbb51b", ann.FileID)
+		assert.Equal(t, "mock_document.txt", ann.Filename, "filename must be resolved from attributes")
+	})
+
+	_ = app // ensure app is referenced for future handler-level tests
 }

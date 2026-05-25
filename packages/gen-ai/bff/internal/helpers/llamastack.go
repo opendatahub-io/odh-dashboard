@@ -21,7 +21,7 @@ func GetContextLlamaStackClient(ctx context.Context) (llamastack.LlamaStackClien
 	client, ok := ctx.Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
 
 	if !ok || client == nil {
-		return nil, fmt.Errorf("missing LlamaStack client in context - ensure AttachLlamaStackClient middleware is used")
+		return nil, fmt.Errorf("missing LlamaStack client in context - ensure AttachOGXClient middleware is used")
 	}
 
 	return client, nil

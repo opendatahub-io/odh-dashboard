@@ -29,6 +29,9 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
+  Select,
+  SelectList,
+  SelectOption,
   Split,
   SplitItem,
   Spinner,
@@ -72,9 +75,14 @@ import {
   TASK_TYPE_TIMESERIES,
   REQUIRED_CONNECTION_SECRET_KEYS,
 } from '~/app/utilities/const';
+import {
+  getColumnConstraintTooltip,
+  getTypeAcronym,
+  findTimestampColumn,
+} from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
-import ConfigureTabularForm from './ConfigureTabularForm';
+import LoadingFormField from './LoadingFormField';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import './AutomlConfigure.scss';
 
@@ -158,6 +166,7 @@ function AutomlConfigure({
       }),
     [allConnectionTypes],
   );
+  const [isTargetColumnOpen, setIsTargetColumnOpen] = useState(false);
   const [isConnectionModalOpen, setIsConnectionModalOpen] = useState(false);
   const [newConnectionNotLoaded, setNewConnectionNotLoaded] = useState(false);
   const [isFileExplorerOpen, setIsFileExplorerOpen] = useState<boolean>(false);
@@ -203,15 +212,73 @@ function AutomlConfigure({
     formState: { isSubmitting: formIsSubmitting },
   } = form;
 
-  const [trainDataSecretName, trainDataBucketName, trainDataFileKey, taskType] = useWatch({
+  const [
+    trainDataSecretName,
+    trainDataBucketName,
+    trainDataFileKey,
+    taskType,
+    targetColumn,
+    timestampColumn,
+    idColumn,
+    knownCovariatesNames,
+  ] = useWatch({
     control: form.control,
-    name: ['train_data_secret_name', 'train_data_bucket_name', 'train_data_file_key', 'task_type'],
+    name: [
+      'train_data_secret_name',
+      'train_data_bucket_name',
+      'train_data_file_key',
+      'task_type',
+      'target_column',
+      'timestamp_column',
+      'id_column',
+      'known_covariates_names',
+    ],
   });
+  const isTargetColumnSelected = Boolean(targetColumn);
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
   // Calculate max top_n based on task type
   const maxTopN = isTimeseries ? MAX_TOP_N_TIMESERIES : MAX_TOP_N_TABULAR;
+
+  // Clear timeseries fields that conflict with the selected target column
+  useEffect(() => {
+    if (!targetColumn) {
+      return;
+    }
+    const clearedFields: string[] = [];
+    if (timestampColumn === targetColumn) {
+      setValue('timestamp_column', '', { shouldValidate: true });
+      clearedFields.push('timestamp column');
+    }
+    if (idColumn === targetColumn) {
+      setValue('id_column', '', { shouldValidate: true });
+      clearedFields.push('ID column');
+    }
+    if (knownCovariatesNames?.includes(targetColumn)) {
+      setValue(
+        'known_covariates_names',
+        knownCovariatesNames.filter((name) => name !== targetColumn),
+        { shouldValidate: true },
+      );
+      clearedFields.push('known covariates');
+    }
+    if (clearedFields.length > 0 && isTaskTypeSelected && isTimeseries) {
+      notification.warning(
+        'Timeseries fields updated',
+        `"${targetColumn}" was removed from ${clearedFields.join(', ')} because it is now the target column.`,
+      );
+    }
+  }, [
+    targetColumn,
+    timestampColumn,
+    idColumn,
+    knownCovariatesNames,
+    setValue,
+    isTaskTypeSelected,
+    isTimeseries,
+    notification,
+  ]);
 
   // Re-validate top_n when task type changes (max depends on task type)
   useEffect(() => {
@@ -238,6 +305,14 @@ function AutomlConfigure({
     trainDataBucketName,
     trainDataFileKey,
   );
+
+  const selectedColumn = columns.find((c) => c.name === targetColumn);
+
+  useEffect(() => {
+    if (columnsError) {
+      notification.warning('Column schema error', columnsError.message);
+    }
+  }, [columnsError, notification]);
 
   // Sync bucket from the resolved secret object (skips mount to preserve pre-populated values in reconfigure)
   useReconfigureSafeEffect(() => {
@@ -279,11 +354,10 @@ function AutomlConfigure({
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- intentionally invalid value to clear selection
       setValue('task_type', '' as never, { shouldValidate: true });
 
-      // Reset tabular form fields
-      setValue('label_column', '', { shouldValidate: true });
+      // Reset target column
+      setValue('target_column', '', { shouldValidate: true });
 
       // Reset timeseries form fields
-      setValue('target', '', { shouldValidate: true });
       setValue('timestamp_column', '', { shouldValidate: true });
       setValue('id_column', '', { shouldValidate: true });
       setValue('known_covariates_names', [], { shouldValidate: true });
@@ -292,7 +366,7 @@ function AutomlConfigure({
     previousFileKeyRef.current = trainDataFileKey;
   }, [trainDataFileKey, setValue]);
 
-  // reset columns query cache and label column when connection data is cleared
+  // reset columns query cache and target column when connection data is cleared
   useEffect(() => {
     if (!namespace) {
       return;
@@ -302,7 +376,7 @@ function AutomlConfigure({
         ['files', namespace, trainDataSecretName, trainDataBucketName, trainDataFileKey],
         [],
       );
-      setValue('label_column', '', { shouldValidate: true });
+      setValue('target_column', '', { shouldValidate: true });
     }
   }, [
     trainDataSecretName,
@@ -312,6 +386,20 @@ function AutomlConfigure({
     queryClient,
     setValue,
   ]);
+
+  // Auto-detect and set timestamp_column when columns are loaded, only if not already set
+  useEffect(() => {
+    if (columns.length === 0) {
+      return;
+    }
+    const current = getValues('timestamp_column');
+    if (!current) {
+      const detectedTimestamp = findTimestampColumn(columns);
+      if (detectedTimestamp) {
+        setValue('timestamp_column', detectedTimestamp, { shouldValidate: true });
+      }
+    }
+  }, [columns, setValue, getValues]);
 
   // Initialize timeseries-specific fields when switching to timeseries mode
   useEffect(() => {
@@ -734,48 +822,158 @@ function AutomlConfigure({
                   </EmptyState>
                 ) : (
                   <Stack hasGutter style={{ gap: 'var(--pf-t--global--spacer--xl)' }}>
-                    <StackItem>
-                      <ConfigureFormGroup label="Prediction type" isRequired>
-                        <Controller
-                          control={form.control}
-                          name="task_type"
-                          render={({ field }) => (
-                            <Gallery hasGutter minWidths={{ default: '200px' }}>
-                              {PREDICTION_TYPES.map((type) => (
-                                <Card
-                                  key={type.value}
-                                  isSelectable
-                                  isDisabled={!canSelectLearningType || formIsSubmitting}
-                                  isSelected={field.value === type.value}
-                                  data-testid={`task-type-card-${type.value}`}
-                                >
-                                  <CardHeader
-                                    selectableActions={{
-                                      selectableActionId: `task-type-${type.value}`,
-                                      selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                      name: 'task_type',
-                                      variant: 'single',
-                                      isChecked: field.value === type.value,
-                                      onChange: () => field.onChange(type.value),
-                                      isHidden: true,
-                                    }}
+                    <StackItem className="automl-configure__form-field">
+                      <ConfigureFormGroup
+                        label="Target column"
+                        labelHelp={{
+                          header: 'Target column',
+                          body: 'Name of the target/label column in the dataset containing the value to predict or forecast (in the case of time series).',
+                        }}
+                        isRequired
+                      >
+                        <LoadingFormField loading={isLoadingColumns || isFetchingColumns}>
+                          <Controller
+                            control={control}
+                            name="target_column"
+                            render={({ field }) => (
+                              <Select
+                                id="target-column-select"
+                                isOpen={isTargetColumnOpen}
+                                onOpenChange={setIsTargetColumnOpen}
+                                onSelect={(_event, value) => {
+                                  field.onChange(value);
+                                  setIsTargetColumnOpen(false);
+                                  if (typeof value === 'string') {
+                                    const selected = columns.find((c) => c.name === value);
+                                    if (timestampColumn && selected?.type !== 'string') {
+                                      setValue('task_type', TASK_TYPE_TIMESERIES, {
+                                        shouldValidate: true,
+                                      });
+                                    } else if (selected?.task_type) {
+                                      setValue('task_type', selected.task_type, {
+                                        shouldValidate: true,
+                                      });
+                                    }
+                                  }
+                                }}
+                                selected={field.value}
+                                maxMenuHeight="200px"
+                                toggle={(toggleRef) => (
+                                  <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setIsTargetColumnOpen((prev) => !prev)}
+                                    isExpanded={isTargetColumnOpen}
+                                    isDisabled={
+                                      !isFileSelected ||
+                                      columns.length === 0 ||
+                                      !!columnsError ||
+                                      formIsSubmitting
+                                    }
+                                    isFullWidth
+                                    data-testid="target_column-select"
+                                    status={columnsError ? 'danger' : undefined}
                                   >
-                                    <CardTitle id={`task-type-label-${type.value}`}>
-                                      {type.label}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardBody>
-                                    <Content component="small">{type.description}</Content>
-                                  </CardBody>
-                                </Card>
-                              ))}
-                            </Gallery>
+                                    {field.value || 'Select a column'}
+                                  </MenuToggle>
+                                )}
+                              >
+                                <SelectList>
+                                  {columns.map((column) => (
+                                    <SelectOption key={column.name} value={column.name}>
+                                      <span className="automl-configure__column-type-badge">
+                                        {getTypeAcronym(column.type)}
+                                      </span>
+                                      {column.name}
+                                    </SelectOption>
+                                  ))}
+                                </SelectList>
+                              </Select>
+                            )}
+                          />
+                          {columnsError && (
+                            <FormHelperText>
+                              <HelperText>
+                                <HelperTextItem variant="error">
+                                  {columnsError.message}
+                                </HelperTextItem>
+                              </HelperText>
+                            </FormHelperText>
                           )}
-                        />
+                        </LoadingFormField>
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    {isTaskTypeSelected && isTimeseries ? (
+                    {isTargetColumnSelected && (
+                      <StackItem>
+                        <ConfigureFormGroup label="Prediction type" isRequired>
+                          <Controller
+                            control={form.control}
+                            name="task_type"
+                            render={({ field }) => (
+                              <Gallery hasGutter minWidths={{ default: '200px' }}>
+                                {PREDICTION_TYPES.map((type) => {
+                                  const disabledTooltip = getColumnConstraintTooltip(
+                                    type.value,
+                                    selectedColumn,
+                                  );
+                                  const isDisabledByColumnConstraint = disabledTooltip != null;
+                                  const card = (
+                                    <Card
+                                      key={type.value}
+                                      isSelectable
+                                      isDisabled={
+                                        !canSelectLearningType ||
+                                        formIsSubmitting ||
+                                        isDisabledByColumnConstraint
+                                      }
+                                      isSelected={field.value === type.value}
+                                      data-testid={`task-type-card-${type.value}`}
+                                    >
+                                      <CardHeader
+                                        selectableActions={{
+                                          selectableActionId: `task-type-${type.value}`,
+                                          selectableActionAriaLabelledby: `task-type-label-${type.value}`,
+                                          name: 'task_type',
+                                          variant: 'single',
+                                          isChecked: field.value === type.value,
+                                          onChange: () => {
+                                            field.onChange(type.value);
+                                            // Clear stale timestamp_column so it doesn't force
+                                            // timeseries on the next target column change
+                                            if (type.value !== TASK_TYPE_TIMESERIES) {
+                                              setValue('timestamp_column', '', {
+                                                shouldValidate: true,
+                                              });
+                                            }
+                                          },
+                                          isHidden: true,
+                                        }}
+                                      >
+                                        <CardTitle id={`task-type-label-${type.value}`}>
+                                          {type.label}
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardBody>
+                                        <Content component="small">{type.description}</Content>
+                                      </CardBody>
+                                    </Card>
+                                  );
+                                  return disabledTooltip ? (
+                                    <Tooltip key={type.value} content={disabledTooltip}>
+                                      {card}
+                                    </Tooltip>
+                                  ) : (
+                                    card
+                                  );
+                                })}
+                              </Gallery>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
+                    )}
+
+                    {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
                         columns={columns}
                         isLoadingColumns={isLoadingColumns}
@@ -784,19 +982,10 @@ function AutomlConfigure({
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
-                    ) : isTaskTypeSelected ? (
-                      <ConfigureTabularForm
-                        columns={columns}
-                        isLoadingColumns={isLoadingColumns}
-                        isFetchingColumns={isFetchingColumns}
-                        columnsError={columnsError}
-                        isFileSelected={isFileSelected}
-                        formIsSubmitting={formIsSubmitting}
-                      />
-                    ) : null}
+                    )}
 
                     {isTaskTypeSelected && (
-                      <StackItem>
+                      <StackItem className="automl-configure__form-field">
                         <ConfigureFormGroup
                           label="Top models to consider"
                           labelHelp={{

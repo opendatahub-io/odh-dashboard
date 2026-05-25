@@ -27,7 +27,6 @@ import { APIOptions } from 'mod-arch-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { z } from 'zod';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { getLowestAvailablePriority } from '~/app/utilities/subscriptions';
 import { createSubscription, updateSubscription } from '~/app/api/subscriptions';
 import { useSubscriptionModels } from '~/app/hooks/useSubscriptionModels';
 import {
@@ -109,10 +108,7 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
   });
   const [groupsTouched, setGroupsTouched] = React.useState(false);
   const [modelsTouched, setModelsTouched] = React.useState(false);
-  const [priority, setPriority] = React.useState<number | undefined>(
-    subscription?.priority ?? undefined,
-  );
-  const [priorityInitialized, setPriorityInitialized] = React.useState(isEditing);
+  const [priority, setPriority] = React.useState<number | undefined>(subscription?.priority ?? 0);
   const [createAuthPolicy, setCreateAuthPolicy] = React.useState(true);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
@@ -147,13 +143,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
       );
     }
   }, [formData.groups, selectedGroups.length, isEditing]);
-
-  React.useEffect(() => {
-    if (!priorityInitialized) {
-      setPriority(getLowestAvailablePriority(formData.subscriptions));
-      setPriorityInitialized(true);
-    }
-  }, [formData.subscriptions, priorityInitialized]);
 
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
 
@@ -198,17 +187,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
     [formData.subscriptions, subscription, isEditing],
   );
 
-  const conflictingSubscription = React.useMemo(() => {
-    if (priority == null || Number.isNaN(priority)) {
-      return undefined;
-    }
-    return subscriptionsForConflictCheck.find((s) => (s.priority ?? 0) === priority);
-  }, [priority, subscriptionsForConflictCheck]);
-
-  const priorityConflictError = conflictingSubscription
-    ? `Priority ${conflictingSubscription.priority ?? 0} is already used by ${conflictingSubscription.displayName || conflictingSubscription.name}. The next available priority is ${getLowestAvailablePriority(subscriptionsForConflictCheck, (conflictingSubscription.priority ?? 0) + 1)}.`
-    : undefined;
-
   const zodFormData: SubscriptionFormData = React.useMemo(
     () => ({
       priority: priority == null || Number.isNaN(priority) ? Number.NaN : priority,
@@ -220,18 +198,14 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
 
   const { getFieldValidation } = useZodFormValidation(zodFormData, subscriptionFormSchema);
 
-  const priorityValidationError =
-    priorityConflictError ??
-    (getFieldValidation(['priority'], true).length > 0
-      ? getFieldValidation(['priority'], true)[0].message
-      : undefined);
+  const isPriorityValid = priority != null && !Number.isNaN(priority);
 
   const canSubmit =
     isNameValid &&
     getFieldValidation(undefined, true).length === 0 &&
     allModelsHaveRateLimits &&
-    !isSubmitting &&
-    !priorityConflictError;
+    isPriorityValid &&
+    !isSubmitting;
 
   const handleSubmit = async () => {
     if (priority == null || Number.isNaN(priority)) {
@@ -299,8 +273,8 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
         <FormGroup label="Priority" fieldId="subscription-priority" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={priorityValidationError ? 'error' : 'default'}>
-                {priorityValidationError || 'Higher numbers indicate higher priority.'}
+              <HelperTextItem variant="default">
+                Higher numbers indicate higher priority.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -337,7 +311,6 @@ const CreateSubscriptionForm: React.FC<CreateSubscriptionFormProps> = ({
                 }
               }
             }}
-            validated={priorityValidationError ? 'error' : 'default'}
           />
         </FormGroup>
 

@@ -7,7 +7,7 @@ import type {
   WizardFormData,
   WizardStateOverrides,
 } from './types';
-import { getFieldDependencies, useActiveFields } from './dynamicFormUtils';
+import { getFieldDependencies, getStateKey, useActiveFields } from './dynamicFormUtils';
 
 ///// Field type stuff
 
@@ -81,7 +81,7 @@ export const wizardFormReducer = (
         ...state,
         initialValues: {
           ...state.initialValues,
-          [field.id]: initialValue,
+          [getStateKey(field)]: initialValue,
         },
       };
     }
@@ -137,7 +137,8 @@ export const useDeploymentWizardReducer = (
           ...action,
           payload: {
             ...action.payload,
-            existingFieldData: action.payload.existingFieldData ?? initialData?.[field.id],
+            existingFieldData:
+              action.payload.existingFieldData ?? initialData?.[getStateKey(field)],
             dependencies:
               action.payload.dependencies ?? getFieldDependencies(field, mergedStateRef.current),
           },
@@ -153,6 +154,13 @@ export const useDeploymentWizardReducer = (
   const prevMergedState = React.useRef<WizardFormState>(formState);
 
   React.useEffect(() => {
+    for (const prevField of prevActiveFields.current) {
+      const isGone = !activeFields.some((f) => f.id === prevField.id);
+      if (isGone) {
+        dispatch({ type: 'clearFieldData', payload: { id: getStateKey(prevField) } });
+      }
+    }
+
     for (const field of activeFields) {
       const isNew = !prevActiveFields.current.some((f) => f.id === field.id);
 
@@ -161,25 +169,22 @@ export const useDeploymentWizardReducer = (
       const isDependenciesChanged = !isEqual(dependencies, prevDependencies);
 
       if (isNew || isDependenciesChanged) {
-        if (isDependenciesChanged && field.shouldResetOnDependencyChange) {
-          dispatch({ type: 'clearFieldData', payload: { id: field.id } });
+        if (
+          isDependenciesChanged &&
+          field.shouldResetOnDependencyChange &&
+          field.shouldResetOnDependencyChange(prevDependencies, dependencies)
+        ) {
+          dispatch({ type: 'clearFieldData', payload: { id: getStateKey(field) } });
         }
         dispatch({
           type: 'initFieldData',
           payload: {
             field,
-            existingFieldData: initialData?.[field.id],
+            existingFieldData: initialData?.[getStateKey(field)],
             externalData: field.id in externalDataMap ? externalDataMap[field.id] : undefined,
             dependencies,
           },
         });
-      }
-    }
-
-    for (const prevField of prevActiveFields.current) {
-      const isGone = !activeFields.some((f) => f.id === prevField.id);
-      if (isGone) {
-        dispatch({ type: 'clearFieldData', payload: { id: prevField.id } });
       }
     }
 
@@ -190,7 +195,7 @@ export const useDeploymentWizardReducer = (
   const computedOverrides = React.useMemo((): WizardStateOverrides => {
     let overrides: WizardStateOverrides = {};
     for (const field of activeFields) {
-      const storedValue: unknown = formState[field.id];
+      const storedValue: unknown = formState[getStateKey(field)];
       if (storedValue == null) {
         continue;
       }

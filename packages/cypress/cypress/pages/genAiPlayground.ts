@@ -1,11 +1,13 @@
+const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true';
+
 class GenAiPlayground {
   navigate(projectName: string) {
-    cy.visit(`/gen-ai-studio/playground/${projectName}`);
+    cy.visit(`/gen-ai-studio/playground/${projectName}?${GEN_AI_DEV_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/playground/${projectName}`);
   }
 
   navigateToAssets(projectName: string) {
-    cy.visit(`/gen-ai-studio/assets/${projectName}`);
+    cy.visit(`/gen-ai-studio/assets/${projectName}?${GEN_AI_DEV_FLAG}`);
     cy.url().should('include', `/gen-ai-studio/assets/${projectName}`);
   }
 

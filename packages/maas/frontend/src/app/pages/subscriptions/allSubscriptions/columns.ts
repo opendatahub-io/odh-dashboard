@@ -11,19 +11,21 @@ export const subscriptionsColumns: SortableData<MaaSSubscription>[] = [
   {
     label: 'Phase',
     field: 'phase',
-    width: 10,
+    width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       (a.phase ?? '').localeCompare(b.phase ?? ''),
   },
   {
     label: 'Groups',
     field: 'owner.groups',
+    width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       a.owner.groups.length - b.owner.groups.length,
   },
   {
     label: 'Models',
     field: 'modelRefs',
+    width: 15,
     sortable: (a: MaaSSubscription, b: MaaSSubscription): number =>
       a.modelRefs.length - b.modelRefs.length,
   },

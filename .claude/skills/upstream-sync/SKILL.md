@@ -108,19 +108,41 @@ When conflicts are detected:
    - Continue the sync: `cd packages/<package-name> && npm run update-subtree -- --continue`
    - Repeat this phase if more conflicts are encountered
 
-### Phase 4: Run Tests
+### Phase 4: Lint and Tests
 
-After the sync completes successfully, run tests. Check which test scripts are available in the package's upstream frontend:
+After the sync completes successfully, run lint and tests. Check which scripts are available in the package's upstream frontend:
 
 ```bash
 cd packages/<package-name>/upstream/frontend && cat package.json | grep -E '"test:|"type-check'
 ```
 
-Run whichever of these are available:
+**Step 1: Lint (required before creating a PR)**
+
+Run lint first — CI will reject the PR if this fails:
+
+```bash
+cd packages/<package-name>/upstream/frontend && npm run test:lint
+```
+
+If lint fails, try auto-fixing:
+
+```bash
+cd packages/<package-name>/upstream/frontend && npm run test:fix
+```
+
+After auto-fix, re-run `test:lint` to confirm all issues are resolved. If issues remain that can't be auto-fixed, fix them manually. Stage and commit any lint fixes:
+
+```bash
+git add packages/<package-name> && git commit -m "Fix lint issues from upstream sync"
+```
+
+**Step 2: Unit tests**
 
 ```bash
 cd packages/<package-name>/upstream/frontend && npm run test:unit
 ```
+
+**Step 3: Type check**
 
 ```bash
 cd packages/<package-name>/upstream/frontend && npm run test:type-check
@@ -217,15 +239,18 @@ Copy the "Request review criteria" section exactly as it appears in `.github/pul
 
 **Push and create PR:**
 
-1. Ask user for confirmation before pushing
-2. Push the branch: `git push -u origin <branch-name>`
-3. Create the PR:
+1. Detect the upstream repo and fork owner:
+   - Run `git remote get-url upstream` to extract `<upstream-owner>/<upstream-repo>`
+   - Run `git remote get-url origin` to extract `<fork-owner>`
+2. Ask user for confirmation before pushing
+3. Push the branch to the fork: `git push -u origin <branch-name>`
+4. Create a cross-fork PR against the upstream repo:
    ```bash
-   gh pr create --title "<title>" --body "<body>"
+   gh pr create --repo <upstream-owner>/<upstream-repo> --head <fork-owner>:<branch-name> --base main --title "<title>" --body "<body>"
    ```
-4. Report the PR URL to the user
-5. **Only if in PR Test Mode** (the user passed a PR URL argument — the branch name starts with `tmp-sync-pr-`): immediately close the PR after creating it, since it exists only to share the branch and trigger CI:
+5. Report the PR URL to the user
+6. **Only if in PR Test Mode** (the user passed a PR URL argument — the branch name starts with `tmp-sync-pr-`): immediately close the PR after creating it, since it exists only to share the branch and trigger CI:
    ```bash
-   gh pr close <pr-number>
+   gh pr close <pr-number> --repo <upstream-owner>/<upstream-repo>
    ```
    **Do NOT close the PR in normal mode.** Normal sync PRs are meant to be reviewed and merged.

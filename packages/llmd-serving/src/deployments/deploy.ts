@@ -208,7 +208,7 @@ export const assembleLLMdDeployment = (
     {
       deploymentName: k8sName,
       deploymentNamespace: wizardData.state.project.projectName ?? '',
-      template: isLLMInferenceServiceConfig(wizardData.state.modelServer.data?.selection?.template)
+      template: isLLMInferenceServiceConfig(wizardData.state.modelServer?.data?.selection?.template)
         ? wizardData.state.modelServer.data.selection.template
         : undefined,
     },

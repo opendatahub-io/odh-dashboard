@@ -24,6 +24,27 @@ const initIntercepts = () => {
   );
 };
 
+const initCatalogOnlyIntercepts = () => {
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+        [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+      },
+    }),
+  );
+
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelCatalog: false,
+      disableModelRegistry: true,
+      disableModelServing: false,
+    }),
+  );
+};
+
 const initMcpIntercepts = () => {
   cy.interceptOdh(
     'GET /api/dsc/status',
@@ -91,6 +112,28 @@ describe('Tab Route Page Navigation', () => {
       cy.visitWithLogin('/ai-hub/models/nonexistent-tab');
       // Should redirect to first tab (catalog)
       cy.location('pathname').should('include', '/ai-hub/models/catalog');
+    });
+  });
+
+  describe('Models tab-route page with catalog only (registry disabled)', () => {
+    it('should show catalog and deployments tabs but not registry tab', () => {
+      initCatalogOnlyIntercepts();
+      tabRoutePage.visit('/ai-hub/models/catalog');
+
+      tabRoutePage.findPageTitle().should('contain.text', 'Models');
+
+      tabRoutePage.findTab('catalog').should('exist');
+      tabRoutePage.findTab('registry').should('not.exist');
+      tabRoutePage.findTab('deployments').should('exist');
+
+      tabRoutePage.findTab('catalog').should('have.attr', 'aria-selected', 'true');
+    });
+
+    it('should redirect to catalog tab when visiting base URL', () => {
+      initCatalogOnlyIntercepts();
+      cy.visitWithLogin('/ai-hub/models');
+      cy.location('pathname').should('include', '/ai-hub/models/catalog');
+      tabRoutePage.findPageTitle().should('contain.text', 'Models');
     });
   });
 

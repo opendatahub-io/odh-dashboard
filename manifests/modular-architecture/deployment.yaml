@@ -314,10 +314,6 @@
     env:
       - name: GATEWAY_DOMAIN
         value: ""
-      - name: TIERS_CONFIGMAP_NS
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
     securityContext:
       allowPrivilegeEscalation: false
       capabilities:

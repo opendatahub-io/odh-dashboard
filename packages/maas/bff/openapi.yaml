@@ -214,18 +214,34 @@ paths:
                     priority: 10
                     cost_center: engineering
                     organization_id: org-123
+                    key_count: 10
                     model_refs:
                       - name: granite-3-8b-instruct
+                        display_name: Granite 3 8B Instruct
+                        source: internal
+                        description: Granite 3 8B Instruct is a large language model that is used for advanced tasks.
                         namespace: maas-models
                         token_rate_limits:
                           - limit: 100000
+                            window: 24h
+                      - name: flan-t5-small
+                        display_name: Flan T5 Small
+                        source: external
+                        description: Flan T5 Small is a small language model that is used for basic tasks.
+                        namespace: maas-models
+                        token_rate_limits:
+                          - limit: 200000
                             window: 24h
                   - subscription_id_header: basic-team-sub
                     subscription_description: Basic Team Subscription
                     display_name: Basic Team
                     priority: 1
+                    key_count: 5
                     model_refs:
                       - name: flan-t5-small
+                        display_name: Flan T5 Small
+                        description: Flan T5 Small is a small language model that is used for basic tasks.
+                        source: external
                         namespace: maas-models
                         token_rate_limits:
                           - limit: 10000
@@ -326,7 +342,7 @@ paths:
         - api-keys
       summary: Search and filter API keys
       operationId: searchApiKeys
-      description: Search API keys with flexible filtering, sorting, and pagination. Supports filtering by username (admin-only), status, sorting by multiple fields, and pagination.
+      description: Search API keys with flexible filtering, sorting, and pagination. Supports filtering by username (admin-only), subscription name, status, sorting by multiple fields, and pagination.
       requestBody:
         required: false
         content:
@@ -340,6 +356,11 @@ paths:
                     username:
                       type: string
                       description: Filter by username (admin-only)
+                    subscription:
+                      type: string
+                      description: >
+                        Filter by subscription. Matches the subscription id
+                        on the key
                     status:
                       type: array
                       items:
@@ -1890,6 +1911,11 @@ components:
           type: string
           description: Cost center for usage attribution
           example: engineering
+        key_count:
+          type: integer
+          format: int32
+          description: Number of API keys associated with this subscription for the current user
+          example: 10
         labels:
           type: object
           additionalProperties:
@@ -1915,6 +1941,14 @@ components:
           type: string
           description: Human-readable display name of the model (from openshift.io/display-name annotation)
           example: Granite 3 8B Instruct
+        source:
+          type: string
+          description: Model source identifier (internal or external)
+          example: internal
+        description:
+          type: string
+          description: Human-readable description of the model
+          example: Granite 3 8B Instruct is a large language model that is used for advanced tasks.
         namespace:
           type: string
           description: Namespace where the MaaSModelRef lives

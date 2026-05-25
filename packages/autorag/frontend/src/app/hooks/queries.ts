@@ -1,30 +1,31 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getLlamaStackModels, getLlamaStackVectorStores, getSecrets } from '~/app/api/k8s';
+import { getOgxModels, getOgxVectorStores, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  LlamaStackModelsResponse,
-  LlamaStackModelType,
-  LlamaStackFilteredVectorStoreProvidersResponse,
+  OgxModelsResponse,
+  OgxModelType,
+  OgxFilteredVectorStoreProvidersResponse,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
 import { parseErrorStatus } from '~/app/utilities/utils';
 
-export function useLlamaStackModelsQuery(
+export function useOgxModelsQuery(
   namespace: string,
   secretName: string,
-  modelType?: LlamaStackModelType,
-): UseQueryResult<LlamaStackModelsResponse, Error> {
+  modelType?: OgxModelType,
+): UseQueryResult<OgxModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     queryKey: ['autorag', 'models', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getLlamaStackModels('')(namespace, secretName)({});
+        const response = await getOgxModels('')(namespace, secretName)({});
         z.object({
           models: z.array(
             z.object({
@@ -39,7 +40,7 @@ export function useLlamaStackModelsQuery(
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid llama stack models response');
+          throw new Error('Invalid Open GenAI Stack models response');
         }
         throw error;
       }
@@ -121,11 +122,11 @@ export function useS3ListFilesQuery(
   });
 }
 
-export function useLlamaStackVectorStoreProvidersQuery(
+export function useOgxVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
   providerTypes?: string[],
-): UseQueryResult<LlamaStackFilteredVectorStoreProvidersResponse, Error> {
+): UseQueryResult<OgxFilteredVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
@@ -133,7 +134,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
     queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
+        const response = await getOgxVectorStores('')(namespace, secretName)({});
         z.object({
           // eslint-disable-next-line camelcase
           vector_store_providers: z.array(
@@ -148,7 +149,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid llama stack vector store providers response');
+          throw new Error('Invalid Open GenAI Stack vector store providers response');
         }
         throw error;
       }
@@ -178,7 +179,10 @@ export function usePipelineRunQuery(
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
     queryKey: ['autorag', 'pipelineRun', runId, namespace],
-    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
+    queryFn: async ({ signal }) => {
+      const run = await getPipelineRunFromBFF('', runId!, namespace!, { signal });
+      return normalizePipelineRun(run);
+    },
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
     retry: (failureCount, error) => {
@@ -210,7 +214,7 @@ export function usePipelineRunQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'lls',
+  type?: 'storage' | 'ogx',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

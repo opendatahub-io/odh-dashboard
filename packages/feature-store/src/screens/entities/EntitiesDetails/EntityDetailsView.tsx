@@ -71,7 +71,7 @@ const EntityDetailsView: React.FC<EntityDetailsViewProps> = ({ entity }) => (
           />
           <DetailsItem
             label="Value type"
-            value={getContentValue(entity.spec.valueType, 'No value type')}
+            value={getContentValue(entity.spec.valueType, '--')}
             testId="entity-value-type"
             className={getDisabledClassName(entity.spec.valueType)}
           />

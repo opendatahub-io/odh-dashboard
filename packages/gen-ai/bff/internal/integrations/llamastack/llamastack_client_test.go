@@ -103,7 +103,7 @@ func TestBuildRequestOptions(t *testing.T) {
 func TestBuildRequestOptions_JSONFormat(t *testing.T) {
 	client := &LlamaStackClient{}
 
-	t.Run("should create valid JSON for x-llamastack-provider-data header", func(t *testing.T) {
+	t.Run("should create valid JSON for x-ogx-provider-data header", func(t *testing.T) {
 		providerData := map[string]interface{}{
 			"api_token": "test-token",
 			"url":       "https://api.test.com/v1",

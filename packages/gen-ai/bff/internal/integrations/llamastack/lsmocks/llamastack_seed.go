@@ -86,7 +86,7 @@ func SeedData(baseURL string, testID string, logger *slog.Logger) (*SeedResult, 
 
 // waitForFileReady polls the vector store file status until embedding is complete.
 // Llama Stack processes file embeddings asynchronously; this avoids a race where
-// knowledge_search returns 0 chunks because the index isn't ready yet.
+// file_search returns 0 chunks because the index isn't ready yet.
 func waitForFileReady(ctx context.Context, client *TestLlamaStackClient, vectorStoreID, fileID string, logger *slog.Logger) error {
 	logger.Debug("Polling vector store file status until embedding completes...",
 		slog.String("vector_store_id", vectorStoreID),

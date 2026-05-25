@@ -17,11 +17,13 @@ import {
 import { FeatureStoreLineageSearchFilters } from '../../types/toolbarTypes';
 import { FeatureStoreLineage, FeatureViewLineage } from '../../types/lineage';
 import { FeatureView } from '../../types/featureView';
+import { FeatureColumns } from '../../types/features';
 
 interface FeatureStoreLineageComponentProps {
   project?: string;
   featureViewName?: string;
   featureViewType?: FeatureView['type'];
+  currentFeatureViewFeatures?: FeatureColumns[];
   emptyStateTitle?: string;
   emptyStateMessage?: string;
   height?: string;
@@ -31,6 +33,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   project,
   featureViewName,
   featureViewType,
+  currentFeatureViewFeatures,
   emptyStateTitle = 'Select a feature store',
   emptyStateMessage = 'Select a feature store to view its lineage.',
   height = '100%',
@@ -78,6 +81,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           lineageData as FeatureViewLineage,
           featureViewName,
           featureViewType,
+          currentFeatureViewFeatures,
         );
 
         const filteredResult = applyLineageFilters(baseResult, {
@@ -121,6 +125,7 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     searchFilters,
     featureViewName,
     featureViewType,
+    currentFeatureViewFeatures,
   ]);
 
   // Trigger centering when filters change - but only after data is processed
