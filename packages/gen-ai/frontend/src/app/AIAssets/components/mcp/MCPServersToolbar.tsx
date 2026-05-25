@@ -20,6 +20,7 @@ import { PlayIcon, FilterIcon, CloseIcon } from '@patternfly/react-icons';
 import { genAiChatPlaygroundRoute } from '~/app/utilities';
 import { MCPFilterColors } from '~/app/AIAssets/data/mcpFilterOptions';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 
 interface MCPServersToolbarProps {
   onFilterUpdate: (filterType: string, value?: string) => void;
@@ -44,6 +45,7 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { namespace } = useParams<{ namespace: string }>();
+  const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = React.useState(false);
   const [currentFilterType, setCurrentFilterType] = React.useState<string>(() => {
     const keys = Object.keys(filterOptions);
@@ -116,19 +118,21 @@ const MCPServersToolbar: React.FC<MCPServersToolbarProps> = ({
           </ToolbarItem>
         </ToolbarGroup>
 
-        <ToolbarGroup variant="action-group">
-          <ToolbarItem>
-            <Button
-              variant="primary"
-              icon={<PlayIcon />}
-              onClick={handleTryInPlayground}
-              isDisabled={selectedCount === 0}
-              data-testid="try-in-playground-button"
-            >
-              Try in Playground{selectedCount > 0 ? ` (${selectedCount})` : ''}
-            </Button>
-          </ToolbarItem>
-        </ToolbarGroup>
+        {isChatPlaygroundEnabled && (
+          <ToolbarGroup variant="action-group">
+            <ToolbarItem>
+              <Button
+                variant="primary"
+                icon={<PlayIcon />}
+                onClick={handleTryInPlayground}
+                isDisabled={selectedCount === 0}
+                data-testid="try-in-playground-button"
+              >
+                Try in Playground{selectedCount > 0 ? ` (${selectedCount})` : ''}
+              </Button>
+            </ToolbarItem>
+          </ToolbarGroup>
+        )}
       </ToolbarContent>
 
       {activeFilters.length > 0 && (
