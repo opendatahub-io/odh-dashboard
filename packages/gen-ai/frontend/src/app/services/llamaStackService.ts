@@ -339,6 +339,48 @@ const streamCreateResponse = (
               }
             }
           }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    const errMsg = data.error.message || 'An error occurred during streaming';
+                    if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                      fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                    }
+                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta') {
+                    if (data.delta) {
+                      const isFirstRefusal = !receivedRefusal;
+                      if (isFirstRefusal) {
+                        receivedRefusal = true;
+                        fullContent = '';
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      fullContent += data.delta;
+                      onStreamData(data.delta, isFirstRefusal);
+                    }
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
         } finally {
           reader.releaseLock();
         }
@@ -514,6 +556,36 @@ export const createPassthroughResponse = (
                   } catch {
                     // ignore malformed lines
                   }
+                }
+              }
+            }
+          }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
                 }
               }
             }
