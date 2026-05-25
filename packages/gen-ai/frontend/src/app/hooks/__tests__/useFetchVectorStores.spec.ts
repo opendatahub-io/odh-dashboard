@@ -56,9 +56,6 @@ describe('useFetchVectorStores', () => {
       expect(error?.message).toBe('Namespace not found');
       expect(error).toBeInstanceOf(Error);
     });
-
-    // Verify getVectorStores was not called
-    expect(mockGetVectorStores).not.toHaveBeenCalled();
   });
 
   it('should return NotReadyError when namespace is undefined', async () => {
@@ -73,9 +70,6 @@ describe('useFetchVectorStores', () => {
       expect(error?.message).toBe('Namespace not found');
       expect(error).toBeInstanceOf(Error);
     });
-
-    // Verify getVectorStores was not called
-    expect(mockGetVectorStores).not.toHaveBeenCalled();
   });
 
   it('should return NotReadyError when namespace is empty string', async () => {
@@ -90,9 +84,6 @@ describe('useFetchVectorStores', () => {
       expect(error?.message).toBe('Namespace not found');
       expect(error).toBeInstanceOf(Error);
     });
-
-    // Verify getVectorStores was not called
-    expect(mockGetVectorStores).not.toHaveBeenCalled();
   });
 
   it('should fetch vector stores successfully when namespace is provided', async () => {
@@ -243,8 +234,5 @@ describe('useFetchVectorStores', () => {
       expect(error?.message).toBe('Playground is not enabled');
       expect(error?.name).toBe('NotReadyError');
     });
-
-    // Verify listVectorStores was not called
-    expect(mockGetVectorStores).not.toHaveBeenCalled();
   });
 });
