@@ -376,14 +376,13 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
       Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
+      fireEvent.change(fileInput, { target: { files: [largeFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -397,12 +396,11 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [badFile] } });
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -497,12 +495,11 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
@@ -523,8 +520,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
@@ -532,7 +528,7 @@ describe('AutomlConfigure', () => {
         new Error('unable to find unique filename after 10 attempts'),
       );
 
-      fireEvent.change(fileInput!, { target: { files: [file] } });
+      fireEvent.change(fileInput, { target: { files: [file] } });
 
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith(
@@ -681,10 +677,9 @@ describe('AutomlConfigure', () => {
         screen.queryByRole('grid', { name: 'Selected training data file' }),
       ).not.toBeInTheDocument();
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalled();

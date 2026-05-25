@@ -109,11 +109,28 @@ function mockDataTransferForDrop(files: File[]) {
   };
 }
 
-/** Drop target is `FileUpload` with `data-testid="evaluation-upload-zone"` (see AutoragEvaluationSelect). */
+const EVALUATION_UPLOAD_ZONE_TEST_ID = 'evaluation-upload-zone';
+
+/** Drop target is `FileUpload` with `data-testid={EVALUATION_UPLOAD_ZONE_TEST_ID}` (see AutoragEvaluationSelect). */
 function dropFilesOnEvaluationFileUpload(container: HTMLElement, files: File[]): void {
-  fireEvent.drop(within(container).getByTestId('evaluation-upload-zone'), {
+  fireEvent.drop(within(container).getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID), {
     dataTransfer: mockDataTransferForDrop(files),
   });
+}
+
+/**
+ * Native file input for browse/change simulation. PF `FileUpload` renders it internally and does not
+ * expose `getInputProps` customization, so we scope under `evaluation-upload-zone` (same pattern as
+ * Cypress: `[data-testid="…"] input[type="file"]`).
+ */
+function getEvaluationFileInput(container: HTMLElement): HTMLInputElement {
+  const input = within(container)
+    .getByTestId(EVALUATION_UPLOAD_ZONE_TEST_ID)
+    .querySelector('input[type="file"]');
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error(`file input not found under [data-testid="${EVALUATION_UPLOAD_ZONE_TEST_ID}"]`);
+  }
+  return input;
 }
 
 type FormWrapperProps = {
@@ -247,9 +264,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />, { onFormChange });
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockUploadMutateAsync).toHaveBeenCalledWith({
@@ -318,8 +334,7 @@ describe('AutoragEvaluationSelect', () => {
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
       mockUploadMutateAsync.mockClear();
-      const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-      fireEvent.change(uploadInput, { target: { files: [file] } });
+      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
 
       expect(mockUploadMutateAsync).not.toHaveBeenCalled();
       await waitFor(() => {
@@ -336,8 +351,7 @@ describe('AutoragEvaluationSelect', () => {
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
       mockUploadMutateAsync.mockClear();
-      const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-      fireEvent.change(uploadInput, { target: { files: [file] } });
+      fireEvent.change(getEvaluationFileInput(container), { target: { files: [file] } });
 
       expect(mockUploadMutateAsync).not.toHaveBeenCalled();
       await waitFor(() => {
@@ -358,9 +372,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'Upload failed');
@@ -375,9 +388,8 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]');
-    expect(uploadInput).not.toBeNull();
-    await user.upload(uploadInput as HTMLInputElement, file);
+    const uploadInput = getEvaluationFileInput(container);
+    await user.upload(uploadInput, file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith('Failed to upload file', 'String error');
@@ -393,8 +405,7 @@ describe('AutoragEvaluationSelect', () => {
 
     const { container } = renderWithProviders(<AutoragEvaluationSelect />);
 
-    const uploadInput = container.querySelector('input[type="file"]') as HTMLInputElement;
-    await user.upload(uploadInput, file);
+    await user.upload(getEvaluationFileInput(container), file);
 
     await waitFor(() => {
       expect(mockNotificationError).toHaveBeenCalledWith(
