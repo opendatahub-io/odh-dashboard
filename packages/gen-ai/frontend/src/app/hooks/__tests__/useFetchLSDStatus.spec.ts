@@ -28,6 +28,11 @@ jest.mock('mod-arch-core', () => ({
   },
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 // Mock the llamaStackService
 jest.mock('~/app/services/llamaStackService', () => ({
   getLSDStatus: jest.fn(),

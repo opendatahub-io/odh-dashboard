@@ -30,6 +30,11 @@ jest.mock('~/app/services/llamaStackService', () => ({
   getAAModels: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 const mockUseFetchState = jest.mocked(useFetchState);
 const mockGetModels = jest.mocked(getAAModels);
 

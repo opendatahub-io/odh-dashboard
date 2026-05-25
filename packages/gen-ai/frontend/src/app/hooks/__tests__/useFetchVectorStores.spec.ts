@@ -31,6 +31,11 @@ jest.mock('~/app/services/llamaStackService', () => ({
   listVectorStores: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 const mockUseFetchState = jest.mocked(useFetchState);
 const mockGetVectorStores = jest.mocked(listVectorStores);
 

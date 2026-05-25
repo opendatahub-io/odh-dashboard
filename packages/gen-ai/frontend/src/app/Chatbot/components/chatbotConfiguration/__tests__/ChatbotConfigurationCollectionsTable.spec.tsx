@@ -18,6 +18,11 @@ jest.mock('~/app/utilities/utils', () => ({
   splitLlamaModelId: jest.fn((id: string) => ({ providerId: '', id })),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 // Mock mod-arch-shared: provide simplified Table, CheckboxTd, and useCheckboxTableBase
 jest.mock('mod-arch-shared', () => {
   const actual = jest.requireActual<typeof import('mod-arch-shared')>('mod-arch-shared');
