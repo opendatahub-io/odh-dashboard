@@ -180,4 +180,59 @@ describe('VectorStoreTableRow', () => {
       );
     });
   });
+
+  describe('Playground column - disabled', () => {
+    it('should not render playground column when showPlaygroundColumn is false', () => {
+      render(
+        <GenAiContext.Provider value={mockGenAiContextValue}>
+          <MemoryRouter>
+            <table>
+              <tbody>
+                <VectorStoreTableRow
+                  store={createStore()}
+                  allModels={[createAIModel()]}
+                  playgroundModels={[createLlamaModel()]}
+                  lsdStatus={null}
+                  allCollections={[createStore()]}
+                  collectionsLoaded
+                  existingCollections={[]}
+                  showPlaygroundColumn={false}
+                />
+              </tbody>
+            </table>
+          </MemoryRouter>
+        </GenAiContext.Provider>,
+      );
+
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+    });
+
+    it('should not render playground buttons even when in playground if column is disabled', () => {
+      const store = createStore();
+      render(
+        <GenAiContext.Provider value={mockGenAiContextValue}>
+          <MemoryRouter>
+            <table>
+              <tbody>
+                <VectorStoreTableRow
+                  store={store}
+                  allModels={[createAIModel()]}
+                  playgroundModels={[createLlamaModel()]}
+                  lsdStatus={null}
+                  allCollections={[store]}
+                  collectionsLoaded
+                  existingCollections={[createVectorStore('vs-test-1')]}
+                  showPlaygroundColumn={false}
+                />
+              </tbody>
+            </table>
+          </MemoryRouter>
+        </GenAiContext.Provider>,
+      );
+
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+    });
+  });
 });
