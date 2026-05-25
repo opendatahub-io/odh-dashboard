@@ -16,6 +16,7 @@ import (
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/responses"
+	"github.com/openai/openai-go/v2/shared"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
@@ -393,6 +394,9 @@ type CreateResponseParams struct {
 	// Input moderation is applied before the LlamaStack call; output moderation is applied
 	// after. An empty GuardrailOpts (Config == nil) means no moderation.
 	GuardrailOpts nemo.GuardrailsOptions
+	// ReasoningEffort controls how much reasoning the model performs before answering.
+	// Valid values: "minimal", "low", "medium", "high". Empty string means no reasoning.
+	ReasoningEffort string
 }
 
 // buildContentParts converts our InputContentPart slice into the SDK's content part params.
@@ -551,6 +555,13 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	// Set previous response ID if provided
 	if params.PreviousResponseID != "" {
 		apiParams.PreviousResponseID = openai.String(params.PreviousResponseID)
+	}
+
+	// Set reasoning effort if provided
+	if params.ReasoningEffort != "" {
+		apiParams.Reasoning = shared.ReasoningParam{
+			Effort: shared.ReasoningEffort(params.ReasoningEffort),
+		}
 	}
 
 	return apiParams, nil

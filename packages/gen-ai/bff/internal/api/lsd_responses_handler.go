@@ -31,11 +31,13 @@ var supportedEventTypes = map[string]bool{
 	// streaming. These are ephemeral display-only tokens; the final cleaned
 	// text and annotations are sent via the response.completed event, which
 	// the frontend uses for the definitive render.
-	"response.output_text.delta": true, // Text delta/chunk for streaming text
-	"response.content_part.done": true, // Content part completed
-	"response.completed":         true, // Response generation completed
-	"response.refusal.delta":     true, // Refusal text
-	"response.refusal.done":      true, // Refusal text completed
+	"response.output_text.delta":    true, // Text delta/chunk for streaming text
+	"response.content_part.done":    true, // Content part completed
+	"response.completed":            true, // Response generation completed
+	"response.refusal.delta":        true, // Refusal text
+	"response.refusal.done":         true, // Refusal text completed
+	"response.reasoning_text.delta": true, // Reasoning/thinking text delta
+	"response.reasoning_text.done":  true, // Reasoning/thinking text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -52,6 +54,7 @@ type ChatContextMessage struct {
 // StreamingEvent represents a streaming event
 type StreamingEvent struct {
 	Delta          string        `json:"delta,omitempty"`
+	Text           string        `json:"text,omitempty"`    // For reasoning_text.done and content_part.done events
 	Refusal        string        `json:"refusal,omitempty"` // For response.refusal.done events (OpenAI standard)
 	SequenceNumber int64         `json:"sequence_number"`
 	Type           string        `json:"type"`
@@ -143,6 +146,11 @@ type MCPServer struct {
 	AllowedTools  []string `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
+// ReasoningConfig contains parameters for reasoning/thinking model behavior
+type ReasoningConfig struct {
+	Effort string `json:"effort"` // Reasoning effort level: "minimal", "low", "medium", "high"
+}
+
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
 	Input llamastack.InputUnion `json:"input"`
@@ -160,6 +168,7 @@ type CreateResponseRequest struct {
 	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`     // Inline NeMo guardrail configuration
 	ModelSourceType    string                        `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
 	Subscription       string                        `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
+	Reasoning          *ReasoningConfig              `json:"reasoning,omitempty"`            // Reasoning/thinking model configuration
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -540,6 +549,16 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		GuardrailOpts:      guardrailOpts,
 	}
 
+	if createRequest.Reasoning != nil && createRequest.Reasoning.Effort != "" {
+		validEfforts := map[string]bool{"minimal": true, "low": true, "medium": true, "high": true}
+		effort := strings.TrimSpace(strings.ToLower(createRequest.Reasoning.Effort))
+		if !validEfforts[effort] {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid reasoning effort %q, must be one of: minimal, low, medium, high", createRequest.Reasoning.Effort))
+			return
+		}
+		params.ReasoningEffort = effort
+	}
+
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
 		// Use async moderation path when output moderation is configured
@@ -602,8 +621,8 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
-		// Track TTFT on first text delta event
-		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+		// Track TTFT on first text or reasoning delta event
+		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && firstTokenTime == nil {
 			now := time.Now()
 			firstTokenTime = &now
 		}
