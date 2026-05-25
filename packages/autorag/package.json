@@ -50,6 +50,6 @@
     "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "eslint-plugin-n": "^17.23.1"
+    "eslint-plugin-n": "^17.23.2"
   }
 }

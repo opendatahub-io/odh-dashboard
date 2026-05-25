@@ -54,6 +54,6 @@
     "@odh-dashboard/tsconfig": "*",
     "@odh-dashboard/contract-tests": "*",
     "cross-env": "^10.1.0",
-    "eslint-plugin-n": "^17.23.1"
+    "eslint-plugin-n": "^17.23.2"
   }
 }

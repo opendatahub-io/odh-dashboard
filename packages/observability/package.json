@@ -69,7 +69,7 @@
     "@perses-dev/timeseries-table-plugin": "^0.11.1",
     "@perses-dev/trace-table-plugin": "^0.10.1",
     "@perses-dev/tracing-gantt-chart-plugin": "^0.12.1",
-    "@tanstack/react-query": "^4.36.1",
+    "@tanstack/react-query": "^4.42.2",
     "use-query-params": "^2.2.1"
   },
   "devDependencies": {
