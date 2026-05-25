@@ -97,6 +97,9 @@ export enum SupportedArea {
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
 
+  /* Agent Ops */
+  AGENT_OPS = 'agent-ops',
+
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',

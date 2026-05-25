@@ -107,7 +107,7 @@ Do not assign **only** `dashboard-area-manifests` when a high-confidence feature
 | Cluster storage | `dashboard-area-cluster-storage` |
 | Deployments | `dashboard-area-model-serving` |
 | Permissions | `dashboard-area-user-management` |
-| Feature Store | *(no area label yet)* |
+| Feature Store | `dashboard-area-feast` |
 | Settings | `dashboard-area-projects` |
 
 If feature-specific keywords are present alongside "project", assign the feature area, not `projects`.

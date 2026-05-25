@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
+import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
@@ -37,6 +38,7 @@ interface ChatbotConfigInstanceProps {
   welcomeContent?: React.ReactNode;
   placeholderBotContent?: string;
   welcomeDescription?: string;
+  onWelcomePromptClick?: (message: string) => void;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
@@ -54,6 +56,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   welcomeContent,
   placeholderBotContent: placeholderBotContentProp,
   welcomeDescription = 'Welcome to the playground',
+  onWelcomePromptClick,
   onMessagesHookReady,
   configIndex,
   isCompareMode,
@@ -123,11 +126,12 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     configId,
     modelId: selectedModel,
     systemInstruction,
-    isRawUploaded: isRagEnabled,
+    isRagEnabled,
     username,
     isStreamingEnabled,
     temperature,
     currentVectorStoreId: selectedVectorStoreId,
+    knowledgeMode,
     selectedServerIds: selectedMcpServerIds,
     mcpServers,
     mcpServerStatuses,
@@ -173,6 +177,24 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     }
   }, [messagesHook, onMessagesHookReady]);
 
+  const clickablePrompts: WelcomePrompt[] = React.useMemo(
+    () =>
+      onWelcomePromptClick
+        ? sampleWelcomePrompts.map((prompt) => ({
+            ...prompt,
+            onClick: () => {
+              if (prompt.message) {
+                onWelcomePromptClick(prompt.message);
+                fireMiscTrackingEvent('Playground Welcome Prompt Selected', {
+                  promptTitle: prompt.title,
+                });
+              }
+            },
+          }))
+        : sampleWelcomePrompts,
+    [onWelcomePromptClick],
+  );
+
   return (
     <MessageBox position="top">
       {showWelcomePrompt &&
@@ -182,11 +204,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
             title={username ? `Hello, ${username}` : 'Hello'}
             description={welcomeDescription}
             data-testid="chatbot-welcome-prompt"
-            style={{
-              cursor: 'default',
-              pointerEvents: 'none',
-            }}
-            prompts={sampleWelcomePrompts}
+            prompts={clickablePrompts}
           />
         ))}
       <ChatbotMessages
