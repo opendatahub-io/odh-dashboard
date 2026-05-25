@@ -361,13 +361,19 @@ func GetCatalogModelMocks() []models.CatalogModel {
 		Name:             "repo1/granite-8b-code-instruct",
 		Description:      stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
 		Provider:         stringToPointer("provider1"),
-		Tasks:            []string{"text-generation", "image-to-text"},
+		Tasks:            []string{"text-generation", "image-to-text", "tool-calling"},
+		ValidatedTasks:   []string{"tool-calling"},
 		License:          stringToPointer("Apache 2.0"),
 		LicenseLink:      stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
 		Maturity:         stringToPointer("Technology preview"),
 		Language:         []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
 		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		ServingConfig: &models.ServingConfig{
+			ToolCalling: &models.ToolCallingConfig{
+				Args: stringToPointer("--enable-auto-tool-choice \\\n--tool-call-parser granite \\\n--chat-template\nopt/app-root/template/tool_chat_template_granite.jinja"),
+			},
+		},
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 		Readme: stringToPointer(`---
 pipeline_tag: text-generation
 inference: false
@@ -1721,6 +1727,13 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 			"audio-to-text", "automatic-speech-recognition", "automatic-speech-translation",
 			"code-generation", "image-text-to-text", "image-to-text", "text-embedding",
 			"text-generation", "text-to-text", "tool-calling", "video-to-text",
+		},
+	}
+
+	filterOptions["validatedTasks"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"tool-calling",
 		},
 	}
 
@@ -3251,10 +3264,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 			CreationTimestamp: "2026-03-10T14:30:00Z",
 			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
-			Phase:             models.McpDeploymentPhaseRunning,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "DeploymentAvailable"},
-				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "NewReplicaSetAvailable"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "Available"},
 			},
 		},
 		{
@@ -3264,10 +3276,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "b2c3d4e5-f6a7-8901-bcde-f12345678901",
 			CreationTimestamp: "2026-03-14T11:00:00Z",
 			Image:             "quay.io/mcp-servers/slack:0.5.0",
-			Phase:             models.McpDeploymentPhasePending,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "MinimumReplicasUnavailable"},
-				{Type: "Progressing", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "ReplicaSetUpdated"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Initializing", Message: "Waiting for pods to become ready."},
 			},
 		},
 		{
@@ -3277,10 +3288,9 @@ func GetMcpDeploymentMocks() []models.McpDeployment {
 			UID:               "c3d4e5f6-a7b8-9012-cdef-123456789012",
 			CreationTimestamp: "2026-03-08T16:45:00Z",
 			Image:             "quay.io/mcp-servers/jira:1.2.0",
-			Phase:             models.McpDeploymentPhaseFailed,
 			Conditions: []models.McpDeploymentCondition{
-				{Type: "Available", Status: "False", LastTransitionTime: "2026-03-08T16:50:00Z", Reason: "MinimumReplicasUnavailable"},
-				{Type: "Progressing", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "ProgressDeadlineExceeded"},
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-08T16:46:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "DeploymentUnavailable", Message: "Pod crashed."},
 			},
 		},
 	}

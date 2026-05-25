@@ -8,6 +8,8 @@ import { ModelLocationSelectField } from '../fields/ModelLocationSelectField';
 import { isValidModelLocationData } from '../fields/ModelLocationInputFields';
 import { ModelLocationData, ModelLocationType } from '../types';
 import { createConnectionDataSchema } from '../fields/CreateConnectionInputFields';
+import type { ExternalDataMap } from '../ExternalDataLoader';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
 
 // Schema
 const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
@@ -15,38 +17,51 @@ const modelLocationDataSchema = z.custom<ModelLocationData>((val) => {
   return isValidModelLocationData(val.type, val);
 });
 
-export const modelSourceStepSchema = z
-  .object({
-    modelType: modelTypeSelectFieldSchema,
-    modelLocationData: modelLocationDataSchema,
-    createConnectionData: createConnectionDataSchema.optional(),
-  })
-  .superRefine((data, ctx) => {
-    const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
-    if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
-      const result = createConnectionDataSchema.safeParse(data.createConnectionData);
-      if (!result.success) {
-        result.error.issues.forEach((issue) => {
-          ctx.addIssue({
-            ...issue,
-            path: ['createConnectionData', ...issue.path],
-          });
+export const modelSourceStepBaseSchema = z.object({
+  modelType: modelTypeSelectFieldSchema,
+  modelLocationData: modelLocationDataSchema,
+  createConnectionData: createConnectionDataSchema.optional(),
+});
+
+export const modelSourceStepRefinement = (
+  data: Partial<z.infer<typeof modelSourceStepBaseSchema>> & Record<string, unknown>,
+  ctx: z.RefinementCtx,
+): void => {
+  const locationResult = modelLocationDataSchema.safeParse(data.modelLocationData);
+  if (locationResult.success && locationResult.data.type === ModelLocationType.NEW) {
+    const result = createConnectionDataSchema.safeParse(data.createConnectionData);
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        ctx.addIssue({
+          ...issue,
+          path: ['createConnectionData', ...issue.path],
         });
-      }
+      });
     }
-  });
+  }
+};
+
+export const modelSourceStepSchema =
+  modelSourceStepBaseSchema.superRefine(modelSourceStepRefinement);
 
 export type ModelSourceStepData = z.infer<typeof modelSourceStepSchema>;
 
 type ModelSourceStepProps = {
   wizardState: UseModelDeploymentWizardState;
   validation: ReturnType<typeof useZodFormValidation<ModelSourceStepData>>;
+  externalData?: ExternalDataMap;
 };
 
 export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
   wizardState,
   validation,
+  externalData,
 }) => {
+  const modelSourceExtensionFields = React.useMemo(
+    () => wizardState.fields.filter((f) => f.step === 'modelSource'),
+    [wizardState.fields],
+  );
+
   if (!wizardState.loaded.modelSourceLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -71,6 +86,14 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           selectedConnection={wizardState.state.modelLocationData.selectedConnection}
           pvcs={wizardState.state.modelLocationData.pvcs}
         />
+        {modelSourceExtensionFields.map((field) => (
+          <GenericFieldRenderer
+            key={field.id}
+            fieldId={field.id}
+            wizardState={wizardState}
+            externalData={externalData}
+          />
+        ))}
         <ModelTypeSelectField
           modelType={wizardState.state.modelType.data}
           setModelType={wizardState.state.modelType.setData}
@@ -79,6 +102,7 @@ export const ModelSourceStepContent: React.FC<ModelSourceStepProps> = ({
           isEditing={
             !wizardState.initialData?.modelTypeField ? false : wizardState.initialData.isEditing
           }
+          externalData={wizardState.state.modelType.externalData}
         />
       </FormSection>
     </Form>

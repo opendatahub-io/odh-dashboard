@@ -43,6 +43,7 @@ const mockUseAutoragResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
+  isTerminalState: jest.requireActual('~/app/hooks/queries').isTerminalState,
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -284,6 +285,7 @@ describe('AutoragResultsPage', () => {
       failedPatterns: [],
       isLoading: false,
       isError: false,
+      ragPatternsBasePath: undefined,
       error: undefined,
       refetch: jest.fn(),
     });
@@ -331,9 +333,9 @@ describe('AutoragResultsPage', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
-        llama_stack_secret_name: 'llama-secret',
+        ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       });
@@ -351,6 +353,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
       });
 
       renderPage();
@@ -361,6 +364,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         pipelineRunLoading: false,
         patternsLoading: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
         parameters: {
           display_name: 'My RAG Run',
           input_data_secret_name: 'my-secret',
@@ -369,9 +373,9 @@ describe('AutoragResultsPage', () => {
           test_data_secret_name: 'test-secret',
           test_data_bucket_name: 'test-bucket',
           test_data_key: 'test.csv',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
-          embeddings_models: ['text-embedding-3'],
+          embedding_models: ['text-embedding-3'],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 10,
         },
@@ -428,6 +432,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: true,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -453,6 +458,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -478,6 +484,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();

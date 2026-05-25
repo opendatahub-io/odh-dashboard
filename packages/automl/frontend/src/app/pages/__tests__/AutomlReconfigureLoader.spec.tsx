@@ -418,6 +418,7 @@ describe('AutomlReconfigureLoader', () => {
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'train.csv',
         label_column: 'label',
+        target_column: 'label',
         top_n: 7,
         display_name: 'Run A - 1',
       });
@@ -451,6 +452,7 @@ describe('AutomlReconfigureLoader', () => {
       expect(capturedProps.initialValues).toMatchObject({
         task_type: 'timeseries',
         target: 'sales',
+        target_column: 'sales',
         id_column: 'store_id',
         timestamp_column: 'date',
         prediction_length: 30,

@@ -32,7 +32,7 @@ const DataSources: React.FC = () => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a data sources in a workbench.
+        Select a different feature store or create a data source in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

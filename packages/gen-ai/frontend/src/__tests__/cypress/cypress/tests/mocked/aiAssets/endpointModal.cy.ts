@@ -16,8 +16,8 @@ const MAAS_MODEL_WITH_SUBS = {
   model_type: 'llm' as const,
   url: 'https://granite-model.apps.cluster.com',
   subscriptions: [
-    { name: 'premium-team-sub', displayName: 'Premium Tier' },
-    { name: 'basic-team-sub', displayName: 'Basic Tier' },
+    { name: 'premium-team-sub', displayName: 'Premium Subscription' },
+    { name: 'basic-team-sub', displayName: 'Basic Subscription' },
   ],
 };
 
@@ -70,14 +70,14 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
 
       modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Tier');
+      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Subscription');
 
       endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Tier').should('exist');
-      cy.contains('Basic Tier').should('exist');
-      cy.contains('Basic Tier').click();
+      cy.contains('Premium Subscription').should('exist');
+      cy.contains('Basic Subscription').should('exist');
+      cy.contains('Basic Subscription').click();
 
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Basic Tier');
+      endpointModalPage.findSubscriptionSelect().should('contain', 'Basic Subscription');
     },
   );
 
@@ -99,7 +99,7 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
       modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
       endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Tier').click();
+      cy.contains('Premium Subscription').click();
       endpointModalPage.findGenerateButton().click();
 
       cy.contains('Error generating API key').should('exist');
@@ -131,7 +131,7 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
       modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
       endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Tier').click();
+      cy.contains('Premium Subscription').click();
       endpointModalPage.findGenerateButton().click();
 
       endpointModalPage.findGenerateButton().should('be.disabled');
@@ -160,7 +160,7 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
       modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
       endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Premium Tier').click();
+      cy.contains('Premium Subscription').click();
       endpointModalPage.findGenerateButton().click();
 
       endpointModalPage.findApiKeyInput().should('exist');
@@ -173,7 +173,7 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
 
       endpointModalPage.findApiKeyInput().should('not.exist');
       endpointModalPage.findGenerateButton().should('exist');
-      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Tier');
+      endpointModalPage.findSubscriptionSelect().should('contain', 'Premium Subscription');
     },
   );
 
@@ -197,7 +197,7 @@ describe('Endpoint Detail Modal - Subscriptions', () => {
       modelsTabPage.openEndpointModal('Granite 3.1 8B Instruct');
 
       endpointModalPage.findSubscriptionSelect().click();
-      cy.contains('Basic Tier').click();
+      cy.contains('Basic Subscription').click();
       endpointModalPage.findGenerateButton().click();
 
       cy.wait('@generateToken').then((interception) => {

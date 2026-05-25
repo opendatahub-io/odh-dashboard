@@ -12,7 +12,7 @@ class FeatureViewsTable extends Contextual<HTMLElement> {
 
   findRow(featureViewName: string) {
     return new FeatureViewTableRow(() =>
-      this.findTable().find('[data-label="Feature View"]').contains(featureViewName).parents('tr'),
+      this.findTable().find('[data-label="Name"]').contains(featureViewName).parents('tr'),
     );
   }
 
@@ -55,7 +55,7 @@ class FeatureViewToolbar extends Contextual<HTMLElement> {
 
 class FeatureViewTableRow extends TableRow {
   findFeatureViewName() {
-    return this.find().find('[data-label="Feature View"]');
+    return this.find().find('[data-label="Name"]');
   }
 
   findFeatureViewLink() {

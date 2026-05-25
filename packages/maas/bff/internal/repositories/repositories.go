@@ -42,7 +42,6 @@ type Repositories struct {
 	HealthCheck   *HealthCheckRepository
 	User          *UserRepository
 	Namespace     *NamespaceRepository
-	Tiers         *TiersRepository
 	APIKeys       *APIKeysRepository
 	Models        *ModelsRepository
 	Subscriptions SubscriptionsRepositoryInterface
@@ -69,16 +68,9 @@ func NewRepositories(
 	}
 
 	return &Repositories{
-		HealthCheck: NewHealthCheckRepository(),
-		User:        NewUserRepository(),
-		Namespace:   NewNamespaceRepository(),
-		Tiers: NewTiersRepository(
-			logger,
-			k8sFactory,
-			config.TiersConfigMapNamespace,
-			config.TiersConfigMapName,
-			config.GatewayNamespace,
-			config.GatewayName),
+		HealthCheck:   NewHealthCheckRepository(),
+		User:          NewUserRepository(),
+		Namespace:     NewNamespaceRepository(),
 		APIKeys:       apiKeysRepo,
 		Models:        modelsRepo,
 		Subscriptions: subscriptions,

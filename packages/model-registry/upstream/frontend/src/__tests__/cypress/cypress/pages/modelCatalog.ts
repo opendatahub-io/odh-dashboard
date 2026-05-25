@@ -155,7 +155,7 @@ class ModelCatalog {
   }
 
   findTaskLabel() {
-    return cy.contains('text-generation');
+    return cy.contains('Text generation');
   }
 
   findProviderLabel() {
@@ -438,6 +438,19 @@ class ModelCatalog {
 
   findAllCompressionVariants() {
     return cy.get('[data-testid^="compression-variant-"]');
+  }
+
+  // Validated Configurations Card
+  findValidatedConfigurationsCard() {
+    return cy.findByTestId('validated-configurations-card');
+  }
+
+  findToolCallingCard() {
+    return cy.findByTestId('tool-calling-card');
+  }
+
+  findToolCallingToggle() {
+    return cy.get('#tool-calling-toggle');
   }
 
   // Performance Empty State

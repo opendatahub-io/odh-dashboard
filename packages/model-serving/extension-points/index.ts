@@ -508,3 +508,28 @@ export const isWizardFieldDeploymentFunctionsExtension = <
   extension: Extension,
 ): extension is WizardFieldDeploymentFunctionsExtension<T, D> =>
   extension.type === 'model-serving.deployment/wizard-field-deployment-functions';
+
+/**
+ * Extension point for platforms to declare resources that should be excluded from
+ * another platform's deployment listings. This prevents duplicate entries when a
+ * platform's operator creates child resources that another platform would also list.
+ *
+ * `platform` identifies the source platform registering the exclusion.
+ * `excludeFromPlatform` identifies which platform should apply this filter.
+ * `filter` returns true for resources that belong to this platform and should NOT
+ * appear in the target platform's deployment table.
+ */
+export type ModelServingExcludeDeploymentExtension = Extension<
+  'model-serving.platform/exclude-deployment',
+  {
+    platform: string;
+    excludeFromPlatform: string;
+    filter: CodeRef<(resource: K8sResourceCommon) => boolean>;
+  }
+>;
+export type ResolvedModelServingExcludeDeployment =
+  ResolvedExtension<ModelServingExcludeDeploymentExtension>;
+export const isModelServingExcludeDeployment = (
+  extension: Extension,
+): extension is ModelServingExcludeDeploymentExtension =>
+  extension.type === 'model-serving.platform/exclude-deployment';
