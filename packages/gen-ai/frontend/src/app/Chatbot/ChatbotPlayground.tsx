@@ -420,6 +420,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           namespace={namespace?.name}
           showWelcomePrompt
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
+          onWelcomePromptClick={handleSendMessage}
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
