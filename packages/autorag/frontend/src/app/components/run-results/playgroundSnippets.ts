@@ -66,11 +66,44 @@ export const generateGoSnippet = (template: ResponsesTemplate): string => {
   return lines.join('\n');
 };
 
+const jsonToPython = (value: unknown, indent = 0): string => {
+  const pad = '    '.repeat(indent);
+  const innerPad = '    '.repeat(indent + 1);
+
+  if (value === null || value === undefined) {
+    return 'None';
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'True' : 'False';
+  }
+  if (typeof value === 'number') {
+    return String(value);
+  }
+  if (typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return '[]';
+    }
+    const items = value.map((v) => `${innerPad}${jsonToPython(v, indent + 1)}`).join(',\n');
+    return `[\n${items},\n${pad}]`;
+  }
+  if (typeof value === 'object') {
+    const entries = Object.entries(value);
+    if (entries.length === 0) {
+      return '{}';
+    }
+    const items = entries
+      .map(([k, v]) => `${innerPad}${JSON.stringify(k)}: ${jsonToPython(v, indent + 1)}`)
+      .join(',\n');
+    return `{\n${items},\n${pad}}`;
+  }
+  return JSON.stringify(value);
+};
+
 export const generatePythonSnippet = (template: ResponsesTemplate): string => {
-  const body = JSON.stringify(template, null, 2)
-    .split('\n')
-    .map((line, i) => (i === 0 ? line : `    ${line}`))
-    .join('\n');
+  const params = jsonToPython(template, 0);
   return `from openai import OpenAI
 
 client = OpenAI(
@@ -78,7 +111,9 @@ client = OpenAI(
     api_key="<API_KEY>",
 )
 
-response = client.responses.create(**${body})
+params = ${params}
+
+response = client.responses.create(**params)
 
 print(response.output)`;
 };

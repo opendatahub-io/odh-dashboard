@@ -303,7 +303,7 @@ function AutoragResultsPage(): React.JSX.Element {
               breadcrumb={
                 <Breadcrumb>
                   <BreadcrumbItem>
-                    <Link to={getRedirectPath(namespace!)}>AutoRAG: {namespace}</Link>
+                    <Link to={getRedirectPath(namespace ?? '')}>AutoRAG: {namespace}</Link>
                   </BreadcrumbItem>
                   <BreadcrumbItem isActive>
                     <Truncate content={pipelineRun?.display_name || ''} />

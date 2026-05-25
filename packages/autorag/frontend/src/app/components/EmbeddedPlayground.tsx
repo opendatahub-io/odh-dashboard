@@ -38,6 +38,11 @@ class PlaygroundErrorBoundary extends React.Component<
     return { hasError: true };
   }
 
+  componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // eslint-disable-next-line no-console
+    console.error('EmbeddedPlayground failed to load:', error, info.componentStack);
+  }
+
   render(): React.ReactNode {
     if (this.state.hasError) {
       return (

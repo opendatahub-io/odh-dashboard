@@ -1,0 +1,32 @@
+.autorag-playground-drawer {
+  &__panel-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  &__info-section {
+    flex-shrink: 0;
+  }
+
+  &__chatbot-container {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__pattern-toggle {
+    --pf-v6-c-menu-toggle--FontSize: var(--pf-t--global--font--size--heading--h2);
+  }
+}
+
+.autorag-view-code-modal {
+  &__body {
+    height: 60vh;
+  }
+
+  &__code-block {
+    max-height: 45vh;
+    overflow: auto;
+  }
+}

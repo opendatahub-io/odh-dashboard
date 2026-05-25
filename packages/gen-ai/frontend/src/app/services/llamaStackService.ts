@@ -403,18 +403,16 @@ export const createResponse =
 /**
  * Passthrough request for embedded chatbot mode.
  * Sends a raw Responses API body directly to the BFF, bypassing the
- * normal LSD-aware flow. The BFF proxies to the OGX instance using
+ * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
  * the specified connection secret.
  *
  * Always uses streaming (BFF forces stream: true).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createPassthroughResponse = (
   bffBasePath: string,
   namespace: string,
   secretName: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  body: Record<string, any>,
+  body: Record<string, unknown>,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> => {
@@ -422,7 +420,6 @@ export const createPassthroughResponse = (
   const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
 
   // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
-  // TODO P2: Add code snippet export (curl, Python) for the Responses API request — see Phase 6.2
 
   return new Promise((resolve, reject) => {
     fetch(url, {

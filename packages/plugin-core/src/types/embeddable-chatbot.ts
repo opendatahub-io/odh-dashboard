@@ -2,7 +2,7 @@ import type React from 'react';
 
 /**
  * OpenAI Responses API template structure used by AutoRAG to define
- * how queries should be sent to the OGX instance.
+ * how queries should be sent to the OGX (Open GenAI Stack) instance.
  */
 type ResponsesTemplate = {
   model: string;
@@ -26,16 +26,16 @@ type ResponsesTemplate = {
     vector_store_ids: string[];
     max_num_results: number;
     ranking_options: {
-      search_mode: string;
-      ranker_strategy: string;
+      search_mode: 'hybrid' | 'keyword' | 'semantic';
+      ranker_strategy: 'rrf' | 'linear' | 'cross_encoder';
       ranker_k: number;
       ranker_alpha: number;
     };
   }>;
   tool_choice: {
-    type: string;
+    type: 'auto' | 'required' | 'none' | 'file_search';
   };
-  include: string[];
+  include: Array<'file_search_call.results' | 'file_search_call.output'>;
 };
 
 /**
@@ -47,6 +47,7 @@ type EmbeddableChatbotPlaygroundProps = {
   secretName: string;
   responsesTemplate: ResponsesTemplate;
   patternName?: string;
+  /** Base path for the BFF API, e.g. '/gen-ai/api/v1'. No trailing slash. If '/api/v1' is omitted it is appended automatically. */
   bffBasePath: string;
   /** Custom content rendered in place of the default welcome prompt when no messages are present. */
   welcomeContent?: React.ReactNode;

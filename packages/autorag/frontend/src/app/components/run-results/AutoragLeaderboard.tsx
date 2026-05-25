@@ -1013,7 +1013,8 @@ function AutoragLeaderboard({
                 >
                   <ActionsColumn
                     items={[
-                      ...(patterns[entry.patternKey].settings.responses_template &&
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      ...(patterns[entry.patternKey].settings?.responses_template &&
                       onTryInPlayground
                         ? [
                             {

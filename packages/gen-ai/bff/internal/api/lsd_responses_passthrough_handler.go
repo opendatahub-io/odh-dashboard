@@ -97,8 +97,13 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 					"message": failedErr,
 				},
 			}
-			errorJSON, _ := json.Marshal(errorData)
-			fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+			errorJSON, marshalErr := json.Marshal(errorData)
+			if marshalErr != nil {
+				logger.Error("Failed to marshal error event", "error", marshalErr)
+				fmt.Fprintf(w, "data: {\"error\":{\"message\":\"Internal error\"}}\n\n")
+			} else {
+				fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+			}
 			flusher.Flush()
 			return // Terminate the stream immediately
 		}
@@ -148,8 +153,13 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 				"code":    "500",
 			},
 		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		errorJSON, marshalErr := json.Marshal(errorData)
+		if marshalErr != nil {
+			logger.Error("Failed to marshal error event", "error", marshalErr)
+			fmt.Fprintf(w, "data: {\"error\":{\"message\":\"Streaming error occurred\"}}\n\n")
+		} else {
+			fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		}
 	}
 
 	// Send metrics event after stream completes
@@ -174,30 +184,28 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 // extractResponseFailedError checks if a raw streaming event is a response.failed event
 // and extracts the error message. Returns empty string for non-failed events.
 func extractResponseFailedError(event interface{}) string {
-	eventJSON, err := json.Marshal(event)
-	if err != nil {
+	m, ok := event.(map[string]interface{})
+	if !ok {
 		return ""
 	}
 
-	var raw struct {
-		Type     string `json:"type"`
-		Response *struct {
-			Error *struct {
-				Message string `json:"message"`
-			} `json:"error"`
-		} `json:"response"`
-	}
-
-	if err := json.Unmarshal(eventJSON, &raw); err != nil {
+	eventType, _ := m["type"].(string)
+	if eventType != "response.failed" {
 		return ""
 	}
 
-	if raw.Type != "response.failed" {
-		return ""
+	resp, _ := m["response"].(map[string]interface{})
+	if resp == nil {
+		return "upstream OGX server returned response.failed"
 	}
 
-	if raw.Response != nil && raw.Response.Error != nil && raw.Response.Error.Message != "" {
-		return raw.Response.Error.Message
+	errObj, _ := resp["error"].(map[string]interface{})
+	if errObj == nil {
+		return "upstream OGX server returned response.failed"
+	}
+
+	if msg, _ := errObj["message"].(string); msg != "" {
+		return msg
 	}
 
 	return "upstream OGX server returned response.failed"

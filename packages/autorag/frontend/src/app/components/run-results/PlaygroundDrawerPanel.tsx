@@ -37,7 +37,13 @@ import { CodeIcon } from '@patternfly/react-icons';
 import React from 'react';
 import type { AutoragPattern, ResponsesTemplate } from '~/app/types/autoragPattern';
 import { formatPatternName } from '~/app/utilities/utils';
-import { generateCurlSnippet, generateGoSnippet, generateNodeSnippet } from './playgroundSnippets';
+import {
+  generateCurlSnippet,
+  generateGoSnippet,
+  generateNodeSnippet,
+  generatePythonSnippet,
+} from './playgroundSnippets';
+import './PlaygroundDrawerPanel.scss';
 
 const EmbeddedPlayground = React.lazy(() => import('~/app/components/EmbeddedPlayground'));
 
@@ -71,12 +77,18 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
   const [isPatternSelectOpen, setIsPatternSelectOpen] = React.useState(false);
   const [isViewCodeModalOpen, setIsViewCodeModalOpen] = React.useState(false);
   const [activeCodeTab, setActiveCodeTab] = React.useState(0);
-  const [copied, setCopied] = React.useState(false);
+  const [copiedTab, setCopiedTab] = React.useState<number | null>(null);
 
-  const handleCopy = React.useCallback((text: string) => {
-    void navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = React.useCallback((text: string, tabIndex: number) => {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopiedTab(tabIndex);
+        setTimeout(() => setCopiedTab(null), 2000);
+      },
+      () => {
+        // clipboard access denied — don't show Copied feedback
+      },
+    );
   }, []);
 
   return (
@@ -104,7 +116,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                     onClick={() => setIsPatternSelectOpen((prev) => !prev)}
                     isExpanded={isPatternSelectOpen}
                     variant="plainText"
-                    style={{ fontSize: 'var(--pf-t--global--font--size--heading--h2)' }}
+                    className="autorag-playground-drawer__pattern-toggle"
                     data-testid="playground-pattern-select"
                   >
                     {formatPatternName(patternInfo.patternName)}
@@ -143,11 +155,8 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             <DrawerCloseButton onClick={onClose} data-testid="playground-drawer-close" />
           </DrawerActions>
         </DrawerHead>
-        <DrawerPanelBody
-          hasNoPadding
-          style={{ display: 'flex', flexDirection: 'column', height: '100%' }}
-        >
-          <div className="pf-v6-u-p-md" style={{ flexShrink: 0 }}>
+        <DrawerPanelBody hasNoPadding className="autorag-playground-drawer__panel-body">
+          <div className="autorag-playground-drawer__info-section pf-v6-u-p-md">
             <Card isCompact>
               <CardBody>
                 <DescriptionList isHorizontal isCompact columnModifier={{ default: '2Col' }}>
@@ -184,7 +193,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               </CardBody>
             </Card>
           </div>
-          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="autorag-playground-drawer__chatbot-container">
             <React.Suspense
               fallback={
                 <Bullseye>
@@ -215,7 +224,7 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
         data-testid="playground-view-code-modal"
       >
         <ModalHeader title={`${formatPatternName(patternInfo.patternName)} — Response payload`} />
-        <ModalBody style={{ height: '60vh' }}>
+        <ModalBody className="autorag-view-code-modal__body">
           <Content component={ContentVariants.p} className="pf-v6-u-mb-md">
             Use these code snippets to query this pattern programmatically via the Responses API.
             Replace <code>&lt;HOSTNAME&gt;</code> and <code>&lt;API_KEY&gt;</code> with your OGX
@@ -228,17 +237,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
           >
             <Tab eventKey={0} title={<TabTitleText>curl</TabTitleText>}>
               <CodeBlock
-                className="pf-v6-u-mt-md"
-                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
                 actions={
                   <CodeBlockAction>
                     <ClipboardCopyButton
                       id="copy-curl"
                       aria-label="Copy curl snippet"
-                      onClick={() => handleCopy(generateCurlSnippet(responsesTemplate))}
+                      onClick={() => handleCopy(generateCurlSnippet(responsesTemplate), 0)}
                       variant="plain"
                     >
-                      {copied ? 'Copied' : 'Copy'}
+                      {copiedTab === 0 ? 'Copied' : 'Copy'}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
                 }
@@ -248,17 +256,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             </Tab>
             <Tab eventKey={1} title={<TabTitleText>Node.js</TabTitleText>}>
               <CodeBlock
-                className="pf-v6-u-mt-md"
-                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
                 actions={
                   <CodeBlockAction>
                     <ClipboardCopyButton
                       id="copy-nodejs"
                       aria-label="Copy Node.js snippet"
-                      onClick={() => handleCopy(generateNodeSnippet(responsesTemplate))}
+                      onClick={() => handleCopy(generateNodeSnippet(responsesTemplate), 1)}
                       variant="plain"
                     >
-                      {copied ? 'Copied' : 'Copy'}
+                      {copiedTab === 1 ? 'Copied' : 'Copy'}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
                 }
@@ -268,22 +275,40 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
             </Tab>
             <Tab eventKey={2} title={<TabTitleText>Go</TabTitleText>}>
               <CodeBlock
-                className="pf-v6-u-mt-md"
-                style={{ maxHeight: '45vh', overflow: 'auto' }}
+                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
                 actions={
                   <CodeBlockAction>
                     <ClipboardCopyButton
                       id="copy-go"
                       aria-label="Copy Go snippet"
-                      onClick={() => handleCopy(generateGoSnippet(responsesTemplate))}
+                      onClick={() => handleCopy(generateGoSnippet(responsesTemplate), 2)}
                       variant="plain"
                     >
-                      {copied ? 'Copied' : 'Copy'}
+                      {copiedTab === 2 ? 'Copied' : 'Copy'}
                     </ClipboardCopyButton>
                   </CodeBlockAction>
                 }
               >
                 <CodeBlockCode>{generateGoSnippet(responsesTemplate)}</CodeBlockCode>
+              </CodeBlock>
+            </Tab>
+            <Tab eventKey={3} title={<TabTitleText>Python</TabTitleText>}>
+              <CodeBlock
+                className="pf-v6-u-mt-md autorag-view-code-modal__code-block"
+                actions={
+                  <CodeBlockAction>
+                    <ClipboardCopyButton
+                      id="copy-python"
+                      aria-label="Copy Python snippet"
+                      onClick={() => handleCopy(generatePythonSnippet(responsesTemplate), 3)}
+                      variant="plain"
+                    >
+                      {copiedTab === 3 ? 'Copied' : 'Copy'}
+                    </ClipboardCopyButton>
+                  </CodeBlockAction>
+                }
+              >
+                <CodeBlockCode>{generatePythonSnippet(responsesTemplate)}</CodeBlockCode>
               </CodeBlock>
             </Tab>
           </Tabs>

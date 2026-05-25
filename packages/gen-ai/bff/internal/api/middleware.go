@@ -24,6 +24,7 @@ import (
 	mlflowpkg "github.com/opendatahub-io/gen-ai/internal/integrations/mlflow"
 	nemopkg "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/rs/cors"
+	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
@@ -501,6 +502,10 @@ func (app *App) AttachBFFMaaSClient(next func(http.ResponseWriter, *http.Request
 // validateIP checks an IP address against the SSRF blocklist.
 // Loopback (127.x, ::1), link-local (169.254.x — cloud metadata), and unspecified (0.0.0.0) are blocked.
 // Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed for cluster-internal services.
+func isValidDNS1123Subdomain(name string) bool {
+	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
+}
+
 func validateIP(ip net.IP) error {
 	if ip.IsLoopback() {
 		return fmt.Errorf("loopback addresses are not allowed")
@@ -519,6 +524,11 @@ func validateIP(ip net.IP) error {
 // For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
 // Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
 // services typically run as cluster-internal services with private IPs.
+//
+// Known limitation: DNS resolution here is TOCTOU-vulnerable — the HTTP client re-resolves
+// DNS independently, so an attacker-controlled DNS server could return a safe IP during
+// validation and a malicious IP during the actual connection. Mitigated in practice by
+// cluster-internal DNS and network policies.
 func isValidOGXURL(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
@@ -569,6 +579,10 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 
 		// Read secretName query parameter — when absent, fall back to CR-based discovery
 		secretName := r.URL.Query().Get("secretName")
+		if secretName != "" && !isValidDNS1123Subdomain(secretName) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+			return
+		}
 		if secretName == "" {
 			// No secret specified — delegate to existing OGX CR-based client attachment
 			app.AttachOGXClient(next)(w, r, ps)

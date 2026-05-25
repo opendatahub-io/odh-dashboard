@@ -157,7 +157,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
       instructions: '',
       tools: [],
       // eslint-disable-next-line camelcase
-      tool_choice: { type: '' },
+      tool_choice: { type: 'auto' },
       include: [],
     },
     username,

@@ -8,19 +8,32 @@ import { ResponseMetrics } from '~/app/types';
 import { createPassthroughResponse } from '~/app/services/llamaStackService';
 import { ChatbotMessageProps, UseChatbotMessagesReturn } from './useChatbotMessages';
 
+// Must match the placeholder the AutoRAG pipeline embeds in responses_template.input[0].content[0].text
 export const USER_QUERY_PLACEHOLDER = '<user_query_placeholder>';
+
+/** A single message entry in the Responses API input array. */
+type ResponsesInputMessage = {
+  type: 'message';
+  role: 'user' | 'assistant';
+  content: Array<{ type: 'input_text'; text: string }>;
+};
+
+/** The request body sent to the OGX passthrough endpoint. */
+export type PassthroughRequestBody = Omit<ResponsesTemplate, 'input' | 'store' | 'stream'> & {
+  input: ResponsesInputMessage[];
+  store: boolean;
+  stream: boolean;
+};
 
 /**
  * Builds the OGX request body by substituting the user query into the template
  * and appending multi-turn conversation history.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const buildRequestBody = (
   responsesTemplate: ResponsesTemplate,
   userMessage: string,
   previousMessages: ChatbotMessageProps[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Record<string, any> => {
+): PassthroughRequestBody => {
   if (!responsesTemplate.input[0]?.content[0]?.text) {
     throw new Error(
       'The responses template for this pattern is invalid. Expected input[0].content[0].text to exist.',
@@ -32,8 +45,7 @@ export const buildRequestBody = (
     ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
     : userMessage;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inputMessages: any[] = [
+  const inputMessages: ResponsesInputMessage[] = [
     {
       type: 'message',
       role: 'user',
@@ -99,8 +111,11 @@ const useEmbeddedChatbotMessages = ({
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isStreamingWithoutContentRef = React.useRef(false);
 
   const modelDisplayName = responsesTemplate.model || 'Bot';
+  const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
+  messagesRef.current = messages;
 
   // Cleanup on unmount — AbortController pattern matching useChatbotMessages
   React.useEffect(
@@ -161,173 +176,178 @@ const useEmbeddedChatbotMessages = ({
     [responsesTemplate],
   );
 
-  const handleMessageSend = async (message: string) => {
-    const userMessage: MessageProps = {
-      id: getId(),
-      role: 'user',
-      content: message,
-      name: username || 'User',
-      avatar: userAvatar,
-      timestamp: new Date().toLocaleString(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsMessageSendButtonDisabled(true);
-    setIsLoading(true);
-    setIsStreamingWithoutContent(true);
-
-    let botMessageId: string | undefined;
-
-    try {
-      const requestBody = buildRequestBodyFn(message, messages);
-
-      abortControllerRef.current = new AbortController();
-
-      // Create initial bot message with loading state
-      botMessageId = getId();
-      const streamingBotMessage: MessageProps = {
-        id: botMessageId,
-        role: 'bot',
-        content: '',
-        name: modelDisplayName,
-        avatar: botAvatar,
-        isLoading: true,
+  const handleMessageSend = React.useCallback(
+    async (message: string) => {
+      const userMessage: MessageProps = {
+        id: getId(),
+        role: 'user',
+        content: message,
+        name: username || 'User',
+        avatar: userAvatar,
         timestamp: new Date().toLocaleString(),
       };
-      setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
 
-      const completeLines: string[] = [];
-      let currentPartialLine = '';
+      setMessages((prev) => [...prev, userMessage]);
+      setIsMessageSendButtonDisabled(true);
+      setIsLoading(true);
+      setIsStreamingWithoutContent(true);
+      isStreamingWithoutContentRef.current = true;
 
-      const updateMessage = (showPartialLine = true, hasContent = false) => {
-        const displayContent =
-          completeLines.join('\n') +
-          (showPartialLine && currentPartialLine
-            ? (completeLines.length > 0 ? '\n' : '') + currentPartialLine
-            : '');
+      let botMessageId: string | undefined;
+
+      try {
+        const requestBody = buildRequestBodyFn(message, messagesRef.current);
+
+        abortControllerRef.current = new AbortController();
+
+        // Create initial bot message with loading state
+        botMessageId = getId();
+        const streamingBotMessage: MessageProps = {
+          id: botMessageId,
+          role: 'bot',
+          content: '',
+          name: modelDisplayName,
+          avatar: botAvatar,
+          isLoading: true,
+          timestamp: new Date().toLocaleString(),
+        };
+        setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
+
+        const completeLines: string[] = [];
+        let currentPartialLine = '';
+
+        const updateMessage = (showPartialLine = true, hasContent = false) => {
+          const displayContent =
+            completeLines.join('\n') +
+            (showPartialLine && currentPartialLine
+              ? (completeLines.length > 0 ? '\n' : '') + currentPartialLine
+              : '');
+
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === botMessageId
+                ? { ...msg, content: displayContent, isLoading: !hasContent }
+                : msg,
+            ),
+          );
+        };
+
+        const streamingResponse = await createPassthroughResponse(
+          bffBasePath,
+          namespace,
+          secretName,
+          requestBody,
+          (chunk: string) => {
+            const hasAnyContent =
+              completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+
+            if (chunk && isStreamingWithoutContentRef.current) {
+              isStreamingWithoutContentRef.current = false;
+              setIsStreamingWithoutContent(false);
+            }
+
+            currentPartialLine += chunk;
+            const lines = currentPartialLine.split('\n');
+
+            if (lines.length > 1) {
+              completeLines.push(...lines.slice(0, -1));
+              currentPartialLine = lines[lines.length - 1];
+              updateMessage(true, hasAnyContent);
+            } else {
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+              if (!isStoppingStreamRef.current) {
+                timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
+              }
+            }
+          },
+          abortControllerRef.current.signal,
+        );
+
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        // Build sources prop
+        const sourcesProps = streamingResponse.sources?.length
+          ? {
+              sources: {
+                sources: streamingResponse.sources.map((source) => ({
+                  ...source,
+                  onClick: (e: React.MouseEvent) => e.preventDefault(),
+                })),
+              },
+            }
+          : {};
 
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === botMessageId
-              ? { ...msg, content: displayContent, isLoading: !hasContent }
+              ? { ...msg, content: streamingResponse.content, isLoading: false, ...sourcesProps }
               : msg,
           ),
         );
-      };
 
-      const streamingResponse = await createPassthroughResponse(
-        bffBasePath,
-        namespace,
-        secretName,
-        requestBody,
-        (chunk: string) => {
-          const hasAnyContent =
-            completeLines.length > 0 || currentPartialLine.length > 0 || chunk.length > 0;
+        if (streamingResponse.metrics) {
+          setLastResponseMetrics(streamingResponse.metrics);
+        }
+      } catch (error) {
+        const isAbortError =
+          error instanceof Error &&
+          (error.name === 'AbortError' ||
+            error.message.includes('aborted') ||
+            error.message === 'Response stopped by user');
 
-          if (chunk && isStreamingWithoutContent) {
-            setIsStreamingWithoutContent(false);
-          }
+        if (isClearingRef.current) {
+          return;
+        }
 
-          currentPartialLine += chunk;
-          const lines = currentPartialLine.split('\n');
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Sorry, I encountered an error while processing your request. Please try again.';
 
-          if (lines.length > 1) {
-            completeLines.push(...lines.slice(0, -1));
-            currentPartialLine = lines[lines.length - 1];
-            updateMessage(true, hasAnyContent);
-          } else {
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-            }
-            if (!isStoppingStreamRef.current) {
-              timeoutRef.current = setTimeout(() => updateMessage(true, hasAnyContent), 50);
-            }
-          }
-        },
-        abortControllerRef.current.signal,
-      );
+        const wasUserStopped =
+          isStoppingStreamRef.current &&
+          (isAbortError || errorMessage === 'Response stopped by user');
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      // Build sources prop
-      const sourcesProps = streamingResponse.sources?.length
-        ? {
-            sources: {
-              sources: streamingResponse.sources.map((source) => ({
-                ...source,
-                onClick: (e: React.MouseEvent) => e.preventDefault(),
-              })),
-            },
-          }
-        : {};
-
-      setMessages((prevMessages) =>
-        prevMessages.map((msg) =>
-          msg.id === botMessageId
-            ? { ...msg, content: streamingResponse.content, isLoading: false, ...sourcesProps }
-            : msg,
-        ),
-      );
-
-      if (streamingResponse.metrics) {
-        setLastResponseMetrics(streamingResponse.metrics);
-      }
-    } catch (error) {
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === 'AbortError' ||
-          error.message.includes('aborted') ||
-          error.message === 'Response stopped by user');
-
-      if (isClearingRef.current) {
-        return;
-      }
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
-
-      const wasUserStopped =
-        isStoppingStreamRef.current &&
-        (isAbortError || errorMessage === 'Response stopped by user');
-
-      if (botMessageId) {
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) => {
-            if (msg.id === botMessageId) {
-              if (wasUserStopped) {
-                const stoppedContent = msg.content
-                  ? `${msg.content}\n\n*You stopped this message*`
-                  : '*You stopped this message*';
-                return { ...msg, content: stoppedContent, isLoading: false };
+        if (botMessageId) {
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageId) {
+                if (wasUserStopped) {
+                  const stoppedContent = msg.content
+                    ? `${msg.content}\n\n*You stopped this message*`
+                    : '*You stopped this message*';
+                  return { ...msg, content: stoppedContent, isLoading: false };
+                }
+                return { ...msg, content: errorMessage, isLoading: false };
               }
-              return { ...msg, content: errorMessage, isLoading: false };
-            }
-            return msg;
-          }),
-        );
-      } else {
-        const botErrorMessage: MessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+              return msg;
+            }),
+          );
+        } else {
+          const botErrorMessage: MessageProps = {
+            id: getId(),
+            role: 'bot',
+            content: wasUserStopped ? '*You stopped this message*' : errorMessage,
+            name: modelDisplayName,
+            avatar: botAvatar,
+            timestamp: new Date().toLocaleString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+        }
+      } finally {
+        setIsMessageSendButtonDisabled(false);
+        setIsLoading(false);
+        setIsStreamingWithoutContent(false);
+        isStoppingStreamRef.current = false;
+        abortControllerRef.current = null;
       }
-    } finally {
-      setIsMessageSendButtonDisabled(false);
-      setIsLoading(false);
-      setIsStreamingWithoutContent(false);
-      isStoppingStreamRef.current = false;
-      abortControllerRef.current = null;
-    }
-  };
+    },
+    [buildRequestBodyFn, bffBasePath, namespace, secretName, username, modelDisplayName],
+  );
 
   return {
     messages,

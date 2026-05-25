@@ -5,7 +5,7 @@ import {
   generateGoSnippet,
   generateNodeSnippet,
   generatePythonSnippet,
-} from '../playgroundSnippets';
+} from '~/app/components/run-results/playgroundSnippets';
 
 const mockTemplate: ResponsesTemplate = {
   model: 'test-model',
