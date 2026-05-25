@@ -114,7 +114,7 @@ describe('buildRequestBody', () => {
       expect(result.input[0].role).toBe('user');
     });
 
-    it('should append previous messages and current query for multi-turn', () => {
+    it('should place previous messages before current query for multi-turn', () => {
       const previousMessages: ChatbotMessageProps[] = [
         { role: 'user', content: 'First question', id: '1', name: 'User', avatar: '' },
         { role: 'bot', content: 'First answer', id: '2', name: 'Bot', avatar: '' },
@@ -122,18 +122,16 @@ describe('buildRequestBody', () => {
 
       const result = buildRequestBody(mockTemplate, 'Follow-up question', previousMessages);
 
-      // input[0]: template with substituted first query
+      expect(result.input).toHaveLength(3);
+      // input[0]: previous user message
       expect(result.input[0].role).toBe('user');
-      expect(result.input[0].content[0].text).toBe('Answer: Follow-up question');
-      // input[1]: previous user message
-      expect(result.input[1].role).toBe('user');
-      expect(result.input[1].content[0].text).toBe('First question');
-      // input[2]: previous bot message (mapped to assistant)
-      expect(result.input[2].role).toBe('assistant');
-      expect(result.input[2].content[0].text).toBe('First answer');
-      // input[3]: current user message
-      expect(result.input[3].role).toBe('user');
-      expect(result.input[3].content[0].text).toBe('Follow-up question');
+      expect(result.input[0].content[0].text).toBe('First question');
+      // input[1]: previous bot message (mapped to assistant)
+      expect(result.input[1].role).toBe('assistant');
+      expect(result.input[1].content[0].text).toBe('First answer');
+      // input[2]: current user message with template substitution
+      expect(result.input[2].role).toBe('user');
+      expect(result.input[2].content[0].text).toBe('Answer: Follow-up question');
     });
 
     it('should skip previous messages with no content', () => {
@@ -144,8 +142,8 @@ describe('buildRequestBody', () => {
 
       const result = buildRequestBody(mockTemplate, 'Next', previousMessages);
 
-      // Should have: template msg, previous user msg (bot skipped due to empty content), current user msg
-      expect(result.input).toHaveLength(3);
+      // previous user msg (bot skipped due to empty content) + current user msg
+      expect(result.input).toHaveLength(2);
     });
   });
 });

@@ -1,5 +1,4 @@
 import * as React from 'react';
-import '@patternfly/chatbot/dist/css/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ModularArchConfig,

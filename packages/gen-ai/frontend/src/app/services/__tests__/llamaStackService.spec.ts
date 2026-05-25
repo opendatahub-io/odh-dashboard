@@ -1264,6 +1264,40 @@ describe('llamaStackService', () => {
       expect(result.id).toBe('passthrough-response');
     });
 
+    it('should reassemble a JSON event split across two SSE chunks', async () => {
+      const onStreamData = jest.fn();
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode('data: {"delta": "Hello'),
+          })
+          .mockResolvedValueOnce({
+            done: false,
+            value: new TextEncoder().encode(' World", "type":"response.output_text.delta"}\n'),
+          })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+        releaseLock: jest.fn(),
+        cancel: jest.fn(),
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        body: { getReader: () => mockReader },
+      });
+
+      const result = await createPassthroughResponse(
+        '/gen-ai/api/v1',
+        'test-ns',
+        'my-secret',
+        mockBody,
+        onStreamData,
+      );
+
+      expect(onStreamData).toHaveBeenCalledWith('Hello World');
+      expect(result.content).toBe('Hello World');
+    });
+
     it('should throw differentiated error for 502/503 (OGX unreachable)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,

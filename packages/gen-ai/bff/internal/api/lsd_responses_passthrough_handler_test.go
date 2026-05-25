@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
@@ -152,18 +153,18 @@ var _ = Describe("LlamaStackPassthroughResponseHandler", func() {
 
 var _ = Describe("extractResponseFailedError", func() {
 	It("should return empty string for non-failed events", func() {
-		event := map[string]interface{}{
-			"type": "response.output_text.delta",
+		event := responses.ResponseStreamEventUnion{
+			Type: "response.output_text.delta",
 		}
 		assert.Equal(GinkgoT(), "", extractResponseFailedError(event))
 	})
 
 	It("should extract error message from response.failed event", func() {
-		event := map[string]interface{}{
-			"type": "response.failed",
-			"response": map[string]interface{}{
-				"error": map[string]interface{}{
-					"message": "tool_choice requires --tool-call-parser to be set",
+		event := responses.ResponseStreamEventUnion{
+			Type: "response.failed",
+			Response: responses.Response{
+				Error: responses.ResponseError{
+					Message: "tool_choice requires --tool-call-parser to be set",
 				},
 			},
 		}
@@ -172,9 +173,8 @@ var _ = Describe("extractResponseFailedError", func() {
 	})
 
 	It("should return fallback message when error message is empty", func() {
-		event := map[string]interface{}{
-			"type":     "response.failed",
-			"response": map[string]interface{}{},
+		event := responses.ResponseStreamEventUnion{
+			Type: "response.failed",
 		}
 		result := extractResponseFailedError(event)
 		assert.Equal(GinkgoT(), "upstream OGX server returned response.failed", result)

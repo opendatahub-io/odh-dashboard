@@ -574,38 +574,50 @@ var _ = Describe("AttachOGXClientFromSecret", func() {
 		assert.Contains(t, rr.Body.String(), "empty value for OGX_CLIENT_BASE_URL")
 	})
 
-	It("should reject SSRF-prone URLs", func() {
-		t := GinkgoT()
-		mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
-			CanListLSDAllowed: true,
-			SecretValues: map[string]map[string]string{
-				"ogx-secret": {
-					"OGX_CLIENT_BASE_URL": "http://169.254.169.254/latest/meta-data/",
-					"OGX_CLIENT_API_KEY":  "key",
+	DescribeTable("should reject SSRF-prone URLs",
+		func(blockedURL string) {
+			t := GinkgoT()
+			mockK8sFactory := &k8smocks.ConfigurableMockTokenClientFactory{
+				CanListLSDAllowed: true,
+				SecretValues: map[string]map[string]string{
+					"ogx-secret": {
+						"OGX_CLIENT_BASE_URL": blockedURL,
+						"OGX_CLIENT_API_KEY":  "key",
+					},
 				},
-			},
-		}
+			}
 
-		app := App{
-			logger:                  slog.Default(),
-			kubernetesClientFactory: mockK8sFactory,
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(),
-		}
+			app := App{
+				logger:                  slog.Default(),
+				kubernetesClientFactory: mockK8sFactory,
+				llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+				repositories:            repositories.NewRepositories(),
+			}
 
-		req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
-		ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
-		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
-		req = req.WithContext(ctx)
-		rr := httptest.NewRecorder()
+			req := httptest.NewRequest("GET", "/gen-ai/api/v1/lsd/responses/passthrough?secretName=ogx-secret", nil)
+			ctx := context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace)
+			ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "valid-token"})
+			req = req.WithContext(ctx)
+			rr := httptest.NewRecorder()
 
-		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			t.Fatal("Handler should not be called")
-		})(rr, req, nil)
+			app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+				t.Fatal("Handler should not be called")
+			})(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "invalid OGX_CLIENT_BASE_URL")
-	})
+			assert.Equal(t, http.StatusBadRequest, rr.Code)
+			assert.Contains(t, rr.Body.String(), "invalid OGX_CLIENT_BASE_URL")
+		},
+		Entry("link-local metadata endpoint", "http://169.254.169.254/latest/meta-data/"),
+		Entry("link-local arbitrary IP", "http://169.254.1.1"),
+		Entry("loopback IPv4", "http://127.0.0.1"),
+		Entry("loopback IPv6", "http://[::1]"),
+		// Private ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed
+		// by validateIP for cluster-internal services — not tested here.
+		//
+		// DNS-based SSRF (hostname resolving to a blocked IP) cannot be tested
+		// because isValidOGXURL calls net.LookupIP directly with no injectable
+		// resolver. A hostname test would depend on real DNS resolution.
+	)
 
 	It("should proceed without API key when OGX_CLIENT_API_KEY is missing", func() {
 		t := GinkgoT()

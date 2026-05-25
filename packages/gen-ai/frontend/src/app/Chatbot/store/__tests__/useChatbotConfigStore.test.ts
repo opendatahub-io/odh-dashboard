@@ -1,6 +1,9 @@
 /* eslint-disable camelcase */
 import { act } from '@testing-library/react';
-import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import {
+  useChatbotConfigStore,
+  createChatbotConfigStore,
+} from '~/app/Chatbot/store/useChatbotConfigStore';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 
@@ -1255,9 +1258,6 @@ describe('useChatbotConfigStore', () => {
 
   describe('createChatbotConfigStore (factory)', () => {
     it('should create an independent store instance', () => {
-      const { createChatbotConfigStore } = jest.requireActual(
-        '~/app/Chatbot/store/useChatbotConfigStore',
-      );
       const scopedStore = createChatbotConfigStore();
       const state = scopedStore.getState();
 
@@ -1266,9 +1266,6 @@ describe('useChatbotConfigStore', () => {
     });
 
     it('should apply initialConfig overrides', () => {
-      const { createChatbotConfigStore } = jest.requireActual(
-        '~/app/Chatbot/store/useChatbotConfigStore',
-      );
       const scopedStore = createChatbotConfigStore({
         initialConfig: {
           selectedModel: 'custom-model',
@@ -1282,9 +1279,6 @@ describe('useChatbotConfigStore', () => {
     });
 
     it('should not share state with the singleton store', () => {
-      const { createChatbotConfigStore } = jest.requireActual(
-        '~/app/Chatbot/store/useChatbotConfigStore',
-      );
       const scopedStore = createChatbotConfigStore({
         initialConfig: { selectedModel: 'scoped-model' },
       });
@@ -1299,9 +1293,6 @@ describe('useChatbotConfigStore', () => {
     });
 
     it('should skip sessionStorage when skipSessionStorage is true', () => {
-      const { createChatbotConfigStore } = jest.requireActual(
-        '~/app/Chatbot/store/useChatbotConfigStore',
-      );
       const scopedStore = createChatbotConfigStore({ skipSessionStorage: true });
       const state = scopedStore.getState();
 
@@ -1309,9 +1300,6 @@ describe('useChatbotConfigStore', () => {
     });
 
     it('should support store actions (updateSelectedModel)', () => {
-      const { createChatbotConfigStore } = jest.requireActual(
-        '~/app/Chatbot/store/useChatbotConfigStore',
-      );
       const scopedStore = createChatbotConfigStore();
 
       act(() => {

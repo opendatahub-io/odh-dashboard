@@ -175,10 +175,14 @@ function AutoragResultsPage(): React.JSX.Element {
     ],
   );
 
+  /* eslint-disable @typescript-eslint/no-unnecessary-condition */
   const handleTryInPlayground = React.useCallback(
     (patternName: string) => {
-      const pattern = patterns[patternName];
-      const responsesTemplate = pattern.settings.responses_template;
+      const pattern = patterns?.[patternName];
+      if (!pattern) {
+        return;
+      }
+      const responsesTemplate = pattern.settings?.responses_template;
       const secretName = contextValue.parameters?.ogx_secret_name;
       if (!responsesTemplate || !secretName) {
         return;
@@ -186,7 +190,7 @@ function AutoragResultsPage(): React.JSX.Element {
 
       const optimizedMetric = getOptimizedMetricForRAG(pipelineRun);
       const scoreLookup = Object.fromEntries(
-        Object.entries(pattern.scores).map(([k, v]) => [k.toLowerCase(), v]),
+        Object.entries(pattern.scores ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
       );
       const metricMean = scoreLookup[optimizedMetric.toLowerCase()]?.mean;
       setDrawerContent({
@@ -195,16 +199,17 @@ function AutoragResultsPage(): React.JSX.Element {
         responsesTemplate,
         patternInfo: {
           patternName,
-          modelId: pattern.settings.generation.model_id || 'N/A',
+          modelId: pattern.settings?.generation?.model_id || 'N/A',
           optimizedMetricName: formatMetricName(optimizedMetric),
           optimizedMetricValue:
             metricMean != null && Number.isFinite(metricMean) ? metricMean : 'N/A',
-          chunkMethod: pattern.settings.chunking.method || 'N/A',
+          chunkMethod: pattern.settings?.chunking?.method || 'N/A',
         },
       });
     },
     [patterns, contextValue.parameters?.ogx_secret_name, pipelineRun],
   );
+  /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
   return (
     <AutoragResultsContext.Provider value={contextValue}>

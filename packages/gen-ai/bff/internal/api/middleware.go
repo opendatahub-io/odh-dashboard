@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 
@@ -526,6 +527,19 @@ func validateIP(ip net.IP) error {
 // services typically run as cluster-internal services with private IPs.
 //
 // Known limitation: DNS resolution here is TOCTOU-vulnerable — the HTTP client re-resolves
+// sanitizeURLForLog strips userinfo, query parameters, and fragment from a URL
+// so it is safe to write to logs without leaking embedded credentials.
+func sanitizeURLForLog(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "<invalid-url>"
+	}
+	parsed.User = nil
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String()
+}
+
 // DNS independently, so an attacker-controlled DNS server could return a safe IP during
 // validation and a malicious IP during the actual connection. Mitigated in practice by
 // cluster-internal DNS and network policies.
@@ -553,10 +567,12 @@ func isValidOGXURL(rawURL string) error {
 	// If DNS resolution fails, allow it through — the hostname may only be resolvable
 	// inside the cluster (e.g., svc.cluster.local). The HTTP client will fail with a
 	// connection error later, which is handled as a 502 Bad Gateway.
-	ips, err := net.LookupIP(host)
+	resolveCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	ips, err := net.DefaultResolver.LookupIPAddr(resolveCtx, host)
 	if err == nil {
 		for _, ip := range ips {
-			if err := validateIP(ip); err != nil {
+			if err := validateIP(ip.IP); err != nil {
 				return fmt.Errorf("hostname %q resolves to blocked address: %w", host, err)
 			}
 		}
@@ -646,7 +662,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 			logger.Debug("Creating LlamaStack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
-				"serviceURL", baseURL)
+				"serviceURL", sanitizeURLForLog(baseURL))
 
 			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs, "/v1")
 		}

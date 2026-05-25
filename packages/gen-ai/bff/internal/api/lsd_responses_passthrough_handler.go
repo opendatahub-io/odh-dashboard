@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/openai/openai-go/v2/responses"
 	helper "github.com/opendatahub-io/gen-ai/internal/helpers"
 )
 
@@ -21,6 +22,10 @@ import (
 func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
+
+	// Limit request body size to 1 MB (consistent with ReadJSON)
+	const maxPassthroughBodyBytes int64 = 1_048_576
+	r.Body = http.MaxBytesReader(w, r.Body, maxPassthroughBodyBytes)
 
 	// Parse the raw request body — we treat it as an opaque JSON object
 	var requestBody map[string]interface{}
@@ -181,30 +186,14 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 	flusher.Flush()
 }
 
-// extractResponseFailedError checks if a raw streaming event is a response.failed event
+// extractResponseFailedError checks if a streaming event is a response.failed event
 // and extracts the error message. Returns empty string for non-failed events.
-func extractResponseFailedError(event interface{}) string {
-	m, ok := event.(map[string]interface{})
-	if !ok {
+func extractResponseFailedError(event responses.ResponseStreamEventUnion) string {
+	if event.Type != "response.failed" {
 		return ""
 	}
 
-	eventType, _ := m["type"].(string)
-	if eventType != "response.failed" {
-		return ""
-	}
-
-	resp, _ := m["response"].(map[string]interface{})
-	if resp == nil {
-		return "upstream OGX server returned response.failed"
-	}
-
-	errObj, _ := resp["error"].(map[string]interface{})
-	if errObj == nil {
-		return "upstream OGX server returned response.failed"
-	}
-
-	if msg, _ := errObj["message"].(string); msg != "" {
+	if msg := event.Response.Error.Message; msg != "" {
 		return msg
 	}
 

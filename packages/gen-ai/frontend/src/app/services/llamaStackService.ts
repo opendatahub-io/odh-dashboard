@@ -284,15 +284,17 @@ const streamCreateResponse = (
 
         try {
           let done = false;
+          let partialLine = '';
           while (!done) {
             const result = await reader.read();
             done = result.done;
 
             if (!done && result.value) {
               const chunk = decoder.decode(result.value, { stream: true });
-              const lines = chunk.split('\n');
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
 
-              for (const line of lines) {
+              for (const line of parts) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));
@@ -416,7 +418,8 @@ export const createPassthroughResponse = (
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> => {
-  const base = bffBasePath.endsWith('/api/v1') ? bffBasePath : `${bffBasePath}/api/v1`;
+  const trimmed = bffBasePath.replace(/\/+$/, '');
+  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
 
   // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
@@ -473,15 +476,17 @@ export const createPassthroughResponse = (
 
         try {
           let done = false;
+          let partialLine = '';
           while (!done) {
             const result = await reader.read();
             done = result.done;
 
             if (!done && result.value) {
               const chunk = decoder.decode(result.value, { stream: true });
-              const lines = chunk.split('\n');
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
 
-              for (const line of lines) {
+              for (const line of parts) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));

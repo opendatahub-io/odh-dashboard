@@ -45,31 +45,19 @@ export const buildRequestBody = (
     ? templateText.replace(USER_QUERY_PLACEHOLDER, userMessage)
     : userMessage;
 
-  const inputMessages: ResponsesInputMessage[] = [
-    {
-      type: 'message',
-      role: 'user',
-      content: [{ type: 'input_text', text: substitutedText }],
-    },
-  ];
+  const inputMessages: ResponsesInputMessage[] = previousMessages
+    .filter((msg) => msg.content)
+    .map((msg) => ({
+      type: 'message' as const,
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: [{ type: 'input_text' as const, text: String(msg.content) }],
+    }));
 
-  previousMessages.forEach((msg) => {
-    if (msg.content) {
-      inputMessages.push({
-        type: 'message',
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: [{ type: 'input_text', text: msg.content }],
-      });
-    }
+  inputMessages.push({
+    type: 'message',
+    role: 'user',
+    content: [{ type: 'input_text', text: substitutedText }],
   });
-
-  if (previousMessages.length > 0) {
-    inputMessages.push({
-      type: 'message',
-      role: 'user',
-      content: [{ type: 'input_text', text: userMessage }],
-    });
-  }
 
   return {
     ...responsesTemplate,
