@@ -7,6 +7,7 @@ import { listVectorStores } from '~/app/services/llamaStackService';
 import { VectorStore } from '~/app/types';
 import { mockVectorStores } from '~/__mocks__/mockVectorStores';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 
 // Mock utilities/const to avoid asEnumMember error
 jest.mock('~/app/utilities/const', () => ({
@@ -31,17 +32,16 @@ jest.mock('~/app/services/llamaStackService', () => ({
   listVectorStores: jest.fn(),
 }));
 
-jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
-  __esModule: true,
-  default: () => true,
-}));
+jest.mock('~/app/hooks/useChatPlaygroundEnabled');
 
 const mockUseFetchState = jest.mocked(useFetchState);
 const mockGetVectorStores = jest.mocked(listVectorStores);
+const mockUseChatPlaygroundEnabled = jest.mocked(useChatPlaygroundEnabled);
 
 describe('useFetchVectorStores', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseChatPlaygroundEnabled.mockReturnValue(true);
   });
 
   it('should return NotReadyError when namespace is not provided', async () => {
@@ -226,5 +226,25 @@ describe('useFetchVectorStores', () => {
       expect(error?.message).toBe('Request timeout');
       expect(error).toBeInstanceOf(Error);
     });
+  });
+
+  it('should return NotReadyError when playground is disabled', async () => {
+    mockUseChatPlaygroundEnabled.mockReturnValue(false);
+    const mockError = new Error('Playground is not enabled');
+    mockError.name = 'NotReadyError';
+    mockUseFetchState.mockReturnValue([[], false, mockError, jest.fn()]);
+
+    const { result } = testHook(useFetchVectorStores)();
+
+    await waitFor(() => {
+      const [data, loaded, error] = result.current;
+      expect(data).toEqual([]);
+      expect(loaded).toBe(false);
+      expect(error?.message).toBe('Playground is not enabled');
+      expect(error?.name).toBe('NotReadyError');
+    });
+
+    // Verify listVectorStores was not called
+    expect(mockGetVectorStores).not.toHaveBeenCalled();
   });
 });
