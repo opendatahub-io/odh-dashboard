@@ -95,7 +95,7 @@ var _ = Describe("LlamaStackModelsHandler", func() {
 		assert.Contains(t, firstModel, "owned_by")
 
 		assert.Equal(t, "model", firstModel["object"])
-		assert.Equal(t, "llama_stack", firstModel["owned_by"])
+		assert.Equal(t, "ogx", firstModel["owned_by"])
 	})
 })
 

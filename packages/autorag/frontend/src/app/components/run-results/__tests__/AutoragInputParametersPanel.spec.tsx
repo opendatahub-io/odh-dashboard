@@ -38,12 +38,12 @@ const defaultParameters: Partial<ConfigureSchema> = {
   test_data_secret_name: 's3-connection',
   test_data_bucket_name: 'my-bucket',
   test_data_key: 'eval-data.json',
-  llama_stack_secret_name: 'ls-secret',
-  llama_stack_vector_io_provider_id: 'milvus',
+  ogx_secret_name: 'ls-secret',
+  vector_io_provider_id: 'milvus',
   optimization_metric: 'faithfulness',
   optimization_max_rag_patterns: 8,
   generation_models: ['llama-4-ma', 'gpt-oss-120b'],
-  embeddings_models: ['granite-embedding'],
+  embedding_models: ['granite-embedding'],
 };
 
 const createMockPipelineRun = (overrides?: Partial<PipelineRun>): PipelineRun => ({
@@ -104,7 +104,7 @@ describe('AutoragInputParametersPanel', () => {
 
   it('should render parameter labels from the label map', () => {
     renderPanel();
-    expect(screen.getByText('Llama Stack connection')).toBeInTheDocument();
+    expect(screen.getByText('Open GenAI Stack connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection')).toBeInTheDocument();
     expect(screen.getByText('S3 connection bucket')).toBeInTheDocument();
     expect(screen.getByText('Selected files and folders')).toBeInTheDocument();
@@ -166,7 +166,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         ...defaultParameters,
         generation_models: [],
-        embeddings_models: [],
+        embedding_models: [],
       },
     });
     expect(screen.queryByText('Model configuration')).not.toBeInTheDocument();
@@ -205,7 +205,7 @@ describe('AutoragInputParametersPanel', () => {
       parameters: {
         optimization_metric: 'faithfulness',
         input_data_secret_name: 's3-connection',
-        llama_stack_secret_name: 'ls-secret',
+        ogx_secret_name: 'ls-secret',
         description: 'A test run',
       } as Partial<ConfigureSchema>,
     });
@@ -219,7 +219,7 @@ describe('AutoragInputParametersPanel', () => {
     const labels = parameterTerms.map((el) => el.textContent);
     expect(labels).toEqual([
       'Description',
-      'Llama Stack connection',
+      'Open GenAI Stack connection',
       'S3 connection',
       'Optimization metric',
     ]);

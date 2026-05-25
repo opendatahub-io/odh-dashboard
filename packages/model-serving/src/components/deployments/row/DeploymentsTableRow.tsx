@@ -96,19 +96,22 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && pathsLoaded && (
-          <Td
-            {...{
-              'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
-              expand: {
-                rowIndex,
-                expandId: `${deployment.modelServingPlatformId}-model-row-item`,
-                isExpanded,
-                onToggle: () => setExpanded(!isExpanded),
-              },
-            }}
-          />
-        )}
+        {showExpandedToggle &&
+          (pathsLoaded ? (
+            <Td
+              {...{
+                'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+                expand: {
+                  rowIndex,
+                  expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                  isExpanded,
+                  onToggle: () => setExpanded(!isExpanded),
+                },
+              }}
+            />
+          ) : (
+            <Td />
+          ))}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
             {metricsExtension &&

@@ -47,9 +47,9 @@ jest.mock('~/app/components/common/SecretSelector', () => {
           Promise.resolve([
             {
               uuid: 'new-secret-uuid',
-              name: 'new-lls-secret',
+              name: 'new-ogx-secret',
               data: {},
-              type: 'lls',
+              type: 'ogx',
             },
           ]),
         );
@@ -63,9 +63,9 @@ jest.mock('~/app/components/common/SecretSelector', () => {
           onClick={() =>
             onChange({
               uuid: 'secret-1',
-              name: 'Test LLS Secret',
+              name: 'Test OGX Secret',
               data: {},
-              type: 'lls',
+              type: 'ogx',
               invalid: false,
             })
           }
@@ -82,8 +82,8 @@ jest.mock('~/app/components/common/SecretSelector', () => {
   };
 });
 
-// Mock LlamaStackConnectionModal
-jest.mock('~/app/components/common/LlamaStackConnectionModal', () => ({
+// Mock OgxConnectionModal
+jest.mock('~/app/components/common/OgxConnectionModal', () => ({
   __esModule: true,
   default: ({
     onClose,
@@ -93,17 +93,17 @@ jest.mock('~/app/components/common/LlamaStackConnectionModal', () => ({
     onClose: () => void;
     onSubmit: (secretName: string) => void;
   }) => (
-    <div data-testid="lls-connection-modal">
+    <div data-testid="ogx-connection-modal">
       <button
-        data-testid="lls-modal-submit"
+        data-testid="ogx-modal-submit"
         onClick={() => {
-          onSubmit('new-lls-secret');
+          onSubmit('new-ogx-secret');
           onClose();
         }}
       >
         Add connection
       </button>
-      <button data-testid="lls-modal-cancel" onClick={onClose}>
+      <button data-testid="ogx-modal-cancel" onClick={onClose}>
         Cancel
       </button>
     </div>
@@ -198,7 +198,7 @@ describe('AutoragCreate', () => {
   });
 
   describe('Form validation', () => {
-    it('should update form values when Name and Llama Stack secret are filled', async () => {
+    it('should update form values when Name and Open GenAI Stack secret are filled', async () => {
       const user = userEvent.setup();
 
       renderComponent();
@@ -206,13 +206,13 @@ describe('AutoragCreate', () => {
       const nameInput = screen.getByLabelText(/Name/i);
       await user.type(nameInput, 'Valid Name');
 
-      // Select a Llama Stack secret (required field)
-      const selectSecretButton = screen.getByTestId('lls-secret-selector-select-secret');
+      // Select a Open GenAI Stack secret (required field)
+      const selectSecretButton = screen.getByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       await waitFor(() => {
         expect(nameInput).toHaveValue('Valid Name');
-        expect(screen.getByTestId('lls-secret-selector-value')).toBeInTheDocument();
+        expect(screen.getByTestId('ogx-secret-selector-value')).toBeInTheDocument();
       });
     });
 
@@ -264,45 +264,45 @@ describe('AutoragCreate', () => {
   describe('Add new connection', () => {
     it('should render the Add new connection button', () => {
       renderComponent();
-      expect(screen.getByTestId('add-lls-connection-button')).toBeInTheDocument();
+      expect(screen.getByTestId('add-ogx-connection-button')).toBeInTheDocument();
     });
 
-    it('should open the LlamaStackConnectionModal when button is clicked', async () => {
+    it('should open the OgxConnectionModal when button is clicked', async () => {
       const user = userEvent.setup();
       renderComponent();
 
-      expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
 
-      await user.click(screen.getByTestId('add-lls-connection-button'));
-      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+      await user.click(screen.getByTestId('add-ogx-connection-button'));
+      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
     });
 
     it('should close the modal when cancel is clicked', async () => {
       const user = userEvent.setup();
       renderComponent();
 
-      await user.click(screen.getByTestId('add-lls-connection-button'));
-      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+      await user.click(screen.getByTestId('add-ogx-connection-button'));
+      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
 
-      await user.click(screen.getByTestId('lls-modal-cancel'));
-      expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+      await user.click(screen.getByTestId('ogx-modal-cancel'));
+      expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
     });
 
     it('should close modal and update form with new connection after submit', async () => {
       const user = userEvent.setup();
       renderComponent();
 
-      await user.click(screen.getByTestId('add-lls-connection-button'));
-      expect(screen.getByTestId('lls-connection-modal')).toBeInTheDocument();
+      await user.click(screen.getByTestId('add-ogx-connection-button'));
+      expect(screen.getByTestId('ogx-connection-modal')).toBeInTheDocument();
 
-      await user.click(screen.getByTestId('lls-modal-submit'));
+      await user.click(screen.getByTestId('ogx-modal-submit'));
 
       await waitFor(() => {
-        expect(screen.queryByTestId('lls-connection-modal')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('ogx-connection-modal')).not.toBeInTheDocument();
       });
 
       await waitFor(() => {
-        expect(screen.getByTestId('lls-secret-selector-value')).toHaveTextContent(
+        expect(screen.getByTestId('ogx-secret-selector-value')).toHaveTextContent(
           'new-secret-uuid',
         );
       });

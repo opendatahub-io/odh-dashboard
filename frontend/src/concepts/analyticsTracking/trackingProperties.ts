@@ -35,6 +35,7 @@ export type LinkTrackingEventProperties = {
   type?: string;
   section?: string;
   name?: string;
+  projectName?: string;
 } & BaseTrackingEventProperties;
 
 export type MiscTrackingEventProperties = {

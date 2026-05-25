@@ -6,15 +6,18 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
-import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEnitites';
+import useFeatureStoreEntities from '../../apiHooks/useFeatureStoreEntities';
 import { featureStoreRoute } from '../../routes';
 import FeatureStorePageTitle from '../../components/FeatureStorePageTitle';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
 
 const title = 'Entities';
-const description =
-  'Select a feature store to view and manage its entities. Entities are collections of related features and can be mapped to your use case (for example, customers, products, transactions).';
+const description = `Select a feature store to view and manage its entities. ${getFeatureStoreObjectDescription(
+  FeatureStoreObject.ENTITIES,
+).trim()}`;
 
 const FeatureStoreEntities = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();
@@ -32,7 +35,7 @@ const FeatureStoreEntities = (): React.ReactElement => {
       data-testid="empty-state-title"
     >
       <EmptyStateBody data-testid="empty-state-body">
-        Select a different feature store or create a entity in a workbench.
+        Select a different feature store or create an entity in a workbench.
       </EmptyStateBody>
     </EmptyState>
   );

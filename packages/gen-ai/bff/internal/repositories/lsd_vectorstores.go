@@ -19,7 +19,7 @@ func NewVectorStoresRepository() *VectorStoresRepository {
 }
 
 // ListVectorStores retrieves vector stores with optional filtering and transforms them for BFF use.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) ListVectorStores(ctx context.Context, params llamastack.ListVectorStoresParams) ([]openai.VectorStore, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -33,7 +33,7 @@ func (r *VectorStoresRepository) ListVectorStores(ctx context.Context, params ll
 }
 
 // CreateVectorStore creates a new vector store and transforms the result for BFF use.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) CreateVectorStore(ctx context.Context, params llamastack.CreateVectorStoreParams) (*openai.VectorStore, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -47,7 +47,7 @@ func (r *VectorStoresRepository) CreateVectorStore(ctx context.Context, params l
 }
 
 // DeleteVectorStore deletes a vector store by ID.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) DeleteVectorStore(ctx context.Context, vectorStoreID string) error {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -61,7 +61,7 @@ func (r *VectorStoresRepository) DeleteVectorStore(ctx context.Context, vectorSt
 }
 
 // ListVectorStoreFiles lists files in a vector store with optional filtering parameters.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) ListVectorStoreFiles(ctx context.Context, vectorStoreID string, params llamastack.ListVectorStoreFilesParams) ([]openai.VectorStoreFile, error) {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)
@@ -75,7 +75,7 @@ func (r *VectorStoresRepository) ListVectorStoreFiles(ctx context.Context, vecto
 }
 
 // DeleteVectorStoreFile removes a file from a vector store.
-// The LlamaStack client is expected to be in the context (created by AttachLlamaStackClient middleware).
+// The LlamaStack client is expected to be in the context (created by AttachOGXClient middleware).
 func (r *VectorStoresRepository) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
 	// Get ready-to-use LlamaStack client from context using helper
 	client, err := helper.GetContextLlamaStackClient(ctx)

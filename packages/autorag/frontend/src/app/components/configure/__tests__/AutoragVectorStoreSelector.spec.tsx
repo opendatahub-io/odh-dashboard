@@ -6,7 +6,7 @@ import { useParams } from 'react-router';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import AutoragVectorStoreSelector from '~/app/components/configure/AutoragVectorStoreSelector';
-import { useLlamaStackVectorStoreProvidersQuery } from '~/app/hooks/queries';
+import { useOgxVectorStoreProvidersQuery } from '~/app/hooks/queries';
 import { mockVectorStoreProvidersResponse } from '~/__mocks__/mockVectorStore';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 
@@ -17,7 +17,7 @@ jest.mock('react-router', () => ({
 
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn(),
+  useOgxVectorStoreProvidersQuery: jest.fn(),
 }));
 
 const mockNotificationError = jest.fn();
@@ -33,9 +33,7 @@ jest.mock('~/app/hooks/useNotification', () => ({
 }));
 
 const mockUseParams = jest.mocked(useParams);
-const mockUseLlamaStackVectorStoreProvidersQuery = jest.mocked(
-  useLlamaStackVectorStoreProvidersQuery,
-);
+const mockUseOgxVectorStoreProvidersQuery = jest.mocked(useOgxVectorStoreProvidersQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -85,10 +83,10 @@ describe('AutoragVectorStoreSelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: mockVectorStoreProvidersResponse(),
       isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
   });
 
   it('should display placeholder text when no provider is selected', () => {
@@ -134,10 +132,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should disable the toggle when no providers are available', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -147,11 +145,11 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should disable the toggle and show error notification when fetching providers fails', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: true,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -159,15 +157,15 @@ describe('AutoragVectorStoreSelector', () => {
     expect(toggle).toBeDisabled();
     expect(mockNotificationError).toHaveBeenCalledWith(
       'Failed to load vector I/O providers.',
-      expect.anything(), // Error message may include details from lls BFF in the future.
+      expect.anything(), // Error message may include details from ogx BFF in the future.
     );
   });
 
   it('should show warning notification when providers exist but none are supported', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 2 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -178,10 +176,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should not show warning notification when no providers exist at all', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: { vector_store_providers: [], totalProviderCount: 0 }, // eslint-disable-line camelcase
       isLoading: false,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -189,10 +187,10 @@ describe('AutoragVectorStoreSelector', () => {
   });
 
   it('should show a loading skeleton when providers are loading', () => {
-    mockUseLlamaStackVectorStoreProvidersQuery.mockReturnValue({
+    mockUseOgxVectorStoreProvidersQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
-    } as unknown as ReturnType<typeof useLlamaStackVectorStoreProvidersQuery>);
+    } as unknown as ReturnType<typeof useOgxVectorStoreProvidersQuery>);
 
     renderWithProviders(<AutoragVectorStoreSelector />);
 
@@ -216,7 +214,7 @@ describe('AutoragVectorStoreSelector', () => {
       });
 
       expect(formValues).toMatchObject({
-        llama_stack_vector_io_provider_id: '', // eslint-disable-line camelcase
+        vector_io_provider_id: '', // eslint-disable-line camelcase
       });
     });
 
@@ -235,7 +233,7 @@ describe('AutoragVectorStoreSelector', () => {
       // Wait for field value to update
       await waitFor(() => {
         expect(formValues).toMatchObject({
-          llama_stack_vector_io_provider_id: 'milvus', // eslint-disable-line camelcase
+          vector_io_provider_id: 'milvus', // eslint-disable-line camelcase
         });
       });
 
