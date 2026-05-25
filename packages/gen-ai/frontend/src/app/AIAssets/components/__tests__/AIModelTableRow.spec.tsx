@@ -539,4 +539,37 @@ describe('AIModelTableRow', () => {
       expect(button.closest('button')).not.toBeDisabled();
     });
   });
+
+  describe('Playground column - disabled', () => {
+    it('should not render playground column when showPlaygroundColumn is false', () => {
+      const model = createMockAIModel();
+      render(
+        <TestWrapper>
+          <AIModelTableRow {...defaultProps} model={model} showPlaygroundColumn={false} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+    });
+
+    it('should not render playground buttons even when model is in playground if column is disabled', () => {
+      const model = createMockAIModel({ model_id: 'test-model-id' });
+      const playgroundModel = createMockPlaygroundModel('test-model-id');
+
+      render(
+        <TestWrapper>
+          <AIModelTableRow
+            {...defaultProps}
+            model={model}
+            playgroundModels={[playgroundModel]}
+            showPlaygroundColumn={false}
+          />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Try in playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add to playground')).not.toBeInTheDocument();
+    });
+  });
 });
