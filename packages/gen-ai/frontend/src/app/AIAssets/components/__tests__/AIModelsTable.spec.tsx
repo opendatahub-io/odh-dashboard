@@ -14,6 +14,10 @@ jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
   __esModule: true,
   default: () => false,
 }));
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 
 const mockUseAIModelsFilter = jest.mocked(useAIModelsFilter);
 

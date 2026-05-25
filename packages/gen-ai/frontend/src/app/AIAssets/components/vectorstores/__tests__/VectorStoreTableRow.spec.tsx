@@ -38,6 +38,11 @@ jest.mock('../VectorStoreTableRowInfo', () => ({
   ),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 const createStore = (
@@ -110,6 +115,7 @@ const renderRow = (props?: {
               allCollections={[store]}
               collectionsLoaded
               existingCollections={existingCollections}
+              showPlaygroundColumn
             />
           </tbody>
         </table>

@@ -64,6 +64,11 @@ jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
   default: () => false,
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
     <GenAiContext.Provider value={mockGenAiContextValue}>
@@ -112,6 +117,7 @@ describe('AIModelTableRow', () => {
     allCollections: [],
     collectionsLoaded: true,
     existingCollections: [],
+    showPlaygroundColumn: true,
   };
 
   beforeEach(() => {
