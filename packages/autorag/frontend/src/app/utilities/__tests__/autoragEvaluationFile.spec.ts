@@ -4,6 +4,7 @@ import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
+  EVALUATION_FILE_ACCEPT,
   getEvaluationDropRejectedNotification,
   isAllowedEvaluationJsonFile,
 } from '~/app/utilities/autoragEvaluationFile';
@@ -13,6 +14,13 @@ function rejection(file: File, errors: Array<{ code: string; message: string }>)
 }
 
 describe('autoragEvaluationFile', () => {
+  it('EVALUATION_FILE_ACCEPT includes application/json and text/json', () => {
+    expect(EVALUATION_FILE_ACCEPT).toEqual({
+      'application/json': ['.json'],
+      'text/json': ['.json'],
+    });
+  });
+
   describe('isAllowedEvaluationJsonFile', () => {
     it('allows .json regardless of MIME type', () => {
       expect(

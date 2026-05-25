@@ -15,6 +15,7 @@ import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
+  EVALUATION_FILE_ACCEPT,
   getEvaluationDropRejectedNotification,
   isAllowedEvaluationJsonFile,
 } from '~/app/utilities/autoragEvaluationFile';
@@ -93,7 +94,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         fileUploadProps={{
           'data-testid': 'evaluation-upload-zone',
           dropzoneProps: {
-            accept: { 'application/json': ['.json'] },
+            accept: EVALUATION_FILE_ACCEPT,
             maxFiles: 1,
             maxSize: AUTORAG_UPLOAD_MAX_BYTES,
             multiple: false,
