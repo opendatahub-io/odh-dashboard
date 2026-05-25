@@ -2,16 +2,18 @@ import type {
   AreaExtension,
   ProjectDetailsSettingsCardExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// Allow this import as it consists of types and enums only.
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
   DeploymentWizardFieldExtension,
   DeployedModelServingDetails,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
+  WizardField2Extension,
 } from '@odh-dashboard/model-serving/extension-points';
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
+import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
 
 export const NIM_ID = 'nvidia-nim';
 
@@ -22,6 +24,7 @@ const extensions: (
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
   | DeploymentWizardFieldExtension
+  | WizardField2Extension<NIMImageFieldType>
 )[] = [
   {
     type: 'app.area',
@@ -82,6 +85,18 @@ const extensions: (
         import('./src/wizardFields/overrides/NIMModelTypeOverride').then(
           (m) => m.NIMModelTypeOverride,
         ),
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field2',
+    properties: {
+      field: () =>
+        import('./src/pages/deploymentWizard/fields/NIMImageField').then(
+          (m) => m.NIMImageFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
 ];

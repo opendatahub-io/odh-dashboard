@@ -11,10 +11,11 @@ import useFeatureServices from '../../apiHooks/useFeatureServices';
 import { featureStoreRoute } from '../../routes';
 import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
+import { getFeatureStoreObjectDescription } from '../../utils';
+import { FeatureStoreObject } from '../../const';
 
 const title = 'Feature services';
-const description =
-  'Select a feature store to view its feature services. Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.';
+const description = getFeatureStoreObjectDescription(FeatureStoreObject.FEATURE_SERVICES);
 
 const FeatureServices = (): React.ReactElement => {
   const { currentProject } = useFeatureStoreProject();

@@ -65,6 +65,7 @@ export enum SupportedArea {
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
+  MY_SUBSCRIPTIONS = 'my-subscriptions',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -95,6 +96,9 @@ export enum SupportedArea {
   /* Model Training */
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
+
+  /* Agent Ops */
+  AGENT_OPS = 'agent-ops',
 
   /* MLflow */
   MLFLOW = 'mlflow',

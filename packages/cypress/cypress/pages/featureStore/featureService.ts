@@ -12,10 +12,7 @@ class FeatureServicesTable extends Contextual<HTMLElement> {
 
   findRow(featureServiceName: string) {
     return new FeatureServiceTableRow(() =>
-      this.findTable()
-        .find('[data-label="Feature service"]')
-        .contains(featureServiceName)
-        .parents('tr'),
+      this.findTable().find('[data-label="Name"]').contains(featureServiceName).parents('tr'),
     );
   }
 
@@ -39,7 +36,7 @@ class FeatureServicesTable extends Contextual<HTMLElement> {
 
 class FeatureServiceTableRow extends TableRow {
   shouldHaveFeatureServiceName(name: string) {
-    this.find().find('[data-label="Feature service"]').should('contains.text', name);
+    this.find().find('[data-label="Name"]').should('contain.text', name);
     return this;
   }
 

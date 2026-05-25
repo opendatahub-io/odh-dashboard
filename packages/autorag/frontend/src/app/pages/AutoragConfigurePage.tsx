@@ -29,18 +29,16 @@ import { ConfigureSchema, createConfigureSchema } from '~/app/schemas/configure.
 import { autoragExperimentsPathname, autoragResultsPathname } from '~/app/utilities/routes';
 
 const configureSchema = createConfigureSchema();
-const createFields = [
-  'display_name',
-  'description',
-  'llama_stack_secret_name',
-] as const satisfies Array<FieldPath<ConfigureSchema>>;
+const createFields = ['display_name', 'description', 'ogx_secret_name'] as const satisfies Array<
+  FieldPath<ConfigureSchema>
+>;
 
 type AutoragConfigurePageProps = {
   initialValues?: Partial<ConfigureSchema>;
   /** Pre-resolved S3 connection secret for reconfigure flows. */
   initialInputDataSecret?: SecretSelection;
-  /** Pre-resolved Llama Stack connection secret for reconfigure flows. */
-  initialLlamaStackSecret?: SecretSelection;
+  /** Pre-resolved Open GenAI Stack connection secret for reconfigure flows. */
+  initialOgxSecret?: SecretSelection;
   /** When reconfiguring, the run ID of the source run (used for cancel navigation). */
   sourceRunId?: string;
   /** When reconfiguring, the display name of the source run (used in the page title). */
@@ -50,7 +48,7 @@ type AutoragConfigurePageProps = {
 function AutoragConfigurePage({
   initialValues,
   initialInputDataSecret,
-  initialLlamaStackSecret,
+  initialOgxSecret,
   sourceRunId,
   sourceRunName,
 }: AutoragConfigurePageProps): React.JSX.Element {
@@ -81,7 +79,7 @@ function AutoragConfigurePage({
     defaultValues: { ...configureSchema.defaults, ...initialValues },
   });
 
-  const [displayName, , llamaStackSecretName] = useWatch({
+  const [displayName, , ogxSecretName] = useWatch({
     control: form.control,
     name: createFields,
   });
@@ -98,8 +96,7 @@ function AutoragConfigurePage({
           variant="primary"
           isDisabled={
             !configureSchema.base.shape.display_name.safeParse(displayName).success ||
-            !configureSchema.base.shape.llama_stack_secret_name.safeParse(llamaStackSecretName)
-              .success
+            !configureSchema.base.shape.ogx_secret_name.safeParse(ogxSecretName).success
           }
         >
           Next
@@ -245,7 +242,7 @@ function AutoragConfigurePage({
               hasBodyWrapper={false}
             >
               {step === 'create' ? (
-                <AutoragCreate initialLlamaStackSecret={initialLlamaStackSecret} />
+                <AutoragCreate initialOgxSecret={initialOgxSecret} />
               ) : (
                 <AutoragConfigure
                   initialValues={initialValues}
