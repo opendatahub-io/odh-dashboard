@@ -48,9 +48,8 @@ const extensions: (
       reliantAreas: [PLUGIN_GEN_AI],
       featureFlags: [],
       customCondition: ({ dscStatus }) =>
-        !dscStatus ||
         ['Managed', 'Unmanaged'].includes(
-          dscStatus.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
+          dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
         ),
     },
   },
