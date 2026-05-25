@@ -520,13 +520,6 @@ func validateIP(ip net.IP) error {
 	return nil
 }
 
-// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
-// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
-// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
-// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
-// services typically run as cluster-internal services with private IPs.
-//
-// Known limitation: DNS resolution here is TOCTOU-vulnerable — the HTTP client re-resolves
 // sanitizeURLForLog strips userinfo, query parameters, and fragment from a URL
 // so it is safe to write to logs without leaking embedded credentials.
 func sanitizeURLForLog(rawURL string) string {
@@ -540,6 +533,13 @@ func sanitizeURLForLog(rawURL string) string {
 	return parsed.String()
 }
 
+// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// Only http and https schemes are allowed. For IP literals, the IP is checked directly.
+// For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
+// services typically run as cluster-internal services with private IPs.
+//
+// Known limitation: DNS resolution here is TOCTOU-vulnerable — the HTTP client re-resolves
 // DNS independently, so an attacker-controlled DNS server could return a safe IP during
 // validation and a malicious IP during the actual connection. Mitigated in practice by
 // cluster-internal DNS and network policies.
