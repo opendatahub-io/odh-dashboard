@@ -29,7 +29,9 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 
 	// Parse the raw request body — we treat it as an opaque JSON object
 	var requestBody map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.UseNumber()
+	if err := decoder.Decode(&requestBody); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid JSON request body: %w", err))
 		return
 	}
