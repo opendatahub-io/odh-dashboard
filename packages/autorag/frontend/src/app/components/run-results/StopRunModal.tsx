@@ -4,7 +4,7 @@ import { Button, Modal, ModalBody, ModalFooter, ModalHeader } from '@patternfly/
 type StopRunModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   isTerminating: boolean;
   runName?: string;
 };
@@ -25,9 +25,13 @@ const StopRunModal: React.FC<StopRunModalProps> = ({
     }
   }, [isOpen]);
 
-  const handleStopClick = React.useCallback(() => {
+  const handleStopClick = React.useCallback(async () => {
     setIsSubmitting(true);
-    onConfirm();
+    try {
+      await onConfirm();
+    } finally {
+      setIsSubmitting(false);
+    }
   }, [onConfirm]);
 
   const isDisabled = isSubmitting || isTerminating;
