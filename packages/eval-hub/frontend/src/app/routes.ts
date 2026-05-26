@@ -22,3 +22,6 @@ export const evaluationStartRoute = (namespace?: string): string =>
 
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;
+
+export const evaluationCompareRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/compare`;
