@@ -845,9 +845,13 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
+		modelID := llmSvc.Name
+		if llmSvc.Spec.Model.Name != nil {
+			modelID = *llmSvc.Spec.Model.Name
+		}
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
-			ModelID:         *llmSvc.Spec.Model.Name,
+			ModelID:         modelID,
 			Description:     kc.extractDescriptionFromLLMInferenceService(&llmSvc),
 			ServingRuntime:  "Distributed inference with llm-d",
 			APIProtocol:     "REST",
@@ -2077,7 +2081,10 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 		}
 
 		// Use the actual model name from LLMInferenceService spec instead of service name
-		actualModelName := *targetLLMSVC.Spec.Model.Name
+		actualModelName := modelID
+		if targetLLMSVC.Spec.Model.Name != nil {
+			actualModelName = *targetLLMSVC.Spec.Model.Name
+		}
 		kc.Logger.Debug("using LLMInferenceService for model", "serviceName", modelID, "actualModelName", actualModelName, "endpoint", endpointURL)
 		return modelDetailsResult{
 			modelID:     actualModelName,

@@ -17,6 +17,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
@@ -1385,5 +1386,71 @@ func TestAnonymousClientConfigStripsServiceAccountCredentials(t *testing.T) {
 		assert.Equal(t, []byte("cluster-ca"), userConfig.CAData,
 			"user config must keep cluster CA for TLS verification")
 		assert.Equal(t, "https://test-cluster.example.com", userConfig.Host)
+	})
+}
+
+func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, kservev1alpha1.AddToScheme(scheme))
+
+	modelName := "explicit-model-name"
+
+	t.Run("nil Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
+	t.Run("non-nil Spec.Model.Name is used as ModelID", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &modelName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "explicit-model-name", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
 	})
 }
