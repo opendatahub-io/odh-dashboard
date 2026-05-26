@@ -706,86 +706,114 @@ import (
     "net/http"
 )
 
-// AwsS3ClientInterface wraps s3.Client for testing
-type AwsS3ClientInterface interface {
+// S3Interface wraps s3.Client for testing
+type S3Interface interface {
     // S3 client methods
 }
 
-// AwsS3TransferManagerInterface wraps transfer manager for testing
-type AwsS3TransferManagerInterface interface {
+// S3TransferManagerInterface wraps transfer manager for testing
+type S3TransferManagerInterface interface {
     Upload(ctx context.Context, input *s3.PutObjectInput, opts ...func(*manager.Uploader)) (*manager.UploadOutput, error)
 }
 
-// S3ClientFactory creates AWS S3 client and transfer manager
-type S3ClientFactory func(creds *S3Credentials, region, endpoint string) (AwsS3ClientInterface, AwsS3TransferManagerInterface, error)
+// S3Config holds the connection configuration for an S3-compatible endpoint
+type S3Config struct {
+    Region       string
+    BaseEndpoint string
+    Credentials  *S3Credentials
+}
+
+// S3ClientProviderInterface creates AWS S3 clients and transfer managers
+type S3ClientProviderInterface interface {
+    CreateClient(config *S3Config) (S3Interface, error)
+    CreateTransferManager(config *S3Config) (S3TransferManagerInterface, error)
+}
 
 // S3Client implements S3 operations using AWS SDK
 type S3Client struct {
-    Factory S3ClientFactory
+    Provider S3ClientProviderInterface
 }
 
-// S3ClientConfig for injectable constructor (testing)
-type S3ClientConfig struct {
-    // Minimal config for testing with mock factory
+func NewS3Client(provider S3ClientProviderInterface) *S3Client {
+    return &S3Client{
+        Provider: provider,
+    }
 }
 
-// DefaultS3ClientConfig for default constructor (production)
 type DefaultS3ClientConfig struct {
-    // Could have fields like default region, timeout, part size, etc.
+    Concurrency        int
+    PartSizeBytes      int64
+    GetObjectBufSize   int
+    PartBodyMaxRetries int
+    WrapTransport      func(http.RoundTripper) http.RoundTripper
 }
 
-// NewS3Client creates a client with injectable factory (for testing)
-func NewS3Client(cfg S3ClientConfig, factory S3ClientFactory) *S3Client {
-    return &S3Client{
-        Factory: factory,
-    }
-}
-
-// NewDefaultS3Client creates a client with real AWS SDK factory
 func NewDefaultS3Client(cfg DefaultS3ClientConfig) *S3Client {
-    factory := func(creds *S3Credentials, region, endpoint string) (AwsS3ClientInterface, AwsS3TransferManagerInterface, error) {
-        awsConfig := aws.Config{
-            Region: region,
-            Credentials: credentials.NewStaticCredentialsProvider(
-                creds.AccessKeyID,
-                creds.SecretAccessKey,
-                "",
-            ),
-        }
-
-        // Clone default transport for custom configuration
-        transport := cloneDefaultTransport()
-
-        awsConfig.HTTPClient = &http.Client{
-            Transport: transport,
-        }
-
-        // Create S3 client with custom endpoint
-        s3Client := s3.NewFromConfig(awsConfig, func(o *s3.Options) {
-            o.BaseEndpoint = aws.String(endpoint)
-            o.UsePathStyle = true // For MinIO/S3-compatible services
-        })
-
-        // Create transfer manager for efficient uploads
-        s3TransferManager := transfermanager.New(s3Client, func(o *transfermanager.Options) {
-            o.Concurrency = cfg.Concurrency
-            o.PartSizeBytes = cfg.PartSizeBytes
-            o.GetObjectBufferSize = cfg.GetObjectBufSize
-            o.PartBodyMaxRetries = cfg.PartBodyMaxRetries
-            o.DisableChecksumValidation = false
-        })
-
-        return s3Client, s3TransferManager, nil
-    }
-
     return &S3Client{
-        Factory: factory,
+        Provider: &S3ClientProvider{
+            Concurrency:        cfg.Concurrency,
+            PartSizeBytes:      cfg.PartSizeBytes,
+            GetObjectBufSize:   cfg.GetObjectBufSize,
+            PartBodyMaxRetries: cfg.PartBodyMaxRetries,
+            WrapTransport:      cfg.WrapTransport,
+        },
     }
+}
+
+type S3ClientProvider struct {
+    Concurrency        int
+    PartSizeBytes      int64
+    GetObjectBufSize   int
+    PartBodyMaxRetries int
+    WrapTransport      func(http.RoundTripper) http.RoundTripper
+}
+
+func (p *S3ClientProvider) CreateClient(config *S3Config) (S3Interface, error) {
+    awsConfig := aws.Config{
+        Region: config.Region,
+        Credentials: credentials.NewStaticCredentialsProvider(
+            config.Credentials.AccessKeyID,
+            config.Credentials.SecretAccessKey,
+            "",
+        ),
+    }
+
+    transport := http.DefaultTransport.(*http.Transport).Clone()
+    var rt http.RoundTripper = transport
+    if p.WrapTransport != nil {
+        rt = p.WrapTransport(transport)
+    }
+    awsConfig.HTTPClient = &http.Client{Transport: rt}
+
+    return s3.NewFromConfig(awsConfig, func(o *s3.Options) {
+        o.BaseEndpoint = aws.String(config.BaseEndpoint)
+        o.UsePathStyle = true
+    }), nil
+}
+
+func (p *S3ClientProvider) CreateTransferManager(config *S3Config) (S3TransferManagerInterface, error) {
+    s3Client, err := p.CreateClient(config)
+    if err != nil {
+        return nil, err
+    }
+
+    tm := transfermanager.New(s3Client, func(o *transfermanager.Options) {
+        o.Concurrency = p.Concurrency
+        o.PartSizeBytes = p.PartSizeBytes
+        o.GetObjectBufferSize = p.GetObjectBufSize
+        o.PartBodyMaxRetries = p.PartBodyMaxRetries
+        o.DisableChecksumValidation = false
+    })
+
+    return tm, nil
 }
 
 func (c *S3Client) UploadFile(ctx context.Context, req *UploadFileRequest) (*UploadFileResult, error) {
-    // Create client and transfer manager with request credentials
-    _, transferManager, err := c.Factory(req.Credentials, req.Region, req.Endpoint)
+    transferManager, err := c.Provider.CreateTransferManager(&S3Config{
+        Region:       req.Region,
+        BaseEndpoint: req.Endpoint,
+        Credentials:  req.Credentials,
+    })
     if err != nil {
         return nil, err
     }
@@ -812,13 +840,6 @@ func (c *S3Client) UploadFile(ctx context.Context, req *UploadFileRequest) (*Upl
     }, nil
 }
 
-// cloneDefaultTransport creates a copy of http.DefaultTransport
-func cloneDefaultTransport() *http.Transport {
-    transport := http.DefaultTransport.(*http.Transport).Clone()
-    transport.MaxIdleConns = 100
-    transport.MaxIdleConnsPerHost = 100
-    return transport
-}
 ```
 
 ## Testing Patterns
@@ -1059,32 +1080,30 @@ func TestK8sTokenClient_ListResources(t *testing.T) {
 }
 
 func TestS3Client_UploadFile(t *testing.T) {
-    // Mock S3 client factory
-    mockFactory := func(creds *s3.S3Credentials, region, endpoint string) (s3.AwsS3ClientInterface, s3.AwsS3TransferManagerInterface, error) {
-        // Verify credentials
-        assert.Equal(t, "access-key", creds.AccessKeyID)
-        assert.Equal(t, "secret-key", creds.SecretAccessKey)
-        assert.Equal(t, "us-east-1", region)
-        assert.Equal(t, "http://minio:9000", endpoint)
-        
-        // Return mock transfer manager
-        mockTransferManager := &mocks.MockS3TransferManager{
-            UploadObjectFunc: func(ctx context.Context, input *transfermanager.UploadObjectInput, opts ...func(*transfermanager.Options)) (*transfermanager.UploadOutput, error) {
-                assert.Equal(t, "my-bucket", *input.Bucket)
-                assert.Equal(t, "my-key", *input.Key)
-                
-                return &transfermanager.UploadOutput{
-                    Location: "s3://my-bucket/my-key",
-                    ETag:     aws.String("etag-123"),
-                }, nil
-            },
-        }
-        
-        return nil, mockTransferManager, nil
+    mockProvider := &mocks.MockS3ClientProvider{
+        CreateTransferManagerFunc: func(config *s3.S3Config) (s3.S3TransferManagerInterface, error) {
+            assert.Equal(t, "access-key", config.Credentials.AccessKeyID)
+            assert.Equal(t, "secret-key", config.Credentials.SecretAccessKey)
+            assert.Equal(t, "us-east-1", config.Region)
+            assert.Equal(t, "http://minio:9000", config.BaseEndpoint)
+
+            mockTransferManager := &mocks.MockS3TransferManagerInterface{
+                UploadObjectFunc: func(ctx context.Context, input *transfermanager.UploadObjectInput, opts ...func(*transfermanager.Options)) (*transfermanager.UploadOutput, error) {
+                    assert.Equal(t, "my-bucket", *input.Bucket)
+                    assert.Equal(t, "my-key", *input.Key)
+
+                    return &transfermanager.UploadOutput{
+                        Location: "s3://my-bucket/my-key",
+                        ETag:     aws.String("etag-123"),
+                    }, nil
+                },
+            }
+
+            return mockTransferManager, nil
+        },
     }
 
-    // Create S3 client with mocked factory
-    client := s3.NewS3Client(s3.S3ClientConfig{}, mockFactory)
+    client := s3.NewS3Client(mockProvider)
 
     // Test client's S3 interaction
     result, err := client.UploadFile(context.Background(), &s3.UploadFileRequest{
@@ -1130,7 +1149,7 @@ This architecture provides several testing advantages:
 4. **Mock Reusability**:
    - Same mock implementations work across multiple test files
    - Standardized mock interfaces reduce boilerplate
-   - Factory functions for common mock scenarios
+   - Provider functions for common mock scenarios
 ```
 
 ### Mock Flag Support
@@ -1190,10 +1209,10 @@ func main() {
 - Services depend on interfaces, not concrete types
 - Facilitates testing and future implementation changes
 
-### 3. Factory Pattern
+### 3. Provider Pattern
 - Default constructors create production-ready implementations
 - Test constructors accept mock dependencies
-- S3 client uses factory function for flexible AWS SDK initialization
+- S3 client uses provider for flexible AWS SDK initialization
 
 ### 4. Two-Tier Client Structure
 - `NewDefaultXClient(DefaultXClientConfig)` - Production constructor creating real dependencies
@@ -1310,7 +1329,7 @@ This architecture supports adding new integrations by following the same pattern
 3. Create client with:
    - Default constructor for production
    - Injectable constructor for testing
-   - Factory pattern for complex initialization
+   - Provider pattern for complex initialization
 4. Wire into app with dependency injection
 5. Add mock flag support for integration testing
 
