@@ -977,6 +977,10 @@ class AddModelsToSubscriptionModal extends Modal {
     return this.find().findByTestId('add-models-filter');
   }
 
+  findRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findTable().find('tbody tr');
+  }
+
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('add-models-table');
   }
@@ -1013,7 +1017,7 @@ class EditRateLimitsModal extends Modal {
 
   selectUnit(index: number, unit: string): void {
     this.findUnitDropdown(index).click();
-    cy.findByRole('menuitem', { name: unit }).click();
+    cy.get('[role="menuitem"]').contains(unit).click();
   }
 
   findSaveButton(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1204,6 +1208,15 @@ class AuthPoliciesPage {
     );
   }
 
+  getFirstRowPolicyName(): Cypress.Chainable<string> {
+    return this.findRows()
+      .first()
+      .findByTestId('table-row-title')
+      .find('a')
+      .invoke('text')
+      .then((text) => text.trim());
+  }
+
   findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('empty-state-title');
   }
@@ -1220,6 +1233,10 @@ class AuthPoliciesPage {
 class AuthPolicyTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Name"]');
+  }
+
+  findDescription(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findName().findByTestId('table-row-title-description');
   }
 
   findPhase(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1244,6 +1261,18 @@ class AuthPolicyTableRow extends TableRow {
 
   findActionsToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByLabelText('Kebab toggle');
+  }
+
+  findEditActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Edit', false);
+  }
+
+  findDeleteActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('Delete', false);
+  }
+
+  findViewDetailsActionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findKebabAction('View details', false);
   }
 
   findTitleButton(): Cypress.Chainable<JQuery<HTMLAnchorElement>> {
@@ -1301,7 +1330,7 @@ class ViewAuthPolicyPage {
   }
 
   findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByTestId('subscription-models-section');
+    return cy.findByTestId('authorization-policy-models-table');
   }
 
   findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {

@@ -63,6 +63,22 @@ export const execWithOutput = (
 };
 
 /**
+ * Gets the cluster apps domain from OpenShift ingress config.
+ * @returns The cluster apps domain (e.g., "apps.my-cluster.example.com")
+ */
+export const getClusterAppsDomain = (): Cypress.Chainable<string> => {
+  return cy
+    .exec(`oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'`, {
+      failOnNonZeroExit: true,
+    })
+    .then((result: CommandLineResult) => {
+      const domain = result.stdout.trim().replace(/^'|'$/g, '');
+      cy.log(`Cluster apps domain: ${domain}`);
+      return cy.wrap(domain);
+    });
+};
+
+/**
  * Applies the given YAML content using the `oc apply` command.
  *
  * @param yamlContent YAML content to be applied
