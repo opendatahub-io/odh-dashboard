@@ -1,5 +1,8 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import {
+  enableMlflowFeatures,
+  disableMlflowFeatures,
+  doesMlflowCRExist,
   createMlflowExperimentViaAPI,
   deleteMlflowExperimentViaAPI,
   getMlflowExperimentIdByName,
@@ -16,6 +19,7 @@ import type { MlflowExperimentsTestData } from '../../../types';
 describe('Verify MLflow Experiments page', () => {
   let testData: MlflowExperimentsTestData;
   let projectName: string;
+  let crExisted = true;
   let runsExperimentId: string | undefined;
   let uiExperimentName: string | undefined;
   let uiExperimentDeleted = false;
@@ -28,7 +32,17 @@ describe('Verify MLflow Experiments page', () => {
         projectName = `${fixtureData.projectName}-${uuid}`;
         return deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true });
       })
-      .then(() => createOpenShiftProject(projectName));
+      .then(() => createOpenShiftProject(projectName))
+      .then(() =>
+        doesMlflowCRExist().then((v) => {
+          crExisted = v;
+          cy.step(`Pre-test state: CR=${crExisted ? 'exists' : 'absent'}`);
+        }),
+      )
+      .then(() => {
+        cy.step('Enable all features required for MLflow Experiments');
+        return enableMlflowFeatures();
+      });
   });
 
   after(() => {
@@ -42,6 +56,7 @@ describe('Verify MLflow Experiments page', () => {
     if (runsExperimentId) {
       deleteMlflowExperimentViaAPI(projectName, runsExperimentId);
     }
+    disableMlflowFeatures(crExisted);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 
