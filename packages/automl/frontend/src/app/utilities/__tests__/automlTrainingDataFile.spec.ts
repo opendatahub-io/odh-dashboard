@@ -3,6 +3,7 @@ import {
   AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
   getTrainingDataDropRejectedNotification,
   isAllowedTrainingDataUploadFile,
+  resolveSingleFileDropOutcome,
 } from '~/app/utilities/automlTrainingDataFile';
 
 function rejection(file: File, errors: Array<{ code: string; message: string }>): FileRejection {
@@ -10,6 +11,18 @@ function rejection(file: File, errors: Array<{ code: string; message: string }>)
 }
 
 describe('automlTrainingDataFile', () => {
+  describe('resolveSingleFileDropOutcome', () => {
+    it('rejects the whole drop when one valid and one invalid file are dropped', () => {
+      const valid = new File(['a,b'], 'data.csv', { type: 'text/csv' });
+      const invalid = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      const outcome = resolveSingleFileDropOutcome(
+        [valid],
+        [{ file: invalid, errors: [{ code: 'file-invalid-type', message: 'bad' }] }],
+      );
+      expect(outcome.kind).toBe('reject');
+    });
+  });
+
   describe('isAllowedTrainingDataUploadFile', () => {
     it('allows CSV by extension', () => {
       expect(
@@ -64,6 +77,49 @@ describe('automlTrainingDataFile', () => {
       ).toEqual({
         title: 'Too many files',
         description: 'Only one file can be uploaded at a time.',
+      });
+    });
+
+    it('combines descriptions when one file has multiple known rejection codes', () => {
+      const file = new File(['x'], 'big.exe', { type: 'application/octet-stream' });
+      expect(
+        getTrainingDataDropRejectedNotification([
+          rejection(file, [
+            { code: 'file-too-large', message: 'too big' },
+            { code: 'file-invalid-type', message: 'bad type' },
+          ]),
+        ]),
+      ).toEqual({
+        title: 'File not accepted',
+        description: `${AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL} File type must be CSV.`,
+      });
+    });
+
+    it('aggregates known codes across multiple rejected files', () => {
+      const first = new File(['x'], 'a.sh', { type: 'application/octet-stream' });
+      const second = new File(['x'], 'b.sh', { type: 'application/octet-stream' });
+      expect(
+        getTrainingDataDropRejectedNotification([
+          rejection(first, [{ code: 'file-invalid-type', message: 'bad type' }]),
+          rejection(second, [{ code: 'too-many-files', message: 'too many' }]),
+        ]),
+      ).toEqual({
+        title: 'File not accepted',
+        description: 'Only one file can be uploaded at a time. File type must be CSV.',
+      });
+    });
+
+    it('includes one-file limit when multiple files are rejected with only invalid type', () => {
+      const first = new File(['x'], 'a.sh', { type: 'application/octet-stream' });
+      const second = new File(['x'], 'b.sh', { type: 'application/octet-stream' });
+      expect(
+        getTrainingDataDropRejectedNotification([
+          rejection(first, [{ code: 'file-invalid-type', message: 'bad type' }]),
+          rejection(second, [{ code: 'file-invalid-type', message: 'bad type' }]),
+        ]),
+      ).toEqual({
+        title: 'File not accepted',
+        description: 'Only one file can be uploaded at a time. File type must be CSV.',
       });
     });
 

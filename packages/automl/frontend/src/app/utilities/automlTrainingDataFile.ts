@@ -18,6 +18,48 @@ export const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
 
 const TRAINING_DATA_INVALID_FILE_TYPE_DESCRIPTION = 'File type must be CSV.';
 
+export type SingleFileDropOutcome =
+  | { kind: 'noop' }
+  | { kind: 'upload'; file: File }
+  | { kind: 'reject'; fileRejections: FileRejection[] };
+
+const TOO_MANY_FILES_REJECTION_ERROR = {
+  code: 'too-many-files',
+  message: 'Too many files',
+} as const;
+
+function combineAcceptedFilesAsRejections(acceptedFiles: File[]): FileRejection[] {
+  return acceptedFiles.map((file) => ({
+    file,
+    errors: [TOO_MANY_FILES_REJECTION_ERROR],
+  }));
+}
+
+/**
+ * Decides whether a single-file dropzone (`maxFiles: 1`) should upload, reject, or ignore a drop.
+ * Rejects the whole drop when more than one file was provided, including a mix of valid and invalid
+ * files (react-dropzone otherwise accepts the valid file and only rejects the rest).
+ */
+export function resolveSingleFileDropOutcome(
+  acceptedFiles: File[],
+  fileRejections: FileRejection[],
+): SingleFileDropOutcome {
+  const totalDropped = acceptedFiles.length + fileRejections.length;
+  if (totalDropped === 0) {
+    return { kind: 'noop' };
+  }
+  if (totalDropped > 1) {
+    return {
+      kind: 'reject',
+      fileRejections: [...fileRejections, ...combineAcceptedFilesAsRejections(acceptedFiles)],
+    };
+  }
+  if (fileRejections.length > 0) {
+    return { kind: 'reject', fileRejections };
+  }
+  return { kind: 'upload', file: acceptedFiles[0] };
+}
+
 /**
  * Client-side hint for UX only; file extensions and browser-reported MIME types can be spoofed.
  * The BFF must enforce limits independently.
@@ -37,8 +79,74 @@ export function isAllowedTrainingDataUploadFile(file: File): boolean {
 
 type TrainingRejectedNotification = { title: string; description: string } | null;
 
+const KNOWN_TRAINING_REJECTIONS: Array<{
+  code: string;
+  title: string;
+  description: string;
+}> = [
+  {
+    code: 'file-too-large',
+    title: 'File too large',
+    description: AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
+  },
+  {
+    code: 'too-many-files',
+    title: 'Too many files',
+    description: 'Only one file can be uploaded at a time.',
+  },
+  {
+    code: 'file-invalid-type',
+    title: 'Invalid file type',
+    description: TRAINING_DATA_INVALID_FILE_TYPE_DESCRIPTION,
+  },
+];
+
+function notificationForKnownTrainingRejectionCodes(
+  codes: Set<string>,
+): TrainingRejectedNotification {
+  const matched = KNOWN_TRAINING_REJECTIONS.filter((entry) => codes.has(entry.code));
+  if (matched.length === 0) {
+    return null;
+  }
+  if (matched.length === 1) {
+    return { title: matched[0].title, description: matched[0].description };
+  }
+  return {
+    title: 'File not accepted',
+    description: matched.map((entry) => entry.description).join(' '),
+  };
+}
+
+function collectTrainingRejectionCodes(fileRejections: FileRejection[]): Set<string> {
+  const codes = new Set<string>();
+  for (const { errors } of fileRejections) {
+    for (const error of errors) {
+      codes.add(error.code);
+    }
+  }
+  return codes;
+}
+
+/**
+ * react-dropzone only emits `too-many-files` when multiple files would be accepted. If every file
+ * fails validation (e.g. two `.sh` files on a single-file zone), each rejection is only
+ * `file-invalid-type` — surface the one-file limit anyway when multiple files were dropped.
+ */
+function includeMultiFileDropLimit(
+  codes: Set<string>,
+  fileRejections: FileRejection[],
+): Set<string> {
+  if (fileRejections.length <= 1) {
+    return codes;
+  }
+  const withLimit = new Set(codes);
+  withLimit.add('too-many-files');
+  return withLimit;
+}
+
 /**
  * Maps react-dropzone rejections to user-facing notification copy (same rules as AutoRAG uploads).
+ * Aggregates known rejection codes across every rejected file.
  */
 export function getTrainingDataDropRejectedNotification(
   fileRejections: FileRejection[],
@@ -46,23 +154,15 @@ export function getTrainingDataDropRejectedNotification(
   if (fileRejections.length === 0) {
     return null;
   }
+  const codes = includeMultiFileDropLimit(
+    collectTrainingRejectionCodes(fileRejections),
+    fileRejections,
+  );
+  const known = notificationForKnownTrainingRejectionCodes(codes);
+  if (known) {
+    return known;
+  }
   const { file, errors } = fileRejections[0];
-  const codes = new Set(errors.map((e) => e.code));
-  if (codes.has('file-too-large')) {
-    return { title: 'File too large', description: AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL };
-  }
-  if (codes.has('too-many-files')) {
-    return {
-      title: 'Too many files',
-      description: 'Only one file can be uploaded at a time.',
-    };
-  }
-  if (codes.has('file-invalid-type')) {
-    return {
-      title: 'Invalid file type',
-      description: TRAINING_DATA_INVALID_FILE_TYPE_DESCRIPTION,
-    };
-  }
   return {
     title: 'File not accepted',
     description: errors.map((e) => e.message).join(' ') || `“${file.name}” could not be added.`,

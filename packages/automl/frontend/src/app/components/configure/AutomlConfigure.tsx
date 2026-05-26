@@ -41,7 +41,6 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
@@ -89,6 +88,7 @@ import {
   AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
   getTrainingDataDropRejectedNotification,
   isAllowedTrainingDataUploadFile,
+  resolveSingleFileDropOutcome,
   TRAINING_DATA_FILE_ACCEPT,
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
@@ -464,6 +464,18 @@ function AutomlConfigure({
     [notification],
   );
 
+  const processTrainingDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleTrainingDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadTrainingDataFile(outcome.file);
+      }
+    },
+    [handleTrainingDataDropRejected, uploadTrainingDataFile],
+  );
+
   const openTrainingDataReplaceFileDialog = useCallback(() => {
     setIsTrainingDataUploadDropdownOpen(false);
     trainingDataNativeInputRef.current?.click();
@@ -682,17 +694,13 @@ function AutomlConfigure({
                               <MultipleFileUpload
                                 aria-describedby="training-data-upload-description"
                                 data-testid="training-data-upload-zone"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadTrainingDataFile(file);
-                                }}
                                 dropzoneProps={{
                                   accept: TRAINING_DATA_FILE_ACCEPT,
                                   disabled: formIsSubmitting || isTrainingDataFileUploading,
                                   maxFiles: 1,
                                   maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
                                   multiple: false,
-                                  onDropRejected: handleTrainingDataDropRejected,
+                                  onDrop: processTrainingDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain

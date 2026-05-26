@@ -45,7 +45,6 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import {
   CubesIcon,
@@ -85,6 +84,7 @@ import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_MAX_SIZE_MIB,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
   getInputDataDropRejectedNotification,
@@ -367,6 +367,18 @@ function AutoragConfigure({
     [notification],
   );
 
+  const processInputDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleInputDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadInputDataFile(outcome.file);
+      }
+    },
+    [handleInputDataDropRejected, uploadInputDataFile],
+  );
+
   const openInputDataReplaceFileDialog = useCallback(() => {
     setIsInputDataDropdownOpen(false);
     inputDataNativeInputRef.current?.click();
@@ -572,17 +584,13 @@ function AutoragConfigure({
                               <MultipleFileUpload
                                 aria-describedby="input-data-upload-description"
                                 data-testid="knowledge-upload-zone"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadInputDataFile(file);
-                                }}
                                 dropzoneProps={{
                                   accept: INPUT_DATA_FILE_ACCEPT,
                                   disabled: isSubmitting || isInputDataFileUploading,
                                   maxFiles: 1,
                                   maxSize: AUTORAG_UPLOAD_MAX_BYTES,
                                   multiple: false,
-                                  onDropRejected: handleInputDataDropRejected,
+                                  onDrop: processInputDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain

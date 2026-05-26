@@ -55,6 +55,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         id={field.name}
         selected={field.value}
         isDisabled={isSubmitting}
+        onDropRejected={handleEvaluationDropRejected}
         onUpload={async (file, setProgress, setStatus) => {
           if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
             notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
@@ -98,7 +99,6 @@ function AutoragEvaluationSelect(): React.JSX.Element {
             maxFiles: 1,
             maxSize: AUTORAG_UPLOAD_MAX_BYTES,
             multiple: false,
-            onDropRejected: handleEvaluationDropRejected,
           },
           filenamePlaceholder: 'Drag and drop or browse from...',
           // @ts-expect-error: bypass ts error to allow icon

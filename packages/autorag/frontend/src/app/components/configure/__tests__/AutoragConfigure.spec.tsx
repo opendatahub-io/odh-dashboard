@@ -561,6 +561,25 @@ describe('AutoragConfigure', () => {
         });
         expect(mockNotificationError).not.toHaveBeenCalled();
       });
+
+      it('should not upload a valid file when dropped together with an invalid file', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'notes.txt', { type: 'text/plain' });
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnKnowledgeUploadZone([goodFile, badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File not accepted',
+            'Only one file can be uploaded at a time. File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+          );
+        });
+      });
     });
 
     it('should upload an allowed file from the native file input', async () => {

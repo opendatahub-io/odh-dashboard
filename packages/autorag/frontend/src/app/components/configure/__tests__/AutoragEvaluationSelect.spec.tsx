@@ -329,6 +329,22 @@ describe('AutoragEvaluationSelect', () => {
       });
     });
 
+    it('should not upload a valid file when dropped together with an invalid file', async () => {
+      const { container } = renderWithProviders(<AutoragEvaluationSelect />);
+      const goodFile = new File(['{}'], 'eval.json', { type: 'application/json' });
+      const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+      mockUploadMutateAsync.mockClear();
+      dropFilesOnEvaluationFileUpload(container, [goodFile, badFile]);
+
+      expect(mockUploadMutateAsync).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockNotificationError).toHaveBeenCalledWith(
+          'File not accepted',
+          'Only one file can be uploaded at a time. Evaluation dataset must be a JSON file (.json).',
+        );
+      });
+    });
+
     it('should not upload a disallowed file type from the file input and should notify', async () => {
       const file = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
       const { container } = renderWithProviders(<AutoragEvaluationSelect />);
