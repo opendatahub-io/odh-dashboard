@@ -636,7 +636,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 			// TODO: Standardize secret key names across all consumers (AutoRAG, gen-ai, etc.)
 			baseURL, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, "OGX_CLIENT_BASE_URL")
 			if err != nil {
-				app.badRequestResponse(w, r, fmt.Errorf("failed to read OGX_CLIENT_BASE_URL from secret %q: %w", secretName, err))
+				app.handleSecretReadError(w, r, err, secretName, "OGX_CLIENT_BASE_URL")
 				return
 			}
 			if baseURL == "" {
@@ -653,10 +653,16 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 			// Read API key from secret (optional — empty string is valid for unauthenticated OGX)
 			apiKey, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, "OGX_CLIENT_API_KEY")
 			if err != nil {
-				// Key missing from secret — treat as no API key
-				logger.Debug("OGX_CLIENT_API_KEY not found in secret, proceeding without API key",
-					"secretName", secretName, "error", err)
-				apiKey = ""
+				if isSecretKeyMissing(err) {
+					// Key missing from secret — treat as no API key
+					logger.Debug("OGX_CLIENT_API_KEY not found in secret, proceeding without API key",
+						"secretName", secretName, "error", err)
+					apiKey = ""
+				} else {
+					// Real K8s error (403, 404, etc.) — propagate properly
+					app.handleSecretReadError(w, r, err, secretName, "OGX_CLIENT_API_KEY")
+					return
+				}
 			}
 
 			logger.Debug("Creating LlamaStack client from secret",

@@ -341,6 +341,7 @@ const streamCreateResponse = (
           }
 
           // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
           if (partialLine) {
             for (const line of partialLine.split('\n')) {
               if (line.startsWith('data: ')) {
@@ -562,6 +563,7 @@ export const createPassthroughResponse = (
           }
 
           // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
           if (partialLine) {
             for (const line of partialLine.split('\n')) {
               if (line.startsWith('data: ')) {
