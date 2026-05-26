@@ -7,6 +7,20 @@ export const AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB = AUTOML_TRAINING_UPLOAD_MAX_BY
 
 export const AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
 
+/** Matches `maxFiles` on the training data upload dropzone. */
+export const AUTOML_TRAINING_UPLOAD_MAX_FILES = 1;
+
+export function formatTrainingDataTooManyFilesDetail(maxFiles: number): string {
+  if (maxFiles === 1) {
+    return 'Only one file can be uploaded at a time.';
+  }
+  return `Only ${maxFiles} files can be uploaded at a time.`;
+}
+
+export const AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL = formatTrainingDataTooManyFilesDetail(
+  AUTOML_TRAINING_UPLOAD_MAX_FILES,
+);
+
 /** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
 export const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
   'text/csv': ['.csv'],
@@ -92,7 +106,7 @@ const KNOWN_TRAINING_REJECTIONS: Array<{
   {
     code: 'too-many-files',
     title: 'Too many files',
-    description: 'Only one file can be uploaded at a time.',
+    description: AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
   },
   {
     code: 'file-invalid-type',

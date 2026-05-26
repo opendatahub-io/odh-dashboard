@@ -2,6 +2,7 @@ import type { FileRejection } from 'react-dropzone';
 import {
   type DropzoneFileRejectedNotification,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
   getDropzoneFileRejectedNotification,
 } from '~/app/utilities/dropzoneFileUpload';
 
@@ -40,5 +41,6 @@ export function getEvaluationDropRejectedNotification(
   return getDropzoneFileRejectedNotification(fileRejections, {
     uploadTooLargeDetail: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
     invalidFileTypeDescription: 'Evaluation dataset must be a JSON file (.json).',
+    tooManyFilesDetail: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
   });
 }

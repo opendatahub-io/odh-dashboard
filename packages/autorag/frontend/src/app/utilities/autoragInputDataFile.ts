@@ -2,6 +2,7 @@ import type { FileRejection } from 'react-dropzone';
 import {
   type DropzoneFileRejectedNotification,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
   getDropzoneFileRejectedNotification,
 } from '~/app/utilities/dropzoneFileUpload';
 
@@ -45,5 +46,6 @@ export function getInputDataDropRejectedNotification(
   return getDropzoneFileRejectedNotification(fileRejections, {
     uploadTooLargeDetail: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
     invalidFileTypeDescription: INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION,
+    tooManyFilesDetail: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
   });
 }

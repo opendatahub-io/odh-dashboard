@@ -7,9 +7,23 @@ export const AUTORAG_UPLOAD_MAX_SIZE_MIB = AUTORAG_UPLOAD_MAX_BYTES / (1024 * 10
 
 export const AUTORAG_UPLOAD_TOO_LARGE_DETAIL = `File size must be ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB or less.`;
 
+/** Matches `maxFiles` on knowledge-document and evaluation upload dropzones. */
+export const AUTORAG_UPLOAD_MAX_FILES = 1;
+
+export function formatDropzoneTooManyFilesDetail(maxFiles: number): string {
+  if (maxFiles === 1) {
+    return 'Only one file can be uploaded at a time.';
+  }
+  return `Only ${maxFiles} files can be uploaded at a time.`;
+}
+
+export const AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL =
+  formatDropzoneTooManyFilesDetail(AUTORAG_UPLOAD_MAX_FILES);
+
 export type DropzoneFileRejectedCopy = {
   uploadTooLargeDetail: string;
   invalidFileTypeDescription: string;
+  tooManyFilesDetail: string;
 };
 
 export type DropzoneFileRejectedNotification = {
@@ -73,7 +87,7 @@ const KNOWN_REJECTIONS: Array<{
   {
     code: 'too-many-files',
     title: 'Too many files',
-    getDescription: () => 'Only one file can be uploaded at a time.',
+    getDescription: (c) => c.tooManyFilesDetail,
   },
   {
     code: 'file-invalid-type',

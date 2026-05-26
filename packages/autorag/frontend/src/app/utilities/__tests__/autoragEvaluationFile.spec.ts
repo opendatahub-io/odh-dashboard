@@ -2,6 +2,7 @@ import type { FileRejection } from 'react-dropzone';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
   EVALUATION_FILE_ACCEPT,
@@ -90,7 +91,7 @@ describe('autoragEvaluationFile', () => {
         ]),
       ).toEqual({
         title: 'Too many files',
-        description: 'Only one file can be uploaded at a time.',
+        description: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
       });
     });
 

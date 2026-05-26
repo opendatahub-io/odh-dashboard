@@ -11,7 +11,11 @@ import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTORAG_UPLOAD_MAX_BYTES } from '~/app/utilities/dropzoneFileUpload';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
+import { INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION } from '~/app/utilities/autoragInputDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -534,7 +538,7 @@ describe('AutoragConfigure', () => {
         await waitFor(() => {
           expect(mockNotificationError).toHaveBeenCalledWith(
             'Too many files',
-            'Only one file can be uploaded at a time.',
+            AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
           );
         });
       });
@@ -576,7 +580,7 @@ describe('AutoragConfigure', () => {
         await waitFor(() => {
           expect(mockNotificationError).toHaveBeenCalledWith(
             'File not accepted',
-            'Only one file can be uploaded at a time. File type must be one of the accepted types (PDF, DOCX, PPTX, Markdown, HTML, Plain text).',
+            `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} ${INPUT_DATA_INVALID_FILE_TYPE_DESCRIPTION}`,
           );
         });
       });

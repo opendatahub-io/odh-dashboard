@@ -1,6 +1,8 @@
 import type { FileRejection } from 'react-dropzone';
 import {
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+  formatDropzoneTooManyFilesDetail,
   getDropzoneFileRejectedNotification,
   resolveSingleFileDropOutcome,
 } from '~/app/utilities/dropzoneFileUpload';
@@ -12,9 +14,20 @@ function rejection(file: File, errors: Array<{ code: string; message: string }>)
 const TEST_COPY = {
   uploadTooLargeDetail: AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
   invalidFileTypeDescription: 'Invalid for test.',
+  tooManyFilesDetail: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
 };
 
 describe('dropzoneFileUpload', () => {
+  describe('formatDropzoneTooManyFilesDetail', () => {
+    it('uses singular copy when maxFiles is 1', () => {
+      expect(formatDropzoneTooManyFilesDetail(1)).toBe(AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL);
+    });
+
+    it('uses plural copy when maxFiles is greater than 1', () => {
+      expect(formatDropzoneTooManyFilesDetail(3)).toBe('Only 3 files can be uploaded at a time.');
+    });
+  });
+
   describe('resolveSingleFileDropOutcome', () => {
     it('uploads when a single file is accepted', () => {
       const file = new File(['x'], 'notes.txt', { type: 'text/plain' });
@@ -63,7 +76,7 @@ describe('dropzoneFileUpload', () => {
         ),
       ).toEqual({
         title: 'Too many files',
-        description: 'Only one file can be uploaded at a time.',
+        description: AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
       });
     });
 
@@ -111,7 +124,7 @@ describe('dropzoneFileUpload', () => {
         ),
       ).toEqual({
         title: 'File not accepted',
-        description: `Only one file can be uploaded at a time. Invalid for test.`,
+        description: `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} Invalid for test.`,
       });
     });
 
@@ -128,7 +141,7 @@ describe('dropzoneFileUpload', () => {
         ),
       ).toEqual({
         title: 'File not accepted',
-        description: 'Only one file can be uploaded at a time. Invalid for test.',
+        description: `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} Invalid for test.`,
       });
     });
 

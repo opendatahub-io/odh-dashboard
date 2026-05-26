@@ -82,6 +82,7 @@ import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_FILES,
   AUTORAG_UPLOAD_MAX_SIZE_MIB,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
   resolveSingleFileDropOutcome,
@@ -587,7 +588,7 @@ function AutoragConfigure({
                                 dropzoneProps={{
                                   accept: INPUT_DATA_FILE_ACCEPT,
                                   disabled: isSubmitting || isInputDataFileUploading,
-                                  maxFiles: 1,
+                                  maxFiles: AUTORAG_UPLOAD_MAX_FILES,
                                   maxSize: AUTORAG_UPLOAD_MAX_BYTES,
                                   multiple: false,
                                   onDrop: processInputDataDropOutcome,

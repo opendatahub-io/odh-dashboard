@@ -12,6 +12,7 @@ import { useNotification } from '~/app/hooks/useNotification';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_FILES,
   AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
 } from '~/app/utilities/dropzoneFileUpload';
 import {
@@ -96,7 +97,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
           'data-testid': 'evaluation-upload-zone',
           dropzoneProps: {
             accept: EVALUATION_FILE_ACCEPT,
-            maxFiles: 1,
+            maxFiles: AUTORAG_UPLOAD_MAX_FILES,
             maxSize: AUTORAG_UPLOAD_MAX_BYTES,
             multiple: false,
           },

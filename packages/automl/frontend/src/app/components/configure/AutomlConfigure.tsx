@@ -84,6 +84,7 @@ import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
   AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_MAX_FILES,
   AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
   AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
   getTrainingDataDropRejectedNotification,
@@ -697,7 +698,7 @@ function AutomlConfigure({
                                 dropzoneProps={{
                                   accept: TRAINING_DATA_FILE_ACCEPT,
                                   disabled: formIsSubmitting || isTrainingDataFileUploading,
-                                  maxFiles: 1,
+                                  maxFiles: AUTOML_TRAINING_UPLOAD_MAX_FILES,
                                   maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
                                   multiple: false,
                                   onDrop: processTrainingDataDropOutcome,

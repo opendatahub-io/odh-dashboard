@@ -1,6 +1,7 @@
 import type { FileRejection } from 'react-dropzone';
 import {
   AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
+  AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
   getTrainingDataDropRejectedNotification,
   isAllowedTrainingDataUploadFile,
   resolveSingleFileDropOutcome,
@@ -76,7 +77,7 @@ describe('automlTrainingDataFile', () => {
         ]),
       ).toEqual({
         title: 'Too many files',
-        description: 'Only one file can be uploaded at a time.',
+        description: AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
       });
     });
 
@@ -105,7 +106,7 @@ describe('automlTrainingDataFile', () => {
         ]),
       ).toEqual({
         title: 'File not accepted',
-        description: 'Only one file can be uploaded at a time. File type must be CSV.',
+        description: `${AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL} File type must be CSV.`,
       });
     });
 
@@ -119,7 +120,7 @@ describe('automlTrainingDataFile', () => {
         ]),
       ).toEqual({
         title: 'File not accepted',
-        description: 'Only one file can be uploaded at a time. File type must be CSV.',
+        description: `${AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL} File type must be CSV.`,
       });
     });
 

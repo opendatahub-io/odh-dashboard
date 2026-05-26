@@ -10,7 +10,10 @@ import AutoragEvaluationSelect from '~/app/components/configure/AutoragEvaluatio
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTORAG_UPLOAD_MAX_BYTES } from '~/app/utilities/dropzoneFileUpload';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/dropzoneFileUpload';
 
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
@@ -324,7 +327,7 @@ describe('AutoragEvaluationSelect', () => {
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith(
           'Too many files',
-          'Only one file can be uploaded at a time.',
+          AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL,
         );
       });
     });
@@ -340,7 +343,7 @@ describe('AutoragEvaluationSelect', () => {
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith(
           'File not accepted',
-          'Only one file can be uploaded at a time. Evaluation dataset must be a JSON file (.json).',
+          `${AUTORAG_UPLOAD_TOO_MANY_FILES_DETAIL} Evaluation dataset must be a JSON file (.json).`,
         );
       });
     });

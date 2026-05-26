@@ -10,7 +10,10 @@ import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
-import { AUTOML_TRAINING_UPLOAD_MAX_BYTES } from '~/app/utilities/automlTrainingDataFile';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/automlTrainingDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -461,7 +464,7 @@ describe('AutomlConfigure', () => {
         await waitFor(() => {
           expect(mockNotificationError).toHaveBeenCalledWith(
             'Too many files',
-            'Only one file can be uploaded at a time.',
+            AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
           );
         });
       });
