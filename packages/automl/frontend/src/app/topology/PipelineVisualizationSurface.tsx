@@ -13,6 +13,7 @@ import {
 } from '@patternfly/react-topology';
 import { EmptyState, EmptyStateBody } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
+import { PIPELINE_TOPOLOGY_FIT_PADDING } from './const';
 
 type PipelineVisualizationSurfaceProps = {
   nodes: PipelineNodeModel[];
@@ -93,7 +94,7 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
               if (!graph) {
                 return;
               }
-              graph.fit(80);
+              graph.fit(PIPELINE_TOPOLOGY_FIT_PADDING);
             }),
             resetViewCallback: action(() => {
               const graph = controller.getGraph();
