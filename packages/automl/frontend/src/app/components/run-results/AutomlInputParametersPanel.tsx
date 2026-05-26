@@ -189,7 +189,7 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
                   {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
-                    <Content component={ContentVariants.p}>
+                    <Content component={ContentVariants.p} aria-live="polite" role="status">
                       <span className="pf-v6-u-pr-sm">
                         The output directory will be available once training is complete.
                       </span>
