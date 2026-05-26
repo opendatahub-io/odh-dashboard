@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"crypto/x509"
 	"fmt"
 	"log/slog"
@@ -136,12 +135,7 @@ func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupR
 	var err error
 
 	if cfg.MockK8Client {
-		ctx, cancel := context.WithCancel(context.Background())
-		result.testEnv, result.clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
+		result.testEnv, result.clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{})
 		if err != nil {
 			return result, fmt.Errorf("failed to setup envtest: %w", err)
 		}

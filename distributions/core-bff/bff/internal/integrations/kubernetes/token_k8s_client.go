@@ -18,7 +18,6 @@ import (
 
 type TokenKubernetesClient struct {
 	SharedClientLogic
-	restConfig *rest.Config
 }
 
 func (kc *TokenKubernetesClient) IsClusterAdmin(_ *RequestIdentity) (bool, error) {
@@ -87,15 +86,7 @@ func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClie
 			// Token is retained for follow-up calls; do not log it.
 			Token: NewBearerToken(token),
 		},
-		restConfig: cfg,
 	}, nil
-}
-
-// RESTConfig returns the rest.Config used to create this client.
-// This allows downstream code to access the underlying configuration
-// for creating additional clients (e.g., dynamic clients).
-func (kc *TokenKubernetesClient) RESTConfig() *rest.Config { //nolint:unused
-	return kc.restConfig
 }
 
 // RequestIdentity is unused because the token already represents the user identity.

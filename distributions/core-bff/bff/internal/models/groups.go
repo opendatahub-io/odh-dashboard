@@ -37,4 +37,3 @@ func NewGroup(name string, users []string) Group {
 		Users: users,
 	}
 }
-

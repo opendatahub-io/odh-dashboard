@@ -3,8 +3,8 @@ MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
-DEPLOYMENT_MODE ?= kubeflow
-# Authentication method: 'user_token' (default, recommended for ODH/RHOAI) or 'internal' (Kubeflow only)
+DEPLOYMENT_MODE ?= standalone
+# Authentication method: 'user_token' (default) or 'disabled' (skips auth)
 AUTH_METHOD ?= user_token
 # Default header for ODH is 'x-forwarded-access-token', use 'Authorization' for standard Bearer token
 AUTH_TOKEN_HEADER ?= x-forwarded-access-token

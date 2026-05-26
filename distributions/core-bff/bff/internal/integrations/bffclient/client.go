@@ -112,7 +112,7 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 		req.Header.Set(header, c.authTokenPrefix+c.authToken)
 	}
 
-	// Set custom headers (e.g., kubeflow-userid for internal auth)
+	// Set custom headers
 	for key, value := range c.customHeaders {
 		req.Header.Set(key, value)
 	}

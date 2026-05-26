@@ -7,11 +7,10 @@ import (
 )
 
 const (
-	// AuthMethodInternal uses the credentials of the running backend.
-	// If running inside the cluster, it uses the pod's service account.
-	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
-	AuthMethodInternal = "internal"
+	// AuthMethodDisabled skips identity extraction entirely.
+	// No auth headers are checked and no RequestIdentity is injected into the context.
+	// Intended for mock/testing scenarios only.
+	AuthMethodDisabled = "disabled"
 
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
@@ -81,7 +80,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// Valid values: "disabled" or "user_token"
 	AuthMethod string
 
 	// Header used to extract the authentication token.
@@ -112,5 +111,4 @@ type EnvConfig struct {
 
 	// MFRemotesConfig is the filesystem path to the module federation remotes config file.
 	MFRemotesConfig string
-
 }

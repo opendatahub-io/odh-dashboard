@@ -8,8 +8,7 @@ describe('Core BFF API Contract Tests', () => {
   const apiClient = new ContractApiClient({
     baseUrl,
     defaultHeaders: {
-      'kubeflow-userid': 'dev-user@example.com',
-      'kubeflow-groups': 'system:masters',
+      'x-forwarded-access-token': 'FAKE_CLUSTER_ADMIN_TOKEN',
     },
   });
 

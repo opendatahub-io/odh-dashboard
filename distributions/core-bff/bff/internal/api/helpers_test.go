@@ -7,9 +7,9 @@ import (
 )
 
 func TestParseURLTemplate(t *testing.T) {
-	expected := "/v1/mod_arch/demo-registry/registered_models/111-222-333/versions"
-	tmpl := "/v1/mod_arch/:mod_arch_id/registered_models/:registered_model_id/versions"
-	params := map[string]string{"mod_arch_id": "demo-registry", "registered_model_id": "111-222-333"}
+	expected := "/v1/core/demo-resource/items/111-222-333/versions"
+	tmpl := "/v1/core/:resource_id/items/:item_id/versions"
+	params := map[string]string{"resource_id": "demo-resource", "item_id": "111-222-333"}
 
 	actual := ParseURLTemplate(tmpl, params)
 

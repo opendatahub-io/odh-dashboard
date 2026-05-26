@@ -3,7 +3,6 @@ package k8mocks
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,13 +22,13 @@ var DefaultTestUsers = []TestUser{
 		Groups:   []string{},
 	},
 	{
-		UserName: "doraNonAdmin@example.com",
-		Token:    "FAKE_DORA_TOKEN",
-		Groups:   []string{"dora-namespace-group", "dora-service-group"},
+		UserName: "userA@example.com",
+		Token:    "FAKE_USER_A_TOKEN",
+		Groups:   []string{"test-ns-a-group", "test-ns-a-service-group"},
 	},
 	{
-		UserName: "bellaNonAdmin@example.com",
-		Token:    "FAKE_BELLA_TOKEN",
+		UserName: "userB@example.com",
+		Token:    "FAKE_USER_B_TOKEN",
 		Groups:   []string{},
 	},
 }
@@ -41,27 +40,24 @@ type TestUser struct {
 }
 
 type TestEnvInput struct {
-	Users  []TestUser
-	Logger *slog.Logger
-	Ctx    context.Context
-	Cancel context.CancelFunc
+	Users []TestUser
+	Ctx   context.Context
 }
 
 func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interface, error) {
+	if input.Ctx == nil {
+		input.Ctx = context.Background()
+	}
+
 	var binaryAssetsDir string
 	if envtestAssets := os.Getenv("ENVTEST_ASSETS"); envtestAssets != "" {
 		binaryAssetsDir = envtestAssets
-		input.Logger.Info("Using ENVTEST_ASSETS environment variable", slog.String("path", binaryAssetsDir))
 	} else {
 		projectRoot, err := getProjectRoot()
 		if err != nil {
-			input.Logger.Error("failed to find project root", slog.String("error", err.Error()))
-			input.Cancel()
-			os.Exit(1)
+			return nil, nil, fmt.Errorf("failed to find project root: %w", err)
 		}
-		platformDir := fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH)
-		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", platformDir)
-		input.Logger.Info("Using fallback binary assets directory", slog.String("path", binaryAssetsDir))
+		binaryAssetsDir = filepath.Join(projectRoot, "bin", "k8s", fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
 	testEnv := &envtest.Environment{
@@ -70,24 +66,18 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 
 	cfg, err := testEnv.Start()
 	if err != nil {
-		input.Logger.Error("failed to start envtest", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+		return nil, nil, fmt.Errorf("failed to start envtest: %w", err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		input.Logger.Error("failed to create clientset", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+		_ = testEnv.Stop()
+		return nil, nil, fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	// bootstrap resources
-	err = setupMock(clientset, input.Ctx)
-	if err != nil {
-		input.Logger.Error("failed to setup mock data", slog.String("error", err.Error()))
-		input.Cancel()
-		os.Exit(1)
+	if err := setupMock(clientset, input.Ctx); err != nil {
+		_ = testEnv.Stop()
+		return nil, nil, fmt.Errorf("failed to setup mock data: %w", err)
 	}
 
 	return testEnv, clientset, nil
@@ -95,43 +85,43 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 
 func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 
-	err := createNamespace(mockK8sClient, ctx, "kubeflow")
+	err := createNamespace(mockK8sClient, ctx, "opendatahub")
 	if err != nil {
 		return err
 	}
 
-	err = createNamespace(mockK8sClient, ctx, "dora-namespace")
+	err = createNamespace(mockK8sClient, ctx, "test-ns-a")
 	if err != nil {
 		return err
 	}
 
-	err = createNamespace(mockK8sClient, ctx, "bella-namespace")
+	err = createNamespace(mockK8sClient, ctx, "test-ns-b")
 	if err != nil {
 		return err
 	}
 
-	err = createNamespace(mockK8sClient, ctx, "bento-namespace")
+	err = createNamespace(mockK8sClient, ctx, "test-ns-c")
 	if err != nil {
 		return err
 	}
 
-	err = createService(mockK8sClient, ctx, "mod-arch", "kubeflow", "Mod Arch", "Mod Arch Description", "10.0.0.10", "mod-arch")
+	err = createService(mockK8sClient, ctx, "dashboard", "opendatahub", "Dashboard", "Dashboard service", "10.0.0.10", "core")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-one", "kubeflow", "Mod Arch One", "Mod Arch One description", "10.0.0.11", "mod-arch")
+	err = createService(mockK8sClient, ctx, "dashboard-one", "opendatahub", "Dashboard One", "Dashboard One service", "10.0.0.11", "core")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-dora", "dora-namespace", "Mod Arch Dora", "Mod Arch Dora description", "10.0.0.12", "mod-arch")
+	err = createService(mockK8sClient, ctx, "dashboard-ns-a", "test-ns-a", "Dashboard NS A", "Dashboard NS A service", "10.0.0.12", "core")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "mod-arch-bella", "bella-namespace", "Mod Arch Bella", "Mod Arch Bella description", "10.0.0.13", "mod-arch")
+	err = createService(mockK8sClient, ctx, "dashboard-ns-b", "test-ns-b", "Dashboard NS B", "Dashboard NS B service", "10.0.0.13", "core")
 	if err != nil {
 		return err
 	}
-	err = createService(mockK8sClient, ctx, "non-mod-arch", "kubeflow", "Not a Mod Arch", "Not a Mod Arch Bella description", "10.0.0.14", "")
+	err = createService(mockK8sClient, ctx, "non-dashboard", "opendatahub", "Not a Dashboard service", "Not a Dashboard service description", "10.0.0.14", "")
 	if err != nil {
 		return err
 	}
@@ -141,22 +131,22 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		return fmt.Errorf("failed to create cluster admin RBAC: %w", err)
 	}
 
-	err = createNamespaceRestrictedRBAC(mockK8sClient, ctx, DefaultTestUsers[1].UserName, "dora-namespace")
+	err = createNamespaceRestrictedRBAC(mockK8sClient, ctx, DefaultTestUsers[1].UserName, "test-ns-a")
 	if err != nil {
 		return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
 	}
 
-	err = createNamespaceRestrictedRBAC(mockK8sClient, ctx, DefaultTestUsers[2].UserName, "bella-namespace")
+	err = createNamespaceRestrictedRBAC(mockK8sClient, ctx, DefaultTestUsers[2].UserName, "test-ns-b")
 	if err != nil {
 		return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
 	}
 
-	err = createGroupAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[1], "dora-namespace", "mod-arch-dora")
+	err = createGroupAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[1], "test-ns-a", "dashboard-ns-a")
 	if err != nil {
 		return fmt.Errorf("failed to create group-based RBAC: %w", err)
 	}
 
-	err = createGroupNamespaceAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[0], "dora-namespace")
+	err = createGroupNamespaceAccessRBAC(mockK8sClient, ctx, DefaultTestUsers[1].Groups[0], "test-ns-a")
 	if err != nil {
 		return fmt.Errorf("failed to set up group access to namespace: %w", err)
 	}
@@ -254,7 +244,7 @@ func createNamespaceRestrictedRBAC(k8sClient kubernetes.Interface, ctx context.C
 func createGroupAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, groupName, namespace, serviceName string) error {
 	role := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "group-mod-arch-access",
+			Name:      "group-service-access",
 			Namespace: namespace,
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -287,7 +277,7 @@ func createGroupAccessRBAC(k8sClient kubernetes.Interface, ctx context.Context, 
 		},
 		RoleRef: rbacv1.RoleRef{
 			Kind:     "Role",
-			Name:     "group-mod-arch-access",
+			Name:     "group-service-access",
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	}

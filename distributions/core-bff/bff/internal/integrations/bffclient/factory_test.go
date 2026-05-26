@@ -38,7 +38,7 @@ func TestRealClientFactory_CreateClientWithHeaders(t *testing.T) {
 	config.PodNamespace = "test-ns"
 
 	factory := NewRealClientFactory(config, nil, false, logger)
-	headers := map[string]string{"kubeflow-userid": "user@test.com"}
+	headers := map[string]string{"x-custom-user": "user@test.com"}
 	client := factory.CreateClientWithHeaders(BFFTargetMaaS, "token", headers)
 
 	require.NotNil(t, client)

@@ -80,12 +80,12 @@ func TestHTTPBFFClient_Call_CustomAuthHeader(t *testing.T) {
 
 func TestHTTPBFFClient_Call_CustomHeaders(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "user@example.com", r.Header.Get("kubeflow-userid"))
+		assert.Equal(t, "user@example.com", r.Header.Get("x-custom-user"))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	headers := map[string]string{"kubeflow-userid": "user@example.com"}
+	headers := map[string]string{"x-custom-user": "user@example.com"}
 	client := NewHTTPBFFClientWithHeaders(server.URL, BFFTargetMaaS, "", headers, false, nil)
 	err := client.Call(context.Background(), http.MethodGet, "/test", nil, nil)
 

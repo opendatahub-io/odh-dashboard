@@ -49,7 +49,7 @@ func AttachBFFClient(factory BFFClientFactory, target BFFTarget) func(next httpr
 			// Get auth token from RequestIdentity
 			var authToken string
 			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token
+				authToken = identity.Token.Raw()
 			}
 
 			// Create BFF client for target
@@ -94,7 +94,7 @@ func AttachBFFClientFunc(factory BFFClientFactory, target BFFTarget) func(next h
 			// Get auth token from RequestIdentity
 			var authToken string
 			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token
+				authToken = identity.Token.Raw()
 			}
 
 			// Create BFF client for target

@@ -35,9 +35,9 @@ func getEnvAsBool(name string, defaultVal bool) bool {
 
 func parseLevel(s string) slog.Level {
 	var level slog.Level
-	err := level.UnmarshalText([]byte(s))
-	if err != nil {
-		panic(fmt.Errorf("invalid log level: %s, valid levels are: error, warn, info, debug", s))
+	if err := level.UnmarshalText([]byte(s)); err != nil {
+		fmt.Fprintf(os.Stderr, "invalid log level %q (valid: error, warn, info, debug), defaulting to INFO\n", s)
+		return slog.LevelInfo
 	}
 	return level
 }
@@ -55,7 +55,11 @@ func newOriginParser(allowList *[]string, defaultVal string) func(s string) erro
 		}
 
 		for _, str := range strings.Split(s, ",") {
-			*allowList = append(*allowList, strings.TrimSpace(str))
+			origin := strings.TrimSpace(str)
+			if origin == "" {
+				continue
+			}
+			*allowList = append(*allowList, origin)
 		}
 
 		return nil
