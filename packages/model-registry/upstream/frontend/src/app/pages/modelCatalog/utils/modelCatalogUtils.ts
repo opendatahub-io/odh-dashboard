@@ -815,6 +815,6 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
 export const getCatalogModelTypePropertyForRegistration = (
   customProperties?: ModelRegistryCustomProperties,
 ): ModelRegistryCustomProperties => {
-  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
   return buildCustomPropertiesWithModelType(undefined, stored);
 };
