@@ -18,7 +18,7 @@ type UseTrustyCRState = {
   status?: React.ReactNode;
 };
 
-const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
+const useTrustyCRState = (project: ProjectKind, permissionDenied = false): UseTrustyCRState => {
   const namespace = project.metadata.name;
   const { statusState, installCRForExistingDB, installCRForNewDB, deleteCR } =
     useManageTrustyAICR(namespace);
@@ -28,7 +28,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   switch (statusState.type) {
     case TrustyInstallState.INFRA_ERROR:
     case TrustyInstallState.CR_ERROR:
-      action = <TrustyAIInstalledState onDelete={deleteCR} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
       status = (
         <Alert
           variant="danger"
@@ -43,7 +43,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       );
       break;
     case TrustyInstallState.INSTALLED:
-      action = <TrustyAIInstalledState onDelete={deleteCR} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
       status = statusState.showSuccess && (
         <Alert
           data-testid="trustyai-service-installed-alert"
@@ -66,7 +66,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       action = <Skeleton data-testid="trustyai-initializing-state" height="35px" width="250px" />;
       break;
     case TrustyInstallState.INSTALLING:
-      action = <TrustyAIInstalledState onDelete={deleteCR} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
       status = (
         <Split hasGutter data-testid="trustyai-installing-state">
           <SplitItem>
@@ -86,6 +86,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
           namespace={namespace}
           onInstallNewDB={installCRForNewDB}
           onInstallExistingDB={installCRForExistingDB}
+          permissionDenied={permissionDenied}
         />
       );
   }

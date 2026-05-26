@@ -9,13 +9,28 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { ProjectKind } from '#~/k8sTypes';
+import { useAccessReview } from '#~/api';
+import { TrustyAIApplicationsModel } from '#~/api/models/odh';
 import useTrustyCRState from '#~/concepts/trustyai/content/useTrustyCRState';
 
 type ModelBiasSettingsCardProps = {
   project: ProjectKind;
 };
 const ModelBiasSettingsCard: React.FC<ModelBiasSettingsCardProps> = ({ project }) => {
-  const { action, status } = useTrustyCRState(project);
+  const [canCreateCR, crReviewLoaded] = useAccessReview({
+    group: TrustyAIApplicationsModel.apiGroup,
+    resource: TrustyAIApplicationsModel.plural,
+    namespace: project.metadata.name,
+    verb: 'create',
+  });
+  const [canCreateSecret, secretReviewLoaded] = useAccessReview({
+    resource: 'secrets',
+    namespace: project.metadata.name,
+    verb: 'create',
+  });
+  const accessLoaded = crReviewLoaded && secretReviewLoaded;
+  const permissionDenied = accessLoaded && (!canCreateCR || !canCreateSecret);
+  const { action, status } = useTrustyCRState(project, permissionDenied);
 
   return (
     <Card style={{ maxWidth: '675px' }}>
