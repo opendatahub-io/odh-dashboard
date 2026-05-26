@@ -241,7 +241,7 @@ describe('API Keys Page', () => {
     prodRow
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
-      .and('include', '/maas/subscriptions/view/premium-team-sub');
+      .and('include', '/maas/keys-and-subs/subscriptions/view/premium-team-sub');
   });
 
   it('should show plain text (no link) for a subscription that no longer exists', () => {
