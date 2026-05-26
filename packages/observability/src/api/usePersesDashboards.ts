@@ -40,7 +40,7 @@ export const usePersesDashboards = (
       if (!fetchDashboardList) {
         return [];
       }
-      return fetchPersesDashboardsMetadata();
+      return fetchPersesDashboardsMetadata(opts.signal);
     },
     [fetchDashboardList],
   );
