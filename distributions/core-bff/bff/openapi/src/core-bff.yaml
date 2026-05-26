@@ -1,0 +1,115 @@
+openapi: '3.0.3'
+info:
+  title: 'Core BFF REST API'
+  version: '1.0.0'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  license:
+    name: 'Apache 2.0'
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+servers:
+  - url: 'http://localhost:4000'
+    description: 'Local development server'
+
+paths:
+  /healthcheck:
+    summary: BFF service health check
+    description: >-
+      Health check endpoint to verify BFF service availability.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: healthcheck
+      summary: BFF Health Check
+      description: Returns BFF service status and version information.
+      security: []
+
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: 'available'
+          description: 'Service availability status'
+        system_info:
+          type: object
+          properties:
+            version:
+              type: string
+              example: '1.0.0'
+              description: 'BFF version'
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: 'Error code identifier'
+          example: 'INTERNAL_SERVER_ERROR'
+        message:
+          type: string
+          description: 'Human-readable error description'
+          example: 'An unexpected error occurred'
+
+  responses:
+    HealthCheckResponse:
+      description: Service is healthy
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthCheckResponse'
+          example:
+            status: 'available'
+            system_info:
+              version: '1.0.0'
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 'BAD_REQUEST'
+            message: 'Invalid request parameters'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 'UNAUTHORIZED'
+            message: 'Authentication credentials are missing or invalid'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 'NOT_FOUND'
+            message: 'The requested resource was not found'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 'INTERNAL_SERVER_ERROR'
+            message: 'An unexpected error occurred'

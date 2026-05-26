@@ -259,3 +259,13 @@ aliases:
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+
+  # Core BFF
+  core-bff-approvers:
+    - caponetto
+    - andyatmiami
+    - lucferbux
+  core-bff-reviewers:
+    - caponetto
+    - andyatmiami
+    - lucferbux
