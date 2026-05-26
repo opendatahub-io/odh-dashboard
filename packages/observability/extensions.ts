@@ -6,6 +6,7 @@ import type {
 
 const ADMIN_USER = 'ADMIN_USER';
 const PLUGIN_OBSERVABILITY = 'plugin-observability';
+const BLOCKING_CONDITION_TYPES = ['MonitoringReady', 'PersesAvailable'];
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
@@ -13,6 +14,10 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     properties: {
       id: PLUGIN_OBSERVABILITY,
       featureFlags: ['observabilityDashboard'],
+      customCondition: ({ dsciStatus }) =>
+        (
+          dsciStatus?.conditions.filter((c) => BLOCKING_CONDITION_TYPES.includes(c.type)) ?? []
+        ).every((c) => c.status === 'True'),
     },
   },
   {
