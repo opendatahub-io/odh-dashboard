@@ -15,8 +15,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
-    versioning-strategy: lockfile-only
+    open-pull-requests-limit: 2
     target-branch: "main"
     labels:
       # Keep in sync with exempt-pr-labels in .github/workflows/stale.yml
@@ -28,24 +27,21 @@ updates:
       semver-minor-days: 14
       semver-patch-days: 14
 
+    # Only patch versions to limit scope during test phase
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
     groups:
       patternfly:
         applies-to: version-updates
+        update-types:
+          - "patch"
         patterns:
           - "@patternfly/*"
-      react:
+      patch-updates:
         applies-to: version-updates
-        patterns:
-          - 'react'
-          - 'react-dom'
-          - 'react-router'
-          - 'react-router-dom'
-      fastify:
-        applies-to: version-updates
-        patterns:
-          - '@fastify/*'
-          - 'fastify*'
-      all:
-        applies-to: version-updates
-        patterns:
-          - '*'
+        update-types:
+          - "patch"
+        exclude-patterns:
+          - "@patternfly/*"
