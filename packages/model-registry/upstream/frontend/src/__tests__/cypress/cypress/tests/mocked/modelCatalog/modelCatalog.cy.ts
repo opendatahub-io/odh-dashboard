@@ -759,3 +759,23 @@ describe('Single Category Behavior', () => {
     modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
   });
 });
+
+describe('Clear All Filters Button Behavior', () => {
+  it('should not show clear all filters button when performance view is activated with filters applied', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: true, modelsToReturn: [] });
+
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    cy.wait('@getFilteredModels');
+
+    modelCatalog.togglePerformanceView();
+
+    cy.findByRole('button', { name: /Clear all filters/i }).should('not.exist');
+  });
+});

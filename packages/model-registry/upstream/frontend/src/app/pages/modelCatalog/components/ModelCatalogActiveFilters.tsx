@@ -32,9 +32,17 @@ import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetrics
 
 type ModelCatalogActiveFiltersProps = {
   filtersToShow: ModelCatalogFilterKey[];
+  /** When true, all ToolbarFilter labels are forced to empty arrays. This keeps the
+   *  ToolbarFilter components mounted so their parent Toolbar's internal filter count
+   *  stays at zero — working around PF's missing componentWillUnmount cleanup
+   *  (https://github.com/patternfly/patternfly-react/issues/12247). */
+  forceHideLabels?: boolean;
 };
 
-const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ filtersToShow }) => {
+const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
+  filtersToShow,
+  forceHideLabels = false,
+}) => {
   const {
     filterData,
     setFilterData,
@@ -200,7 +208,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
                 key: filterKey,
                 name: MODEL_CATALOG_FILTER_CATEGORY_NAMES[filterKey],
               }}
-              labels={latencyLabels}
+              labels={forceHideLabels ? [] : latencyLabels}
               deleteLabel={(category) => {
                 const categoryKeyValue = typeof category === 'string' ? category : category.key;
                 handleClearCategory(categoryKeyValue);
@@ -262,7 +270,7 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({ f
           <ToolbarFilter
             key={filterKey}
             categoryName={categoryLabelGroup}
-            labels={labels}
+            labels={forceHideLabels ? [] : labels}
             deleteLabel={(category, label) => {
               const categoryKeyValue = typeof category === 'string' ? category : category.key;
               const labelKey = typeof label === 'string' ? label : label.key;
