@@ -12,7 +12,7 @@ import {
   StackItem,
   Flex,
   FlexItem,
-  Spinner,
+  Skeleton,
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
@@ -111,7 +111,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
 
   const renderFooterContent = () => {
     if (!accessReviewLoaded) {
-      return <Spinner size="md" />;
+      return <Skeleton data-testid="nim-permissions-loading" height="35px" width="250px" />;
     }
 
     switch (status) {

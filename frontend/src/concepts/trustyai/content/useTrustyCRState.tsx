@@ -7,6 +7,8 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
+import { useAccessReview } from '#~/api';
+import { TrustyAIApplicationsModel } from '#~/api/models/odh';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
@@ -18,10 +20,30 @@ type UseTrustyCRState = {
   status?: React.ReactNode;
 };
 
-const useTrustyCRState = (project: ProjectKind, permissionDenied = false): UseTrustyCRState => {
+const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   const namespace = project.metadata.name;
   const { statusState, installCRForExistingDB, installCRForNewDB, deleteCR } =
     useManageTrustyAICR(namespace);
+
+  const [canCreateCR, crReviewLoaded] = useAccessReview({
+    group: TrustyAIApplicationsModel.apiGroup,
+    resource: TrustyAIApplicationsModel.plural,
+    namespace,
+    verb: 'create',
+  });
+  const [canCreateSecret, secretReviewLoaded] = useAccessReview({
+    resource: 'secrets',
+    namespace,
+    verb: 'create',
+  });
+  const accessLoaded = crReviewLoaded && secretReviewLoaded;
+  const permissionDenied = accessLoaded && (!canCreateCR || !canCreateSecret);
+
+  if (!accessLoaded) {
+    return {
+      action: <Skeleton data-testid="trustyai-permissions-loading" height="35px" width="250px" />,
+    };
+  }
 
   let action: React.ReactNode;
   let status: React.ReactNode;
@@ -77,7 +99,13 @@ const useTrustyCRState = (project: ProjectKind, permissionDenied = false): UseTr
       );
       break;
     case TrustyInstallState.UNINSTALLING:
-      action = <TrustyAIInstalledState uninstalling onDelete={deleteCR} />;
+      action = (
+        <TrustyAIInstalledState
+          uninstalling
+          onDelete={deleteCR}
+          permissionDenied={permissionDenied}
+        />
+      );
       break;
     case TrustyInstallState.UNINSTALLED:
     default:
