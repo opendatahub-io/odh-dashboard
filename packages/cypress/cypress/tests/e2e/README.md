@@ -213,8 +213,8 @@ function findActions() {
 Tests are parameterized using tags and applied to the 'it' block:
 
 * `Smoke`: P1/2 Critical Priority Test Cases
-* `Tier1`: High-priority tests, excluding Smoke
-* `Tier2`: Medium- and low-priority positive tests
+* `Tier1`: P3 Normal Priority Test Cases
+* `Tier2`: P4 Low Priority Test Cases
 * `Tier3`: Negative and destructive tests
 * `ODS-1234`: Test Case ID (if applicable)
 * `Dashboard/NIM etc.`: High-Level Team
