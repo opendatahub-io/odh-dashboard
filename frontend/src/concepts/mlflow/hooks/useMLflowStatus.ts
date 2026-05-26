@@ -6,6 +6,8 @@ import { createSharedPollingStore } from '#~/utilities/createSharedPollingStore'
 export type MLflowStatus = {
   configured: boolean;
   loaded: boolean;
+  /** True when the BFF status check failed before any successful response. */
+  error: boolean;
 };
 
 let lastPollErrored = false;
@@ -28,10 +30,10 @@ export const useMLflowStatus = createSharedPollingStore<MLflowStatus>({
       // eslint-disable-next-line no-console
       console.info('MLflow BFF status check recovered');
     }
-    return { configured: Boolean(response.data.configured), loaded: true };
+    return { configured: Boolean(response.data.configured), loaded: true, error: false };
   },
-  initialValue: { configured: false, loaded: false },
-  disabledValue: { configured: false, loaded: true },
+  initialValue: { configured: false, loaded: false, error: false },
+  disabledValue: { configured: false, loaded: true, error: false },
   pollInterval: POLL_INTERVAL,
   teardownGracePeriod: TEARDOWN_GRACE_MS,
   onError: (e, previous) => {
@@ -41,6 +43,10 @@ export const useMLflowStatus = createSharedPollingStore<MLflowStatus>({
       console.warn('MLflow BFF status check failed (will suppress until recovery)', e);
     }
     // Mark loaded so consumers (e.g. embedded Experiments page) do not spin forever on first failure.
+    // Only surface error when we have no prior successful status (transient failures keep last good state).
+    if (!previous.loaded) {
+      return { ...previous, loaded: true, error: true };
+    }
     return { ...previous, loaded: true };
   },
   onReset: () => {

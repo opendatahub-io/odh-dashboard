@@ -7,7 +7,7 @@ import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { ProjectModel } from '../../../utils/models';
 import { asProductAdminUser } from '../../../utils/mockUsers';
-import { interceptMlflowStatus } from '../../../utils/mlflowUtils';
+import { interceptMlflowStatus, MLFLOW_BFF_STATUS_URL } from '../../../utils/mlflowUtils';
 import { mlflowExperiments } from '../../../pages/mlflowExperiments';
 import { appChrome } from '../../../pages/appChrome';
 
@@ -95,6 +95,17 @@ describe('MLflow Experiments page wrapper', () => {
       mlflowExperiments.visit(PROJECT_A);
       mlflowExperiments.findNotConfiguredEmptyState().should('be.visible');
       mlflowExperiments.findNotConfiguredAdminLink().should('be.visible');
+      mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+    });
+
+    it('should show unavailable empty state when MLflow BFF status check fails', () => {
+      initIntercepts();
+      cy.intercept('GET', MLFLOW_BFF_STATUS_URL, { statusCode: 500 }).as('mlflowStatusError');
+      mlflowExperiments.visit(PROJECT_A);
+      cy.wait('@mlflowStatusError');
+      mlflowExperiments.findMlflowUnavailableState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
     });
 
     it('should show service-unavailable empty state when MLflow remote fails to load', () => {
@@ -104,6 +115,8 @@ describe('MLflow Experiments page wrapper', () => {
       initIntercepts({ mlflowConfigured: true });
       mlflowExperiments.visit(PROJECT_A);
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
     });
 
     it('should hide nav item when MLflow operator is removed', () => {

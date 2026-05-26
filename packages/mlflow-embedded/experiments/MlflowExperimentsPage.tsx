@@ -37,7 +37,11 @@ const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
-  const { available: mlflowAvailable, loaded: mlflowLoaded } = useIsMlflowCRAvailable();
+  const {
+    available: mlflowAvailable,
+    loaded: mlflowLoaded,
+    error: mlflowStatusError,
+  } = useIsMlflowCRAvailable();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -53,7 +57,7 @@ const MlflowExperimentsPage: React.FC = () => {
     <ApplicationsPage
       loaded={mlflowLoaded}
       empty={mlflowLoaded && !mlflowAvailable}
-      emptyStatePage={<MLflowNotConfigured />}
+      emptyStatePage={mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
       noHeader={!isTopLevel}
       title={
         isTopLevel ? (
@@ -99,20 +103,16 @@ const MlflowExperimentsPage: React.FC = () => {
       }
       keepBodyWrapper={false}
     >
-      {/* Only load the federated remote when the BFF has discovered an MLflow CR.
-          When empty=true, ApplicationsPage does not render children. */}
-      {mlflowAvailable && (
-        <LazyCodeRefComponent
-          key={workspace}
-          component={loadWrapper}
-          props={{ onBreadcrumbChange: setBreadcrumbs }}
-          fallback={
-            <Bullseye>
-              <Spinner />
-            </Bullseye>
-          }
-        />
-      )}
+      <LazyCodeRefComponent
+        key={workspace}
+        component={loadWrapper}
+        props={{ onBreadcrumbChange: setBreadcrumbs }}
+        fallback={
+          <Bullseye>
+            <Spinner />
+          </Bullseye>
+        }
+      />
     </ApplicationsPage>
   );
 };
