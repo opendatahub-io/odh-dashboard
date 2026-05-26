@@ -97,7 +97,7 @@ export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: `${RuntimeStateKF}`;
+  state: '' | `${RuntimeStateKF}`;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
