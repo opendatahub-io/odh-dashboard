@@ -16,6 +16,8 @@ import {
   ModelCatalogTask,
   AllLanguageCode,
   ModelCatalogNumberFilterKey,
+  ValidatedConfiguration,
+  MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING,
   isCatalogFilterKey,
   isPerformanceFilterKey,
   parseLatencyFilterKey,
@@ -112,6 +114,11 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
         }
         case ModelCatalogStringFilterKey.LANGUAGE: {
           return isEnumMember(valueStr, AllLanguageCode) ? AllLanguageCodesMap[valueStr] : valueStr;
+        }
+        case ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION: {
+          return isEnumMember(valueStr, ValidatedConfiguration)
+            ? MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING[valueStr]
+            : valueStr;
         }
         case ModelCatalogStringFilterKey.USE_CASE: {
           if (isUseCaseOptionValue(valueStr)) {
