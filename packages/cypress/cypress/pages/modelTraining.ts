@@ -130,8 +130,8 @@ class TrainingJobTable {
     return this;
   }
 
-  findEmptyState() {
-    return cy.findByTestId('empty-state-body');
+  findEmptyState(timeout?: number) {
+    return cy.findByTestId('empty-state-body', timeout !== undefined ? { timeout } : {});
   }
 
   findToolbar() {

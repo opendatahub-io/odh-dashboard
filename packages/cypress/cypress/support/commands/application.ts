@@ -330,9 +330,9 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
         const currentOcUser = result.stdout.trim();
         const requestedUser = credentials.USERNAME;
 
-        if (result.code !== 0) {
+        if (result.exitCode !== 0) {
           cy.log(
-            `⚠️ oc whoami failed (exit code: ${result.code}) - may not be logged into cluster`,
+            `⚠️ oc whoami failed (exit code: ${result.exitCode}) - may not be logged into cluster`,
           );
           return cy.wrap(null);
         }
@@ -359,13 +359,13 @@ Cypress.Commands.add('visitWithLogin', (relativeUrl, credentials = HTPASSWD_CLUS
               { failOnNonZeroExit: false, log: false },
             )
             .then((loginResult) => {
-              if (loginResult.code === 0) {
+              if (loginResult.exitCode === 0) {
                 cy.log(`✅ oc user switched successfully`);
                 // eslint-disable-next-line cypress/no-unnecessary-waiting
                 cy.wait(OC_TOKEN_REFRESH_WAIT_MS);
               } else {
                 const errorMsg =
-                  `oc login failed (exit code: ${loginResult.code}). ` +
+                  `oc login failed (exit code: ${loginResult.exitCode}). ` +
                   `Output: ${loginResult.stdout || loginResult.stderr || 'No output'}`;
                 cy.log(`❌ ${errorMsg}`);
                 throw new Error(errorMsg);

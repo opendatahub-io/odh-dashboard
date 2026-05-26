@@ -1,29 +1,31 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import * as z from 'zod';
-import { getLlamaStackModels, getLlamaStackVectorStores, getSecrets } from '~/app/api/k8s';
+import { getOgxModels, getOgxVectorStores, getSecrets } from '~/app/api/k8s';
 import { getPipelineRunFromBFF } from '~/app/api/pipelines';
 import { getFiles as getS3Files } from '~/app/api/s3';
 import {
-  LlamaStackModelsResponse,
-  LlamaStackModelType,
-  LlamaStackVectorStoreProvidersResponse,
+  OgxModelsResponse,
+  OgxModelType,
+  OgxFilteredVectorStoreProvidersResponse,
   PipelineRun,
   S3ListObjectsResponse,
   SecretListItem,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
+import { parseErrorStatus } from '~/app/utilities/utils';
 
-export function useLlamaStackModelsQuery(
+export function useOgxModelsQuery(
   namespace: string,
   secretName: string,
-  modelType?: LlamaStackModelType,
-): UseQueryResult<LlamaStackModelsResponse, Error> {
+  modelType?: OgxModelType,
+): UseQueryResult<OgxModelsResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     queryKey: ['autorag', 'models', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getLlamaStackModels('')(namespace, secretName)({});
+        const response = await getOgxModels('')(namespace, secretName)({});
         z.object({
           models: z.array(
             z.object({
@@ -38,7 +40,7 @@ export function useLlamaStackModelsQuery(
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid llama stack models response');
+          throw new Error('Invalid Open GenAI Stack models response');
         }
         throw error;
       }
@@ -120,11 +122,11 @@ export function useS3ListFilesQuery(
   });
 }
 
-export function useLlamaStackVectorStoreProvidersQuery(
+export function useOgxVectorStoreProvidersQuery(
   namespace: string,
   secretName: string,
   providerTypes?: string[],
-): UseQueryResult<LlamaStackVectorStoreProvidersResponse, Error> {
+): UseQueryResult<OgxFilteredVectorStoreProvidersResponse, Error> {
   return useQuery({
     enabled: !!namespace && !!secretName,
     // providerTypes is intentionally excluded: select transforms cached data without
@@ -132,7 +134,7 @@ export function useLlamaStackVectorStoreProvidersQuery(
     queryKey: ['autorag', 'vectorStoreProviders', namespace, secretName],
     queryFn: async () => {
       try {
-        const response = await getLlamaStackVectorStores('')(namespace, secretName)({});
+        const response = await getOgxVectorStores('')(namespace, secretName)({});
         z.object({
           // eslint-disable-next-line camelcase
           vector_store_providers: z.array(
@@ -147,17 +149,20 @@ export function useLlamaStackVectorStoreProvidersQuery(
         return response;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          throw new Error('Invalid llama stack vector store providers response');
+          throw new Error('Invalid Open GenAI Stack vector store providers response');
         }
         throw error;
       }
     },
     // Filter by provider_type when a non-empty providerTypes array is given.
+    // totalProviderCount preserves the unfiltered count so the UI can distinguish
+    // "no providers at all" from "providers exist but none are supported".
     select: (data) => ({
       // eslint-disable-next-line camelcase
       vector_store_providers: data.vector_store_providers.filter(
         (p) => !providerTypes?.length || providerTypes.includes(p.provider_type),
       ),
+      totalProviderCount: data.vector_store_providers.length,
     }),
   });
 }
@@ -165,6 +170,8 @@ export function useLlamaStackVectorStoreProvidersQuery(
 const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
 export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -172,10 +179,30 @@ export function usePipelineRunQuery(
 ): UseQueryResult<PipelineRun, Error> {
   return useQuery({
     queryKey: ['autorag', 'pipelineRun', runId, namespace],
-    queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
+    queryFn: async ({ signal }) => {
+      const run = await getPipelineRunFromBFF('', runId!, namespace!, { signal });
+      return normalizePipelineRun(run);
+    },
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      const status = parseErrorStatus(error);
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < MAX_RETRY_ATTEMPTS;
+    },
+    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
+    retryDelay: (attempt) => {
+      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
+      return exp + jitter;
+    },
     refetchInterval: (query) => {
+      // Let the retry backoff handle re-fetching during errors
+      if (query.state.status === 'error') {
+        return false;
+      }
       const state = query.state.data?.state;
       if (!state || isTerminalState(state)) {
         return false;
@@ -187,7 +214,7 @@ export function usePipelineRunQuery(
 
 export function useSecretsQuery(
   namespace: string,
-  type?: 'storage' | 'lls',
+  type?: 'storage' | 'ogx',
 ): UseQueryResult<SecretListItem[], Error> {
   return useQuery({
     enabled: !!namespace,

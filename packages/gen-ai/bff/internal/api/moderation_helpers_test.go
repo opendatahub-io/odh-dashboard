@@ -397,8 +397,6 @@ func TestBuildInlineGuardrailOptions_InputOnly(t *testing.T) {
 		"http://llama-guard.svc/v1",
 		"llama-guard-3",
 		"test-key",
-		true,
-		false,
 		"Check input: {{ user_input }}",
 		"",
 	)
@@ -420,6 +418,7 @@ func TestBuildInlineGuardrailOptions_InputOnly(t *testing.T) {
 	require.Len(t, opts.Config.Prompts, 1)
 	assert.Equal(t, nemo.TaskSelfCheckInput, opts.Config.Prompts[0].Task)
 	assert.Equal(t, "Check input: {{ user_input }}", opts.Config.Prompts[0].Content)
+	assert.Equal(t, 200, opts.Config.Prompts[0].MaxTokens)
 }
 
 func TestBuildInlineGuardrailOptions_OutputOnly(t *testing.T) {
@@ -427,8 +426,6 @@ func TestBuildInlineGuardrailOptions_OutputOnly(t *testing.T) {
 		"http://llama-guard.svc/v1",
 		"llama-guard-3",
 		"test-key",
-		false,
-		true,
 		"",
 		"Check output: {{ bot_response }}",
 	)
@@ -447,8 +444,6 @@ func TestBuildInlineGuardrailOptions_BothEnabled(t *testing.T) {
 		"http://llama-guard.svc/v1",
 		"llama-guard-3",
 		"sk-token",
-		true,
-		true,
 		"Input prompt {{ user_input }}",
 		"Output prompt {{ bot_response }}",
 	)
@@ -464,23 +459,6 @@ func TestBuildInlineGuardrailOptions_NoPrompts(t *testing.T) {
 		"http://llama-guard.svc/v1",
 		"llama-guard-3",
 		"",
-		true,
-		true,
-		"",
-		"",
-	)
-
-	require.NotNil(t, opts.Config)
-	assert.Empty(t, opts.Config.Prompts, "empty prompt strings should not add Prompts entries")
-}
-
-func TestBuildInlineGuardrailOptions_NeitherEnabled(t *testing.T) {
-	opts := buildInlineGuardrailOptions(
-		"http://llama-guard.svc/v1",
-		"llama-guard-3",
-		"key",
-		false,
-		false,
 		"",
 		"",
 	)

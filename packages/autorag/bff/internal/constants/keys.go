@@ -6,7 +6,7 @@ type contextKey string
 // to ensure requests are not blocked when using CORS.
 const (
 	NamespaceHeaderParameterKey contextKey = "namespace"
-	LlamaStackClientKey         contextKey = "LlamaStackClientKey"
+	OGXClientKey                contextKey = "OGXClientKey"
 	PipelineServerClientKey     contextKey = "PipelineServerClientKey"
 	PipelineServerBaseURLKey    contextKey = "PipelineServerBaseURLKey"
 	DiscoveredPipelinesKey      contextKey = "DiscoveredPipelinesKey"

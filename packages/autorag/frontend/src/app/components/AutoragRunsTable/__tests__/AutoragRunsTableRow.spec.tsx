@@ -7,8 +7,8 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PipelineRun } from '~/app/types';
 import AutoragRunsTableRow from '~/app/components/AutoragRunsTable/AutoragRunsTableRow';
 
-const mockHandleRetry = jest.fn();
-const mockHandleConfirmStop = jest.fn();
+const mockHandleRetry = jest.fn().mockResolvedValue(undefined);
+const mockHandleConfirmStop = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('~/app/hooks/useAutoragRunActions', () => ({
   useAutoragRunActions: () => ({
@@ -74,7 +74,7 @@ describe('AutoragRunsTableRow', () => {
   });
 
   describe('kebab action menu', () => {
-    it('should show delete action for succeeded runs', async () => {
+    it('should show reconfigure and delete actions for succeeded runs', async () => {
       render(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'SUCCEEDED' }} namespace={mockNamespace} />
@@ -82,16 +82,24 @@ describe('AutoragRunsTableRow', () => {
       );
       const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
       await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
       expect(screen.getByTestId('delete-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
     });
 
-    it('should not show kebab menu for canceling runs', () => {
+    it('should only show reconfigure action for canceling runs', async () => {
       render(
         <MemoryRouter>
           <AutoragRunsTableRow run={{ ...mockRun, state: 'CANCELING' }} namespace={mockNamespace} />
         </MemoryRouter>,
       );
-      expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+      const kebab = screen.getByRole('button', { name: 'Kebab toggle' });
+      await userEvent.click(kebab);
+      expect(screen.getByTestId('reconfigure-run-action')).toBeInTheDocument();
+      expect(screen.queryByTestId('stop-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('retry-run-action')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('delete-run-action')).not.toBeInTheDocument();
     });
 
     it('should show stop action for running runs', async () => {

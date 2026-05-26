@@ -33,9 +33,15 @@ import {
   SortField,
   CatalogModelCustomPropertyKey,
   ModelType,
+  ModelCatalogTask,
+  MATCH_ALL_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
-import { ModelRegistryMetadataType } from '~/app/types';
+import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
+import {
+  buildCustomPropertiesWithModelType,
+  getModelTypeStoredValueFromCustomProperties,
+} from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -186,6 +192,10 @@ export const shouldShowValidatedInsights = (
   model: CatalogModel,
   artifacts: CatalogArtifacts[],
 ): boolean => isModelValidated(model) && hasPerformanceArtifacts(artifacts);
+
+export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
+  model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
+  model.servingConfig?.toolCalling != null;
 
 export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
   filterKey: K,
@@ -344,6 +354,10 @@ const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
 const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
 const inFilter = (k: string, values: string[]) =>
   `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
+const andFilter = (k: string, values: string[]) => values.map((v) => eqFilter(k, v)).join(' AND ');
+
+const isMatchAllFilter = (filterId: string): boolean =>
+  MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
 
 /**
  * Check if a filter key has the artifacts.* prefix.
@@ -437,7 +451,7 @@ const serializeFilterEntry = (
       case 1:
         return eqFilter(queryKey, data[0]);
       default:
-        return inFilter(queryKey, data);
+        return isMatchAllFilter(filterId) ? andFilter(queryKey, data) : inFilter(queryKey, data);
     }
   }
 
@@ -791,4 +805,16 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
   }
   // Fallback: capitalize whatever value we got
   return capitalize(modelTypeRaw.trim());
+};
+
+/**
+ * Returns model registry customProperties entries to prefill `model_type` when registering
+ * from the catalog. Recognized values (generative, predictive, unknown) are copied;
+ * unrecognized or missing values yield {}.
+ */
+export const getCatalogModelTypePropertyForRegistration = (
+  customProperties?: ModelRegistryCustomProperties,
+): ModelRegistryCustomProperties => {
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  return buildCustomPropertiesWithModelType(undefined, stored);
 };

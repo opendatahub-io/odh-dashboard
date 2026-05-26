@@ -15,7 +15,7 @@ type FeatureTableRowType = {
 
 const FeatureTableRow: React.FC<FeatureTableRowType> = ({ features, fsProject, onTagClick }) => (
   <Tr>
-    <Td dataLabel="Feature">
+    <Td dataLabel="Name">
       <TableRowTitleDescription
         title={
           <Link

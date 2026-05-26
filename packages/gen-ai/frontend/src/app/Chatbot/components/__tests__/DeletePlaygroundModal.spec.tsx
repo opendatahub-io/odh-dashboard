@@ -75,6 +75,9 @@ const mockChatbotContextValue = {
   maasModelsError: undefined,
   modelsError: undefined,
   lsdStatusError: undefined,
+  nemoGuardrailsStatus: null,
+  nemoGuardrailsStatusLoaded: true,
+  nemoGuardrailsStatusError: undefined,
   lastInput: '',
   setLastInput: jest.fn(),
 };

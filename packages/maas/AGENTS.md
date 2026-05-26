@@ -105,7 +105,7 @@ maas/
 
 ### BFF
 
-- **Go**: >= 1.24
+- **Go**: >= 1.25
 
 ---
 
@@ -180,6 +180,19 @@ A module MUST be defined as a directory inside of [packages](https://github.com/
 - You MUST add examples for every schema and response so mock servers can generate useful data
 - After updating the spec, regenerate clients/types by running `make regenerate-types`
 - **Reviewers MUST see a diff in the OpenAPI file alongside code changes**
+
+---
+
+## External BFF consumers (inter-BFF contract)
+
+The MaaS BFF is called over HTTP by **other packages** in this repo (and possibly external callers), not only by the Mod Arch UI.
+
+**Before you change handlers, routes, or JSON shapes that inter-BFF clients rely on:**
+
+1. Open and read **[`bff/CONSUMERS.md`](bff/CONSUMERS.md)** — contract endpoints, known consumers, request/response shapes, and breaking-change policy.
+2. Coordinate with maintainers of every listed consumer when a change is not backward compatible.
+
+Skipping this can **silently break downstream services**. Treat the endpoints documented there as a **public API contract** for the monorepo.
 
 ---
 
@@ -313,7 +326,7 @@ DEPLOYMENT_MODE=federated STYLE_THEME=patternfly-theme make dev-start
 
 ## Project-Wide Expectations
 
-1. Use **Go 1.24+** for the BFF and **Node 20+** for the frontend
+1. Use **Go 1.25+** for the BFF and **Node 20+** for the frontend
 2. Keep tooling in sync with `package.json` and `go.mod`
 3. Stick to **PatternFly components** and utilities; Material UI appears only when Kubeflow flavor
    explicitly requires it

@@ -77,46 +77,47 @@ const mockMulticlassModels: Record<string, AutomlModel> = {
 const mockRegressionModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('Linear Regression', {
     r2: 0.85,
-    mae: 2.5,
-    mse: 10.2,
-    rmse: 3.19,
+    mean_absolute_error: 2.5,
+    mean_squared_error: 10.2,
+    root_mean_squared_error: 3.19,
   }),
   'model-2': createMockModel('Gradient Boosting', {
     r2: 0.92,
-    mae: 1.8,
-    mse: 5.4,
-    rmse: 2.32,
+    mean_absolute_error: 1.8,
+    mean_squared_error: 5.4,
+    root_mean_squared_error: 2.32,
   }),
   'model-3': createMockModel('Ridge Regression', {
     r2: 0.88,
-    mae: 2.1,
-    mse: 7.8,
-    rmse: 2.79,
+    mean_absolute_error: 2.1,
+    mean_squared_error: 7.8,
+    root_mean_squared_error: 2.79,
   }),
 };
 
-// Timeseries models — AutoGluon negates error/loss metrics so higher (closer to 0) is better
+// Timeseries models — AutoGluon negates error/loss metrics so higher (closer to 0) is better.
+// Keys are snake_case (normalized from acronyms by useAutomlResults).
 const mockTimeseriesModels: Record<string, AutomlModel> = {
   'model-1': createMockModel('ARIMA', {
-    mase: -0.15,
-    mape: -0.18,
-    mae: -5.2,
-    mse: -45.3,
-    rmse: -6.73,
+    mean_absolute_scaled_error: -0.15,
+    mean_absolute_percentage_error: -0.18,
+    mean_absolute_error: -5.2,
+    mean_squared_error: -45.3,
+    root_mean_squared_error: -6.73,
   }),
   'model-2': createMockModel('Prophet', {
-    mase: -0.12,
-    mape: -0.14,
-    mae: -4.1,
-    mse: -32.1,
-    rmse: -5.67,
+    mean_absolute_scaled_error: -0.12,
+    mean_absolute_percentage_error: -0.14,
+    mean_absolute_error: -4.1,
+    mean_squared_error: -32.1,
+    root_mean_squared_error: -5.67,
   }),
   'model-3': createMockModel('LSTM', {
-    mase: -0.09,
-    mape: -0.11,
-    mae: -3.5,
-    mse: -25.6,
-    rmse: -5.06,
+    mean_absolute_scaled_error: -0.09,
+    mean_absolute_percentage_error: -0.11,
+    mean_absolute_error: -3.5,
+    mean_squared_error: -25.6,
+    root_mean_squared_error: -5.06,
   }),
 };
 
@@ -176,6 +177,9 @@ interface RenderWithContextOptions {
   pipelineRun?: PipelineRun;
   pipelineRunLoading?: boolean;
   modelsLoading?: boolean;
+  modelsError?: boolean;
+  modelsLoadError?: Error;
+  onRetryModels?: () => void;
   taskType?: string;
   namespace?: string;
   onViewDetails?: (modelName: string, rank: number) => void;
@@ -187,6 +191,9 @@ const renderWithContext = ({
   pipelineRun,
   pipelineRunLoading = false,
   modelsLoading = false,
+  modelsError,
+  modelsLoadError,
+  onRetryModels,
   taskType,
   namespace = 'test-namespace',
   onViewDetails,
@@ -200,6 +207,9 @@ const renderWithContext = ({
     pipelineRunLoading,
     models,
     modelsLoading,
+    modelsError,
+    modelsLoadError,
+    onRetryModels,
     parameters: createMockParameters(finalTaskType),
   };
 
@@ -240,11 +250,11 @@ describe('AutomlLeaderboard utility functions', () => {
             mcc: 0.85,
             f1: 0.9,
             r2: 0.88,
-            mae: 2.5,
-            mse: 10.2,
-            rmse: 3.19,
-            mape: 0.15,
-            mase: 0.12,
+            mean_absolute_error: 2.5,
+            mean_squared_error: 10.2,
+            root_mean_squared_error: 3.19,
+            mean_absolute_percentage_error: 0.15,
+            mean_absolute_scaled_error: 0.12,
           }),
         },
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
@@ -461,6 +471,93 @@ describe('AutomlLeaderboard component', () => {
     });
   });
 
+  describe('error states', () => {
+    it('should show error empty state when modelsError is true', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('Failed to list model directories'),
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toBeInTheDocument();
+      expect(within(errorState).getByText('Unable to fetch models')).toBeInTheDocument();
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+    });
+
+    it('should show generic error message when modelsLoadError is undefined', () => {
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      const errorState = screen.getByTestId('leaderboard-error');
+      expect(errorState).toHaveTextContent('An error occurred while loading model results.');
+    });
+
+    it('should call onRetryModels when Retry button is clicked', () => {
+      const mockRetry = jest.fn();
+
+      renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+      expect(mockRetry).toHaveBeenCalledTimes(1);
+    });
+
+    it('should display models after successful retry', () => {
+      const mockRetry = jest.fn();
+
+      const { rerender } = renderWithContext({
+        models: {},
+        modelsError: true,
+        modelsLoadError: new Error('S3 failure'),
+        onRetryModels: mockRetry,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+      });
+
+      expect(screen.getByTestId('leaderboard-error')).toBeInTheDocument();
+      expect(screen.queryByTestId('leaderboard-table')).not.toBeInTheDocument();
+
+      // Simulate successful refetch by rerendering with models
+      const contextValue = {
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'binary'),
+        pipelineRunLoading: false,
+        models: mockBinaryModels,
+        modelsLoading: false,
+        modelsError: false,
+        onRetryModels: mockRetry,
+        parameters: createMockParameters('binary'),
+      };
+
+      rerender(
+        <MemoryRouter initialEntries={['/automl/test-namespace/results/test-run-123']}>
+          <Routes>
+            <Route
+              path="/automl/:namespace/results/:runId"
+              element={
+                <AutomlResultsContext.Provider value={contextValue}>
+                  <AutomlLeaderboard />
+                </AutomlResultsContext.Provider>
+              }
+            />
+          </Routes>
+        </MemoryRouter>,
+      );
+
+      expect(screen.queryByTestId('leaderboard-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('leaderboard-table')).toBeInTheDocument();
+    });
+  });
+
   describe('running pipeline state', () => {
     it('should show running state when pipeline is PENDING', () => {
       renderWithContext({
@@ -668,13 +765,13 @@ describe('AutomlLeaderboard component', () => {
       expect(within(r2Header).getByTestId('optimized-indicator')).toHaveTextContent('(optimized)');
     });
 
-    it('should use mase as optimized metric for timeseries', () => {
+    it('should use mean_absolute_scaled_error as optimized metric for timeseries', () => {
       renderWithContext({
         models: mockTimeseriesModels,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'timeseries'),
       });
 
-      const maseHeader = screen.getByTestId('metric-header-mase');
+      const maseHeader = screen.getByTestId('metric-header-mean_absolute_scaled_error');
       expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
@@ -687,7 +784,7 @@ describe('AutomlLeaderboard component', () => {
       });
 
       // Should still show MASE as optimized (timeseries default)
-      const maseHeader = screen.getByTestId('metric-header-mase');
+      const maseHeader = screen.getByTestId('metric-header-mean_absolute_scaled_error');
       expect(within(maseHeader).getByTestId('optimized-indicator')).toHaveTextContent(
         '(optimized)',
       );
@@ -733,9 +830,9 @@ describe('AutomlLeaderboard component', () => {
 
       // All models should have all metric columns even if values differ
       expect(screen.getByTestId('metric-r2-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-mae-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-mse-1')).toBeInTheDocument();
-      expect(screen.getByTestId('metric-rmse-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-mean_absolute_error-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-mean_squared_error-1')).toBeInTheDocument();
+      expect(screen.getByTestId('metric-root_mean_squared_error-1')).toBeInTheDocument();
     });
   });
 

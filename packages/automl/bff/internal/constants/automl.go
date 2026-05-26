@@ -26,6 +26,10 @@ const (
 	PipelineTypeTimeSeries = "timeseries"
 	// PipelineTypeTabular identifies the AutoML tabular pipeline (classification + regression) during discovery.
 	PipelineTypeTabular = "tabular"
+
+	// DefaultPipelineVersionSuffix is the release version suffix appended to pipeline version names.
+	// Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
+	DefaultPipelineVersionSuffix = "3.5.0-ea.1"
 )
 
 var ValidTaskTypes = map[string]bool{

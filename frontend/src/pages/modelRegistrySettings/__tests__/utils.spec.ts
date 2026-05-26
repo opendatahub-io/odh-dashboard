@@ -1,5 +1,28 @@
 import { DatabaseSource, DatabaseType } from '#~/pages/modelRegistrySettings/const';
-import { isValidPort, buildDatabaseSpec } from '#~/pages/modelRegistrySettings/utils';
+import {
+  hasDatabaseInvalidChars,
+  isValidPort,
+  buildDatabaseSpec,
+} from '#~/pages/modelRegistrySettings/utils';
+
+describe('hasDatabaseInvalidChars', () => {
+  it('should return true for names containing ?', () => {
+    expect(hasDatabaseInvalidChars('mydb?tls=preferred')).toBe(true);
+    expect(hasDatabaseInvalidChars('DB_NAME?charset')).toBe(true);
+    expect(hasDatabaseInvalidChars('?leading')).toBe(true);
+    expect(hasDatabaseInvalidChars('trailing?')).toBe(true);
+  });
+
+  it('should return false for valid database names', () => {
+    expect(hasDatabaseInvalidChars('my_valid_db')).toBe(false);
+    expect(hasDatabaseInvalidChars('model-registry')).toBe(false);
+    expect(hasDatabaseInvalidChars('testdb123')).toBe(false);
+  });
+
+  it('should return false for empty strings', () => {
+    expect(hasDatabaseInvalidChars('')).toBe(false);
+  });
+});
 
 describe('isValidPort', () => {
   it('should accept valid port numbers', () => {
