@@ -88,7 +88,7 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
     {
       tags: [
         '@Tier',
-        '@Tier1',
+        '@Tier1Set1',
         '@GenAI',
         '@ModelServing',
         '@Deployment',
