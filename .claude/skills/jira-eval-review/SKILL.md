@@ -32,7 +32,7 @@ Check that required tools are available before proceeding.
 
 ### Verification procedure
 
-1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks` and `comment_limit=50`
+1. Attempt to call `jira_get_issue` for the provided issue key with `fields=summary,description,status,issuetype,labels,assignee,parent,issuelinks,comment` and `comment_limit=50`
 2. If the call fails with an auth or connection error, stop and report:
    > Atlassian MCP is not available or not authenticated. This skill requires the Atlassian MCP to fetch Jira issue details. Please configure and authenticate the Atlassian MCP server.
 3. Verify GitHub CLI connectivity by running `gh api user`
@@ -60,6 +60,27 @@ If no explicit "Acceptance Criteria" section exists, look for:
 - Bullet-point lists that describe expected behavior or deliverables
 
 Review Jira comments on the issue (already fetched in Phase 1 with `comment_limit=50`) for clarifications, additional requirements, scope changes, or other useful information that may refine or supplement the acceptance criteria extracted from the description.
+
+#### Comment-AC discrepancy detection
+
+After extracting criteria and reviewing comments, explicitly check whether any comment **changes what should be built** — not just how. A comment explaining implementation details or technical approach is a *clarification*; a comment saying "we decided to do X instead of Y" or "UX agreed to drop this requirement" is a *discrepancy*.
+
+**Classification:**
+
+- **Clarification** — explains how to implement, adds technical detail, or answers a question without changing the goal. These refine the AC and require no special treatment.
+- **Discrepancy** — changes the intended behavior, drops a requirement, replaces one approach with another, or introduces a new requirement not captured in the written AC. These indicate the written AC may be stale.
+
+**Signals that indicate a discrepancy (non-exhaustive):**
+
+- Language like "instead of", "we decided to", "actually we should", "no longer need", "skip this", "changed direction", "updated approach", "won't do", "out of scope now"
+- A comment from the assignee, reporter, or PM that describes different behavior than what the AC specifies
+- A comment referencing a UX/design decision that contradicts the written AC
+
+**When discrepancies are detected:**
+
+1. Record each discrepancy: which comment (author, date), which criterion it affects, and what the comment says should happen instead.
+2. During Phase 3 evaluation, if a criterion has a discrepancy: if the code matches the *written AC* but not the *comment's direction*, cap the verdict at **PARTIAL** and note the discrepancy in the evidence. If the code matches the *comment's direction* but not the *written AC*, still give the appropriate verdict (PASS/PARTIAL) based on the comment's updated intent, but flag that the written AC is stale.
+3. Surface all discrepancies in a **Flags** section of the report (see Phase 4).
 
 #### 1b. Traverse parent hierarchy and linked issues for context
 
@@ -158,6 +179,14 @@ Present the report in this format:
 **Issue:** [RHOAIENG-12345](https://redhat.atlassian.net/browse/RHOAIENG-12345) — {summary}
 **PR:** [#{number}]({url}) — {title}
 **Status:** {N}/{total} criteria satisfied{, M partial if any}
+
+### Flags
+
+{Include this section only when comment-AC discrepancies were detected. Omit entirely if none were found.}
+
+| Criterion | Comment Author | Discrepancy |
+|-----------|---------------|-------------|
+| #1 — {short criterion text} | {author}, {date} | {What the comment says vs. what the written AC says} |
 
 ### Per-Criterion Evaluation
 
