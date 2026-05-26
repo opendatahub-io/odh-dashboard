@@ -163,7 +163,7 @@ export const isModelServingDeploymentTransformExtension = <D extends Deployment 
  * This is executed as part of the deployment assembly process, allowing each field to
  * contribute its data to the final deployment resource.
  *
- * The `fieldId` links this apply extension to a specific WizardField2Extension, ensuring
+ * The `fieldId` links this apply extension to a specific WizardFieldExtension, ensuring
  * it is only executed when its associated field is active.
  */
 export type WizardFieldApplyExtension<T = unknown, D extends Deployment = Deployment> = Extension<
@@ -193,7 +193,7 @@ export const isWizardFieldApplyExtension = <T = unknown, D extends Deployment = 
  * This is used when editing an existing deployment to populate the wizard field with
  * the current values from the deployment resource.
  *
- * The `fieldId` links this extractor to a specific WizardField2Extension, ensuring the
+ * The `fieldId` links this extractor to a specific WizardFieldExtension, ensuring the
  * extracted data is provided to the correct field.
  */
 export type WizardFieldExtractorExtension<
@@ -225,7 +225,7 @@ export const isWizardFieldExtractorExtension = <T = unknown, D extends Deploymen
  * allowing extensions to validate that their associated resources can be created without conflicts.
  * Unlike post-deploy, errors thrown here propagate and block the deployment.
  *
- * The `fieldId` links this to a specific WizardField2Extension so it is only
+ * The `fieldId` links this to a specific WizardFieldExtension so it is only
  * executed when that field is active.
  */
 export type WizardFieldDeploymentFunctionsExtension<

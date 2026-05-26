@@ -9,7 +9,7 @@ export const modelAvailabilityField: ModelAvailabilityFieldOverride = {
   id: 'modelAvailability',
   type: 'modifier',
   isActive: isLLMInferenceServiceActive,
-  // MaaS checkbox is now provided by the maas package via WizardField2Extension
+  // MaaS checkbox is now provided by the maas package via WizardFieldExtension
   showSaveAsMaaS: false,
 };
 

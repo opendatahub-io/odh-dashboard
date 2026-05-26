@@ -114,7 +114,7 @@ export type ModelLocationData = {
 /**
  * Initial data for the deployment wizard form.
  * Known field data properties are explicitly typed, while dynamic field data
- * (from WizardField2Extension) can be added with any string key.
+ * (from WizardFieldExtension) can be added with any string key.
  */
 export type InitialWizardFormData = {
   // wizard
@@ -201,6 +201,7 @@ export type DeploymentStrategyFieldData = WizardFormData['state']['deploymentStr
 // extensible fields
 
 export type DeploymentWizardFieldId =
+  | 'modelType'
   | 'modelServerTemplate'
   | 'modelAvailability'
   | 'externalRoute'
