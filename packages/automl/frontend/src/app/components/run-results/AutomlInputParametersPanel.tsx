@@ -12,8 +12,10 @@ import {
   DescriptionListGroup,
   DescriptionListTerm,
   Content,
+  ContentVariants,
   Divider,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -187,7 +189,16 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
                   {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
-                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                    <Content component={ContentVariants.p}>
+                      <span className="pf-v6-u-pr-sm">
+                        The output directory will be available once training is complete.
+                      </span>
+                      <Spinner
+                        isInline
+                        size="sm"
+                        aria-label="Spinner for the parameter output directory"
+                      />
+                    </Content>
                   ) : modelsBasePath ? (
                     <ClipboardCopy
                       isReadOnly
