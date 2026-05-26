@@ -18,7 +18,7 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { useAccessReview } from '@odh-dashboard/internal/api';
+import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
@@ -44,13 +44,13 @@ type NIMSettingsCardProps = {
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
 
-  const [canCreateAccount, accountReviewLoaded] = useAccessReview({
+  const [canCreateAccount, accountReviewLoaded] = useAccessAllowed({
     group: NIMAccountModel.apiGroup,
     resource: NIMAccountModel.plural,
     namespace,
     verb: 'create',
   });
-  const [canCreateSecret, secretReviewLoaded] = useAccessReview({
+  const [canCreateSecret, secretReviewLoaded] = useAccessAllowed({
     resource: 'secrets',
     namespace,
     verb: 'create',

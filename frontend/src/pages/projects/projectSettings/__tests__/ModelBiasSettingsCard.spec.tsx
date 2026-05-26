@@ -2,18 +2,18 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { useAccessReview } from '#~/api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import ModelBiasSettingsCard from '#~/pages/projects/projectSettings/ModelBiasSettingsCard';
 
-jest.mock('#~/api', () => ({
-  useAccessReview: jest.fn(),
+jest.mock('#~/concepts/userSSAR', () => ({
+  useAccessAllowed: jest.fn(),
 }));
 
 jest.mock('#~/concepts/trustyai/useManageTrustyAICR');
 
-const mockUseAccessReview = jest.mocked(useAccessReview);
+const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
 const mockUseManageTrustyAICR = jest.mocked(useManageTrustyAICR);
 
 const mockProject = {
@@ -26,7 +26,7 @@ describe('ModelBiasSettingsCard', () => {
   });
 
   it('should show skeleton while access reviews are loading', () => {
-    mockUseAccessReview.mockReturnValue([false, false]);
+    mockUseAccessAllowed.mockReturnValue([false, false]);
     mockUseManageTrustyAICR.mockReturnValue({
       statusState: { type: TrustyInstallState.UNINSTALLED },
       installCRForNewDB: jest.fn(),
@@ -49,21 +49,21 @@ describe('ModelBiasSettingsCard', () => {
     });
 
     it('should show enabled configure button when user has permission', () => {
-      mockUseAccessReview.mockReturnValue([true, true]);
+      mockUseAccessAllowed.mockReturnValue([true, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       const button = screen.getByTestId('trustyai-configure-button');
       expect(button).not.toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should show disabled configure button when user lacks permission', () => {
-      mockUseAccessReview.mockReturnValue([false, true]);
+      mockUseAccessAllowed.mockReturnValue([false, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       const button = screen.getByTestId('trustyai-configure-button');
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should show permission tooltip when hovering disabled configure button', async () => {
-      mockUseAccessReview.mockReturnValue([false, true]);
+      mockUseAccessAllowed.mockReturnValue([false, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       await userEvent.hover(screen.getByTestId('trustyai-configure-button'));
       expect(
@@ -83,21 +83,21 @@ describe('ModelBiasSettingsCard', () => {
     });
 
     it('should show enabled uninstall button when user has permission', () => {
-      mockUseAccessReview.mockReturnValue([true, true]);
+      mockUseAccessAllowed.mockReturnValue([true, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       const button = screen.getByTestId('trustyai-uninstall-button');
       expect(button).not.toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should show disabled uninstall button when user lacks permission', () => {
-      mockUseAccessReview.mockReturnValue([false, true]);
+      mockUseAccessAllowed.mockReturnValue([false, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       const button = screen.getByTestId('trustyai-uninstall-button');
       expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should show permission tooltip when hovering disabled uninstall button', async () => {
-      mockUseAccessReview.mockReturnValue([false, true]);
+      mockUseAccessAllowed.mockReturnValue([false, true]);
       render(<ModelBiasSettingsCard project={mockProject} />);
       await userEvent.hover(screen.getByTestId('trustyai-uninstall-button'));
       expect(

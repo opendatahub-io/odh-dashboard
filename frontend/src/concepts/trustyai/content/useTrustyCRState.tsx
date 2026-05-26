@@ -7,7 +7,7 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import { useAccessReview } from '#~/api';
+import { useAccessAllowed } from '#~/concepts/userSSAR';
 import { TrustyAIApplicationsModel } from '#~/api/models/odh';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
@@ -25,13 +25,13 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   const { statusState, installCRForExistingDB, installCRForNewDB, deleteCR } =
     useManageTrustyAICR(namespace);
 
-  const [canCreateCR, crReviewLoaded] = useAccessReview({
+  const [canCreateCR, crReviewLoaded] = useAccessAllowed({
     group: TrustyAIApplicationsModel.apiGroup,
     resource: TrustyAIApplicationsModel.plural,
     namespace,
     verb: 'create',
   });
-  const [canCreateSecret, secretReviewLoaded] = useAccessReview({
+  const [canCreateSecret, secretReviewLoaded] = useAccessAllowed({
     resource: 'secrets',
     namespace,
     verb: 'create',
