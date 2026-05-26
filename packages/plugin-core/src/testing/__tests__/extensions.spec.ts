@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
-import { expectExtensionsToBeValid } from '@odh-dashboard/plugin-core/testing';
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import { expectExtensionsToBeValid } from '../utils';
 
 describe('workspace extensions', () => {
   it('should be valid', () => {
