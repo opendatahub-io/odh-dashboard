@@ -1,4 +1,8 @@
 import * as React from 'react';
+// This CSS is imported directly here because federated consumers (e.g. AutoRAG)
+// load this component via Module Federation without going through App.tsx,
+// which is where the chatbot stylesheet is normally imported.
+import '@patternfly/chatbot/dist/css/main.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   ModularArchConfig,
