@@ -271,11 +271,11 @@ describe('AutomlConfigure', () => {
       renderComponent();
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -452,7 +452,7 @@ describe('AutomlConfigure', () => {
 
       // Initially should show empty state
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a secret
@@ -461,7 +461,7 @@ describe('AutomlConfigure', () => {
 
       // Empty state should still be shown (no file selected yet)
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a file via the file explorer
@@ -470,7 +470,7 @@ describe('AutomlConfigure', () => {
 
       // Empty state should be hidden
       expect(
-        screen.queryByText('Select an S3 connection or upload a file to get started'),
+        screen.queryByText('Select a file from your S3 connection or upload a file to get started'),
       ).not.toBeInTheDocument();
 
       // Target column should be visible, prediction type should NOT be visible yet
@@ -599,11 +599,11 @@ describe('AutomlConfigure', () => {
       fireEvent.click(selectInvalidButton);
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -731,7 +731,7 @@ describe('AutomlConfigure', () => {
 
         // Configure details should revert to empty state
         expect(
-          screen.getByText('Select an S3 connection or upload a file to get started'),
+          screen.getByText('Select a file from your S3 connection or upload a file to get started'),
         ).toBeInTheDocument();
 
         // Re-select a file — prediction type cards should not be visible (no target column)
@@ -763,7 +763,7 @@ describe('AutomlConfigure', () => {
 
         // Empty state should be rendered
         expect(
-          screen.getByText('Select an S3 connection or upload a file to get started'),
+          screen.getByText('Select a file from your S3 connection or upload a file to get started'),
         ).toBeInTheDocument();
 
         // Target column should not exist since configure details is hidden

@@ -1133,7 +1133,7 @@ jobs:
 
           # Allowlists to prevent command injection from PR code (CWE-94)
           ALLOWED_COMMANDS=("make dev-bff-e2e-mock" "make dev-bff-e2e-cluster" "make -C upstream dev-bff-e2e-mock" "make -C upstream dev-bff-e2e-cluster")
-          ALLOWED_DIRS=("automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
+          ALLOWED_DIRS=("agent-ops" "automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
 
           # Parse BFF packages JSON and start each one
           echo "$BFF_PACKAGES" | jq -c '.[]' | while read -r bff_config; do
