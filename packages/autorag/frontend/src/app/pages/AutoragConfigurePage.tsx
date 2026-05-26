@@ -88,6 +88,22 @@ function AutoragConfigurePage({
 
   const onCancel = useCallback(() => navigate(-1), [navigate]);
 
+  const handleBackToCreate = useCallback(() => {
+    // New runs only: clear configure-step values so Back → Next does not show stale S3/file UI.
+    // Reconfigure keeps form state so users can edit step 1 without losing step 2 selections.
+    if (!sourceRunId) {
+      const createFieldSet = new Set<string>(createFields);
+      type DefaultKey = keyof typeof configureSchema.defaults;
+      const isDefaultKey = (key: string): key is DefaultKey => key in configureSchema.defaults;
+      for (const key of Object.keys(configureSchema.defaults)) {
+        if (!createFieldSet.has(key) && isDefaultKey(key)) {
+          form.setValue(key, configureSchema.defaults[key], { shouldValidate: false });
+        }
+      }
+    }
+    setStep('create');
+  }, [form, sourceRunId]);
+
   const createActions = (
     <>
       <ActionListItem>
@@ -127,9 +143,7 @@ function AutoragConfigurePage({
         <Button
           variant="link"
           isDisabled={form.formState.isSubmitting}
-          onClick={() => {
-            setStep('create');
-          }}
+          onClick={handleBackToCreate}
         >
           Back
         </Button>

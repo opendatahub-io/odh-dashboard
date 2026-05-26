@@ -54,7 +54,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
           <Content>
             <Content component="small">
               These are instances of your development and experimentation environment. They
-              typically contain IDEs, such as JupyterLab, RStudio, and Visual Studio Code.
+              typically contain IDEs, such as JupyterLab and Visual Studio Code.
             </Content>
           </Content>
         }
