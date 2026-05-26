@@ -464,4 +464,3 @@ export type ModelCatalogSettingsAPIs = {
   deleteCatalogSourceConfig: DeleteCatalogSourceConfig;
   previewCatalogSource: PreviewCatalogSource;
 };
-
