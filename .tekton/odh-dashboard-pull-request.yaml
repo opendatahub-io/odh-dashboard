@@ -34,9 +34,6 @@ spec:
     - 'odh-pr-{{revision}}'
   - name: pipeline-type
     value: pull-request
-  - name: build-args
-    value:
-    - "BUILD_MODE=RHOAI"
   pipelineRef:
     resolver: git
     params:
