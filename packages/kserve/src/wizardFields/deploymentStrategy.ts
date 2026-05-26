@@ -1,4 +1,4 @@
-import { DeploymentStrategyFieldOverride } from '@odh-dashboard/model-serving/components/deploymentWizard/types.js';
+import { DeploymentStrategyFieldOverride } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { isKServeInferenceServiceActive } from './timeout/TimeoutField';
 
 export const kserveDeploymentStrategyOverride: DeploymentStrategyFieldOverride = {
