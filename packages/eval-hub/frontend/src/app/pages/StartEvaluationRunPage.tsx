@@ -52,6 +52,8 @@ import {
 import { useNotification } from '~/app/hooks/useNotification';
 import { useEvaluationSelection } from '~/app/hooks/useEvaluationSelection';
 import LabelHelpPopover from '~/app/components/LabelHelpPopover';
+import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
+import PrimaryScorerMetricField from '~/app/components/PrimaryScorerMetricField';
 
 import './StartEvaluationRunPage.css';
 
@@ -68,6 +70,40 @@ const StartEvaluationRunPage: React.FC = () => {
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
+
+  const DEFAULT_SUITE_THRESHOLD = 70;
+
+  const defaultThreshold = React.useMemo(() => {
+    if (collection?.pass_criteria) {
+      return Math.round(collection.pass_criteria.threshold * 100);
+    }
+    if (collection) {
+      return DEFAULT_SUITE_THRESHOLD;
+    }
+    if (benchmark?.pass_criteria) {
+      return Math.round(benchmark.pass_criteria.threshold * 100);
+    }
+    return 0;
+  }, [benchmark, collection]);
+
+  const availableMetrics = React.useMemo(() => benchmark?.metrics ?? [], [benchmark]);
+
+  const defaultPrimaryMetric = benchmark?.primary_score?.metric ?? availableMetrics[0];
+
+  const [threshold, setThreshold] = React.useState(defaultThreshold);
+  const [thresholdTouched, setThresholdTouched] = React.useState(false);
+  const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
+    defaultPrimaryMetric,
+  );
+
+  const handleThresholdChange = React.useCallback((value: number) => {
+    setThreshold(value);
+    setThresholdTouched(true);
+  }, []);
+
+  const handlePrimaryMetricChange = React.useCallback((metric: string) => {
+    setPrimaryMetric(metric);
+  }, []);
 
   const { data: experiments, loaded: experimentsLoaded } = useMlflowExperiments({
     workspace: namespace ?? '',
@@ -236,6 +272,17 @@ const StartEvaluationRunPage: React.FC = () => {
     const isNewExperiment = experimentMode === 'new';
     const experimentName = isNewExperiment ? newExperimentName.trim() : selectedExperiment?.name;
 
+    const shouldIncludeThreshold = thresholdTouched || defaultThreshold > 0;
+    const passCriteriaOverride = shouldIncludeThreshold
+      ? { threshold: threshold / 100 }
+      : undefined;
+
+    const primaryScoreOverride =
+      primaryMetric && benchmark?.primary_score
+        ? // eslint-disable-next-line camelcase
+          { metric: primaryMetric, lower_is_better: benchmark.primary_score.lower_is_better }
+        : undefined;
+
     const request = buildEvaluationRequest({
       evaluationName,
       inputMode,
@@ -250,6 +297,8 @@ const StartEvaluationRunPage: React.FC = () => {
       additionalArgs: parsedArgs,
       experimentName: experimentName || undefined,
       experimentTags: undefined,
+      passCriteriaOverride,
+      primaryScoreOverride,
     });
 
     fireMiscTrackingEvent(EVAL_HUB_EVENTS.MLFLOW_EXPERIMENT_SELECTED, {
@@ -391,15 +440,6 @@ const StartEvaluationRunPage: React.FC = () => {
           Start evaluation run
         </Content>
         <Form style={{ maxWidth: 700 }} data-testid="start-evaluation-form">
-          <FormGroup
-            label={isCollectionFlow ? 'Benchmark suite name' : 'Benchmark name'}
-            fieldId="benchmark-name"
-          >
-            <Content component="p" data-testid="benchmark-name-display">
-              {benchmarkDisplayName}
-            </Content>
-          </FormGroup>
-
           <FormGroup label="Evaluation name" isRequired fieldId="evaluation-name">
             <TextInput
               id="evaluation-name"
@@ -624,6 +664,30 @@ const StartEvaluationRunPage: React.FC = () => {
               }
             />
           </FormGroup>
+
+          <FormGroup
+            label={isCollectionFlow ? 'Benchmark suite' : 'Benchmark'}
+            fieldId="benchmark-name"
+          >
+            <Content component="p" data-testid="benchmark-name-display">
+              {benchmarkDisplayName}
+            </Content>
+          </FormGroup>
+
+          <BenchmarkThresholdField
+            value={threshold}
+            onChange={handleThresholdChange}
+            label={isCollectionFlow ? 'Benchmark suite threshold' : 'Benchmark threshold'}
+            fieldId="benchmark-threshold"
+          />
+
+          {!isCollectionFlow && availableMetrics.length > 0 && (
+            <PrimaryScorerMetricField
+              metrics={availableMetrics}
+              selected={primaryMetric}
+              onChange={handlePrimaryMetricChange}
+            />
+          )}
 
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
             <FlexItem>
