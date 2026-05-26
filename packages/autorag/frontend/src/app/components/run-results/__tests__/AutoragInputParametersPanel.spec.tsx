@@ -330,7 +330,7 @@ describe('AutoragInputParametersPanel', () => {
       expect(input).toHaveValue('s3://bucket/rag/patterns');
     });
 
-    it('should show skeleton for output directory when patterns are loading', () => {
+    it('should show loading message and spinner for output directory when patterns are loading', () => {
       renderPanel(
         {},
         {
@@ -339,10 +339,15 @@ describe('AutoragInputParametersPanel', () => {
         },
       );
       const outputDir = screen.getByTestId('parameter-output-directory');
-      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once training is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
     });
 
-    it('should show skeleton for output directory when run is not in terminal state', () => {
+    it('should show loading message and spinner for output directory when run is not in terminal state', () => {
       renderPanel(
         {},
         {
@@ -351,7 +356,12 @@ describe('AutoragInputParametersPanel', () => {
         },
       );
       const outputDir = screen.getByTestId('parameter-output-directory');
-      expect(outputDir.querySelector('.pf-v6-c-skeleton')).toBeInTheDocument();
+      expect(outputDir).toHaveTextContent(
+        'The output directory will be available once training is complete.',
+      );
+      expect(
+        screen.getByRole('progressbar', { name: 'Spinner for the parameter output directory' }),
+      ).toBeInTheDocument();
     });
 
     it('should show "Not available" when ragPatternsBasePath is undefined and run is terminal', () => {
