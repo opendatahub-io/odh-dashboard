@@ -2,7 +2,7 @@ name: Dependabot Auto-merge
 
 on:
   pull_request_target:
-    types: [opened, synchronize]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
@@ -19,10 +19,44 @@ jobs:
         id: metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
 
-      - name: Apply merge labels for patch updates
-        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+      - name: Check eligibility
+        id: check
+        run: |
+          ecosystem="${{ steps.metadata.outputs.package-ecosystem }}"
+          update_type="${{ steps.metadata.outputs.update-type }}"
+
+          if [ "$ecosystem" = "npm_and_yarn" ] && \
+             { [ "$update_type" = "version-update:semver-patch" ] || [ "$update_type" = "version-update:semver-minor" ]; }; then
+            echo "Eligible: ecosystem=$ecosystem, update-type=$update_type"
+            echo "eligible=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not eligible: ecosystem=$ecosystem, update-type=$update_type"
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply merge labels
+        if: steps.check.outputs.eligible == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
+          echo "Adding lgtm and approved labels to $PR_URL"
           gh pr edit "$PR_URL" --add-label "lgtm,approved"
+          echo "::notice::Labels applied successfully"
+
+      - name: Summary
+        run: |
+          deps="${{ steps.metadata.outputs.dependency-names }}"
+
+          if [ "${{ steps.check.outputs.eligible }}" = "true" ]; then
+            echo "### ✅ Auto-merge labels applied" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ⏭️ Skipped — not eligible for auto-merge" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- **Ecosystem:** \`${{ steps.metadata.outputs.package-ecosystem }}\`" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "- **Update type:** \`${{ steps.metadata.outputs.update-type }}\`" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "- **Dependencies:** \`$deps\`" | tee -a "$GITHUB_STEP_SUMMARY"
+
+          if ! echo "$deps" | grep -q ","; then
+            echo "- **Version:** \`${{ steps.metadata.outputs.previous-version }}\` → \`${{ steps.metadata.outputs.new-version }}\`" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
