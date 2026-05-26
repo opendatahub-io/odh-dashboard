@@ -1,6 +1,6 @@
-// eslint-disable-next-line no-restricted-syntax
+// eslint-disable-next-line no-restricted-syntax, @odh-dashboard/no-restricted-imports
 import { NamespaceApplicationCase } from '@odh-dashboard/internal/pages/projects/types';
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/consistent-type-imports
+// eslint-disable-next-line no-restricted-syntax
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import type {
   ModelServingPlatformExtension,
@@ -18,6 +18,7 @@ import type {
   WizardFieldExtension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
+  DeploymentWizardFieldOverrideExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
@@ -80,6 +81,7 @@ const extensions: (
   | WizardFieldExtension<WizardField<TimeoutFieldValue, undefined>, KServeDeployment>
   | WizardFieldApplyExtension<TimeoutFieldValue, KServeDeployment>
   | WizardFieldExtractorExtension<TimeoutFieldValue, KServeDeployment>
+  | DeploymentWizardFieldOverrideExtension<KServeDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -257,6 +259,19 @@ const extensions: (
     },
     flags: {
       required: [SupportedArea.K_SERVE],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: KSERVE_ID,
+      field: () =>
+        import('./src/wizardFields/deploymentStrategy').then(
+          (m) => m.kserveDeploymentStrategyOverride,
+        ),
+    },
+    flags: {
+      required: [KSERVE_ID],
     },
   },
 ];
