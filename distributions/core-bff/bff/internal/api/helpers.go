@@ -18,7 +18,7 @@ type None *struct{}
 
 func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
 
-	js, err := json.MarshalIndent(data, "", "\t")
+	js, err := json.Marshal(data)
 
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 }
 
 func ParseURLTemplate(tmpl string, params map[string]string) string {
-	args := make([]string, len(params)*2)
+	args := make([]string, 0, len(params)*2)
 
 	for k, v := range params {
 		args = append(args, ":"+k, v)

@@ -56,16 +56,6 @@ make dev-start-federated
 
 Alternatively, follow the steps in the [frontend dev setup] and [BFF dev setup] guides for manual setup.
 
-### Kubernetes Deployment
-
-For an in-depth guide on how to deploy the Core BFF, please refer to the [local kubernetes deployment](./docs/local-deployment-guide.md) documentation.
-
-To quickly enable the Core BFF in your Kind cluster, you can use the following command:
-
-```shell
-make kind-deployment
-```
-
 ## Debugging and Testing
 
 See [frontend testing guidelines](frontend/docs/testing.md) for testing the frontend.

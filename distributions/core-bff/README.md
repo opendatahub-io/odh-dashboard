@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Core BFF replaces the Fastify backend across RHOAI (sidecar) and RHAII (standalone) deployments. It contains a Go backend (BFF) and a React frontend.
+The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go backend (BFF) and a React frontend.
 
 ## Contributing
 
@@ -16,7 +16,7 @@ You can find the OpenAPI specification for the Core BFF in the [openapi](./bff/o
 
 There are two main deployment modes that the Core BFF supports:
 
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/api/namespaces` endpoint that returns all the namespaces in the cluster.
+1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/api/v1/namespaces` endpoint that returns all the namespaces in the cluster.
 
 2. **Federated**: This is the environment where the UI is served as a micro-frontend and integrated with a host application.
 
@@ -67,7 +67,7 @@ The following environment variables are used to configure the deployment and dev
 
 - **Description**: Specifies the theme/styling framework to be used for the UI.
 - **Default Value**: `patternfly-theme`
-- **Possible Values**: `patternfly-theme`, `mui-theme`
+- **Possible Values**: `patternfly-theme`
 - **Example**: `STYLE_THEME=patternfly-theme`
 
 ### Example `.env.local` File

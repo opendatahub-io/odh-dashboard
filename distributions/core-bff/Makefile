@@ -38,9 +38,9 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff
-dev-bff: ## Run BFF in mock mode with user_token auth (recommended for local dev)
+dev-bff: ## Run BFF in mock mode with auth disabled (recommended for local dev)
 	trap 'exit 0' INT; \
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=user_token
+	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=disabled
 
 .PHONY: dev-frontend
 dev-frontend:
@@ -157,7 +157,7 @@ build: frontend-build bff-build
 ############ Run mocked ########
 .PHONY: run-local-mocked
 run-local-mocked: frontend-build-standalone bff-build
-	rm -r ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true DEV_MODE=true
+	rm -rf ./bff/static-local-run && cp -r ./frontend/dist/ ./bff/static-local-run/ && cd bff && make run STATIC_ASSETS_DIR=./static-local-run MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=standalone AUTH_METHOD=disabled
 
 
 	

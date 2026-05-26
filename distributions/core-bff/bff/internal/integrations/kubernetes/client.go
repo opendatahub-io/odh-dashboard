@@ -11,6 +11,6 @@ const ComponentLabelValue = "core"
 // KubernetesClientInterface exposes only the minimal surface needed by the starter project.
 type KubernetesClientInterface interface {
 	GetNamespaces(ctx context.Context, identity *RequestIdentity) ([]corev1.Namespace, error)
-	IsClusterAdmin(identity *RequestIdentity) (bool, error)
-	GetUser(identity *RequestIdentity) (string, error)
+	IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
+	GetUser(ctx context.Context, identity *RequestIdentity) (string, error)
 }

@@ -130,7 +130,8 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	const maxResponseBodySize = 10 << 20 // 10 MB
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
 	if err != nil {
 		return NewInvalidResponseError(c.target, fmt.Sprintf("failed to read response body: %v", err))
 	}

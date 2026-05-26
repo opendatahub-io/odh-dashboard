@@ -17,7 +17,7 @@ import '@cypress/code-coverage/support';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import './commands';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
-import { CLIENT_API_VERSION } from './commands/api';
+import { BFF_API_VERSION } from './commands/api';
 
 Cypress.Keyboard.defaults({
   keystrokeDelay: 0,
@@ -32,7 +32,7 @@ beforeEach(() => {
       'GET /api/:apiVersion/user',
       {
         path: {
-          apiVersion: CLIENT_API_VERSION,
+          apiVersion: BFF_API_VERSION,
         },
       },
       mockUserSettings({}),
@@ -42,7 +42,7 @@ beforeEach(() => {
       'GET /api/:apiVersion/namespaces',
       {
         path: {
-          apiVersion: CLIENT_API_VERSION,
+          apiVersion: BFF_API_VERSION,
         },
       },
       [mockNamespace({})],

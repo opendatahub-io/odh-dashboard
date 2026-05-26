@@ -26,16 +26,18 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/core"
-	ApiPathPrefix   = "/api"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
-	OpenAPIPath     = PathPrefix + "/openapi"
-	OpenAPIJSONPath = PathPrefix + "/openapi.json"
-	OpenAPIYAMLPath = PathPrefix + "/openapi.yaml"
-	SwaggerUIPath   = PathPrefix + "/swagger-ui"
+	Version            = "1.0.0"
+	PathPrefix         = "/core-bff"
+	ApiPathPrefix      = "/api"
+	ApiVersion         = "/v1"
+	HealthCheckPath    = "/healthcheck"
+	ApiHealthCheckPath = ApiPathPrefix + ApiVersion + "/healthcheck"
+	UserPath           = ApiPathPrefix + ApiVersion + "/user"
+	NamespacePath      = ApiPathPrefix + ApiVersion + "/namespaces"
+	OpenAPIPath        = PathPrefix + "/openapi"
+	OpenAPIJSONPath    = PathPrefix + "/openapi.json"
+	OpenAPIYAMLPath    = PathPrefix + "/openapi.yaml"
+	SwaggerUIPath      = PathPrefix + "/swagger-ui"
 )
 
 type App struct {
@@ -207,6 +209,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
+	apiRouter.GET(ApiHealthCheckPath, app.HealthcheckHandler)
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
@@ -216,6 +219,9 @@ func (app *App) Routes() http.Handler {
 	// handler for api calls
 	appMux.Handle(ApiPathPrefix+"/", apiRouter)
 	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	appMux.HandleFunc(ApiPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+		app.notFoundResponse(w, r)
+	})
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
@@ -247,8 +253,10 @@ func (app *App) Routes() http.Handler {
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
 	combinedMux.HandleFunc(OpenAPIJSONPath, app.openAPI.HandleOpenAPIJSONWrapper)
 	combinedMux.HandleFunc(OpenAPIYAMLPath, app.openAPI.HandleOpenAPIYAMLWrapper)
-	combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
-	combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+	if app.config.DevMode {
+		combinedMux.HandleFunc(SwaggerUIPath, app.openAPI.HandleSwaggerUIWrapper)
+		combinedMux.HandleFunc(OpenAPIPath, app.openAPI.HandleOpenAPIRedirectWrapper)
+	}
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux

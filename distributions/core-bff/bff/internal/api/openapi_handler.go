@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
-	"os"
-	"path/filepath"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
+	openapispec "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/openapi"
 )
 
 type OpenAPIHandler struct {
@@ -20,23 +18,9 @@ type OpenAPIHandler struct {
 }
 
 func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
-	specPath := "openapi/src/core-bff.yaml"
-	specData, err := os.ReadFile(specPath)
-	if err != nil {
-		return nil, err
-	}
+	specData := openapispec.SpecYAML
 
 	loader := openapi3.NewLoader()
-	loader.IsExternalRefsAllowed = true
-
-	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
-		if url.Scheme == "" && url.Host == "" {
-			filePath := filepath.Join("openapi/src", url.Path)
-			return os.ReadFile(filePath)
-		}
-		return nil, fmt.Errorf("unsupported URL scheme: %s", url.Scheme)
-	}
-
 	spec, err := loader.LoadFromData(specData)
 	if err != nil {
 		return nil, err
@@ -60,6 +44,8 @@ func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
 	}, nil
 }
 
+// OpenAPI endpoints use permissive CORS (Allow-Origin: *) intentionally - they serve
+// public developer documentation and must be accessible from Swagger UI on any origin.
 func (h *OpenAPIHandler) HandleOpenAPIJSON(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")

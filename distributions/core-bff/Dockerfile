@@ -4,7 +4,7 @@ ARG BFF_SOURCE_CODE=./bff
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=node:22
-ARG GOLANG_BASE_IMAGE=golang:1.24.3
+ARG GOLANG_BASE_IMAGE=golang:1.25
 ARG DISTROLESS_BASE_IMAGE=gcr.io/distroless/static:nonroot
 
 # UI build stage
@@ -43,6 +43,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bff ./cmd
@@ -52,6 +53,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bf
 FROM ${DISTROLESS_BASE_IMAGE}
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/app/dist ./static/
 USER 65532:65532
 

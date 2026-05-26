@@ -1,4 +1,3 @@
-// Default flavor override: removes references to Kubeflow-only packages.
 module.exports = {
   roots: ['<rootDir>/src/'],
   testMatch: [

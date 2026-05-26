@@ -29,7 +29,9 @@ func main() {
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
-	// New deployment mode flag
+	if v := getEnvAsString("DEPLOYMENT_MODE", ""); v != "" {
+		_ = cfg.DeploymentMode.Set(v)
+	}
 	flag.Var(&cfg.DeploymentMode, "deployment-mode", "Deployment mode (federated or standalone)")
 
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
@@ -40,8 +42,8 @@ func main() {
 	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
 	flag.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", "user_token"), "Authentication method (disabled or user_token)")
-	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (e.g., Authorization)")
-	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix used in the token header (e.g., 'Bearer ')")
+	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (default: x-forwarded-access-token)")
+	flag.StringVar(&cfg.AuthTokenPrefix, "auth-token-prefix", getEnvAsString("AUTH_TOKEN_PREFIX", config.DefaultAuthTokenPrefix), "Prefix to strip from the token header value (default: none)")
 
 	// TLS configuration flags
 	flag.BoolVar(&cfg.InsecureSkipVerify, "insecure-skip-verify", getEnvAsBool("INSECURE_SKIP_VERIFY", false), "Skip TLS certificate verification (useful for development, default: false)")
@@ -112,7 +114,7 @@ func main() {
 
 	// Graceful shutdown setup
 	shutdownCh := make(chan os.Signal, 1)
-	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	// Wait for shutdown signal
 	<-shutdownCh

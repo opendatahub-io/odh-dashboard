@@ -80,13 +80,11 @@ func (r RequestLogValuer) LogValue() slog.Value {
 
 type ResponseLogValuer struct {
 	Response *http.Response
-	Body     []byte
 }
 
 func (r ResponseLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(
 		slog.Any("status_code", r.Response.StatusCode),
 		slog.String("status", r.Response.Status),
-		slog.Any("body", r.Body),
 		slog.Any("headers", HeaderLogValuer{Header: r.Response.Header}))
 }

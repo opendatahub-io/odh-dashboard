@@ -1,7 +1,7 @@
-[Dev setup & Requirements]: dev-setup.md
-[Architecture]: architecture.md
-[Testing]: testing.md
-[Environment Variables]: env-variables.md
+[Dev setup & Requirements]: ../frontend/docs/dev-setup.md
+[Architecture]: ../frontend/docs/architecture.md
+[Testing]: ../frontend/docs/testing.md
+[Environment Variables]: ../frontend/docs/env-variables.md
 
 # Core Bff UI Documentation
 

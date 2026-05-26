@@ -22,7 +22,7 @@ type KubernetesClientFactory interface {
 
 func NewKubernetesClientFactory(cfg config.EnvConfig, logger *slog.Logger) (KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
-	case config.AuthMethodUser:
+	case config.AuthMethodDisabled, config.AuthMethodUser:
 		k8sFactory := NewTokenClientFactory(logger, cfg)
 		return k8sFactory, nil
 	default:

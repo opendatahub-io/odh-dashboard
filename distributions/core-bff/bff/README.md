@@ -10,7 +10,8 @@ Backend-for-frontend providing core endpoints required by the dashboard UI.
 
 This service exposes:
 
-- GET `/healthcheck` - liveness probe
+- GET `/healthcheck` - liveness probe (no auth)
+- GET `/api/v1/healthcheck` - health check (with auth middleware)
 - GET `/api/v1/user` - returns the authenticated user
 - GET `/api/v1/namespaces` - list namespaces (available only when DEV_MODE=true or mock k8s enabled)
 
@@ -46,7 +47,7 @@ make run LOG_LEVEL=DEBUG
 | Flag | Env Var | Description |
 |------|---------|-------------|
 | `-port` | `PORT` | Listen port (default 4000) |
-| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `integrated` (default `standalone`) |
+| `-deployment-mode` | `DEPLOYMENT_MODE` | `standalone` or `federated` (default `standalone`) |
 | `-dev-mode` | `DEV_MODE` | Enables relaxed behaviors (namespaces listing, etc.) |
 | `-mock-k8s-client` | `MOCK_K8S_CLIENT` | Use in-memory stub for namespace/user resolution |
 | `-static-assets-dir` | `STATIC_ASSETS_DIR` | Directory to serve single-page frontend assets |
@@ -55,8 +56,8 @@ make run LOG_LEVEL=DEBUG
 | `-auth-method` | `AUTH_METHOD` | `user_token` (default) or `disabled` (skips auth) |
 | `-auth-token-header` | `AUTH_TOKEN_HEADER` | Header to read token from (default `x-forwarded-access-token`) |
 | `-auth-token-prefix` | `AUTH_TOKEN_PREFIX` | Expected value prefix (default empty; use `Bearer` with standard `Authorization`) |
-| `-cert-file` | `CERT_FILE` | TLS certificate path (enables TLS when paired with key) |
-| `-key-file` | `KEY_FILE` | TLS key path |
+| `-cert-file` | (CLI only) | TLS certificate path (enables TLS when paired with key) |
+| `-key-file` | (CLI only) | TLS key path |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only) |
 | `-mock-bff-clients` | `MOCK_BFF_CLIENTS` | Use mock BFF clients (no real HTTP calls to other BFFs) |
 | `-namespace` | `NAMESPACE` | Kubernetes namespace where the dashboard is deployed (default `opendatahub`) |
@@ -85,20 +86,21 @@ make build
 
 The BFF binary will be inside the `bin` directory.
 
-You can also build BFF docker image with:
+You can also build Docker images from the distribution root (`core-bff/`):
 
 ```shell
-make docker-build
+cd .. && make docker-build
 ```
 
 ## Endpoints
 
-Three JSON endpoints are available plus static asset serving (index.html fallback):
+Four JSON endpoints are available plus static asset serving (index.html fallback):
 
 ```text
-GET /healthcheck
+GET /healthcheck            (no auth)
+GET /api/v1/healthcheck     (with auth middleware)
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces      (dev / mock mode only)
 ```
 
 ### Sample local calls

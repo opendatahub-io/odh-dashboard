@@ -19,6 +19,30 @@ func GetClient(ctx context.Context, target BFFTarget) BFFClientInterface {
 	return nil
 }
 
+// attachBFFClientToContext creates a BFF client for the target and attaches it to the context.
+func attachBFFClientToContext(ctx context.Context, factory BFFClientFactory, target BFFTarget) context.Context {
+	logger := helper.GetContextLogger(ctx)
+
+	if !factory.IsTargetConfigured(target) {
+		logger.Debug("Target BFF not configured, attaching nil client", "target", target)
+		return context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
+	}
+
+	var authToken string
+	if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
+		authToken = identity.Token.Raw()
+	}
+
+	client := factory.CreateClient(target, authToken)
+	if client == nil {
+		logger.Warn("Failed to create BFF client", "target", target)
+		return context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
+	}
+
+	logger.Debug("BFF client created", "target", target, "baseURL", client.GetBaseURL())
+	return context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), client)
+}
+
 // AttachBFFClient creates middleware that attaches a BFF client to the request context.
 // This middleware extracts the user's auth token from RequestIdentity and creates a
 // BFF client configured to forward that token to the target BFF.
@@ -35,41 +59,7 @@ func GetClient(ctx context.Context, target BFFTarget) BFFClientInterface {
 func AttachBFFClient(factory BFFClientFactory, target BFFTarget) func(next httprouter.Handle) httprouter.Handle {
 	return func(next httprouter.Handle) httprouter.Handle {
 		return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			ctx := r.Context()
-			logger := helper.GetContextLoggerFromReq(r)
-
-			// Check if target is configured
-			if !factory.IsTargetConfigured(target) {
-				logger.Debug("Target BFF not configured, attaching nil client", "target", target)
-				ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
-				next(w, r.WithContext(ctx), ps)
-				return
-			}
-
-			// Get auth token from RequestIdentity
-			var authToken string
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token.Raw()
-			}
-
-			// Create BFF client for target
-			client := factory.CreateClient(target, authToken)
-			if client == nil {
-				logger.Warn("Failed to create BFF client", "target", target)
-				ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
-				next(w, r.WithContext(ctx), ps)
-				return
-			}
-
-			// Check availability (best effort - log but continue)
-			if !client.IsAvailable(ctx) {
-				logger.Warn("Target BFF unavailable (will continue anyway)", "target", target)
-			} else {
-				logger.Debug("Target BFF available", "target", target, "baseURL", client.GetBaseURL())
-			}
-
-			// Attach to context
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), client)
+			ctx := attachBFFClientToContext(r.Context(), factory, target)
 			next(w, r.WithContext(ctx), ps)
 		}
 	}
@@ -80,41 +70,7 @@ func AttachBFFClient(factory BFFClientFactory, target BFFTarget) func(next httpr
 func AttachBFFClientFunc(factory BFFClientFactory, target BFFTarget) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			logger := helper.GetContextLoggerFromReq(r)
-
-			// Check if target is configured
-			if !factory.IsTargetConfigured(target) {
-				logger.Debug("Target BFF not configured, attaching nil client", "target", target)
-				ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
-				next(w, r.WithContext(ctx))
-				return
-			}
-
-			// Get auth token from RequestIdentity
-			var authToken string
-			if identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity); ok && identity != nil {
-				authToken = identity.Token.Raw()
-			}
-
-			// Create BFF client for target
-			client := factory.CreateClient(target, authToken)
-			if client == nil {
-				logger.Warn("Failed to create BFF client", "target", target)
-				ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), nil)
-				next(w, r.WithContext(ctx))
-				return
-			}
-
-			// Check availability (best effort - log but continue)
-			if !client.IsAvailable(ctx) {
-				logger.Warn("Target BFF unavailable (will continue anyway)", "target", target)
-			} else {
-				logger.Debug("Target BFF available", "target", target, "baseURL", client.GetBaseURL())
-			}
-
-			// Attach to context
-			ctx = context.WithValue(ctx, constants.BFFClientKey(constants.BFFTarget(target)), client)
+			ctx := attachBFFClientToContext(r.Context(), factory, target)
 			next(w, r.WithContext(ctx))
 		}
 	}

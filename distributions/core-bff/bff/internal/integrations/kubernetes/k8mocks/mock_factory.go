@@ -15,14 +15,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
-type MockedKubernetesClientFactory interface {
-	k8s.KubernetesClientFactory
-}
-
 func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
-		k8sFactory, err := NewTokenClientFactory(clientset, testEnv.Config, logger)
+		k8sFactory, err := NewTokenClientFactory(clientset, testEnv.Config, logger, cfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create token client factory: %w", err)
 		}
@@ -51,13 +47,8 @@ type MockedTokenClientFactory struct {
 }
 
 // NewTokenClientFactory initializes a factory using a known envtest clientset + config.
-func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
-	cfg := config.EnvConfig{
-		AuthMethod:      config.AuthMethodUser,
-		AuthTokenHeader: config.DefaultAuthTokenHeader,
-		AuthTokenPrefix: config.DefaultAuthTokenPrefix,
-	}
-	realFactory := k8s.NewTokenClientFactory(logger, cfg)
+func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Config, logger *slog.Logger, appCfg config.EnvConfig) (k8s.KubernetesClientFactory, error) {
+	realFactory := k8s.NewTokenClientFactory(logger, appCfg)
 
 	return &MockedTokenClientFactory{
 		logger:         logger,

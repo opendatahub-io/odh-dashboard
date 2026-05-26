@@ -13,6 +13,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -38,7 +39,11 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 		}
 
 		if app.config.AuthMethod == config.AuthMethodDisabled {
-			next.ServeHTTP(w, r)
+			identity := &k8s.RequestIdentity{
+				Token: k8s.NewBearerToken(config.DefaultDisabledAuthToken),
+			}
+			ctx := context.WithValue(r.Context(), constants.RequestIdentityKey, identity)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 

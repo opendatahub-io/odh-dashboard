@@ -1,4 +1,4 @@
-# Mod Arch UI Testing
+# Core BFF UI Testing
 
 ## Cypress Tests
 

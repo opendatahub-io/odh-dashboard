@@ -54,7 +54,7 @@ func newOriginParser(allowList *[]string, defaultVal string) func(s string) erro
 			return nil
 		}
 
-		for _, str := range strings.Split(s, ",") {
+		for _, str := range strings.Split(value, ",") {
 			origin := strings.TrimSpace(str)
 			if origin == "" {
 				continue

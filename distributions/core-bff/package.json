@@ -3,6 +3,9 @@
   "name": "@odh-dashboard/core-bff",
   "description": "Core BFF - replaces Fastify backend for RHOAI sidecar and RHAII standalone deployments.",
   "version": "0.0.1",
+  "exports": {
+    "./extension-points": "./frontend/src/odh/extension-points/index.ts"
+  },
   "module-federation": {
     "name": "core",
     "remoteEntry": "/remoteEntry.js",
@@ -10,7 +13,7 @@
     "tls": false,
     "proxy": [
       {
-        "path": "/core/api",
+        "path": "/core-bff/api",
         "pathRewrite": "/api"
       }
     ],

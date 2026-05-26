@@ -1,9 +1,9 @@
 # AGENTS.md - Core BFF
 
 This document provides guidance for AI agents and developers working on the Core BFF module.
-The Core BFF replaces the Fastify backend across RHOAI (sidecar) and RHAII (standalone)
-deployments. It contains a Go backend-for-frontend (BFF) and a React frontend that integrates
-with the ODH dashboard via Module Federation.
+The Core BFF replaces the Fastify backend for RHOAI sidecar deployments. It contains a Go
+backend-for-frontend (BFF) and a React frontend that integrates with the ODH dashboard via
+Module Federation.
 
 ## Mandatory Development Flow
 
@@ -67,7 +67,6 @@ core-bff/
 │   │   │   ├── context/         # React context providers
 │   │   │   ├── hooks/           # Custom React hooks
 │   │   │   ├── pages/           # Page components
-│   │   │   ├── standalone/      # Standalone mode components
 │   │   │   └── utilities/       # Frontend utilities
 │   │   ├── __mocks__/           # Jest mocks
 │   │   ├── __tests__/           # Test files
@@ -80,13 +79,7 @@ core-bff/
 │   ├── docs/                    # Frontend documentation
 │   ├── package.json             # NPM dependencies and scripts
 │   └── README.md                # Frontend documentation
-├── manifests/                   # Kubernetes manifests
-│   ├── base/                    # Base Kustomize resources
-│   └── overlays/                # Environment-specific overlays
 ├── docs/                        # Project documentation
-│   ├── install.md               # Installation guide
-│   ├── local-deployment-guide.md
-│   └── local-deployment-guide-ui.md
 ├── scripts/                     # Utility scripts
 ├── Dockerfile                   # Container image build
 ├── Makefile                     # Root-level make commands
@@ -183,11 +176,12 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 
 ### Current Endpoints
 
-| Method | Path              | Description                          |
-| ------ | ----------------- | ------------------------------------ |
-| GET    | `/healthcheck`    | Liveness probe                       |
-| GET    | `/api/user`       | Returns authenticated user info      |
-| GET    | `/api/namespaces` | List namespaces (dev/mock mode only) |
+| Method | Path                 | Description                          |
+| ------ | -------------------- | ------------------------------------ |
+| GET    | `/healthcheck`       | Liveness probe (no auth)             |
+| GET    | `/api/v1/healthcheck` | Health check (with auth middleware) |
+| GET    | `/api/v1/user`       | Returns authenticated user info      |
+| GET    | `/api/v1/namespaces` | List namespaces (dev/mock mode only) |
 
 ---
 
@@ -234,9 +228,9 @@ cd frontend && npm run test:cypress-ci -- --spec "**/testfile.cy.ts"
 | `-static-assets-dir`    | `STATIC_ASSETS_DIR`    | Directory to serve frontend assets       | ./static      |
 | `-log-level`            | `LOG_LEVEL`            | ERROR, WARN, INFO, DEBUG                 | INFO          |
 | `-allowed-origins`      | `ALLOWED_ORIGINS`      | Comma-separated CORS origins             | ""            |
-| `-auth-method`          | `AUTH_METHOD`           | `internal` (mock) or `user_token`        | internal      |
-| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from         | Authorization |
-| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Expected value prefix                    | Bearer        |
+| `-auth-method`          | `AUTH_METHOD`           | `disabled` (mock) or `user_token`        | user_token    |
+| `-auth-token-header`    | `AUTH_TOKEN_HEADER`    | Header to read bearer token from         | x-forwarded-access-token |
+| `-auth-token-prefix`    | `AUTH_TOKEN_PREFIX`    | Prefix to strip from token header value  | (none)        |
 | `-insecure-skip-verify` | `INSECURE_SKIP_VERIFY` | Skip upstream TLS verify (dev only)      | false         |
 | `-namespace`            | `NAMESPACE`            | Dashboard namespace                      | opendatahub   |
 | `-dashboard-config-name`| `DASHBOARD_CONFIG_NAME`| OdhDashboardConfig CR name               | odh-dashboard-config |
@@ -289,7 +283,7 @@ npm run cypress:run:mock   # Run Cypress headless
 | Variable          | Description                       | Default              |
 | ----------------- | --------------------------------- | -------------------- |
 | `DEPLOYMENT_MODE` | `standalone` or `federated`       | standalone           |
-| `STYLE_THEME`     | `mui-theme` or `patternfly-theme` | mui-theme            |
+| `STYLE_THEME`     | `patternfly-theme`                | patternfly-theme     |
 | `LOGO`            | Light theme logo filename         | logo-light-theme.svg |
 | `LOGO_DARK`       | Dark theme logo filename          | logo-dark-theme.svg  |
 | `FAVICON`         | Favicon filename                  | favicon.ico          |
@@ -301,7 +295,7 @@ npm run cypress:run:mock   # Run Cypress headless
 
 | Mode           | Theme      | Use Case                               |
 | -------------- | ---------- | -------------------------------------- |
-| **standalone** | MUI        | Local development, isolated deployment |
+| **standalone** | PatternFly | Local development, isolated deployment |
 | **federated**  | PatternFly | Micro-frontend in ODH/RHOAI dashboard  |
 
 ### Mode-Specific Behavior
@@ -309,7 +303,7 @@ npm run cypress:run:mock   # Run Cypress headless
 #### Standalone Mode
 
 - UI served by BFF
-- Exposes `/api/namespaces` endpoint for namespace selection
+- Exposes `/api/v1/namespaces` endpoint for namespace selection
 - Use for local development and testing
 
 #### Federated Mode
@@ -391,7 +385,6 @@ npm run test:contract
 
 ## Additional Resources
 
-- [Local Deployment Guide](docs/local-deployment-guide.md)
 - [Frontend Dev Setup](frontend/docs/dev-setup.md)
 - [Frontend Testing](frontend/docs/testing.md)
 - [BFF Documentation](bff/README.md)

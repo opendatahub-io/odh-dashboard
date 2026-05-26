@@ -1,6 +1,7 @@
 package mrserver
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -13,10 +14,12 @@ import (
 	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 )
 
+const maxResponseBodySize = 10 << 20 // 10 MB
+
 type HTTPClientInterface interface {
-	GET(url string) ([]byte, error)
-	POST(url string, body io.Reader) ([]byte, error)
-	PATCH(url string, body io.Reader) ([]byte, error)
+	GET(ctx context.Context, url string) ([]byte, error)
+	POST(ctx context.Context, url string, body io.Reader) ([]byte, error)
+	PATCH(ctx context.Context, url string, body io.Reader) ([]byte, error)
 }
 
 type HTTPClient struct {
@@ -57,128 +60,33 @@ func (c *HTTPClient) GetRequestID() string {
 	return c.RequestID
 }
 
-func (c *HTTPClient) GET(url string) ([]byte, error) {
-	requestId := uuid.NewString()
-
-	fullURL := c.baseURL + url
-	req, err := http.NewRequest("GET", fullURL, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	c.applyHeaders(req)
-
-	logUpstreamReq(c.logger, requestId, req)
-
-	response, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-
-	if response.StatusCode != http.StatusOK {
-		var errorResponse ErrorResponse
-		if err := json.Unmarshal(body, &errorResponse); err != nil {
-			// If we can't unmarshal as JSON, create a generic error response with the raw body
-			c.logger.Warn("received non-JSON error response",
-				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(body[:min(len(body), 200)]))
-
-			errorResponse = ErrorResponse{
-				Code:    strconv.Itoa(response.StatusCode),
-				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(body)),
-			}
-		}
-		httpError := &HTTPError{
-			StatusCode:    response.StatusCode,
-			ErrorResponse: errorResponse,
-		}
-
-		if httpError.Code == "" {
-			httpError.Code = strconv.Itoa(response.StatusCode)
-		}
-		return nil, httpError
-	}
-
-	return body, nil
+func (c *HTTPClient) GET(ctx context.Context, url string) ([]byte, error) {
+	return c.doRequest(ctx, http.MethodGet, url, nil, http.StatusOK)
 }
 
-func (c *HTTPClient) POST(url string, body io.Reader) ([]byte, error) {
-	requestId := uuid.NewString()
-
-	fullURL := c.baseURL + url
-	req, err := http.NewRequest("POST", fullURL, body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	c.applyHeaders(req)
-
-	logUpstreamReq(c.logger, requestId, req)
-
-	response, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	responseBody, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, responseBody)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
-
-	if response.StatusCode != http.StatusCreated {
-		var errorResponse ErrorResponse
-		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
-			// If we can't unmarshal as JSON, create a generic error response with the raw body
-			c.logger.Warn("received non-JSON error response",
-				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
-
-			errorResponse = ErrorResponse{
-				Code:    strconv.Itoa(response.StatusCode),
-				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(responseBody)),
-			}
-		}
-		httpError := &HTTPError{
-			StatusCode:    response.StatusCode,
-			ErrorResponse: errorResponse,
-		}
-
-		if httpError.Code == "" {
-			httpError.Code = strconv.Itoa(response.StatusCode)
-		}
-		return nil, httpError
-	}
-
-	return responseBody, nil
+func (c *HTTPClient) POST(ctx context.Context, url string, body io.Reader) ([]byte, error) {
+	return c.doRequest(ctx, http.MethodPost, url, body, http.StatusCreated)
 }
 
-func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
+func (c *HTTPClient) PATCH(ctx context.Context, url string, body io.Reader) ([]byte, error) {
+	return c.doRequest(ctx, http.MethodPatch, url, body, http.StatusOK)
+}
+
+func (c *HTTPClient) doRequest(ctx context.Context, method, url string, body io.Reader, expectedStatus int) ([]byte, error) {
+	requestID := uuid.NewString()
 	fullURL := c.baseURL + url
-	req, err := http.NewRequest(http.MethodPatch, fullURL, body)
+
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
 	if err != nil {
 		return nil, err
 	}
 
-	requestId := uuid.NewString()
-
-	req.Header.Set("Content-Type", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	c.applyHeaders(req)
-
-	logUpstreamReq(c.logger, requestId, req)
+	logUpstreamReq(c.logger, requestID, req)
 
 	response, err := c.client.Do(req)
 	if err != nil {
@@ -186,37 +94,41 @@ func (c *HTTPClient) PATCH(url string, body io.Reader) ([]byte, error) {
 	}
 	defer response.Body.Close()
 
-	responseBody, err := io.ReadAll(response.Body)
-	logUpstreamResp(c.logger, requestId, response, responseBody)
+	respBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBodySize))
+	logUpstreamResp(c.logger, requestID, response, respBody)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		var errorResponse ErrorResponse
-		if err := json.Unmarshal(responseBody, &errorResponse); err != nil {
-			// If we can't unmarshal as JSON, create a generic error response with the raw body
-			c.logger.Warn("received non-JSON error response",
-				"status_code", response.StatusCode,
-				"content_type", response.Header.Get("Content-Type"),
-				"body_preview", string(responseBody[:min(len(responseBody), 200)]))
-
-			errorResponse = ErrorResponse{
-				Code:    strconv.Itoa(response.StatusCode),
-				Message: fmt.Sprintf("HTTP %d: %s", response.StatusCode, string(responseBody)),
-			}
-		}
-		httpError := &HTTPError{
-			StatusCode:    response.StatusCode,
-			ErrorResponse: errorResponse,
-		}
-
-		if httpError.Code == "" {
-			httpError.Code = strconv.Itoa(response.StatusCode)
-		}
-		return nil, httpError
+	if response.StatusCode != expectedStatus {
+		return nil, c.parseErrorResponse(response.StatusCode, respBody)
 	}
-	return responseBody, nil
+
+	return respBody, nil
+}
+
+func (c *HTTPClient) parseErrorResponse(statusCode int, body []byte) *HTTPError {
+	var errorResponse ErrorResponse
+	if err := json.Unmarshal(body, &errorResponse); err != nil {
+		c.logger.Warn("received non-JSON error response",
+			"status_code", statusCode,
+			"body_preview", string(body[:min(len(body), 200)]))
+
+		errorResponse = ErrorResponse{
+			Code:    strconv.Itoa(statusCode),
+			Message: fmt.Sprintf("HTTP %d: %s", statusCode, string(body)),
+		}
+	}
+
+	httpError := &HTTPError{
+		StatusCode:    statusCode,
+		ErrorResponse: errorResponse,
+	}
+
+	if httpError.Code == "" {
+		httpError.Code = strconv.Itoa(statusCode)
+	}
+	return httpError
 }
 
 func (c *HTTPClient) applyHeaders(req *http.Request) {

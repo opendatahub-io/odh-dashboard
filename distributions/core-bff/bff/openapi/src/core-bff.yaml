@@ -12,9 +12,10 @@ servers:
 
 paths:
   /healthcheck:
-    summary: BFF service health check
+    summary: BFF service health check (infrastructure)
     description: >-
-      Health check endpoint to verify BFF service availability.
+      Health check endpoint for Kubernetes liveness/readiness probes.
+      Not behind authentication middleware.
     get:
       tags:
         - HealthCheck
@@ -24,9 +25,66 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: healthcheck
-      summary: BFF Health Check
-      description: Returns BFF service status and version information.
+      summary: BFF Health Check (infrastructure)
+      description: Returns BFF service status and version information. Used by Kubernetes probes.
       security: []
+
+  /api/v1/healthcheck:
+    summary: BFF service health check (API)
+    description: >-
+      Health check endpoint accessible through the API prefix.
+      Goes through authentication middleware.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: apiHealthcheck
+      summary: BFF Health Check (API)
+      description: Returns BFF service status and version information. Used by the frontend.
+
+  /api/v1/user:
+    summary: Current user identity
+    description: >-
+      Returns the authenticated user's identity and cluster admin status.
+      Requires authentication.
+    get:
+      tags:
+        - User
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getUser
+      summary: Get current user
+
+  /api/v1/namespaces:
+    summary: Accessible namespaces
+    description: >-
+      Returns the list of Kubernetes namespaces accessible to the authenticated user.
+      Requires authentication.
+    get:
+      tags:
+        - Namespaces
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNamespaces
+      summary: List accessible namespaces
 
 components:
   schemas:
@@ -39,7 +97,7 @@ components:
           type: string
           example: 'available'
           description: 'Service availability status'
-        system_info:
+        systemInfo:
           type: object
           properties:
             version:
@@ -47,20 +105,72 @@ components:
               example: '1.0.0'
               description: 'BFF version'
 
+    User:
+      type: object
+      required:
+        - userId
+        - clusterAdmin
+      properties:
+        userId:
+          type: string
+          example: 'user@example.com'
+          description: 'Authenticated user identifier'
+        clusterAdmin:
+          type: boolean
+          example: false
+          description: 'Whether the user has cluster-admin privileges'
+
+    UserEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+
+    Namespace:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: 'opendatahub'
+          description: 'Kubernetes namespace name'
+        displayName:
+          type: string
+          example: 'Open Data Hub'
+          description: 'Human-readable namespace display name'
+
+    NamespacesEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Namespace'
+
     ErrorResponse:
       type: object
       required:
-        - code
-        - message
+        - error
       properties:
-        code:
-          type: string
-          description: 'Error code identifier'
-          example: 'INTERNAL_SERVER_ERROR'
-        message:
-          type: string
-          description: 'Human-readable error description'
-          example: 'An unexpected error occurred'
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: 'Error code identifier'
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              description: 'Human-readable error description'
+              example: 'An unexpected error occurred'
 
   responses:
     HealthCheckResponse:
@@ -71,8 +181,32 @@ components:
             $ref: '#/components/schemas/HealthCheckResponse'
           example:
             status: 'available'
-            system_info:
+            systemInfo:
               version: '1.0.0'
+
+    UserResponse:
+      description: Current user identity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserEnvelope'
+          example:
+            data:
+              userId: 'user@example.com'
+              clusterAdmin: false
+
+    NamespacesResponse:
+      description: List of accessible namespaces
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespacesEnvelope'
+          example:
+            data:
+              - name: 'opendatahub'
+                displayName: 'Open Data Hub'
+              - name: 'my-project'
+                displayName: 'My Project'
 
     BadRequest:
       description: Bad request
@@ -81,8 +215,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: 'BAD_REQUEST'
-            message: 'Invalid request parameters'
+            error:
+              code: 'BAD_REQUEST'
+              message: 'Invalid request parameters'
 
     Unauthorized:
       description: Authentication required
@@ -91,8 +226,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: 'UNAUTHORIZED'
-            message: 'Authentication credentials are missing or invalid'
+            error:
+              code: 'UNAUTHORIZED'
+              message: 'Authentication credentials are missing or invalid'
 
     NotFound:
       description: Resource not found
@@ -101,8 +237,9 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: 'NOT_FOUND'
-            message: 'The requested resource was not found'
+            error:
+              code: 'NOT_FOUND'
+              message: 'The requested resource was not found'
 
     InternalServerError:
       description: Internal server error
@@ -111,5 +248,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            code: 'INTERNAL_SERVER_ERROR'
-            message: 'An unexpected error occurred'
+            error:
+              code: 'INTERNAL_SERVER_ERROR'
+              message: 'An unexpected error occurred'

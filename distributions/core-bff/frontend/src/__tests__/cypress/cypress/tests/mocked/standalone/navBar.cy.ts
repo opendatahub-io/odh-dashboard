@@ -3,7 +3,7 @@ import { mockNamespace } from '~/__mocks__/mockNamespace';
 import { appChrome } from '~/__tests__/cypress/cypress/pages/appChrome';
 import { navBar } from '~/__tests__/cypress/cypress/pages/navBar';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
-import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
+import { BFF_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 
 type HandlersProps = {
   namespaces?: Namespace[];
@@ -22,7 +22,7 @@ const initIntercepts = ({
     'GET /api/:apiVersion/user',
     {
       path: {
-        apiVersion: CLIENT_API_VERSION,
+        apiVersion: BFF_API_VERSION,
       },
     },
     mockUserSettings({
@@ -34,7 +34,7 @@ const initIntercepts = ({
     'GET /api/:apiVersion/namespaces',
     {
       path: {
-        apiVersion: CLIENT_API_VERSION,
+        apiVersion: BFF_API_VERSION,
       },
     },
     namespaces,

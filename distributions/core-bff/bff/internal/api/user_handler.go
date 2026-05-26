@@ -27,7 +27,7 @@ func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 
-	user, err := app.repositories.User.GetUser(client, identity)
+	user, err := app.repositories.User.GetUser(ctx, client, identity)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

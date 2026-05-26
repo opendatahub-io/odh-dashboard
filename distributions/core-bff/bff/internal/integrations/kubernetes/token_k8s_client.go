@@ -20,8 +20,8 @@ type TokenKubernetesClient struct {
 	SharedClientLogic
 }
 
-func (kc *TokenKubernetesClient) IsClusterAdmin(_ *RequestIdentity) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestIdentity) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	// We cannot list ClusterRoleBindings here because this client is initialized with a user token,
@@ -164,8 +164,8 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	return nsList.Items, nil
 }
 
-func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (kc *TokenKubernetesClient) GetUser(ctx context.Context, _ *RequestIdentity) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	ssr := &authnv1.SelfSubjectReview{

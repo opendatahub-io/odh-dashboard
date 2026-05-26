@@ -1,11 +1,11 @@
 [contributing guidelines]: ../CONTRIBUTING.md
 [Dev setup & Requirements]: docs/dev-setup.md
-[Mod Arch UI documentation]: docs/README.md
-[issue]: https://github.com/opendatahub-io/mod-arch-library/issues/new/choose
+[Core BFF UI documentation]: docs/README.md
+[issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
 
-# Mod Arch UI
+# Core BFF UI
 
-The Mod Arch UI is a standalone web app for Mod Arch.
+The Core BFF UI is the frontend for the Core BFF module.
 
 ## Contributing
 
@@ -15,7 +15,7 @@ We do have some [contributing guidelines] you can follow.
 
 ## Documentation
 
-Read more about the Mod Arch UI in one of our documentation links.
+Read more about the Core BFF UI in one of our documentation links.
 
 - [Dev setup & Requirements]
-- [Mod Arch UI documentation]
+- [Core BFF UI documentation]

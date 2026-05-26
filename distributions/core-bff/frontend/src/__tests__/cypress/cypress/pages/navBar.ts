@@ -1,6 +1,6 @@
 class NavBar {
   findBrand() {
-    return cy.get('.pf-v5-c-brand');
+    return cy.get('.pf-v6-c-brand');
   }
 
   findNavToggleButton() {
@@ -8,7 +8,7 @@ class NavBar {
   }
 
   findNamespaceSelector() {
-    return cy.get('.kubeflow-u-namespace-select');
+    return cy.findByTestId('namespace-selector');
   }
 
   selectNamespace(name: string) {

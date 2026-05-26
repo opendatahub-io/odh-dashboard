@@ -1,15 +1,15 @@
 # Multi-stage workspace-aware Dockerfile for Module Federation packages
 # This Dockerfile is designed to build federated modules that depend on workspace packages
-# Build from repository root: docker build --file ./packages/<module>/Dockerfile.workspace .
+# Build from repository root: docker build --file ./distributions/core-bff/Dockerfile.workspace .
 
 # Source code arguments - can be overridden for different modules
-ARG MODULE_NAME=mod-arch
-ARG UI_SOURCE_CODE=./packages/${MODULE_NAME}/frontend
-ARG BFF_SOURCE_CODE=./packages/${MODULE_NAME}/bff
+ARG MODULE_NAME=core-bff
+ARG UI_SOURCE_CODE=./distributions/${MODULE_NAME}/frontend
+ARG BFF_SOURCE_CODE=./distributions/${MODULE_NAME}/bff
 
 # Set the base images for the build stages
 ARG NODE_BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22:latest
-ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.24
+ARG GOLANG_BASE_IMAGE=registry.access.redhat.com/ubi9/go-toolset:1.25
 ARG DISTROLESS_BASE_IMAGE=registry.access.redhat.com/ubi9-minimal:latest
 
 # UI build stage
@@ -71,6 +71,7 @@ RUN go mod download
 # Copy the go source files
 COPY ${BFF_SOURCE_CODE}/cmd/ cmd/
 COPY ${BFF_SOURCE_CODE}/internal/ internal/
+COPY ${BFF_SOURCE_CODE}/openapi/ openapi/
 
 # Build the Go application
 RUN CGO_ENABLED=1 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w" -tags strictfipsruntime -o bff ./cmd
@@ -82,6 +83,7 @@ ARG UI_SOURCE_CODE
 
 WORKDIR /
 COPY --from=bff-builder /usr/src/app/bff ./
+COPY --from=bff-builder /usr/src/app/openapi/ ./openapi/
 COPY --from=ui-builder /usr/src/workspace/${UI_SOURCE_CODE}/dist ./static/
 USER 65532:65532
 

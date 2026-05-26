@@ -15,12 +15,18 @@ const (
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
 
-	// DefaultAuthTokenHeader is the standard header for Bearer token auth.
-	DefaultAuthTokenHeader = "Authorization"
+	// DefaultAuthTokenHeader is the header the RHOAI OAuth proxy uses to forward
+	// the user's access token to sidecar BFFs.
+	DefaultAuthTokenHeader = "x-forwarded-access-token"
 
-	// DefaultAuthTokenPrefix is the prefix used in the Authorization header.
-	// note: the space here is intentional, as the prefix is "Bearer " (with a space).
-	DefaultAuthTokenPrefix = "Bearer "
+	// DefaultAuthTokenPrefix is empty because x-forwarded-access-token carries
+	// the raw token with no scheme prefix.
+	DefaultAuthTokenPrefix = ""
+
+	// DefaultDisabledAuthToken is injected as a placeholder when auth is disabled.
+	// It must match the first entry in k8mocks.DefaultTestUsers so that mock-mode
+	// handlers can resolve a valid test identity.
+	DefaultDisabledAuthToken = "FAKE_CLUSTER_ADMIN_TOKEN"
 )
 
 // DeploymentMode represents the deployment mode enum
@@ -62,16 +68,15 @@ func (d DeploymentMode) IsFederatedMode() bool {
 }
 
 type EnvConfig struct {
-	Port               int
-	MockK8Client       bool
-	MockHTTPClient     bool
-	DevMode            bool
-	DeploymentMode     DeploymentMode
-	DevModeClientPort  int
-	DevModeCatalogPort int
-	StaticAssetsDir    string
-	LogLevel           slog.Level
-	AllowedOrigins     []string
+	Port              int
+	MockK8Client      bool
+	MockHTTPClient    bool
+	DevMode           bool
+	DeploymentMode    DeploymentMode
+	DevModeClientPort int
+	StaticAssetsDir   string
+	LogLevel          slog.Level
+	AllowedOrigins    []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.
@@ -84,11 +89,11 @@ type EnvConfig struct {
 	AuthMethod string
 
 	// Header used to extract the authentication token.
-	// Default is "Authorization" and can be overridden via CLI/env for proxy integration scenarios.
+	// Default is "x-forwarded-access-token" and can be overridden via CLI/env for proxy integration scenarios.
 	AuthTokenHeader string
 
 	// Optional prefix to strip from the token header value.
-	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
+	// Default is "" (empty); set to "Bearer " when using the standard Authorization header.
 	AuthTokenPrefix string
 
 	// ─── TLS ────────────────────────────────────────────────────

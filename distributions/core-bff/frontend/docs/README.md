@@ -3,9 +3,9 @@
 [Testing]: testing.md
 [Environment Variables]: env-variables.md
 
-# Mod Arch UI Documentation
+# Core BFF UI Documentation
 
-This is the general documentation of the Mod Arch UI.
+This is the general documentation of the Core BFF UI.
 
 ## Developer Readmes
 
