@@ -26,12 +26,12 @@ var storageTypeRequiredKeys = map[string][]string{
 	// "gcp": {"GCP_SERVICE_ACCOUNT_KEY"},
 }
 
-// llsTypeRequiredKeys defines the required keys for LLS (Llama Stack) secrets.
-// A secret must have ALL required keys to be considered an LLS secret.
+// ogxTypeRequiredKeys defines the required keys for OGX (Open GenAI Stack) secrets.
+// A secret must have ALL required keys to be considered an OGX secret.
 // Key matching is case-sensitive; keys must be uppercase.
-var llsTypeRequiredKeys = []string{
-	"LLAMA_STACK_CLIENT_API_KEY",
-	"LLAMA_STACK_CLIENT_BASE_URL",
+var ogxTypeRequiredKeys = []string{
+	"OGX_CLIENT_API_KEY",
+	"OGX_CLIENT_BASE_URL",
 }
 
 type SecretRepository struct{}
@@ -44,7 +44,7 @@ func NewSecretRepository() *SecretRepository {
 // secretType can be:
 //   - "" (empty): return all secrets
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
-//   - "lls": filter for secrets matching LLS (Llama Stack) requirements
+//   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
 	client k8s.KubernetesClientInterface,
 	ctx context.Context,
@@ -67,9 +67,9 @@ func (r *SecretRepository) GetFilteredSecrets(
 	case "storage":
 		// Filter secrets that match any configured storage type
 		filteredSecrets = filterStorageSecrets(secrets)
-	case "lls":
-		// Filter secrets that match LLS requirements
-		filteredSecrets = filterLLSSecrets(secrets)
+	case "ogx":
+		// Filter secrets that match OGX requirements
+		filteredSecrets = filterOGXSecrets(secrets)
 	default:
 		// This should be caught by handler validation, but handle it here as well
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
@@ -88,13 +88,13 @@ func (r *SecretRepository) GetFilteredSecrets(
 		} else {
 			// Fallback to key-based type detection
 			switch secretType {
-			case "lls":
-				responseType = "lls"
+			case "ogx":
+				responseType = "ogx"
 			case "storage":
 				// For storage type, determine which storage type it matches
 				responseType = getStorageType(secret)
 			default:
-				// For all secrets (no type filter), check if it matches a storage or LLS type
+				// For all secrets (no type filter), check if it matches a storage or OGX type
 				responseType = getSecretType(secret)
 			}
 		}
@@ -133,12 +133,12 @@ func filterStorageSecrets(secrets []corev1.Secret) []corev1.Secret {
 	return filtered
 }
 
-// filterLLSSecrets filters secrets that match LLS (Llama Stack) requirements.
-// A secret matches if it contains ALL required LLS keys (case-sensitive, uppercase).
-func filterLLSSecrets(secrets []corev1.Secret) []corev1.Secret {
+// filterOGXSecrets filters secrets that match OGX (Open GenAI Stack) requirements.
+// A secret matches if it contains ALL required OGX keys (case-sensitive, uppercase).
+func filterOGXSecrets(secrets []corev1.Secret) []corev1.Secret {
 	var filtered []corev1.Secret
 	for _, secret := range secrets {
-		if isLLSSecret(secret) {
+		if isOGXSecret(secret) {
 			filtered = append(filtered, secret)
 		}
 	}
@@ -155,9 +155,9 @@ func matchesAnyStorageType(secret corev1.Secret) bool {
 	return false
 }
 
-// isLLSSecret checks if a secret contains all required LLS keys (case-sensitive, uppercase).
-func isLLSSecret(secret corev1.Secret) bool {
-	return hasAllKeys(secret, llsTypeRequiredKeys)
+// isOGXSecret checks if a secret contains all required OGX keys (case-sensitive, uppercase).
+func isOGXSecret(secret corev1.Secret) bool {
+	return hasAllKeys(secret, ogxTypeRequiredKeys)
 }
 
 // getStorageType returns the storage type name for a secret, or empty string if it doesn't match any.
@@ -173,11 +173,11 @@ func getStorageType(secret corev1.Secret) string {
 }
 
 // getSecretType determines the type of a secret by checking all known secret type patterns.
-// Returns the first matching type, prioritizing LLS over storage types.
+// Returns the first matching type, prioritizing OGX over storage types.
 func getSecretType(secret corev1.Secret) string {
-	// Check LLS first
-	if isLLSSecret(secret) {
-		return "lls"
+	// Check OGX first
+	if isOGXSecret(secret) {
+		return "ogx"
 	}
 	// Then check storage types
 	return getStorageType(secret)

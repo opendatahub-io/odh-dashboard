@@ -1,5 +1,8 @@
 import React from 'react';
-import useFetch, { FetchStateCallbackPromise } from '@odh-dashboard/internal/utilities/useFetch';
+import useFetch, {
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '@odh-dashboard/internal/utilities/useFetch';
 import { POLL_INTERVAL, FAST_POLL_INTERVAL } from '@odh-dashboard/internal/utilities/const';
 import { NIMAccountKind } from '@odh-dashboard/internal/k8sTypes';
 import { listNIMAccounts } from './k8s';
@@ -17,10 +20,13 @@ type NIMAccountStatusResult = {
   startRevalidation: () => void;
 };
 
-const useNIMAccountStatus = (namespace: string): NIMAccountStatusResult => {
+const useNIMAccountStatus = (namespace?: string): NIMAccountStatusResult => {
   const fetchCallback = React.useCallback<
     FetchStateCallbackPromise<NIMAccountKind | null>
   >(async () => {
+    if (!namespace) {
+      throw new NotReadyError('No namespace provided');
+    }
     const accounts = await listNIMAccounts(namespace);
     return accounts.find((a) => a.metadata.name === NIM_ACCOUNT_NAME) ?? null;
   }, [namespace]);

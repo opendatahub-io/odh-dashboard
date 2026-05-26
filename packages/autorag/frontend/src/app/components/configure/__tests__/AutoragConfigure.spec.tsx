@@ -9,7 +9,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router';
 import AutoragConfigure from '~/app/components/configure/AutoragConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
 import {
   AUTORAG_UPLOAD_MAX_BYTES,
@@ -99,12 +99,12 @@ jest.mock('~/app/hooks/useNotification', () => ({
 // Mock queries hooks used by child components (e.g., AutoragVectorStoreSelector)
 jest.mock('~/app/hooks/queries', () => ({
   ...jest.requireActual('~/app/hooks/queries'),
-  useLlamaStackModelsQuery: jest.fn().mockReturnValue({
+  useOgxModelsQuery: jest.fn().mockReturnValue({
     data: { models: [] },
     isLoading: false,
     isError: false,
   }),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn().mockReturnValue({
+  useOgxVectorStoreProvidersQuery: jest.fn().mockReturnValue({
     data: { vector_store_providers: [] }, // eslint-disable-line camelcase
     isLoading: false,
   }),
@@ -227,7 +227,7 @@ jest.mock('~/app/components/common/S3FileExplorer/S3FileExplorer.tsx', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseParams = jest.mocked(useParams);
-const mockUseLlamaStackModelsQuery = jest.mocked(useLlamaStackModelsQuery);
+const mockUseOgxModelsQuery = jest.mocked(useOgxModelsQuery);
 
 const configureSchema = createConfigureSchema();
 
@@ -344,11 +344,11 @@ describe('AutoragConfigure', () => {
       renderComponent();
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -676,7 +676,7 @@ describe('AutoragConfigure', () => {
 
       // Initially should show empty state
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a secret
@@ -685,7 +685,7 @@ describe('AutoragConfigure', () => {
 
       // Empty state should still be shown (no file selected yet)
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
 
       // Select a file via the file explorer
@@ -694,7 +694,7 @@ describe('AutoragConfigure', () => {
 
       // Empty state should be hidden
       expect(
-        screen.queryByText('Select an S3 connection or upload a file to get started'),
+        screen.queryByText('Select a file from your S3 connection or upload a file to get started'),
       ).not.toBeInTheDocument();
 
       // Configure details fields should be visible
@@ -832,7 +832,7 @@ describe('AutoragConfigure', () => {
 
   describe('Model initialization from query data', () => {
     it('should populate generation and embedding models when query returns data', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -846,7 +846,7 @@ describe('AutoragConfigure', () => {
           ],
         },
         isLoading: false,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -863,17 +863,17 @@ describe('AutoragConfigure', () => {
 
   describe('Model error handling', () => {
     it('should show error notification when model loading fails', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
       expect(mockNotificationError).toHaveBeenCalledWith(
         'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
+        'Check that the Open GenAI Stack secret is valid and try again.',
       );
     });
   });
@@ -1131,11 +1131,11 @@ describe('AutoragConfigure', () => {
       fireEvent.click(selectInvalidButton);
 
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(
         screen.getByText(
-          'In order to configure details and run an experiment, add a document or connection in the widget on the left.',
+          'In order to configure details and run an experiment, select a file or upload one in the Knowledge setup panel.',
         ),
       ).toBeInTheDocument();
     });
@@ -1153,11 +1153,11 @@ describe('AutoragConfigure', () => {
     });
 
     it('should disable "Edit" button when model loading fails', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         isError: true,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -1174,7 +1174,7 @@ describe('AutoragConfigure', () => {
     });
 
     it('should enable "Edit" button when a file/folder is selected', () => {
-      mockUseLlamaStackModelsQuery.mockReturnValue({
+      mockUseOgxModelsQuery.mockReturnValue({
         data: {
           models: [
             // eslint-disable-next-line camelcase
@@ -1183,7 +1183,7 @@ describe('AutoragConfigure', () => {
         },
         isLoading: false,
         isError: false,
-      } as unknown as ReturnType<typeof useLlamaStackModelsQuery>);
+      } as unknown as ReturnType<typeof useOgxModelsQuery>);
 
       renderComponent();
 
@@ -1193,7 +1193,7 @@ describe('AutoragConfigure', () => {
 
       // Before file selection, the configure details panel shows the empty state
       expect(
-        screen.getByText('Select an S3 connection or upload a file to get started'),
+        screen.getByText('Select a file from your S3 connection or upload a file to get started'),
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
 

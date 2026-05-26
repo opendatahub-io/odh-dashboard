@@ -2,6 +2,10 @@
 description: Theming external libraries (Perses, etc.) with PatternFly tokens in ODH Dashboard
 globs: "packages/observability/**,packages/*/src/**/*theme*,packages/*/src/**/*Theme*"
 alwaysApply: false
+paths:
+  - "packages/observability/**"
+  - "packages/*/src/**/*theme*"
+  - "packages/*/src/**/*Theme*"
 ---
 
 # Third-Party Library Theming — ODH Dashboard

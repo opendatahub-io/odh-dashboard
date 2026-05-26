@@ -13,7 +13,7 @@ This document describes the GET endpoint for listing and filtering Kubernetes se
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | string | **Yes** | The namespace name to query secrets from |
-| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `lls` for LLS (Llama Stack) secrets, or omit for all secrets |
+| `type` | string | No | Secret type filter: `storage` for storage secrets (e.g., S3), `ogx` for OGX (Open GenAI Stack) secrets, or omit for all secrets |
 
 ## Functionality
 
@@ -22,11 +22,11 @@ The endpoint:
 2. Filters secrets based on the `type` parameter:
    - **No type** (or empty): Returns all secrets in the namespace
    - **`type=storage`**: Filters for storage secrets matching any configured storage type (currently supports S3)
-   - **`type=lls`**: Filters for LLS (Llama Stack) secrets containing required LLS keys
+   - **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets containing required OGX keys
 3. Returns the Kubernetes UID, name, and type of each matching secret
    - The `type` field is determined by:
      1. **First priority**: The `opendatahub.io/connection-type` annotation if present and non-empty
-     2. **Fallback**: Key-based type detection (e.g., "s3", "lls")
+     2. **Fallback**: Key-based type detection (e.g., "s3", "ogx")
    - If a secret doesn't match any known type and has no connection-type annotation, the `type` field is omitted from the response
    - If a secret matches multiple types via key detection, the first matching type is returned
 4. Requires authentication via the InjectRequestIdentity middleware
@@ -44,11 +44,11 @@ Secrets are filtered using configurable dictionaries of secret types and their r
 
 **Future storage types** (e.g., Azure, GCP) can be easily added to the configuration without changing the API.
 
-**Currently Supported LLS Types:**
+**Currently Supported OGX Types:**
 
-| LLS Type | Required Keys |
+| OGX Type | Required Keys |
 |----------|---------------|
-| **Llama Stack** | `LLAMA_STACK_CLIENT_API_KEY`, `LLAMA_STACK_CLIENT_BASE_URL` |
+| **Open GenAI Stack** | `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL` |
 
 ## Response Format
 
@@ -91,7 +91,7 @@ The response follows the envelope pattern:
 |-------|------|-------------|
 | `uuid` | string | The Kubernetes UID of the secret |
 | `name` | string | The name of the secret |
-| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "lls"). Omitted from the response only when neither is available. |
+| `type` | string | **(Optional)** The returned connection type: either a non-empty `opendatahub.io/connection-type` annotation value or a detected built-in type (e.g., "s3", "ogx"). Omitted from the response only when neither is available. |
 | `data` | object | Object mapping all keys available in the secret to their values. Most values are sanitized as `"[REDACTED]"` for security. Only specific allowed keys (currently: `AWS_S3_BUCKET`) return their actual values. Use `Object.keys()` to validate that additional optional keys required for your use case are present. |
 | `displayName` | string | **(Optional)** Human-readable display name from the `openshift.io/display-name` annotation. Omitted from response if annotation doesn't exist. |
 | `description` | string | **(Optional)** Human-readable description from the `openshift.io/description` annotation. Omitted from response if annotation doesn't exist. |
@@ -120,10 +120,10 @@ GET /api/v1/secrets?namespace=my-namespace
 GET /api/v1/secrets?namespace=my-namespace&type=storage
 ```
 
-### List LLS (Llama Stack) secrets only
+### List OGX (Open GenAI Stack) secrets only
 
 ```bash
-GET /api/v1/secrets?namespace=my-namespace&type=lls
+GET /api/v1/secrets?namespace=my-namespace&type=ogx
 ```
 
 Response:
@@ -132,21 +132,21 @@ Response:
   "data": [
     {
       "uuid": "c3d4e5f6-a7b8-9012-cdef-012345678901",
-      "name": "llama-stack-secret-1",
-      "type": "lls",
+      "name": "ogx-secret-1",
+      "type": "ogx",
       "data": {
-        "LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]",
-        "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"
+        "OGX_CLIENT_API_KEY": "[REDACTED]",
+        "OGX_CLIENT_BASE_URL": "[REDACTED]"
       },
-      "displayName": "Development LLS"
+      "displayName": "Development OGX"
     },
     {
       "uuid": "d4e5f6a7-b8c9-0123-def0-123456789012",
-      "name": "llama-stack-secret-2",
-      "type": "lls",
+      "name": "ogx-secret-2",
+      "type": "ogx",
       "data": {
-        "LLAMA_STACK_CLIENT_API_KEY": "[REDACTED]",
-        "LLAMA_STACK_CLIENT_BASE_URL": "[REDACTED]"
+        "OGX_CLIENT_API_KEY": "[REDACTED]",
+        "OGX_CLIENT_BASE_URL": "[REDACTED]"
       }
     }
   ]
@@ -233,10 +233,10 @@ The endpoint supports three filtering modes based on the `type` parameter:
    - Extensible design allows adding new storage types (Azure, GCP, etc.) without API changes
    - Key matching is case-sensitive; keys must be uppercase
 
-3. **`type=lls`**: Filters for LLS (Llama Stack) secrets
-   - A secret matches if it contains ALL required LLS keys
-   - Currently configured LLS type:
-     - **Llama Stack**: Requires `LLAMA_STACK_CLIENT_API_KEY`, `LLAMA_STACK_CLIENT_BASE_URL`
+3. **`type=ogx`**: Filters for OGX (Open GenAI Stack) secrets
+   - A secret matches if it contains ALL required OGX keys
+   - Currently configured OGX type:
+     - **Open GenAI Stack**: Requires `OGX_CLIENT_API_KEY`, `OGX_CLIENT_BASE_URL`
    - Key matching is case-sensitive; keys must be uppercase
 
 Invalid type values result in a 400 Bad Request error.
@@ -252,15 +252,15 @@ Invalid type values result in a 400 Bad Request error.
 
 A secret missing any of these required keys would NOT match and would be excluded from `type=storage` results. Note that `AWS_DEFAULT_REGION` is not required for BFF-level S3 type detection; its presence is validated on the frontend side via `additionalRequiredKeys`.
 
-**Example**: A secret with the following data would match LLS (Llama Stack) type:
+**Example**: A secret with the following data would match OGX (Open GenAI Stack) type:
 ```json
 {
-  "LLAMA_STACK_CLIENT_API_KEY": "sk-test-api-key-123",
-  "LLAMA_STACK_CLIENT_BASE_URL": "https://llama-stack.example.com"
+  "OGX_CLIENT_API_KEY": "sk-test-api-key-123",
+  "OGX_CLIENT_BASE_URL": "https://ogx.example.com"
 }
 ```
 
-A secret missing any of these required keys would NOT match and would be excluded from `type=lls` results. Key matching is case-sensitive — keys must be uppercase (e.g., `LLAMA_STACK_CLIENT_API_KEY`).
+A secret missing any of these required keys would NOT match and would be excluded from `type=ogx` results. Key matching is case-sensitive — keys must be uppercase (e.g., `OGX_CLIENT_API_KEY`).
 
 ### Secret Data Field
 
@@ -338,7 +338,7 @@ data:
 }
 ```
 
-Even if the secret contains keys that would normally match S3 or LLS detection, the annotation takes precedence and the type will be set to the annotation value.
+Even if the secret contains keys that would normally match S3 or OGX detection, the annotation takes precedence and the type will be set to the annotation value.
 
 ### Display Name and Description
 
@@ -422,7 +422,7 @@ For complete details on S3 endpoint security validation, see [s3-endpoint-securi
 The implementation includes comprehensive tests covering:
 - **Type filtering**:
   - `type=storage`: Successful retrieval with S3 secret filtering, case-sensitive key matching
-  - `type=lls`: Successful retrieval with LLS (Llama Stack) secret filtering, case-sensitive key matching
+  - `type=ogx`: Successful retrieval with OGX (Open GenAI Stack) secret filtering, case-sensitive key matching
   - No type: Returns all secrets in namespace
   - Invalid type: Returns 400 Bad Request
 - **Secret data field**:

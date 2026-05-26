@@ -82,6 +82,12 @@ describe('API Keys Page', () => {
     cy.wait('@initialSearch');
   });
 
+  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    apiKeysPage.findSubscriptionsTab().should('not.exist');
+    apiKeysPage.findApiKeysTab().should('not.exist');
+  });
+
   it('should display the API keys table page with active keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
@@ -109,17 +115,25 @@ describe('API Keys Page', () => {
     developmentTestingRow.findExpirationDate().should('contain.text', 'Jan 15, 2026');
   });
 
-  it('should display an empty table with toolbar when user has no active keys', () => {
+  it('should display empty table with toolbar and disable revoke all when user has no active keys', () => {
+    const revokedKeys = mockAPIKeys().filter((k) => k.status === 'revoked');
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+
+    // Existence check (no status filter) returns the revoked key;
+    // filtered search (status: active) returns nothing.
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      const hasStatusFilter = req.body?.data?.filters?.status?.length > 0;
+      req.reply(hasStatusFilter ? mockSearchResponse([]) : mockSearchResponse(revokedKeys));
+    }).as('apiKeysSearch');
+
     apiKeysPage.visit();
-    cy.wait('@emptySearch');
+    cy.wait('@apiKeysSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findDescription().should('exist');
 
-    // Table renders empty with no results found message
+    // Table shows no results for the active filter since only revoked keys exist
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findEmptyTableState().should('exist');
     apiKeysPage.findEmptyTableState().should('contain.text', 'No results found');
@@ -133,6 +147,34 @@ describe('API Keys Page', () => {
     apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
+    apiKeysPage.findStatusFilterToggle().click();
+
+    // Revoke all should be disabled when no active keys are present
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysActionButton().should('be.disabled');
+    apiKeysPage.findActionsToggle().click();
+
+    // Clearing filters reveals the revoked key
+    apiKeysPage.clearAllFilters();
+    cy.wait('@apiKeysSearch');
+    cy.wait('@apiKeysSearch');
+
+    apiKeysPage.findEmptyTableState().should('not.exist');
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage.getRow('ci-pipeline').findStatus().should('contain.text', 'Revoked');
+  });
+
+  it('should display empty state when no keys are present', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+    apiKeysPage.visit();
+    cy.wait('@emptySearch');
+    cy.wait('@emptySearch');
+
+    apiKeysPage.findEmptyState().should('exist');
+    apiKeysPage.findEmptyState().should('contain.text', 'No API keys');
+    apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -395,16 +437,6 @@ describe('API Keys Page', () => {
     cy.wait('@deleteAllApiKeys').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
     });
-  });
-
-  it('should disable revoke all my API keys button when no active keys are present', () => {
-    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
-    apiKeysPage.visit();
-    cy.wait('@emptySearch');
-
-    apiKeysPage.findActionsToggle().click();
-    apiKeysPage.findRevokeAllAPIKeysActionButton().should('be.disabled');
   });
 
   it('should revoke a specific API key', () => {
@@ -757,5 +789,66 @@ describe('API Keys Page (Admin)', () => {
 
     adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
     adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
+  });
+});
+
+describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelAsService: true,
+        mySubscriptions: true,
+      }),
+    );
+
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'test-user', clusterAdmin: false },
+    });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      }),
+    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockSubscriptionDetails,
+      ),
+    ).as('initialSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
+  });
+
+  it('should navigate to subscriptions tab', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
+    apiKeysPage
+      .findDescription()
+      .should('contain.text', 'Manage your API keys and view your subscription access');
+
+    apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findRows().should('have.length', 2);
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.url().should('include', '/maas/keys-and-subs/subscriptions');
+    apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
+
+    cy.contains('Models available to you through your subscriptions, with token limits.').should(
+      'exist',
+    );
   });
 });

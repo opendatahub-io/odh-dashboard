@@ -19,7 +19,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/rs/cors"
@@ -92,12 +92,12 @@ func validateIP(ip net.IP) error {
 	return nil
 }
 
-// isValidLlamaStackURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
+// isValidOGXURL validates a URL extracted from a Kubernetes secret to prevent SSRF attacks.
 // Only http and https schemes are allowed. For IP literals, the IP is checked directly.
 // For DNS hostnames, all resolved A/AAAA records are validated against the same blocklist.
-// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because LlamaStack
+// Private IP ranges (10.x, 172.16.x, 192.168.x) are intentionally allowed because OGX
 // services typically run as cluster-internal services with private IPs.
-func isValidLlamaStackURL(rawURL string) error {
+func isValidOGXURL(rawURL string) error {
 	parsedURL, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid URL format: %w", err)
@@ -289,16 +289,16 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
-// AttachLlamaStackClientFromSecret creates a LlamaStack client using credentials from a Kubernetes secret
-// and attaches it to context. The secret must contain llama_stack_client_base_url and llama_stack_client_api_key.
+// AttachOGXClientFromSecret creates a Open GenAI Stack client using credentials from a Kubernetes secret
+// and attaches it to context. The secret must contain ogx_client_base_url and ogx_client_api_key.
 // This middleware must be used after AttachNamespace middleware.
 //
-// Precedence for determining the LlamaStack connection:
-//  1. Mock mode (MockLSClient): uses a mock client, ignores all other config.
-//  2. Auth disabled: LLAMA_STACK_URL must be configured (no K8s identity available for secret lookup).
-//  3. LLAMA_STACK_URL env var set: developer override, skips secret lookup.
+// Precedence for determining the Open GenAI Stack connection:
+//  1. Mock mode (MockOGXClient): uses a mock client, ignores all other config.
+//  2. Auth disabled: OGX_URL must be configured (no K8s identity available for secret lookup).
+//  3. OGX_URL env var set: developer override, skips secret lookup.
 //  4. Secret-based: reads URL and API key from the named Kubernetes secret.
-func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ctx := r.Context()
 
@@ -322,12 +322,12 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 
 		logger := helper.GetContextLoggerFromReq(r)
 
-		var llamaStackClient ls.LlamaStackClientInterface
+		var ogxClient ogx.OGXClientInterface
 
-		if app.config.MockLSClient {
+		if app.config.MockOGXClient {
 			// Mock mode: skip secret lookup entirely
-			logger.Debug("MOCK MODE: creating mock LlamaStack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			llamaStackClient = app.llamaStackClientFactory.CreateClient("", "", false, app.rootCAs)
+			logger.Debug("MOCK MODE: creating mock Open GenAI Stack client (secret-based)", "namespace", namespace, "secretName", secretName)
+			ogxClient = app.ogxClientFactory.CreateClient("", "", false, app.rootCAs)
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -359,52 +359,53 @@ func (app *App) AttachLlamaStackClientFromSecret(next func(http.ResponseWriter, 
 				return
 			}
 
-			// Extract LlamaStack credentials from secret data using case-insensitive key lookups.
-			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_base_url")
+			// Extract Open GenAI Stack credentials from secret data using case-insensitive key lookups.
+			baseURL, foundBaseURL, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_base_url")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
-			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "llama_stack_client_api_key")
+			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_api_key")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
 
 			if !foundBaseURL || baseURL == "" {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: llama_stack_client_base_url", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName))
 				return
 			}
+			// API key is optional; only reject if the field is missing, not if empty.
 			if !foundAPIKey {
-				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: llama_stack_client_api_key", secretName))
+				app.badRequestResponse(w, r, fmt.Errorf("secret %q is missing for required key: ogx_client_api_key", secretName))
 				return
 			}
-			if err := isValidLlamaStackURL(baseURL); err != nil {
-				app.badRequestResponse(w, r, fmt.Errorf("invalid llama_stack_client_base_url in secret %q: %w", secretName, err))
+			if err := isValidOGXURL(baseURL); err != nil {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid ogx_client_base_url in secret %q: %w", secretName, err))
 				return
 			}
 
-			// Dev-only: rewrite LlamaStack URL to localhost via dynamic port-forward.
+			// Dev-only: rewrite Open GenAI Stack URL to localhost via dynamic port-forward.
 			// portForwardManager is nil in production (requires DevMode=true).
 			if app.portForwardManager != nil {
 				if rewritten, pfErr := app.portForwardManager.ForwardURL(ctx, baseURL); pfErr != nil {
-					logger.Warn("dynamic port-forward failed for LlamaStack endpoint, using original URL",
+					logger.Warn("dynamic port-forward failed for Open GenAI Stack endpoint, using original URL",
 						"error", pfErr, "url", baseURL)
 				} else {
 					baseURL = rewritten
 				}
 			}
 
-			logger.Debug("Creating LlamaStack client from secret",
+			logger.Debug("Creating Open GenAI Stack client from secret",
 				"namespace", namespace,
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			llamaStackClient = app.llamaStackClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
+			ogxClient = app.ogxClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
 		}
 
 		// Attach ready-to-use client to context
-		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.OGXClientKey, ogxClient)
 		r = r.WithContext(ctx)
 
 		next(w, r, ps)

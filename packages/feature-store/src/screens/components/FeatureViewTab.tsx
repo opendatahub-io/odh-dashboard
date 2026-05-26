@@ -47,8 +47,8 @@ const FeatureViewTab: React.FC<FeatureViewTabProps> = ({
 
   if (!featureViewsLoaded) {
     return (
-      <Bullseye>
-        <Spinner size="xl" data-testid="loading-spinner" />
+      <Bullseye aria-live="polite" aria-busy>
+        <Spinner size="xl" aria-label="Loading feature views" data-testid="loading-spinner" />
       </Bullseye>
     );
   }
