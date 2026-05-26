@@ -148,6 +148,26 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+export const RAW_TOOL_CALL_WARNING =
+  '⚠️ The model returned a raw tool call instead of generating a response. ' +
+  'This usually indicates that the inference server is not configured to handle tool calling. ' +
+  'Please contact your administrator.\n\nModel response:\n';
+
+export const looksLikeRawToolCall = (text: string): boolean => {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return false;
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return (
+      typeof parsed === 'object' && parsed !== null && 'name' in parsed && 'parameters' in parsed
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Extracts text content from the backend response output array
  * @param output - Array of output items from backend response
@@ -169,6 +189,10 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
         }
       }
     }
+  }
+
+  if (looksLikeRawToolCall(content)) {
+    return `${RAW_TOOL_CALL_WARNING}${content}`;
   }
 
   return content;

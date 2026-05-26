@@ -15,7 +15,7 @@
     overflow: hidden;
   }
 
-  &__pattern-toggle {
+  &__pattern-toggle.pf-v6-c-menu-toggle {
     --pf-v6-c-menu-toggle--FontSize: var(--pf-t--global--font--size--heading--h2);
   }
 }

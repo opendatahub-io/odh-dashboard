@@ -15,6 +15,8 @@ import {
   getMCPServers,
   getMCPServerStatus,
   getMCPServerTools,
+  looksLikeRawToolCall,
+  RAW_TOOL_CALL_WARNING,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
@@ -1399,6 +1401,51 @@ describe('llamaStackService', () => {
       );
 
       expect(result.metrics).toEqual({ latency_ms: 500, time_to_first_token_ms: 100 });
+    });
+  });
+
+  describe('looksLikeRawToolCall', () => {
+    it('should detect a raw file_search tool call', () => {
+      const raw = '{"name": "file_search", "parameters": {"query": "IBM HashiCorp"}}';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should detect with extra whitespace', () => {
+      const raw = '  {"name": "file_search", "parameters": {"query": "test"}}  ';
+      expect(looksLikeRawToolCall(raw)).toBe(true);
+    });
+
+    it('should return false for normal text', () => {
+      expect(looksLikeRawToolCall('Hello, how can I help you?')).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(looksLikeRawToolCall('')).toBe(false);
+    });
+
+    it('should return false for JSON without name/parameters', () => {
+      expect(looksLikeRawToolCall('{"key": "value"}')).toBe(false);
+    });
+
+    it('should return false for JSON with only name', () => {
+      expect(looksLikeRawToolCall('{"name": "file_search"}')).toBe(false);
+    });
+
+    it('should return false for invalid JSON', () => {
+      expect(looksLikeRawToolCall('{name: file_search}')).toBe(false);
+    });
+
+    it('should return false for text containing JSON-like content', () => {
+      expect(
+        looksLikeRawToolCall('Here is some info: {"name": "file_search", "parameters": {}}'),
+      ).toBe(false);
+    });
+  });
+
+  describe('RAW_TOOL_CALL_WARNING', () => {
+    it('should be a non-empty string', () => {
+      expect(RAW_TOOL_CALL_WARNING).toBeTruthy();
+      expect(typeof RAW_TOOL_CALL_WARNING).toBe('string');
     });
   });
 });
