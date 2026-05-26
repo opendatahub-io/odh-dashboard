@@ -73,12 +73,12 @@
     "@odh-dashboard/internal": "*"
   },
   "devDependencies": {
+    "@odh-dashboard/contract-tests": "*",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/plugin-core": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@odh-dashboard/contract-tests": "*",
     "@openshift/dynamic-plugin-sdk": "*",
-    "@patternfly/react-code-editor": "*",
+    "@patternfly/react-code-editor": "^6.4.3",
     "cross-env": "^10.1.0"
   }
 }
