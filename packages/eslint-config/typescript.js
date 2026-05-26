@@ -130,7 +130,7 @@ module.exports = {
         '**/extension-points/**/*.ts',
         '**/extension-points.ts',
       ],
-      excludedFiles: ['**/extensions/index.ts', '**/extensions-points/index.ts'],
+      excludedFiles: ['**/extensions/index.ts', '**/extensions-points/index.ts', '**/__tests__/**'],
       rules: {
         '@typescript-eslint/consistent-type-imports': 'error',
         'no-restricted-syntax': [
