@@ -1,4 +1,5 @@
 import type { DashboardResource } from '@perses-dev/core';
+import type { K8sCondition } from '@odh-dashboard/internal/k8sTypes';
 import { mockDashboardConfig, mockStatus } from '@odh-dashboard/internal/__mocks__';
 import { mockDsciStatus } from '@odh-dashboard/internal/__mocks__/mockDsciStatus';
 import { observabilityDashboardPage } from '../../pages/observabilityDashboard';
@@ -23,15 +24,39 @@ const createMockPersesDashboard = (name: string, displayName: string): Dashboard
 const mockAdminDashboard = createMockPersesDashboard('dashboard-0-cluster-admin', 'Cluster');
 const mockNonAdminDashboard = createMockPersesDashboard('dashboard-1-model', 'Model');
 
+const HEALTHY_DSCI_CONDITIONS: K8sCondition[] = [
+  {
+    lastTransitionTime: '2023-10-20T11:45:04Z',
+    type: 'MonitoringReady',
+    status: 'True',
+    reason: 'Ready',
+    message: 'Monitoring stack is available',
+  },
+  {
+    lastTransitionTime: '2023-10-20T11:45:04Z',
+    type: 'PersesAvailable',
+    status: 'True',
+    reason: 'Ready',
+    message: 'Perses is available',
+  },
+];
+
 type InitInterceptsOptions = {
   dashboards?: DashboardResource[];
   isAdmin?: boolean;
+  dsciConditions?: K8sCondition[];
 };
 
-const initIntercepts = ({ dashboards = [], isAdmin = false }: InitInterceptsOptions = {}) => {
+const initIntercepts = ({
+  dashboards = [],
+  isAdmin = false,
+  dsciConditions = HEALTHY_DSCI_CONDITIONS,
+}: InitInterceptsOptions = {}) => {
   cy.interceptOdh('GET /api/config', mockDashboardConfig({ observabilityDashboard: true }));
 
   cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin }));
+
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({ conditions: dsciConditions }));
 
   // Mock the global Perses dashboards API endpoint
   cy.intercept('GET', '/perses/api/api/v1/dashboards', {
@@ -51,57 +76,49 @@ describe('Observability Dashboard', () => {
     observabilityDashboardPage.shouldHaveEmptyState();
   });
 
-  it('should show monitoring unavailable when DSCI reports monitoring is not ready', () => {
-    cy.interceptOdh(
-      'GET /api/dsci/status',
-      mockDsciStatus({
-        conditions: [
-          {
-            lastTransitionTime: '2023-10-20T11:45:04Z',
-            type: 'MonitoringReady',
-            status: 'False',
-            reason: 'MissingOperator',
-            message: 'Cluster Observability Operator must be installed.',
-          },
-        ],
-      }),
-    );
+  it('should hide nav and route when DSCI reports monitoring is not ready', () => {
+    initIntercepts({
+      dashboards: [],
+      isAdmin: true,
+      dsciConditions: [
+        {
+          lastTransitionTime: '2023-10-20T11:45:04Z',
+          type: 'MonitoringReady',
+          status: 'False',
+          reason: 'MissingOperator',
+          message: 'Cluster Observability Operator must be installed.',
+        },
+      ],
+    });
 
-    initIntercepts({ dashboards: [], isAdmin: true });
-
-    observabilityDashboardPage.visit();
-
-    observabilityDashboardPage.shouldHaveMonitoringUnavailableState();
+    cy.visitWithLogin('/observe-and-monitor/dashboard');
+    cy.findByTestId('not-found-page').should('exist');
   });
 
-  it('should show Perses unavailable when MonitoringReady is True but PersesAvailable is False', () => {
-    cy.interceptOdh(
-      'GET /api/dsci/status',
-      mockDsciStatus({
-        conditions: [
-          {
-            lastTransitionTime: '2023-10-20T11:45:04Z',
-            type: 'MonitoringReady',
-            status: 'True',
-            reason: 'Ready',
-            message: 'Monitoring stack is available',
-          },
-          {
-            lastTransitionTime: '2023-10-20T11:45:04Z',
-            type: 'PersesAvailable',
-            status: 'False',
-            reason: 'PersesCRDNotFoundReason',
-            message: 'Perses CRD not found in cluster.',
-          },
-        ],
-      }),
-    );
+  it('should hide nav and route when MonitoringReady is True but PersesAvailable is False', () => {
+    initIntercepts({
+      dashboards: [],
+      isAdmin: true,
+      dsciConditions: [
+        {
+          lastTransitionTime: '2023-10-20T11:45:04Z',
+          type: 'MonitoringReady',
+          status: 'True',
+          reason: 'Ready',
+          message: 'Monitoring stack is available',
+        },
+        {
+          lastTransitionTime: '2023-10-20T11:45:04Z',
+          type: 'PersesAvailable',
+          status: 'False',
+          reason: 'PersesCRDNotFoundReason',
+          message: 'Perses CRD not found in cluster.',
+        },
+      ],
+    });
 
-    initIntercepts({ dashboards: [], isAdmin: true });
-
-    observabilityDashboardPage.visit();
-
-    observabilityDashboardPage.shouldHavePersesUnavailableState();
+    cy.visitWithLogin('/observe-and-monitor/dashboard');
+    cy.findByTestId('not-found-page').should('exist');
   });
 
   it('should show a load error when the Perses dashboards API is unreachable', () => {

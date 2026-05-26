@@ -3,10 +3,11 @@ import type {
   AreaExtension,
   RouteExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+// eslint-disable-next-line no-restricted-syntax -- customCondition is a runtime function, not a CodeRef
+import { isMonitoringStackAvailable } from './src/utils/monitoringStackStatus';
 
 const ADMIN_USER = 'ADMIN_USER';
 const PLUGIN_OBSERVABILITY = 'plugin-observability';
-const BLOCKING_CONDITION_TYPES = ['MonitoringReady', 'PersesAvailable'];
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
@@ -14,10 +15,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
     properties: {
       id: PLUGIN_OBSERVABILITY,
       featureFlags: ['observabilityDashboard'],
-      customCondition: ({ dsciStatus }) =>
-        (
-          dsciStatus?.conditions.filter((c) => BLOCKING_CONDITION_TYPES.includes(c.type)) ?? []
-        ).every((c) => c.status === 'True'),
+      customCondition: ({ dsciStatus }) => isMonitoringStackAvailable(dsciStatus),
     },
   },
   {

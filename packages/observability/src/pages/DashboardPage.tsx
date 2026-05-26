@@ -11,9 +11,7 @@ const NO_DASHBOARDS_HINT =
   'No dashboard definitions were returned. If this is unexpected, verify Perses and the monitoring stack are configured.';
 
 const DashboardPage: React.FC = () => {
-  const { dashboards, loaded, error } = usePersesDashboards({
-    fetchDashboardList: true,
-  });
+  const { dashboards, loaded, error } = usePersesDashboards();
 
   if (error) {
     return (

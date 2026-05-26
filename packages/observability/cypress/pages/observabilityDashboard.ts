@@ -17,14 +17,6 @@ class ObservabilityDashboardPage {
     return cy.findByText('No dashboards found.');
   }
 
-  findMonitoringUnavailableHeadline() {
-    return cy.findByText('Monitoring is not available.');
-  }
-
-  findPersesUnavailableHeadline() {
-    return cy.findByText('Perses is not available — observability dashboards cannot load.');
-  }
-
   findPersesLoadErrorTitle() {
     return cy.findByText('Unable to reach observability dashboards');
   }
@@ -43,16 +35,6 @@ class ObservabilityDashboardPage {
 
   shouldHaveEmptyState() {
     this.findEmptyState().should('exist');
-    return this;
-  }
-
-  shouldHaveMonitoringUnavailableState() {
-    this.findMonitoringUnavailableHeadline().should('exist');
-    return this;
-  }
-
-  shouldHavePersesUnavailableState() {
-    this.findPersesUnavailableHeadline().should('exist');
     return this;
   }
 

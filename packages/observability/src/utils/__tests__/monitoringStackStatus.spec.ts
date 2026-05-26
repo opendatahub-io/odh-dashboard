@@ -1,9 +1,14 @@
 import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/internal/k8sTypes';
-import { isMonitoringStackAvailable } from '../monitoringStackStatus';
+import { isMonitoringStackAvailable, getMonitoringStatus } from '../monitoringStackStatus';
 
 describe('isMonitoringStackAvailable', () => {
   it('should return true when DSCI status is null', () => {
     expect(isMonitoringStackAvailable(null)).toBe(true);
+  });
+
+  it('should return true when conditions field is undefined', () => {
+    const dsci = {} as DataScienceClusterInitializationKindStatus;
+    expect(isMonitoringStackAvailable(dsci)).toBe(true);
   });
 
   it('should return true when conditions array is empty', () => {
@@ -154,5 +159,73 @@ describe('isMonitoringStackAvailable', () => {
       ],
     };
     expect(isMonitoringStackAvailable(dsci)).toBe(true);
+  });
+});
+
+describe('getMonitoringStatus', () => {
+  it('should return available when DSCI status is null', () => {
+    expect(getMonitoringStatus(null)).toEqual({ available: true });
+  });
+
+  it('should return available when conditions is undefined', () => {
+    const dsci = {} as DataScienceClusterInitializationKindStatus;
+    expect(getMonitoringStatus(dsci)).toEqual({ available: true });
+  });
+
+  it('should return monitoring-not-ready when MonitoringReady is False', () => {
+    const dsci: DataScienceClusterInitializationKindStatus = {
+      conditions: [
+        {
+          type: 'MonitoringReady',
+          status: 'False',
+          reason: 'MissingOperator',
+          lastTransitionTime: '2024-01-01T00:00:00Z',
+        },
+      ],
+    };
+    expect(getMonitoringStatus(dsci)).toEqual({
+      available: false,
+      reason: 'monitoring-not-ready',
+    });
+  });
+
+  it('should return perses-not-available when MonitoringReady is True but PersesAvailable is False', () => {
+    const dsci: DataScienceClusterInitializationKindStatus = {
+      conditions: [
+        {
+          type: 'MonitoringReady',
+          status: 'True',
+          lastTransitionTime: '2024-01-01T00:00:00Z',
+        },
+        {
+          type: 'PersesAvailable',
+          status: 'False',
+          reason: 'PersesCRDNotFound',
+          lastTransitionTime: '2024-01-01T00:00:00Z',
+        },
+      ],
+    };
+    expect(getMonitoringStatus(dsci)).toEqual({
+      available: false,
+      reason: 'perses-not-available',
+    });
+  });
+
+  it('should return available when both conditions are True', () => {
+    const dsci: DataScienceClusterInitializationKindStatus = {
+      conditions: [
+        {
+          type: 'MonitoringReady',
+          status: 'True',
+          lastTransitionTime: '2024-01-01T00:00:00Z',
+        },
+        {
+          type: 'PersesAvailable',
+          status: 'True',
+          lastTransitionTime: '2024-01-01T00:00:00Z',
+        },
+      ],
+    };
+    expect(getMonitoringStatus(dsci)).toEqual({ available: true });
   });
 });

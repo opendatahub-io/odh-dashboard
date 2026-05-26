@@ -3,25 +3,37 @@ import type {
   K8sCondition,
 } from '@odh-dashboard/internal/k8sTypes';
 
-const BLOCKING_CONDITION_TYPES = ['MonitoringReady', 'PersesAvailable'];
+export type MonitoringStatus =
+  | { available: true }
+  | { available: false; reason: 'monitoring-not-ready' }
+  | { available: false; reason: 'perses-not-available' };
 
-export const isMonitoringStackAvailable = (
+export const getMonitoringStatus = (
   dsciStatus: DataScienceClusterInitializationKindStatus | null,
-): boolean => {
-  if (!dsciStatus || dsciStatus.conditions.length === 0) {
-    return true;
+): MonitoringStatus => {
+  const conditions = dsciStatus?.conditions;
+  if (!Array.isArray(conditions) || conditions.length === 0) {
+    return { available: true };
   }
 
   const byType = new Map<string, K8sCondition>();
-  for (const c of dsciStatus.conditions) {
+  for (const c of conditions) {
     byType.set(c.type, c);
   }
 
-  const matched = BLOCKING_CONDITION_TYPES.filter((t) => byType.has(t));
-
-  if (matched.length === 0) {
-    return true;
+  const monitoringReady = byType.get('MonitoringReady');
+  if (monitoringReady && monitoringReady.status !== 'True') {
+    return { available: false, reason: 'monitoring-not-ready' };
   }
 
-  return matched.every((t) => byType.get(t)?.status === 'True');
+  const persesAvailable = byType.get('PersesAvailable');
+  if (persesAvailable && persesAvailable.status !== 'True') {
+    return { available: false, reason: 'perses-not-available' };
+  }
+
+  return { available: true };
 };
+
+export const isMonitoringStackAvailable = (
+  dsciStatus: DataScienceClusterInitializationKindStatus | null,
+): boolean => getMonitoringStatus(dsciStatus).available;
