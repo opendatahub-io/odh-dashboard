@@ -27,14 +27,14 @@ type TreeNodeProps = {
 } & WithSelectionProps;
 
 // Node sizes
-const STANDARD_RADIUS = 12;
-const MODEL_NAME_RADIUS = 16;
-const FINAL_SELECT_RADIUS = 28;
+const STANDARD_RADIUS = 16;
+const MODEL_NAME_RADIUS = 20;
+const FINAL_SELECT_RADIUS = 32;
 
 // Colors
 const COLORS = {
-  stroke: '#FFFFFF', // White stroke for hollow nodes
-  strokeDark: '#151515', // Dark stroke alternative
+  stroke: '#151515', // Dark stroke for hollow nodes (visible on light background)
+  strokeLight: '#FFFFFF', // White stroke for dark mode (not currently used)
   modelFill: '#73C5C5', // Cyan/teal for model names
   finalFill: '#8B5CF6', // Purple for final selection
   pendingStroke: '#6A6E73', // Gray for pending
@@ -164,20 +164,24 @@ const TreeNodeInner: React.FC<{
       );
     }
 
-    // Standard - hollow circle (stroke only)
+    // Standard - double hollow circle (two thin strokes with gap)
+    const strokeWidth = 1.5;
+    const gap = 2;
+    const innerRadius = radius - strokeWidth - gap;
+
     return (
-      <circle
-        r={radius}
-        fill="none"
-        stroke={COLORS.stroke}
-        strokeWidth={3}
-        opacity={hover ? 0.8 : 1}
-      />
+      <g opacity={hover ? 0.8 : 1}>
+        {/* Outer circle */}
+        <circle r={radius} fill="none" stroke={COLORS.stroke} strokeWidth={strokeWidth} />
+        {/* Inner circle */}
+        <circle r={innerRadius} fill="none" stroke={COLORS.stroke} strokeWidth={strokeWidth} />
+      </g>
     );
   };
 
   // Calculate label position based on node size
-  const labelY = radius + 16;
+  const labelY = radius + 8;
+  const labelWidth = 60;
 
   return (
     <g
@@ -188,18 +192,30 @@ const TreeNodeInner: React.FC<{
     >
       {renderNodeContent()}
 
-      {/* Label below node */}
+      {/* Label below node - using foreignObject for text wrapping */}
       {label && (
-        <text
+        <foreignObject
+          x={-labelWidth / 2}
           y={labelY}
-          textAnchor="middle"
-          fill="#FFFFFF"
-          fontSize="11px"
-          fontFamily="RedHatText, sans-serif"
-          style={{ pointerEvents: 'none' }}
+          width={labelWidth}
+          height={50}
+          style={{ pointerEvents: 'none', overflow: 'visible' }}
         >
-          {label}
-        </text>
+          <div
+            style={{
+              width: '100%',
+              textAlign: 'center',
+              color: '#151515',
+              fontSize: '11px',
+              fontFamily: 'RedHatText, sans-serif',
+              lineHeight: '1.3',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+            }}
+          >
+            {label}
+          </div>
+        </foreignObject>
       )}
     </g>
   );
