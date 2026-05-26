@@ -73,7 +73,7 @@ describe('Verify that models and versions can be archived and restored via model
   it(
     'Registers model, adds versions, archives version, restores version, archives whole model, restores whole model',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Tier', '@Tier4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Tier1', '@Tier1Set4'],
     },
     () => {
       cy.step('Login as an Admin and navigate to Model Registry');

@@ -43,7 +43,7 @@ describe('Workbenches - image/version tests', () => {
   it(
     'Verifies that workbench images have an additional dropdown which supports N/N-1 image versions.',
     {
-      tags: ['@Tier', '@Tier3', '@ODS-2131', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-2131', '@Dashboard', '@Workbenches', '@WorkbenchesCI'],
     },
     () => {
       const workbenchName = deriveWorkbenchName(projectName);

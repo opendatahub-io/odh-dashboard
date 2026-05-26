@@ -96,7 +96,7 @@ describe('Feature Store Page Validation', () => {
 
   it(
     'Navigates through Feature Store pages and verifies that the data count is displayed correctly',
-    { tags: ['@Dashboard', '@FeatureStore', '@Tier', '@Tier1'] },
+    { tags: ['@Dashboard', '@FeatureStore', '@Tier1', '@Tier1Set1'] },
     () => {
       if (shouldSkip()) {
         return;

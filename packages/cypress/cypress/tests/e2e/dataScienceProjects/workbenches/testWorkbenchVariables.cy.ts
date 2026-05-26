@@ -55,7 +55,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify user can set environment variables in their workbenches by uploading a yaml Secret and Config Map file.',
     {
-      tags: ['@Tier', '@Tier3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;
@@ -164,7 +164,7 @@ describe('Workbenches - variable tests', () => {
   it(
     'Verify that the user can inject environment variables manually into a workbench using Key / Value',
     {
-      tags: ['@Tier', '@Tier3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
+      tags: ['@Tier1', '@Tier1Set3', '@ODS-1883', '@ODS-1864', '@Dashboard', '@Workbenches'],
     },
     () => {
       const workbenchName = projectName;

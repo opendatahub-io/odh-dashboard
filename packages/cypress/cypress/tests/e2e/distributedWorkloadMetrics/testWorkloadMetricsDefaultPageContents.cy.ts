@@ -81,7 +81,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Workload Metrics Home page Contents',
-    { tags: ['@Tier', '@Tier3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
+    { tags: ['@Tier1', '@Tier1Set3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
@@ -105,7 +105,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Project Metrics Default Page contents',
-    { tags: ['@Tier', '@Tier3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
+    { tags: ['@Tier1', '@Tier1Set3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');
@@ -139,7 +139,7 @@ describe('Verify Workload Metrics Default page Contents', () => {
 
   it(
     'Verify Distributed Workload status Default Page contents',
-    { tags: ['@Tier', '@Tier3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
+    { tags: ['@Tier1', '@Tier1Set3', '@WorkloadMetrics', '@WorkloadMetricsCI'] },
     () => {
       if (skipTest) {
         cy.log('Skipping test: Kueue is not set to Unmanaged in the DSC');

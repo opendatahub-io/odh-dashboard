@@ -70,8 +70,8 @@ describe('Verify that admin users can edit model registry database configuration
       tags: [
         '@Dashboard',
         '@ModelRegistry',
-        '@Tier',
-        '@Tier4',
+        '@Tier1',
+        '@Tier1Set4',
         '@NonConcurrent',
         '@DatabaseConfig',
       ],

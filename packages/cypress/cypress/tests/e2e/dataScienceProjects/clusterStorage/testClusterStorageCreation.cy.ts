@@ -71,7 +71,7 @@ describe('Verify Cluster Storage - Creating, Editing and Deleting', () => {
   it(
     'Create, Edit and Delete a Persistent Volume Storage',
     {
-      tags: ['@Tier', '@Tier1', '@ODS-1824', '@Dashboard', '@ci-dashboard-regression-tags'],
+      tags: ['@Tier1', '@Tier1Set1', '@ODS-1824', '@Dashboard', '@ci-dashboard-regression-tags'],
     },
     () => {
       // Authentication and navigation

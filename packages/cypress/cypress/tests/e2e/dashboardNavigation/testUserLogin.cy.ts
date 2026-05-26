@@ -4,7 +4,7 @@ import { header } from '../../../pages/components/Header';
 describe('Verify that logged in users display on the Dashboard', () => {
   it(
     'Verify that Admin Users can login and that login information displays on the dashboard',
-    { tags: ['@Tier', '@Tier2', '@ODS-354', '@Dashboard', '@ci-dashboard-regression-tags'] },
+    { tags: ['@Tier1', '@Tier1Set2', '@ODS-354', '@Dashboard', '@ci-dashboard-regression-tags'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');
@@ -25,7 +25,7 @@ describe('Verify that logged in users display on the Dashboard', () => {
   );
   it(
     'Verify that Non-Admin Users can login and that login information displays on the dashboard',
-    { tags: ['@Tier', '@Tier2', '@ODS-354', '@Dashboard'] },
+    { tags: ['@Tier1', '@Tier1Set2', '@ODS-354', '@Dashboard'] },
     () => {
       // Authentication and navigation
       cy.step('Log into the application');

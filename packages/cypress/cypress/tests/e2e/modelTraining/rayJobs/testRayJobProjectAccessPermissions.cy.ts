@@ -118,7 +118,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
 
   it(
     'Admin can access project and view Ray job',
-    { tags: ['@Tier', '@Tier1', '@ModelTraining', '@RayJob'] },
+    { tags: ['@Tier1', '@Tier1Set1', '@ModelTraining', '@RayJob'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -141,7 +141,7 @@ describe('Verify project access for user types in Ray Jobs', () => {
 
   it(
     'Regular user access transitions from denied to granted',
-    { tags: ['@Tier', '@Tier1', '@ModelTraining', '@RayJob'] },
+    { tags: ['@Tier1', '@Tier1Set1', '@ModelTraining', '@RayJob'] },
     () => {
       if (shouldSkip()) {
         return;

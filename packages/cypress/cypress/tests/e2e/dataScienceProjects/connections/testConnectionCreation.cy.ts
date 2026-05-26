@@ -55,7 +55,7 @@ describe('Verify Connections - Creation and Deletion', () => {
   it(
     'Create and Delete a Connection',
     {
-      tags: ['@Tier', '@Tier1', '@ODS-1826', '@Dashboard', '@ci-dashboard-regression-tags'],
+      tags: ['@Tier1', '@Tier1Set1', '@ODS-1826', '@Dashboard', '@ci-dashboard-regression-tags'],
     },
     () => {
       // Authentication and navigation
