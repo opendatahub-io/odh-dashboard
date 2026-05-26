@@ -2,18 +2,18 @@ import React from 'react';
 import {
   Button,
   ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  ContentVariants,
-  Divider,
   Skeleton,
   Spinner,
   Stack,
@@ -27,6 +27,7 @@ import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { isTerminalState } from '~/app/hooks/queries';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import './AutoragInputParametersPanel.scss';
+import { RuntimeStateKF } from '~/app/types/pipeline.ts';
 
 /** Keys that are handled by the special "Model configuration" entry. */
 const MODEL_KEYS = new Set(['generation_models', 'embedding_models']);
@@ -176,6 +177,16 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (pipelineRun?.state === RuntimeStateKF.SUCCEEDED && !ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  } else if (ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  }
+
   const generationModels = Array.isArray(parameters?.generation_models)
     ? parameters.generation_models
     : [];
@@ -226,10 +237,13 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
               <DescriptionListGroup data-testid="parameter-output-directory">
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                  {pipelineServerOutputDirVariant === 'loading' && (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
                     <Content component={ContentVariants.p} aria-live="polite" role="status">
                       <span className="pf-v6-u-pr-sm">
-                        The output directory will be available once training is complete.
+                        The output directory will be available once evaluation is complete.
                       </span>
                       <Spinner
                         isInline
@@ -237,7 +251,8 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                         aria-label="Spinner for the parameter output directory"
                       />
                     </Content>
-                  ) : ragPatternsBasePath ? (
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && ragPatternsBasePath && (
                     <ClipboardCopy
                       isReadOnly
                       hoverTip="Copy"
@@ -246,9 +261,8 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                     >
                       {ragPatternsBasePath}
                     </ClipboardCopy>
-                  ) : (
-                    'Not available'
                   )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>

@@ -689,7 +689,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({

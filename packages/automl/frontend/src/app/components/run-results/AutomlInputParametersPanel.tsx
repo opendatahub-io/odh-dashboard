@@ -2,18 +2,18 @@ import React from 'react';
 import {
   Button,
   ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  ContentVariants,
-  Divider,
   Skeleton,
   Spinner,
   Stack,
@@ -26,6 +26,7 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { isTerminalState } from '~/app/hooks/queries';
 import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
 import './AutomlInputParametersPanel.scss';
+import { RuntimeStateKF } from '~/app/types/pipeline.ts';
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
 const EXCLUDED_KEYS = new Set(['display_name']);
@@ -146,6 +147,16 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (pipelineRun?.state === RuntimeStateKF.SUCCEEDED && !modelsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  } else if (modelsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  }
+
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
       <DrawerHead className="odh-automl-input-parameters-panel__head">
@@ -188,10 +199,13 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
               <DescriptionListGroup data-testid="parameter-output-directory">
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                  {pipelineServerOutputDirVariant === 'loading' && (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
                     <Content component={ContentVariants.p} aria-live="polite" role="status">
                       <span className="pf-v6-u-pr-sm">
-                        The output directory will be available once training is complete.
+                        The output directory will be available once evaluation is complete.
                       </span>
                       <Spinner
                         isInline
@@ -199,7 +213,8 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                         aria-label="Spinner for the parameter output directory"
                       />
                     </Content>
-                  ) : modelsBasePath ? (
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && modelsBasePath && (
                     <ClipboardCopy
                       isReadOnly
                       hoverTip="Copy"
@@ -208,9 +223,8 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
                     >
                       {modelsBasePath}
                     </ClipboardCopy>
-                  ) : (
-                    'Not available'
                   )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
