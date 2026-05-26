@@ -14,7 +14,7 @@ export const featureTableFilterOptions: Record<string, string> = {
 export const baseColumns: SortableData<Features>[] = [
   {
     field: 'feature',
-    label: 'Feature',
+    label: 'Name',
     width: 25,
     sortable: (a: Features, b: Features): number => a.name.localeCompare(b.name),
   },

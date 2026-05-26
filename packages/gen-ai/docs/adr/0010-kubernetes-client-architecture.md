@@ -180,8 +180,8 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(
             ResourceAttributes: &authzv1.ResourceAttributes{
                 Namespace: namespace,
                 Verb:      "list",
-                Group:     "genai.opendatahub.io",
-                Resource:  "llamastackdistributions",
+                Group:     "ogx.io",
+                Resource:  "ogxservers",
             },
         },
     }

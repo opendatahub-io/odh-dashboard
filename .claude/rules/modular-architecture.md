@@ -2,6 +2,10 @@
 description: Modular Architecture — Module Federation, plugin/extension system, and how packages integrate with the host app
 globs: "packages/**,frontend/src/plugins/**,frontend/config/**"
 alwaysApply: false
+paths:
+  - "packages/**"
+  - "frontend/src/plugins/**"
+  - "frontend/config/**"
 ---
 
 # Modular Architecture — ODH Dashboard

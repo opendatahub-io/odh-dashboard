@@ -20,7 +20,9 @@ import K8sNameDescriptionField, {
   useK8sNameDescriptionFieldData,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
+import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import { APIOptions } from 'mod-arch-core';
+import { z } from 'zod';
 import AddModelsModal from '~/app/shared/AddModelsModal';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 import { createAuthPolicy, updateAuthPolicy } from '~/app/api/auth-policies';
@@ -32,6 +34,11 @@ import {
 } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { modelRefsToSummaries } from '~/app/utilities/authpolicies';
+
+const policyFormSchema = z.object({
+  groups: z.array(z.string()).min(1, 'One or more groups must be selected'),
+  models: z.array(z.unknown()).min(1, 'One or more models must be added'),
+});
 
 export type PolicyFormProps = {
   formData: SubscriptionPolicyFormDataResponse;
@@ -62,6 +69,7 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   });
 
   const [groupsTouched, setGroupsTouched] = React.useState(false);
+  const [modelsTouched, setModelsTouched] = React.useState(false);
   const [selectedModels, setSelectedModels] = React.useState<MaaSModelRefSummary[]>(() =>
     initialPolicy ? modelRefsToSummaries(initialPolicy.modelRefs, formData.modelRefs) : [],
   );
@@ -72,16 +80,21 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
   const isValidK8sNameDescription = isK8sNameDescriptionDataValid(nameDescData);
 
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
+
+  const zodFormData = React.useMemo(
+    () => ({ groups: selectedGroupNames, models: selectedModels }),
+    [selectedGroupNames, selectedModels],
+  );
+
+  const { getFieldValidation } = useZodFormValidation(zodFormData, policyFormSchema);
+
   const groupsValidationError =
-    groupsTouched && selectedGroupNames.length === 0
-      ? 'At least one group must be selected'
+    groupsTouched && getFieldValidation(['groups'], true).length > 0
+      ? getFieldValidation(['groups'], true)[0].message
       : undefined;
 
   const canSubmit =
-    isValidK8sNameDescription &&
-    selectedGroupNames.length > 0 &&
-    selectedModels.length > 0 &&
-    !isSubmitting;
+    isValidK8sNameDescription && getFieldValidation(undefined, true).length === 0 && !isSubmitting;
 
   const handleAddModels = (refs: MaaSModelRefSummary[]) => {
     const existingKeys = new Set(selectedModels.map((m) => `${m.namespace}/${m.name}`));
@@ -141,9 +154,8 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
         <FormGroup label="Groups" fieldId="policy-groups" isRequired>
           <FormHelperText>
             <HelperText>
-              <HelperTextItem variant={groupsValidationError ? 'error' : 'default'}>
-                {groupsValidationError ||
-                  'Select user groups that can access models in this authorization policy.'}
+              <HelperTextItem>
+                Select user groups that can access models in this authorization policy.
               </HelperTextItem>
             </HelperText>
           </FormHelperText>
@@ -158,9 +170,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
             isCreatable
             createOptionMessage={(value) => `Add group "${value}"`}
             placeholder="Select groups or type to add a new group"
-            selectionRequired={groupsTouched}
-            noSelectedOptionsMessage="One or more groups must be selected"
           />
+          {groupsValidationError && (
+            <FormHelperText>
+              <HelperText>
+                <HelperTextItem variant="error">{groupsValidationError}</HelperTextItem>
+              </HelperText>
+            </FormHelperText>
+          )}
         </FormGroup>
 
         {formData.modelRefs.length === 0 ? (
@@ -180,11 +197,19 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
               hideColumns={['tokenLimits']}
               editable
               onAddModels={() => setIsAddModelsModalOpen(true)}
-              onRemoveModel={handleRemoveModelAt}
+              onRemoveModel={(index) => {
+                setModelsTouched(true);
+                handleRemoveModelAt(index);
+              }}
               helperText={
                 <Content>
                   Add models that subjects of this authorization policy will be granted access to.
                 </Content>
+              }
+              validationError={
+                modelsTouched && getFieldValidation(['models'], true).length > 0
+                  ? getFieldValidation(['models'], true)[0].message
+                  : undefined
               }
               formGroupFieldId="policy-models"
               sectionTestId="policy-models-section"
@@ -201,8 +226,14 @@ const PolicyForm: React.FC<PolicyFormProps> = ({ formData, initialPolicy }) => {
                 allSubscriptions={formData.subscriptions}
                 allPolicies={formData.policies}
                 currentModels={selectedModels.map((m) => ({ modelRefSummary: m }))}
-                onAdd={handleAddModels}
-                onRemove={handleRemoveModelsByRef}
+                onAdd={(refs) => {
+                  setModelsTouched(true);
+                  handleAddModels(refs);
+                }}
+                onRemove={(refs) => {
+                  setModelsTouched(true);
+                  handleRemoveModelsByRef(refs);
+                }}
                 onClose={() => setIsAddModelsModalOpen(false)}
                 ariaLabel="Add models to authorization policy"
                 title="Add models to authorization policy"

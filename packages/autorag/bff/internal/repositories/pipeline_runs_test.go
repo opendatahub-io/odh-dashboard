@@ -221,14 +221,14 @@ func TestCollectVersionIDs(t *testing.T) {
 
 func newValidCreateRequest() models.CreateAutoRAGRunRequest {
 	return models.CreateAutoRAGRunRequest{
-		DisplayName:          "test-run",
-		TestDataSecretName:   "minio-secret",
-		TestDataBucketName:   "autorag",
-		TestDataKey:          "test_data.json",
-		InputDataSecretName:  "minio-secret",
-		InputDataBucketName:  "autorag",
-		InputDataKey:         "documents/",
-		LlamaStackSecretName: "llama-secret",
+		DisplayName:         "test-run",
+		TestDataSecretName:  "minio-secret",
+		TestDataBucketName:  "autorag",
+		TestDataKey:         "test_data.json",
+		InputDataSecretName: "minio-secret",
+		InputDataBucketName: "autorag",
+		InputDataKey:        "documents/",
+		OGXSecretName:       "ogx-secret",
 	}
 }
 
@@ -248,7 +248,7 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "minio-secret", params["input_data_secret_name"])
 		assert.Equal(t, "autorag", params["input_data_bucket_name"])
 		assert.Equal(t, "documents/", params["input_data_key"])
-		assert.Equal(t, "llama-secret", params["llama_stack_secret_name"])
+		assert.Equal(t, "ogx-secret", params["ogx_secret_name"])
 	})
 
 	t.Run("should default optimization_metric to faithfulness", func(t *testing.T) {
@@ -266,19 +266,19 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.Equal(t, "answer_correctness", result.RuntimeConfig.Parameters["optimization_metric"])
 	})
 
-	t.Run("should include embeddings_models when provided", func(t *testing.T) {
+	t.Run("should include embedding_models when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
 		req.EmbeddingsModels = []string{"model-a", "model-b"}
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		assert.Equal(t, []string{"model-a", "model-b"}, result.RuntimeConfig.Parameters["embeddings_models"])
+		assert.Equal(t, []string{"model-a", "model-b"}, result.RuntimeConfig.Parameters["embedding_models"])
 	})
 
-	t.Run("should omit embeddings_models when empty", func(t *testing.T) {
+	t.Run("should omit embedding_models when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		_, exists := result.RuntimeConfig.Parameters["embeddings_models"]
+		_, exists := result.RuntimeConfig.Parameters["embedding_models"]
 		assert.False(t, exists)
 	})
 
@@ -298,19 +298,19 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		assert.False(t, exists)
 	})
 
-	t.Run("should include llama_stack_vector_io_provider_id when provided", func(t *testing.T) {
+	t.Run("should include vector_io_provider_id when provided", func(t *testing.T) {
 		req := newValidCreateRequest()
-		req.LlamaStackVectorIOProviderID = "milvus-db"
+		req.VectorIOProviderID = "milvus-db"
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"])
+		assert.Equal(t, "milvus-db", result.RuntimeConfig.Parameters["vector_io_provider_id"])
 	})
 
-	t.Run("should omit llama_stack_vector_io_provider_id when empty", func(t *testing.T) {
+	t.Run("should omit vector_io_provider_id when empty", func(t *testing.T) {
 		req := newValidCreateRequest()
 		result := BuildKFPRunRequest(req, testPipelineID, testPipelineVersionID)
 
-		_, exists := result.RuntimeConfig.Parameters["llama_stack_vector_io_provider_id"]
+		_, exists := result.RuntimeConfig.Parameters["vector_io_provider_id"]
 		assert.False(t, exists)
 	})
 
@@ -361,7 +361,7 @@ func TestValidateCreateAutoRAGRunRequest(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "display_name")
 		assert.Contains(t, err.Error(), "test_data_secret_name")
-		assert.Contains(t, err.Error(), "llama_stack_secret_name")
+		assert.Contains(t, err.Error(), "ogx_secret_name")
 	})
 
 	t.Run("should accept valid optimization_metric values", func(t *testing.T) {

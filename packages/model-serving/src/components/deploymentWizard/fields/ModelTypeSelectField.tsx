@@ -6,42 +6,61 @@ import { FieldValidationProps } from '@odh-dashboard/internal/hooks/useZodFormVa
 import { ZodErrorHelperText } from '@odh-dashboard/internal/components/ZodErrorFormHelperText';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/concepts/areas';
-import { ModelTypeLabel } from '../types';
+import {
+  isModelTypeFieldOverride,
+  ModelLocationData,
+  ModelTypeFieldOverride,
+  ModelTypeLabel,
+} from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
 
 // Schema
-
-const modelTypeValueSchema = z.enum(
-  [ServingRuntimeModelType.PREDICTIVE, ServingRuntimeModelType.GENERATIVE],
-  {
-    // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-    required_error: 'Select a model type.',
-  },
-);
-
-export type ModelTypeValue = z.infer<typeof modelTypeValueSchema>;
-
 export const modelTypeSelectFieldSchema = z.object({
-  type: modelTypeValueSchema,
+  type: z.string(),
   legacyVLLM: z.boolean(),
 });
 
 export type ModelTypeFieldData = z.infer<typeof modelTypeSelectFieldSchema>;
-export const isValidModelType = (value: string): value is ModelTypeValue =>
-  value === ServingRuntimeModelType.PREDICTIVE || value === ServingRuntimeModelType.GENERATIVE;
 
 // Hooks
 
 export type ModelTypeField = {
   data: ModelTypeFieldData | undefined;
   setData: (data: ModelTypeFieldData) => void;
+  externalData: {
+    data: {
+      extraOptions: ModelTypeFieldOverride['extraOption'][];
+    };
+  };
 };
-export const useModelTypeField = (existingData?: ModelTypeFieldData): ModelTypeField => {
+export const useModelTypeField = (
+  existingData?: ModelTypeFieldData,
+  modelLocationData?: ModelLocationData,
+  vLLMDeploymentOnMaaSEnabled?: boolean,
+): ModelTypeField => {
+  const overrideFormData = React.useMemo(
+    () => ({
+      modelLocationData: { data: modelLocationData },
+      devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled },
+    }),
+    [modelLocationData, vLLMDeploymentOnMaaSEnabled],
+  );
+  const modelTypeOverrides = useWizardFieldOverrides(isModelTypeFieldOverride, overrideFormData);
+
   const [modelType, setModelType] = React.useState<ModelTypeFieldData | undefined>(existingData);
 
-  return {
-    data: modelType,
-    setData: setModelType,
-  };
+  return React.useMemo(
+    () => ({
+      data: modelType,
+      setData: setModelType,
+      externalData: {
+        data: {
+          extraOptions: modelTypeOverrides.map((override) => override.extraOption),
+        },
+      },
+    }),
+    [modelType, setModelType, modelTypeOverrides],
+  );
 };
 
 // Component
@@ -53,6 +72,7 @@ type ModelTypeSelectFieldProps = {
   validationIssues?: ZodIssue[];
   isEditing?: boolean;
   isDisabled?: boolean;
+  externalData: ModelTypeField['externalData'];
 };
 export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   modelType,
@@ -61,27 +81,34 @@ export const ModelTypeSelectField: React.FC<ModelTypeSelectFieldProps> = ({
   validationProps,
   validationIssues = [],
   isEditing,
+  externalData,
 }) => {
   const isVLLMOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  const options = React.useMemo(() => {
+    return [
+      {
+        key: ServingRuntimeModelType.PREDICTIVE,
+        label: ModelTypeLabel.PREDICTIVE,
+      },
+      {
+        key: ServingRuntimeModelType.GENERATIVE,
+        label: ModelTypeLabel.GENERATIVE,
+      },
+      ...externalData.data.extraOptions,
+    ];
+  }, [externalData.data.extraOptions]);
 
   return (
     <>
       <FormGroup fieldId="model-type-select" label="Model type" isRequired>
         <SimpleSelect
-          options={[
-            {
-              key: ServingRuntimeModelType.PREDICTIVE,
-              label: ModelTypeLabel.PREDICTIVE,
-            },
-            {
-              key: ServingRuntimeModelType.GENERATIVE,
-              label: ModelTypeLabel.GENERATIVE,
-            },
-          ]}
+          options={options}
           onChange={(key) => {
-            if (isValidModelType(key)) {
-              setModelType?.({ type: key, legacyVLLM: false });
-            }
+            setModelType?.({
+              type: key,
+              legacyVLLM: key === ServingRuntimeModelType.GENERATIVE && !isVLLMOnMaaSEnabled,
+            });
           }}
           onBlur={validationProps?.onBlur}
           placeholder="Select model type"
