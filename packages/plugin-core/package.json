@@ -22,6 +22,6 @@
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
     "@odh-dashboard/tsconfig": "*",
-    "@types/node": "^17.0.29"
+    "@types/node": "^22.0.0"
   }
 }
