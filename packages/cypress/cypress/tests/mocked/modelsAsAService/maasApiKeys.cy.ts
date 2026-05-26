@@ -14,7 +14,6 @@ import {
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
-  subscriptionPopover,
   mySubscriptionsPage,
   subscriptionsTab,
 } from '../../../pages/modelsAsAService';
@@ -22,6 +21,7 @@ import {
   mockAPIKeys,
   mockCreateAPIKeyResponse,
   mockSubscriptionListItems,
+  mockSubscriptions,
 } from '../../../utils/maasUtils';
 
 const mockSubscriptionDetails: Record<string, SubscriptionDetail> = {
@@ -80,6 +80,9 @@ describe('API Keys Page', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    }).as('getAllSubscriptions');
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });
@@ -233,13 +236,58 @@ describe('API Keys Page', () => {
     devRow.findSubscription().should('contain.text', 'Basic Team');
   });
 
-  it('should show subscription popover with model names on click', () => {
+  it('should link subscription name to the subscription details page when subscription exists', () => {
     const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscriptionPopoverButton().click();
+    prodRow
+      .findSubscriptionDetailLink()
+      .should('have.attr', 'href')
+      .and('include', '/maas/subscriptions/view/premium-team-sub');
+  });
 
-    subscriptionPopover.findModelCount().should('contain.text', '2 models');
-    subscriptionPopover.findModelName('granite-3-8b-instruct').should('be.visible');
-    subscriptionPopover.findModelName('flan-t5-small').should('be.visible');
+  it('should show plain text (no link) for a subscription that no longer exists', () => {
+    const keyWithDeletedSub = mockAPIKeys().filter((k) => k.status === 'active');
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      // Return keys with a subscription name but no subscriptionDetails entry for it
+      mockSearchResponse(keyWithDeletedSub, {}),
+    ).as('deletedSubSearch');
+    apiKeysPage.visit();
+    cy.wait('@deletedSubSearch');
+
+    const prodRow = apiKeysPage.getRow('production-backend');
+    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
+    prodRow.findSubscriptionDetailLink().should('not.exist');
+  });
+
+  it('should filter api keys by subscription and clear the filter', () => {
+    const premiumKeys = mockAPIKeys().filter((k) => k.subscription === 'premium-team-sub');
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(premiumKeys, {
+        'premium-team-sub': mockSubscriptionDetails['premium-team-sub'],
+      }),
+    ).as('filterBySubscription');
+
+    apiKeysPage.findSubscriptionFilterToggle().click();
+    apiKeysPage.findSubscriptionFilterOption('premium-team-sub').click();
+
+    cy.wait('@filterBySubscription').then((interception) => {
+      expect(interception.request.body.data.filters.subscription).to.eq('premium-team-sub');
+    });
+    apiKeysPage.findToolbar().should('contain.text', 'Premium Team');
+
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(mockAPIKeys().filter((k) => k.status === 'active')),
+    ).as('clearSubscriptionFilter');
+
+    apiKeysPage.findSubscriptionFilterToggle().click();
+    apiKeysPage.findAllSubscriptionsOption().click();
+
+    cy.wait('@clearSubscriptionFilter').then((interception) => {
+      expect(interception.request.body.data.filters?.subscription).to.eq(undefined);
+    });
+    apiKeysPage.findToolbar().should('not.contain.text', 'Premium Team');
   });
 
   it('should filter api keys by username', () => {
@@ -739,6 +787,9 @@ describe('API Keys Page (Admin)', () => {
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'initialSearch',
     );
+    cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
+      data: mockSubscriptions(),
+    }).as('getAllSubscriptions');
     apiKeysPage.visit();
     cy.wait('@initialSearch');
   });

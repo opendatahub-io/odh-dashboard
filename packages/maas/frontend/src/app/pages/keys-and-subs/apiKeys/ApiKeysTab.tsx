@@ -2,6 +2,7 @@ import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
+import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
@@ -35,11 +36,22 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
     onUsernameChange,
     onStatusToggle,
     onStatusClear,
+    onSubscriptionChange,
     onSort,
     onSetPage,
     onPerPageSelect,
     onClearFilters,
   } = pageState;
+
+  const [allSubscriptions, subscriptionsLoaded] = useListSubscriptions();
+  const subscriptionOptions = React.useMemo(
+    () =>
+      allSubscriptions.map((sub) => ({
+        name: sub.name,
+        displayName: sub.displayName ?? sub.name,
+      })),
+    [allSubscriptions],
+  );
 
   const apiKeys = response.data;
   const hasMore = response.has_more;
@@ -109,6 +121,9 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
               onUsernameChange={onUsernameChange}
               onStatusToggle={onStatusToggle}
               onStatusClear={onStatusClear}
+              subscriptions={subscriptionOptions}
+              subscriptionsLoaded={subscriptionsLoaded}
+              onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
               onClearFilters={onClearFilters}
