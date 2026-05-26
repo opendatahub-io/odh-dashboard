@@ -1,9 +1,9 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
@@ -75,6 +75,8 @@ func (app *App) mapK8sErrorToHTTPError(k8sErr *kubernetes.K8sError, statusCode i
 // preserving 403/404 from the API server instead of flattening them to 400.
 func (app *App) handleSecretReadError(w http.ResponseWriter, r *http.Request, err error, secretName, secretKey string) {
 	switch {
+	case isSecretKeyMissing(err):
+		app.badRequestResponse(w, r, fmt.Errorf("key %s not found in secret %q", secretKey, secretName))
 	case apierrors.IsNotFound(err):
 		app.notFoundResponse(w, r)
 	case apierrors.IsForbidden(err):
@@ -89,5 +91,5 @@ func (app *App) handleSecretReadError(w http.ResponseWriter, r *http.Request, er
 // isSecretKeyMissing returns true when the error indicates a specific key was
 // not found inside an existing Secret (as opposed to a K8s API error).
 func isSecretKeyMissing(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "not found in Secret")
+	return errors.Is(err, kubernetes.ErrSecretKeyNotFound)
 }

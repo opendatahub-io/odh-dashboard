@@ -537,8 +537,7 @@ var _ = Describe("AttachOGXClientFromSecret", func() {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), "OGX_CLIENT_BASE_URL")
+		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
 	It("should return error when OGX_CLIENT_BASE_URL is empty", func() {

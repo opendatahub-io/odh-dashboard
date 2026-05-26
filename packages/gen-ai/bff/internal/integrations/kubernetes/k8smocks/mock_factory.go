@@ -16,7 +16,9 @@ import (
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -323,10 +325,10 @@ func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, i
 			if val, ok := secret[secretKey]; ok {
 				return val, nil
 			}
-			return "", fmt.Errorf("key %q not found in secret %q", secretKey, secretName)
+			return "", fmt.Errorf("key %q not found in secret %q: %w", secretKey, secretName, k8s.ErrSecretKeyNotFound)
 		}
 	}
-	return "", fmt.Errorf("mock: secret %q not found", secretName)
+	return "", apierrors.NewNotFound(schema.GroupResource{Resource: "secrets"}, secretName)
 }
 
 // Helper functions to create k8s error types for testing
