@@ -48,6 +48,12 @@ export type DataConnectionReplacements = {
   AWS_SECRET_ACCESS_KEY: string;
 };
 
+export type DataConnectionUriReplacements = {
+  NAMESPACE: string;
+  MODEL_URI: string;
+  CONNECTION_NAME: string;
+};
+
 export type DspaSecretReplacements = {
   DSPA_SECRET_NAME: string;
   NAMESPACE: string;
@@ -639,6 +645,30 @@ export type ModelCatalogSourceTestData = {
   redhatAiSourceId2: string;
   sourceName3: string;
   redhatAiSourceId3: string;
+};
+
+export type ModelAsAServiceTestData = {
+  projectResourceName: string;
+  singleModelName: string;
+  llmInferenceServiceConfigName: string;
+  llmInferenceServiceConfigDisplayName: string;
+  llmInferenceServiceConfigContainerImage: string;
+  modelLocationURI: string;
+  hardwareProfileResourceName: string;
+  subscriptionName: string;
+  subscriptionDescription: string;
+  subscriptionPriority: number;
+  subscriptionGroups: string[];
+  policiesName: string;
+  policiesDescription: string;
+  policiesGroups: string[];
+  tokenRateLimit: { limit: number; window: string; unit: string };
+  policiesGroupsCount: number;
+  policiesModelsCount: number;
+  apiKeyName: string;
+  apiKeyDescription: string;
+  apiKeyExpirationTime: string;
+  phase: string;
 };
 
 export type TrainJobTestData = {

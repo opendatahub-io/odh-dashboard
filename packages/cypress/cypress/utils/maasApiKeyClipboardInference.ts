@@ -1,6 +1,7 @@
 import {
   verifyMaaSModelInferencing,
   type VerifyMaaSModelInferencingOptions,
+  ListMaaSModels,
 } from './oc_commands/maas';
 
 const CLIPBOARD_WRITE_STUB_ALIAS = 'clipboardWrite';
@@ -87,3 +88,25 @@ export const verifyMaaSModelInferenceUsingRevokedApiKey = (
         .then(() => result);
     });
   });
+
+export const verifyMaasModelExistsForUser = (
+  modelName: string,
+  token: string,
+  expectExists = true,
+): void => {
+  ListMaaSModels(token).then((result) => {
+    const { response } = result;
+    const responseBody = response.body as { data: { id: string }[]; object: string };
+    const models = responseBody.data;
+    expect(response.status).to.equal(200);
+    if (expectExists) {
+      expect(models).to.have.length.greaterThan(0);
+      const modelFound = models.some((model) => model.id === modelName);
+      expect(modelFound, `Model ${modelName} should exist in models list`).to.equal(true);
+      return cy.log(`✅ Model ${modelName} exists for user`);
+    }
+    const modelFound = models.some((model) => model.id === modelName);
+    expect(modelFound, `Model ${modelName} should NOT exist in models list`).to.equal(false);
+    return cy.log(`✅ Model ${modelName} does not exist for user`);
+  });
+};
