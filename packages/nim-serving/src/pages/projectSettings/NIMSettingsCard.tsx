@@ -32,8 +32,10 @@ const NIM_DESCRIPTION =
   'community and NVIDIA AI Foundation models, it ensures seamless, scalable AI inferencing, ' +
   'on-premises or in the cloud, leveraging industry standard APIs.';
 
-const NO_PERMISSION_TOOLTIP =
+const NO_PERMISSION_ADD_TOOLTIP =
   "You don't have permission to add a personal API key in this project. To request access, contact your project administrator.";
+const NO_PERMISSION_REMOVE_TOOLTIP =
+  "You don't have permission to remove a personal API key in this project. To request access, contact your project administrator.";
 
 type NIMSettingsCardProps = {
   namespace: string;
@@ -125,7 +127,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
           </Button>
         );
         return permissionDenied ? (
-          <Tooltip content={NO_PERMISSION_TOOLTIP}>{enableButton}</Tooltip>
+          <Tooltip content={NO_PERMISSION_ADD_TOOLTIP}>{enableButton}</Tooltip>
         ) : (
           enableButton
         );
@@ -140,7 +142,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
               <Tooltip
                 content={
                   permissionDenied
-                    ? NO_PERMISSION_TOOLTIP
+                    ? NO_PERMISSION_REMOVE_TOOLTIP
                     : 'Remove the NVIDIA NIM account and API key from this project'
                 }
               >
@@ -158,7 +160,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
               <Tooltip
                 content={
                   permissionDenied
-                    ? NO_PERMISSION_TOOLTIP
+                    ? NO_PERMISSION_ADD_TOOLTIP
                     : 'Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it'
                 }
               >
