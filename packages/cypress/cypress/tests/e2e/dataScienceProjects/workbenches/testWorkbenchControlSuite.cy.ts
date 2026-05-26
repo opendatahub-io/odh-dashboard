@@ -60,8 +60,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
     'Starting, Stopping, Launching and Deleting a Workbench',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet2',
+        '@Tier',
+        '@Tier2',
         '@ODS-1818',
         '@ODS-1823',
         '@ODS-1975',
@@ -138,8 +138,8 @@ describe('Start, Stop, Launch and Delete a Workbench in RHOAI', () => {
     'Verify that a Workbench can be started and stopped using the Event log controls',
     {
       tags: [
-        '@Sanity',
-        '@SanitySet2',
+        '@Tier',
+        '@Tier2',
         '@ODS-1818',
         '@ODS-1823',
         '@ODS-1975',

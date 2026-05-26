@@ -127,7 +127,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Admin can access project and view training job',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Tier', '@Tier1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
         return;
@@ -150,7 +150,7 @@ describe('Verify project access for user types in Training Jobs', () => {
 
   it(
     'Regular user access transitions from denied to granted',
-    { tags: ['@Sanity', '@SanitySet1', '@ModelTraining'] },
+    { tags: ['@Tier', '@Tier1', '@ModelTraining'] },
     () => {
       if (shouldSkip()) {
         return;
