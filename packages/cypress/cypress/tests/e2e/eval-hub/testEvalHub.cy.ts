@@ -74,6 +74,9 @@ describe('Eval Hub E2E', () => {
 
     cy.then(() => {
       evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
+      const tracked: string[] = Cypress.env('EVAL_HUB_CREATED_PROJECTS') || [];
+      tracked.push(evaluationTenantProject);
+      Cypress.env('EVAL_HUB_CREATED_PROJECTS', tracked);
       cy.step(`Create ephemeral project ${evaluationTenantProject}`);
       createCleanProject(evaluationTenantProject);
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
@@ -87,10 +90,13 @@ describe('Eval Hub E2E', () => {
   after(() => {
     ensureAdminOcSession();
 
-    if (evaluationTenantProject) {
-      cy.step(`Delete ephemeral tenant project ${evaluationTenantProject}`);
-      deleteOpenShiftProject(evaluationTenantProject, { wait: false, ignoreNotFound: true });
-    }
+    const projectsToDelete = [
+      ...new Set((Cypress.env('EVAL_HUB_CREATED_PROJECTS') || []) as string[]),
+    ];
+    projectsToDelete.forEach((project) => {
+      cy.step(`Delete tenant project ${project}`);
+      deleteOpenShiftProject(project, { wait: false, ignoreNotFound: true });
+    });
 
     if (hardwareProfileName) {
       cy.step(`Clean up Hardware Profile: ${hardwareProfileName}`);
