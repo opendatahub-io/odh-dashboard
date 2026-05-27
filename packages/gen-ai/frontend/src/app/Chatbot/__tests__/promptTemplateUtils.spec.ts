@@ -4,107 +4,62 @@ import {
 } from '~/app/Chatbot/promptTemplateUtils';
 
 describe('extractTemplateVariables', () => {
-  it('should extract a single variable', () => {
-    expect(extractTemplateVariables('Hello {{name}}')).toEqual(['name']);
-  });
-
-  it('should extract multiple distinct variables', () => {
-    expect(extractTemplateVariables('{{greeting}} {{name}}, welcome to {{place}}')).toEqual([
-      'greeting',
-      'name',
-      'place',
-    ]);
-  });
-
-  it('should deduplicate repeated variables', () => {
-    expect(extractTemplateVariables('{{topic}} and {{topic}} and {{topic}}')).toEqual(['topic']);
-  });
-
-  it('should preserve insertion order after deduplication', () => {
-    expect(extractTemplateVariables('{{a}} {{b}} {{a}} {{c}} {{b}}')).toEqual(['a', 'b', 'c']);
+  it.each([
+    ['single variable', 'Hello {{name}}', ['name']],
+    [
+      'multiple distinct variables',
+      '{{greeting}} {{name}}, welcome to {{place}}',
+      ['greeting', 'name', 'place'],
+    ],
+    ['deduplicates repeated variables', '{{topic}} and {{topic}} and {{topic}}', ['topic']],
+    ['preserves insertion order after dedup', '{{a}} {{b}} {{a}} {{c}} {{b}}', ['a', 'b', 'c']],
+  ])('should handle %s', (_label, input, expected) => {
+    expect(extractTemplateVariables(input as string)).toEqual(expected);
   });
 
   describe('whitespace handling', () => {
-    it('should handle leading whitespace inside braces', () => {
-      expect(extractTemplateVariables('{{  topic }}')).toEqual(['topic']);
-    });
-
-    it('should handle trailing whitespace inside braces', () => {
-      expect(extractTemplateVariables('{{ topic  }}')).toEqual(['topic']);
-    });
-
-    it('should handle whitespace on both sides', () => {
-      expect(extractTemplateVariables('{{  topic  }}')).toEqual(['topic']);
-    });
-
-    it('should handle tabs and mixed whitespace', () => {
-      expect(extractTemplateVariables('{{\ttopic\t}}')).toEqual(['topic']);
+    it.each([
+      ['leading whitespace', '{{  topic }}'],
+      ['trailing whitespace', '{{ topic  }}'],
+      ['whitespace on both sides', '{{  topic  }}'],
+      ['tabs and mixed whitespace', '{{\ttopic\t}}'],
+    ])('should handle %s inside braces', (_label, input) => {
+      expect(extractTemplateVariables(input)).toEqual(['topic']);
     });
   });
 
   describe('variable name patterns', () => {
-    it('should accept underscores in variable names', () => {
-      expect(extractTemplateVariables('{{user_name}}')).toEqual(['user_name']);
-    });
-
-    it('should accept variables starting with underscore', () => {
-      expect(extractTemplateVariables('{{_private}}')).toEqual(['_private']);
-    });
-
-    it('should accept alphanumeric variable names', () => {
-      expect(extractTemplateVariables('{{item1}} {{item2}}')).toEqual(['item1', 'item2']);
-    });
-
-    it('should accept uppercase and mixed case', () => {
-      expect(extractTemplateVariables('{{Name}} {{UPPER}} {{camelCase}}')).toEqual([
-        'Name',
-        'UPPER',
-        'camelCase',
-      ]);
+    it.each([
+      ['underscores', '{{user_name}}', ['user_name']],
+      ['leading underscore', '{{_private}}', ['_private']],
+      ['alphanumeric', '{{item1}} {{item2}}', ['item1', 'item2']],
+      [
+        'uppercase and mixed case',
+        '{{Name}} {{UPPER}} {{camelCase}}',
+        ['Name', 'UPPER', 'camelCase'],
+      ],
+    ])('should accept %s', (_label, input, expected) => {
+      expect(extractTemplateVariables(input)).toEqual(expected);
     });
   });
 
   describe('malformed patterns', () => {
-    it('should ignore single opening brace', () => {
-      expect(extractTemplateVariables('{name}')).toEqual([]);
+    it.each([
+      ['single opening brace', '{name}'],
+      ['unclosed double braces', '{{name'],
+      ['empty braces', '{{}}'],
+      ['braces with only whitespace', '{{   }}'],
+      ['variable starting with digit', '{{1invalid}}'],
+      ['variable with spaces in name', '{{two words}}'],
+      ['special characters', '{{name!}} {{val@ue}} {{a-b}}'],
+      ['empty string', ''],
+      ['plain text', 'Hello, how are you?'],
+    ])('should return [] for %s', (_label, input) => {
+      expect(extractTemplateVariables(input)).toEqual([]);
     });
 
-    it('should ignore unclosed double braces', () => {
-      expect(extractTemplateVariables('{{name')).toEqual([]);
-    });
-
-    it('should ignore triple braces', () => {
+    it('should still extract valid name from triple braces', () => {
       expect(extractTemplateVariables('{{{name}}}')).toEqual(['name']);
-    });
-
-    it('should ignore empty braces', () => {
-      expect(extractTemplateVariables('{{}}')).toEqual([]);
-    });
-
-    it('should ignore braces with only whitespace', () => {
-      expect(extractTemplateVariables('{{   }}')).toEqual([]);
-    });
-
-    it('should ignore variables starting with a digit', () => {
-      expect(extractTemplateVariables('{{1invalid}}')).toEqual([]);
-    });
-
-    it('should ignore variables with spaces in the name', () => {
-      expect(extractTemplateVariables('{{two words}}')).toEqual([]);
-    });
-
-    it('should ignore variables with special characters', () => {
-      expect(extractTemplateVariables('{{name!}} {{val@ue}} {{a-b}}')).toEqual([]);
-    });
-  });
-
-  describe('empty and no-variable inputs', () => {
-    it('should return empty array for empty string', () => {
-      expect(extractTemplateVariables('')).toEqual([]);
-    });
-
-    it('should return empty array for plain text', () => {
-      expect(extractTemplateVariables('Hello, how are you?')).toEqual([]);
     });
 
     it('should return empty array for null-ish input', () => {
@@ -114,67 +69,51 @@ describe('extractTemplateVariables', () => {
   });
 
   describe('real-world templates', () => {
-    it('should extract variables from an MLflow-style system prompt', () => {
-      const template =
-        'You are a {{role}} assistant. Summarize the following about {{topic}}: {{content}}';
-      expect(extractTemplateVariables(template)).toEqual(['role', 'topic', 'content']);
-    });
-
-    it('should extract variables from a multi-line template', () => {
-      const template = `You are a helpful assistant.
-The user wants to know about {{ topic }}.
-Please respond in {{ language }}.`;
-      expect(extractTemplateVariables(template)).toEqual(['topic', 'language']);
-    });
-
-    it('should handle a template mixing valid and invalid patterns', () => {
-      const template = '{{valid}} {invalid} {{also_valid}} {{123bad}} {{ good }}';
-      expect(extractTemplateVariables(template)).toEqual(['valid', 'also_valid', 'good']);
+    it.each([
+      [
+        'MLflow-style system prompt',
+        'You are a {{role}} assistant. Summarize the following about {{topic}}: {{content}}',
+        ['role', 'topic', 'content'],
+      ],
+      [
+        'multi-line template',
+        'You are a helpful assistant.\nThe user wants to know about {{ topic }}.\nPlease respond in {{ language }}.',
+        ['topic', 'language'],
+      ],
+      [
+        'mixed valid and invalid patterns',
+        '{{valid}} {invalid} {{also_valid}} {{123bad}} {{ good }}',
+        ['valid', 'also_valid', 'good'],
+      ],
+    ])('should extract variables from %s', (_label, input, expected) => {
+      expect(extractTemplateVariables(input)).toEqual(expected);
     });
   });
 });
 
 describe('substituteTemplateVariables', () => {
-  it('should replace a single variable', () => {
-    expect(substituteTemplateVariables('Hello {{name}}!', { name: 'World' })).toBe('Hello World!');
-  });
-
-  it('should replace multiple distinct variables', () => {
-    const result = substituteTemplateVariables('{{greeting}} {{name}}', {
-      greeting: 'Hi',
-      name: 'Alice',
-    });
-    expect(result).toBe('Hi Alice');
-  });
-
-  it('should replace all occurrences of a duplicate variable', () => {
-    expect(substituteTemplateVariables('{{x}} and {{x}} and {{x}}', { x: 'val' })).toBe(
+  it.each<[string, string, Record<string, string>, string]>([
+    ['single variable', 'Hello {{name}}!', { name: 'World' }, 'Hello World!'],
+    [
+      'multiple distinct variables',
+      '{{greeting}} {{name}}',
+      { greeting: 'Hi', name: 'Alice' },
+      'Hi Alice',
+    ],
+    [
+      'all occurrences of duplicate',
+      '{{x}} and {{x}} and {{x}}',
+      { x: 'val' },
       'val and val and val',
-    );
-  });
-
-  it('should handle whitespace inside braces during substitution', () => {
-    expect(substituteTemplateVariables('{{ name }}', { name: 'Alice' })).toBe('Alice');
-  });
-
-  it('should replace unfilled variables with empty string', () => {
-    expect(substituteTemplateVariables('{{name}} {{age}}', { name: 'Alice' })).toBe('Alice ');
-  });
-
-  it('should replace variables with empty-string values as empty', () => {
-    expect(substituteTemplateVariables('{{name}}', { name: '' })).toBe('');
-  });
-
-  it('should replace all variables with empty string when values is empty', () => {
-    expect(substituteTemplateVariables('{{name}}', {})).toBe('');
-  });
-
-  it('should return original string when no variables present', () => {
-    expect(substituteTemplateVariables('Hello World', { name: 'Alice' })).toBe('Hello World');
-  });
-
-  it('should return empty string for empty input', () => {
-    expect(substituteTemplateVariables('', { name: 'Alice' })).toBe('');
+    ],
+    ['whitespace inside braces', '{{ name }}', { name: 'Alice' }, 'Alice'],
+    ['unfilled variables with empty string', '{{name}} {{age}}', { name: 'Alice' }, 'Alice '],
+    ['empty-string values as empty', '{{name}}', { name: '' }, ''],
+    ['all variables when values is empty', '{{name}}', {}, ''],
+    ['no variables present unchanged', 'Hello World', { name: 'Alice' }, 'Hello World'],
+    ['empty input as empty string', '', { name: 'Alice' }, ''],
+  ])('should replace %s', (_label, template, values, expected) => {
+    expect(substituteTemplateVariables(template, values)).toBe(expected);
   });
 
   it('should return empty string for null-ish input', () => {

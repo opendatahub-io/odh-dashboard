@@ -4,7 +4,7 @@ const TEMPLATE_VARIABLE_REGEX = /\{\{\s*([a-zA-Z_]\w*)\s*\}\}/g;
  * Extracts unique variable names from {{variable}} placeholders in a template string.
  * Handles deduplication, optional whitespace inside braces, and ignores malformed patterns.
  */
-export const extractTemplateVariables = (template: string): string[] => {
+export function extractTemplateVariables(template: string): string[] {
   if (!template) {
     return [];
   }
@@ -17,17 +17,17 @@ export const extractTemplateVariables = (template: string): string[] => {
   }
 
   return Array.from(seen);
-};
+}
 
 /**
  * Replaces all {{variable}} placeholders in a template with the supplied values.
  * Variables without a supplied value are replaced with an empty string.
  * Returns the original string unchanged when template has no placeholders.
  */
-export const substituteTemplateVariables = (
+export function substituteTemplateVariables(
   template: string,
   values: Record<string, string>,
-): string => {
+): string {
   if (!template) {
     return template || '';
   }
@@ -35,4 +35,4 @@ export const substituteTemplateVariables = (
   return template.replace(TEMPLATE_VARIABLE_REGEX, (_match, name: string) =>
     name in values ? values[name] : '',
   );
-};
+}

@@ -8,11 +8,11 @@ interface PromptVariableInputPanelProps {
   onVariableValuesChange: (values: Record<string, string>) => void;
 }
 
-const PromptVariableInputPanel: React.FC<PromptVariableInputPanelProps> = ({
+export default function PromptVariableInputPanel({
   systemInstruction,
   variableValues,
   onVariableValuesChange,
-}) => {
+}: PromptVariableInputPanelProps): React.ReactNode {
   const variables = React.useMemo(
     () => extractTemplateVariables(systemInstruction),
     [systemInstruction],
@@ -22,9 +22,9 @@ const PromptVariableInputPanel: React.FC<PromptVariableInputPanelProps> = ({
     return null;
   }
 
-  const handleValueChange = (variableName: string, value: string) => {
+  function handleValueChange(variableName: string, value: string) {
     onVariableValuesChange({ ...variableValues, [variableName]: value });
-  };
+  }
 
   return (
     <Stack hasGutter data-testid="prompt-variable-input-panel">
@@ -52,6 +52,4 @@ const PromptVariableInputPanel: React.FC<PromptVariableInputPanelProps> = ({
       ))}
     </Stack>
   );
-};
-
-export default PromptVariableInputPanel;
+}
