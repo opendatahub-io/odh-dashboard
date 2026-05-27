@@ -7,7 +7,7 @@
     "./extension-points": "./frontend/src/odh/extension-points/index.ts"
   },
   "module-federation": {
-    "name": "core",
+    "name": "coreBff",
     "remoteEntry": "/remoteEntry.js",
     "authorize": true,
     "tls": false,

@@ -69,6 +69,8 @@ type BFFClientConfig struct {
 
 // NewDefaultBFFClientConfig creates a default BFF client configuration
 // with all known BFF targets configured for the standard single-pod deployment
+//
+//nolint:gosec // G101: AuthTokenHeader values are config defaults, not credentials
 func NewDefaultBFFClientConfig() *BFFClientConfig {
 	return &BFFClientConfig{
 		MockBFFClients: false,

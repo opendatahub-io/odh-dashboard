@@ -17,7 +17,7 @@ const (
 
 	// DefaultAuthTokenHeader is the header the RHOAI OAuth proxy uses to forward
 	// the user's access token to sidecar BFFs.
-	DefaultAuthTokenHeader = "x-forwarded-access-token"
+	DefaultAuthTokenHeader = "x-forwarded-access-token" //nolint:gosec // G101: not a credential, config default for header name
 
 	// DefaultAuthTokenPrefix is empty because x-forwarded-access-token carries
 	// the raw token with no scheme prefix.
@@ -26,7 +26,7 @@ const (
 	// DefaultDisabledAuthToken is injected as a placeholder when auth is disabled.
 	// It must match the first entry in k8mocks.DefaultTestUsers so that mock-mode
 	// handlers can resolve a valid test identity.
-	DefaultDisabledAuthToken = "FAKE_CLUSTER_ADMIN_TOKEN"
+	DefaultDisabledAuthToken = "FAKE_CLUSTER_ADMIN_TOKEN" //nolint:gosec // G101: test-only placeholder, not a real credential
 )
 
 // DeploymentMode represents the deployment mode enum

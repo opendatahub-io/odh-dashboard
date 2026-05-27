@@ -57,7 +57,7 @@ func NewHTTPBFFClientWithHeaders(baseURL string, target BFFTarget, authToken str
 func NewHTTPBFFClientWithConfig(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, authTokenHeader string, authTokenPrefix string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
 	tlsConfig := &tls.Config{
 		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: insecureSkipVerify,
+		InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // G402: controlled by CLI flag, dev-only
 	}
 	if rootCAs != nil {
 		tlsConfig.RootCAs = rootCAs

@@ -18,7 +18,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 	tmpDir := t.TempDir()
 	indexHTML := filepath.Join(tmpDir, "index.html")
-	err := os.WriteFile(indexHTML, []byte("<html><body>test</body></html>"), 0644)
+	err := os.WriteFile(indexHTML, []byte("<html><body>test</body></html>"), 0600)
 	require.NoError(t, err)
 
 	app := newTestApp(func(a *App) {

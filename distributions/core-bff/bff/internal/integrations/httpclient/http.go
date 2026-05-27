@@ -47,7 +47,7 @@ func (e *HTTPError) Error() string {
 func NewHTTPClient(logger *slog.Logger, RequestID string, baseURL string, headers http.Header, insecureSkipVerify bool) (HTTPClientInterface, error) {
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec // G402: controlled by CLI flag, dev-only
 		}},
 		baseURL:   baseURL,
 		RequestID: RequestID,

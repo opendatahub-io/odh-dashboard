@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
+//nolint:gosec // G101: test-only fake tokens, not real credentials
 var DefaultTestUsers = []TestUser{
 	{
 		UserName: "user@example.com",

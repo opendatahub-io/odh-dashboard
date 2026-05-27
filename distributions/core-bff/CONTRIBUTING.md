@@ -1,5 +1,5 @@
 [frontend requirements]: ./frontend/docs/dev-setup.md#requirements
-[BFF requirements]: ./bff/README.md#pre-requisites
+[BFF requirements]: ./bff/README.md#dependencies
 [frontend dev setup]: ./frontend/docs/dev-setup.md#development
 [BFF dev setup]: ./bff/README.md#development
 [issue]: https://github.com/opendatahub-io/odh-dashboard/issues/new/choose
