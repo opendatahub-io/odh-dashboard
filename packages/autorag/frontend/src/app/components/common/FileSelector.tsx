@@ -11,7 +11,15 @@ import {
   TextInputGroupUtilities,
 } from '@patternfly/react-core';
 import { FileIcon, TimesIcon } from '@patternfly/react-icons';
-import React, { useState } from 'react';
+import type { DropEvent, DropzoneOptions, FileRejection } from 'react-dropzone';
+import React, { useCallback, useMemo, useState } from 'react';
+import { resolveSingleFileDropOutcome } from '~/app/utilities/dropzoneFileUpload';
+
+/** Dropzone config for FileSelector — use `onDropRejected` on FileSelector, not here. */
+export type FileSelectorDropzoneProps = Omit<
+  Partial<DropzoneOptions>,
+  'onDrop' | 'onDropAccepted' | 'onDropRejected'
+>;
 
 interface FileSelectorProps {
   id: string;
@@ -24,16 +32,63 @@ interface FileSelectorProps {
     setStatus: (status: 'success' | 'danger') => void,
   ) => void;
   onClear: () => void;
-  fileUploadProps?: Omit<FileUploadProps, 'id'>;
+  onDropRejected?: (fileRejections: FileRejection[], event: DropEvent) => void;
+  fileUploadProps?: Omit<FileUploadProps, 'id' | 'dropzoneProps'> & {
+    dropzoneProps?: FileSelectorDropzoneProps;
+  };
   fileUploadHelperText?: string;
 }
 
 function FileSelector(props: FileSelectorProps): React.JSX.Element {
+  const {
+    fileUploadProps,
+    onDropRejected,
+    onUpload,
+    onClear,
+    isDisabled,
+    selected,
+    placeholder,
+    fileUploadHelperText,
+    id,
+  } = props;
+
   const [uploadedFile, setUploadedFile] = useState<File>();
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<'success' | 'danger'>();
 
-  const hideUpload = !!props.selected;
+  const dropzoneConfig = fileUploadProps?.dropzoneProps;
+
+  const startUpload = useCallback(
+    (file: File) => {
+      setUploadedFile(file);
+      setUploadProgress(0);
+      setUploadStatus(undefined);
+      void onUpload(file, setUploadProgress, setUploadStatus);
+    },
+    [onUpload],
+  );
+
+  const dropzoneProps = useMemo(() => {
+    const onSingleFileDrop: (
+      acceptedFiles: File[],
+      fileRejections: FileRejection[],
+      event: DropEvent,
+    ) => void = (acceptedFiles, fileRejections, event) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        onDropRejected?.(outcome.fileRejections, event);
+      } else if (outcome.kind === 'upload') {
+        startUpload(outcome.file);
+      }
+    };
+
+    return {
+      ...dropzoneConfig,
+      onDrop: onSingleFileDrop,
+    };
+  }, [dropzoneConfig, onDropRejected, startUpload]);
+
+  const hideUpload = !!selected;
 
   return (
     <div className="pf-v6-c-multiple-file-upload pf-v6-u-display-block">
@@ -41,17 +96,17 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
         <TextInputGroupMain
           inputProps={{ readOnly: true }}
           icon={<FileIcon />}
-          placeholder={props.placeholder ?? 'No file selected'}
-          value={props.selected}
+          placeholder={placeholder ?? 'No file selected'}
+          value={selected}
         />
-        {!!props.selected && (
+        {!!selected && (
           <TextInputGroupUtilities>
             <Button
               aria-label="Clear file"
               variant="plain"
               icon={<TimesIcon />}
-              isDisabled={props.isDisabled}
-              onClick={props.onClear}
+              isDisabled={isDisabled}
+              onClick={onClear}
             />
           </TextInputGroupUtilities>
         )}
@@ -59,8 +114,8 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
       <FileUpload
         className="pf-v6-u-mt-sm"
         onClearClick={() => setUploadedFile(undefined)}
-        {...props.fileUploadProps}
-        id={props.id}
+        {...fileUploadProps}
+        id={id}
         style={{
           maxHeight: hideUpload ? '0' : '6rem',
           padding: hideUpload ? '0' : undefined,
@@ -86,22 +141,9 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
           }
         }}
         hidden={hideUpload}
-        isDisabled={props.isDisabled || (!!uploadedFile && !uploadStatus)}
+        isDisabled={isDisabled || (!!uploadedFile && !uploadStatus)}
         filename={uploadedFile?.name}
-        dropzoneProps={{
-          ...props.fileUploadProps?.dropzoneProps,
-          onDropAccepted: (files) => {
-            if (files.length === 0) {
-              return;
-            }
-
-            const [file] = files;
-            setUploadedFile(file);
-            setUploadProgress(0);
-            setUploadStatus(undefined);
-            void props.onUpload(file, setUploadProgress, setUploadStatus);
-          },
-        }}
+        dropzoneProps={dropzoneProps}
       >
         {uploadedFile ? (
           <FileUploadHelperText>
@@ -114,7 +156,7 @@ function FileSelector(props: FileSelectorProps): React.JSX.Element {
           </FileUploadHelperText>
         ) : (
           <FileUploadHelperText>
-            <HelperText>{props.fileUploadHelperText}</HelperText>
+            <HelperText>{fileUploadHelperText}</HelperText>
           </FileUploadHelperText>
         )}
       </FileUpload>

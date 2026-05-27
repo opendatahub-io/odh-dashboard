@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test-unit": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/packages/**/extensions.ts", "$TURBO_ROOT$/frontend/src/plugins/extensions/**"]
+    }
+  }
+}
