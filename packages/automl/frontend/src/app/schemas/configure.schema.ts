@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 import * as z from 'zod';
 import {
+  PRESET_AUTOGLUON_VALUES,
+  PRESET_FASTER,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -39,6 +41,7 @@ function createConfigureSchema() {
       train_data_secret_name: z.string().min(1).default(''),
       train_data_bucket_name: z.string().min(1).default(''),
       train_data_file_key: z.string().min(1).default(''),
+      preset: z.string().default(PRESET_FASTER),
       top_n: z.int().min(MIN_TOP_N, `Minimum number of top models is ${MIN_TOP_N}`).default(3),
 
       // Unified target column — transformed to `label_column` or `target` on submit
@@ -156,6 +159,13 @@ function createConfigureSchema() {
           delete data.known_covariates_names;
         }
         delete data.target_column;
+        return data;
+      },
+      // Map UI preset to backend AutoGluon preset string
+      (data) => {
+        if (data.preset) {
+          data.preset = PRESET_AUTOGLUON_VALUES[data.preset][data.task_type];
+        }
         return data;
       },
     ],

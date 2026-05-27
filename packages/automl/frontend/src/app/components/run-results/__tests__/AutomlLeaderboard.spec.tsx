@@ -137,6 +137,7 @@ const createMockParameters = (taskType: string) => {
     train_data_secret_name: 'test-secret',
     train_data_bucket_name: 'test-bucket',
     train_data_file_key: 'test-file.csv',
+    preset: 'medium_quality',
     top_n: 3,
   };
 
