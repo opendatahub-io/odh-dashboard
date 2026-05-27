@@ -827,7 +827,15 @@ class ModelServingSection {
   }
 
   findModelServerDeployedName(name: string) {
-    return this.find().findByTestId('deployed-model-name').contains(name);
+    return this.find().then(($section) => {
+      const $match = $section
+        .find('[data-testid="deployed-model-name"]')
+        .filter((_, el) => Cypress.$(el).text().includes(name));
+      if ($match.length) {
+        return cy.wrap($match.first());
+      }
+      return this.findModelMetricsLink(name);
+    });
   }
 
   findModelMetricsLink(name: string) {
