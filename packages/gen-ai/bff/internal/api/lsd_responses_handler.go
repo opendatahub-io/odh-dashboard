@@ -634,7 +634,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			errorMessage = lsErr.Message
 			errorCode = lsErr.ErrorCode
 			if errorCode == "" {
-				errorCode = strings.ToLower(lsErr.Code)
+				errorCode = lsErr.Code
 			}
 
 			// Determine component and retriability using the default status code for this error code
