@@ -1,5 +1,28 @@
-import { formatApiKeyError, getSourceLabelColor } from '~/app/pages/api-keys/utils';
+import {
+  formatApiKeyError,
+  getSourceLabelColor,
+  buildModelRefSummaries,
+} from '~/app/pages/api-keys/utils';
 import { deriveModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
+import {
+  MaaSModelRefSummary,
+  MaaSSubscription,
+  SubscriptionInfoResponse,
+} from '~/app/types/subscriptions';
+
+const createSubscriptionInfo = (
+  subscriptionModelRefs: MaaSSubscription['modelRefs'],
+  modelRefs: MaaSModelRefSummary[],
+): SubscriptionInfoResponse => ({
+  subscription: {
+    name: 'premium-team-sub',
+    namespace: 'maas-system',
+    owner: { groups: [] },
+    modelRefs: subscriptionModelRefs,
+  },
+  modelRefs,
+  authPolicies: [],
+});
 
 describe('formatApiKeyError', () => {
   describe('max expiration errors', () => {
@@ -136,5 +159,91 @@ describe('deriveModelGroups', () => {
 
   it('should return an empty array when given no subscriptions', () => {
     expect(deriveModelGroups([])).toEqual([]);
+  });
+  describe('buildModelRefSummaries', () => {
+    const graniteSummary: MaaSModelRefSummary = {
+      name: 'granite-3-8b-instruct',
+      namespace: 'maas-models',
+      displayName: 'Granite 3 8B Instruct',
+      modelRef: { kind: 'LLMInferenceService', name: 'granite-3-8b-instruct' },
+      phase: 'Ready',
+      endpoint: 'https://granite.example.com',
+    };
+
+    const flanSummary: MaaSModelRefSummary = {
+      name: 'flan-t5-small',
+      namespace: 'maas-models',
+      displayName: 'Flan T5 Small',
+      modelRef: { kind: 'LLMInferenceService', name: 'flan-t5-small' },
+    };
+
+    it('should return summaries matched by name and namespace for each subscription model ref', () => {
+      const info = createSubscriptionInfo(
+        [
+          { name: 'granite-3-8b-instruct', namespace: 'maas-models', tokenRateLimits: [] },
+          { name: 'flan-t5-small', namespace: 'maas-models', tokenRateLimits: [] },
+        ],
+        [graniteSummary, flanSummary],
+      );
+
+      expect(buildModelRefSummaries(info)).toEqual([graniteSummary, flanSummary]);
+    });
+
+    it('should preserve subscription model ref order', () => {
+      const info = createSubscriptionInfo(
+        [
+          { name: 'flan-t5-small', namespace: 'maas-models', tokenRateLimits: [] },
+          { name: 'granite-3-8b-instruct', namespace: 'maas-models', tokenRateLimits: [] },
+        ],
+        [graniteSummary, flanSummary],
+      );
+
+      expect(buildModelRefSummaries(info)).toEqual([flanSummary, graniteSummary]);
+    });
+
+    it('should return a minimal summary when no matching model ref summary exists', () => {
+      const info = createSubscriptionInfo(
+        [{ name: 'orphan-model', namespace: 'maas-models', tokenRateLimits: [] }],
+        [graniteSummary],
+      );
+
+      expect(buildModelRefSummaries(info)).toEqual([
+        {
+          name: 'orphan-model',
+          namespace: 'maas-models',
+          modelRef: { kind: '', name: '' },
+        },
+      ]);
+    });
+
+    it('should not match summaries when only the name or namespace matches', () => {
+      const info = createSubscriptionInfo(
+        [{ name: 'granite-3-8b-instruct', namespace: 'other-namespace', tokenRateLimits: [] }],
+        [graniteSummary],
+      );
+
+      expect(buildModelRefSummaries(info)).toEqual([
+        {
+          name: 'granite-3-8b-instruct',
+          namespace: 'other-namespace',
+          modelRef: { kind: '', name: '' },
+        },
+      ]);
+    });
+
+    it('should return an empty array when the subscription has no model refs', () => {
+      const info = createSubscriptionInfo([], [graniteSummary]);
+
+      expect(buildModelRefSummaries(info)).toEqual([]);
+    });
+
+    it('should ignore summaries that are not listed on the subscription', () => {
+      const info = createSubscriptionInfo(
+        [{ name: 'granite-3-8b-instruct', namespace: 'maas-models', tokenRateLimits: [] }],
+        [graniteSummary, flanSummary],
+      );
+
+      expect(buildModelRefSummaries(info)).toEqual([graniteSummary]);
+    });
   });
 });

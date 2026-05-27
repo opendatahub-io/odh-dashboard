@@ -14,31 +14,11 @@ import {
   TabTitleText,
 } from '@patternfly/react-core';
 import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
-import { MaaSModelRefSummary, SubscriptionInfoResponse } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
+import { buildModelRefSummaries } from '~/app/pages/api-keys/utils';
 import MySubscriptionDetails from './mySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
-
-const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
-  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
-    ? info.subscription.modelRefs
-    : [];
-  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
-
-  return subscriptionRefs.map((ref) => {
-    const summary = modelRefSummaries.find(
-      (s) => s.name === ref.name && s.namespace === ref.namespace,
-    );
-    return (
-      summary ?? {
-        name: ref.name,
-        namespace: ref.namespace,
-        modelRef: { kind: '', name: '' },
-      }
-    );
-  });
-};
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
@@ -47,7 +27,7 @@ const ViewSubscriptionPage: React.FC = () => {
     useGetSubscriptionInfo(subscriptionName);
   const displaySubscriptionName =
     subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
-  const modelRefsCount = subscriptionInfo ? viewModelRefSummaries(subscriptionInfo).length : 0;
+  const modelRefsCount = subscriptionInfo ? buildModelRefSummaries(subscriptionInfo).length : 0;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -71,7 +51,6 @@ const ViewSubscriptionPage: React.FC = () => {
       loaded={subscriptionLoaded}
       loadError={subscriptionLoadError}
       errorMessage="Unable to load subscription details."
-      provideChildrenPadding
     >
       {subscriptionLoaded && subscriptionInfo && (
         <Tabs
@@ -99,7 +78,7 @@ const ViewSubscriptionPage: React.FC = () => {
                   <Card>
                     <CardBody>
                       <MaasModelsSection
-                        modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
+                        modelRefSummaries={buildModelRefSummaries(subscriptionInfo)}
                         modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
                         resourceType="subscription"
                         title={`Models ${modelRefsCount > 0 ? `(${modelRefsCount})` : ''}`}

@@ -22,7 +22,7 @@ const MySubscriptionDetails: React.FC<MySubscriptionDetailsProps> = ({ subscript
       </Title>
     </StackItem>
     <StackItem>
-      <DescriptionList columnModifier={{ default: '2Col' }}>
+      <DescriptionList columnModifier={{ default: '1Col' }} isHorizontal>
         <DescriptionListGroup>
           <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>

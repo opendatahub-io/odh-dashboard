@@ -103,6 +103,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   initialSubscription = '',
   lockSubscription = false,
 }) => {
+  const canLockSubscription = lockSubscription && Boolean(initialSubscription);
   const [subscriptions, subscriptionsLoaded, subscriptionsError] = useUserSubscriptions();
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
@@ -394,7 +395,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       setFormData({ ...formData, subscription: String(value) })
                     }
                     isDisabled={
-                      lockSubscription || !subscriptionsLoaded || subscriptions.length === 0
+                      canLockSubscription || !subscriptionsLoaded || subscriptions.length === 0
                     }
                     placeholder="Select a subscription"
                     dataTestId="api-key-subscription-toggle"

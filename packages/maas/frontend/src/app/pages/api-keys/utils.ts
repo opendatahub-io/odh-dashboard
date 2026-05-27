@@ -1,3 +1,8 @@
+import {
+  MaaSModelRefSummary,
+  SubscriptionInfoResponse,
+} from '@odh-dashboard/maas/types/subscriptions';
+
 export enum ModelSource {
   Internal = 'Internal',
   External = 'External',
@@ -26,3 +31,23 @@ export const formatApiKeyError = (message: string): string => {
 
 export const getSourceLabelColor = (source: string): 'blue' | 'purple' =>
   source.toLowerCase() === ModelSource.Internal.toLowerCase() ? 'blue' : 'purple';
+
+export const buildModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] => {
+  const subscriptionRefs = Array.isArray(info.subscription.modelRefs)
+    ? info.subscription.modelRefs
+    : [];
+  const modelRefSummaries = Array.isArray(info.modelRefs) ? info.modelRefs : [];
+
+  return subscriptionRefs.map((ref) => {
+    const summary = modelRefSummaries.find(
+      (s) => s.name === ref.name && s.namespace === ref.namespace,
+    );
+    return (
+      summary ?? {
+        name: ref.name,
+        namespace: ref.namespace,
+        modelRef: { kind: '', name: '' },
+      }
+    );
+  });
+};
