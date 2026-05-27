@@ -94,7 +94,7 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     }, 1000);
   }, [namespace, refresh, stopPollingDeleteStatus]);
 
-  const renderFooterContent = () => {
+  const renderActionButtons = () => {
     if (!accessReviewLoaded) {
       return <Skeleton data-testid="nim-permissions-loading" height="35px" width="250px" />;
     }
@@ -117,11 +117,9 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
           enableButton
         );
       }
-      case NIMAccountStatus.PENDING:
       case NIMAccountStatus.ERROR:
-      case NIMAccountStatus.READY: {
-        const actionButtons = (status === NIMAccountStatus.ERROR ||
-          status === NIMAccountStatus.READY) && (
+      case NIMAccountStatus.READY:
+        return (
           <Flex>
             <FlexItem>
               <Tooltip
@@ -161,22 +159,32 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             </FlexItem>
           </Flex>
         );
+      default:
+        return null;
+    }
+  };
 
-        if (status === NIMAccountStatus.READY) {
-          return (
-            <Stack hasGutter>
-              <StackItem>
-                <HelperText>
-                  <HelperTextItem icon={<CheckCircleIcon />} variant="success">
-                    Your personal API key has been saved.
-                  </HelperTextItem>
-                </HelperText>
-              </StackItem>
-              <StackItem>{actionButtons}</StackItem>
-            </Stack>
-          );
-        }
+  const renderFooterContent = () => {
+    const actionButtons = renderActionButtons();
 
+    switch (status) {
+      case NIMAccountStatus.NOT_FOUND:
+        return actionButtons;
+      case NIMAccountStatus.READY:
+        return (
+          <Stack hasGutter>
+            <StackItem>
+              <HelperText>
+                <HelperTextItem icon={<CheckCircleIcon />} variant="success">
+                  Your personal API key has been saved.
+                </HelperTextItem>
+              </HelperText>
+            </StackItem>
+            {actionButtons && <StackItem>{actionButtons}</StackItem>}
+          </Stack>
+        );
+      case NIMAccountStatus.PENDING:
+      case NIMAccountStatus.ERROR:
         return (
           <Stack hasGutter>
             {!(isApiKeyModalOpen && status === NIMAccountStatus.PENDING) && (
@@ -187,7 +195,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             {actionButtons && <StackItem>{actionButtons}</StackItem>}
           </Stack>
         );
-      }
       default:
         return null;
     }
