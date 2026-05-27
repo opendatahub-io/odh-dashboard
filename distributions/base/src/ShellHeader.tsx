@@ -23,7 +23,6 @@ import {
   Modal,
   ModalBody,
   ModalHeader,
-  ModalFooter,
 } from '@patternfly/react-core';
 import { MoonIcon, SunIcon, QuestionCircleIcon, UserIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
@@ -104,11 +103,6 @@ const ShellAbout: React.FC = () => {
                 <p>No product information available.</p>
               </Content>
             </ModalBody>
-            <ModalFooter>
-              <Button variant="primary" onClick={() => setIsOpen(false)}>
-                Close
-              </Button>
-            </ModalFooter>
           </Modal>
         )
       ) : null}
