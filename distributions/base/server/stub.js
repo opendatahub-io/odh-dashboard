@@ -17,7 +17,8 @@ const MIME_TYPES = {
 
 const server = http.createServer((req, res) => {
   // BFF stub: /api/status
-  if (req.url === '/api/status') {
+  const reqPath = new URL(req.url || '/', 'http://localhost').pathname;
+  if (reqPath === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -31,8 +32,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Static file serving (production mode)
-  const requestPath = new URL(req.url || '/', 'http://localhost').pathname;
-  const safePath = path.posix.normalize(requestPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  const safePath = path.posix.normalize(reqPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const relativePath = safePath.replace(/^[/\\]+/, '');
   const filePath = path.resolve(PUBLIC_DIR, relativePath || 'index.html');
   if (!filePath.startsWith(PUBLIC_DIR)) {
