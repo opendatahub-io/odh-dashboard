@@ -277,11 +277,13 @@ const StartEvaluationRunPage: React.FC = () => {
       ? { threshold: threshold / 100 }
       : undefined;
 
-    const primaryScoreOverride =
-      primaryMetric && benchmark?.primary_score
-        ? // eslint-disable-next-line camelcase
-          { metric: primaryMetric, lower_is_better: benchmark.primary_score.lower_is_better }
-        : undefined;
+    const primaryScoreOverride = primaryMetric
+      ? {
+          metric: primaryMetric,
+          // eslint-disable-next-line camelcase
+          lower_is_better: benchmark?.primary_score?.lower_is_better ?? false,
+        }
+      : undefined;
 
     const request = buildEvaluationRequest({
       evaluationName,
