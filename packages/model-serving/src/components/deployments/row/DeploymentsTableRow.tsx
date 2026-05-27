@@ -167,7 +167,6 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
-              isDisabledWhileStarting={false}
             />
           ) : (
             '-'
@@ -182,9 +181,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   navigateToDeploymentWizard(deployment.model.metadata.namespace);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
               { isSeparator: true },
               {
@@ -192,9 +188,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   onDelete(deployment);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
             ]}
           />
