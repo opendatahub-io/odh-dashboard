@@ -15,7 +15,7 @@ import type { PromptManagementTestData } from '../../../types';
 describe('Verify Prompt Management page', () => {
   let testData: PromptManagementTestData;
   let projectName: string;
-  let crExisted = true;
+  let crExisted: boolean | undefined;
   const uuid = generateTestUUID();
 
   retryableBefore(() => {
@@ -28,8 +28,12 @@ describe('Verify Prompt Management page', () => {
       .then(() => createOpenShiftProject(projectName))
       .then(() =>
         doesMlflowCRExist().then((v) => {
-          crExisted = v;
-          cy.step(`Pre-test state: CR=${crExisted ? 'exists' : 'absent'}`);
+          if (crExisted === undefined) {
+            crExisted = v;
+            cy.log(`Pre-test state (first run): CR=${crExisted ? 'exists' : 'absent'}`);
+          } else {
+            cy.log(`Retry: skipping crExisted overwrite (current=${crExisted})`);
+          }
         }),
       )
       .then(() => {
@@ -39,7 +43,7 @@ describe('Verify Prompt Management page', () => {
   });
 
   after(() => {
-    disablePromptManagementFeatures(crExisted);
+    disablePromptManagementFeatures(crExisted ?? false);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
   });
 

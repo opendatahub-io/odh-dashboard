@@ -454,15 +454,12 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
  *
  * @param crExisted - If true, the MLflow CR already existed before the test; skip deleting it.
  */
-export const disableMlflowFeatures = (crExisted = true): Cypress.Chainable<undefined> => {
-  const namespace = getApplicationsNamespace();
-
-  return cy.then(() => {
-    if (!crExisted) {
-      cy.step('Delete MLflow CR (was not present before test)');
-      deleteMlflowCR(namespace);
-    }
-  });
+export const disableMlflowFeatures = (crExisted = true): void => {
+  if (!crExisted) {
+    const namespace = getApplicationsNamespace();
+    cy.step('Delete MLflow CR (was not present before test)');
+    deleteMlflowCR(namespace);
+  }
 };
 
 /**
@@ -507,7 +504,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
  *
  * @param crExisted - If true, the MLflow CR already existed before the test.
  */
-export const disablePromptManagementFeatures = (crExisted = true): Cypress.Chainable<undefined> =>
+export const disablePromptManagementFeatures = (crExisted = true): void =>
   disableMlflowFeatures(crExisted);
 
 /**
