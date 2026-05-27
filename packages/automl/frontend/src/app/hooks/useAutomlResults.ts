@@ -277,7 +277,7 @@ export function useAutomlResults(
         );
       }
       return {
-        data: results.filter((r) => !r.isError).map((r) => r.data),
+        data: results.filter((r) => !r.isError && r.data != null).map((r) => r.data!),
         isPending: results.some((r) => r.isPending),
         isError: results.length > 0 && results.every((r) => r.isError),
         failedModels: results
@@ -297,13 +297,12 @@ export function useAutomlResults(
     const results: Record<string, AutomlModel> = Object.create(null);
 
     modelQueries.data.forEach((entry) => {
-      // Skip entries that failed to load or are missing
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- entry can be undefined at runtime from failed queries
-      if (!entry || !entry.name || !entry.model) {
-        if (entry?.name) {
-          // eslint-disable-next-line no-console
-          console.warn(`Skipping model ${entry.name}: failed to load model.json`);
-        }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: queryFn guarantees these but runtime data may diverge
+      if (!entry.name || !entry.model) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Skipping model with incomplete data: ${JSON.stringify({ name: entry.name, hasModel: !!entry.model })}`,
+        );
         return;
       }
 
