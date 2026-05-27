@@ -95,7 +95,10 @@ const StartEvaluationRunPage: React.FC = () => {
           <EmptyStateBody>{loadError.message}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(evaluationsBaseRoute(namespace))}>
+              <Button
+                variant="primary"
+                component={(props) => <Link {...props} to={evaluationsBaseRoute(namespace)} />}
+              >
                 Return to evaluations
               </Button>
             </EmptyStateActions>
