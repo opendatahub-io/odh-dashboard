@@ -70,7 +70,7 @@ class PromptManagement {
   }
 
   findPromptTemplateInput() {
-    return cy.get('[data-component-id="mlflow.prompts.create.content"]');
+    return cy.get('#mlflow\\.prompts\\.create\\.content');
   }
 
   findPromptCommitMessageInput() {
