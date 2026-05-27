@@ -34,12 +34,12 @@ func NewS3Service(cfg S3ServiceConfig, client S3ClientInterface) *S3Service {
 
 // GetObject retrieves an object from S3 and returns a read-closer and content type.
 // The caller is responsible for closing the returned body.
-func (s *S3Service) GetObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (io.ReadCloser, string, error) {
-	s.Logger.Info("getting S3 object", "bucket", bucket, "key", key)
+func (s *S3Service) GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
+	s.Logger.Info("getting S3 object", "bucket", input.Bucket, "key", input.Key)
 
-	body, contentType, err := s.Client.GetObject(ctx, opts, bucket, key)
+	body, contentType, err := s.Client.GetObject(ctx, opts, input)
 	if err != nil {
-		s.Logger.Error("failed to get S3 object", "bucket", bucket, "key", key, "error", err)
+		s.Logger.Error("failed to get S3 object", "bucket", input.Bucket, "key", input.Key, "error", err)
 		return nil, "", err
 	}
 
@@ -48,24 +48,31 @@ func (s *S3Service) GetObject(ctx context.Context, opts S3ConnectionOptions, buc
 
 // UploadObject uploads body to the given bucket and key with the specified content type.
 // Returns ErrObjectAlreadyExists if the key already exists (conditional create enforcement).
-func (s *S3Service) UploadObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string, body io.Reader, contentType string) error {
-	s.Logger.Info("uploading S3 object", "bucket", bucket, "key", key)
+func (s *S3Service) UploadObject(ctx context.Context, opts S3ConnectionOptions, input UploadObjectInput) error {
+	s.Logger.Info("uploading S3 object", "bucket", input.Bucket, "key", input.Key)
 
-	if err := s.Client.UploadObject(ctx, opts, bucket, key, body, contentType); err != nil {
-		s.Logger.Error("failed to upload S3 object", "bucket", bucket, "key", key, "error", err)
+	if err := s.Client.UploadObject(ctx, opts, input); err != nil {
+		s.Logger.Error("failed to upload S3 object", "bucket", input.Bucket, "key", input.Key, "error", err)
 		return err
 	}
 
 	return nil
 }
 
-// ListObjects lists objects in the bucket using the given options for path, search, and pagination.
-func (s *S3Service) ListObjects(ctx context.Context, opts S3ConnectionOptions, bucket string, options ListObjectsOptions) (*S3ListObjectsResponse, error) {
-	s.Logger.Info("listing S3 objects", "bucket", bucket, "path", options.Path, "search", options.Search)
+// ListObjects lists objects using the given query. Path and Search are translated into
+// a raw S3 Prefix before calling the client.
+func (s *S3Service) ListObjects(ctx context.Context, opts S3ConnectionOptions, query ListObjectsQuery) (*S3ListObjectsResponse, error) {
+	s.Logger.Info("listing S3 objects", "bucket", query.Bucket, "path", query.Path, "search", query.Search)
 
-	result, err := s.Client.ListObjects(ctx, opts, bucket, buildListPrefix(options), "/", options.Limit, options.Next)
+	result, err := s.Client.ListObjects(ctx, opts, ListObjectsInput{
+		Bucket:            query.Bucket,
+		Prefix:            buildListPrefix(query),
+		Delimiter:         "/",
+		Limit:             query.Limit,
+		ContinuationToken: query.Next,
+	})
 	if err != nil {
-		s.Logger.Error("failed to list S3 objects", "bucket", bucket, "error", err)
+		s.Logger.Error("failed to list S3 objects", "bucket", query.Bucket, "error", err)
 		return nil, err
 	}
 
@@ -73,38 +80,38 @@ func (s *S3Service) ListObjects(ctx context.Context, opts S3ConnectionOptions, b
 }
 
 // ObjectExists checks whether an object key already exists in the given bucket.
-func (s *S3Service) ObjectExists(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (bool, error) {
-	s.Logger.Info("checking S3 object existence", "bucket", bucket, "key", key)
+func (s *S3Service) ObjectExists(ctx context.Context, opts S3ConnectionOptions, input ObjectExistsInput) (bool, error) {
+	s.Logger.Info("checking S3 object existence", "bucket", input.Bucket, "key", input.Key)
 
-	exists, err := s.Client.ObjectExists(ctx, opts, bucket, key)
+	exists, err := s.Client.ObjectExists(ctx, opts, input)
 	if err != nil {
-		s.Logger.Error("failed to check S3 object existence", "bucket", bucket, "key", key, "error", err)
+		s.Logger.Error("failed to check S3 object existence", "bucket", input.Bucket, "key", input.Key, "error", err)
 		return false, err
 	}
 
 	return exists, nil
 }
 
-// ResolveNonCollidingKey finds an available object key in bucket, starting with key and
-// appending -1, -2, … up to maxAttempts when the key already exists.
+// ResolveNonCollidingKey finds an available object key, starting with input.Key and
+// appending -1, -2, … up to input.MaxAttempts when the key already exists.
 // Returns ErrMaxCollisionsExceeded if all attempts find an occupied key.
-func (s *S3Service) ResolveNonCollidingKey(ctx context.Context, opts S3ConnectionOptions, bucket, key string, maxAttempts int) (string, error) {
-	exists, err := s.Client.ObjectExists(ctx, opts, bucket, key)
+func (s *S3Service) ResolveNonCollidingKey(ctx context.Context, opts S3ConnectionOptions, input ResolveNonCollidingKeyInput) (string, error) {
+	exists, err := s.Client.ObjectExists(ctx, opts, ObjectExistsInput{Bucket: input.Bucket, Key: input.Key})
 	if err != nil {
 		return "", err
 	}
 	if !exists {
-		return key, nil
+		return input.Key, nil
 	}
 
-	dir, name := splitS3ObjectPath(key)
+	dir, name := splitS3ObjectPath(input.Key)
 	stem, ext := splitNameAndExtension(name)
 	base, nextIndex := splitStemAndNextIndex(stem)
 
-	for range maxAttempts {
+	for range input.MaxAttempts {
 		candidate := dir + fmt.Sprintf("%s-%d%s", base, nextIndex, ext)
 
-		exists, err = s.Client.ObjectExists(ctx, opts, bucket, candidate)
+		exists, err = s.Client.ObjectExists(ctx, opts, ObjectExistsInput{Bucket: input.Bucket, Key: candidate})
 		if err != nil {
 			return "", err
 		}
@@ -151,15 +158,15 @@ func splitStemAndNextIndex(stem string) (base string, nextIndex int) {
 	return match[1], n + 1
 }
 
-// buildListPrefix constructs the S3 Prefix parameter from ListObjectsOptions.
+// buildListPrefix constructs the S3 Prefix parameter from a ListObjectsQuery.
 // Path acts as the current virtual folder; Search is appended as a key filter within it.
-func buildListPrefix(options ListObjectsOptions) string {
-	if options.Path == "" {
-		return options.Search
+func buildListPrefix(query ListObjectsQuery) string {
+	if query.Path == "" {
+		return query.Search
 	}
-	path := options.Path
-	if !strings.HasSuffix(path, "/") {
-		path += "/"
+	p := query.Path
+	if !strings.HasSuffix(p, "/") {
+		p += "/"
 	}
-	return path + options.Search
+	return p + query.Search
 }

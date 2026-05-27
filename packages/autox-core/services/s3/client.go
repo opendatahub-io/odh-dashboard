@@ -57,12 +57,12 @@ type S3ClientProviderInterface interface {
 // --- High-level client interface ---
 
 // S3ClientInterface defines the contract for S3 operations.
-// Signatures: ctx, S3ConnectionOptions, bucket, key, then any extra params.
+// Signatures: ctx, S3ConnectionOptions, then an operation-specific Input struct.
 type S3ClientInterface interface {
-	GetObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (io.ReadCloser, string, error)
-	UploadObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string, body io.Reader, contentType string) error
-	ListObjects(ctx context.Context, opts S3ConnectionOptions, bucket, prefix, delimiter string, limit int32, continuationToken string) (*S3ListObjectsResponse, error)
-	ObjectExists(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (bool, error)
+	GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error)
+	UploadObject(ctx context.Context, opts S3ConnectionOptions, input UploadObjectInput) error
+	ListObjects(ctx context.Context, opts S3ConnectionOptions, input ListObjectsInput) (*S3ListObjectsResponse, error)
+	ObjectExists(ctx context.Context, opts S3ConnectionOptions, input ObjectExistsInput) (bool, error)
 }
 
 // --- S3Client ---
@@ -85,15 +85,15 @@ func NewDefaultS3Client(cfg S3ClientConfig) *S3Client {
 	}
 }
 
-func (c *S3Client) GetObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (io.ReadCloser, string, error) {
+func (c *S3Client) GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
 	tm, err := c.Provider.CreateTransferManager(opts)
 	if err != nil {
 		return nil, "", err
 	}
 
 	result, err := tm.GetObject(ctx, &transfermanager.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Bucket: aws.String(input.Bucket),
+		Key:    aws.String(input.Key),
 	})
 	if err != nil {
 		if translated := translateS3Error(err); translated != nil {
@@ -115,17 +115,17 @@ func (c *S3Client) GetObject(ctx context.Context, opts S3ConnectionOptions, buck
 	return body, contentType, nil
 }
 
-func (c *S3Client) UploadObject(ctx context.Context, opts S3ConnectionOptions, bucket, key string, body io.Reader, contentType string) error {
+func (c *S3Client) UploadObject(ctx context.Context, opts S3ConnectionOptions, input UploadObjectInput) error {
 	tm, err := c.Provider.CreateTransferManager(opts)
 	if err != nil {
 		return err
 	}
 
 	_, err = tm.UploadObject(ctx, &transfermanager.UploadObjectInput{
-		Bucket:      aws.String(bucket),
-		Key:         aws.String(key),
-		Body:        body,
-		ContentType: aws.String(contentType),
+		Bucket:      aws.String(input.Bucket),
+		Key:         aws.String(input.Key),
+		Body:        input.Body,
+		ContentType: aws.String(input.ContentType),
 		IfNoneMatch: aws.String("*"),
 	})
 	if err != nil {
@@ -140,23 +140,23 @@ func (c *S3Client) UploadObject(ctx context.Context, opts S3ConnectionOptions, b
 	return nil
 }
 
-func (c *S3Client) ListObjects(ctx context.Context, opts S3ConnectionOptions, bucket, prefix, delimiter string, limit int32, continuationToken string) (*S3ListObjectsResponse, error) {
+func (c *S3Client) ListObjects(ctx context.Context, opts S3ConnectionOptions, input ListObjectsInput) (*S3ListObjectsResponse, error) {
 	sdkClient, err := c.Provider.CreateClient(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	input := &awss3.ListObjectsV2Input{
-		Bucket:    aws.String(bucket),
-		Delimiter: aws.String(delimiter),
-		Prefix:    aws.String(prefix),
-		MaxKeys:   aws.Int32(limit),
+	sdkInput := &awss3.ListObjectsV2Input{
+		Bucket:    aws.String(input.Bucket),
+		Delimiter: aws.String(input.Delimiter),
+		Prefix:    aws.String(input.Prefix),
+		MaxKeys:   aws.Int32(input.Limit),
 	}
-	if continuationToken != "" {
-		input.ContinuationToken = aws.String(continuationToken)
+	if input.ContinuationToken != "" {
+		sdkInput.ContinuationToken = aws.String(input.ContinuationToken)
 	}
 
-	output, err := sdkClient.ListObjectsV2(ctx, input)
+	output, err := sdkClient.ListObjectsV2(ctx, sdkInput)
 	if err != nil {
 		if translated := translateS3Error(err); translated != nil {
 			return nil, translated
@@ -167,15 +167,15 @@ func (c *S3Client) ListObjects(ctx context.Context, opts S3ConnectionOptions, bu
 	return mapListObjectsOutput(output), nil
 }
 
-func (c *S3Client) ObjectExists(ctx context.Context, opts S3ConnectionOptions, bucket, key string) (bool, error) {
+func (c *S3Client) ObjectExists(ctx context.Context, opts S3ConnectionOptions, input ObjectExistsInput) (bool, error) {
 	sdkClient, err := c.Provider.CreateClient(opts)
 	if err != nil {
 		return false, err
 	}
 
 	_, err = sdkClient.HeadObject(ctx, &awss3.HeadObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Bucket: aws.String(input.Bucket),
+		Key:    aws.String(input.Key),
 	})
 	if err == nil {
 		return true, nil

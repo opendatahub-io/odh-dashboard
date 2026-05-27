@@ -1,5 +1,7 @@
 package s3
 
+import "io"
+
 // S3ObjectInfo represents a single S3 object in the listing response.
 type S3ObjectInfo struct {
 	Key          string `json:"key"`
@@ -29,10 +31,61 @@ type S3ListObjectsResponse struct {
 	Prefix                string           `json:"prefix,omitempty"`
 }
 
-// ListObjectsOptions contains parameters for listing S3 objects.
+// ListObjectsOptions contains the listing parameters used at the repository boundary,
+// where the bucket has not yet been resolved from credentials.
 type ListObjectsOptions struct {
 	Path   string // Virtual prefix / "folder" to list within
 	Search string // Substring filter appended to the prefix
 	Next   string // Continuation token for pagination
 	Limit  int32  // Maximum number of keys per page
+}
+
+// --- Operation input types ---
+
+// GetObjectInput holds the parameters for a GetObject operation.
+type GetObjectInput struct {
+	Bucket string
+	Key    string
+}
+
+// UploadObjectInput holds the parameters for an UploadObject operation.
+type UploadObjectInput struct {
+	Bucket      string
+	Key         string
+	Body        io.Reader
+	ContentType string
+}
+
+// ObjectExistsInput holds the parameters for an ObjectExists operation.
+type ObjectExistsInput struct {
+	Bucket string
+	Key    string
+}
+
+// ListObjectsQuery holds the service-level parameters for a ListObjects operation.
+// Path and Search are business-level browsing concepts; S3Service translates them
+// into a raw S3 Prefix before calling S3Client.
+type ListObjectsQuery struct {
+	Bucket string
+	Path   string // virtual prefix / "folder" to list within
+	Search string // substring filter appended to the prefix
+	Next   string // continuation token for pagination
+	Limit  int32  // maximum number of keys per page
+}
+
+// ListObjectsInput holds the raw S3 protocol parameters for a ListObjects operation.
+// Used by S3ClientInterface; callers of S3Service should use ListObjectsQuery instead.
+type ListObjectsInput struct {
+	Bucket            string
+	Prefix            string
+	Delimiter         string
+	Limit             int32
+	ContinuationToken string
+}
+
+// ResolveNonCollidingKeyInput holds the parameters for a ResolveNonCollidingKey operation.
+type ResolveNonCollidingKeyInput struct {
+	Bucket      string
+	Key         string
+	MaxAttempts int
 }

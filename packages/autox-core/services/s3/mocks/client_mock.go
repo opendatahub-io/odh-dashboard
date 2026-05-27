@@ -32,28 +32,29 @@ var mockStaticListingKeys = []string{
 	"configs/pipeline.yaml",
 }
 
-func (m *MockS3Client) GetObject(_ context.Context, _ s3svc.S3ConnectionOptions, _, key string) (io.ReadCloser, string, error) {
-	if strings.Contains(key, "non-existent") {
+func (m *MockS3Client) GetObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.GetObjectInput) (io.ReadCloser, string, error) {
+	if strings.Contains(input.Key, "non-existent") {
 		return nil, "", &awss3types.NoSuchKey{}
 	}
-	if strings.HasSuffix(key, ".pdf") {
+	if strings.HasSuffix(input.Key, ".pdf") {
 		content := []byte("%PDF-1.4\n%Mock PDF file for testing\n%%EOF")
 		return io.NopCloser(bytes.NewReader(content)), "application/pdf", nil
 	}
-	content := []byte(fmt.Sprintf("[mock] contents of s3 object at key: %s", key))
+	content := []byte(fmt.Sprintf("[mock] contents of s3 object at key: %s", input.Key))
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
 }
 
-func (m *MockS3Client) UploadObject(_ context.Context, _ s3svc.S3ConnectionOptions, _, key string, body io.Reader, _ string) error {
-	if slices.Contains(mockStaticListingKeys, key) {
+func (m *MockS3Client) UploadObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.UploadObjectInput) error {
+	if slices.Contains(mockStaticListingKeys, input.Key) {
 		return s3svc.ErrObjectAlreadyExists
 	}
 	// Drain the body to simulate upload (catches MaxBytesError from limited readers).
-	_, err := io.Copy(io.Discard, body)
+	_, err := io.Copy(io.Discard, input.Body)
 	return err
 }
 
-func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOptions, bucket, prefix, _ string, limit int32, _ string) (*s3svc.S3ListObjectsResponse, error) {
+func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.ListObjectsInput) (*s3svc.S3ListObjectsResponse, error) {
+	bucket, prefix, limit := input.Bucket, input.Prefix, input.Limit
 	allObjects := []s3svc.S3ObjectInfo{
 		{Key: "datasets/train.csv", Size: 204800, ETag: "abc1", StorageClass: "STANDARD", LastModified: "2024-01-15T10:00:00Z"},
 		{Key: "datasets/test.csv", Size: 51200, ETag: "abc2", StorageClass: "STANDARD", LastModified: "2024-01-15T10:01:00Z"},
@@ -92,8 +93,8 @@ func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOption
 	}, nil
 }
 
-func (m *MockS3Client) ObjectExists(_ context.Context, _ s3svc.S3ConnectionOptions, _, key string) (bool, error) {
-	return slices.Contains(mockStaticListingKeys, key), nil
+func (m *MockS3Client) ObjectExists(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.ObjectExistsInput) (bool, error) {
+	return slices.Contains(mockStaticListingKeys, input.Key), nil
 }
 
 // Compile-time check.
