@@ -50,6 +50,8 @@ export const getMlflowExperimentId = (run: PipelineRunKF): string | undefined =>
   return undefined;
 };
 
+// root_run_id is only populated in plugins_output after the backend creates the MLflow run.
+// Unlike experiment_id, there is no plugins_input equivalent to fall back to.
 export const getMlflowRunId = (run: PipelineRunKF): string | undefined => {
   const outputEntry = run.plugins_output?.mlflow?.entries;
   const outputId = outputEntry?.root_run_id?.value;
