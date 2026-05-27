@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
@@ -89,11 +90,17 @@ func resolveImageParams() map[string]string {
 }
 
 func writeParamsEnv(manifestPath string, params map[string]string) error {
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	var sb strings.Builder
-	for k, v := range params {
+	for _, k := range keys {
 		sb.WriteString(k)
 		sb.WriteString("=")
-		sb.WriteString(v)
+		sb.WriteString(params[k])
 		sb.WriteString("\n")
 	}
 	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0644)

@@ -15,6 +15,13 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.managementState
+      name: Management
+      priority: 1
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -24,6 +31,9 @@ spec:
     - jsonPath: .status.url
       name: URL
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -47,12 +57,35 @@ spec:
           metadata:
             type: object
           spec:
-            description: DashboardSpec defines the desired state of Dashboard.
+            description: DashboardSpec defines the desired state of the Dashboard
+              module.
             properties:
-              gateway:
+              components:
+                additionalProperties:
+                  description: |-
+                    ComponentAvailability represents a DSC component's availability state
+                    as projected by the orchestrator.
+                  properties:
+                    managementState:
+                      default: Removed
+                      description: |-
+                        ManagementState is the DSC component's management state.
+                        "Managed" or "Unmanaged" means the component is available;
+                        "Removed" means it is not.
+                      enum:
+                      - Managed
+                      - Unmanaged
+                      - Removed
+                      type: string
+                  required:
+                  - managementState
+                  type: object
                 description: |-
-                  GatewaySpec defines gateway configuration for the dashboard.
-                  This is defined locally because it is not yet part of odh-platform-utilities.
+                  Components is a snapshot of DSC component availability, projected by
+                  the ODH Operator onto this CR.
+                type: object
+              gateway:
+                description: Gateway configures the ingress point for the dashboard.
                 properties:
                   domain:
                     maxLength: 253
@@ -61,9 +94,67 @@ spec:
                 required:
                 - domain
                 type: object
+              managementState:
+                default: Managed
+                description: |-
+                  ManagementState controls whether the operator actively manages the
+                  component (Managed) or removes it (Removed).
+                enum:
+                - Managed
+                - Removed
+                type: string
+              modules:
+                additionalProperties:
+                  description: |-
+                    ModuleOverride allows the orchestrator or admin to override the
+                    automatic dependency-based module enablement decision.
+                  properties:
+                    state:
+                      description: |-
+                        State overrides automatic module enablement.
+                        If empty or omitted, the controller uses dependency resolution.
+                      enum:
+                      - Enabled
+                      - Disabled
+                      type: string
+                  type: object
+                description: |-
+                  Modules contains per-module override configuration. Map keys are
+                  module names as defined in the controller's internal module registry.
+                type: object
+              observability:
+                description: Observability configures the observability stack integration.
+                properties:
+                  enabled:
+                    default: false
+                    description: Enabled controls whether the Perses proxy module
+                      is deployed.
+                    type: boolean
+                  persesService:
+                    description: |-
+                      PersesService identifies the target Perses service to proxy to.
+                      Required when Enabled is true.
+                    properties:
+                      name:
+                        minLength: 1
+                        type: string
+                      namespace:
+                        minLength: 1
+                        type: string
+                      port:
+                        default: 8080
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                type: object
             type: object
           status:
-            description: DashboardStatus defines the observed state of Dashboard.
+            description: DashboardStatus defines the observed state of the Dashboard.
             properties:
               conditions:
                 description: Conditions is the set of condition observations for this
@@ -119,6 +210,34 @@ spec:
                   type: object
                 type: array
                 x-kubernetes-list-type: atomic
+              moduleStatuses:
+                additionalProperties:
+                  description: ModuleStatus reports the current state of a single
+                    module.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    phase:
+                      description: ModulePhase represents the deployment lifecycle
+                        of an individual module.
+                      enum:
+                      - Deployed
+                      - NotDeployed
+                      - Degraded
+                      - Disabled
+                      type: string
+                    reason:
+                      description: Reason is a one-word CamelCase explanation for
+                        the current phase.
+                      type: string
+                  required:
+                  - phase
+                  type: object
+                description: ModuleStatuses reports the deployment state of each module.
+                type: object
               observedGeneration:
                 description: |-
                   ObservedGeneration is the most recent .metadata.generation observed
@@ -154,12 +273,16 @@ spec:
                 - name
                 x-kubernetes-list-type: map
               url:
+                description: URL is the externally-reachable dashboard URL.
                 type: string
             type: object
         type: object
         x-kubernetes-validations:
         - message: Dashboard name must be default-dashboard
           rule: self.metadata.name == 'default-dashboard'
+        - message: persesService must be specified when observability is enabled
+          rule: '!has(self.spec.observability) || !self.spec.observability.enabled
+            || has(self.spec.observability.persesService)'
     served: true
     storage: true
     subresources:
