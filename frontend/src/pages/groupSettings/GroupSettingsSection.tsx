@@ -24,8 +24,10 @@ import { SortableData, Table } from '#~/components/table';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import { formatDateForLocalTooltip, relativeTime } from '#~/utilities/time';
+import { ODH_PRODUCT_NAME } from '#~/utilities/const';
 import RoleBindingPermissionsNameInput from '#~/concepts/roleBinding/RoleBindingPermissionsNameInput';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
+import ContentModal from '#~/components/modals/ContentModal';
 
 type GroupRow = {
   name: string;
@@ -55,35 +57,36 @@ const columns: SortableData<GroupRow>[] = [
 ];
 
 type GroupSettingsSectionProps = {
-  title: string;
-  description: string;
-  infoMessage?: string;
+  roleLabel: 'administrator' | 'user';
   enabledGroupNames: string[];
   availableGroups: GroupKind[];
   onAdd: (name: string) => Promise<void>;
   onRemove: (name: string) => Promise<void>;
   isLoading: boolean;
-  addButtonLabel: string;
-  placeholderText: string;
   testId?: string;
 };
 
 const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
-  title,
-  description,
-  infoMessage,
+  roleLabel,
   enabledGroupNames,
   availableGroups,
   onAdd,
   onRemove,
   isLoading,
-  addButtonLabel,
-  placeholderText,
   testId,
 }) => {
+  const title = `${ODH_PRODUCT_NAME} ${roleLabel} groups`;
+  const description = `These groups contain all ${ODH_PRODUCT_NAME} ${roleLabel}s.`;
+  const infoMessage =
+    roleLabel === 'administrator'
+      ? `All cluster admins are automatically assigned as ${ODH_PRODUCT_NAME} administrators.`
+      : undefined;
   const [isAdding, setIsAdding] = React.useState(false);
   const [newGroupName, setNewGroupName] = React.useState('');
   const [isSaving, setIsSaving] = React.useState(false);
+  const [groupToRemove, setGroupToRemove] = React.useState<string | undefined>();
+  const [isRemoving, setIsRemoving] = React.useState(false);
+  const [removeError, setRemoveError] = React.useState<Error | undefined>();
   const [error, setError] = React.useState<string | undefined>();
 
   const rows: GroupRow[] = enabledGroupNames.map((name) => ({
@@ -101,6 +104,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
     if (!newGroupName || isDuplicate) {
       return;
     }
+    setError(undefined);
     setIsSaving(true);
     try {
       await onAdd(newGroupName);
@@ -168,7 +172,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                         value={newGroupName}
                         onChange={(val) => setNewGroupName(val)}
                         onClear={() => setNewGroupName('')}
-                        placeholderText={placeholderText}
+                        placeholderText={`Select or type ${roleLabel} group name`}
                         typeAhead={typeAheadOptions}
                       />
                       {isDuplicate && (
@@ -189,7 +193,7 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                           aria-label="Save group"
                           variant="link"
                           icon={<CheckIcon />}
-                          isDisabled={isSaving || !newGroupName || isDuplicate}
+                          isDisabled={isSaving || isRemoving || !newGroupName || isDuplicate}
                           onClick={handleAdd}
                         />
                       </SplitItem>
@@ -252,11 +256,8 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
                         aria-label={`Remove ${row.name}`}
                         variant="plain"
                         icon={<MinusCircleIcon />}
-                        onClick={() => {
-                          onRemove(row.name).catch((e) =>
-                            setError(e instanceof Error ? e.message : String(e)),
-                          );
-                        }}
+                        isDisabled={isSaving || isRemoving}
+                        onClick={() => setGroupToRemove(row.name)}
                       />
                     )}
                   </Td>
@@ -285,13 +286,63 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
           isInline
           icon={<PlusCircleIcon />}
           iconPosition="left"
-          isDisabled={isLoading || isAdding}
+          isDisabled={isLoading || isAdding || isRemoving}
           onClick={() => setIsAdding(true)}
-          style={{ paddingLeft: 'var(--pf-t--global--spacer--lg)' }}
+          className="pf-v6-u-pl-lg"
         >
-          {addButtonLabel}
+          {`Add ${roleLabel} group`}
         </Button>
       </StackItem>
+      {groupToRemove && (
+        <ContentModal
+          title={`Remove ${ODH_PRODUCT_NAME} ${roleLabel} group?`}
+          titleIconVariant="warning"
+          variant="small"
+          dataTestId="remove-group-modal"
+          onClose={() => {
+            setGroupToRemove(undefined);
+            setRemoveError(undefined);
+          }}
+          contents={
+            <>
+              The <strong>{groupToRemove}</strong> group will be removed from the {roleLabel} group
+              list. Members of this group will lose {roleLabel} access to {ODH_PRODUCT_NAME}.
+            </>
+          }
+          error={removeError}
+          alertTitle={`Error removing ${groupToRemove}`}
+          buttonActions={[
+            {
+              label: 'Remove',
+              variant: 'primary',
+              dataTestId: 'modal-remove-button',
+              isLoading: isRemoving,
+              isDisabled: isRemoving,
+              onClick: () => {
+                setRemoveError(undefined);
+                setIsRemoving(true);
+                onRemove(groupToRemove)
+                  .then(() => {
+                    setGroupToRemove(undefined);
+                  })
+                  .catch((e) => {
+                    setRemoveError(e instanceof Error ? e : new Error(String(e)));
+                  })
+                  .finally(() => setIsRemoving(false));
+              },
+            },
+            {
+              label: 'Cancel',
+              variant: 'link',
+              isDisabled: isRemoving,
+              onClick: () => {
+                setGroupToRemove(undefined);
+                setRemoveError(undefined);
+              },
+            },
+          ]}
+        />
+      )}
     </Stack>
   );
 };

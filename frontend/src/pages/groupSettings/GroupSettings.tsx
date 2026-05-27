@@ -68,30 +68,23 @@ const GroupSettings: React.FC = () => {
       <Stack hasGutter>
         <StackItem>
           <GroupSettingsSection
-            title={`${ODH_PRODUCT_NAME} administrator groups`}
-            description={`These groups contain all ${ODH_PRODUCT_NAME} administrators.`}
-            infoMessage={`All cluster admins are automatically assigned as ${ODH_PRODUCT_NAME} administrators.`}
+            roleLabel="administrator"
             enabledGroupNames={enabledAdminGroups}
             availableGroups={availableGroups}
             onAdd={(name) => handleAdd(name, GroupsConfigField.ADMIN)}
             onRemove={(name) => handleRemove(name, GroupsConfigField.ADMIN)}
             isLoading={isLoading}
-            addButtonLabel="Add administrator group"
-            placeholderText="Select or type administrator group name"
             testId="data-science-administrator-groups"
           />
         </StackItem>
         <StackItem>
           <GroupSettingsSection
-            title={`${ODH_PRODUCT_NAME} user groups`}
-            description={`These groups contain all ${ODH_PRODUCT_NAME} users.`}
+            roleLabel="user"
             enabledGroupNames={enabledUserGroups}
             availableGroups={availableGroups}
             onAdd={(name) => handleAdd(name, GroupsConfigField.USER)}
             onRemove={(name) => handleRemove(name, GroupsConfigField.USER)}
             isLoading={isLoading}
-            addButtonLabel="Add user group"
-            placeholderText="Select or type user group name"
             testId="data-science-user-groups"
           />
         </StackItem>

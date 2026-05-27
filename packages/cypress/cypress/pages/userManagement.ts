@@ -89,6 +89,14 @@ class UserManagement {
     return this;
   }
 
+  findRemoveGroupModal() {
+    return cy.findByTestId('remove-group-modal');
+  }
+
+  findModalRemoveButton() {
+    return cy.findByTestId('modal-remove-button');
+  }
+
   getAdministratorGroupSection() {
     return new GroupSettingSection(() => cy.findByTestId('data-science-administrator-groups'));
   }

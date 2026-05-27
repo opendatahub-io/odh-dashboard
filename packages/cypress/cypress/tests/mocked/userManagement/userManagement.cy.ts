@@ -73,6 +73,9 @@ describe('User Management', () => {
 
     adminSection.findRemoveGroupButton('odh-admins-1').click();
 
+    userManagement.findRemoveGroupModal().should('be.visible');
+    userManagement.findModalRemoveButton().click();
+
     cy.wait('@removeAdminGroup').then((interception) => {
       expect(interception.request.body).to.eql([
         { value: ['odh-admins'], op: 'replace', path: '/spec/adminGroups' },
