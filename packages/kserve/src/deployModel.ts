@@ -18,7 +18,7 @@ import type { TokenAuthenticationFieldData } from '@odh-dashboard/model-serving/
 import type { CreateConnectionData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/CreateConnectionInputFields';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from '@odh-dashboard/internal/concepts/hardwareProfiles/const';
-import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
+import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import {
   applyAiAvailableAssetAnnotations,
   applyAuth,

@@ -3,12 +3,14 @@ import type {
   ProjectDetailsSettingsCardExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import type {
-  DeploymentWizardFieldExtension,
   DeployedModelServingDetails,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
-  WizardField2Extension,
 } from '@odh-dashboard/model-serving/extension-points';
+import type {
+  DeploymentWizardFieldOverrideExtension,
+  WizardFieldExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
@@ -23,8 +25,8 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
-  | DeploymentWizardFieldExtension
-  | WizardField2Extension<NIMImageFieldType>
+  | DeploymentWizardFieldOverrideExtension
+  | WizardFieldExtension<NIMImageFieldType>
 )[] = [
   {
     type: 'app.area',
@@ -78,7 +80,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: 'nim-wizard',
       field: () =>
@@ -88,7 +90,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field2',
+    type: 'model-serving.deployment/wizard-field',
     properties: {
       field: () =>
         import('./src/pages/deploymentWizard/fields/NIMImageField').then(
