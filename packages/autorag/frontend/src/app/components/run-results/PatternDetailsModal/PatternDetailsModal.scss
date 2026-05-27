@@ -1,0 +1,125 @@
+.autorag-pattern-details-modal {
+  --pf-v6-c-modal-box--MaxWidth: 1300px;
+  --pf-v6-c-modal-box--m-lg--lg--MaxWidth: 1300px;
+  height: 80vh;
+
+  &__tab-title {
+    flex: 4;
+  }
+}
+
+// Comparison select modal: PF thead truncates cells (MaxWidth:1px,
+// overflow:hidden, text-overflow:ellipsis) and modal body clips overflow.
+// Override both so the table sizes to content and scrolls horizontally.
+.autorag-comparison-select-modal.pf-v6-c-modal-box {
+  .pf-v6-c-modal-box__body {
+    overflow-x: auto;
+  }
+
+  .pf-v6-c-table {
+    width: max-content;
+    min-width: 100%;
+
+    thead {
+      --pf-v6-c-table--cell--MaxWidth: none;
+      --pf-v6-c-table--cell--Overflow: visible;
+      --pf-v6-c-table--cell--TextOverflow: clip;
+      --pf-v6-c-table--cell--WhiteSpace: nowrap;
+    }
+
+    // PF sticky cell styles from table-scrollable.css don't apply reliably
+    // inside a modal portal. Reapply position, background, and z-index directly.
+    td.pf-v6-c-table__sticky-cell,
+    th.pf-v6-c-table__sticky-cell {
+      position: sticky;
+      z-index: 1;
+      background-color: var(--pf-t--global--background--color--primary--default);
+    }
+
+    tr:hover td.pf-v6-c-table__sticky-cell {
+      background-color: var(--pf-t--global--background--color--primary--hover);
+    }
+
+    tr.pf-m-selected td.pf-v6-c-table__sticky-cell {
+      background-color: var(--pf-t--global--background--color--primary--clicked);
+    }
+  }
+}
+
+.autorag-pattern-details-modal .pf-v6-c-description-list__group {
+  align-items: center;
+}
+
+// In comparison mode, give more space to the value columns
+.autorag-comparison-list.pf-v6-c-description-list {
+  --pf-v6-c-description-list--m-horizontal__term--width: 12ch;
+}
+
+// Pattern header row: vertically center and reduce gap below it
+.autorag-comparison-list__header-row {
+  padding-bottom: 0;
+  margin-bottom: calc(-1 * var(--pf-t--global--spacer--sm));
+
+  .pf-v6-c-description-list__term {
+    align-self: center;
+  }
+}
+
+// Comparison pattern scores use green bars to distinguish from primary (blue)
+.autorag-scores-list--comparison {
+  --pf-v6-c-progress__indicator--BackgroundColor: var(--pf-t--global--color--status--success--default);
+}
+
+.autorag-pre-wrap {
+  white-space: pre-wrap;
+}
+
+// Print-only container: hidden on screen, visible when printing
+.odh-autox-print-only {
+  display: none;
+}
+
+@media print {
+  // Hide everything except the portalled print container
+  body > *:not(.odh-autox-print-only) {
+    display: none !important;
+  }
+
+  // Show the print container
+  .odh-autox-print-only {
+    display: block !important;
+  }
+
+  .autorag-print-header {
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 2px solid var(--pf-t--global--border--color--strong);
+
+    h1 {
+      font-size: var(--pf-t--global--font--size--2xl);
+      margin: 0;
+    }
+
+    p {
+      font-size: var(--pf-t--global--font--size--sm);
+      color: var(--pf-t--global--text--color--subtle);
+      margin: var(--pf-t--global--spacer--xs) 0 0;
+    }
+  }
+
+  // Each section starts on a new page except the first
+  .autorag-print-page {
+    break-before: page;
+  }
+
+  .autorag-print-page--first {
+    break-before: avoid;
+  }
+
+  .autorag-print-page h2 {
+    font-size: var(--pf-t--global--font--size--xl);
+    margin-bottom: var(--pf-t--global--spacer--md);
+    padding-bottom: var(--pf-t--global--spacer--sm);
+    border-bottom: 1px solid var(--pf-t--global--border--color--default);
+  }
+}

@@ -1,8 +1,12 @@
 import { resourceTypeMap } from './const';
+import { FeatureStoreObject } from '../../const';
 import {
+  featureDataSetRoute,
+  featureDataSourceRoute,
   featureEntityRoute,
   featureRoute,
   featureServiceRoute,
+  featureStoreRoute,
   featureViewRoute,
 } from '../../routes';
 import { MetricsCountResponse } from '../../types/metrics';
@@ -48,41 +52,41 @@ export const processMetricsData = (data: MetricsCountResponse): MetricCardItem[]
       count: counts.entities,
       description:
         'Entities are collections of related features and can be mapped to the domain of your use case.',
-      route: '/develop-train/feature-store/entities',
+      route: featureStoreRoute(FeatureStoreObject.ENTITIES),
     },
     {
       title: 'Data sources',
       count: counts.dataSources,
       description:
         'Data sources such as tables or data warehouses contain the raw data from which features are extracted.',
-      route: '/develop-train/feature-store/data-sources',
+      route: featureStoreRoute(FeatureStoreObject.DATA_SOURCES),
     },
     {
       title: 'Datasets',
       count: counts.savedDatasets,
       description:
         'Datasets are point-in-time-correct snapshots of feature data used for training or validation.',
-      route: '/develop-train/feature-store/datasets',
+      route: featureStoreRoute(FeatureStoreObject.DATA_SETS),
     },
     {
       title: 'Features',
       count: counts.features,
       description: 'A feature is a single data value used in model training or inference.',
-      route: '/develop-train/feature-store/features',
+      route: featureStoreRoute(FeatureStoreObject.FEATURES),
     },
     {
       title: 'Feature views',
       count: counts.featureViews,
       description:
         'Feature views define groups of related features and how to retrieve them from a source.',
-      route: '/develop-train/feature-store/feature-views',
+      route: featureStoreRoute(FeatureStoreObject.FEATURE_VIEWS),
     },
     {
       title: 'Feature services',
       count: counts.featureServices,
       description:
         'Feature services are groups of related features from one or more feature views that are designed to be retrieved together for model training, online inference, or GenAI applications like RAG.',
-      route: '/develop-train/feature-store/feature-services',
+      route: featureStoreRoute(FeatureStoreObject.FEATURE_SERVICES),
     },
   ];
 };
@@ -104,9 +108,9 @@ export const getResourceRoute = (
     case resourceTypeMap.feature_services:
       return featureServiceRoute(resourceName, project);
     case resourceTypeMap.saved_datasets:
-      return `/develop-train/feature-store/datasets/${resourceName}?project=${project}`;
+      return featureDataSetRoute(resourceName, project);
     case resourceTypeMap.data_sources:
-      return `/develop-train/feature-store/data-sources/${resourceName}?project=${project}`;
+      return featureDataSourceRoute(resourceName, project);
     case resourceTypeMap.features:
       return featureRoute(resourceName, project);
     default:

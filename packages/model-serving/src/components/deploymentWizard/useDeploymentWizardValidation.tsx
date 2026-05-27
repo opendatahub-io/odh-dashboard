@@ -5,7 +5,11 @@ import { isK8sNameDescriptionDataValid } from '@odh-dashboard/internal/concepts/
 import { useValidation } from '@odh-dashboard/internal/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/internal/concepts/hardwareProfiles/validationUtils';
 import { resolveFieldValue, type WizardField, type WizardFormData } from './types';
-import { modelSourceStepSchema, type ModelSourceStepData } from './steps/ModelSourceStep';
+import {
+  modelSourceStepBaseSchema,
+  modelSourceStepRefinement,
+  type ModelSourceStepData,
+} from './steps/ModelSourceStep';
 import { externalRouteFieldSchema } from './fields/ExternalRouteField';
 import { tokenAuthenticationFieldSchema } from './fields/TokenAuthenticationField';
 import { numReplicasFieldSchema } from './fields/NumReplicasField';
@@ -29,18 +33,30 @@ export const useModelDeploymentWizardValidation = (
   fields: WizardField<unknown>[] = [],
 ): ModelDeploymentWizardValidation => {
   // Step 1: Model Source
-  const modelSourceStepValidationData: Partial<ModelSourceStepData> = React.useMemo(
-    () => ({
-      modelType: state.modelType.data,
-      modelLocationData: state.modelLocationData.data,
-      createConnectionData: state.createConnectionData.data,
-    }),
-    [state.modelType, state.modelLocationData.data, state.createConnectionData.data],
-  );
+  const step1Fields = fields.filter((field) => field.step === 'modelSource');
+
+  const modelSourceStepValidationData: Partial<ModelSourceStepData> = {
+    modelType: state.modelType.data,
+    modelLocationData: state.modelLocationData.data,
+    createConnectionData: state.createConnectionData.data,
+    ...step1Fields.reduce<Record<string, unknown>>((acc, field) => {
+      acc[field.id] = resolveFieldValue(field, state);
+      return acc;
+    }, {}),
+  };
 
   const modelSourceStepValidation = useZodFormValidation(
     modelSourceStepValidationData,
-    modelSourceStepSchema,
+    modelSourceStepBaseSchema
+      .extend(
+        step1Fields.reduce<Record<string, z.ZodTypeAny>>((acc, field) => {
+          if (field.reducerFunctions.validationSchema) {
+            acc[field.id] = field.reducerFunctions.validationSchema;
+          }
+          return acc;
+        }, {}),
+      )
+      .superRefine(modelSourceStepRefinement),
   );
 
   // Step 2: Model Deployment

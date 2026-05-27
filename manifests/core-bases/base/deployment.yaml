@@ -37,10 +37,10 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
+              memory: 1Gi
               ephemeral-storage: 50Mi
             limits:
-              memory: 2Gi
+              memory: 1Gi
           livenessProbe:
             tcpSocket:
               port: 8080
@@ -113,10 +113,10 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
+              memory: 1Gi
               ephemeral-storage: 10Mi
             limits:
-              memory: 2Gi
+              memory: 1Gi
           volumeMounts:
             - mountPath: /etc/tls/private
               name: proxy-tls

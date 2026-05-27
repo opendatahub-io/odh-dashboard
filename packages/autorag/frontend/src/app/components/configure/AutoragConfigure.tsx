@@ -698,13 +698,13 @@ function AutoragConfigure({
                 {!inputDataKey ? (
                   <EmptyState
                     variant="xs"
-                    titleText="Select an S3 connection or upload a file to get started"
+                    titleText="Select a file from your S3 connection or upload a file to get started"
                     headingLevel="h4"
                     icon={CubesIcon}
                   >
                     <EmptyStateBody>
-                      In order to configure details and run an experiment, add a document or
-                      connection in the widget on the left.
+                      In order to configure details and run an experiment, select a file or upload
+                      one in the Knowledge setup panel.
                     </EmptyStateBody>
                   </EmptyState>
                 ) : (

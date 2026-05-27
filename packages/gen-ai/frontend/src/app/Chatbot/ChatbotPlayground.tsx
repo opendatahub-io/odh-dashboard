@@ -99,6 +99,7 @@ type ChatbotPlaygroundProps = {
   setActivePaneConfigId?: (configId: string) => void;
   onClosePane?: (configId: string) => void;
   clearAllMessagesRef?: React.MutableRefObject<(() => void) | null>;
+  hasConversationMessagesRef?: React.MutableRefObject<(() => boolean) | null>;
   isDrawerExpanded?: boolean;
   setIsDrawerExpanded?: (expanded: boolean) => void;
 };
@@ -112,6 +113,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   setActivePaneConfigId,
   onClosePane,
   clearAllMessagesRef,
+  hasConversationMessagesRef,
   isDrawerExpanded: isDrawerExpandedProp,
   setIsDrawerExpanded: setIsDrawerExpandedProp,
 }) => {
@@ -353,6 +355,20 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     };
   }, [clearAllMessagesRef]);
 
+  // Expose hasConversationMessages to parent (beyond the initial welcome message)
+  React.useEffect(() => {
+    const ref = hasConversationMessagesRef;
+    if (ref) {
+      ref.current = () =>
+        Array.from(messageHooksRef.current.values()).some((hook) => hook.messages.length > 1);
+    }
+    return () => {
+      if (ref) {
+        ref.current = null;
+      }
+    };
+  }, [hasConversationMessagesRef]);
+
   // Alerts
   const alerts = {
     uploadSuccessAlert: (
@@ -404,6 +420,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           namespace={namespace?.name}
           showWelcomePrompt
           welcomeDescription={isCompareMode ? 'Send a message to compare models' : undefined}
+          onWelcomePromptClick={handleSendMessage}
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}

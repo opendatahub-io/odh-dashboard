@@ -233,15 +233,33 @@ jobs:
       - name: Install MLflow
         run: pip install "mlflow[genai]>=3.5"
 
+      - name: Verify MLflow connection
+        continue-on-error: true
+        run: |
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $MLFLOW_TRACKING_TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "X-Mlflow-Workspace: $MLFLOW_WORKSPACE" \
+            -d '{"max_results": 1}' \
+            "$MLFLOW_TRACKING_URI/api/2.0/mlflow/experiments/search")
+          echo "MLflow API: HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::warning::MLflow returned $CODE — tracing may not work"
+          fi
+
       - name: Configure MLflow tracing
         run: |
-          mkdir -p .claude
-          printf '.claude/settings.local.json\n' >> .git/info/exclude
-          cat > .claude/settings.local.json << 'SETTINGS'
+          mkdir -p ~/.claude
+          cat > ~/.claude/settings.local.json << 'SETTINGS'
           {
             "env": { "MLFLOW_CLAUDE_TRACING_ENABLED": "true" },
             "hooks": {
               "Stop": [{
+                "matcher": "",
+                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
+              }],
+              "StopFailure": [{
                 "matcher": "",
                 "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
               }]
@@ -256,16 +274,16 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
-          claude_args: "--max-turns 30 --model claude-opus-4-6 --disallowedTools Edit,Write,NotebookEdit"
-          prompt: >-
-            Run /preflight ${{ env.PR_NUMBER }} --skip-review coderabbit to check
-            this PR. You are in agent-check-only mode — do NOT modify files,
-            commit, or push. Run preflight once, then post a summary PR comment
-            via gh pr comment ${{ env.PR_NUMBER }}. The comment must have a
-            Preflight Agent Report header, verdict with mode, the results table
-            with status emojis, an expandable Tracing section, and a footer
-            linking to
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+          claude_args: >-
+            --max-turns 120
+            --model "claude-sonnet-4-6[1m]"
+            --permission-mode acceptEdits
+            --allowedTools "Bash(gh *)"
+            --allowedTools "Bash(git *)"
+            --allowedTools "Bash(npm *)"
+            --allowedTools "Bash(npx *)"
+            --allowedTools "Bash(bash *)"
+          prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
 
       # ── Fix (iterative) ──
       - name: Preflight fix
@@ -274,19 +292,16 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
-          claude_args: "--max-turns 80 --model claude-opus-4-6"
-          prompt: >-
-            /goal Run /preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit
-            to check and fix this PR. You are in agent-managed mode — edit files,
-            commit, and push as needed. If /preflight reports NOT READY, fix the
-            issues and re-run. Track each iteration's results. Stop after 5 runs
-            or 2 consecutive with no improvement. The goal is met when /preflight
-            reports READY or READY WITH WARNINGS AND you have posted a summary PR
-            comment via gh pr comment ${{ env.PR_NUMBER }}. The comment must have
-            a Preflight Agent Report header, verdict with iteration count and mode,
-            the results table with status emojis, an expandable Iteration History
-            section, an expandable Tracing section, and a footer linking to
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+          claude_args: >-
+            --max-turns 200
+            --model "claude-sonnet-4-6[1m]"
+            --permission-mode acceptEdits
+            --allowedTools "Bash(gh *)"
+            --allowedTools "Bash(git *)"
+            --allowedTools "Bash(npm *)"
+            --allowedTools "Bash(npx *)"
+            --allowedTools "Bash(bash *)"
+          prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
 
       # ── Report ──
       - name: Update check run (success)
@@ -300,7 +315,7 @@ jobs:
             -X PATCH \
             -f "status=completed" -f "conclusion=success" \
             -f "output[title]=Preflight passed ($MODE)" \
-            -f "output[summary]=See PR comment for full report."
+            -f "output[summary]=See PR review for full report."
 
       - name: Update check run (failure)
         if: failure() && steps.check-run.outputs.id
