@@ -26,6 +26,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled');
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 
 const mockFireFormTrackingEvent = jest.mocked(fireFormTrackingEvent);
 const mockInstallLSD = jest.fn();
