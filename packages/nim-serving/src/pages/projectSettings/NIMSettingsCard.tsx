@@ -18,12 +18,11 @@ import {
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
 import { deleteNIMResources } from '../../api/accounts/api';
-import { NIMAccountModel } from '../../api/accounts/k8s';
+import { useNIMSettingsAccessAllowed } from '../../api/accounts/useNIMSettingsAccessAllowed';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -44,19 +43,7 @@ type NIMSettingsCardProps = {
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
 
-  const [canCreateAccount, accountReviewLoaded] = useAccessAllowed({
-    group: NIMAccountModel.apiGroup,
-    resource: NIMAccountModel.plural,
-    namespace,
-    verb: 'create',
-  });
-  const [canCreateSecret, secretReviewLoaded] = useAccessAllowed({
-    resource: 'secrets',
-    namespace,
-    verb: 'create',
-  });
-  const accessReviewLoaded = accountReviewLoaded && secretReviewLoaded;
-  const canConfigure = canCreateAccount && canCreateSecret;
+  const { loaded: accessReviewLoaded, allowed } = useNIMSettingsAccessAllowed(namespace);
 
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -107,8 +94,6 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
     }, 1000);
   }, [namespace, refresh, stopPollingDeleteStatus]);
 
-  const permissionDenied = accessReviewLoaded && !canConfigure;
-
   const renderFooterContent = () => {
     if (!accessReviewLoaded) {
       return <Skeleton data-testid="nim-permissions-loading" height="35px" width="250px" />;
@@ -119,14 +104,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
         const enableButton = (
           <Button
             variant="tertiary"
-            isAriaDisabled={permissionDenied}
+            isAriaDisabled={!allowed}
             onClick={() => setIsApiKeyModalOpen(true)}
             data-testid="nim-enable-button"
           >
             Add personal API key
           </Button>
         );
-        return permissionDenied ? (
+        return !allowed ? (
           <Tooltip content={NO_PERMISSION_ADD_TOOLTIP}>{enableButton}</Tooltip>
         ) : (
           enableButton
@@ -141,14 +126,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             <FlexItem>
               <Tooltip
                 content={
-                  permissionDenied
+                  !allowed
                     ? NO_PERMISSION_REMOVE_TOOLTIP
                     : 'Remove the NVIDIA NIM account and API key from this project'
                 }
               >
                 <Button
                   variant="tertiary"
-                  isAriaDisabled={permissionDenied}
+                  isAriaDisabled={!allowed}
                   onClick={() => setIsDeleteModalOpen(true)}
                   data-testid="nim-remove-button"
                 >
@@ -159,14 +144,14 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
             <FlexItem>
               <Tooltip
                 content={
-                  permissionDenied
+                  !allowed
                     ? NO_PERMISSION_ADD_TOOLTIP
                     : 'Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it'
                 }
               >
                 <Button
                   variant="link"
-                  isAriaDisabled={permissionDenied}
+                  isAriaDisabled={!allowed}
                   onClick={() => setIsApiKeyModalOpen(true)}
                   data-testid="nim-replace-key-button"
                 >

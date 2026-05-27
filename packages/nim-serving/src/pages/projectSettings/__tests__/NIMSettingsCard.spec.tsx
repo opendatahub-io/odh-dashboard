@@ -2,13 +2,11 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR';
+import { useNIMSettingsAccessAllowed } from '../../../api/accounts/useNIMSettingsAccessAllowed';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../../api/accounts/hooks';
 import NIMSettingsCard from '../NIMSettingsCard';
 
-jest.mock('@odh-dashboard/internal/concepts/userSSAR', () => ({
-  useAccessAllowed: jest.fn(),
-}));
+jest.mock('../../../api/accounts/useNIMSettingsAccessAllowed');
 
 jest.mock('../../../api/accounts/hooks', () => ({
   __esModule: true,
@@ -21,7 +19,7 @@ jest.mock('../../../api/accounts/hooks', () => ({
   },
 }));
 
-jest.mock('../../../api/accounts/utils', () => ({
+jest.mock('../../../api/accounts/api', () => ({
   deleteNIMResources: jest.fn(),
 }));
 
@@ -37,45 +35,47 @@ jest.mock('@odh-dashboard/internal/pages/projects/components/DeleteModal', () =>
   return Mock;
 });
 
-const mockUseAccessAllowed = jest.mocked(useAccessAllowed);
+const mockUseNIMSettingsAccessAllowed = jest.mocked(useNIMSettingsAccessAllowed);
 const mockUseNIMAccountStatus = jest.mocked(useNIMAccountStatus);
+
+const defaultAccountStatus = {
+  status: NIMAccountStatus.NOT_FOUND,
+  errorMessages: [],
+  refresh: jest.fn().mockResolvedValue(undefined),
+  startRevalidation: jest.fn(),
+  nimAccount: null,
+  loaded: true,
+};
 
 describe('NIMSettingsCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseNIMAccountStatus.mockReturnValue({
-      status: NIMAccountStatus.NOT_FOUND,
-      errorMessages: [],
-      refresh: jest.fn().mockResolvedValue(undefined),
-      startRevalidation: jest.fn(),
-      nimAccount: null,
-      loaded: true,
-    });
+    mockUseNIMAccountStatus.mockReturnValue(defaultAccountStatus);
   });
 
   it('should show skeleton while access reviews are loading', () => {
-    mockUseAccessAllowed.mockReturnValue([false, false]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: false, allowed: undefined });
     render(<NIMSettingsCard namespace="test-ns" />);
     expect(screen.getByTestId('nim-permissions-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('nim-enable-button')).not.toBeInTheDocument();
   });
 
-  it('should show enabled button when user has permission and account is NOT_FOUND', () => {
-    mockUseAccessAllowed.mockReturnValue([true, true]);
+  it('should show enabled button when user has all permissions and account is NOT_FOUND', () => {
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
     render(<NIMSettingsCard namespace="test-ns" />);
     const button = screen.getByTestId('nim-enable-button');
     expect(button).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('should show disabled button when user lacks permission and account is NOT_FOUND', () => {
-    mockUseAccessAllowed.mockReturnValue([false, true]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     render(<NIMSettingsCard namespace="test-ns" />);
     const button = screen.getByTestId('nim-enable-button');
     expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('should show permission tooltip when hovering disabled enable button', async () => {
-    mockUseAccessAllowed.mockReturnValue([false, true]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     render(<NIMSettingsCard namespace="test-ns" />);
     const button = screen.getByTestId('nim-enable-button');
     await userEvent.hover(button);
@@ -85,7 +85,7 @@ describe('NIMSettingsCard', () => {
   });
 
   it('should not open API key modal when permission is denied and button is clicked', async () => {
-    mockUseAccessAllowed.mockReturnValue([false, true]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     render(<NIMSettingsCard namespace="test-ns" />);
     const button = screen.getByTestId('nim-enable-button');
     await userEvent.click(button);
@@ -93,14 +93,10 @@ describe('NIMSettingsCard', () => {
   });
 
   it('should show disabled Remove and Replace buttons when permission is denied in READY state', () => {
-    mockUseAccessAllowed.mockReturnValue([false, true]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
       status: NIMAccountStatus.READY,
-      errorMessages: [],
-      refresh: jest.fn().mockResolvedValue(undefined),
-      startRevalidation: jest.fn(),
-      nimAccount: null,
-      loaded: true,
     });
     render(<NIMSettingsCard namespace="test-ns" />);
     expect(screen.getByTestId('nim-remove-button')).toHaveAttribute('aria-disabled', 'true');
@@ -108,14 +104,10 @@ describe('NIMSettingsCard', () => {
   });
 
   it('should show remove tooltip on disabled Remove button', async () => {
-    mockUseAccessAllowed.mockReturnValue([false, true]);
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: false });
     mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
       status: NIMAccountStatus.READY,
-      errorMessages: [],
-      refresh: jest.fn().mockResolvedValue(undefined),
-      startRevalidation: jest.fn(),
-      nimAccount: null,
-      loaded: true,
     });
     render(<NIMSettingsCard namespace="test-ns" />);
     await userEvent.hover(screen.getByTestId('nim-remove-button'));

@@ -7,9 +7,8 @@ import {
   Split,
   SplitItem,
 } from '@patternfly/react-core';
-import { useAccessAllowed } from '#~/concepts/userSSAR';
-import { TrustyAIApplicationsModel } from '#~/api/models/odh';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
+import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/useTrustySettingsAccessAllowed';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
 import TrustyAIUninstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIUninstalledState';
@@ -25,19 +24,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   const { statusState, installCRForExistingDB, installCRForNewDB, deleteCR } =
     useManageTrustyAICR(namespace);
 
-  const [canCreateCR, crReviewLoaded] = useAccessAllowed({
-    group: TrustyAIApplicationsModel.apiGroup,
-    resource: TrustyAIApplicationsModel.plural,
-    namespace,
-    verb: 'create',
-  });
-  const [canCreateSecret, secretReviewLoaded] = useAccessAllowed({
-    resource: 'secrets',
-    namespace,
-    verb: 'create',
-  });
-  const accessLoaded = crReviewLoaded && secretReviewLoaded;
-  const permissionDenied = accessLoaded && (!canCreateCR || !canCreateSecret);
+  const { loaded: accessLoaded, allowed } = useTrustySettingsAccessAllowed(namespace);
 
   if (!accessLoaded) {
     return {
@@ -50,7 +37,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
   switch (statusState.type) {
     case TrustyInstallState.INFRA_ERROR:
     case TrustyInstallState.CR_ERROR:
-      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={!allowed} />;
       status = (
         <Alert
           variant="danger"
@@ -65,7 +52,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       );
       break;
     case TrustyInstallState.INSTALLED:
-      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={!allowed} />;
       status = statusState.showSuccess && (
         <Alert
           data-testid="trustyai-service-installed-alert"
@@ -88,7 +75,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       action = <Skeleton data-testid="trustyai-initializing-state" height="35px" width="250px" />;
       break;
     case TrustyInstallState.INSTALLING:
-      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={permissionDenied} />;
+      action = <TrustyAIInstalledState onDelete={deleteCR} permissionDenied={!allowed} />;
       status = (
         <Split hasGutter data-testid="trustyai-installing-state">
           <SplitItem>
@@ -100,11 +87,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
       break;
     case TrustyInstallState.UNINSTALLING:
       action = (
-        <TrustyAIInstalledState
-          uninstalling
-          onDelete={deleteCR}
-          permissionDenied={permissionDenied}
-        />
+        <TrustyAIInstalledState uninstalling onDelete={deleteCR} permissionDenied={!allowed} />
       );
       break;
     case TrustyInstallState.UNINSTALLED:
@@ -114,7 +97,7 @@ const useTrustyCRState = (project: ProjectKind): UseTrustyCRState => {
           namespace={namespace}
           onInstallNewDB={installCRForNewDB}
           onInstallExistingDB={installCRForExistingDB}
-          permissionDenied={permissionDenied}
+          permissionDenied={!allowed}
         />
       );
   }
