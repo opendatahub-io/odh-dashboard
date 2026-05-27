@@ -61,3 +61,27 @@ export const REQUIRED_CONNECTION_SECRET_KEYS: Readonly<Partial<Record<string, re
   {
     s3: ['AWS_S3_BUCKET', 'AWS_DEFAULT_REGION'],
   };
+
+// Preset values (user-facing, stored in form state)
+export const PRESET_FASTER = 'faster';
+export const PRESET_BETTER_QUALITY = 'better_quality';
+
+export const PRESET_AUTOGLUON_VALUES: Record<string, Record<string, string>> = {
+  [PRESET_FASTER]: {
+    [TASK_TYPE_BINARY]: 'medium_quality',
+    [TASK_TYPE_MULTICLASS]: 'medium_quality',
+    [TASK_TYPE_REGRESSION]: 'medium_quality',
+    [TASK_TYPE_TIMESERIES]: 'fast_training',
+  },
+  [PRESET_BETTER_QUALITY]: {
+    [TASK_TYPE_BINARY]: 'good_quality',
+    [TASK_TYPE_MULTICLASS]: 'good_quality',
+    [TASK_TYPE_REGRESSION]: 'good_quality',
+    [TASK_TYPE_TIMESERIES]: 'medium_quality',
+  },
+};
+
+export const PRESET_LABELS: Record<string, string> = {
+  [PRESET_FASTER]: 'Faster',
+  [PRESET_BETTER_QUALITY]: 'Better quality',
+};

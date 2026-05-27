@@ -1,6 +1,8 @@
 import type { PipelineRun, TaskType } from '~/app/types';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  PRESET_AUTOGLUON_VALUES,
+  PRESET_FASTER,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -262,6 +264,20 @@ export function generateReconfigureName(originalName: string): string {
     .slice(0, MAX_DISPLAY_NAME_LENGTH)
     .join('');
 }
+
+/**
+ * Maps a backend AutoGluon preset string back to the UI preset value.
+ * Uses taskType to disambiguate — e.g. `medium_quality` means "Faster" for tabular
+ * but "Better quality" for timeseries.
+ */
+export const resolvePresetFromBackend = (backendPreset: string, taskType: string): string => {
+  for (const [uiPreset, taskMap] of Object.entries(PRESET_AUTOGLUON_VALUES)) {
+    if (taskMap[taskType] === backendPreset) {
+      return uiPreset;
+    }
+  }
+  return PRESET_FASTER;
+};
 
 /** Trigger a browser download for a Blob. */
 export function downloadBlob(blob: Blob, filename: string): void {
