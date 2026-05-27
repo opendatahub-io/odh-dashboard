@@ -74,6 +74,25 @@ const ensureMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult>
 };
 
 /**
+ * Poll until the MLflow operator pod is running AND the MLflow CRD is
+ * Established. The pod reaching Running phase does not guarantee the CRD
+ * is processed and discoverable by the API server, so we must also wait
+ * for the CRD condition before attempting to create an MLflow CR.
+ */
+const waitForMlflowOperatorReady = (): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get pods -A -l app.kubernetes.io/name=mlflow-operator --no-headers | grep Running`,
+    'MLflow operator pod to be Running',
+    { maxAttempts: 24, pollIntervalMs: 5000 },
+  ).then(() =>
+    pollUntilSuccess(
+      `oc wait crd/mlflows.mlflow.opendatahub.io --for=condition=Established --timeout=10s`,
+      'MLflow CRD to be Established',
+      { maxAttempts: 30, pollIntervalMs: 5000 },
+    ),
+  );
+
+/**
  * Delete the MLflow CR in the given namespace.
  *
  * @param namespace - The namespace from which to delete the MLflow CR.
@@ -372,8 +391,9 @@ const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
 
 /**
  * Enable MLflow backend resources without waiting for sidebar visibility.
- * Creates MLflow CR (if absent), waits for CR readiness and tracking
- * server pod availability.
+ * Waits for the operator pod to be running (the CRD is only installed
+ * during the operator's deploy), then creates the MLflow CR (if absent),
+ * waits for CR readiness, and waits for the tracking server pod.
  *
  * The MLflow operator is expected to already be Managed in the DSC.
  *
@@ -382,8 +402,12 @@ const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
 const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Create MLflow CR');
-  return ensureMlflowCR(namespace)
+  cy.step('Wait for MLflow operator to be ready');
+  return waitForMlflowOperatorReady()
+    .then(() => {
+      cy.step('Create MLflow CR');
+      return ensureMlflowCR(namespace);
+    })
     .then(() => {
       cy.step('Wait for MLflow CR to be ready');
       return waitForMlflowCRReady(namespace);
@@ -396,10 +420,11 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
 
 /**
  * Enable MLflow tracking server (no Gen AI):
- * 1. Create an MLflow CR and wait for it to be ready
- * 2. Establish browser session and verify federated remote is loadable
- * 3. Verify dashboard backend reflects mlflowoperator as Managed
- * 4. Wait for Experiments nav item in the sidebar
+ * 1. Wait for MLflow operator pod to be running
+ * 2. Create an MLflow CR and wait for it to be ready
+ * 3. Establish browser session and verify federated remote is loadable
+ * 4. Verify dashboard backend reflects mlflowoperator as Managed
+ * 5. Wait for Experiments nav item in the sidebar
  *
  * The MLflow operator is expected to already be Managed in the DSC.
  */
@@ -442,7 +467,7 @@ export const disableMlflowFeatures = (crExisted = true): Cypress.Chainable<undef
 
 /**
  * Enable all features required for Prompt Management:
- * 1. Enable MLflow backend (CR, tracking pod readiness)
+ * 1. Enable MLflow backend (operator readiness, CR, tracking pod)
  * 2. Establish browser session and verify federated remote is loadable
  * 3. Verify dashboard backend reflects both operators as Managed
  * 4. Wait for "Prompts" nav item in the sidebar
