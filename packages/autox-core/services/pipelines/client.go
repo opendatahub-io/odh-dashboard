@@ -63,6 +63,10 @@ type PipelinesClientConfig struct {
 	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
 
+// Compile-time interface checks.
+var _ PipelinesClientInterface = (*PipelinesClient)(nil)
+var _ httpClientInterface = (*http.Client)(nil)
+
 // NewPipelinesClient creates a client with an injectable HTTP client (for testing).
 func NewPipelinesClient(httpClient httpClientInterface) *PipelinesClient {
 	return &PipelinesClient{
@@ -96,31 +100,12 @@ func NewDefaultPipelinesClient(cfg PipelinesClientConfig) *PipelinesClient {
 	}
 
 	httpClient := &http.Client{
-		Transport: &pipelinesRoundTripper{
-			base: base,
-		},
+		Transport: k8s.NewBearerTokenRoundTripper(base),
 	}
 
 	return &PipelinesClient{
 		HttpClient: httpClient,
 	}
-}
-
-// pipelinesRoundTripper injects bearer token into requests
-type pipelinesRoundTripper struct {
-	base http.RoundTripper
-}
-
-func (t *pipelinesRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	ctx := req.Context()
-	identity, err := k8s.IdentityFromContext(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("missing identity in context: %w", err)
-	}
-
-	reqClone := req.Clone(ctx)
-	reqClone.Header.Set("Authorization", "Bearer "+identity.Token)
-	return t.base.RoundTrip(reqClone)
 }
 
 // CreatePipelineRun creates a new pipeline run
@@ -562,7 +547,7 @@ func readhttpError(resp *http.Response) error {
 	case http.StatusNotFound:
 		return fmt.Errorf("%w: %s", ErrPipelineNotFound, httpErr)
 	case http.StatusConflict:
-		return fmt.Errorf("%w: %s", ErrConflict, httpErr)
+		return fmt.Errorf("%w: %s", k8s.ErrConflict, httpErr)
 	default:
 		return httpErr
 	}

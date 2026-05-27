@@ -6,60 +6,49 @@ import (
 )
 
 const (
-	cacheTTL       = 5 * time.Minute
-	maxCacheSize   = 1000
-	maxVersionIDs  = 100
+	cacheTTL      = 5 * time.Minute
+	maxCacheSize  = 1000
+	maxVersionIDs = 100
 )
 
-type cacheEntry struct {
-	pipelines    map[string]*DiscoveredPipeline
+// ttlCache is a generic TTL cache with LRU eviction.
+type ttlCache[V any] struct {
+	mu      sync.Mutex
+	entries map[string]*ttlCacheEntry[V]
+}
+
+type ttlCacheEntry[V any] struct {
+	value        V
 	expiresAt    time.Time
 	lastAccessed time.Time
 }
 
-// pipelineCache is an in-memory LRU cache for discovered pipelines.
-// Key: namespace (one DSPA per namespace)
-type pipelineCache struct {
-	mu      sync.RWMutex
-	entries map[string]*cacheEntry
+func newTTLCache[V any]() *ttlCache[V] {
+	return &ttlCache[V]{entries: make(map[string]*ttlCacheEntry[V])}
 }
 
-func newPipelineCache() *pipelineCache {
-	return &pipelineCache{
-		entries: make(map[string]*cacheEntry),
-	}
-}
-
-
-func (c *pipelineCache) get(key string) map[string]*DiscoveredPipeline {
+func (c *ttlCache[V]) get(key string) (V, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	entry, exists := c.entries[key]
-	if !exists {
-		return nil
+	entry, ok := c.entries[key]
+	if !ok {
+		var zero V
+		return zero, false
 	}
-
 	if time.Now().After(entry.expiresAt) {
 		delete(c.entries, key)
-		return nil
+		var zero V
+		return zero, false
 	}
-
 	entry.lastAccessed = time.Now()
-
-	result := make(map[string]*DiscoveredPipeline, len(entry.pipelines))
-	for k, v := range entry.pipelines {
-		copied := *v
-		result[k] = &copied
-	}
-	return result
+	return entry.value, true
 }
 
-func (c *pipelineCache) set(key string, pipelines map[string]*DiscoveredPipeline) {
+func (c *ttlCache[V]) set(key string, value V) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Only evict if this is a new key, not an update of an existing one
 	if len(c.entries) >= maxCacheSize {
 		if _, exists := c.entries[key]; !exists {
 			c.evictOldest()
@@ -67,21 +56,21 @@ func (c *pipelineCache) set(key string, pipelines map[string]*DiscoveredPipeline
 	}
 
 	now := time.Now()
-	c.entries[key] = &cacheEntry{
-		pipelines:    pipelines,
+	c.entries[key] = &ttlCacheEntry[V]{
+		value:        value,
 		expiresAt:    now.Add(cacheTTL),
 		lastAccessed: now,
 	}
 }
 
-func (c *pipelineCache) invalidate(key string) {
+func (c *ttlCache[V]) invalidate(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	delete(c.entries, key)
 }
 
 // evictOldest removes the least recently accessed entry. Must be called with lock held.
-func (c *pipelineCache) evictOldest() {
+func (c *ttlCache[V]) evictOldest() {
 	var oldestKey string
 	var oldestTime time.Time
 
@@ -97,23 +86,28 @@ func (c *pipelineCache) evictOldest() {
 	}
 }
 
-// getCachedVersionIDs searches all cached entries for a pipeline by ID and returns
-// its version IDs. This avoids an API call when DiscoverNamedPipelines already
-// fetched the versions during discovery.
+// pipelineCache caches discovered pipelines by namespace with pipeline-specific lookup.
+type pipelineCache struct {
+	*ttlCache[map[string]*DiscoveredPipeline]
+}
+
+func newPipelineCache() *pipelineCache {
+	return &pipelineCache{newTTLCache[map[string]*DiscoveredPipeline]()}
+}
+
+// getCachedVersionIDs searches all cached namespaces for a pipeline by ID and returns
+// its version IDs, avoiding an API call when discovery already fetched the versions.
 func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	for _, entry := range c.entries {
 		if time.Now().After(entry.expiresAt) {
 			continue
 		}
-		for _, dp := range entry.pipelines {
+		for _, dp := range entry.value {
 			if dp.PipelineID == pipelineID && len(dp.AllVersionIDs) > 0 {
-				n := len(dp.AllVersionIDs)
-				if n > maxVersionIDs {
-					n = maxVersionIDs
-				}
+				n := min(len(dp.AllVersionIDs), maxVersionIDs)
 				result := make([]string, n)
 				copy(result, dp.AllVersionIDs[:n])
 				return result
@@ -123,70 +117,9 @@ func (c *pipelineCache) getCachedVersionIDs(pipelineID string) []string {
 	return nil
 }
 
-// dspaCache caches discovered DSPA base URLs by namespace.
-type dspaCache struct {
-	mu      sync.RWMutex
-	entries map[string]*dspaCacheEntry
-}
-
-type dspaCacheEntry struct {
-	baseURL      string
-	expiresAt    time.Time
-	lastAccessed time.Time
-}
+// dspaCache caches discovered DSPA info by namespace.
+type dspaCache = ttlCache[*DiscoveredDSPA]
 
 func newDSPACache() *dspaCache {
-	return &dspaCache{
-		entries: make(map[string]*dspaCacheEntry),
-	}
-}
-
-func (c *dspaCache) get(namespace string) (string, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	entry, exists := c.entries[namespace]
-	if !exists {
-		return "", false
-	}
-	if time.Now().After(entry.expiresAt) {
-		delete(c.entries, namespace)
-		return "", false
-	}
-	entry.lastAccessed = time.Now()
-	return entry.baseURL, true
-}
-
-func (c *dspaCache) set(namespace, baseURL string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if len(c.entries) >= maxCacheSize {
-		if _, exists := c.entries[namespace]; !exists {
-			c.evictOldest()
-		}
-	}
-
-	now := time.Now()
-	c.entries[namespace] = &dspaCacheEntry{
-		baseURL:      baseURL,
-		expiresAt:    now.Add(cacheTTL),
-		lastAccessed: now,
-	}
-}
-
-func (c *dspaCache) evictOldest() {
-	var oldestKey string
-	var oldestTime time.Time
-
-	for key, entry := range c.entries {
-		if oldestKey == "" || entry.lastAccessed.Before(oldestTime) {
-			oldestKey = key
-			oldestTime = entry.lastAccessed
-		}
-	}
-
-	if oldestKey != "" {
-		delete(c.entries, oldestKey)
-	}
+	return newTTLCache[*DiscoveredDSPA]()
 }

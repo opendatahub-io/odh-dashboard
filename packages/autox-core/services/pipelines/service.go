@@ -45,7 +45,7 @@ func (s *PipelinesService) CreatePipelineRun(ctx context.Context, namespace stri
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating pipeline run", "namespace", namespace, "display_name", input.DisplayName)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (s *PipelinesService) GetPipelineRun(ctx context.Context, namespace, runID 
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline run", "namespace", namespace, "run_id", runID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *PipelinesService) ListPipelineRuns(ctx context.Context, namespace strin
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipeline runs", "namespace", namespace)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (s *PipelinesService) TerminateRun(ctx context.Context, namespace, runID st
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("terminating pipeline run", "namespace", namespace, "run_id", runID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (s *PipelinesService) RetryRun(ctx context.Context, namespace, runID string
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("retrying pipeline run", "namespace", namespace, "run_id", runID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (s *PipelinesService) DeleteRun(ctx context.Context, namespace, runID strin
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("deleting pipeline run", "namespace", namespace, "run_id", runID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (s *PipelinesService) ListPipelines(ctx context.Context, namespace, filter 
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipelines", "namespace", namespace)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (s *PipelinesService) GetPipelineVersion(ctx context.Context, namespace, pi
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline version", "namespace", namespace, "pipeline_id", pipelineID, "version_id", versionID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +227,7 @@ func (s *PipelinesService) ListPipelineVersions(ctx context.Context, namespace, 
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipeline versions", "namespace", namespace, "pipeline_id", pipelineID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func (s *PipelinesService) CreatePipeline(ctx context.Context, namespace, name s
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating pipeline", "namespace", namespace, "name", name)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (s *PipelinesService) UploadPipelineVersion(ctx context.Context, namespace,
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("uploading pipeline version", "namespace", namespace, "pipeline_id", pipelineID, "version_name", versionName)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +294,7 @@ func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, namespace
 		return nil, fmt.Errorf("%w: pipeline name is required for discovery", ErrInvalidInput)
 	}
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -377,7 +377,7 @@ func (s *PipelinesService) DiscoverNamedPipelines(ctx context.Context, namespace
 		return nil, fmt.Errorf("%w: namespace is required for pipeline discovery", ErrInvalidInput)
 	}
 
-	if cached := s.pipelineCache.get(namespace); cached != nil {
+	if cached, ok := s.pipelineCache.get(namespace); ok {
 		return cached, nil
 	}
 
@@ -442,7 +442,7 @@ func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string,
 		return nil, fmt.Errorf("no pipeline %q version %q found and no file content provided for auto-creation", pipelineName, versionName)
 	}
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +494,7 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 
 	version, err := s.Client.UploadPipelineVersion(ctx, baseURL, pipelineID, versionName, def.FileContent)
 	if err != nil {
-		if errors.Is(err, ErrConflict) {
+		if errors.Is(err, k8s.ErrConflict) {
 			logger.Info("pipeline version already exists, retrying discovery",
 				"name", pipelineName, "version", versionName, "namespace", namespace)
 			discovered, discoverErr := s.DiscoverPipelineByName(ctx, namespace, pipelineName, versionName)
@@ -548,7 +548,7 @@ func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pi
 
 		created, err := s.Client.CreatePipeline(ctx, baseURL, pipelineName)
 		if err != nil {
-			if errors.Is(err, ErrConflict) {
+			if errors.Is(err, k8s.ErrConflict) {
 				continue
 			}
 			return "", fmt.Errorf("failed to create pipeline %q: %w", pipelineName, err)
@@ -573,7 +573,7 @@ func (s *PipelinesService) collectVersionIDs(ctx context.Context, namespace, pip
 		return ids, nil
 	}
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -611,7 +611,7 @@ func (s *PipelinesService) GetAllPipelineRuns(ctx context.Context, namespace, pi
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching all pipeline runs", "namespace", namespace, "pipelineID", pipelineID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +676,7 @@ func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, namespace
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline run with spec", "namespace", namespace, "run_id", runID)
 
-	baseURL, err := s.DiscoverReadyDSPA(ctx, namespace)
+	baseURL, err := s.discoverDSPAURL(ctx, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -711,11 +711,17 @@ func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, namespace
 
 // --- Internal ---
 
-func (s *PipelinesService) loggerWithIdentity(ctx context.Context) *slog.Logger {
-	identity, err := k8s.IdentityFromContext(ctx)
+// discoverDSPAURL is a convenience wrapper for internal service methods that only
+// need the pipeline API server URL. External callers should use DiscoverReadyDSPA
+// to also access object storage configuration.
+func (s *PipelinesService) discoverDSPAURL(ctx context.Context, namespace string) (string, error) {
+	dspa, err := s.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
-		s.Logger.Error("missing identity in context", "error", err)
-		return s.Logger
+		return "", err
 	}
-	return s.Logger.With("user", identity.UserID)
+	return dspa.APIServerURL, nil
+}
+
+func (s *PipelinesService) loggerWithIdentity(ctx context.Context) *slog.Logger {
+	return k8s.LoggerWithIdentity(ctx, s.Logger)
 }

@@ -434,10 +434,16 @@ func (s *K8sService) DiscoverResourceGVR(
 // --- Internal ---
 
 func (s *K8sService) loggerWithIdentity(ctx context.Context) *slog.Logger {
+	return LoggerWithIdentity(ctx, s.Logger)
+}
+
+// LoggerWithIdentity returns logger enriched with the user ID from context.
+// Falls back to the base logger if identity is missing.
+func LoggerWithIdentity(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	identity, err := IdentityFromContext(ctx)
 	if err != nil {
-		s.Logger.Error("missing identity in context", "error", err)
-		return s.Logger
+		logger.Error("missing identity in context", "error", err)
+		return logger
 	}
-	return s.Logger.With("user", identity.UserID)
+	return logger.With("user", identity.UserID)
 }

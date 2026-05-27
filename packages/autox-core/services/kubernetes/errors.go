@@ -9,12 +9,13 @@ import (
 
 // Sentinel errors for common cases
 var (
-	ErrUnauthorized = errors.New("unauthorized access")
-	ErrForbidden    = errors.New("insufficient permissions")
-	ErrNotFound     = errors.New("resource not found")
-	ErrConflict     = errors.New("resource conflict")
-	ErrInvalid      = errors.New("invalid request")
-	ErrBadRequest   = errors.New("bad request")
+	ErrUnauthorized      = errors.New("unauthorized access")
+	ErrForbidden         = errors.New("insufficient permissions")
+	ErrNotFound          = errors.New("resource not found")
+	ErrConflict          = errors.New("resource conflict")
+	ErrInvalid           = errors.New("invalid request")
+	ErrBadRequest        = errors.New("bad request")
+	ErrAmbiguousSecretKey = errors.New("ambiguous secret key")
 )
 
 // NotFoundError represents a resource not found error

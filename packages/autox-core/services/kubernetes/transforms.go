@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
@@ -48,6 +49,53 @@ func extractServiceAccountName(username string) string {
 		}
 	}
 	return username
+}
+
+// LookupSecretValue performs a case-insensitive lookup against Kubernetes secret data.
+//
+// Lookup order:
+//  1. Exact-case match (highest priority).
+//  2. Single case-insensitive variant.
+//  3. ErrAmbiguousSecretKey if multiple case-variants collide.
+//
+// Multiple candidate key names can be provided; they are tried in order — useful
+// for vendor aliases (e.g. "accessKey" vs "AWS_ACCESS_KEY_ID").
+//
+// Returns ("", nil) if none of the keys are found.
+func LookupSecretValue(data map[string][]byte, keys ...string) (string, error) {
+	type entry struct {
+		originalKey string
+		value       string
+	}
+	normalized := make(map[string][]entry, len(data))
+	for k, v := range data {
+		lower := strings.ToLower(k)
+		normalized[lower] = append(normalized[lower], entry{originalKey: k, value: string(v)})
+	}
+
+	for _, targetKey := range keys {
+		if val, ok := data[targetKey]; ok {
+			return string(val), nil
+		}
+
+		lower := strings.ToLower(targetKey)
+		entries, ok := normalized[lower]
+		if !ok || len(entries) == 0 {
+			continue
+		}
+
+		if len(entries) == 1 {
+			return entries[0].value, nil
+		}
+
+		originals := make([]string, len(entries))
+		for i, e := range entries {
+			originals[i] = e.originalKey
+		}
+		return "", fmt.Errorf("%w %q: multiple case-variants found: %v", ErrAmbiguousSecretKey, targetKey, originals)
+	}
+
+	return "", nil
 }
 
 // SecretInfoHasAllKeys checks if a SecretInfo contains all specified keys (case-sensitive).

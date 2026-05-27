@@ -29,18 +29,13 @@ import (
 type K8sInternalClient struct {
 	Clientset     ClientsetInterface
 	DynamicClient DynamicClientInterface
-	RestConfig    *rest.Config
 }
 
-// K8sInternalClientConfig configures the internal (impersonation-based) Kubernetes client.
-type K8sInternalClientConfig struct{}
-
 // NewK8sInternalClient creates an internal client with injectable clientset and dynamic client (for testing).
-func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sInternalClient {
+func NewK8sInternalClient(clientset ClientsetInterface, dynamicClient DynamicClientInterface) *K8sInternalClient {
 	return &K8sInternalClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		RestConfig:    restConfig,
 	}
 }
 
@@ -54,19 +49,15 @@ func NewK8sInternalClient(cfg K8sInternalClientConfig, clientset ClientsetInterf
 //   - Needs only "impersonate" permission for the service account (minimal privilege)
 //
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sInternalClient(cfg K8sInternalClientConfig) (*K8sInternalClient, error) {
-	// Auto-detect in-cluster vs out-of-cluster config
+func NewDefaultK8sInternalClient() (*K8sInternalClient, error) {
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	// Wrap transport to inject impersonation headers from context
 	clientCfg := rest.CopyConfig(baseConfig)
 	clientCfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return &impersonationRoundTripper{
-			base: rt,
-		}
+		return &impersonationRoundTripper{base: rt}
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientCfg)
@@ -82,7 +73,6 @@ func NewDefaultK8sInternalClient(cfg K8sInternalClientConfig) (*K8sInternalClien
 	return &K8sInternalClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		RestConfig:    clientCfg,
 	}, nil
 }
 
@@ -248,6 +238,9 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 		Name:     "no available version found in namespace " + namespace + " (tried: " + strings.Join(knownVersions, ", ") + ")",
 	}
 }
+
+// Compile-time interface check.
+var _ K8sClientInterface = (*K8sInternalClient)(nil)
 
 // ============================================================================
 // Private Helper Methods

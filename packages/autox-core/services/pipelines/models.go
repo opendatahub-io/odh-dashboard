@@ -152,3 +152,28 @@ type PaginatedRuns struct {
 	Runs      []PipelineRun
 	TotalSize int32
 }
+
+// DiscoveredDSPA holds the resolved state of a ready DSPipelineApplication instance.
+// It is returned by DiscoverReadyDSPA and includes both the pipeline API URL and
+// the object storage configuration needed for S3 credential extraction.
+type DiscoveredDSPA struct {
+	Name          string
+	Namespace     string
+	APIServerURL  string
+	ObjectStorage *DSPAObjectStorageSpec // nil if the DSPA has no object storage configured
+}
+
+// DSPAObjectStorageSpec is the resolved object-storage configuration from a DSPA CRD spec.
+// Consumers (automl/autorag) use this to locate and fetch S3 credentials from Kubernetes,
+// then build an s3.S3ConnectionOptions value from the extracted credentials.
+//
+// This is DSPA CRD schema knowledge, not S3 domain knowledge. The fields describe
+// where to find credentials, not the credentials themselves.
+type DSPAObjectStorageSpec struct {
+	SecretName     string // K8s Secret holding credentials
+	AccessKeyField string // key within SecretName for the access key ID
+	SecretKeyField string // key within SecretName for the secret access key
+	EndpointURL    string // fully qualified S3-compatible endpoint URL
+	Bucket         string // default bucket from the DSPA spec
+	Region         string // S3-compatible region (defaults to "us-east-1" if empty)
+}

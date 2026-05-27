@@ -19,22 +19,17 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// K8sTokenClient implements Kubernetes operations using user tokens
+// K8sTokenClient implements Kubernetes operations using user tokens.
 type K8sTokenClient struct {
 	Clientset     ClientsetInterface
 	DynamicClient DynamicClientInterface
-	RestConfig    *rest.Config
 }
 
-// K8sTokenClientConfig configures the token-based Kubernetes client.
-type K8sTokenClientConfig struct{}
-
 // NewK8sTokenClient creates a token client with injectable clientset and dynamic client (for testing).
-func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, dynamicClient DynamicClientInterface, restConfig *rest.Config) *K8sTokenClient {
+func NewK8sTokenClient(clientset ClientsetInterface, dynamicClient DynamicClientInterface) *K8sTokenClient {
 	return &K8sTokenClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		RestConfig:    restConfig,
 	}
 }
 
@@ -43,19 +38,15 @@ func NewK8sTokenClient(cfg K8sTokenClientConfig, clientset ClientsetInterface, d
 // Wraps all requests with user token authentication via RoundTripper.
 // The user token is extracted from the request context via IdentityFromContext.
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sTokenClient(cfg K8sTokenClientConfig) (*K8sTokenClient, error) {
-	// Auto-detect in-cluster vs out-of-cluster config
+func NewDefaultK8sTokenClient() (*K8sTokenClient, error) {
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	// Wrap transport to inject user bearer token on every request
 	clientCfg := rest.CopyConfig(baseConfig)
 	clientCfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return &tokenRoundTripper{
-			base: rt,
-		}
+		return &tokenRoundTripper{base: rt}
 	}
 
 	clientset, err := kubernetes.NewForConfig(clientCfg)
@@ -63,7 +54,6 @@ func NewDefaultK8sTokenClient(cfg K8sTokenClientConfig) (*K8sTokenClient, error)
 		return nil, err
 	}
 
-	// Create dynamic client with the same config
 	dynamicClient, err := dynamic.NewForConfig(clientCfg)
 	if err != nil {
 		return nil, err
@@ -72,7 +62,6 @@ func NewDefaultK8sTokenClient(cfg K8sTokenClientConfig) (*K8sTokenClient, error)
 	return &K8sTokenClient{
 		Clientset:     clientset,
 		DynamicClient: dynamicClient,
-		RestConfig:    clientCfg,
 	}, nil
 }
 
@@ -167,7 +156,6 @@ func (c *K8sTokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	// Check wildcard permissions - the defining characteristic of cluster-admin role
 	sar := &authorizationv1.SelfSubjectAccessReview{
 		Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
@@ -209,9 +197,6 @@ func (c *K8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb,
 	return resp.Status.Allowed, nil
 }
 
-// DiscoverResourceGVR discovers the preferred API version for a custom resource
-// by trying known versions in preference order (newer to older).
-// Returns the first working GroupVersionResource or an error if none are available.
 func (c *K8sTokenClient) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
@@ -227,7 +212,6 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 			Resource: resource,
 		}
 
-		// Test with namespace-scoped query (respects RBAC)
 		_, err := c.DynamicClient.Resource(gvr).Namespace(namespace).List(timeoutCtx, metav1.ListOptions{Limit: 1})
 		if err == nil {
 			return gvr, nil
@@ -246,22 +230,17 @@ func (c *K8sTokenClient) DiscoverResourceGVR(
 	}
 }
 
-// getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
-// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
-// This method expects the caller to have already set an appropriate timeout on the context.
+// getNamespacesViaProjectsAPI lists namespaces via the OpenShift Projects API when
+// cluster-wide namespace listing is forbidden. Uses the existing DynamicClient so no
+// additional config or client construction is needed.
 func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
-	dynClient, err := dynamic.NewForConfig(c.RestConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	projectGVR := schema.GroupVersionResource{
 		Group:    "project.openshift.io",
 		Version:  "v1",
 		Resource: "projects",
 	}
 
-	projectList, err := dynClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	projectList, err := c.DynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -291,8 +270,16 @@ func (c *K8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 	return namespaces, nil
 }
 
+// Compile-time interface check.
+var _ K8sClientInterface = (*K8sTokenClient)(nil)
+
+// NewBearerTokenRoundTripper wraps base with a RoundTripper that injects the user's
+// bearer token from the RequestIdentity stored in each request's context.
+func NewBearerTokenRoundTripper(base http.RoundTripper) http.RoundTripper {
+	return &tokenRoundTripper{base: base}
+}
+
 // tokenRoundTripper injects the user's bearer token into all Kubernetes API requests.
-// The token is extracted from the RequestIdentity stored in the request context.
 type tokenRoundTripper struct {
 	base http.RoundTripper
 }

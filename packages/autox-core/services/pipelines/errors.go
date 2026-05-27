@@ -2,13 +2,13 @@ package pipelines
 
 import "errors"
 
-// Sentinel errors for pipeline operations
+// Sentinel errors for pipeline operations.
+// ErrConflict is shared with the kubernetes package — use k8s.ErrConflict.
 var (
-	ErrPipelineRunNotFound    = errors.New("pipeline run not found")
-	ErrPipelineNotFound       = errors.New("pipeline not found")
-	ErrConflict               = errors.New("resource conflict")
-	ErrInvalidInput           = errors.New("invalid input")
-	ErrInvalidRunState        = errors.New("invalid run state for operation")
+	ErrPipelineRunNotFound = errors.New("pipeline run not found")
+	ErrPipelineNotFound    = errors.New("pipeline not found")
+	ErrInvalidInput        = errors.New("invalid input")
+	ErrInvalidRunState     = errors.New("invalid run state for operation")
 )
 
 // KFP v2beta1 run state sets — which states allow which mutations.

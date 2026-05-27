@@ -10,18 +10,23 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// DiscoverReadyDSPA discovers a ready DSPA instance in the namespace.
-// Results are cached per namespace with the same TTL as pipeline discovery.
-func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace string) (string, error) {
+// DiscoverReadyDSPA discovers a ready DSPipelineApplication in the namespace and returns
+// the full discovered DSPA info: API server URL and object storage configuration.
+// Results are cached per namespace with the standard cache TTL.
+//
+// Object storage extraction handles two cases:
+//   - External storage: spec.objectStorage.externalStorage with S3-compatible credentials
+//   - Managed MinIO: spec.objectStorage.minio.deploy=true with conventional naming
+func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("discovering ready DSPA", "namespace", namespace)
 
 	if cached, ok := s.dspaCache.get(namespace); ok {
-		logger.Debug("using cached DSPA URL", "namespace", namespace, "url", cached)
+		logger.Debug("using cached DSPA", "namespace", namespace, "url", cached.APIServerURL)
 		return cached, nil
 	}
 
-	// DSPA CRD has multiple API versions across ODH/RHOAI releases; try newest first
+	// DSPA CRD has multiple API versions across ODH/RHOAI releases; try newest first.
 	dspaGVR, err := s.K8sService.DiscoverResourceGVR(
 		ctx,
 		"datasciencepipelinesapplications.opendatahub.io",
@@ -31,13 +36,13 @@ func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace stri
 	)
 	if err != nil {
 		s.Logger.Error("failed to discover DSPA GVR", "namespace", namespace, "error", err)
-		return "", fmt.Errorf("failed to discover DSPA GVR in namespace %s: %w", namespace, err)
+		return nil, fmt.Errorf("failed to discover DSPA GVR in namespace %s: %w", namespace, err)
 	}
 
 	dspas, err := s.K8sService.ListResources(ctx, dspaGVR, namespace)
 	if err != nil {
 		s.Logger.Error("failed to list DSPAs", "namespace", namespace, "error", err)
-		return "", fmt.Errorf("failed to list DSPAs in namespace %s: %w", namespace, err)
+		return nil, fmt.Errorf("failed to list DSPAs in namespace %s: %w", namespace, err)
 	}
 
 	for _, dspa := range dspas.Items {
@@ -82,16 +87,125 @@ func (s *PipelinesService) DiscoverReadyDSPA(ctx context.Context, namespace stri
 			continue
 		}
 
-		logger.Info("found ready DSPA", "name", dspa.GetName(), "namespace", namespace)
-		s.dspaCache.set(namespace, baseURL)
-		return baseURL, nil
+		dspaName := dspa.GetName()
+		logger.Info("found ready DSPA", "name", dspaName, "namespace", namespace)
+
+		result := &DiscoveredDSPA{
+			Name:          dspaName,
+			Namespace:     namespace,
+			APIServerURL:  baseURL,
+			ObjectStorage: extractObjectStorageSpec(dspa.Object, dspaName, namespace),
+		}
+
+		s.dspaCache.set(namespace, result)
+		return result, nil
 	}
 
-	return "", fmt.Errorf("no ready DSPA found in namespace %s", namespace)
+	return nil, fmt.Errorf("no ready DSPA found in namespace %s", namespace)
+}
+
+// extractObjectStorageSpec extracts the S3-compatible object storage configuration
+// from a DSPA custom resource's spec. Returns nil if no storage is configured.
+//
+// Priority: external storage takes precedence over managed MinIO when both are present.
+func extractObjectStorageSpec(obj map[string]any, dspaName, namespace string) *DSPAObjectStorageSpec {
+	// Check external storage first (takes precedence over managed MinIO).
+	extStorage, found, _ := unstructured.NestedMap(obj, "spec", "objectStorage", "externalStorage")
+	if found && len(extStorage) > 0 {
+		if spec := extractExternalStorageSpec(extStorage); spec != nil {
+			return spec
+		}
+	}
+
+	// Fall back to managed MinIO.
+	minioMap, found, _ := unstructured.NestedMap(obj, "spec", "objectStorage", "minio")
+	if found {
+		deploy, _, _ := unstructured.NestedBool(minioMap, "deploy")
+		if deploy {
+			return buildManagedMinIOSpec(dspaName, namespace, minioMap)
+		}
+	}
+
+	return nil
+}
+
+// extractExternalStorageSpec builds DSPAObjectStorageSpec from the externalStorage map.
+func extractExternalStorageSpec(ext map[string]any) *DSPAObjectStorageSpec {
+	cred, _, _ := unstructured.NestedMap(ext, "s3CredentialSecret")
+	secretName, _, _ := unstructured.NestedString(cred, "secretName")
+	if secretName == "" {
+		// Also try alternate key names used by different DSPA versions.
+		secretName, _, _ = unstructured.NestedString(cred, "name")
+	}
+	if secretName == "" {
+		return nil
+	}
+
+	accessKeyField, _, _ := unstructured.NestedString(cred, "accessKey")
+	if accessKeyField == "" {
+		accessKeyField = "AWS_ACCESS_KEY_ID"
+	}
+	secretKeyField, _, _ := unstructured.NestedString(cred, "secretKey")
+	if secretKeyField == "" {
+		secretKeyField = "AWS_SECRET_ACCESS_KEY"
+	}
+
+	// Construct endpoint URL from scheme + host + optional port.
+	scheme, _, _ := unstructured.NestedString(ext, "scheme")
+	host, _, _ := unstructured.NestedString(ext, "host")
+	port, _, _ := unstructured.NestedString(ext, "port")
+
+	var endpointURL string
+	if host != "" {
+		if scheme == "" {
+			scheme = "https"
+		}
+		if port != "" && port != "443" && port != "80" {
+			endpointURL = fmt.Sprintf("%s://%s:%s", scheme, host, port)
+		} else {
+			endpointURL = fmt.Sprintf("%s://%s", scheme, host)
+		}
+	}
+
+	bucket, _, _ := unstructured.NestedString(ext, "bucket")
+	region, _, _ := unstructured.NestedString(ext, "region")
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	return &DSPAObjectStorageSpec{
+		SecretName:     secretName,
+		AccessKeyField: accessKeyField,
+		SecretKeyField: secretKeyField,
+		EndpointURL:    endpointURL,
+		Bucket:         bucket,
+		Region:         region,
+	}
+}
+
+// buildManagedMinIOSpec constructs DSPAObjectStorageSpec for a managed MinIO deployment.
+// The DSPA operator creates credentials in a conventionally-named secret and exposes
+// MinIO at a conventionally-named in-cluster endpoint.
+func buildManagedMinIOSpec(dspaName, namespace string, minioMap map[string]any) *DSPAObjectStorageSpec {
+	bucket, _, _ := unstructured.NestedString(minioMap, "bucket")
+	if bucket == "" {
+		bucket = "mlpipeline"
+	}
+
+	secretName := fmt.Sprintf("ds-pipeline-s3-%s", dspaName)
+	endpointURL := fmt.Sprintf("http://minio-%s.%s.svc.cluster.local:9000", dspaName, namespace)
+
+	return &DSPAObjectStorageSpec{
+		SecretName:     secretName,
+		AccessKeyField: "AWS_ACCESS_KEY_ID",
+		SecretKeyField: "AWS_SECRET_ACCESS_KEY",
+		EndpointURL:    endpointURL,
+		Bucket:         bucket,
+		Region:         "us-east-1",
+	}
 }
 
 // validateDSPAURL ensures the base URL is safe to use as a pipeline server endpoint.
-// Blocks cloud metadata endpoints, loopback, link-local, and non-HTTP schemes.
 func validateDSPAURL(rawURL string) error {
 	parsed, err := url.Parse(rawURL)
 	if err != nil {

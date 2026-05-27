@@ -59,12 +59,16 @@ type DefaultK8sClientConfig struct {
 	AuthMethod string
 }
 
+// Compile-time interface checks.
+var _ ClientsetInterface = (*kubernetes.Clientset)(nil)
+var _ DynamicClientInterface = (*dynamic.DynamicClient)(nil)
+
 // NewDefaultK8sClient creates a Kubernetes client based on the configured auth method.
 // Returns K8sTokenClient for "user_token" auth, K8sInternalClient otherwise.
 // For user_token auth, the token is extracted from the request context via IdentityFromContext.
 func NewDefaultK8sClient(cfg DefaultK8sClientConfig) (K8sClientInterface, error) {
 	if cfg.AuthMethod == "user_token" {
-		return NewDefaultK8sTokenClient(K8sTokenClientConfig{})
+		return NewDefaultK8sTokenClient()
 	}
-	return NewDefaultK8sInternalClient(K8sInternalClientConfig{})
+	return NewDefaultK8sInternalClient()
 }
