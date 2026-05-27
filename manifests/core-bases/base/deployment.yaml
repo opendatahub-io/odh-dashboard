@@ -37,23 +37,33 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
+              memory: 1Gi
               ephemeral-storage: 50Mi
             limits:
-              memory: 2Gi
+              memory: 1Gi
           livenessProbe:
-            tcpSocket:
-              port: 8080
+            exec:
+              command:
+                - curl
+                - -f
+                - -s
+                - --max-time
+                - "10"
+                - http://127.0.0.1:8080/
             initialDelaySeconds: 30
             timeoutSeconds: 15
             periodSeconds: 30
             successThreshold: 1
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 8080
-              scheme: HTTP
+            exec:
+              command:
+                - curl
+                - -f
+                - -s
+                - --max-time
+                - "10"
+                - http://127.0.0.1:8080/api/health
             initialDelaySeconds: 30
             timeoutSeconds: 15
             periodSeconds: 30
@@ -113,10 +123,10 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 2Gi
+              memory: 1Gi
               ephemeral-storage: 10Mi
             limits:
-              memory: 2Gi
+              memory: 1Gi
           volumeMounts:
             - mountPath: /etc/tls/private
               name: proxy-tls

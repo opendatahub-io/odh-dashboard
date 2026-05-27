@@ -6,6 +6,7 @@ import useFetchLlamaModels from '~/app/hooks/useFetchLlamaModels';
 import { getAAModels } from '~/app/services/llamaStackService';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
+import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 
 // Mock utilities/const to avoid asEnumMember error
 jest.mock('~/app/utilities/const', () => ({
@@ -30,12 +31,16 @@ jest.mock('~/app/services/llamaStackService', () => ({
   getAAModels: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled');
+
 const mockUseFetchState = jest.mocked(useFetchState);
 const mockGetModels = jest.mocked(getAAModels);
+const mockUseChatPlaygroundEnabled = jest.mocked(useChatPlaygroundEnabled);
 
 describe('useFetchLlamaModels', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseChatPlaygroundEnabled.mockReturnValue(true);
   });
 
   it('should return error when no project is selected', async () => {
@@ -107,6 +112,21 @@ describe('useFetchLlamaModels', () => {
       expect(data).toEqual([]);
       expect(loaded).toBe(false);
       expect(error).toBeUndefined();
+    });
+  });
+
+  it('should return NotReadyError when playground is disabled', async () => {
+    mockUseChatPlaygroundEnabled.mockReturnValue(false);
+    const mockError = new Error('Playground is not enabled');
+    mockError.name = 'NotReadyError';
+    mockUseFetchState.mockReturnValue([[], false, mockError, jest.fn()]);
+
+    const { result } = testHook(useFetchLlamaModels)();
+
+    await waitFor(() => {
+      const { error } = result.current;
+      expect(error?.message).toBe('Playground is not enabled');
+      expect(error?.name).toBe('NotReadyError');
     });
   });
 });
