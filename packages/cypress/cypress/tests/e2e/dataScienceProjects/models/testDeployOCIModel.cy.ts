@@ -158,7 +158,7 @@ describe(
 
         // Early failure detection before waiting for full readiness
         cy.then(() => {
-          assertModelDeploymentHealthy(resourceName, projectName);
+          assertModelDeploymentHealthy(modelDeploymentName);
         });
 
         cy.step('Verify that the Model is running');
@@ -229,7 +229,7 @@ describe(
 
         // Early failure detection before waiting for full readiness
         cy.then(() => {
-          assertModelDeploymentHealthy(resourceName, projectName);
+          assertModelDeploymentHealthy(modelDeploymentName);
         });
 
         cy.step('Verify that the Model is running');

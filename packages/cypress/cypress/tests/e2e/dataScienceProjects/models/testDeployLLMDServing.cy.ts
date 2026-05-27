@@ -176,7 +176,7 @@ describe('A user can deploy an LLMD model', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       cy.step('Verify that the Model is ready');
@@ -235,7 +235,7 @@ describe('A user can deploy an LLMD model', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(yamlEditorModelName, projectName);
+        assertModelDeploymentHealthy(yamlEditorModelName);
       });
 
       cy.then(() => {

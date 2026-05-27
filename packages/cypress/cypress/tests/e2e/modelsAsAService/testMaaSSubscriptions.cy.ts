@@ -221,7 +221,7 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       cy.step('Verify LLMInferenceService exists in the project namespace');

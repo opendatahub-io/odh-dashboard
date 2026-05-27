@@ -123,7 +123,7 @@ describe('A model can be deployed with token auth', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(testData.singleModelName);
       });
 
       // Verify the model created
@@ -196,7 +196,7 @@ describe('A model can be deployed with token auth', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(testData.singleModelName);
       });
 
       cy.step('Verify that the Model is running');

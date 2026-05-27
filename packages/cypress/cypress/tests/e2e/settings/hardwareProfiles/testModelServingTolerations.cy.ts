@@ -172,7 +172,7 @@ describe('ModelServing - tolerations tests', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       //Verify the model created

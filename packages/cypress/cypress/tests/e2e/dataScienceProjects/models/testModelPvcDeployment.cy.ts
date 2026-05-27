@@ -188,7 +188,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       // Verify the model created and is running

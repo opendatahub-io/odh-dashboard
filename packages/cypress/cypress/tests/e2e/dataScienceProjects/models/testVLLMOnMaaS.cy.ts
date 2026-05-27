@@ -145,7 +145,7 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       cy.step('Verify LLMInferenceService exists in the project namespace');

@@ -147,7 +147,7 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(testData.singleModelAdminName);
       });
 
       //Verify the model created

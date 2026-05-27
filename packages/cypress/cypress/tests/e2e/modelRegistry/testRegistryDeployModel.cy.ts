@@ -234,7 +234,7 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Early failure detection before waiting for full readiness
       cy.then(() => {
-        assertModelDeploymentHealthy(resourceName, projectName);
+        assertModelDeploymentHealthy(modelName);
       });
 
       // Verify model deployment is ready
