@@ -1,5 +1,5 @@
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR';
-import { NIMAccountModel } from './k8s';
+import { NIMAccountModel } from '../../api/accounts/k8s';
 
 type UseNIMSettingsAccessAllowedResult = {
   loaded: boolean;

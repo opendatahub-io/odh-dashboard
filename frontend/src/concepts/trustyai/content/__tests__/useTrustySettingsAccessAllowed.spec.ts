@@ -1,6 +1,6 @@
 import { testHook } from '@odh-dashboard/jest-config/hooks';
 import { useAccessAllowed } from '#~/concepts/userSSAR';
-import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/useTrustySettingsAccessAllowed';
+import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/content/useTrustySettingsAccessAllowed';
 
 jest.mock('#~/concepts/userSSAR', () => ({
   useAccessAllowed: jest.fn(),

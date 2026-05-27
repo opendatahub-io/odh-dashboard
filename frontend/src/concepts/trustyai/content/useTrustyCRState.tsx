@@ -8,7 +8,7 @@ import {
   SplitItem,
 } from '@patternfly/react-core';
 import useManageTrustyAICR from '#~/concepts/trustyai/useManageTrustyAICR';
-import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/useTrustySettingsAccessAllowed';
+import { useTrustySettingsAccessAllowed } from '#~/concepts/trustyai/content/useTrustySettingsAccessAllowed';
 import { TrustyInstallState } from '#~/concepts/trustyai/types';
 import TrustyAIInstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIInstalledState';
 import TrustyAIUninstalledState from '#~/concepts/trustyai/content/statusStates/TrustyAIUninstalledState';
