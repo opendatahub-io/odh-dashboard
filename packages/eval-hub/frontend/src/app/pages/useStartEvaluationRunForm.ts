@@ -63,6 +63,16 @@ export function useStartEvaluationRunForm({
     defaultPrimaryMetric,
   );
 
+  React.useEffect(() => {
+    if (!thresholdTouched) {
+      setThreshold(defaultThreshold);
+    }
+  }, [defaultThreshold, thresholdTouched]);
+
+  React.useEffect(() => {
+    setPrimaryMetric(defaultPrimaryMetric);
+  }, [defaultPrimaryMetric]);
+
   const handleThresholdChange = React.useCallback((value: number) => {
     setThreshold(value);
     setThresholdTouched(true);
