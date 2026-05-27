@@ -119,7 +119,7 @@ describe('ModelTypeSelectField', () => {
     });
 
     it('should render with default props', () => {
-      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [] } }} />);
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: false } }} />);
       expect(screen.getByRole('button')).toBeInTheDocument();
       expect(screen.getByText('Select model type')).toBeInTheDocument();
     });
@@ -128,7 +128,7 @@ describe('ModelTypeSelectField', () => {
       render(
         <ModelTypeSelectField
           modelType={{ type: ServingRuntimeModelType.PREDICTIVE, legacyVLLM: false }}
-          externalData={{ data: { extraOptions: [] } }}
+          externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
       expect(screen.getByText(ModelTypeLabel.PREDICTIVE)).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe('ModelTypeSelectField', () => {
       render(
         <ModelTypeSelectField
           setModelType={mockSetModelType}
-          externalData={{ data: { extraOptions: [] } }}
+          externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
       const button = screen.getByRole('button');
@@ -168,14 +168,14 @@ describe('ModelTypeSelectField', () => {
       render(
         <ModelTypeSelectField
           validationIssues={validationIssues}
-          externalData={{ data: { extraOptions: [] } }}
+          externalData={{ data: { extraOptions: [], forced: false } }}
         />,
       );
       expect(screen.getByText('Select a model type.')).toBeInTheDocument();
     });
 
     it('should render both model type options', async () => {
-      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [] } }} />);
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: false } }} />);
       const button = screen.getByRole('button');
 
       await act(async () => {
@@ -190,7 +190,7 @@ describe('ModelTypeSelectField', () => {
       render(
         <ModelTypeSelectField
           externalData={{
-            data: { extraOptions: [{ key: 'extra-option', label: 'Extra Option' }] },
+            data: { extraOptions: [{ key: 'extra-option', label: 'Extra Option' }], forced: false },
           }}
         />,
       );

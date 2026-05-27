@@ -140,7 +140,7 @@ export const mockDeploymentWizardState = (
         modelType: {
           data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           setData: jest.fn(),
-          externalData: { data: { extraOptions: [] as SimpleSelectOption[] } },
+          externalData: { data: { extraOptions: [] as SimpleSelectOption[], forced: false } },
         },
         modelLocationData: {
           data: undefined,
