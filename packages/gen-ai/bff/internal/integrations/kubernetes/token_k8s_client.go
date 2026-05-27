@@ -1376,6 +1376,18 @@ func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity 
 			Name:  "SENTENCE_TRANSFORMERS_HOME",
 			Value: "/opt/app-root/src/.cache/huggingface/hub",
 		},
+		{
+			Name:  "HF_HUB_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "TRANSFORMERS_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "HF_DATASETS_OFFLINE",
+			Value: "1",
+		},
 	}
 
 	// Add per-model token and max_tokens environment variables
