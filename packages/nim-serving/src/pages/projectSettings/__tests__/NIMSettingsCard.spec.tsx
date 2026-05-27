@@ -60,6 +60,19 @@ describe('NIMSettingsCard', () => {
     expect(screen.queryByTestId('nim-enable-button')).not.toBeInTheDocument();
   });
 
+  it('should show skeleton for buttons but keep status visible while RBAC loads in ERROR state', () => {
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: false, allowed: undefined });
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.ERROR,
+      errorMessages: ['API key validation failed'],
+    });
+    render(<NIMSettingsCard namespace="test-ns" />);
+    expect(screen.getByTestId('nim-permissions-loading')).toBeInTheDocument();
+    expect(screen.getByText('API key validation failed')).toBeInTheDocument();
+    expect(screen.queryByTestId('nim-remove-button')).not.toBeInTheDocument();
+  });
+
   it('should show enabled button when user has all permissions and account is NOT_FOUND', () => {
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
     render(<NIMSettingsCard namespace="test-ns" />);
