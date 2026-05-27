@@ -1422,6 +1422,72 @@ func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
 		assert.Equal(t, "my-llm-service", result[0].ModelName)
 	})
 
+	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		emptyName := ""
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &emptyName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
+	t.Run("whitespace-only Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		whitespaceName := "   "
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &whitespaceName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
 	t.Run("non-nil Spec.Model.Name is used as ModelID", func(t *testing.T) {
 		llmSvc := &kservev1alpha1.LLMInferenceService{
 			ObjectMeta: metav1.ObjectMeta{

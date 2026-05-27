@@ -846,7 +846,7 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
 		modelID := llmSvc.Name
-		if llmSvc.Spec.Model.Name != nil {
+		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
 		}
 		aaModel := models.AAModel{
@@ -2082,7 +2082,7 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 
 		// Use the actual model name from LLMInferenceService spec instead of service name
 		actualModelName := modelID
-		if targetLLMSVC.Spec.Model.Name != nil {
+		if targetLLMSVC.Spec.Model.Name != nil && strings.TrimSpace(*targetLLMSVC.Spec.Model.Name) != "" {
 			actualModelName = *targetLLMSVC.Spec.Model.Name
 		}
 		kc.Logger.Debug("using LLMInferenceService for model", "serviceName", modelID, "actualModelName", actualModelName, "endpoint", endpointURL)
