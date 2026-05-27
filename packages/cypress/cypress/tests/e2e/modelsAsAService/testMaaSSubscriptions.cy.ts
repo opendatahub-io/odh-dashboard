@@ -52,7 +52,10 @@ import {
   cleanupLLMInferenceServiceConfig,
   checkLLMInferenceServiceConfigState,
 } from '../../../utils/oc_commands/llmInferenceServiceConfig';
-import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
+import {
+  assertModelDeploymentHealthy,
+  checkLLMInferenceServiceState,
+} from '../../../utils/oc_commands/modelServing';
 
 let testData: DataScienceProjectData;
 let projectName: string;
@@ -215,6 +218,11 @@ describe('A model can be deployed and accessed with a MaaS subscription and API 
 
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       cy.step('Verify LLMInferenceService exists in the project namespace');
       cy.then(() => {

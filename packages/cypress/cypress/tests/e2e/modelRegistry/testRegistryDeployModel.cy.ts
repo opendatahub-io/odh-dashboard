@@ -25,7 +25,10 @@ import type { ModelRegistryTestData } from '../../../types';
 import { modelVersionDeployModal } from '../../../pages/modelRegistry/modelVersionDeployModal';
 import { clickRegisterModelButton } from '../../../utils/modelRegistryUtils';
 import { modelServingWizard } from '../../../pages/modelServing';
-import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServing';
+import {
+  assertModelDeploymentHealthy,
+  checkInferenceServiceState,
+} from '../../../utils/oc_commands/modelServing';
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
@@ -228,6 +231,11 @@ describe('Verify models can be deployed from model registry', () => {
       modelRegistry
         .getDeploymentRow(`${modelName} - ${testData.version1Name}`)
         .should('be.visible');
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       // Verify model deployment is ready
       cy.step('Verify the model is deployed and started in backend');

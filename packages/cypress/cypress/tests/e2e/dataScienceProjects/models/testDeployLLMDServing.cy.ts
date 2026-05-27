@@ -23,7 +23,10 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  assertModelDeploymentHealthy,
+  checkLLMInferenceServiceState,
+} from '../../../../utils/oc_commands/modelServing';
 import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
@@ -171,6 +174,11 @@ describe('A user can deploy an LLMD model', () => {
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
+
       cy.step('Verify that the Model is ready');
       // Image was patched in YAML editor before submit, so no post-deployment patching needed
       cy.then(() => {
@@ -224,6 +232,12 @@ describe('A user can deploy an LLMD model', () => {
       modelServingWizard.findYAMLCodeEditor().waitForReady();
       modelServingWizard.findSubmitButton().should('be.enabled').click();
       const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(yamlEditorModelName, projectName);
+      });
+
       cy.then(() => {
         checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
       });

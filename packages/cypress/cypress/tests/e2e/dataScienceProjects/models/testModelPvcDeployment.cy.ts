@@ -9,6 +9,7 @@ import {
 } from '../../../../pages/modelServing';
 import { AWS_BUCKETS } from '../../../../utils/s3Buckets';
 import {
+  assertModelDeploymentHealthy,
   checkInferenceServiceState,
   provisionProjectForModelServing,
   verifyS3CopyCompleted,
@@ -184,6 +185,11 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       // Verify the model created and is running
       cy.step('Verify that the Model is running');

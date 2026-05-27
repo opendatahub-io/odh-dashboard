@@ -15,6 +15,7 @@ import { loadDSPFixture } from '../../../../utils/dataLoader';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import {
+  assertModelDeploymentHealthy,
   checkInferenceServiceState,
   modelExternalTester,
   provisionProjectForModelServing,
@@ -120,6 +121,11 @@ describe('A model can be deployed with token auth', () => {
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
 
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
+
       // Verify the model created
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
@@ -187,6 +193,11 @@ describe('A model can be deployed with token auth', () => {
       // Submit
       modelServingWizardEdit.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       cy.step('Verify that the Model is running');
       cy.then(() => {

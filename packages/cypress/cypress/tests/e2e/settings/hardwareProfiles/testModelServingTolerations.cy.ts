@@ -14,6 +14,7 @@ import {
   modelServingWizard,
 } from '../../../../pages/modelServing';
 import {
+  assertModelDeploymentHealthy,
   checkInferenceServiceState,
   provisionProjectForModelServing,
   validateInferenceServiceTolerations,
@@ -168,6 +169,11 @@ describe('ModelServing - tolerations tests', () => {
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(modelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');

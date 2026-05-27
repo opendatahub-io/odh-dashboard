@@ -718,3 +718,151 @@ export const verifyModelExternalToken = (
     return makeRequest();
   });
 };
+
+/**
+ * Gather diagnostic information for a failed model deployment.
+ * Collects InferenceService conditions, pod states, container logs, and events.
+ */
+const gatherDeploymentDiagnostics = (
+  serviceName: string,
+  namespace: string,
+): Cypress.Chainable<string> => {
+  const diagnostics: string[] = [`\n========== DEPLOYMENT FAILURE DIAGNOSTICS ==========`];
+  diagnostics.push(`Service: ${serviceName}, Namespace: ${namespace}\n`);
+
+  return cy
+    .exec(`oc get InferenceService ${serviceName} -n ${namespace} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((isvcResult) => {
+      diagnostics.push(`--- InferenceService Status ---`);
+      if (isvcResult.exitCode === 0 && isvcResult.stdout.trim()) {
+        try {
+          const isvc = JSON.parse(isvcResult.stdout);
+          const conditions = isvc.status?.conditions || [];
+          conditions.forEach((c: InferenceServiceCondition) => {
+            diagnostics.push(
+              `  ${c.type}: status=${c.status}, reason=${c.reason || 'N/A'}, message=${
+                c.message || 'N/A'
+              }`,
+            );
+          });
+          const activeState = isvc.status?.modelStatus?.states?.activeModelState || 'N/A';
+          diagnostics.push(`  ActiveModelState: ${activeState}`);
+        } catch {
+          diagnostics.push(`  Failed to parse InferenceService JSON`);
+        }
+      } else {
+        diagnostics.push(`  Could not retrieve InferenceService: ${isvcResult.stderr}`);
+      }
+
+      return cy.exec(
+        `oc get pods -n ${namespace} -l serving.kserve.io/inferenceservice=${serviceName} -o json`,
+        { failOnNonZeroExit: false },
+      );
+    })
+    .then((podsResult) => {
+      diagnostics.push(`\n--- Pod States ---`);
+      if (podsResult.exitCode === 0 && podsResult.stdout.trim()) {
+        try {
+          const pods = JSON.parse(podsResult.stdout);
+          const items = pods.items || [];
+          if (items.length === 0) {
+            diagnostics.push(`  No pods found for InferenceService ${serviceName}`);
+          }
+          items.forEach(
+            (pod: {
+              metadata: { name: string };
+              status: {
+                phase: string;
+                containerStatuses?: {
+                  name: string;
+                  ready: boolean;
+                  state: Record<string, { reason?: string; message?: string }>;
+                }[];
+              };
+            }) => {
+              diagnostics.push(`  Pod: ${pod.metadata.name}, Phase: ${pod.status.phase}`);
+              (pod.status.containerStatuses || []).forEach((cs) => {
+                const stateKey = Object.keys(cs.state)[0] || 'unknown';
+                const stateDetail = cs.state[stateKey];
+                diagnostics.push(
+                  `    Container: ${cs.name}, Ready: ${cs.ready}, State: ${stateKey}, Reason: ${
+                    stateDetail.reason || 'N/A'
+                  }`,
+                );
+              });
+            },
+          );
+        } catch {
+          diagnostics.push(`  Failed to parse pods JSON`);
+        }
+      } else {
+        diagnostics.push(`  Could not retrieve pods: ${podsResult.stderr}`);
+      }
+
+      return cy.exec(
+        `oc logs -n ${namespace} -l serving.kserve.io/inferenceservice=${serviceName} --all-containers --tail=30 2>&1 || true`,
+        { failOnNonZeroExit: false },
+      );
+    })
+    .then((logsResult) => {
+      diagnostics.push(`\n--- Container Logs (last 30 lines) ---`);
+      diagnostics.push(logsResult.stdout || '  No logs available');
+
+      return cy.exec(
+        `oc get events -n ${namespace} --field-selector involvedObject.name=${serviceName} --sort-by='.lastTimestamp' 2>&1 | tail -20 || true`,
+        { failOnNonZeroExit: false },
+      );
+    })
+    .then((eventsResult) => {
+      diagnostics.push(`\n--- Events ---`);
+      diagnostics.push(eventsResult.stdout || '  No events found');
+      diagnostics.push(`\n========== END DIAGNOSTICS ==========\n`);
+
+      const fullDiagnostics = diagnostics.join('\n');
+      return cy.wrap(fullDiagnostics);
+    });
+};
+
+/**
+ * Assert that a model deployment has not entered a "Failed" state.
+ * Call this after the deployment wizard submits and the model name appears in the UI.
+ * If the UI shows "Failed", waits 10s and re-checks (transient state protection).
+ * On confirmed failure, gathers diagnostics and throws a meaningful error.
+ *
+ * @param serviceName The InferenceService resource name
+ * @param namespace The namespace where the InferenceService is deployed
+ */
+export const assertModelDeploymentHealthy = (serviceName: string, namespace: string): void => {
+  cy.get('body').then(($body) => {
+    const statusElements = $body.find('[data-testid="model-status-text"]');
+    const hasFailed = statusElements.toArray().some((el) => el.textContent.includes('Failed'));
+
+    if (!hasFailed) {
+      cy.log(`✅ No "Failed" status detected for ${serviceName} — proceeding`);
+      return;
+    }
+
+    cy.log(`⚠️ "Failed" status detected for ${serviceName} — waiting 10s and re-checking...`);
+    cy.wait(10000);
+
+    cy.get('body').then(($bodyRetry) => {
+      const retryElements = $bodyRetry.find('[data-testid="model-status-text"]');
+      const stillFailed = retryElements.toArray().some((el) => el.textContent.includes('Failed'));
+
+      if (!stillFailed) {
+        cy.log(`✅ "Failed" status resolved after retry for ${serviceName} — proceeding`);
+        return;
+      }
+
+      cy.log(`❌ "Failed" status confirmed for ${serviceName} — gathering diagnostics...`);
+      gatherDeploymentDiagnostics(serviceName, namespace).then((diagnosticOutput) => {
+        cy.log(diagnosticOutput);
+        throw new Error(
+          `Model deployment "${serviceName}" in namespace "${namespace}" entered Failed state.\n${diagnosticOutput}`,
+        );
+      });
+    });
+  });
+};

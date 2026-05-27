@@ -27,7 +27,10 @@ import {
   cleanupLLMInferenceServiceConfig,
   checkLLMInferenceServiceConfigState,
 } from '../../../../utils/oc_commands/llmInferenceServiceConfig';
-import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  assertModelDeploymentHealthy,
+  checkLLMInferenceServiceState,
+} from '../../../../utils/oc_commands/modelServing';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
 
 let testData: DataScienceProjectData;
@@ -139,6 +142,11 @@ describe('A user can deploy a model via vLLM on MaaS (LLMInferenceServiceConfig)
 
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       cy.step('Verify LLMInferenceService exists in the project namespace');
       cy.then(() => {

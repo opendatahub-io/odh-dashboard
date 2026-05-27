@@ -15,6 +15,7 @@ import {
   modelServingWizardEdit,
 } from '../../../../pages/modelServing';
 import {
+  assertModelDeploymentHealthy,
   checkInferenceServiceState,
   modelExternalTester,
   verifyModelExternalToken,
@@ -155,6 +156,11 @@ describe(
         modelServingWizard.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
 
+        // Early failure detection before waiting for full readiness
+        cy.then(() => {
+          assertModelDeploymentHealthy(resourceName, projectName);
+        });
+
         cy.step('Verify that the Model is running');
         cy.then(() => {
           checkInferenceServiceState(resourceName, projectName, { checkReady: true });
@@ -220,6 +226,11 @@ describe(
         // Submit the changes
         modelServingWizardEdit.findSubmitButton().click();
         modelServingSection.findModelServerDeployedName(modelDeploymentName);
+
+        // Early failure detection before waiting for full readiness
+        cy.then(() => {
+          assertModelDeploymentHealthy(resourceName, projectName);
+        });
 
         cy.step('Verify that the Model is running');
         cy.then(() => {

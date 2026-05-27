@@ -14,7 +14,10 @@ import {
   modelServingSection,
   modelServingWizard,
 } from '../../../../pages/modelServing';
-import { checkInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import {
+  assertModelDeploymentHealthy,
+  checkInferenceServiceState,
+} from '../../../../utils/oc_commands/modelServing';
 import { retryableBefore } from '../../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import { MODEL_STATUS_TIMEOUT } from '../../../../support/timeouts';
@@ -141,6 +144,11 @@ describe('Verify Admin Single Model Creation and Validation using the UI', () =>
       cy.step('Step 4: Review');
       modelServingWizard.findSubmitButton().click();
       modelServingSection.findModelServerDeployedName(testData.singleModelAdminName);
+
+      // Early failure detection before waiting for full readiness
+      cy.then(() => {
+        assertModelDeploymentHealthy(resourceName, projectName);
+      });
 
       //Verify the model created
       cy.step('Verify that the Model is created Successfully on the backend and frontend');
