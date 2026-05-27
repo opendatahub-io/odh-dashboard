@@ -126,7 +126,7 @@ export function useCreatePipelineRunMutation(
             run_id: z.string(),
             display_name: z.string(),
             created_at: z.string(),
-            state: z.enum(RuntimeStateKF),
+            state: z.enum(RuntimeStateKF).or(z.literal('')),
             experiment_id: z.string().optional(),
             storage_state: z.string().optional(),
             description: z.string().optional(),
