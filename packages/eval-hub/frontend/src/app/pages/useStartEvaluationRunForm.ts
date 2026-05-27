@@ -62,6 +62,7 @@ export function useStartEvaluationRunForm({
   const [primaryMetric, setPrimaryMetric] = React.useState<string | undefined>(
     defaultPrimaryMetric,
   );
+  const [primaryMetricTouched, setPrimaryMetricTouched] = React.useState(false);
 
   React.useEffect(() => {
     if (!thresholdTouched) {
@@ -70,8 +71,10 @@ export function useStartEvaluationRunForm({
   }, [defaultThreshold, thresholdTouched]);
 
   React.useEffect(() => {
-    setPrimaryMetric(defaultPrimaryMetric);
-  }, [defaultPrimaryMetric]);
+    if (!primaryMetricTouched) {
+      setPrimaryMetric(defaultPrimaryMetric);
+    }
+  }, [defaultPrimaryMetric, primaryMetricTouched]);
 
   const handleThresholdChange = React.useCallback((value: number) => {
     setThreshold(value);
@@ -80,6 +83,7 @@ export function useStartEvaluationRunForm({
 
   const handlePrimaryMetricChange = React.useCallback((metric: string) => {
     setPrimaryMetric(metric);
+    setPrimaryMetricTouched(true);
   }, []);
 
   const [evaluationName, setEvaluationName] = React.useState(() =>
