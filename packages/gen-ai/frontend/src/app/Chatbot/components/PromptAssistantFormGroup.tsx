@@ -18,6 +18,7 @@ import {
   useChatbotConfigStore,
   selectActivePrompt,
   selectDirtyPrompt,
+  selectVariableValues,
   DEFAULT_CONFIG_ID,
 } from '~/app/Chatbot/store';
 import { usePlaygroundStore } from '~/app/Chatbot/store/usePlaygroundStore';
@@ -25,6 +26,7 @@ import { MLflowPromptVersion } from '~/app/types';
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
 import { useConfirmation } from '~/app/Chatbot/hooks/useConfirmation';
 import { usePromptEdited } from '~/app/Chatbot/hooks/usePromptEdited';
+import PromptVariableInputPanel from '~/app/Chatbot/components/PromptVariableInputPanel';
 
 type PromptAssistantFormGroupProps = {
   configId?: string;
@@ -56,6 +58,8 @@ export default function PromptAssistantFormGroup({
   const updateDirtyPrompt = useChatbotConfigStore((state) => state.updateDirtyPrompt);
   const resetDirtyPrompt = useChatbotConfigStore((state) => state.resetDirtyPrompt);
   const clearPromptState = useChatbotConfigStore((state) => state.clearPromptState);
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const updateVariableValues = useChatbotConfigStore((state) => state.updateVariableValues);
   const [editMode, setEditMode] = React.useState(true);
   const activeTemplate =
     activePrompt?.template ??
@@ -179,6 +183,11 @@ export default function PromptAssistantFormGroup({
             aria-label="Prompt instructions input"
             rows={18}
             data-testid="system-instructions-input"
+          />
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
           />
           {!editMode && (
             <Flex>
