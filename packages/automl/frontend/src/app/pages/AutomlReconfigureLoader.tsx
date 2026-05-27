@@ -15,7 +15,12 @@ import { createConfigureSchema, type ConfigureSchema } from '~/app/schemas/confi
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import { REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
-import { generateReconfigureName, getTaskType, parseErrorStatus } from '~/app/utilities/utils';
+import {
+  generateReconfigureName,
+  getTaskType,
+  parseErrorStatus,
+  resolvePresetFromBackend,
+} from '~/app/utilities/utils';
 import AutomlConfigurePage from './AutomlConfigurePage';
 
 const configureBasePartial = createConfigureSchema().base.partial();
@@ -188,6 +193,10 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
     target_column: targetColumn,
+    ...(parsed.preset != null &&
+      taskType != null && {
+        preset: resolvePresetFromBackend(String(parsed.preset), taskType),
+      }),
   };
   /* eslint-enable camelcase */
 

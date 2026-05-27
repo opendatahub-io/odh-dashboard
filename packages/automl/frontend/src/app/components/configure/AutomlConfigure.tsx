@@ -29,6 +29,7 @@ import {
   MultipleFileUpload,
   MultipleFileUploadMain,
   NumberInput,
+  Radio,
   Select,
   SelectList,
   SelectOption,
@@ -68,6 +69,10 @@ import {
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
+  PRESET_AUTOGLUON_VALUES,
+  PRESET_BETTER_QUALITY,
+  PRESET_FASTER,
+  PRESET_LABELS,
   TASK_TYPE_BINARY,
   TASK_TYPE_LABELS,
   TASK_TYPE_MULTICLASS,
@@ -987,6 +992,40 @@ function AutomlConfigure({
                         isFileSelected={isFileSelected}
                         formIsSubmitting={formIsSubmitting}
                       />
+                    )}
+
+                    {isTaskTypeSelected && (
+                      <StackItem className="automl-configure__form-field">
+                        <ConfigureFormGroup
+                          label="Run preset"
+                          labelHelp={{
+                            header: 'Run preset',
+                            body: 'Controls whether to prioritize pipeline run time or model performance. Faster completes sooner and uses fewer resources; Better quality uses more resources for stronger accuracy.',
+                          }}
+                        >
+                          <Controller
+                            control={form.control}
+                            name="preset"
+                            render={({ field }) => (
+                              <Stack>
+                                {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
+                                  <Radio
+                                    key={preset}
+                                    id={`preset-${preset}`}
+                                    name="preset"
+                                    label={PRESET_LABELS[preset]}
+                                    description={PRESET_AUTOGLUON_VALUES[preset][taskType]}
+                                    isChecked={field.value === preset}
+                                    isDisabled={formIsSubmitting}
+                                    onChange={() => field.onChange(preset)}
+                                    data-testid={`preset-radio-${preset}`}
+                                  />
+                                ))}
+                              </Stack>
+                            )}
+                          />
+                        </ConfigureFormGroup>
+                      </StackItem>
                     )}
 
                     {isTaskTypeSelected && (
