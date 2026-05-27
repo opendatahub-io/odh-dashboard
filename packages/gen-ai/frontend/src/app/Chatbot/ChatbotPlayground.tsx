@@ -276,9 +276,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   React.useEffect(() => {
     const shouldClear = Boolean(
       location.state?.mcpServers ||
-      location.state?.model ||
-      location.state?.mcpServerStatuses ||
-      location.state?.openSettingsToTab,
+        location.state?.model ||
+        location.state?.mcpServerStatuses ||
+        location.state?.openSettingsToTab,
     );
     if (shouldClear) {
       const timeoutId = setTimeout(() => window.history.replaceState({}, ''), 100);
