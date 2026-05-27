@@ -23,10 +23,10 @@ import {
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
-import { isTerminalState } from '~/app/hooks/queries';
 import { TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
+import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+
 import './AutomlInputParametersPanel.scss';
-import { RuntimeStateKF } from '~/app/types/pipeline.ts';
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
 const EXCLUDED_KEYS = new Set(['display_name']);
@@ -149,12 +149,12 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
 
   let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
     'unavailable';
-  if (pipelineRun?.state === RuntimeStateKF.SUCCEEDED && !modelsBasePath) {
-    pipelineServerOutputDirVariant = 'loading';
-  } else if (modelsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state)) {
-    pipelineServerOutputDirVariant = 'waiting';
-  } else if (modelsBasePath) {
+  if (modelsBasePath) {
     pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !modelsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (modelsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
   }
 
   return (

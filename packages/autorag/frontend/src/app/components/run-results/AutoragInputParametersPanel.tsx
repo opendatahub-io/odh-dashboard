@@ -24,10 +24,9 @@ import {
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { isTerminalState } from '~/app/hooks/queries';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import './AutoragInputParametersPanel.scss';
-import { RuntimeStateKF } from '~/app/types/pipeline.ts';
+import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 /** Keys that are handled by the special "Model configuration" entry. */
 const MODEL_KEYS = new Set(['generation_models', 'embedding_models']);
@@ -179,12 +178,12 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
 
   let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
     'unavailable';
-  if (pipelineRun?.state === RuntimeStateKF.SUCCEEDED && !ragPatternsBasePath) {
-    pipelineServerOutputDirVariant = 'loading';
-  } else if (patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state)) {
-    pipelineServerOutputDirVariant = 'waiting';
-  } else if (ragPatternsBasePath) {
+  if (ragPatternsBasePath) {
     pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (patternsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
   }
 
   const generationModels = Array.isArray(parameters?.generation_models)
