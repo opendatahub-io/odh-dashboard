@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - "dashboard-operator/**"
+      - "manifests/**"
       - "!LICENSE*"
       - "!DOCKERFILE*"
       - "!**.gitignore"
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - "dashboard-operator/**"
+      - "manifests/**"
       - ".github/workflows/dashboard-operator-tests.yml"
       - "!LICENSE*"
       - "!DOCKERFILE*"

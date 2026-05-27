@@ -103,5 +103,5 @@ func writeParamsEnv(manifestPath string, params map[string]string) error {
 		sb.WriteString(params[k])
 		sb.WriteString("\n")
 	}
-	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0644)
+	return os.WriteFile(manifestPath+"/params.env", []byte(sb.String()), 0664)
 }

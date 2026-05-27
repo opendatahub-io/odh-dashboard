@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -105,9 +106,12 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
 
+	var requeueAfter time.Duration
+
 	switch {
 	case errors.Is(err, ErrDashboardRouteNotReady):
-		logger.Info("Dashboard route not yet available, URL will be populated on next reconcile")
+		logger.Info("Dashboard route not yet available, requeuing")
+		requeueAfter = 10 * time.Second
 	case err != nil:
 		logger.Error(err, "Failed to extract dashboard URL")
 		setReadyCondition(dashboard, metav1.ConditionFalse, "URLExtractionFailed", err.Error())
@@ -121,6 +125,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		dashboard.Status.URL = url
 	}
 
+	dashboard.Status.ObservedGeneration = dashboard.Generation
 	setReadyCondition(dashboard, metav1.ConditionTrue, "ReconcileSuccess", "Dashboard reconciled successfully")
 
 	if err := r.Status().Update(ctx, dashboard); err != nil {
@@ -129,7 +134,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.Info("Dashboard reconciled successfully", "url", url)
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
 // SetupWithManager registers the dashboard controller with the manager.
