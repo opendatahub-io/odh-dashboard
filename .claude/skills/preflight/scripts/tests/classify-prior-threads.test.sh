@@ -266,6 +266,81 @@ line=$(echo "$result" | jq '.preflight_threads[0].line')
 assert_eq "path preserved" "frontend/src/components/Foo.tsx" "$path"
 assert_eq "line preserved" "99" "$line"
 
+# ---------- Test 15: --pr-author with missing value exits with error ----------
+echo "Test 15: --pr-author with missing value exits with error"
+if echo '[]' | "$CLASSIFY" --pr-author 2>/dev/null; then
+  echo "  ✗ should have exited with error"
+  fail=$((fail + 1))
+else
+  echo "  ✓ exits with error for missing --pr-author value"
+  pass=$((pass + 1))
+fi
+
+# ---------- Test 16: Null first_comment treated as non-preflight ----------
+echo "Test 16: Null first_comment treated as non-preflight"
+input='[{
+  "author": "user1",
+  "path": "src/foo.tsx",
+  "line": 10,
+  "is_coderabbit": false,
+  "comment_count": 1,
+  "first_comment": null,
+  "replies": []
+}]'
+result=$(echo "$input" | "$CLASSIFY")
+pf_count=$(echo "$result" | jq '.preflight_threads | length')
+other_count=$(echo "$result" | jq '.other_threads | length')
+assert_eq "null first_comment not preflight" "0" "$pf_count"
+assert_eq "null first_comment goes to other" "1" "$other_count"
+
+# ---------- Test 17: Null replies treated as empty ----------
+echo "Test 17: Null replies treated as empty array"
+input='[{
+  "author": "github-actions[bot]",
+  "path": "src/foo.tsx",
+  "line": 42,
+  "is_coderabbit": false,
+  "comment_count": 1,
+  "first_comment": "_🟡 Minor_ · _Style review_\n\n**Use const.**",
+  "replies": null
+}]'
+result=$(echo "$input" | "$CLASSIFY")
+disposition=$(echo "$result" | jq -r '.preflight_threads[0].disposition')
+non_bot_count=$(echo "$result" | jq '.preflight_threads[0].non_bot_replies | length')
+assert_eq "null replies → no_reply" "no_reply" "$disposition"
+assert_eq "null replies → 0 non_bot_replies" "0" "$non_bot_count"
+
+# ---------- Test 18: Null author in reply handled gracefully ----------
+echo "Test 18: Null author in reply handled gracefully"
+input='[{
+  "author": "github-actions[bot]",
+  "path": "src/foo.tsx",
+  "line": 42,
+  "is_coderabbit": false,
+  "comment_count": 2,
+  "first_comment": "_🟡 Minor_ · _Style review_\n\n**Use const.**",
+  "replies": [{"author": null, "body": "some reply"}]
+}]'
+result=$(echo "$input" | "$CLASSIFY")
+disposition=$(echo "$result" | jq -r '.preflight_threads[0].disposition')
+non_bot_count=$(echo "$result" | jq '.preflight_threads[0].non_bot_replies | length')
+assert_eq "null author reply is non-bot" "1" "$non_bot_count"
+assert_eq "null author → reviewer_replied" "reviewer_replied" "$disposition"
+
+# ---------- Test 19: Missing replies key treated as empty ----------
+echo "Test 19: Missing replies key treated as empty array"
+input='[{
+  "author": "github-actions[bot]",
+  "path": "src/foo.tsx",
+  "line": 42,
+  "is_coderabbit": false,
+  "comment_count": 1,
+  "first_comment": "_🟠 Major_ · _Claude review_\n\n**Missing check.**"
+}]'
+result=$(echo "$input" | "$CLASSIFY")
+disposition=$(echo "$result" | jq -r '.preflight_threads[0].disposition')
+assert_eq "missing replies → no_reply" "no_reply" "$disposition"
+
 echo ""
 echo "=== Results: $pass passed, $fail failed ==="
 [ "$fail" -eq 0 ] || exit 1

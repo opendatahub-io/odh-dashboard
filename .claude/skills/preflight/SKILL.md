@@ -146,10 +146,12 @@ Report what's there — CodeRabbit threads with severity, human threads, review 
 ### Prior review deduplication
 
 When the PR has prior preflight review threads, classify them to avoid re-posting dismissed suggestions on subsequent runs. Extract the PR author from the metadata gathered in Step 1 and run:
+
 ```bash
 ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number" \
   | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
 ```
+
 Use the classified threads throughout the rest of the run — see [references/reviews.md](references/reviews.md) § Prior Review Deduplication for how to interpret each `disposition` value. Key rules:
 - **Do not re-post** any finding that matches a prior preflight thread (the original comment is still visible).
 - **Exclude dismissed findings** (author replied with disagreement) from the active findings count.
