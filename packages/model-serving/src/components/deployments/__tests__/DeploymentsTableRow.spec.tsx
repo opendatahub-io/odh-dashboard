@@ -25,8 +25,9 @@ jest.mock('../../../concepts/useStopModalPreference', () => ({
 }));
 
 // Mock the useDeploymentExtension hook
+const mockUseDeploymentExtension = jest.fn().mockReturnValue(null);
 jest.mock('../../../concepts/extensionUtils', () => ({
-  useDeploymentExtension: () => null,
+  useDeploymentExtension: (...args: unknown[]) => mockUseDeploymentExtension(...args),
   useResolvedDeploymentExtension: () => [
     {
       properties: {
@@ -162,6 +163,67 @@ describe('DeploymentsTableRow', () => {
     );
 
     expect(screen.getByText('Ready')).toBeInTheDocument();
+  });
+
+  describe('Metrics link', () => {
+    it('should not render metrics link when deployment state is FAILED_TO_LOAD', () => {
+      mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+
+      renderWithRouter(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                status: {
+                  state: ModelDeploymentState.FAILED_TO_LOAD,
+                  stoppedStates: {
+                    isRunning: true,
+                    isStopped: false,
+                    isStarting: false,
+                    isStopping: false,
+                  },
+                },
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>,
+      );
+
+      expect(screen.getByTestId('deployed-model-name')).toBeInTheDocument();
+      expect(screen.queryByTestId('metrics-link-test-deployment')).not.toBeInTheDocument();
+    });
+
+    it('should render metrics link when deployment state is LOADED and running', () => {
+      mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+
+      renderWithRouter(
+        <table>
+          <tbody>
+            <DeploymentRow
+              deployment={mockDeployment({
+                status: {
+                  state: ModelDeploymentState.LOADED,
+                  stoppedStates: {
+                    isRunning: true,
+                    isStopped: false,
+                    isStarting: false,
+                    isStopping: false,
+                  },
+                },
+              })}
+              platformColumns={[]}
+              onDelete={onDelete}
+              rowIndex={0}
+            />
+          </tbody>
+        </table>,
+      );
+
+      expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+    });
   });
 
   describe('Inference endpoints', () => {

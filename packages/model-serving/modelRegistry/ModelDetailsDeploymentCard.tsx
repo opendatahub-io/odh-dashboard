@@ -53,6 +53,7 @@ const DeploymentCardContent: React.FC<{ deployment: Deployment }> = ({ deploymen
             <FlexItem>
               {metricsExtension &&
               deployment.model.metadata.namespace &&
+              deployment.status?.state !== ModelDeploymentState.FAILED_TO_LOAD &&
               (deployment.status?.stoppedStates?.isRunning ||
                 deployment.status?.stoppedStates?.isStopped) ? (
                 <DeploymentMetricsLink deployment={deployment} />
