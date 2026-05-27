@@ -498,7 +498,7 @@ export const useChatbotConfigStore = create<ChatbotConfigStore>()(
           (state) => {
             const config = state.configurations[id];
             if (config) {
-              config.variableValues = values;
+              config.variableValues = { ...values };
             }
           },
           false,
