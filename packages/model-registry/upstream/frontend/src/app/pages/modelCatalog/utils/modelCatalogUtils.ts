@@ -206,6 +206,7 @@ export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKe
   type Value = ModelCatalogStringFilterValueType[K];
   const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
   const selections: string[] = filterData[filterKey];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const isValidStringState = (_state: string[]): _state is ModelCatalogFilterStates[K] =>
     Object.values(ModelCatalogStringFilterKey).includes(filterKey);
   const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
