@@ -317,7 +317,7 @@ const streamCreateResponse = (
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
                       // Preserve the full ApiError structure from BFF
-                      reject({ error: data.error });
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
