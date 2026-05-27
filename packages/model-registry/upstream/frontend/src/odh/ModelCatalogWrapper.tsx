@@ -10,7 +10,7 @@ import {
 import { ThemeProvider, Theme } from 'mod-arch-kubeflow';
 import { Bullseye } from '@patternfly/react-core';
 import useFetchDscStatus from '@odh-dashboard/internal/concepts/areas/useFetchDscStatus';
-import { useAppContext } from '@odh-dashboard/internal/app/AppContext';
+import { DashboardConfigContext } from '@odh-dashboard/plugin-core';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import { AppContext } from '~/app/context/AppContext';
 import ModelCatalogRoutes from '~/app/pages/modelCatalog/ModelCatalogRoutes';
@@ -21,11 +21,12 @@ import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 
 const ModelCatalogWrapperContent: React.FC = () => {
   const { configSettings, userSettings, loaded, loadError } = useSettings();
-  const { dashboardConfig } = useAppContext();
-  const crdOverrides = React.useMemo(() => {
-    const { toolCalling } = dashboardConfig.spec.dashboardConfig;
-    return toolCalling ? { [TempDevFeature.ToolCallingConfiguration]: true } : {};
-  }, [dashboardConfig]);
+  const dashboardSpec = React.useContext(DashboardConfigContext);
+  const toolCallingEnabled = dashboardSpec?.dashboardConfig.toolCalling;
+  const crdOverrides = React.useMemo(
+    () => (toolCallingEnabled ? { [TempDevFeature.ToolCallingConfiguration]: true } : {}),
+    [toolCallingEnabled],
+  );
   const appContextValue = React.useMemo(
     () => (configSettings && userSettings ? { config: configSettings, user: userSettings } : null),
     [configSettings, userSettings],
