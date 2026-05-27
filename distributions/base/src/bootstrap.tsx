@@ -1,38 +1,28 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { PageSection, EmptyState, EmptyStateBody } from '@patternfly/react-core';
+import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from './ThemeContext';
 import { ErrorBoundary } from './ErrorBoundary';
+import { ExtensibilityContextProvider } from './plugins/ExtensibilityContext';
 import Shell from './Shell';
-import Header from './Header';
-import NavSidebar from './NavSidebar';
-
-const router = createBrowserRouter([
-  {
-    path: '*',
-    element: (
-      <ThemeProvider>
-        <Shell masthead={<Header />} sidebar={<NavSidebar />}>
-          <PageSection hasBodyWrapper={false}>
-            <EmptyState headingLevel="h1" titleText="No features loaded">
-              <EmptyStateBody>
-                This is the base shell framework. Add a distribution layer to enable features.
-              </EmptyStateBody>
-            </EmptyState>
-          </PageSection>
-        </Shell>
-      </ThemeProvider>
-    ),
-  },
-]);
+import ShellHeader from './ShellHeader';
+import ShellNav from './ShellNav';
+import ShellRoutes from './ShellRoutes';
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 const root = createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <BrowserRouter>
+          <ExtensibilityContextProvider>
+            <Shell masthead={<ShellHeader />} sidebar={<ShellNav />}>
+              <ShellRoutes />
+            </Shell>
+          </ExtensibilityContextProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>,
 );

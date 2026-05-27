@@ -5,8 +5,20 @@ FROM ${BASE_IMAGE} AS builder
 WORKDIR /usr/src/app
 
 COPY --chown=default:root package.json package-lock.json ./
-COPY --chown=default:root packages/tsconfig/ ./packages/tsconfig/
-COPY --chown=default:root packages/eslint-config/ ./packages/eslint-config/
+
+# All packages are needed for workspace resolution; plugin-core source
+# is also needed at build time (webpack includes it in the transpile set).
+COPY --chown=default:root packages/ ./packages/
+
+# frontend/src (@odh-dashboard/internal) is needed at build time because
+# plugin-core re-exports useResolvedExtensions which imports from it.
+COPY --chown=default:root frontend/src/ ./frontend/src/
+
+# Stub workspace roots that aren't needed for this build but must exist
+# for npm ci to resolve the full workspace graph.
+COPY --chown=default:root backend/package.json ./backend/package.json
+COPY --chown=default:root frontend/package.json ./frontend/package.json
+
 COPY --chown=default:root distributions/base/ ./distributions/base/
 
 USER default
