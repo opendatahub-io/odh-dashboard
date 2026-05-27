@@ -21,18 +21,18 @@ export const extractTemplateVariables = (template: string): string[] => {
 
 /**
  * Replaces all {{variable}} placeholders in a template with the supplied values.
- * Unmatched variables (no value provided or empty string) are left as-is.
- * Returns the original string unchanged when values is empty or template has no placeholders.
+ * Variables without a supplied value are replaced with an empty string.
+ * Returns the original string unchanged when template has no placeholders.
  */
 export const substituteTemplateVariables = (
   template: string,
   values: Record<string, string>,
 ): string => {
-  if (!template || Object.keys(values).length === 0) {
+  if (!template) {
     return template || '';
   }
 
-  return template.replace(TEMPLATE_VARIABLE_REGEX, (match, name: string) =>
-    name in values && values[name] !== '' ? values[name] : match,
+  return template.replace(TEMPLATE_VARIABLE_REGEX, (_match, name: string) =>
+    name in values ? values[name] : '',
   );
 };

@@ -157,18 +157,16 @@ describe('substituteTemplateVariables', () => {
     expect(substituteTemplateVariables('{{ name }}', { name: 'Alice' })).toBe('Alice');
   });
 
-  it('should leave unfilled variables as-is', () => {
-    expect(substituteTemplateVariables('{{name}} {{age}}', { name: 'Alice' })).toBe(
-      'Alice {{age}}',
-    );
+  it('should replace unfilled variables with empty string', () => {
+    expect(substituteTemplateVariables('{{name}} {{age}}', { name: 'Alice' })).toBe('Alice ');
   });
 
-  it('should leave variables with empty-string values as-is', () => {
-    expect(substituteTemplateVariables('{{name}}', { name: '' })).toBe('{{name}}');
+  it('should replace variables with empty-string values as empty', () => {
+    expect(substituteTemplateVariables('{{name}}', { name: '' })).toBe('');
   });
 
-  it('should return original string when values is empty', () => {
-    expect(substituteTemplateVariables('{{name}}', {})).toBe('{{name}}');
+  it('should replace all variables with empty string when values is empty', () => {
+    expect(substituteTemplateVariables('{{name}}', {})).toBe('');
   });
 
   it('should return original string when no variables present', () => {
