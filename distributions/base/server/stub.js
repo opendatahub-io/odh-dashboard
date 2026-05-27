@@ -45,16 +45,24 @@ const server = http.createServer((req, res) => {
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
-      // SPA fallback
-      fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-        if (_err) {
-          res.writeHead(404);
-          res.end('Not found');
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(fallback);
-      });
+      const isNavigationRequest =
+        req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
+
+      if (err.code === 'ENOENT' && isNavigationRequest) {
+        fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
+          if (_err) {
+            res.writeHead(404);
+            res.end('Not found');
+            return;
+          }
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(fallback);
+        });
+        return;
+      }
+
+      res.writeHead(err.code === 'ENOENT' ? 404 : 500);
+      res.end(err.code === 'ENOENT' ? 'Not found' : 'Internal server error');
       return;
     }
     res.writeHead(200, { 'Content-Type': contentType });
