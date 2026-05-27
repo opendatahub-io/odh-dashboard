@@ -26,15 +26,24 @@ export const useNIMSettingsAccessAllowed = (
     namespace,
     verb: 'create',
   });
+  const [canUpdateSecret, secretUpdateLoaded] = useAccessAllowed({
+    resource: 'secrets',
+    namespace,
+    verb: 'update',
+  });
   const [canDeleteSecret, secretDeleteLoaded] = useAccessAllowed({
     resource: 'secrets',
     namespace,
     verb: 'delete',
   });
   const loaded =
-    accountCreateLoaded && accountDeleteLoaded && secretCreateLoaded && secretDeleteLoaded;
+    accountCreateLoaded &&
+    accountDeleteLoaded &&
+    secretCreateLoaded &&
+    secretUpdateLoaded &&
+    secretDeleteLoaded;
   const allowed = loaded
-    ? canCreateAccount && canDeleteAccount && canCreateSecret && canDeleteSecret
+    ? canCreateAccount && canDeleteAccount && canCreateSecret && canUpdateSecret && canDeleteSecret
     : undefined;
 
   return { loaded, allowed };
