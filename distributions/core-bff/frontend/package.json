@@ -40,7 +40,7 @@
     "start:default": "STYLE_THEME=patternfly-theme npm run start:dev"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.21.4",
+    "@module-federation/enhanced": "^2.5.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@swc/core": "^1.9.1",
     "@testing-library/dom": "^10.4.0",
