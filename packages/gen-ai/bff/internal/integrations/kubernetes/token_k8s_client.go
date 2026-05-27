@@ -845,8 +845,11 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
-		// metadata.name is the correct fallback: findLLMInferenceServiceByModelName looks up by metadata.name,
-		// and kserve defaults spec.model.name to the resource name when omitted.
+		// metadata.name is the correct fallback for modelID when spec.model.name is nil/empty.
+		// Per the kserve LLMModelSpec godoc for the Name field:
+		//   "Name is the name of the model as it will be set in the 'model' parameter
+		//    for an incoming request. If omitted, it will default to metadata.name."
+		// This means vLLM will serve the model under metadata.name, so our config must match.
 		modelID := llmSvc.Name
 		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
@@ -2082,8 +2085,11 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 			}
 		}
 
-		// modelID (the metadata.name used to find this resource) is the correct fallback;
-		// kserve defaults spec.model.name to the resource name when omitted.
+		// modelID (the metadata.name used to find this resource) is the correct fallback.
+		// Per the kserve LLMModelSpec godoc for the Name field:
+		//   "Name is the name of the model as it will be set in the 'model' parameter
+		//    for an incoming request. If omitted, it will default to metadata.name."
+		// This means vLLM will serve the model under metadata.name, so our config must match.
 		actualModelName := modelID
 		if targetLLMSVC.Spec.Model.Name != nil && strings.TrimSpace(*targetLLMSVC.Spec.Model.Name) != "" {
 			actualModelName = *targetLLMSVC.Spec.Model.Name
