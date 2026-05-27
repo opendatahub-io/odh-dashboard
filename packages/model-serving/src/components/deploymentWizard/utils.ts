@@ -27,11 +27,8 @@ import {
   handleConnectionCreation,
   handleSecretOwnerReferencePatch,
 } from '../../concepts/connectionUtils';
-import type {
-  Deployment,
-  DeploymentEndpoint,
-  DeploymentAssemblyFn,
-} from '../../../extension-points';
+import type { Deployment, DeploymentEndpoint } from '../../../extension-points';
+import { DeploymentAssemblyFn } from '../../../extension-points/deployment-wizard';
 import { isDeploymentAuthEnabled } from '../../concepts/auth';
 
 export const getDeploymentWizardRoute = (): string => {
