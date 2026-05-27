@@ -845,6 +845,8 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
+		// metadata.name is the correct fallback: findLLMInferenceServiceByModelName looks up by metadata.name,
+		// and kserve defaults spec.model.name to the resource name when omitted.
 		modelID := llmSvc.Name
 		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
 			modelID = *llmSvc.Spec.Model.Name
@@ -2080,7 +2082,8 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 			}
 		}
 
-		// Use the actual model name from LLMInferenceService spec instead of service name
+		// modelID (the metadata.name used to find this resource) is the correct fallback;
+		// kserve defaults spec.model.name to the resource name when omitted.
 		actualModelName := modelID
 		if targetLLMSVC.Spec.Model.Name != nil && strings.TrimSpace(*targetLLMSVC.Spec.Model.Name) != "" {
 			actualModelName = *targetLLMSVC.Spec.Model.Name
