@@ -1,8 +1,7 @@
 package repositories
 
 import (
-	"context"
-	"crypto/x509"
+	"context" // used by resolveOGXCredentials and OGXClientInterface
 	"fmt"
 
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
@@ -13,38 +12,23 @@ import (
 const vectorIOAPI = "vector_io"
 
 type OGXVectorStoresRepository struct {
-	k8sService         *corek8s.K8sService
-	ogxClientFactory   ogx.OGXClientFactory
-	insecureSkipVerify bool
-	rootCAs            *x509.CertPool
-	rewriteURL         func(context.Context, string) (string, error)
+	ogxClient  ogx.OGXClientInterface
+	k8sService *corek8s.K8sService
 }
 
-func NewOGXVectorStoresRepository(
-	k8sService *corek8s.K8sService,
-	factory ogx.OGXClientFactory,
-	insecureSkipVerify bool,
-	rootCAs *x509.CertPool,
-	rewriteURL func(context.Context, string) (string, error),
-) *OGXVectorStoresRepository {
-	return &OGXVectorStoresRepository{
-		k8sService:         k8sService,
-		ogxClientFactory:   factory,
-		insecureSkipVerify: insecureSkipVerify,
-		rootCAs:            rootCAs,
-		rewriteURL:         rewriteURL,
-	}
+func NewOGXVectorStoresRepository(ogxClient ogx.OGXClientInterface, k8sService *corek8s.K8sService) *OGXVectorStoresRepository {
+	return &OGXVectorStoresRepository{ogxClient: ogxClient, k8sService: k8sService}
 }
 
-// GetOGXVectorStoreProviders retrieves vector store providers from OGX
-// by calling the native /v1/providers endpoint and filtering for vector_io API type.
+// GetOGXVectorStoreProviders retrieves vector store providers from OGX by calling
+// /v1/providers and filtering for the vector_io API type.
 func (r *OGXVectorStoresRepository) GetOGXVectorStoreProviders(ctx context.Context, namespace, secretName string) (*models.OGXVectorStoreProvidersData, error) {
-	client, err := r.createOGXClient(ctx, namespace, secretName)
+	baseURL, apiKey, err := resolveOGXCredentials(ctx, r.k8sService, namespace, secretName)
 	if err != nil {
 		return nil, err
 	}
 
-	allProviders, err := client.ListProviders(ctx)
+	allProviders, err := r.ogxClient.ListProviders(ctx, baseURL, apiKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list OGX providers: %w", err)
 	}
@@ -59,26 +43,5 @@ func (r *OGXVectorStoresRepository) GetOGXVectorStoreProviders(ctx context.Conte
 		}
 	}
 
-	return &models.OGXVectorStoreProvidersData{
-		VectorStoreProviders: vectorStoreProviders,
-	}, nil
-}
-
-// createOGXClient reads credentials from the named secret and returns a ready OGX client.
-func (r *OGXVectorStoresRepository) createOGXClient(ctx context.Context, namespace, secretName string) (ogx.OGXClientInterface, error) {
-	baseURL, apiKey, err := resolveOGXCredentials(ctx, r.k8sService, namespace, secretName)
-	if err != nil {
-		return nil, err
-	}
-
-	if r.rewriteURL != nil && baseURL != "" {
-		if rewritten, pfErr := r.rewriteURL(ctx, baseURL); pfErr != nil {
-			// log warning but continue with original URL
-			_ = pfErr
-		} else {
-			baseURL = rewritten
-		}
-	}
-
-	return r.ogxClientFactory.CreateClient(baseURL, apiKey, r.insecureSkipVerify, r.rootCAs), nil
+	return &models.OGXVectorStoreProvidersData{VectorStoreProviders: vectorStoreProviders}, nil
 }

@@ -13,57 +13,67 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
 
-// OGXClient communicates with a Open GenAI Stack Distribution server using
-// direct HTTP calls.
-type OGXClient struct {
-	httpClient *http.Client
-	baseURL    string
-	authToken  string
+// httpClientInterface wraps *http.Client for testing.
+type httpClientInterface interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
-// NewOGXClient creates a new client configured for Open GenAI Stack.
-// ogx v0.4.0+ removed the `/v1/openai/v1/` routes.
-// All endpoints are now served directly under `/v1/`.
-// See: https://github.com/ogx/ogx/releases/tag/v0.4.0
-func NewOGXClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *OGXClient {
+// OGXClientInterface defines the contract for Open GenAI Stack client operations.
+// baseURL and apiKey are passed per call so a single client instance can serve
+// multiple namespaces and secrets without reconstructing the HTTP client.
+type OGXClientInterface interface {
+	ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error)
+	ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.OGXProvider, error)
+}
+
+// OGXClient communicates with an Open GenAI Stack Distribution server.
+// It is stateless — baseURL and apiKey are passed per call so a single
+// instance can serve multiple namespaces and secrets.
+type OGXClient struct {
+	httpClient httpClientInterface
+}
+
+// NewOGXClient creates a client with an injectable HTTP client (for testing).
+func NewOGXClient(httpClient httpClientInterface) *OGXClient {
+	return &OGXClient{httpClient: httpClient}
+}
+
+// OGXClientConfig holds configuration for the default OGX client.
+type OGXClientConfig struct {
+	InsecureSkipVerify bool
+	RootCAs            *x509.CertPool
+	// WrapTransport optionally wraps the HTTP transport chain.
+	// Pass k8s.PortForwardWrapTransport in dev mode for automatic in-cluster URL rewriting.
+	WrapTransport func(http.RoundTripper) http.RoundTripper
+}
+
+// NewDefaultOGXClient creates a client with a real HTTP client configured for
+// TLS and a generous timeout suitable for model listing operations.
+func NewDefaultOGXClient(cfg OGXClientConfig) *OGXClient {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: insecureSkipVerify,
+		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // caller-controlled knob
 		MinVersion:         tls.VersionTLS13,
 	}
-	if rootCAs != nil {
-		tlsConfig.RootCAs = rootCAs
+	if cfg.RootCAs != nil {
+		tlsConfig.RootCAs = cfg.RootCAs
 	}
-
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: tlsConfig,
-		},
-		Timeout: 8 * time.Minute, // Overall request timeout (matches server WriteTimeout)
+	var rt http.RoundTripper = &http.Transport{TLSClientConfig: tlsConfig}
+	if cfg.WrapTransport != nil {
+		rt = cfg.WrapTransport(rt)
 	}
-
-	return &OGXClient{
-		httpClient: httpClient,
-		baseURL:    baseURL,
-		authToken:  authToken,
-	}
+	return NewOGXClient(&http.Client{Transport: rt, Timeout: 8 * time.Minute})
 }
 
 // ListModels retrieves all available models from OGX.
-// Deserializes into OGXNativeModel structs so that upstream schema
-// changes are surfaced explicitly rather than hidden behind the OpenAI SDK.
-func (c *OGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/models", nil)
+// ogx v0.4.0+ serves all endpoints directly under /v1/ (removed the /v1/openai/v1/ prefix).
+func (c *OGXClient) ListModels(ctx context.Context, baseURL, apiKey string) ([]models.OGXNativeModel, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/models", nil)
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack models: %s", err.Error()))
 	}
 
-	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens,
-	// except for localhost (dev-mode port-forwarding tunnels in-cluster traffic locally).
 	req.Header.Set("Accept", "application/json")
-	isLocalhost := req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1"
-	if c.authToken != "" && (req.URL.Scheme == "https" || isLocalhost) {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
-	}
+	setAuthHeader(req, apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -83,12 +93,10 @@ func (c *OGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, er
 		return nil, mapHTTPStatusToError(resp.StatusCode, body, "models")
 	}
 
-	// Open GenAI Stack wraps the models array in a { "data": [...] } envelope.
 	var envelope struct {
 		Data []models.OGXNativeModel `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		// If the envelope format changed, try parsing as a bare array as a fallback.
 		var bare []models.OGXNativeModel
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
@@ -101,25 +109,18 @@ func (c *OGXClient) ListModels(ctx context.Context) ([]models.OGXNativeModel, er
 	return envelope.Data, nil
 }
 
-// ListProviders retrieves all registered providers from Open GenAI Stack via
-// the native /v1/providers (not part of the OpenAI-compatible API).
-func (c *OGXClient) ListProviders(ctx context.Context) ([]models.OGXProvider, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/v1/providers", nil)
+// ListProviders retrieves all registered providers from Open GenAI Stack via /v1/providers.
+func (c *OGXClient) ListProviders(ctx context.Context, baseURL, apiKey string) ([]models.OGXProvider, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/v1/providers", nil)
 	if err != nil {
 		return nil, NewConnectionError(fmt.Sprintf("failed to create request for Open GenAI Stack providers: %s", err.Error()))
 	}
 
-	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens,
-	// except for localhost (dev-mode port-forwarding tunnels in-cluster traffic locally).
 	req.Header.Set("Accept", "application/json")
-	isLocalhost := req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1"
-	if c.authToken != "" && (req.URL.Scheme == "https" || isLocalhost) {
-		req.Header.Set("Authorization", "Bearer "+c.authToken)
-	}
+	setAuthHeader(req, apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		// wrapClientError handles url.Error (network failures) correctly
 		return nil, wrapClientError(err, "ListProviders")
 	}
 	defer resp.Body.Close()
@@ -136,12 +137,10 @@ func (c *OGXClient) ListProviders(ctx context.Context) ([]models.OGXProvider, er
 		return nil, mapHTTPStatusToError(resp.StatusCode, body, "providers")
 	}
 
-	// Open GenAI Stack wraps the providers array in a { "data": [...] } envelope.
 	var envelope struct {
 		Data []models.OGXProvider `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		// If the envelope format changed, try parsing as a bare array as a fallback.
 		var bare []models.OGXProvider
 		if errBare := json.Unmarshal(body, &bare); errBare == nil {
 			return bare, nil
@@ -153,3 +152,19 @@ func (c *OGXClient) ListProviders(ctx context.Context) ([]models.OGXProvider, er
 
 	return envelope.Data, nil
 }
+
+// setAuthHeader sets the Authorization header when an API key is provided.
+// The header is omitted over plain HTTP (except localhost) to avoid leaking tokens.
+func setAuthHeader(req *http.Request, apiKey string) {
+	if apiKey == "" {
+		return
+	}
+	isLocalhost := req.URL.Hostname() == "localhost" || req.URL.Hostname() == "127.0.0.1"
+	if req.URL.Scheme == "https" || isLocalhost {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+}
+
+// Compile-time interface checks.
+var _ OGXClientInterface = (*OGXClient)(nil)
+var _ httpClientInterface = (*http.Client)(nil)

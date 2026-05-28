@@ -55,7 +55,6 @@ type App struct {
 	config                      config.EnvConfig
 	logger                      *slog.Logger
 	kubernetesClientFactory     k8s.KubernetesClientFactory
-	ogxClientFactory            ogx.OGXClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
@@ -165,16 +164,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	// Initialize Open GenAI Stack client factory
-	var ogxClientFactory ogx.OGXClientFactory
-	if cfg.MockOGXClient {
-		logger.Info("Using mock Open GenAI Stack client factory")
-		ogxClientFactory = ogxmocks.NewMockClientFactory()
-	} else {
-		logger.Info("Using real Open GenAI Stack client factory")
-		ogxClientFactory = ogx.NewRealClientFactory()
-	}
-
 	// Initialize Pipeline Server client factory
 	var pipelineServerClientFactory ps.PipelineServerClientFactory
 	if cfg.MockPipelineServerClient {
@@ -261,18 +250,25 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	s3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, s3Client)
 
-	// Build the optional URL rewriter for dev mode port-forwarding.
-	// In production pfManager is nil, so rewriteURL is nil and no port-forward occurs.
-	var rewriteURL func(context.Context, string) (string, error)
-	if pfManager != nil {
-		rewriteURL = pfManager.ForwardURL
+	// Initialize Open GenAI Stack client (single shared instance).
+	var ogxClient ogx.OGXClientInterface
+	if cfg.MockOGXClient {
+		ogxClient = ogxmocks.NewMockOGXClient()
+	} else {
+		ogxCfg := ogx.OGXClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			ogxCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		ogxClient = ogx.NewDefaultOGXClient(ogxCfg)
 	}
 
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
-		ogxClientFactory:            ogxClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
 		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
@@ -280,12 +276,9 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			PipelinesCfg: repositories.PipelinesRepositoryConfig{
 				AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
 			},
-			K8sService:         k8sService,
-			S3Service:          s3Service,
-			OGXClientFactory:   ogxClientFactory,
-			InsecureSkipVerify: cfg.InsecureSkipVerify,
-			RootCAs:            rootCAs,
-			RewriteURL:         rewriteURL,
+			K8sService: k8sService,
+			S3Service:  s3Service,
+			OGXClient:  ogxClient,
 		}),
 		k8sService:         k8sService,
 		testEnv:            testEnv,

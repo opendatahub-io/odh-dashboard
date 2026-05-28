@@ -276,7 +276,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 		if app.config.MockOGXClient {
 			// Mock mode: skip secret lookup entirely
 			logger.Debug("MOCK MODE: creating mock Open GenAI Stack client (secret-based)", "namespace", namespace, "secretName", secretName)
-			ogxClient = app.ogxClientFactory.CreateClient("", "", false, app.rootCAs)
+			ogxClient = ogx.NewDefaultOGXClient(ogx.OGXClientConfig{})
 		} else {
 			// Production: read credentials from Kubernetes secret
 			identity, identityOk := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
@@ -314,7 +314,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
 			}
-			apiKey, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_api_key")
+			_, foundAPIKey, err := getSecretDataCaseInsensitive(foundSecret.Data, "ogx_client_api_key")
 			if err != nil {
 				app.badRequestResponse(w, r, fmt.Errorf("invalid secret %q: %w", secretName, err))
 				return
@@ -350,7 +350,7 @@ func (app *App) AttachOGXClientFromSecret(next func(http.ResponseWriter, *http.R
 				"secretName", secretName,
 				"serviceURL", baseURL)
 
-			ogxClient = app.ogxClientFactory.CreateClient(baseURL, apiKey, app.config.InsecureSkipVerify, app.rootCAs)
+			ogxClient = ogx.NewDefaultOGXClient(ogx.OGXClientConfig{InsecureSkipVerify: app.config.InsecureSkipVerify, RootCAs: app.rootCAs})
 		}
 
 		// Attach ready-to-use client to context
