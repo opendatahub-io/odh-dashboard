@@ -302,9 +302,9 @@ describe('featureStores routes', () => {
         params: {
           namespace: 'ns1',
           projectName: 'test-project',
-          '*': '%25252e%25252e/etc/passwd',
+          '*': '%25252525252e%25252525252e/etc/passwd',
         },
-        url: '/api/featurestores/ns1/test-project/%25252e%25252e/etc/passwd',
+        url: '/api/featurestores/ns1/test-project/%25252525252e%25252525252e/etc/passwd',
       } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
