@@ -61,6 +61,40 @@ describe('useFeatureServiceByName', () => {
     expect(mockGetFeatureServiceByName).not.toHaveBeenCalled();
   });
 
+  it('should return error when API is not available', async () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureServiceByName: mockGetFeatureServiceByName,
+      },
+      apiAvailable: false,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    const renderResult = testHook(useFeatureServiceByName)('test-project', 'feature-service-1');
+
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.error).toEqual(new Error('API not yet available'));
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(mockGetFeatureServiceByName).not.toHaveBeenCalled();
+  });
+
+  it('should return error when project is not provided', async () => {
+    useFeatureStoreAPIMock.mockReturnValue({
+      api: {
+        getFeatureServiceByName: mockGetFeatureServiceByName,
+      },
+      apiAvailable: true,
+    } as unknown as ReturnType<typeof useFeatureStoreAPI>);
+
+    const renderResult = testHook(useFeatureServiceByName)(undefined, 'feature-service-1');
+
+    await renderResult.waitForNextUpdate();
+
+    expect(renderResult.result.current.error).toEqual(new Error('Project is required'));
+    expect(renderResult.result.current.loaded).toBe(false);
+    expect(mockGetFeatureServiceByName).not.toHaveBeenCalled();
+  });
+
   it('should return successful data when API is available', async () => {
     useFeatureStoreAPIMock.mockReturnValue({
       api: {

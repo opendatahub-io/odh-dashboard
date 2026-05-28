@@ -41,8 +41,10 @@ jest.mock('@odh-dashboard/internal/components/MultiSelection', () => ({
     setValue,
     ariaLabel,
   }: {
-    value: Array<{ id: string; name: string; selected: boolean }>;
-    setValue: (selections: Array<{ id: string; name: string; selected: boolean }>) => void;
+    value: Array<{ id: string; name: string; selected: boolean; isAriaDisabled?: boolean }>;
+    setValue: (
+      selections: Array<{ id: string; name: string; selected: boolean; isAriaDisabled?: boolean }>,
+    ) => void;
     ariaLabel: string;
   }) => (
     <div data-testid={`multi-selection-${ariaLabel}`}>
@@ -93,7 +95,10 @@ describe('FeatureStoreLineageToolbar', () => {
     onSearchFiltersChange: jest.fn(),
     currentFilterType: 'entity' as const,
     onCurrentFilterTypeChange: jest.fn(),
-    lineageData: { objects: { entities: [] }, relationships: [] } as never,
+    lineageData: {
+      objects: { entities: [] },
+      relationships: [],
+    } as unknown as Parameters<typeof FeatureStoreLineageToolbar>[0]['lineageData'],
     lineageDataLoaded: true,
   };
 

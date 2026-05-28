@@ -252,6 +252,62 @@ describe('useFeatureStoreSearch', () => {
     resolveFirst!(secondResponse);
   });
 
+  it('should load more results and append to existing data', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: [],
+    });
+
+    const secondResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-2' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
+      errors: [],
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.convertedSearchData).toHaveLength(1);
+    expect(result.current.hasMorePages).toBe(true);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+    expect(result.current.convertedSearchData).toHaveLength(2);
+    expect(result.current.hasMorePages).toBe(false);
+    expect(mockSearch).toHaveBeenCalledTimes(2);
+    expect(mockSearch).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+  });
+
+  it('should not load more when hasMorePages is false', async () => {
+    const searchResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'only-result' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 1, hasNext: false }),
+      errors: [],
+    });
+
+    mockSearch.mockResolvedValueOnce(searchResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.hasMorePages).toBe(false);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(result.current.convertedSearchData).toHaveLength(1);
+  });
+
   it('should clean up abort controller on unmount', () => {
     const { unmount } = renderHook(() => useFeatureStoreSearch());
 
