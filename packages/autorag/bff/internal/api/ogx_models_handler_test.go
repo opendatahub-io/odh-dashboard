@@ -15,33 +15,69 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	corek8smocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// newOGXHandlerTestApp creates a lightweight App wired with a mock Open GenAI Stack client factory
-// and a discard logger, for testing OGX handler logic in isolation (no envtest needed).
+// newOGXHandlerTestApp creates a lightweight App wired with a mock OGX client factory
+// and a mock K8s client that returns a valid OGX secret.
 // A non-nil logger is required because error paths call app.logger.Error via serverErrorResponse.
 func newOGXHandlerTestApp(t *testing.T) *App {
 	t.Helper()
+	return newOGXHandlerTestAppWithClient(t, nil)
+}
+
+// newOGXHandlerTestAppWithClient creates a test App with an optional custom OGX client override.
+// When customOGXClient is non-nil it is set on the mock factory via SetMockClient.
+func newOGXHandlerTestAppWithClient(t *testing.T, customOGXClient ogx.OGXClientInterface) *App {
+	t.Helper()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	factory := ogxmocks.NewMockClientFactory()
+	if customOGXClient != nil {
+		factory.(*ogxmocks.MockClientFactory).SetMockClient(customOGXClient)
+	}
+
+	// Mock K8s client returns a secret with the required OGX credentials
+	mockK8sClient := &corek8smocks.MockK8sClient{
+		GetSecretFunc: func(_ context.Context, namespace, secretName string) (*v1.Secret, error) {
+			return &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					"ogx_client_base_url": []byte("http://ogx.test-namespace.svc.cluster.local:8321"),
+					"ogx_client_api_key":  []byte("test-api-key"),
+				},
+			}, nil
+		},
+	}
+	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, mockK8sClient)
+
 	return &App{
-		config:           config.EnvConfig{Port: 4000},
-		logger:           logger,
-		ogxClientFactory: ogxmocks.NewMockClientFactory(),
-		repositories:     repositories.NewRepositories(repositories.RepositoriesConfig{}),
+		config: config.EnvConfig{Port: 4000},
+		logger: logger,
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			K8sService:       k8sService,
+			OGXClientFactory: factory,
+		}),
 	}
 }
 
-// newHandlerTestRequest creates a GET request with the Open GenAI Stack client already injected into
-// context, simulating what AttachOGXClientFromSecret middleware does in production.
-func newHandlerTestRequest(t *testing.T, app *App) (*httptest.ResponseRecorder, *http.Request) {
+// newHandlerTestRequest creates a GET request for the OGX models endpoint with
+// namespace in context and secretName as a query parameter.
+func newHandlerTestRequest(t *testing.T, _ *App) (*httptest.ResponseRecorder, *http.Request) {
 	t.Helper()
 	rr := httptest.NewRecorder()
 	req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models?namespace=test-namespace&secretName=test-secret", nil)
 	assert.NoError(t, err)
 
-	ogxClient := app.ogxClientFactory.CreateClient("http://test", "token", false, nil)
-	ctx := context.WithValue(req.Context(), constants.OGXClientKey, ogxClient)
+	// Inject namespace into context (normally done by AttachNamespace middleware)
+	ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
 	req = req.WithContext(ctx)
 
 	return rr, req
@@ -103,8 +139,7 @@ func TestOGXModelsHandler_Success(t *testing.T) {
 	})
 
 	t.Run("should return empty array when Open GenAI Stack has no models", func(t *testing.T) {
-		emptyApp := newOGXHandlerTestApp(t)
-		emptyApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockEmptyClient{})
+		emptyApp := newOGXHandlerTestAppWithClient(t, &mockEmptyClient{})
 
 		rr, req := newHandlerTestRequest(t, emptyApp)
 		emptyApp.OGXModelsHandler(rr, req, nil)
@@ -145,15 +180,17 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
-	t.Run("should return 500 when Open GenAI Stack client is missing from context", func(t *testing.T) {
+	t.Run("should return 400 when secretName query parameter is missing", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models?namespace=test-namespace", nil)
 		assert.NoError(t, err)
 
-		// Don't add client to context - simulate middleware failure
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
 		app.OGXModelsHandler(rr, req, nil)
 
-		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
 
 		var response map[string]interface{}
 		body, err := io.ReadAll(rr.Result().Body)
@@ -163,9 +200,37 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 		assert.Contains(t, response, "error")
 	})
 
+	t.Run("should return 404 when secret is not found", func(t *testing.T) {
+		logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+		mockK8sClient := &corek8smocks.MockK8sClient{
+			GetSecretFunc: func(_ context.Context, _, _ string) (*v1.Secret, error) {
+				return nil, &corek8s.NotFoundError{Resource: "secret", Name: "missing-secret"}
+			},
+		}
+		k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, mockK8sClient)
+
+		notFoundApp := &App{
+			config: config.EnvConfig{Port: 4000},
+			logger: logger,
+			repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+				K8sService:       k8sService,
+				OGXClientFactory: ogxmocks.NewMockClientFactory(),
+			}),
+		}
+
+		rr := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/v1/ogx/models?namespace=test-namespace&secretName=missing-secret", nil)
+		assert.NoError(t, err)
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		notFoundApp.OGXModelsHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
 	t.Run("should return 500 when Open GenAI Stack client returns error", func(t *testing.T) {
-		errApp := newOGXHandlerTestApp(t)
-		errApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockErrorClient{})
+		errApp := newOGXHandlerTestAppWithClient(t, &mockErrorClient{})
 
 		rr, req := newHandlerTestRequest(t, errApp)
 		errApp.OGXModelsHandler(rr, req, nil)
@@ -181,8 +246,7 @@ func TestOGXModelsHandler_ErrorCases(t *testing.T) {
 	})
 
 	t.Run("should return 502 when Open GenAI Stack client returns a connection error", func(t *testing.T) {
-		ogxErrApp := newOGXHandlerTestApp(t)
-		ogxErrApp.ogxClientFactory.(*ogxmocks.MockClientFactory).SetMockClient(&mockOGXErrClient{})
+		ogxErrApp := newOGXHandlerTestAppWithClient(t, &mockOGXErrClient{})
 
 		rr, req := newHandlerTestRequest(t, ogxErrApp)
 		ogxErrApp.OGXModelsHandler(rr, req, nil)

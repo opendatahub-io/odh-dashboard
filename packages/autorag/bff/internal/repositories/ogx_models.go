@@ -2,25 +2,46 @@ package repositories
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 
-	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-type OGXModelsRepository struct{}
+type OGXModelsRepository struct {
+	k8sService         *corek8s.K8sService
+	ogxClientFactory   ogx.OGXClientFactory
+	insecureSkipVerify bool
+	rootCAs            *x509.CertPool
+	rewriteURL         func(context.Context, string) (string, error)
+}
 
-func NewOGXModelsRepository() *OGXModelsRepository {
-	return &OGXModelsRepository{}
+func NewOGXModelsRepository(
+	k8sService *corek8s.K8sService,
+	factory ogx.OGXClientFactory,
+	insecureSkipVerify bool,
+	rootCAs *x509.CertPool,
+	rewriteURL func(context.Context, string) (string, error),
+) *OGXModelsRepository {
+	return &OGXModelsRepository{
+		k8sService:         k8sService,
+		ogxClientFactory:   factory,
+		insecureSkipVerify: insecureSkipVerify,
+		rootCAs:            rootCAs,
+		rewriteURL:         rewriteURL,
+	}
 }
 
 // GetOGXModels retrieves all models from OGX.
-// Translates OGX's native format into our stable public API format.
-func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXModelsData, error) {
-	client, err := helper.GetContextOGXClient(ctx)
+// Reads credentials from the named Kubernetes secret, creates an OGX client, and
+// translates the native response into our stable public API format.
+func (r *OGXModelsRepository) GetOGXModels(ctx context.Context, namespace, secretName string) (*models.OGXModelsData, error) {
+	client, err := r.createOGXClient(ctx, namespace, secretName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get OGX client from context: %w", err)
+		return nil, err
 	}
 
 	nativeModels, err := client.ListModels(ctx)
@@ -52,6 +73,27 @@ func (r *OGXModelsRepository) GetOGXModels(ctx context.Context) (*models.OGXMode
 	return &models.OGXModelsData{
 		Models: allModels,
 	}, nil
+}
+
+// createOGXClient reads credentials from the named secret and returns a ready OGX client.
+// When ogxClientFactory produces a mock (MockOGXClient=true), namespace/secretName are
+// passed for logging context only — no Kubernetes call is made.
+func (r *OGXModelsRepository) createOGXClient(ctx context.Context, namespace, secretName string) (ogx.OGXClientInterface, error) {
+	baseURL, apiKey, err := resolveOGXCredentials(ctx, r.k8sService, namespace, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.rewriteURL != nil && baseURL != "" {
+		if rewritten, pfErr := r.rewriteURL(ctx, baseURL); pfErr != nil {
+			slog.Warn("dynamic port-forward failed for Open GenAI Stack endpoint, using original URL",
+				"error", pfErr, "url", baseURL)
+		} else {
+			baseURL = rewritten
+		}
+	}
+
+	return r.ogxClientFactory.CreateClient(baseURL, apiKey, r.insecureSkipVerify, r.rootCAs), nil
 }
 
 // translateOGXModel translates a Open GenAI Stack native model into our stable public API format.

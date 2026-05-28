@@ -261,6 +261,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	s3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, s3Client)
 
+	// Build the optional URL rewriter for dev mode port-forwarding.
+	// In production pfManager is nil, so rewriteURL is nil and no port-forward occurs.
+	var rewriteURL func(context.Context, string) (string, error)
+	if pfManager != nil {
+		rewriteURL = pfManager.ForwardURL
+	}
+
 	app := &App{
 		config:                      cfg,
 		logger:                      logger,
@@ -273,8 +280,12 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			PipelinesCfg: repositories.PipelinesRepositoryConfig{
 				AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
 			},
-			K8sService: k8sService,
-			S3Service:  s3Service,
+			K8sService:         k8sService,
+			S3Service:          s3Service,
+			OGXClientFactory:   ogxClientFactory,
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+			RewriteURL:         rewriteURL,
 		}),
 		k8sService:         k8sService,
 		testEnv:            testEnv,
@@ -334,9 +345,9 @@ func (app *App) Routes() http.Handler {
 	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
-	// Open GenAI Stack
-	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXModelsHandler))))
-	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXVectorStoresHandler))))
+	// Open GenAI Stack — credentials are resolved by the repository from the secretName query param
+	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.OGXModelsHandler)))
+	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.OGXVectorStoresHandler)))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))

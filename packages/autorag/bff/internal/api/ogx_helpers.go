@@ -7,7 +7,34 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
+
+// handleOGXOrK8sError handles errors that may originate from either the OGX client
+// (when calling OGX APIs) or the Kubernetes secret lookup performed inside the repository.
+// It checks for K8s domain errors first (NotFoundError, ForbiddenError, UnauthorizedError,
+// ValidationError), then falls back to OGX-specific error handling.
+func (app *App) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
+	// Handle autox-core Kubernetes errors produced by k8sService.GetSecret
+	if errors.Is(err, corek8s.ErrNotFound) {
+		app.notFoundResponseWithMessage(w, r, err.Error())
+		return
+	}
+	if errors.Is(err, corek8s.ErrForbidden) {
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	}
+	if errors.Is(err, corek8s.ErrUnauthorized) {
+		app.unauthorizedResponse(w, r, err.Error())
+		return
+	}
+	if errors.Is(err, corek8s.ErrInvalid) || errors.Is(err, corek8s.ErrBadRequest) {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	// Delegate to OGX-specific error handling for OGX client errors
+	app.handleOGXClientError(w, r, err)
+}
 
 // handleOGXClientError maps Open GenAI Stack client errors to appropriate HTTP status codes and sends the response.
 // Uses errors.As to unwrap the error chain, since repository errors are wrapped with fmt.Errorf("...: %w", err).
