@@ -1,8 +1,5 @@
-import {
-  deriveModelGroups,
-  formatApiKeyError,
-  getSourceLabelColor,
-} from '~/app/pages/api-keys/utils';
+import { formatApiKeyError, getSourceLabelColor } from '~/app/pages/api-keys/utils';
+import { deriveModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
 
 describe('formatApiKeyError', () => {
   describe('max expiration errors', () => {

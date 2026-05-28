@@ -1,10 +1,40 @@
 import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
-import { deriveModelGroups } from './utils';
+import { UserSubscription } from '~/app/types/subscriptions';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
-import SubscriptionsViewTable from './SubscriptionsViewTable';
+import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
 import ModelsViewTable from './ModelsViewTable';
+
+export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroupEntry[] => {
+  const modelMap = new Map<string, ModelGroupEntry>();
+
+  subscriptions.forEach((sub) => {
+    sub.model_refs.forEach((ref) => {
+      const existing = modelMap.get(ref.name);
+      const subEntry = {
+        subscriptionIdHeader: sub.subscription_id_header,
+        displayName: sub.display_name,
+        keyCount: sub.key_count,
+        tokenRateLimits: ref.token_rate_limits,
+      };
+
+      if (existing) {
+        existing.subscriptions.push(subEntry);
+      } else {
+        modelMap.set(ref.name, {
+          name: ref.name,
+          displayName: ref.display_name,
+          description: ref.description,
+          source: ref.source,
+          subscriptions: [subEntry],
+        });
+      }
+    });
+  });
+
+  return Array.from(modelMap.values());
+};
 
 export type SubscriptionSortField = 'subscription' | 'model';
 

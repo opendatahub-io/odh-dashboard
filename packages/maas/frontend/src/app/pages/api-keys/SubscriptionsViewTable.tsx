@@ -12,10 +12,37 @@ import { KeyIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ModelRefInfo, UserSubscription } from '~/app/types/subscriptions';
+import { ModelRefInfo, TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { formatTokenLimit, getSourceLabelColor } from './utils';
+import { getSourceLabelColor } from './utils';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
+
+export type ModelGroupSubscription = {
+  subscriptionIdHeader: string;
+  displayName?: string;
+  keyCount?: number;
+  tokenRateLimits?: TokenRateLimitInfo[];
+};
+
+export type ModelGroupEntry = {
+  name: string;
+  displayName?: string;
+  description?: string;
+  source?: string;
+  subscriptions: ModelGroupSubscription[];
+};
+
+export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
+  if (!limits || limits.length === 0) {
+    return '—';
+  }
+  return limits
+    .map((l) => {
+      const formatted = l.limit >= 1000 ? `${Math.floor(l.limit / 1000)}K` : String(l.limit);
+      return `${formatted} / ${l.window}`;
+    })
+    .join(', ');
+};
 
 export const ModelInfoPopover: React.FC<{
   displayName: string;

@@ -4,8 +4,8 @@ import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternf
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { ModelGroupEntry, formatTokenLimit, getSourceLabelColor } from './utils';
-import { ModelInfoPopover } from './SubscriptionsViewTable';
+import { getSourceLabelColor } from './utils';
+import { ModelGroupEntry, ModelInfoPopover, formatTokenLimit } from './SubscriptionsViewTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
 const ModelGroupRow: React.FC<{
