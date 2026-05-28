@@ -6,6 +6,7 @@ import {
   createFeatureStoreResponse,
   filterEnabledCRDs,
   handleError,
+  batchFetchConfigMapsByNamespace,
   FeatureStoreCRD,
   ClientConfigInfo,
 } from '../routes/api/featurestores/featureStoreUtils';
@@ -78,6 +79,12 @@ const createMockFastify = () =>
   ({
     log: {
       error: jest.fn(),
+      warn: jest.fn(),
+    },
+    kube: {
+      coreV1Api: {
+        listNamespacedConfigMap: jest.fn(),
+      },
     },
   } as any);
 
@@ -498,6 +505,69 @@ describe('featureStoreUtils', () => {
       const result = filterEnabledCRDs([noLabelsCrd]);
 
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('batchFetchConfigMapsByNamespace', () => {
+    it('should log warning with error message when listing ConfigMaps fails with Error', async () => {
+      const mockFastify = createMockFastify();
+      mockFastify.kube.coreV1Api.listNamespacedConfigMap.mockRejectedValue(new Error('forbidden'));
+
+      const configs = [createClientConfigInfo()];
+
+      const result = await batchFetchConfigMapsByNamespace(mockFastify, configs);
+
+      expect(result.size).toBe(0);
+      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+        `Failed to list ConfigMaps in namespace ${NAMESPACE.VIEWER}: forbidden`,
+      );
+    });
+
+    it('should log warning with stringified value when listing ConfigMaps fails with non-Error', async () => {
+      const mockFastify = createMockFastify();
+      mockFastify.kube.coreV1Api.listNamespacedConfigMap.mockRejectedValue('connection reset');
+
+      const configs = [createClientConfigInfo()];
+
+      const result = await batchFetchConfigMapsByNamespace(mockFastify, configs);
+
+      expect(result.size).toBe(0);
+      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+        `Failed to list ConfigMaps in namespace ${NAMESPACE.VIEWER}: connection reset`,
+      );
+    });
+
+    it('should return ConfigMaps from successful namespaces when others fail', async () => {
+      const mockFastify = createMockFastify();
+      const mockConfigMap = {
+        metadata: { name: CONFIG_NAME.BANKING },
+        data: { 'feature_store.yaml': 'test' },
+      };
+
+      mockFastify.kube.coreV1Api.listNamespacedConfigMap.mockImplementation((namespace: string) => {
+        if (namespace === NAMESPACE.VIEWER) {
+          return Promise.resolve({ body: { items: [mockConfigMap] } });
+        }
+        return Promise.reject(new Error('forbidden'));
+      });
+
+      const configs = [
+        createClientConfigInfo(),
+        createClientConfigInfo({
+          configName: CONFIG_NAME.RETAIL,
+          namespace: NAMESPACE.DEFAULT,
+          registryUrl: REGISTRY_URL.RETAIL_HTTPS,
+          projectName: PROJECT.RETAIL,
+        }),
+      ];
+
+      const result = await batchFetchConfigMapsByNamespace(mockFastify, configs);
+
+      expect(result.size).toBe(1);
+      expect(result.get(`${NAMESPACE.VIEWER}/${CONFIG_NAME.BANKING}`)).toEqual(mockConfigMap);
+      expect(mockFastify.log.warn).toHaveBeenCalledWith(
+        `Failed to list ConfigMaps in namespace ${NAMESPACE.DEFAULT}: forbidden`,
+      );
     });
   });
 });
