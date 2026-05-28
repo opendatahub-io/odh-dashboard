@@ -297,6 +297,22 @@ describe('featureStores routes', () => {
       });
     });
 
+    it('should throw 400 for deep multi-encoded traversal that does not stabilize', async () => {
+      const req = {
+        params: {
+          namespace: 'ns1',
+          projectName: 'test-project',
+          '*': '%25252e%25252e/etc/passwd',
+        },
+        url: '/api/featurestores/ns1/test-project/%25252e%25252e/etc/passwd',
+      } as unknown as OauthFastifyRequest;
+      const reply = mockReply();
+
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
     it('should throw 400 for malformed percent encoding in proxy path', async () => {
       const req = {
         params: { namespace: 'ns1', projectName: 'test-project', '*': 'api/v1/%ZZ' },
