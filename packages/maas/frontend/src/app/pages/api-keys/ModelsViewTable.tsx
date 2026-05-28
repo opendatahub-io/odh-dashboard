@@ -121,23 +121,25 @@ const ModelsViewTable: React.FC<ModelsViewTableProps> = ({
 
   return (
     <Table aria-label="Models table" data-testid="models-table">
-      <Thead>
-        <Tr>
-          <Th screenReaderText="Expand" />
-          <Th
-            sort={{
-              sortBy: {
-                index: modelSortDirection ? 1 : undefined,
-                direction: modelSortDirection,
-              },
-              onSort: (_event, _index, direction) => onModelSortDirectionChange(direction),
-              columnIndex: 1,
-            }}
-          >
-            Model
-          </Th>
-        </Tr>
-      </Thead>
+      {filteredModelGroups.length > 0 && (
+        <Thead>
+          <Tr>
+            <Th screenReaderText="Expand" />
+            <Th
+              sort={{
+                sortBy: {
+                  index: modelSortDirection ? 1 : undefined,
+                  direction: modelSortDirection,
+                },
+                onSort: (_event, _index, direction) => onModelSortDirectionChange(direction),
+                columnIndex: 1,
+              }}
+            >
+              Model
+            </Th>
+          </Tr>
+        </Thead>
+      )}
       {filteredModelGroups.length === 0 ? (
         <Tbody>
           <Tr>

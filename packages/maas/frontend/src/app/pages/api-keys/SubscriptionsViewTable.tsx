@@ -14,6 +14,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ModelRefInfo, TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { formatWindow } from '~/app/utilities/rateLimits';
 import { getSourceLabelColor } from './utils';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
@@ -37,10 +38,7 @@ export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
     return '—';
   }
   return limits
-    .map((l) => {
-      const formatted = l.limit >= 1000 ? `${Math.floor(l.limit / 1000)}K` : String(l.limit);
-      return `${formatted} / ${l.window}`;
-    })
+    .map((l) => `${l.limit.toLocaleString('en-US')} / ${formatWindow(l.window)}`)
     .join(', ');
 };
 
@@ -201,23 +199,25 @@ const SubscriptionsViewTable: React.FC<SubscriptionsViewTableProps> = ({
 
   return (
     <Table aria-label="Subscriptions table" data-testid="subscriptions-table">
-      <Thead>
-        <Tr>
-          <Th screenReaderText="Expand" />
-          <Th
-            sort={{
-              sortBy: {
-                index: subSortDirection ? 1 : undefined,
-                direction: subSortDirection,
-              },
-              onSort: (_event, _index, direction) => onSubSortDirectionChange(direction),
-              columnIndex: 1,
-            }}
-          >
-            Subscription
-          </Th>
-        </Tr>
-      </Thead>
+      {filteredSubscriptions.length > 0 && (
+        <Thead>
+          <Tr>
+            <Th screenReaderText="Expand" />
+            <Th
+              sort={{
+                sortBy: {
+                  index: subSortDirection ? 1 : undefined,
+                  direction: subSortDirection,
+                },
+                onSort: (_event, _index, direction) => onSubSortDirectionChange(direction),
+                columnIndex: 1,
+              }}
+            >
+              Subscription
+            </Th>
+          </Tr>
+        </Thead>
+      )}
       {filteredSubscriptions.length === 0 ? (
         <Tbody>
           <Tr>

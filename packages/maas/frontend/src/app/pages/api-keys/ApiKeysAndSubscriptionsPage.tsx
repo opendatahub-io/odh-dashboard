@@ -1,4 +1,6 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -25,8 +27,10 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="API keys and subscriptions"
-      description="Manage your API keys and view your subscription access"
+      title={
+        <TitleWithIcon title="API keys and subscriptions" objectType={ProjectObjectType.apiKeys} />
+      }
+      description="Manage your API keys and view your subscription access."
       loaded
       empty={false}
     >
