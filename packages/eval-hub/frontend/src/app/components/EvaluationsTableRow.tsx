@@ -3,6 +3,7 @@ import { ActionsColumn, IAction, Td, Tr } from '@patternfly/react-table';
 import {
   Alert,
   Button,
+  Checkbox,
   Modal,
   ModalBody,
   ModalFooter,
@@ -31,6 +32,8 @@ type EvaluationsTableRowProps = {
   namespace: string;
   collectionNameMap: CollectionNameMap;
   onActionComplete: () => void;
+  isSelected: boolean;
+  onSelectionChange: (checked: boolean) => void;
 };
 
 const IN_PROGRESS_STATES = new Set(['running', 'pending', 'stopping']);
@@ -43,6 +46,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   namespace,
   collectionNameMap,
   onActionComplete,
+  isSelected,
+  onSelectionChange,
 }) => {
   const navigate = useNavigate();
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
@@ -174,6 +179,15 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   return (
     <>
       <Tr data-testid={`evaluation-row-${rowIndex}`}>
+        <Td dataLabel="Select evaluation" data-testid={`evaluation-select-${rowIndex}`}>
+          <Checkbox
+            id={`evaluation-select-checkbox-${job.resource.id}`}
+            aria-label={`Select ${evaluationName}`}
+            isChecked={isSelected}
+            onChange={(_event, checked) => onSelectionChange(checked)}
+            data-testid={`evaluation-select-checkbox-${rowIndex}`}
+          />
+        </Td>
         <Td dataLabel="Evaluation name" data-testid="evaluation-name">
           {job.status.state === 'completed' ? (
             <Button

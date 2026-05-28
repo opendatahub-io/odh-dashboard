@@ -15,6 +15,7 @@ const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
+const mockOnSelectionChange = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
@@ -28,6 +29,8 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             namespace="test-ns"
             collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
+            isSelected={false}
+            onSelectionChange={mockOnSelectionChange}
           />
         </Tbody>
       </Table>
@@ -39,6 +42,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
   mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockOnSelectionChange.mockReset();
 });
 
 describe('EvaluationsTableRow', () => {
@@ -99,6 +103,8 @@ describe('EvaluationsTableRow', () => {
               namespace="test-ns"
               collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
+              isSelected={false}
+              onSelectionChange={mockOnSelectionChange}
             />
           </Tbody>
         </Table>

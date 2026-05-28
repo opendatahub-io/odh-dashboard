@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Bullseye,
   Button,
+  Checkbox,
   EmptyState,
   EmptyStateBody,
   EmptyStateFooter,
@@ -27,6 +28,12 @@ import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
+import {
+  getComparableRunsForJob,
+  isBenchmarkSuiteRun,
+  serializeMlflowArrayParam,
+} from '~/app/utilities/compareEvaluationsUtils';
+import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import EvaluationsTableRow from './EvaluationsTableRow';
 
 const DEFAULT_PER_PAGE = 20;
@@ -124,6 +131,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     index: 4,
     direction: 'desc',
   });
+  const [selectedEvaluationIds, setSelectedEvaluationIds] = React.useState<Set<string>>(new Set());
 
   const filteredEvaluations = React.useMemo(
     () =>
@@ -161,6 +169,15 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     [sortedEvaluations, page, perPage],
   );
 
+  const selectedRowsInView = React.useMemo(
+    () => paginatedEvaluations.filter((job) => selectedEvaluationIds.has(job.resource.id)),
+    [paginatedEvaluations, selectedEvaluationIds],
+  );
+
+  const canCompare = selectedEvaluationIds.size >= 2;
+  const allRowsInViewSelected =
+    paginatedEvaluations.length > 0 && selectedRowsInView.length === paginatedEvaluations.length;
+
   React.useEffect(() => {
     setPage(1);
   }, [filterValue, activeFilter, selectedStatus]);
@@ -169,6 +186,60 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     setFilterValue('');
     setSelectedStatus('');
   }, []);
+
+  const handleSelectionChange = React.useCallback((jobId: string, checked: boolean) => {
+    setSelectedEvaluationIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(jobId);
+      } else {
+        next.delete(jobId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCompare = React.useCallback(() => {
+    const selectedJobs = evaluations.filter((job) => selectedEvaluationIds.has(job.resource.id));
+    if (selectedJobs.length < 2) {
+      return;
+    }
+
+    const hasSuiteSelections = selectedJobs.some(isBenchmarkSuiteRun);
+    const selectedJobIds = selectedJobs.map((job) => job.resource.id);
+
+    if (hasSuiteSelections) {
+      const search = new URLSearchParams();
+      search.set('jobIds', selectedJobIds.join(','));
+      navigate(`${evaluationCompareBenchmarksRoute(namespace)}?${search.toString()}`);
+      return;
+    }
+
+    const selectedRuns = selectedJobs.flatMap((job) =>
+      getComparableRunsForJob(job)
+        .slice(0, 1)
+        .map((defaultRun) => ({
+          ...defaultRun,
+          jobId: job.resource.id,
+        })),
+    );
+
+    if (selectedRuns.length < 2) {
+      return;
+    }
+
+    const search = new URLSearchParams();
+    search.set('runs', serializeMlflowArrayParam(selectedRuns.map((run) => run.runUuid)));
+    search.set(
+      'experiments',
+      serializeMlflowArrayParam(selectedRuns.map((run) => run.experimentId)),
+    );
+    search.set(
+      'names',
+      serializeMlflowArrayParam(selectedJobs.map((job) => getEvaluationName(job))),
+    );
+    navigate(`${evaluationCompareRoute(namespace)}?${search.toString()}`);
+  }, [evaluations, namespace, navigate, selectedEvaluationIds]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
     sortBy: {
@@ -312,6 +383,16 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 Start evaluation run
               </Button>
             </ToolbarItem>
+            <ToolbarItem>
+              <Button
+                variant="secondary"
+                data-testid="compare-evaluations-button"
+                isDisabled={!canCompare}
+                onClick={handleCompare}
+              >
+                Compare
+              </Button>
+            </ToolbarItem>
           </ToolbarGroup>
           <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
             <Pagination
@@ -354,6 +435,29 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
         <Table aria-label="Evaluations table" data-testid="evaluations-table">
           <Thead>
             <Tr>
+              <Th
+                screenReaderText="Select evaluation row"
+                data-testid="evaluations-select-all-header-cell"
+              >
+                <Checkbox
+                  id="select-all-evaluation-rows"
+                  aria-label="Select all evaluations on current page"
+                  isChecked={allRowsInViewSelected}
+                  isDisabled={paginatedEvaluations.length === 0}
+                  onChange={(_event, checked) => {
+                    setSelectedEvaluationIds((prev) => {
+                      const next = new Set(prev);
+                      if (checked) {
+                        paginatedEvaluations.forEach((job) => next.add(job.resource.id));
+                      } else {
+                        paginatedEvaluations.forEach((job) => next.delete(job.resource.id));
+                      }
+                      return next;
+                    });
+                  }}
+                  data-testid="select-all-evaluations-checkbox"
+                />
+              </Th>
               <Th sort={getSortParams(0)} modifier="nowrap">
                 Name
               </Th>
@@ -399,6 +503,8 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 namespace={namespace ?? ''}
                 collectionNameMap={collectionNameMap}
                 onActionComplete={onRefresh}
+                isSelected={selectedEvaluationIds.has(job.resource.id)}
+                onSelectionChange={(checked) => handleSelectionChange(job.resource.id, checked)}
               />
             ))}
           </Tbody>

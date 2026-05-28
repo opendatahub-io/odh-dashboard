@@ -6,6 +6,12 @@ import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData
 import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
 
 const renderTable = (props: {
   evaluations: EvaluationJob[];
@@ -52,7 +58,41 @@ const mockJobs: EvaluationJob[] = [
   }),
 ];
 
+for (let index = 0; index < mockJobs.length; index += 1) {
+  const currentJob = mockJobs[index];
+  /* eslint-disable camelcase */
+  mockJobs[index] = {
+    ...currentJob,
+    resource: {
+      ...currentJob.resource,
+      mlflow_experiment_id: `exp-${index}`,
+    },
+    results: {
+      ...currentJob.results,
+      benchmarks: [
+        {
+          id: currentJob.benchmarks?.[0]?.id ?? `benchmark-${index}`,
+          benchmark_index: 0,
+          mlflow_run_id: `run-${index}`,
+        },
+      ],
+    },
+    benchmarks: [
+      {
+        id: currentJob.benchmarks?.[0]?.id ?? `benchmark-${index}`,
+        provider_id: 'lm_evaluation_harness',
+        benchmark_index: 0,
+      },
+    ],
+  };
+  /* eslint-enable camelcase */
+}
+
 describe('EvaluationsTable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('should return null when not loaded', () => {
     const { container } = renderTable({ evaluations: [], loaded: false });
     expect(container.firstChild).toBeNull();
@@ -76,6 +116,71 @@ describe('EvaluationsTable', () => {
     expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
       'Start evaluation run',
     );
+  });
+
+  it('should disable compare button until at least two rows are selected', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+
+    const compareButton = screen.getByTestId('compare-evaluations-button');
+    expect(compareButton).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-0'));
+    expect(compareButton).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-1'));
+    expect(compareButton).toBeEnabled();
+  });
+
+  it('should route directly to compare when selected rows are single benchmarks', () => {
+    renderTable({ evaluations: mockJobs, loaded: true });
+
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-0'));
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-1'));
+    fireEvent.click(screen.getByTestId('compare-evaluations-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('compare-runs?'));
+  });
+
+  it('should route to choose benchmarks when any selected row is a suite', () => {
+    /* eslint-disable camelcase */
+    const suiteJob = mockEvaluationJob({
+      id: 'suite-job',
+      name: 'Suite evaluation',
+      benchmarkId: 'ifeval',
+      createdAt: '2026-02-21T12:00:00Z',
+      score: 0.8,
+    });
+    suiteJob.benchmarks = [
+      { id: 'ifeval', provider_id: 'lm_evaluation_harness', benchmark_index: 0 },
+      { id: 'bbh', provider_id: 'lm_evaluation_harness', benchmark_index: 1 },
+    ];
+    suiteJob.results.benchmarks = [
+      { id: 'ifeval', benchmark_index: 0, mlflow_run_id: 'suite-run-0' },
+      { id: 'bbh', benchmark_index: 1, mlflow_run_id: 'suite-run-1' },
+    ];
+    suiteJob.resource.mlflow_experiment_id = 'suite-exp-id';
+
+    const singleJob = {
+      ...mockJobs[0],
+      resource: {
+        ...mockJobs[0].resource,
+        mlflow_experiment_id: 'single-exp-id',
+      },
+      results: {
+        ...mockJobs[0].results,
+        benchmarks: [{ id: 'MMLU', benchmark_index: 0, mlflow_run_id: 'single-run-id' }],
+      },
+      benchmarks: [{ id: 'MMLU', provider_id: 'lm_evaluation_harness', benchmark_index: 0 }],
+    };
+    /* eslint-enable camelcase */
+
+    renderTable({ evaluations: [suiteJob, singleJob], loaded: true });
+
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-0'));
+    fireEvent.click(screen.getByTestId('evaluation-select-checkbox-1'));
+    fireEvent.click(screen.getByTestId('compare-evaluations-button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(expect.stringContaining('compare-runs/benchmarks?'));
   });
 
   describe('filtering', () => {
