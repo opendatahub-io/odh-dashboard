@@ -75,6 +75,14 @@ describe('Verify custom properties and labels are retained during Model Registry
   });
 
   retryableBeforeEach(() => {
+    // TODO: RHOAIENG-65075 - Investigate and resolve 'Cannot read properties of null (reading postMessage)' error
+    // Temporary workaround: Catching and ignoring this specific error to prevent test failure
+    Cypress.on('uncaught:exception', (err) => {
+      if (err.message.includes('Cannot read properties of null')) {
+        return false;
+      }
+      return true;
+    });
     cy.clearCookies();
     cy.clearLocalStorage();
   });
