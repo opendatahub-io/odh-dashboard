@@ -17,7 +17,6 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@module-federation/runtime": "^0.18.0",
     "@odh-dashboard/plugin-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@patternfly/patternfly": "^6.4.0",

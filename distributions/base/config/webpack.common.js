@@ -1,5 +1,4 @@
 const path = require('path');
-const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
 const deps = require('../package.json').dependencies;
@@ -110,9 +109,6 @@ module.exports = () => ({
         },
       },
       exposes: {},
-    }),
-    new webpack.DefinePlugin({
-      MF_REMOTES: JSON.stringify(process.env.MF_REMOTES || '[]'),
     }),
   ],
   resolve: {
