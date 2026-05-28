@@ -2,15 +2,37 @@ import * as React from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
+  Bullseye,
   PageSection,
   EmptyState,
   EmptyStateBody,
+  Spinner,
 } from '@patternfly/react-core';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
+import { useAccessReview } from '#~/api/useAccessReview';
 
 const CreateRolePage: React.FC = () => {
   const { namespace = '' } = useParams<{ namespace: string }>();
+
+  const [allowCreate, loaded] = useAccessReview({
+    group: 'rbac.authorization.k8s.io',
+    resource: 'roles',
+    namespace,
+    verb: 'create',
+  });
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+
+  if (!allowCreate) {
+    return <Navigate to={`/projects/${namespace}?section=roles`} replace />;
+  }
 
   return (
     <ApplicationsPage

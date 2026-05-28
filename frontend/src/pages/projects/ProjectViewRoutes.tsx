@@ -29,7 +29,11 @@ const ProjectViewRoutes: React.FC = () => {
         <Route path="spawner/:notebookName" element={<EditSpawnerPage />} />
         <Route path="permissions" element={<Navigate to="..?section=permissions" replace />} />
         <Route path="permissions/assign" element={<ProjectPermissionsAssignRoles />} />
-        {roleManagementEnabled && <Route path="roles/create" element={<CreateRolePage />} />}
+        {roleManagementEnabled ? (
+          <Route path="roles/create" element={<CreateRolePage />} />
+        ) : (
+          <Route path="roles/*" element={<Navigate to=".." replace />} />
+        )}
         {modelMetricsEnabled && (
           <>
             <Route path="metrics/model" element={<ProjectInferenceExplainabilityWrapper />}>
