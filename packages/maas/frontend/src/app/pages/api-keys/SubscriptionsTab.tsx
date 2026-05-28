@@ -4,6 +4,8 @@ import {
   ClipboardCopy,
   Content,
   ContentVariants,
+  Flex,
+  FlexItem,
   Label,
   PageSection,
   Popover,
@@ -12,10 +14,12 @@ import {
 import { KeyIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { ModelRefInfo, UserSubscription } from '~/app/types/subscriptions';
+import { URL_PREFIX } from '~/app/utilities/const';
 import { ModelGroupEntry, deriveModelGroups, formatTokenLimit, getSourceLabelColor } from './utils';
-import EmptySubscriptionsState from './EmptySubscriptionsState';
+import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 
 export type SubscriptionSortField = 'subscription' | 'model';
@@ -29,7 +33,7 @@ const ModelInfoPopover: React.FC<{
     headerContent={displayName}
     bodyContent={
       <div data-testid="model-info-popover-body">
-        <Content component={ContentVariants.small}>
+        <Content component={ContentVariants.small} className="pf-v6-u-mb-0">
           <strong>Model ID</strong>
         </Content>
         <ClipboardCopy isReadOnly hoverTip="Copy" clickTip="Copied" data-testid="model-id-copy">
@@ -37,10 +41,12 @@ const ModelInfoPopover: React.FC<{
         </ClipboardCopy>
         {description && (
           <>
-            <Content component={ContentVariants.small} className="pf-v6-u-mt-sm">
+            <Content component={ContentVariants.small} className="pf-v6-u-mt-sm pf-v6-u-mb-0">
               <strong>Description</strong>
             </Content>
-            <Content component={ContentVariants.p}>{description}</Content>
+            <Content component={ContentVariants.p} className="pf-v6-u-mt-0">
+              {description}
+            </Content>
           </>
         )}
       </div>
@@ -55,22 +61,25 @@ const ModelInfoPopover: React.FC<{
 const ModelRow: React.FC<{ model: ModelRefInfo }> = ({ model }) => (
   <Tr data-testid="subscription-model-row">
     <Td dataLabel="Model">
-      <div>
-        <strong>{model.display_name || model.name}</strong>{' '}
-        <ModelInfoPopover
-          displayName={model.display_name || model.name}
-          modelId={model.name}
-          description={model.description}
-        />
+      <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+        <FlexItem>
+          <strong>{model.display_name || model.name}</strong>
+        </FlexItem>
+        <FlexItem>
+          <ModelInfoPopover
+            displayName={model.display_name || model.name}
+            modelId={model.name}
+            description={model.description}
+          />
+        </FlexItem>
         {model.source && (
-          <>
-            {' '}
+          <FlexItem>
             <Label isCompact color={getSourceLabelColor(model.source)}>
               {model.source}
             </Label>
-          </>
+          </FlexItem>
         )}
-      </div>
+      </Flex>
       {model.display_name && model.name !== model.display_name && (
         <Content component={ContentVariants.small}>{model.name}</Content>
       )}
@@ -97,7 +106,11 @@ const SubscriptionRow: React.FC<{
           }}
         />
         <Td dataLabel="Subscription">
-          <strong>{subscription.display_name || subscription.subscription_id_header}</strong>
+          <Link
+            to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
+          >
+            {subscription.display_name || subscription.subscription_id_header}
+          </Link>
           {subscription.key_count != null && subscription.key_count > 0 && (
             <>
               {' '}
@@ -118,14 +131,15 @@ const SubscriptionRow: React.FC<{
             >
               <Thead>
                 <Tr>
-                  <Th>Model</Th>
-                  <Th>Token limits</Th>
+                  <Th width={60}>Model</Th>
+                  <Th width={40}>Token limits</Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {subscription.model_refs.length === 0 ? (
                   <Tr>
-                    <Td colSpan={2}>No models in this subscription.</Td>
+                    <Td dataLabel="Model">No models in this subscription.</Td>
+                    <Td dataLabel="Token limits">—</Td>
                   </Tr>
                 ) : (
                   subscription.model_refs.map((model) => (
@@ -159,22 +173,25 @@ const ModelGroupRow: React.FC<{
           }}
         />
         <Td dataLabel="Model">
-          <div>
-            <strong>{modelGroup.displayName || modelGroup.name}</strong>{' '}
-            <ModelInfoPopover
-              displayName={modelGroup.displayName || modelGroup.name}
-              modelId={modelGroup.name}
-              description={modelGroup.description}
-            />
+          <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <strong>{modelGroup.displayName || modelGroup.name}</strong>
+            </FlexItem>
+            <FlexItem>
+              <ModelInfoPopover
+                displayName={modelGroup.displayName || modelGroup.name}
+                modelId={modelGroup.name}
+                description={modelGroup.description}
+              />
+            </FlexItem>
             {modelGroup.source && (
-              <>
-                {' '}
+              <FlexItem>
                 <Label isCompact color={getSourceLabelColor(modelGroup.source)}>
                   {modelGroup.source}
                 </Label>
-              </>
+              </FlexItem>
             )}
-          </div>
+          </Flex>
           {modelGroup.displayName && modelGroup.name !== modelGroup.displayName && (
             <Content component={ContentVariants.small}>{modelGroup.name}</Content>
           )}
@@ -190,9 +207,9 @@ const ModelGroupRow: React.FC<{
             >
               <Thead>
                 <Tr>
-                  <Th>Subscription</Th>
-                  <Th>API keys</Th>
-                  <Th>Token limits</Th>
+                  <Th width={40}>Subscription</Th>
+                  <Th width={30}>API keys</Th>
+                  <Th width={30}>Token limits</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -204,7 +221,11 @@ const ModelGroupRow: React.FC<{
                   modelGroup.subscriptions.map((sub) => (
                     <Tr key={sub.subscriptionIdHeader} data-testid="model-subscription-row">
                       <Td dataLabel="Subscription">
-                        {sub.displayName || sub.subscriptionIdHeader}
+                        <Link
+                          to={`${URL_PREFIX}/keys-and-subs/subscriptions/${sub.subscriptionIdHeader}`}
+                        >
+                          {sub.displayName || sub.subscriptionIdHeader}
+                        </Link>
                       </Td>
                       <Td dataLabel="API keys">
                         {sub.keyCount != null && sub.keyCount > 0 ? (
@@ -345,7 +366,7 @@ const SubscriptionsTab: React.FC = () => {
       />
       {sortField === 'subscription' ? (
         subscriptions.length === 0 ? (
-          <EmptySubscriptionsState hasData={false} variant="subscription" />
+          <EmptySubscriptionsTabState hasData={false} variant="subscription" />
         ) : (
           <Table aria-label="Subscriptions table" data-testid="subscriptions-table">
             <Thead>
@@ -369,7 +390,7 @@ const SubscriptionsTab: React.FC = () => {
               <Tbody>
                 <Tr>
                   <Td colSpan={2}>
-                    <EmptySubscriptionsState hasData variant="subscription" />
+                    <EmptySubscriptionsTabState hasData variant="subscription" />
                   </Td>
                 </Tr>
               </Tbody>
@@ -385,7 +406,7 @@ const SubscriptionsTab: React.FC = () => {
           </Table>
         )
       ) : modelGroups.length === 0 ? (
-        <EmptySubscriptionsState hasData={false} variant="model" />
+        <EmptySubscriptionsTabState hasData={false} variant="model" />
       ) : (
         <Table aria-label="Models table" data-testid="models-table">
           <Thead>
@@ -409,7 +430,7 @@ const SubscriptionsTab: React.FC = () => {
             <Tbody>
               <Tr>
                 <Td colSpan={2}>
-                  <EmptySubscriptionsState hasData variant="model" />
+                  <EmptySubscriptionsTabState hasData variant="model" />
                 </Td>
               </Tr>
             </Tbody>

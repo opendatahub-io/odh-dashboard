@@ -16,6 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { SubscriptionSortField } from './SubscriptionsTab';
+import { ModelSource } from './utils';
 
 type SubscriptionsToolbarProps = {
   sourceFilters: string[];
@@ -73,18 +74,18 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
               >
                 <SelectList isAriaMultiselectable>
                   <SelectOption
-                    value="Internal"
+                    value={ModelSource.Internal}
                     hasCheckbox
-                    isSelected={sourceFilters.includes('Internal')}
+                    isSelected={sourceFilters.includes(ModelSource.Internal)}
                   >
-                    Internal
+                    {ModelSource.Internal}
                   </SelectOption>
                   <SelectOption
-                    value="External"
+                    value={ModelSource.External}
                     hasCheckbox
-                    isSelected={sourceFilters.includes('External')}
+                    isSelected={sourceFilters.includes(ModelSource.External)}
                   >
-                    External
+                    {ModelSource.External}
                   </SelectOption>
                 </SelectList>
               </Select>

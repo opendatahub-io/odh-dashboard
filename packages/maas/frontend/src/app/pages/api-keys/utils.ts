@@ -1,4 +1,9 @@
-import { TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
+import { TokenRateLimitInfo, UserSubscription } from '../../types/subscriptions';
+
+export enum ModelSource {
+  Internal = 'Internal',
+  External = 'External',
+}
 
 const DEFAULT_API_KEY_VISIBLE_PREFIX_LENGTH = 7;
 
@@ -42,7 +47,7 @@ export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   }
   return limits
     .map((l) => {
-      const formatted = l.limit >= 1000 ? `${Math.round(l.limit / 1000)}K` : String(l.limit);
+      const formatted = l.limit >= 1000 ? `${Math.floor(l.limit / 1000)}K` : String(l.limit);
       return `${formatted} / ${l.window}`;
     })
     .join(', ');
@@ -79,4 +84,4 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
 };
 
 export const getSourceLabelColor = (source: string): 'blue' | 'purple' =>
-  source === 'internal' ? 'blue' : 'purple';
+  source.toLowerCase() === ModelSource.Internal.toLowerCase() ? 'blue' : 'purple';
