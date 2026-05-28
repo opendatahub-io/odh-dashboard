@@ -271,7 +271,6 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			},
 			K8sService: k8sService,
 			S3Service:  s3Service,
-			MockS3:     cfg.MockS3Client,
 		}),
 		k8sService:         k8sService,
 		testEnv:            testEnv,

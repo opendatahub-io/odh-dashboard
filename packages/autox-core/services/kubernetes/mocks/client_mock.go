@@ -14,16 +14,16 @@ import (
 // MockK8sClient implements k8ssvc.K8sClientInterface with configurable function fields.
 // Each field is optional — if nil, the method returns a zero value and nil error.
 type MockK8sClient struct {
-	ListResourcesFunc     func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
-	GetResourceFunc       func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
-	CreateResourceFunc    func(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
-	GetNamespacesFunc     func(ctx context.Context) ([]v1.Namespace, error)
-	GetPodsFunc           func(ctx context.Context, namespace string) (*v1.PodList, error)
-	GetSecretsFunc        func(ctx context.Context, namespace string) ([]v1.Secret, error)
-	GetSecretFunc         func(ctx context.Context, namespace, secretName string) (*v1.Secret, error)
-	GetUserFunc           func(ctx context.Context) (string, error)
-	IsClusterAdminFunc    func(ctx context.Context) (bool, error)
-	CanAccessResourceFunc func(ctx context.Context, namespace, verb, group, resource, name string) (bool, error)
+	ListResourcesFunc       func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+	GetResourceFunc         func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+	CreateResourceFunc      func(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+	GetNamespacesFunc       func(ctx context.Context) ([]v1.Namespace, error)
+	GetPodsFunc             func(ctx context.Context, namespace string) (*v1.PodList, error)
+	GetSecretsFunc          func(ctx context.Context, namespace string) ([]v1.Secret, error)
+	GetSecretFunc           func(ctx context.Context, namespace, secretName string) (*v1.Secret, error)
+	GetUserFunc             func(ctx context.Context) (string, error)
+	IsClusterAdminFunc      func(ctx context.Context) (bool, error)
+	CanAccessResourceFunc   func(ctx context.Context, namespace, verb, group, resource, name string) (bool, error)
 	DiscoverResourceGVRFunc func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 

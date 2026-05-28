@@ -20,7 +20,7 @@ func NewTestApp( //nolint:unused
 	repos *repositories.Repositories,
 ) *App {
 	if repos == nil {
-		repos = repositories.NewRepositories(repositories.RepositoriesConfig{MockS3: true})
+		repos = repositories.NewRepositories(repositories.RepositoriesConfig{})
 	}
 	return &App{
 		config:                      cfg,

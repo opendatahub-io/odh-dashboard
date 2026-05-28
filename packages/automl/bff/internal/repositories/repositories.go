@@ -23,24 +23,16 @@ type RepositoriesConfig struct {
 	PipelinesCfg     PipelinesRepositoryConfig
 	K8sService       *corek8s.K8sService
 	S3Service        *cores3.S3Service
-	MockS3           bool
 }
 
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
-	var s3Repo S3RepositoryInterface
-	if cfg.MockS3 {
-		s3Repo = NewMockS3Repository()
-	} else {
-		s3Repo = NewS3Repository(cfg.K8sService, cfg.S3Service, cfg.PipelinesService)
-	}
-
 	return &Repositories{
 		HealthCheck:   NewHealthCheckRepository(),
 		User:          NewUserRepository(),
 		Namespace:     NewNamespaceRepository(),
 		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		Secret:        NewSecretRepository(),
-		S3:            s3Repo,
+		S3:            NewS3Repository(cfg.K8sService, cfg.S3Service, cfg.PipelinesService),
 		ModelRegistry: NewModelRegistryRepository(),
 	}
 }
