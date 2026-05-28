@@ -1548,12 +1548,7 @@ describe('Model Serving Deploy Wizard', () => {
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-    hardwareProfileSection.findCustomizeButton().should('exist').click();
-    // Wait for the ExpandableSection to be fully expanded before interacting with its contents.
-    // PatternFly v6 overrides display:none on [hidden] elements, so .should('be.visible') passes
-    // even when the section is still collapsed. The aria-expanded attribute is the correct signal
-    // that the React state update has completed and the hidden attribute has been removed.
-    hardwareProfileSection.findCustomizeButton().should('have.attr', 'aria-expanded', 'true');
+    hardwareProfileSection.expandCustomizeSection();
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');

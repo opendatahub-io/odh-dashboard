@@ -28,6 +28,11 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
 }));
 
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
+
 jest.mock('~/app/Chatbot/sourceUpload/ChatbotSourceUploadPanel', () => ({
   ChatbotSourceUploadPanel: ({
     uploadedFilesCount,

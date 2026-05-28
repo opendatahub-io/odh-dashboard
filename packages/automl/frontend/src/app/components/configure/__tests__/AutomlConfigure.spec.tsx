@@ -10,6 +10,10 @@ import AutomlConfigure from '~/app/components/configure/AutomlConfigure';
 import type { Files } from '~/app/components/common/FileExplorer/FileExplorer';
 import { useS3GetFileSchemaQuery } from '~/app/hooks/queries';
 import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
+} from '~/app/utilities/automlTrainingDataFile';
 
 const mockNotificationError = jest.fn();
 
@@ -246,6 +250,47 @@ const renderWithInitialValues = (
   );
 };
 
+/**
+ * Minimal FileList for jsdom. Supports indexed access, `item`, and `for...of`; not every browser FileList edge case.
+ */
+function createFileList(fileArr: File[]): FileList {
+  const arr = [...fileArr];
+  const list = Object.assign(arr, {
+    length: arr.length,
+    item(index: number): File | null {
+      return arr[index] ?? null;
+    },
+    *[Symbol.iterator]() {
+      for (let i = 0; i < arr.length; i++) {
+        yield arr[i];
+      }
+    },
+  });
+  return list as unknown as FileList;
+}
+
+/** Partial `DataTransfer` for tests — jsdom has no real API; react-dropzone reads `types`/`files` on drop. */
+function mockDataTransferForDrop(files: File[]) {
+  return {
+    files: createFileList(files),
+    types: ['Files'],
+    dropEffect: 'copy',
+    effectAllowed: 'all',
+  };
+}
+
+/**
+ * Simulates drag-and-drop onto PatternFly `MultipleFileUpload` (react-dropzone root).
+ * Requires training-data upload mode to be open so the training upload zone is mounted.
+ *
+ * Uses `dataTransfer.files` without `items` so file-selector reads via `dt.files`.
+ */
+function dropFilesOnTrainingDataUploadZone(files: File[]): void {
+  fireEvent.drop(screen.getByTestId('training-data-upload-zone'), {
+    dataTransfer: mockDataTransferForDrop(files),
+  });
+}
+
 describe('AutomlConfigure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -334,14 +379,13 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
-      Object.defineProperty(largeFile, 'size', { value: 1024 * 1024 * 1024 + 1 });
+      Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
 
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [largeFile] } });
+      fireEvent.change(fileInput, { target: { files: [largeFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -355,12 +399,11 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [badFile] } });
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
 
       expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
       expect(mockNotificationError).toHaveBeenCalledWith(
@@ -369,17 +412,97 @@ describe('AutomlConfigure', () => {
       );
     });
 
+    describe('MultipleFileUpload drag-and-drop', () => {
+      it('should show a notification when a disallowed file type is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const badFile = new File(['x'], 'run.exe', { type: 'application/octet-stream' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([badFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Invalid file type',
+            'File type must be CSV.',
+          );
+        });
+      });
+
+      it('should show a notification when an oversized file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const largeFile = new File(['x'], 'big.csv', { type: 'text/csv' });
+        Object.defineProperty(largeFile, 'size', { value: AUTOML_TRAINING_UPLOAD_MAX_BYTES + 1 });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([largeFile]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'File too large',
+            'File size must be 32 MiB or less.',
+          );
+        });
+      });
+
+      it('should show a notification when more than one file is dropped', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const fileA = new File(['a'], 'a.csv', { type: 'text/csv' });
+        const fileB = new File(['b'], 'b.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([fileA, fileB]);
+
+        expect(getMockS3MutateAsync()).not.toHaveBeenCalled();
+        await waitFor(() => {
+          expect(mockNotificationError).toHaveBeenCalledWith(
+            'Too many files',
+            AUTOML_TRAINING_UPLOAD_TOO_MANY_FILES_DETAIL,
+          );
+        });
+      });
+
+      it('should upload an allowed file dropped on the zone', async () => {
+        renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
+
+        const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
+        getMockS3MutateAsync().mockClear();
+        dropFilesOnTrainingDataUploadZone([goodFile]);
+
+        await waitFor(() => {
+          expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
+            expect.objectContaining({
+              namespace: 'test-namespace',
+              secretName: 'Test Secret 1',
+              bucket: 'test-bucket-1',
+              key: 'training.csv',
+              file: goodFile,
+            }),
+          );
+        });
+        expect(mockNotificationError).not.toHaveBeenCalled();
+      });
+    });
+
     it('should upload an allowed file from the native file input', async () => {
       renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalledWith(
@@ -400,8 +523,7 @@ describe('AutomlConfigure', () => {
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByRole('button', { name: 'Upload file' }));
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
 
       const file = new File(['hello'], 'collision.csv', { type: 'text/csv' });
       getMockS3MutateAsync().mockClear();
@@ -409,7 +531,7 @@ describe('AutomlConfigure', () => {
         new Error('unable to find unique filename after 10 attempts'),
       );
 
-      fireEvent.change(fileInput!, { target: { files: [file] } });
+      fireEvent.change(fileInput, { target: { files: [file] } });
 
       await waitFor(() => {
         expect(mockNotificationError).toHaveBeenCalledWith(
@@ -558,10 +680,9 @@ describe('AutomlConfigure', () => {
         screen.queryByRole('grid', { name: 'Selected training data file' }),
       ).not.toBeInTheDocument();
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
-      expect(fileInput).not.toBeNull();
+      const fileInput = screen.getByTestId('automl-upload-file-input');
       const goodFile = new File(['hello'], 'training.csv', { type: 'text/csv' });
-      fireEvent.change(fileInput!, { target: { files: [goodFile] } });
+      fireEvent.change(fileInput, { target: { files: [goodFile] } });
 
       await waitFor(() => {
         expect(getMockS3MutateAsync()).toHaveBeenCalled();

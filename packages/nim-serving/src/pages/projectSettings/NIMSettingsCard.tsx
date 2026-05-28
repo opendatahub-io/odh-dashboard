@@ -23,7 +23,7 @@ import { useAccessReview } from '@odh-dashboard/internal/api';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
-import { deleteNIMResources } from '../../api/accounts/utils';
+import { deleteNIMResources } from '../../api/accounts/api';
 import { NIMAccountModel } from '../../api/accounts/k8s';
 
 const NIM_DESCRIPTION =

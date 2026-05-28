@@ -1,0 +1,56 @@
+name: Test / Core BFF Tests
+on:
+  push:
+    paths:
+      - 'distributions/core-bff/**'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+  pull_request:
+    paths:
+      - 'distributions/core-bff/**'
+      - '.github/workflows/core-bff-build.yml'
+      - '!LICENSE*'
+      - '!DOCKERFILE*'
+      - '!**.gitignore'
+      - '!**.md'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.0'
+
+      - name: Lint
+        working-directory: distributions/core-bff/bff
+        run: make lint
+
+      - name: Build (BFF)
+        working-directory: distributions/core-bff/bff
+        run: make build
+
+      - name: Test (BFF)
+        working-directory: distributions/core-bff/bff
+        run: make test
+
+      - name: Check if there are uncommitted file changes
+        working-directory: distributions/core-bff
+        run: |
+          clean=$(git status --porcelain)
+          if [[ -z "$clean" ]]; then
+              echo "Empty git status --porcelain: $clean"
+          else
+              echo "Uncommitted file changes detected: $clean"
+              git diff
+              exit 1
+          fi
