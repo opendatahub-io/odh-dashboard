@@ -32,6 +32,8 @@ ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number
   | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
 ```
 
+**Note:** Resolved (collapsed) review threads are excluded upstream by `fetch-review-threads.sh`, which only selects threads where `isResolved == false`. Resolved threads therefore never appear in the classification input and do not need disposition handling.
+
 The output has two arrays:
 
 - **`preflight_threads`** — threads from prior preflight runs, each with a `disposition`:

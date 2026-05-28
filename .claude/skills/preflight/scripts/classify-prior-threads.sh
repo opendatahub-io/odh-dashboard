@@ -36,6 +36,7 @@ jq -c --arg pr_author "$pr_author" '
   preflight_threads: [
     .[]
     | select(is_preflight)
+    | non_bot_replies as $nbr
     | {
         path,
         line,
@@ -43,12 +44,12 @@ jq -c --arg pr_author "$pr_author" '
         first_comment,
         comment_count,
         replies,
-        non_bot_replies: non_bot_replies,
+        non_bot_replies: $nbr,
         disposition: (
-          if (non_bot_replies | length) == 0
-          then "no_reply"
-          elif ($pr_author != "") and ([(.replies // [])[] | select((.author // "") == $pr_author)] | length > 0)
+          if ($pr_author != "") and ([(.replies // [])[] | select((.author // "") == $pr_author)] | length > 0)
           then "author_replied"
+          elif ($nbr | length) == 0
+          then "no_reply"
           else "reviewer_replied"
           end
         )

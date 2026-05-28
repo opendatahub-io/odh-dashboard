@@ -358,6 +358,21 @@ other_count=$(echo "$result" | jq '.other_threads | length')
 assert_eq "mid-text badge not preflight" "0" "$pf_count"
 assert_eq "mid-text badge goes to other" "1" "$other_count"
 
+# ---------- Test 21: Bot PR author reply classified as author_replied ----------
+echo "Test 21: Bot PR author reply is author_replied, not no_reply"
+input='[{
+  "author": "github-actions[bot]",
+  "path": "src/foo.tsx",
+  "line": 42,
+  "is_coderabbit": false,
+  "comment_count": 2,
+  "first_comment": "_🟡 Minor_ · _Style review_\n\n**Use const.**",
+  "replies": [{"author": "renovate[bot]", "body": "This dependency is pinned intentionally"}]
+}]'
+result=$(echo "$input" | "$CLASSIFY" --pr-author 'renovate[bot]')
+disposition=$(echo "$result" | jq -r '.preflight_threads[0].disposition')
+assert_eq "bot pr-author reply → author_replied" "author_replied" "$disposition"
+
 echo ""
 echo "=== Results: $pass passed, $fail failed ==="
 [ "$fail" -eq 0 ] || exit 1
