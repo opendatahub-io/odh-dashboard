@@ -12,16 +12,14 @@ import (
 	"strings"
 
 	"github.com/kubeflow/model-registry/pkg/openapi"
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metameta "k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -132,11 +130,14 @@ type modelRegistryCR struct {
 }
 
 // ModelRegistryRepository handles Model Registry API operations and cluster discovery.
-type ModelRegistryRepository struct{}
+type ModelRegistryRepository struct {
+	k8sService       *corek8s.K8sService
+	pipelinesService *corepipelines.PipelinesService
+}
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
-func NewModelRegistryRepository() *ModelRegistryRepository {
-	return &ModelRegistryRepository{}
+func NewModelRegistryRepository(k8sService *corek8s.K8sService, pipelinesService *corepipelines.PipelinesService) *ModelRegistryRepository {
+	return &ModelRegistryRepository{k8sService: k8sService, pipelinesService: pipelinesService}
 }
 
 // buildModelRegistryURI constructs the S3 URI format expected by the Model Registry UI:
@@ -167,8 +168,17 @@ func (r *ModelRegistryRepository) RegisterModel(
 	ctx context.Context,
 	client modelregistry.HTTPClientInterface,
 	req models.RegisterModelRequest,
-	dspaStorage *models.DSPAObjectStorage,
+	namespace string,
 ) (string, *openapi.ModelArtifact, error) {
+	// Discover DSPA object storage for artifact URI construction.
+	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
+	}
+	if dspa.ObjectStorage == nil {
+		return "", nil, fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
+	}
+
 	// Normalize fields — validation checked for non-blank, now trim for clean API payloads.
 	req.S3Path = strings.TrimSpace(req.S3Path)
 	req.ModelName = strings.TrimSpace(req.ModelName)
@@ -255,20 +265,18 @@ func (r *ModelRegistryRepository) RegisterModel(
 
 	// Build the full S3 URI in the format the Model Registry UI expects:
 	// s3://{bucket}/{key}?endpoint={endpoint}&defaultRegion={region}
-	if dspaStorage == nil {
-		return "", nil, fmt.Errorf("DSPA object storage config is required to construct the artifact URI")
+	objectStorage := dspa.ObjectStorage
+	if objectStorage.Bucket == "" {
+		return "", nil, fmt.Errorf("DSPA %q object storage is missing bucket name — contact your administrator", dspa.Name)
 	}
-	if dspaStorage.Bucket == "" {
-		return "", nil, fmt.Errorf("DSPA object storage config is missing bucket name")
+	if objectStorage.EndpointURL == "" {
+		return "", nil, fmt.Errorf("DSPA %q object storage is missing endpoint URL — contact your administrator", dspa.Name)
 	}
-	if dspaStorage.EndpointURL == "" {
-		return "", nil, fmt.Errorf("DSPA object storage config is missing endpoint URL")
-	}
-	parsedEndpoint, err := neturl.Parse(dspaStorage.EndpointURL)
+	parsedEndpoint, err := neturl.Parse(objectStorage.EndpointURL)
 	if err != nil || parsedEndpoint.Host == "" || (parsedEndpoint.Scheme != "http" && parsedEndpoint.Scheme != "https") {
-		return "", nil, fmt.Errorf("DSPA object storage config has invalid endpoint URL: %s", dspaStorage.EndpointURL)
+		return "", nil, fmt.Errorf("DSPA %q object storage has invalid endpoint URL: %s", dspa.Name, objectStorage.EndpointURL)
 	}
-	artifactURI := buildModelRegistryURI(dspaStorage.Bucket, req.S3Path, dspaStorage.EndpointURL, dspaStorage.Region)
+	artifactURI := buildModelRegistryURI(objectStorage.Bucket, req.S3Path, objectStorage.EndpointURL, objectStorage.Region)
 
 	artifactType := defaultModelArtifactType
 	artifactCreate := openapi.ModelArtifactCreate{
@@ -308,13 +316,10 @@ func (r *ModelRegistryRepository) RegisterModel(
 // whose ID matches registryUID. The registry must be ready (Available=True).
 func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	identity *k8s.RequestIdentity,
-	mockK8Client bool,
 	registryUID string,
 	logger *slog.Logger,
 ) (*models.ModelRegistry, error) {
-	data, err := r.ListModelRegistries(ctx, client, identity, mockK8Client, logger)
+	data, err := r.ListModelRegistries(ctx, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -332,65 +337,19 @@ func (r *ModelRegistryRepository) ResolveModelRegistryByUID(
 }
 
 // ListModelRegistries lists all ModelRegistry instance CRs in the model registries namespace.
-// Uses modelregistry.opendatahub.io/v1beta1 which represents individual user-created registries
-// (distinct from the platform-level components.platform.opendatahub.io operator config CR).
-// In mock mode, realistic test fixtures are returned without touching the cluster.
+// Uses modelregistry.opendatahub.io/v1beta1 which represents individual user-created registries.
 // Returns ErrModelRegistryForbidden when the caller lacks RBAC permission.
 // Returns an empty list (not an error) when the ModelRegistry CRD is not installed.
 //
-// Authorization: the dynamic client is scoped to the requesting user's identity.
-// For user_token auth the user's Bearer token is used directly; for internal
-// (SA) auth the SA impersonates the requesting user so RBAC is evaluated against
-// that user rather than the service account.
+// Authorization: the autox-core K8sService scopes the request to the calling user's identity
+// from context — Bearer token for user_token auth, SA impersonation for internal auth.
 func (r *ModelRegistryRepository) ListModelRegistries(
 	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	identity *k8s.RequestIdentity,
-	mockK8Client bool,
 	logger *slog.Logger,
 ) (*models.ModelRegistriesData, error) {
-	if mockK8Client {
-		return getMockModelRegistries(), nil
-	}
-
-	restConfig := client.GetRestConfig()
-	if restConfig == nil {
-		return nil, fmt.Errorf("failed to get rest.Config from kubernetes client")
-	}
-
-	// Scope the dynamic client to the requesting user so RBAC is evaluated against
-	// their permissions, not the service account's.
-	userConfig := rest.CopyConfig(restConfig)
-	if identity != nil {
-		if identity.Token != "" {
-			// user_token auth: the identity already carries the user's Bearer token;
-			// use it directly instead of the SA token in the base config.
-			userConfig.BearerToken = identity.Token
-			userConfig.BearerTokenFile = ""
-			userConfig.Impersonate = rest.ImpersonationConfig{}
-		} else if identity.UserID != "" {
-			// internal auth: impersonate the requesting user so K8s enforces their RBAC.
-			userConfig.Impersonate = rest.ImpersonationConfig{
-				UserName: identity.UserID,
-				Groups:   identity.Groups,
-			}
-		}
-	}
-	// Clear client certificates to prevent credential leakage across user boundaries
-	userConfig.CertData = nil
-	userConfig.CertFile = ""
-	userConfig.KeyData = nil
-	userConfig.KeyFile = ""
-
-	dynamicClient, err := dynamic.NewForConfig(userConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
-	}
-
 	// All ModelRegistry instance CRs live in the operator-managed registries namespace.
-	unstructuredList, err := dynamicClient.Resource(modelRegistryGVR).
-		Namespace(modelRegistriesNamespace).
-		List(ctx, metav1.ListOptions{})
+	// Identity is extracted from context by the autox-core K8s client automatically.
+	unstructuredList, err := r.k8sService.ListResources(ctx, modelRegistryGVR, modelRegistriesNamespace)
 	if err != nil {
 		// CRD not installed: metameta.IsNoMatchError covers NoKindMatchError and
 		// NoResourceMatchError, which the dynamic client returns when the resource
@@ -498,30 +457,4 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	}
 
 	return serverURL, externalURL
-}
-
-// getMockModelRegistries returns realistic mock data for development and testing.
-func getMockModelRegistries() *models.ModelRegistriesData {
-	return &models.ModelRegistriesData{
-		ModelRegistries: []models.ModelRegistry{
-			{
-				ID:          "a1b2c3d4-e5f6-7890-abcd-111111111111",
-				Name:        "default-modelregistry",
-				DisplayName: "Default Model Registry",
-				Description: "Default shared model registry for the organization",
-				IsReady:     true,
-				ServerURL:   "https://default-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
-				ExternalURL: "https://default-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
-			},
-			{
-				ID:          "b2c3d4e5-f6a7-8901-bcde-222222222222",
-				Name:        "team-modelregistry",
-				DisplayName: "Team Model Registry",
-				Description: "Dedicated model registry for the ML team",
-				IsReady:     true,
-				ServerURL:   "https://team-modelregistry.rhoai-model-registries.svc.cluster.local:8443/api/model_registry/v1alpha3",
-				ExternalURL: "https://team-modelregistry-rest.apps.example.com/api/model_registry/v1alpha3",
-			},
-		},
-	}
 }

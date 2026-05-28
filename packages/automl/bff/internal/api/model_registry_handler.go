@@ -2,13 +2,10 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
@@ -36,25 +33,7 @@ func (app *App) GetModelRegistriesHandler(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	logger := helper.GetContextLoggerFromReq(r)
 
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
-	// In mock mode the repository returns fixtures without touching the cluster,
-	// so skip acquiring a real K8s client.
-	var k8sClient k8s.KubernetesClientInterface
-	if !app.config.MockK8Client {
-		var err error
-		k8sClient, err = app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-	}
-
-	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, k8sClient, identity, app.config.MockK8Client, logger)
+	data, err := app.repositories.ModelRegistry.ListModelRegistries(ctx, logger)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")

@@ -33,6 +33,6 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		Secret:        NewSecretRepository(),
 		S3:            NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
-		ModelRegistry: NewModelRegistryRepository(),
+		ModelRegistry: NewModelRegistryRepository(cfg.K8sService, cfg.PipelinesService),
 	}
 }

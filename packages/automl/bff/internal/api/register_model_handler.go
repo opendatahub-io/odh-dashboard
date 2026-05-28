@@ -16,10 +16,10 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // maxRequestBodyBytes caps the request body size to 1 MiB for register model requests.
@@ -79,24 +79,7 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
-	if !ok || identity == nil {
-		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
-		return
-	}
-
-	var k8sClient k8s.KubernetesClientInterface
-	if !app.config.MockK8Client {
-		var err error
-		k8sClient, err = app.kubernetesClientFactory.GetClient(ctx)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
-			return
-		}
-	}
-
-	reg, err := app.repositories.ModelRegistry.ResolveModelRegistryByUID(
-		ctx, k8sClient, identity, app.config.MockK8Client, registryId, logger)
+	reg, err := app.repositories.ModelRegistry.ResolveModelRegistryByUID(ctx, registryId, logger)
 	if err != nil {
 		if errors.Is(err, repositories.ErrModelRegistryForbidden) {
 			app.forbiddenResponse(w, r, "insufficient permissions to list model registries")
@@ -142,25 +125,8 @@ func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps 
 		return
 	}
 
-	// Best-effort DSPA discovery: pull object storage config from the DSPA spec (bucket,
-	// endpoint, region) without requiring a ready pipeline server. This is needed to
-	// construct the full S3 URI for the model artifact.
-	// Check context first (may already be set by upstream middleware or tests).
-	dspaStorage, _ := ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
-	if dspaStorage == nil && app.kubernetesClientFactory != nil {
-		namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
-		ctx = app.injectDSPAObjectStorageIfAvailable(ctx, namespace, logger)
-		r = r.WithContext(ctx)
-		dspaStorage, _ = ctx.Value(constants.DSPAObjectStorageKey).(*models.DSPAObjectStorage)
-	}
-	if dspaStorage == nil {
-		app.serviceUnavailableResponseWithMessage(w, r,
-			fmt.Errorf("DSPA object storage config not available"),
-			"DSPA object storage discovery unavailable; cannot construct artifact URI — ensure a DSPipelineApplication with external storage is configured in this namespace")
-		return
-	}
-
-	registeredModelID, modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req, dspaStorage)
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	registeredModelID, modelArtifact, err := app.repositories.ModelRegistry.RegisterModel(ctx, client, req, namespace)
 	if err != nil {
 		var httpErr *modelregistry.HTTPError
 		if errors.As(err, &httpErr) {
@@ -216,7 +182,7 @@ func (app *App) modelRegistryRequestHeaders(r *http.Request) http.Header {
 	}
 
 	logger := helper.GetContextLoggerFromReq(r)
-	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	identity, ok := r.Context().Value(constants.RequestIdentityKey).(*corek8s.RequestIdentity)
 	tokenToForward := ""
 	if ok && identity != nil && identity.Token != "" {
 		tokenToForward = identity.Token
