@@ -311,8 +311,8 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 	if req.InputDataKey == "" {
 		missing = append(missing, "input_data_key")
 	}
-	if req.LlamaStackSecretName == "" {
-		missing = append(missing, "llama_stack_secret_name")
+	if req.OGXSecretName == "" {
+		missing = append(missing, "ogx_secret_name")
 	}
 	if len(missing) > 0 {
 		return NewValidationError(fmt.Sprintf("missing required fields: %s", strings.Join(missing, ", ")))
@@ -340,14 +340,14 @@ func ValidateCreateAutoRAGRunRequest(req models.CreateAutoRAGRunRequest) error {
 }
 
 func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipelineVersionID string) models.CreatePipelineRunKFRequest {
-	params := map[string]interface{}{
-		"test_data_secret_name":   req.TestDataSecretName,
-		"test_data_bucket_name":   req.TestDataBucketName,
-		"test_data_key":           req.TestDataKey,
-		"input_data_secret_name":  req.InputDataSecretName,
-		"input_data_bucket_name":  req.InputDataBucketName,
-		"input_data_key":          req.InputDataKey,
-		"llama_stack_secret_name": req.LlamaStackSecretName,
+	params := map[string]any{
+		"test_data_secret_name":  req.TestDataSecretName,
+		"test_data_bucket_name":  req.TestDataBucketName,
+		"test_data_key":          req.TestDataKey,
+		"input_data_secret_name": req.InputDataSecretName,
+		"input_data_bucket_name": req.InputDataBucketName,
+		"input_data_key":         req.InputDataKey,
+		"ogx_secret_name":        req.OGXSecretName,
 	}
 
 	if len(req.EmbeddingsModels) > 0 {
@@ -363,8 +363,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 	}
 	params["optimization_metric"] = metric
 
-	if req.LlamaStackVectorIOProviderID != "" {
-		params["llama_stack_vector_io_provider_id"] = req.LlamaStackVectorIOProviderID
+	if req.VectorIOProviderID != "" {
+		params["vector_io_provider_id"] = req.VectorIOProviderID
 	}
 
 	if req.OptimizationMaxRagPatterns != nil {
