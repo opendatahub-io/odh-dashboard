@@ -37,19 +37,19 @@ type S3RequestContext struct {
 // S3Repository handles S3 credential resolution (from K8s secrets or DSPA) and
 // delegates S3 operations to the autox-core S3 service.
 type S3Repository struct {
-	k8sService       *corek8s.K8sService
 	s3Service        *cores3.S3Service
+	k8sService       *corek8s.K8sService
 	pipelinesService *corepipelines.PipelinesService
 }
 
 func NewS3Repository(
-	k8sService *corek8s.K8sService,
 	s3Service *cores3.S3Service,
+	k8sService *corek8s.K8sService,
 	pipelinesService *corepipelines.PipelinesService,
 ) *S3Repository {
 	return &S3Repository{
-		k8sService:       k8sService,
 		s3Service:        s3Service,
+		k8sService:       k8sService,
 		pipelinesService: pipelinesService,
 	}
 }

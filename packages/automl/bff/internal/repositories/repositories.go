@@ -19,9 +19,9 @@ type Repositories struct {
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
 type RepositoriesConfig struct {
+	K8sService       *corek8s.K8sService
 	PipelinesService *corepipelines.PipelinesService
 	PipelinesCfg     PipelinesRepositoryConfig
-	K8sService       *corek8s.K8sService
 	S3Service        *cores3.S3Service
 }
 
@@ -32,7 +32,7 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		Namespace:     NewNamespaceRepository(),
 		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		Secret:        NewSecretRepository(),
-		S3:            NewS3Repository(cfg.K8sService, cfg.S3Service, cfg.PipelinesService),
+		S3:            NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
 		ModelRegistry: NewModelRegistryRepository(),
 	}
 }
