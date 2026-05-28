@@ -66,10 +66,26 @@ export const useAutoragRunActions = (
         'The process is asynchronous and may take some time to take effect',
       );
     } catch (error) {
-      notification.error(
-        'Failed to stop run',
-        error instanceof Error ? error.message : 'An unknown error occurred',
-      );
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      // Check if the error is because the run is already in a terminal state
+      const isAlreadyTerminated =
+        errorMessage.includes('FAILED') ||
+        errorMessage.includes('SUCCEEDED') ||
+        errorMessage.includes('CANCELED') ||
+        errorMessage.includes('cannot be terminated');
+
+      if (isAlreadyTerminated) {
+        notification.warning(
+          'Run already finished',
+          'The pipeline run has already completed or failed. The page will refresh to show the current state.',
+        );
+      } else {
+        notification.error('Failed to stop run', errorMessage);
+      }
+      // Refresh the state to update the UI
+      await queryClient.invalidateQueries({
+        queryKey: ['autorag', 'pipelineRun', runId, namespace],
+      });
       throw error;
     }
     try {
