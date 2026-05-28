@@ -53,9 +53,11 @@ export const useModelTypeField = (
   );
 
   const forcedOverride = modelTypeOverrides.find((o) => o.forced);
-  const modelType = forcedOverride
-    ? { type: forcedOverride.extraOption.key, legacyVLLM: false }
-    : modelTypeState;
+  const modelType = React.useMemo(
+    () =>
+      forcedOverride ? { type: forcedOverride.extraOption.key, legacyVLLM: false } : modelTypeState,
+    [forcedOverride, modelTypeState],
+  );
 
   return React.useMemo(
     () => ({

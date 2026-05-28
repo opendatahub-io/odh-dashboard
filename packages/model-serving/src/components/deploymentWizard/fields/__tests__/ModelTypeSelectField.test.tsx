@@ -201,5 +201,21 @@ describe('ModelTypeSelectField', () => {
       });
       expect(screen.getByText('Extra Option')).toBeInTheDocument();
     });
+
+    it('should disable model type select when forced', () => {
+      render(<ModelTypeSelectField externalData={{ data: { extraOptions: [], forced: true } }} />);
+      expect(screen.getByRole('button', { name: 'Options menu' })).toHaveClass('pf-m-disabled');
+    });
+
+    it('should disable legacy checkbox when forced', () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaAvailabilityStatus(true));
+      render(
+        <ModelTypeSelectField
+          modelType={{ type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false }}
+          externalData={{ data: { extraOptions: [], forced: true } }}
+        />,
+      );
+      expect(screen.getByTestId('legacy-mode-checkbox')).toBeDisabled();
+    });
   });
 });
