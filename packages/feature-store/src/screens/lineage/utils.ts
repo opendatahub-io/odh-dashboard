@@ -197,7 +197,7 @@ export const filterNodesBySearch = (
   searchFilters: FeatureStoreLineageSearchFilters,
 ): LineageData => {
   const hasActiveFilters = Object.values(searchFilters).some(
-    (filter) => !!filter?.some((v) => v.trim().length > 0),
+    (filter) => !!filter?.some((v: string) => v.trim().length > 0),
   );
 
   if (!hasActiveFilters) {
