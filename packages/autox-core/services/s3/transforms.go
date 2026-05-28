@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -28,6 +29,12 @@ func mapListObjectsOutput(output *awss3.ListObjectsV2Output) *S3ListObjectsRespo
 		result.CommonPrefixes = append(result.CommonPrefixes, mapCommonPrefix(cp))
 	}
 	for _, obj := range output.Contents {
+		// Skip zero-byte folder markers (keys ending in "/" with size 0).
+		// S3 uses these as placeholders for "folders" — they are not real files
+		// and cause the UI to render the current folder as a child of itself.
+		if strings.HasSuffix(aws.ToString(obj.Key), "/") && aws.ToInt64(obj.Size) == 0 {
+			continue
+		}
 		result.Contents = append(result.Contents, mapObjectInfo(obj))
 	}
 
