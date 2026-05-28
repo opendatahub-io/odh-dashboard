@@ -15,10 +15,6 @@ import {
   ModalFooter,
   ModalHeader,
   Popover,
-  TabContent,
-  Tabs,
-  Tab,
-  TabTitleText,
   Title,
   ToggleGroup,
   ToggleGroupItem,
@@ -119,11 +115,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   const [showResetModal, setShowResetModal] = React.useState(false);
   const isProfileDirty = useIsProfileDirty(configId);
 
-  const modelTabRef = React.useRef<HTMLElement>(null);
-  const promptTabRef = React.useRef<HTMLElement>(null);
-  const knowledgeTabRef = React.useRef<HTMLElement>(null);
-  const mcpTabRef = React.useRef<HTMLElement>(null);
-  const guardrailsTabRef = React.useRef<HTMLElement>(null);
   const isGuardrailsFeatureEnabled = useGuardrailsEnabled();
   const [agentConfigManagementEnabled] = useFeatureFlag(AGENT_CONFIG_MANAGEMENT);
   const profileApplied = useChatbotConfigStore((s) => s.profileApplied);
@@ -197,17 +188,6 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
   // Key to force DrawerPanelContent remount when auto-closing, so it resets to defaultSize
   const [panelSizeKey, setPanelSizeKey] = React.useState(0);
 
-  // Key to force Tabs remount when panel width changes so overflow arrows recalculate.
-  // This is safe because:
-  // 1. All tab content state is stored in useChatbotConfigStore (controlled components)
-  // 2. No async operations in tab content that would be canceled
-  // 3. Remount is debounced (300ms after resize ends) to avoid performance issues
-  // 4. PatternFly Tabs doesn't auto-recalculate overflow on container resize
-  const [tabsKey, setTabsKey] = React.useState(0);
-
-  // Debounce timeout for Tabs remount
-  const resizeEndTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
   const handlePanelResize = (
     _event: MouseEvent | TouchEvent | React.KeyboardEvent<Element>,
     width: number,
@@ -222,35 +202,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
     const newWidth = `${width}px`;
     setPanelWidth(newWidth);
     sessionStorage.setItem(SETTINGS_PANEL_WIDTH, newWidth);
-
-    // Debounce Tabs remount: only remount after resize ends (300ms after last resize event)
-    if (resizeEndTimeoutRef.current) {
-      clearTimeout(resizeEndTimeoutRef.current);
-    }
-    resizeEndTimeoutRef.current = setTimeout(() => {
-      setTabsKey((k) => k + 1);
-    }, 300);
   };
-
-  // Cleanup resize debounce timeout on unmount
-  React.useEffect(
-    () => () => {
-      if (resizeEndTimeoutRef.current) {
-        clearTimeout(resizeEndTimeoutRef.current);
-      }
-    },
-    [],
-  );
 
   // Tab state — controlled when activeTabKeyProp is provided, otherwise internal
   const [activeTabKeyInternal, setActiveTabKeyInternal] = React.useState<string | number>(
     defaultActiveTabKey ?? 0,
   );
   const activeTabKey = activeTabKeyProp ?? activeTabKeyInternal;
-  const handleTabClick = (
-    _event: React.MouseEvent<HTMLElement> | React.KeyboardEvent<HTMLElement>,
-    tabIndex: string | number,
-  ) => {
+  const handleTabSelect = (tabIndex: string | number) => {
     // Only update internal state when uncontrolled so it doesn't diverge from the prop
     if (activeTabKeyProp === undefined) {
       setActiveTabKeyInternal(tabIndex);
@@ -333,33 +292,27 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
         style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
         hasNoPadding
       >
-        <Tabs
-          key={tabsKey}
-          activeKey={activeTabKey}
-          onSelect={handleTabClick}
+        <ToggleGroup
+          isFill
           aria-label="Chatbot settings page tabs"
-          role="region"
           data-testid="chatbot-settings-page-tabs"
         >
-          <Tab
-            eventKey={0}
-            title={<TabTitleText>Model</TabTitleText>}
-            tabContentRef={modelTabRef}
+          <ToggleGroupItem
+            text="Model"
+            isSelected={activeTabKey === 0}
+            onChange={() => handleTabSelect(0)}
             data-testid="chatbot-settings-page-tab-model"
           />
-          <Tab
-            eventKey={1}
-            title={<TabTitleText>Prompt</TabTitleText>}
-            tabContentRef={promptTabRef}
+          <ToggleGroupItem
+            text="Prompt"
+            isSelected={activeTabKey === 1}
+            onChange={() => handleTabSelect(1)}
             data-testid="chatbot-settings-page-tab-prompt"
           />
-          <Tab
-            eventKey={2}
-            title={
+          <ToggleGroupItem
+            text={
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <TabTitleText>Knowledge</TabTitleText>
-                </FlexItem>
+                <FlexItem>Knowledge</FlexItem>
                 <FlexItem>
                   <Badge isRead={!isRagEnabled} data-testid="knowledge-status-badge">
                     {isRagEnabled ? 'On' : 'Off'}
@@ -367,16 +320,14 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 </FlexItem>
               </Flex>
             }
-            tabContentRef={knowledgeTabRef}
+            isSelected={activeTabKey === 2}
+            onChange={() => handleTabSelect(2)}
             data-testid="chatbot-settings-page-tab-knowledge"
           />
-          <Tab
-            eventKey={3}
-            title={
+          <ToggleGroupItem
+            text={
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <FlexItem>
-                  <TabTitleText>MCP</TabTitleText>
-                </FlexItem>
+                <FlexItem>MCP</FlexItem>
                 {selectedMcpServerIds.length > 0 && (
                   <FlexItem>
                     <Badge>{selectedMcpServerIds.length}</Badge>
@@ -393,26 +344,21 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
                 )}
               </Flex>
             }
-            tabContentRef={mcpTabRef}
+            isSelected={activeTabKey === 3}
+            onChange={() => handleTabSelect(3)}
             data-testid="chatbot-settings-page-tab-mcp"
           />
           {isGuardrailsFeatureEnabled && (
-            <Tab
-              eventKey={4}
-              title={<TabTitleText>Guardrails</TabTitleText>}
-              tabContentRef={guardrailsTabRef}
+            <ToggleGroupItem
+              text="Guardrails"
+              isSelected={activeTabKey === 4}
+              onChange={() => handleTabSelect(4)}
               data-testid="chatbot-settings-page-tab-guardrails"
             />
           )}
-        </Tabs>
+        </ToggleGroup>
 
-        <TabContent
-          ref={modelTabRef}
-          eventKey={0}
-          id="settings-tab-content-model"
-          hidden={activeTabKey !== 0}
-          style={{ height: '100%', overflow: 'auto' }}
-        >
+        {activeTabKey === 0 && (
           <ModelTabContent
             configId={configId}
             temperature={temperature}
@@ -424,41 +370,23 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             selectedSubscription={selectedSubscription}
             onSubscriptionChange={handleSubscriptionChange}
           />
-        </TabContent>
-        <TabContent
-          ref={promptTabRef}
-          eventKey={1}
-          id="settings-tab-content-prompt"
-          hidden={activeTabKey !== 1}
-          style={{ height: '100%', overflow: 'auto' }}
-        >
+        )}
+        {activeTabKey === 1 && (
           <PromptTabContent
             configId={configId}
             systemInstruction={systemInstruction}
             onSystemInstructionChange={handleSystemInstructionChange}
           />
-        </TabContent>
-        <TabContent
-          ref={knowledgeTabRef}
-          eventKey={2}
-          id="settings-tab-content-knowledge"
-          hidden={activeTabKey !== 2}
-          style={{ height: '100%', overflow: 'auto' }}
-        >
+        )}
+        {activeTabKey === 2 && (
           <KnowledgeTabContent
             configId={configId}
             sourceManagement={sourceManagement}
             fileManagement={fileManagement}
             alerts={alerts}
           />
-        </TabContent>
-        <TabContent
-          ref={mcpTabRef}
-          eventKey={3}
-          id="settings-tab-content-mcp"
-          hidden={activeTabKey !== 3}
-          style={{ height: '100%', overflow: 'auto' }}
-        >
+        )}
+        {activeTabKey === 3 && (
           <MCPTabContent
             configId={configId}
             mcpServers={mcpServers}
@@ -472,17 +400,9 @@ const ChatbotSettingsPanel: React.FunctionComponent<ChatbotSettingsPanelProps> =
             onActiveToolsCountChange={setActiveToolsCount}
             onToolsWarningChange={setShowMcpToolsWarning}
           />
-        </TabContent>
-        {isGuardrailsFeatureEnabled && (
-          <TabContent
-            ref={guardrailsTabRef}
-            eventKey={4}
-            id="settings-tab-content-guardrails"
-            hidden={activeTabKey !== 4}
-            style={{ height: '100%', overflow: 'auto' }}
-          >
-            <GuardrailsTabContent configId={configId} />
-          </TabContent>
+        )}
+        {activeTabKey === 4 && isGuardrailsFeatureEnabled && (
+          <GuardrailsTabContent configId={configId} />
         )}
       </DrawerPanelBody>
       {agentConfigManagementEnabled && !isCompareMode && (
