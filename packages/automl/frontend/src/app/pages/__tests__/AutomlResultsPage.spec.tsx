@@ -43,8 +43,6 @@ const mockUseAutomlResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
-  isTerminalState: (state: string) =>
-    ['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED'].includes(state),
 }));
 
 jest.mock('~/app/hooks/useAutomlResults', () => ({
@@ -689,7 +687,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({

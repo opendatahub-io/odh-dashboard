@@ -1,5 +1,7 @@
 /* eslint-disable camelcase */
 import {
+  isRunCompleted,
+  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
@@ -11,6 +13,62 @@ import {
   computeRankMap,
   generateReconfigureName,
 } from '~/app/utilities/utils';
+
+describe('isRunCompleted', () => {
+  it('should return true for SUCCEEDED', () => {
+    expect(isRunCompleted('SUCCEEDED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunCompleted('succeeded')).toBe(true);
+    expect(isRunCompleted('Succeeded')).toBe(true);
+  });
+
+  it('should return false for other terminal states', () => {
+    expect(isRunCompleted('FAILED')).toBe(false);
+    expect(isRunCompleted('CANCELED')).toBe(false);
+    expect(isRunCompleted('SKIPPED')).toBe(false);
+    expect(isRunCompleted('CACHED')).toBe(false);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunCompleted('RUNNING')).toBe(false);
+    expect(isRunCompleted('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunCompleted(undefined)).toBe(false);
+    expect(isRunCompleted('')).toBe(false);
+  });
+});
+
+describe('isRunInTerminalState', () => {
+  it('should return true for all terminal states', () => {
+    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
+    expect(isRunInTerminalState('FAILED')).toBe(true);
+    expect(isRunInTerminalState('CANCELED')).toBe(true);
+    expect(isRunInTerminalState('SKIPPED')).toBe(true);
+    expect(isRunInTerminalState('CACHED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInTerminalState('succeeded')).toBe(true);
+    expect(isRunInTerminalState('Failed')).toBe(true);
+    expect(isRunInTerminalState('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunInTerminalState('RUNNING')).toBe(false);
+    expect(isRunInTerminalState('PENDING')).toBe(false);
+    expect(isRunInTerminalState('PAUSED')).toBe(false);
+    expect(isRunInTerminalState('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInTerminalState(undefined)).toBe(false);
+    expect(isRunInTerminalState('')).toBe(false);
+  });
+});
 
 describe('isRunTerminatable', () => {
   it('should return true for active states', () => {

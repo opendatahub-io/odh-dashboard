@@ -17,7 +17,7 @@ jest.mock('@patternfly/react-topology', () => ({
 }));
 
 // eslint-disable-next-line import/first
-import { useAutoRAGTaskTopology } from '~/app/topology/useAutoRAGTaskTopology';
+import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 
 const mockSpec: PipelineSpecVariable = {
   root: {
@@ -43,9 +43,9 @@ const mockSpec: PipelineSpecVariable = {
   },
 };
 
-describe('useAutoRAGTaskTopology', () => {
+describe('useAutomlTaskTopology', () => {
   it('should return empty array when spec is undefined', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(undefined, undefined);
+    const renderResult = testHook(useAutomlTaskTopology)(undefined, undefined);
     expect(renderResult.result.current).toEqual([]);
   });
 
@@ -53,12 +53,12 @@ describe('useAutoRAGTaskTopology', () => {
     const emptySpec: PipelineSpecVariable = {
       root: { dag: { tasks: {} } },
     };
-    const renderResult = testHook(useAutoRAGTaskTopology)(emptySpec, undefined);
+    const renderResult = testHook(useAutomlTaskTopology)(emptySpec, undefined);
     expect(renderResult.result.current).toEqual([]);
   });
 
   it('should create task nodes in topological order', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined);
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
     expect(nodes).toHaveLength(3);
@@ -68,7 +68,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should set runAfterTasks to create linear chain', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined);
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
     expect(nodes[0].runAfterTasks).toEqual([]);
@@ -77,16 +77,34 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should humanize known task names', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined);
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined);
     const nodes = renderResult.result.current;
 
-    expect(nodes[0].label).toBe('Test Data Loader');
-    expect(nodes[1].label).toBe('Documents Sampling');
-    expect(nodes[2].label).toBe('Text Extraction');
+    expect(nodes[0].label).toBe('Test data loader');
+    expect(nodes[1].label).toBe('Documents sampling');
+    expect(nodes[2].label).toBe('Text extraction');
+  });
+
+  it('should humanize unknown task names via fallback', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            'my-custom-task': {
+              taskInfo: { name: 'my-custom-task' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    expect(renderResult.result.current[0].label).toBe('My custom task');
   });
 
   it('should use terminal fallback status when run is succeeded but task has no details', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'SUCCEEDED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'SUCCEEDED');
     const nodes = renderResult.result.current;
 
     expect(nodes).toHaveLength(3);
@@ -96,7 +114,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should use terminal fallback status when run is failed but task has no details', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'FAILED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'FAILED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
@@ -105,7 +123,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should use terminal fallback status when run is canceled but task has no details', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'CANCELED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'CANCELED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
@@ -114,7 +132,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should use terminal fallback status when run is skipped but task has no details', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'SKIPPED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'SKIPPED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
@@ -123,7 +141,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should use terminal fallback status when run is cached but task has no details', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'CACHED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'CACHED');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
@@ -145,7 +163,7 @@ describe('useAutoRAGTaskTopology', () => {
         },
       ],
     };
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, runDetails, 'FAILED');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, runDetails, 'FAILED');
     const nodes = renderResult.result.current;
 
     // Task with explicit status retains its own status
@@ -158,7 +176,7 @@ describe('useAutoRAGTaskTopology', () => {
   });
 
   it('should not apply terminal fallback when run is still running', () => {
-    const renderResult = testHook(useAutoRAGTaskTopology)(mockSpec, undefined, 'RUNNING');
+    const renderResult = testHook(useAutomlTaskTopology)(mockSpec, undefined, 'RUNNING');
     const nodes = renderResult.result.current;
 
     nodes.forEach((node) => {
@@ -166,21 +184,89 @@ describe('useAutoRAGTaskTopology', () => {
     });
   });
 
-  it('should humanize unknown task names via fallback', () => {
+  it('should map title-cased API display name to Model selection via normalized lookup', () => {
     const spec: PipelineSpecVariable = {
       root: {
         dag: {
           tasks: {
-            'my-custom-task': {
-              taskInfo: { name: 'my-custom-task' },
+            loader: {
+              taskInfo: { name: 'loader' },
               dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            someTaskId: {
+              taskInfo: { name: 'Autogluon Timeseries Models Selection' },
+              dependentTasks: ['loader'],
               componentRef: { name: '' },
             },
           },
         },
       },
     };
-    const renderResult = testHook(useAutoRAGTaskTopology)(spec, undefined);
-    expect(renderResult.result.current[0].label).toBe('My Custom Task');
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    expect(renderResult.result.current[1].label).toBe('Model selection');
+  });
+
+  it('should map autogluon-timeseries-models-selection task id to Model selection label', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            loader: {
+              taskInfo: { name: 'loader' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'autogluon-timeseries-models-selection': {
+              taskInfo: { name: 'unexpected-api-name' },
+              dependentTasks: ['loader'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes[1].label).toBe('Model selection');
+  });
+
+  it('should assign wider layout width to longer resolved labels', () => {
+    const spec: PipelineSpecVariable = {
+      root: {
+        dag: {
+          tasks: {
+            short: {
+              taskInfo: { name: 'short' },
+              dependentTasks: [],
+              componentRef: { name: '' },
+            },
+            'very-long-task-name-for-layout': {
+              taskInfo: { name: 'very-long-task-name-for-layout' },
+              dependentTasks: ['short'],
+              componentRef: { name: '' },
+            },
+            tail: {
+              taskInfo: { name: 'tail' },
+              dependentTasks: ['very-long-task-name-for-layout'],
+              componentRef: { name: '' },
+            },
+          },
+        },
+      },
+    };
+    const renderResult = testHook(useAutomlTaskTopology)(spec, undefined);
+    const nodes = renderResult.result.current;
+
+    expect(nodes).toHaveLength(3);
+    const shortW = nodes[0].width;
+    const longW = nodes[1].width;
+    const tailW = nodes[2].width;
+    if (shortW === undefined || longW === undefined || tailW === undefined) {
+      throw new Error('expected layout width on every topology node');
+    }
+    expect(longW).toBeGreaterThan(shortW);
+    expect(longW).toBeGreaterThan(tailW);
   });
 });
