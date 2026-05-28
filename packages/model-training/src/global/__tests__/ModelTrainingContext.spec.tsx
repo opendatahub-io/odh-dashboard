@@ -233,5 +233,49 @@ describe('ModelTrainingContextProvider', () => {
 
       expect(screen.getByTestId('project')).toHaveTextContent('none');
     });
+
+    it('should clean up results when a project watcher unmounts', () => {
+      const stableResults: Record<string, CustomWatchK8sResult<TrainJobKind[]>> = {
+        'project-a': STABLE_TRAIN_RESULT,
+      };
+      const stableRayResults: Record<string, CustomWatchK8sResult<RayJobKind[]>> = {
+        'project-b': STABLE_RAY_RESULT,
+      };
+
+      mockUseTrainJobs.mockImplementation((ns) => stableResults[ns ?? ''] ?? STABLE_EMPTY_LOADED);
+      mockUseRayJobs.mockImplementation(
+        (ns) => stableRayResults[ns ?? ''] ?? STABLE_EMPTY_RAY_LOADED,
+      );
+
+      // Render with two projects
+      const { rerender } = render(
+        <ProjectsContext.Provider value={projectsContextValue}>
+          <ModelTrainingContextProvider>
+            <ContextConsumer />
+          </ModelTrainingContextProvider>
+        </ProjectsContext.Provider>,
+      );
+
+      expect(screen.getByTestId('train-count')).toHaveTextContent('1');
+      expect(screen.getByTestId('ray-count')).toHaveTextContent('1');
+
+      // Re-render with only one project — project-b's watcher unmounts
+      const reducedProjectsContextValue = {
+        ...projectsContextValue,
+        projects: [projectA],
+      };
+
+      rerender(
+        <ProjectsContext.Provider value={reducedProjectsContextValue}>
+          <ModelTrainingContextProvider>
+            <ContextConsumer />
+          </ModelTrainingContextProvider>
+        </ProjectsContext.Provider>,
+      );
+
+      // After unmount cleanup, project-b's ray job should be removed
+      expect(screen.getByTestId('ray-count')).toHaveTextContent('0');
+      expect(screen.getByTestId('train-loaded')).toHaveTextContent('true');
+    });
   });
 });
