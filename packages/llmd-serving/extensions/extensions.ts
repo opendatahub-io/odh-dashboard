@@ -1,17 +1,19 @@
 import type {
   DeployedModelServingDetails,
-  DeploymentWizardFieldExtension,
-  ModelServingDeploy,
-  ModelServingDeploymentFormDataExtension,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingDeleteModal,
-  ModelServingDeploymentTransformExtension,
   ModelServingStartStopAction,
-  AssembleModelResourceExtension,
-  WizardField2Extension,
+} from '@odh-dashboard/model-serving/extension-points';
+import type {
+  WizardFieldExtension,
   WizardFieldApplyExtension,
   WizardFieldExtractorExtension,
-} from '@odh-dashboard/model-serving/extension-points';
+  ModelServingDeploymentFormDataExtension,
+  ModelServingDeploy,
+  AssembleModelResourceExtension,
+  DeploymentWizardFieldOverrideExtension,
+  ModelServingDeploymentTransformExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { AreaExtension } from '@odh-dashboard/plugin-core/extension-points';
@@ -25,11 +27,11 @@ import type {
 
 export const LLMD_SERVING_ID = 'llmd-serving';
 
-const llmConfigOptionsFieldExtension: WizardField2Extension<
+const llmConfigOptionsFieldExtension: WizardFieldExtension<
   LLMConfigOptionsFieldType,
   LLMdDeployment
 > = {
-  type: 'model-serving.deployment/wizard-field2',
+  type: 'model-serving.deployment/wizard-field',
   properties: {
     platform: LLMD_SERVING_ID,
     field: () =>
@@ -42,8 +44,8 @@ const llmConfigOptionsFieldExtension: WizardField2Extension<
   },
 };
 
-const gatewaySelectFieldExtension: WizardField2Extension<GatewaySelectFieldType, LLMdDeployment> = {
-  type: 'model-serving.deployment/wizard-field2',
+const gatewaySelectFieldExtension: WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment> = {
+  type: 'model-serving.deployment/wizard-field',
   properties: {
     platform: LLMD_SERVING_ID,
     field: () =>
@@ -98,11 +100,11 @@ const extensions: (
   | ModelServingDeleteModal<LLMdDeployment>
   | ModelServingDeploy<LLMdDeployment>
   | AssembleModelResourceExtension<LLMdDeployment>
-  | DeploymentWizardFieldExtension<LLMdDeployment>
+  | DeploymentWizardFieldOverrideExtension<LLMdDeployment>
   | ModelServingDeploymentTransformExtension<LLMdDeployment>
   | ModelServingStartStopAction<LLMdDeployment>
-  | WizardField2Extension<LLMConfigOptionsFieldType, LLMdDeployment>
-  | WizardField2Extension<GatewaySelectFieldType, LLMdDeployment>
+  | WizardFieldExtension<LLMConfigOptionsFieldType, LLMdDeployment>
+  | WizardFieldExtension<GatewaySelectFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<GatewaySelectFieldData, LLMdDeployment>
   | WizardFieldExtractorExtension<GatewaySelectFieldData, LLMdDeployment>
 )[] = [
@@ -209,7 +211,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () => import('../src/wizardFields/modelServerField').then((m) => m.modelServerField),
@@ -220,7 +222,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () =>
@@ -231,7 +233,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () =>
@@ -242,7 +244,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () =>
@@ -253,7 +255,7 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: LLMD_SERVING_ID,
       field: () =>

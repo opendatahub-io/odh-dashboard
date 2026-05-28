@@ -3,6 +3,7 @@ import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import extensions, {
   AI_ASSET_CUSTOM_ENDPOINTS,
+  CHAT_PLAYGROUND,
   EXTERNAL_VECTOR_STORES,
   GUARDRAILS,
   MODEL_AS_SERVICE,
@@ -16,6 +17,7 @@ export const PluginStoreContextProvider: React.FC<React.PropsWithChildren> = ({ 
     const pluginStore = new PluginStore({ 'gen-ai': extensions });
     const flags: Record<string, boolean> = {
       [PLUGIN_GEN_AI]: true,
+      [CHAT_PLAYGROUND]: true,
       [MODEL_AS_SERVICE]: true,
       [MODEL_AS_SERVICE_CAMEL]: true,
       [GUARDRAILS]: true,
