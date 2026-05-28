@@ -197,7 +197,7 @@ export const filterNodesBySearch = (
   searchFilters: FeatureStoreLineageSearchFilters,
 ): LineageData => {
   const hasActiveFilters = Object.values(searchFilters).some(
-    (filter) => filter && filter.length > 0,
+    (filter) => !!filter?.some((v) => v.trim().length > 0),
   );
 
   if (!hasActiveFilters) {
@@ -213,7 +213,10 @@ export const filterNodesBySearch = (
 
   const matchesFilterValues = (nodeName: string, filterValues: string[]): boolean => {
     const lowerNodeName = nodeName.toLowerCase();
-    return filterValues.some((value) => lowerNodeName.includes(value.trim().toLowerCase()));
+    const normalizedValues = filterValues
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0);
+    return normalizedValues.some((value) => lowerNodeName.includes(value));
   };
 
   data.nodes.forEach((node) => {

@@ -100,6 +100,18 @@ describe('useSearchHandlers', () => {
       expect(mockOptions.onClear).toHaveBeenCalled();
     });
 
+    it('should cancel pending debounced search when value becomes empty', () => {
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+
+      const mockEvent = {} as React.FormEvent<HTMLInputElement>;
+      result.current.handleSearchChange(mockEvent, 'pending query');
+      result.current.handleSearchChange(mockEvent, '');
+
+      jest.advanceTimersByTime(300);
+      expect(mockOptions.onSearchChange).not.toHaveBeenCalled();
+      expect(mockOptions.onClear).toHaveBeenCalled();
+    });
+
     it('should trim leading and trailing spaces from search value', () => {
       const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
 
@@ -136,6 +148,18 @@ describe('useSearchHandlers', () => {
       expect(() => result.current.handleSearchClear()).not.toThrow();
       expect(mockState.setSearchValue).toHaveBeenCalledWith('');
       expect(mockState.setIsSearching).toHaveBeenCalledWith(false);
+    });
+
+    it('should cancel pending debounced search when clearing', () => {
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+
+      const mockEvent = {} as React.FormEvent<HTMLInputElement>;
+      result.current.handleSearchChange(mockEvent, 'pending query');
+
+      result.current.handleSearchClear();
+
+      jest.advanceTimersByTime(300);
+      expect(mockOptions.onSearchChange).not.toHaveBeenCalled();
     });
   });
 
