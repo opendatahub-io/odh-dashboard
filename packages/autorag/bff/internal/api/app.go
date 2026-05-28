@@ -19,7 +19,9 @@ import (
 	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
 	s3mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3/s3mocks"
 	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	corek8smocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
 	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	corepipelinesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines/mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -202,29 +204,34 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		})
 	}
 
-	// Create autox-core Kubernetes client based on auth method
-	// Identity is extracted from context automatically by the client
-	autoxClient, err := corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
-		AuthMethod: cfg.AuthMethod,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
+	// Create autox-core Kubernetes client and service.
+	var k8sClient corek8s.K8sClientInterface
+	if cfg.MockK8Client {
+		k8sClient = &corek8smocks.MockK8sClient{}
+	} else {
+		k8sClient, err = corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
+			AuthMethod: cfg.AuthMethod,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
+		}
 	}
+	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, k8sClient)
 
-	// Create the K8s service using autox-core
-	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{
-		Logger: logger,
-	}, autoxClient)
-
-	// Create autox-core Pipelines client and service
-	pipelinesCfg := corepipelines.PipelinesClientConfig{
-		InsecureSkipVerify: cfg.InsecureSkipVerify,
-		RootCAs:            rootCAs,
+	// Create autox-core Pipelines client and service.
+	var pipelinesClient corepipelines.PipelinesClientInterface
+	if cfg.MockPipelineServerClient {
+		pipelinesClient = &corepipelinesmocks.MockPipelinesClient{}
+	} else {
+		pipelinesCfg := corepipelines.PipelinesClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
+		pipelinesClient = corepipelines.NewDefaultPipelinesClient(pipelinesCfg)
 	}
-	if pfManager != nil {
-		pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
-	}
-	pipelinesClient := corepipelines.NewDefaultPipelinesClient(pipelinesCfg)
 	pipelinesService := corepipelines.NewPipelinesService(corepipelines.PipelinesServiceConfig{
 		Logger: logger,
 	}, pipelinesClient, k8sService)
