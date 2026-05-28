@@ -164,9 +164,10 @@ spec:
                       description: 'DEPRECATED: MLflow is now always enabled when the operator component is present. This field will be removed in a future version.'
                     mcpCatalog:
                       type: boolean
+                      description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
                     toolCalling:
                       type: boolean
-                      description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
+                      description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'
