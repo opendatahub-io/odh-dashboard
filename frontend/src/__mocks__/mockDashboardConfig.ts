@@ -61,6 +61,7 @@ export type MockDashboardConfigType = {
   nimWizard?: boolean;
   mySubscriptions?: boolean;
   agentOps?: boolean;
+  roleManagement?: boolean;
   genAiStudioConfig?: {
     aiAssetCustomEndpoints?: {
       externalProviders?: boolean;
@@ -121,6 +122,7 @@ export const mockDashboardConfig = ({
   nimWizard = false,
   mySubscriptions = false,
   agentOps = false,
+  roleManagement = false,
   hardwareProfileOrder = ['test-hardware-profile'],
   genAiStudioConfig = {
     aiAssetCustomEndpoints: {
@@ -304,6 +306,7 @@ export const mockDashboardConfig = ({
       nimWizard,
       mySubscriptions,
       agentOps,
+      roleManagement,
     },
     notebookController: {
       enabled: !disableNotebookController,

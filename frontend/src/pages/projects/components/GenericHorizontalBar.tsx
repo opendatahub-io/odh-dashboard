@@ -57,7 +57,11 @@ const GenericHorizontalBar: React.FC<GenericHorizontalBarProps> = ({
                 <>
                   {section.icon && <TabTitleIcon>{section.icon}</TabTitleIcon>}
                   <TabTitleText>{section.title}</TabTitleText>
-                  {section.label && <Label isCompact>{section.label}</Label>}
+                  {section.label && (
+                    <Label isCompact color="yellow" variant="outline">
+                      {section.label}
+                    </Label>
+                  )}
                 </>
               }
             />

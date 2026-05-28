@@ -22,6 +22,7 @@ import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import GenericHorizontalBar from '#~/pages/projects/components/GenericHorizontalBar';
 import ProjectSharing from '#~/pages/projects/projectSharing/ProjectSharing';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
+import ProjectRoles from '#~/pages/projects/projectRoles/ProjectRoles';
 import ProjectSettingsPage from '#~/pages/projects/projectSettings/ProjectSettingsPage';
 import { SupportedArea, useIsAreaAvailable } from '#~/concepts/areas';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
@@ -32,7 +33,10 @@ import {
 } from '#~/concepts/k8s/utils';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
-import { useProjectPermissionsTabVisible } from '#~/concepts/projects/accessChecks';
+import {
+  useProjectPermissionsTabVisible,
+  useProjectRolesTabVisible,
+} from '#~/concepts/projects/accessChecks';
 import { useKueueConfiguration } from '#~/concepts/hardwareProfiles/kueueUtils';
 import { PermissionsContextProvider } from '#~/concepts/permissions/PermissionsContext';
 import useCheckLogoutParams from './useCheckLogoutParams';
@@ -53,6 +57,7 @@ const ProjectDetails: React.FC = () => {
   const projectSharingEnabled = useIsAreaAvailable(SupportedArea.DS_PROJECTS_PERMISSIONS).status;
   const pipelinesEnabled = useIsAreaAvailable(SupportedArea.DS_PIPELINES).status;
   const projectRBACEnabled = useIsAreaAvailable(SupportedArea.PROJECT_RBAC_SETTINGS).status;
+  const roleManagementEnabled = useIsAreaAvailable(SupportedArea.ROLE_MANAGEMENT).status;
   const settingsCardExtensions = useExtensions(isProjectDetailsSettingsCardExtension);
   const hasSettingsCards = settingsCardExtensions.length > 0;
   const deploymentsTab = useDeploymentsTab();
@@ -60,6 +65,10 @@ const ProjectDetails: React.FC = () => {
   const state = searchParams.get('section');
 
   const [allowCreate, rbacLoaded] = useProjectPermissionsTabVisible(currentProject.metadata.name);
+  const [allowRoles, rolesRbacLoaded] = useProjectRolesTabVisible(
+    currentProject.metadata.name,
+    roleManagementEnabled,
+  );
 
   const workbenchEnabled = useIsAreaAvailable(SupportedArea.WORKBENCHES).status;
 
@@ -94,7 +103,7 @@ const ProjectDetails: React.FC = () => {
           </BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={rbacLoaded}
+      loaded={rbacLoaded && (!roleManagementEnabled || rolesRbacLoaded)}
       empty={false}
       headerAction={<ProjectActions project={currentProject} />}
     >
@@ -181,6 +190,16 @@ const ProjectDetails: React.FC = () => {
               title: 'Connections',
               component: <ConnectionsList />,
             },
+            ...(roleManagementEnabled && allowRoles
+              ? [
+                  {
+                    id: ProjectSectionID.ROLES,
+                    title: 'Roles',
+                    label: 'Dev preview',
+                    component: <ProjectRoles />,
+                  },
+                ]
+              : []),
             ...(projectSharingEnabled && allowCreate
               ? [
                   {
@@ -213,6 +232,8 @@ const ProjectDetails: React.FC = () => {
             projectSharingEnabled,
             allowCreate,
             projectRBACEnabled,
+            roleManagementEnabled,
+            allowRoles,
             currentProject.metadata.name,
             biasMetricsAreaAvailable,
             hasSettingsCards,

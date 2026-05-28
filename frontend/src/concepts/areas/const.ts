@@ -26,6 +26,7 @@ export const devTemporaryFeatureFlags = {
   mlflowPipelines: false,
   nimWizard: false,
   agentOps: false,
+  roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -233,6 +234,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.ROLE_MANAGEMENT]: {
+    featureFlags: ['roleManagement'],
   },
   [SupportedArea.YAML_VIEWER]: {
     featureFlags: ['deploymentWizardYAMLViewer'],
