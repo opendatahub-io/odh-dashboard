@@ -23,13 +23,13 @@ const FeatureStoreCodeBlock: React.FC<FeatureStoreCodeBlockProps> = ({
 }) => {
   const [copied, setCopied] = React.useState(false);
 
-  const clipboardCopyFunc = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
-
-  const onClick = (text: string) => {
-    clipboardCopyFunc(text);
-    setCopied(true);
+  const onClick = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // Clipboard API may fail in non-secure contexts (HTTP)
+    }
   };
 
   return (

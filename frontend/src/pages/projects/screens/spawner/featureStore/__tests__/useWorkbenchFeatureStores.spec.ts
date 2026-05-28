@@ -54,21 +54,18 @@ describe('useWorkbenchFeatureStores', () => {
       configName: 'feast-sample-git-client',
       projectName: 'credit_scoring_local',
       configMap: null,
-      hasAccessToFeatureStore: true,
     },
     {
       namespace: 'test-feast-banking',
       configName: 'feast-banking-client',
       projectName: 'banking',
       configMap: null,
-      hasAccessToFeatureStore: true,
     },
     {
       namespace: 'test-feast-banking',
       configName: 'feast-fraud-detect-client',
       projectName: 'fraud_detect',
       configMap: null,
-      hasAccessToFeatureStore: false,
     },
   ];
 
@@ -155,26 +152,13 @@ describe('useWorkbenchFeatureStores', () => {
     expect(typeof refresh).toBe('function');
   });
 
-  it('should preserve hasAccessToFeatureStore from backend response', async () => {
-    mockUseFetch.mockReturnValue(
-      standardUseFetchStateObject({
-        data: expectedFeatureStores,
-        loaded: true,
-      }),
-    );
+  it('should pass opts (with abort signal) through to getWorkbenchFeatureStores', async () => {
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const mockOpts = { signal: new AbortController().signal };
 
-    const renderResult = testHook(useWorkbenchFeatureStores)();
-    const { featureStores } = renderResult.result.current;
-
-    const creditScoring = featureStores.find(
-      (fs: WorkbenchFeatureStoreConfig) => fs.projectName === 'credit_scoring_local',
-    );
-    const fraudDetect = featureStores.find(
-      (fs: WorkbenchFeatureStoreConfig) => fs.projectName === 'fraud_detect',
-    );
-
-    expect(creditScoring?.hasAccessToFeatureStore).toBe(true);
-    expect(fraudDetect?.hasAccessToFeatureStore).toBe(false);
+    await callbackArg(mockOpts);
+    expect(mockGetWorkbenchFeatureStores).toHaveBeenCalledWith(mockOpts);
   });
 
   it('should throw error when namespaces is not an array', async () => {
@@ -268,7 +252,6 @@ describe('useWorkbenchFeatureStores', () => {
             configName: 'valid-config',
             projectName: 'valid_project',
             configMap: null,
-            hasAccessToFeatureStore: true,
           },
         ],
         loaded: true,
@@ -284,7 +267,6 @@ describe('useWorkbenchFeatureStores', () => {
       namespace: 'valid-namespace',
       configName: 'valid-config',
       projectName: 'valid_project',
-      hasAccessToFeatureStore: true,
     });
   });
 });

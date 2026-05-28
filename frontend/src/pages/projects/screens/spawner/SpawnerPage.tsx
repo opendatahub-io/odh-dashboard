@@ -452,6 +452,12 @@ const SpawnerPage: React.FC<SpawnerPageProps> = ({ existingNotebook }) => {
                   connections={notebookConnections}
                   canEnablePipelines={canEnablePipelines}
                   selectedFeatureStores={selectedFeatureStores}
+                  featureStoreApiAvailable={
+                    !isFeastOperatorAvailable || (featureStoresLoaded && !featureStoresError)
+                  }
+                  featureStoresLoading={
+                    isFeastOperatorAvailable && !featureStoresLoaded && !featureStoresError
+                  }
                 />
               )}
             </CanEnableElyraPipelinesCheck>

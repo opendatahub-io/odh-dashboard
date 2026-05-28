@@ -93,6 +93,8 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        featureStoreApiAvailable
+        featureStoresLoading={false}
       />,
     );
     expect(result.getByTestId('submit-button')).toBeEnabled();
@@ -132,6 +134,8 @@ describe('EmptyProjects', () => {
         canEnablePipelines
         envVariables={mockEnvVariables}
         connections={[mockConnection({})]}
+        featureStoreApiAvailable
+        featureStoresLoading={false}
       />,
     );
 

@@ -100,11 +100,31 @@ export const generateFeastMetadata = (
   selectedFeatureStores: WorkbenchFeatureStoreConfig[],
   existingNotebook?: NotebookKind,
   isUpdate = false,
+  featureStoreApiAvailable = true,
 ): {
-  featureStores: NotebookFeatureStore[];
   annotations?: Record<string, string>;
   labels?: Record<string, string>;
 } => {
+  // When updating and the API is unavailable, preserve existing annotations/labels
+  if (isUpdate && !featureStoreApiAvailable && existingNotebook) {
+    const labels: Record<string, string> = {};
+    const annotations: Record<string, string> = {};
+
+    if (existingNotebook.metadata.labels?.['opendatahub.io/feast-integration']) {
+      labels['opendatahub.io/feast-integration'] =
+        existingNotebook.metadata.labels['opendatahub.io/feast-integration'];
+    }
+    if (existingNotebook.metadata.annotations?.['opendatahub.io/feast-config']) {
+      annotations['opendatahub.io/feast-config'] =
+        existingNotebook.metadata.annotations['opendatahub.io/feast-config'];
+    }
+
+    return {
+      ...(Object.keys(annotations).length > 0 && { annotations }),
+      ...(Object.keys(labels).length > 0 && { labels }),
+    };
+  }
+
   const featureStores = mapFeatureStoresForNotebook(selectedFeatureStores);
   const hasFeatureStores = featureStores.length > 0;
   const feastConfigAnnotation = hasFeatureStores
@@ -130,7 +150,6 @@ export const generateFeastMetadata = (
   }
 
   return {
-    featureStores,
     ...(Object.keys(annotations).length > 0 && { annotations }),
     ...(Object.keys(labels).length > 0 && { labels }),
   };

@@ -11,7 +11,6 @@ export type WorkbenchFeatureStoreConfig = {
   configName: string;
   projectName: string;
   configMap: ConfigMapKind | null;
-  hasAccessToFeatureStore: boolean;
 };
 
 type UseWorkbenchFeatureStoresReturn = {
@@ -22,26 +21,26 @@ type UseWorkbenchFeatureStoresReturn = {
 };
 
 export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => {
-  const callback = React.useCallback<
-    FetchStateCallbackPromise<WorkbenchFeatureStoreConfig[]>
-  >(async () => {
-    const data: WorkbenchFeatureStoreResponse = await getWorkbenchFeatureStores();
-    if (!Array.isArray(data.namespaces)) {
-      throw new Error('Failed to load feature stores');
-    }
-    const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) =>
-      Array.isArray(ns.clientConfigs)
-        ? ns.clientConfigs.map((config) => ({
-            namespace: ns.namespace,
-            configName: config.configName,
-            projectName: config.projectName,
-            configMap: null,
-            hasAccessToFeatureStore: config.hasAccessToFeatureStore,
-          }))
-        : [],
-    );
-    return configs;
-  }, []);
+  const callback = React.useCallback<FetchStateCallbackPromise<WorkbenchFeatureStoreConfig[]>>(
+    async (opts) => {
+      const data: WorkbenchFeatureStoreResponse = await getWorkbenchFeatureStores(opts);
+      if (!Array.isArray(data.namespaces)) {
+        throw new Error('Failed to load feature stores');
+      }
+      const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) =>
+        Array.isArray(ns.clientConfigs)
+          ? ns.clientConfigs.map((config) => ({
+              namespace: ns.namespace,
+              configName: config.configName,
+              projectName: config.projectName,
+              configMap: null,
+            }))
+          : [],
+      );
+      return configs;
+    },
+    [],
+  );
 
   const {
     data: featureStores,

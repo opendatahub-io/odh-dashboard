@@ -46,6 +46,8 @@ type SpawnerFooterProps = {
   connections: Connection[];
   canEnablePipelines: boolean;
   selectedFeatureStores?: WorkbenchFeatureStoreConfig[];
+  featureStoreApiAvailable: boolean;
+  featureStoresLoading: boolean;
 };
 
 const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
@@ -55,6 +57,8 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
   connections = [],
   canEnablePipelines,
   selectedFeatureStores = [],
+  featureStoreApiAvailable,
+  featureStoresLoading,
 }) => {
   const [error, setError] = React.useState<K8sStatusError>();
   const {
@@ -78,6 +82,7 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     createInProgress ||
     !checkRequiredFieldsForNotebookStart(startNotebookData, envVariables) ||
     !isHardwareProfileValid ||
+    featureStoresLoading ||
     (!isProjectScopedAvailable &&
       startNotebookData.image.imageStream?.metadata.namespace === projectName);
 
@@ -186,7 +191,12 @@ const SpawnerFooter: React.FC<SpawnerFooterProps> = ({
     }
 
     const { volumes, volumeMounts } = pvcVolumeDetails;
-    const feastData = generateFeastMetadata(selectedFeatureStores, editNotebook, true);
+    const feastData = generateFeastMetadata(
+      selectedFeatureStores,
+      editNotebook,
+      true,
+      featureStoreApiAvailable,
+    );
     const newStartNotebookData: StartNotebookData = {
       ...startNotebookData,
       volumes,
