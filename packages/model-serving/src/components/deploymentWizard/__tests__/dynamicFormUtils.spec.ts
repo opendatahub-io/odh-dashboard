@@ -37,6 +37,10 @@ describe('useWizardFieldOverrides', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('should return empty array when no extensions are registered', () => {
     mockExtensions([]);
     const { result } = renderHook(() => useWizardFieldOverrides(isModelTypeFieldOverride, {}));
@@ -93,7 +97,6 @@ describe('useWizardFieldOverrides', () => {
     expect(consoleSpy).toHaveBeenCalledWith(
       expect.stringContaining('Multiple forced overrides detected'),
     );
-    consoleSpy.mockRestore();
   });
 
   it('should return all overrides when none are forced', () => {
