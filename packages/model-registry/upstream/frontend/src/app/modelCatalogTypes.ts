@@ -12,10 +12,11 @@ import {
   ModelCatalogFilterKey,
   ModelCatalogTensorType,
 } from '../concepts/modelCatalog/const';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
 import type {
   CatalogFilterStringOption,
   CatalogFilterNumberOption,
-} from '~/app/shared/components/catalog';
+} from './shared/components/catalog';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
