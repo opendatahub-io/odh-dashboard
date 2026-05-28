@@ -341,6 +341,23 @@ result=$(echo "$input" | "$CLASSIFY")
 disposition=$(echo "$result" | jq -r '.preflight_threads[0].disposition')
 assert_eq "missing replies → no_reply" "no_reply" "$disposition"
 
+# ---------- Test 20: Badge mid-text does NOT match as preflight ----------
+echo "Test 20: Badge pattern mid-text is not classified as preflight"
+input='[{
+  "author": "user1",
+  "path": "src/foo.tsx",
+  "line": 10,
+  "is_coderabbit": false,
+  "comment_count": 1,
+  "first_comment": "I noticed the comment had _🟡 Minor_ · _Style review_ badge in it",
+  "replies": []
+}]'
+result=$(echo "$input" | "$CLASSIFY")
+pf_count=$(echo "$result" | jq '.preflight_threads | length')
+other_count=$(echo "$result" | jq '.other_threads | length')
+assert_eq "mid-text badge not preflight" "0" "$pf_count"
+assert_eq "mid-text badge goes to other" "1" "$other_count"
+
 echo ""
 echo "=== Results: $pass passed, $fail failed ==="
 [ "$fail" -eq 0 ] || exit 1

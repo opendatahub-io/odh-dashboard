@@ -29,7 +29,7 @@ threads=$(cat)
 
 jq -c --arg pr_author "$pr_author" '
   def is_preflight:
-    ((.first_comment // "") | test("_(🔴 Critical|🟠 Major|🟡 Minor|🧹 Nit(pick)?)_ · _"));
+    ((.first_comment // "") | test("^\\s*_(🔴 Critical|🟠 Major|🟡 Minor|🧹 Nit(pick)?)_ · _"));
   def non_bot_replies:
     [(.replies // [])[] | select(((.author // "") | test("\\[bot\\]$")) | not)];
 {
