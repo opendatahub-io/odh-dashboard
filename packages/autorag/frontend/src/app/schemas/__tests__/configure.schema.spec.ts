@@ -1,8 +1,17 @@
 /* eslint-disable camelcase */
-import { createConfigureSchema } from '~/app/schemas/configure.schema';
+import {
+  createConfigureSchema,
+  SUPPORTED_VECTOR_STORE_PROVIDER_TYPES,
+} from '~/app/schemas/configure.schema';
 
 describe('Configure Schema', () => {
   const schema = createConfigureSchema();
+
+  describe('Supported vector store providers', () => {
+    it('should allow remote Milvus and PGVector provider types', () => {
+      expect(SUPPORTED_VECTOR_STORE_PROVIDER_TYPES).toEqual(['remote::milvus', 'remote::pgvector']);
+    });
+  });
 
   describe('Default values', () => {
     it('should set vector_io_provider_id to empty string by default', () => {
