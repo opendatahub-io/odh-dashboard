@@ -1013,8 +1013,9 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
-  monitoring?: {
-    namespace?: string;
+  release?: {
+    name?: string;
+    version?: string;
   };
 };
 

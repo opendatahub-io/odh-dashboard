@@ -56,16 +56,29 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
 }) => {
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [stopInitiated, setStopInitiated] = React.useState(false);
   const { handleRetry, handleConfirmStop, handleDelete, isRetrying, isTerminating, isDeleting } =
     useAutoragRunActions(namespace, run.run_id, onActionComplete);
 
-  const runTerminatable = isRunTerminatable(run.state);
+  const baseRunTerminatable = isRunTerminatable(run.state);
+  const runTerminatable = baseRunTerminatable && !stopInitiated;
   const runRetryable = isRunRetryable(run.state);
   const runDeletable = isRunDeletable(run.state);
+
+  // Track previous terminatable state to detect transitions
+  const prevBaseRunTerminatable = React.useRef(baseRunTerminatable);
+  React.useEffect(() => {
+    // Reset stopInitiated only when transitioning from non-terminatable to terminatable (e.g., after retry)
+    if (baseRunTerminatable && !prevBaseRunTerminatable.current) {
+      setStopInitiated(false);
+    }
+    prevBaseRunTerminatable.current = baseRunTerminatable;
+  }, [baseRunTerminatable]);
 
   const handleStop = React.useCallback(async () => {
     try {
       await handleConfirmStop();
+      setStopInitiated(true);
       setIsStopModalOpen(false);
     } catch {
       // Keep modal open on failure; error notification is shown by the hook.
@@ -88,6 +101,7 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
       items.push({
         title: <span data-testid="stop-run-action">Stop</span>,
         onClick: () => setIsStopModalOpen(true),
+        isDisabled: isTerminating || isStopModalOpen,
       });
     }
 
@@ -123,6 +137,8 @@ const AutoragRunsTableRow: React.FC<AutoragRunsTableRowProps> = ({
     runDeletable,
     handleRetry,
     isRetrying,
+    isTerminating,
+    isStopModalOpen,
     isDeleting,
     namespace,
     run.run_id,

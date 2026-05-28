@@ -46,6 +46,17 @@ export class HardwareProfileSection {
     });
   }
 
+  expandCustomizeSection(): void {
+    this.findCustomizeButton()
+      .should('exist')
+      .then(($btn) => {
+        if ($btn.attr('aria-expanded') !== 'true') {
+          cy.wrap($btn).click();
+        }
+      });
+    this.findCustomizeButton().should('have.attr', 'aria-expanded', 'true');
+  }
+
   findCustomizeForm(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('hardware-profile-customize-form');
   }
