@@ -3,11 +3,24 @@ import { render, screen } from '@testing-library/react';
 import FeatureStoreLineageComponent from '../FeatureStoreLineageComponent';
 import useFeatureStoreLineage from '../../../apiHooks/useFeatureStoreLineage';
 import useFeatureViewLineage from '../../../apiHooks/useFeatureViewLineage';
+import {
+  convertFeatureStoreLineageToVisualizationData,
+  convertFeatureViewLineageToVisualizationData,
+} from '../../../utils/lineageDataConverter';
 
 jest.mock('@odh-dashboard/internal/components/lineage/Lineage', () => ({
-  Lineage: ({ data, loading }: { data: { nodes: unknown[] }; loading: boolean }) => (
+  Lineage: ({
+    data,
+    loading,
+    error,
+  }: {
+    data: { nodes: unknown[] };
+    loading: boolean;
+    error?: string;
+  }) => (
     <div data-testid="lineage-mock">
       {loading ? 'loading' : 'loaded'}-{data.nodes.length}
+      {error ? <div data-testid="lineage-error">{error}</div> : null}
     </div>
   ),
 }));
@@ -51,6 +64,8 @@ const mockedUseFeatureStoreLineage = useFeatureStoreLineage as jest.MockedFuncti
 const mockedUseFeatureViewLineage = useFeatureViewLineage as jest.MockedFunction<
   typeof useFeatureViewLineage
 >;
+const mockedConvertStore = jest.mocked(convertFeatureStoreLineageToVisualizationData);
+const mockedConvertView = jest.mocked(convertFeatureViewLineageToVisualizationData);
 
 describe('FeatureStoreLineageComponent', () => {
   beforeEach(() => {
@@ -83,5 +98,43 @@ describe('FeatureStoreLineageComponent', () => {
     render(<FeatureStoreLineageComponent project="demo-project" featureViewName="fv-a" />);
     expect(mockedUseFeatureViewLineage).toHaveBeenCalledWith('demo-project', 'fv-a');
     expect(screen.getByTestId('lineage-mock')).toBeInTheDocument();
+  });
+
+  it('should display conversion error when feature store lineage conversion throws', () => {
+    mockedConvertStore.mockImplementation(() => {
+      throw new Error('Conversion failed');
+    });
+
+    render(<FeatureStoreLineageComponent project="demo-project" />);
+
+    expect(screen.getByTestId('lineage-error')).toHaveTextContent(
+      'Failed to process lineage data: Error: Conversion failed',
+    );
+  });
+
+  it('should display conversion error when feature view lineage conversion throws', () => {
+    mockedConvertView.mockImplementation(() => {
+      throw new Error('View conversion failed');
+    });
+
+    render(<FeatureStoreLineageComponent project="demo-project" featureViewName="fv-a" />);
+
+    expect(screen.getByTestId('lineage-error')).toHaveTextContent(
+      'Failed to process feature view lineage data: Error: View conversion failed',
+    );
+  });
+
+  it('should return empty data and no conversion error when loading', () => {
+    mockedUseFeatureStoreLineage.mockReturnValue({
+      data: { objects: {}, relationships: [] } as never,
+      loaded: false,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    render(<FeatureStoreLineageComponent project="demo-project" />);
+
+    expect(screen.getByTestId('lineage-mock')).toHaveTextContent('loading-0');
+    expect(screen.queryByTestId('lineage-error')).not.toBeInTheDocument();
   });
 });
