@@ -21,6 +21,7 @@ type ProjectSelectorProps = {
   placeholder?: string;
   isLoading?: boolean;
   namespacesOverride?: Namespace[];
+  toggleContent?: React.ReactNode;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
@@ -36,6 +37,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   placeholder = undefined,
   isLoading = false,
   namespacesOverride,
+  toggleContent: customToggleContent,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const namespaces =
@@ -73,7 +75,7 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       searchValue={searchText}
       isLoading={isLoading}
       isDisabled={isLoading}
-      toggleContent={toggleLabel}
+      toggleContent={customToggleContent ?? toggleLabel}
       toggleVariant={primary ? 'primary' : undefined}
     >
       <>
