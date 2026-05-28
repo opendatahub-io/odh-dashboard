@@ -32,7 +32,7 @@ describe('fsworkbenchIntegration routes', () => {
     } as unknown as FastifyReply);
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     routeHandlers = {};
 
     fastify = {
@@ -194,10 +194,16 @@ describe('fsworkbenchIntegration routes', () => {
 
       await routeHandlers['/workbench-integration'](req, reply);
 
+      expect(mockHandleError).toHaveBeenCalledWith(
+        fastify,
+        expect.any(Error),
+        'workbench-integration',
+      );
       expect(reply.code).toHaveBeenCalledWith(500);
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: 'Failed to fetch workbench feature store configs',
+          message: 'workbench-integration: k8s API error',
           status_code: 500,
         }),
       );

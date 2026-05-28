@@ -136,7 +136,11 @@ async function handleFeatureStoreProxy(
   reply: FastifyReply,
 ): Promise<void> {
   const { namespace, projectName } = req.params;
-  const path = req.params['*'] || 'api/v1/projects';
+  const rawPath = req.params['*'] || 'api/v1/projects';
+  const path = rawPath.replace(/^\/+/, '');
+  if (path.includes('..') || !/^api\/v[0-9]+\/[A-Za-z0-9\-._~/%?=&]*$/.test(path)) {
+    throw createCustomError('Invalid proxy path', 'Path is not allowed', 400);
+  }
 
   const { dashboardNamespace } = getNamespaces(fastify);
   const feastConfig = await fetchConfigMap(fastify, dashboardNamespace, 'feast-configs-registry');

@@ -178,7 +178,9 @@ describe('featureStores routes', () => {
       const req = { query: {} } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
-      await expect(routeHandlers['/'](req, reply)).rejects.toBeDefined();
+      await expect(routeHandlers['/'](req, reply)).rejects.toMatchObject({
+        statusCode: 500,
+      });
     });
   });
 
@@ -271,6 +273,30 @@ describe('featureStores routes', () => {
       );
     });
 
+    it('should throw 400 for invalid proxy path with path traversal', async () => {
+      const req = {
+        params: { namespace: 'ns1', projectName: 'test-project', '*': '../../../etc/passwd' },
+        url: '/api/featurestores/ns1/test-project/../../../etc/passwd',
+      } as unknown as OauthFastifyRequest;
+      const reply = mockReply();
+
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
+    it('should throw 400 for proxy path not matching api/v prefix', async () => {
+      const req = {
+        params: { namespace: 'ns1', projectName: 'test-project', '*': 'admin/internal' },
+        url: '/api/featurestores/ns1/test-project/admin/internal',
+      } as unknown as OauthFastifyRequest;
+      const reply = mockReply();
+
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
     it('should throw 404 when ConfigMap not found', async () => {
       mockFetchConfigMap.mockResolvedValue(null);
 
@@ -280,7 +306,9 @@ describe('featureStores routes', () => {
       } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
-      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toBeDefined();
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 404,
+      });
     });
 
     it('should throw 404 when registry URL not found', async () => {
@@ -297,7 +325,9 @@ describe('featureStores routes', () => {
       } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
-      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toBeDefined();
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 404,
+      });
     });
 
     it('should throw 401 when no access token', async () => {
@@ -331,7 +361,9 @@ describe('featureStores routes', () => {
       } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
-      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toBeDefined();
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 401,
+      });
     });
 
     it('should throw 500 when registry request fails', async () => {
@@ -367,7 +399,9 @@ describe('featureStores routes', () => {
       } as unknown as OauthFastifyRequest;
       const reply = mockReply();
 
-      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toBeDefined();
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 500,
+      });
     });
   });
 });
