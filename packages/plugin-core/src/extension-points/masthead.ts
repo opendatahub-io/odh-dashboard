@@ -1,3 +1,13 @@
+/**
+ * @module masthead
+ *
+ * Masthead extension points for the app-shell chrome (brand, toolbar, user menu, about modal).
+ *
+ * Current consumer: `distributions/base` (RHAII app-shell).
+ * Convergence with the RHOAI dashboard masthead is a future goal — these types are intentionally
+ * designed to be compatible with that direction but are not yet consumed by `frontend/`.
+ */
+
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '../core/types';
 
