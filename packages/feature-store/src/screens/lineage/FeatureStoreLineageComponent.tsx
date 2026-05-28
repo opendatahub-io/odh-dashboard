@@ -42,7 +42,6 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
   const [searchFilters, setSearchFilters] = useState<FeatureStoreLineageSearchFilters>({});
   const [currentFilterType, setCurrentFilterType] =
     useState<keyof FeatureStoreLineageSearchFilters>('entity');
-  const [conversionError, setConversionError] = useState<string | null>(null);
   const { triggerCenter, forceCenter } = useLineageCenter();
   const [lineageKey, setLineageKey] = useState(0);
   const featureViewLineageState = useFeatureViewLineage(project, featureViewName);
@@ -66,12 +65,9 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     [],
   );
 
-  const visualizationData = useMemo(() => {
-    setConversionError(null);
-
+  const computedLineage = useMemo(() => {
     if (!lineageDataLoaded || error) {
-      // Return empty data when loading or error - let the Lineage component handle these states
-      return { nodes: [], edges: [] };
+      return { data: { nodes: [], edges: [] }, conversionError: null };
     }
 
     if (featureViewName) {
@@ -84,15 +80,15 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           currentFeatureViewFeatures,
         );
 
-        const filteredResult = applyLineageFilters(baseResult, {
-          hideNodesWithoutRelationships,
-          searchFilters,
-        });
-
-        return filteredResult;
+        return {
+          data: applyLineageFilters(baseResult, { hideNodesWithoutRelationships, searchFilters }),
+          conversionError: null,
+        };
       } catch (err) {
-        setConversionError(`Failed to process feature view lineage data: ${String(err)}`);
-        return { nodes: [], edges: [] };
+        return {
+          data: { nodes: [], edges: [] },
+          conversionError: `Failed to process feature view lineage data: ${String(err)}`,
+        };
       }
     }
 
@@ -103,20 +99,19 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
           lineageData as FeatureStoreLineage,
         );
 
-        const filteredResult = applyLineageFilters(baseResult, {
-          hideNodesWithoutRelationships,
-          searchFilters,
-        });
-
-        return filteredResult;
+        return {
+          data: applyLineageFilters(baseResult, { hideNodesWithoutRelationships, searchFilters }),
+          conversionError: null,
+        };
       } catch (err) {
-        setConversionError(`Failed to process lineage data: ${String(err)}`);
-        return { nodes: [], edges: [] };
+        return {
+          data: { nodes: [], edges: [] },
+          conversionError: `Failed to process lineage data: ${String(err)}`,
+        };
       }
     }
 
-    // No data available - return empty data for proper empty state
-    return { nodes: [], edges: [] };
+    return { data: { nodes: [], edges: [] }, conversionError: null };
   }, [
     lineageData,
     lineageDataLoaded,
@@ -127,6 +122,8 @@ const FeatureStoreLineageComponent: React.FC<FeatureStoreLineageComponentProps> 
     featureViewType,
     currentFeatureViewFeatures,
   ]);
+
+  const { data: visualizationData, conversionError } = computedLineage;
 
   // Trigger centering when filters change - but only after data is processed
   useEffect(() => {

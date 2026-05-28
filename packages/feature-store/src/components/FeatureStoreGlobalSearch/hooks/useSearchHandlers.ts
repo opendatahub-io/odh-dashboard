@@ -62,6 +62,9 @@ export const useSearchHandlers = (
       setSearchValue(trimmedValue);
 
       if (trimmedValue === '') {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         if (onClear) {
           onClear();
         }
@@ -99,6 +102,9 @@ export const useSearchHandlers = (
   );
 
   const handleSearchClear = React.useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     setSearchValue('');
     setIsSearching(false);
     if (onClear) {

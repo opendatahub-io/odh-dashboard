@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import useFeatureStoreProjects from './useFeatureStoreProjects';
 import useGlobalSearch from './useGlobalSearch';
 import { GlobalSearchResponse } from '../types/search';
@@ -19,6 +19,7 @@ export const useFeatureStoreSearch = (): {
   isLoadingMore: boolean;
   hasMorePages: boolean;
   totalCount: number;
+  searchErrors: string[];
   handleSearchChange: (query: string) => Promise<void>;
   loadMoreResults: () => Promise<void>;
   clearSearch: () => void;
@@ -35,10 +36,9 @@ export const useFeatureStoreSearch = (): {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMorePages, setHasMorePages] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchErrors, setSearchErrors] = useState<string[]>([]);
 
-  const [currentAbortController, setCurrentAbortController] = useState<AbortController | null>(
-    null,
-  );
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const convertedSearchData = useMemo(() => {
     if (allResults.length === 0) {
@@ -71,6 +71,7 @@ export const useFeatureStoreSearch = (): {
         setCurrentPage(1);
         setHasMorePages(false);
         setTotalCount(0);
+        setSearchErrors([]);
         return;
       }
 
@@ -79,13 +80,13 @@ export const useFeatureStoreSearch = (): {
       }
 
       // Cancel any existing search request
-      if (currentAbortController) {
-        currentAbortController.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
       // Create new AbortController for this search
       const abortController = new AbortController();
-      setCurrentAbortController(abortController);
+      abortControllerRef.current = abortController;
 
       setCurrentSearchQuery(query);
       setCurrentPage(1);
@@ -95,7 +96,7 @@ export const useFeatureStoreSearch = (): {
       try {
         if (!hasAvailableProjects) {
           setIsSearching(false);
-          setCurrentAbortController(null);
+          abortControllerRef.current = null;
           return;
         }
 
@@ -112,7 +113,8 @@ export const useFeatureStoreSearch = (): {
         setAllResults(results.results);
         setHasMorePages(results.pagination.hasNext);
         setTotalCount(results.pagination.totalCount);
-        setCurrentAbortController(null);
+        setSearchErrors(results.errors);
+        abortControllerRef.current = null;
       } catch (error) {
         // Don't update state if the request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
@@ -121,7 +123,8 @@ export const useFeatureStoreSearch = (): {
         setAllResults([]);
         setHasMorePages(false);
         setTotalCount(0);
-        setCurrentAbortController(null);
+        setSearchErrors([]);
+        abortControllerRef.current = null;
       } finally {
         setIsSearching(false);
       }
@@ -133,7 +136,6 @@ export const useFeatureStoreSearch = (): {
       featureStoreProjects.projects,
       currentSearchQuery,
       isSearching,
-      currentAbortController,
     ],
   );
 
@@ -157,7 +159,7 @@ export const useFeatureStoreSearch = (): {
         query: currentSearchQuery,
         page: nextPage,
         limit: 50,
-        signal: currentAbortController?.signal,
+        signal: abortControllerRef.current?.signal,
       });
 
       setAllResults((prevResults) => [...prevResults, ...results.results]);
@@ -180,14 +182,13 @@ export const useFeatureStoreSearch = (): {
     currentPage,
     search,
     featureStoreProjects.projects,
-    currentAbortController?.signal,
   ]);
 
   const clearSearch = useCallback(() => {
     // Cancel any in-flight request
-    if (currentAbortController) {
-      currentAbortController.abort();
-      setCurrentAbortController(null);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
 
     setAllResults([]);
@@ -197,16 +198,17 @@ export const useFeatureStoreSearch = (): {
     setCurrentPage(1);
     setHasMorePages(false);
     setTotalCount(0);
-  }, [currentAbortController]);
+    setSearchErrors([]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (currentAbortController) {
-        currentAbortController.abort();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
-  }, [currentAbortController]);
+  }, []);
 
   return {
     convertedSearchData,
@@ -214,6 +216,7 @@ export const useFeatureStoreSearch = (): {
     isLoadingMore,
     hasMorePages,
     totalCount,
+    searchErrors,
     handleSearchChange,
     loadMoreResults,
     clearSearch,

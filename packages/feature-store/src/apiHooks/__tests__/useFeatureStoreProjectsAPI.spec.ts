@@ -117,16 +117,14 @@ describe('useFeatureStoreProjectsAPI', () => {
       expect(mockListFeatureStoreProject).toHaveBeenCalledWith(mockOpts);
     });
 
-    it('should return default project list when API is not available', async () => {
+    it('should reject when API is not available', async () => {
       testHook(useFeatureStoreProjectsAPI)(mockApiStateUnavailable);
 
       const callbackFn = mockUseFetch.mock.calls[0][0];
 
       const mockOpts = { signal: new AbortController().signal };
 
-      const result = await callbackFn(mockOpts);
-
-      expect(result).toEqual(defaultProjectList);
+      await expect(callbackFn(mockOpts)).rejects.toThrow('API not yet available');
       expect(mockListFeatureStoreProject).not.toHaveBeenCalled();
     });
   });
