@@ -117,11 +117,13 @@ func extractObjectStorageSpec(obj map[string]any, dspaName, namespace string) *D
 		}
 	}
 
-	// Fall back to managed MinIO.
+	// Fall back to managed MinIO. The DSPA operator only writes a minio section when
+	// MinIO is managed — presence of the section is sufficient. We only skip if deploy
+	// is explicitly false, since the field may be absent when defaulting to true.
 	minioMap, found, _ := unstructured.NestedMap(obj, "spec", "objectStorage", "minio")
-	if found {
-		deploy, _, _ := unstructured.NestedBool(minioMap, "deploy")
-		if deploy {
+	if found && len(minioMap) > 0 {
+		deploy, deployFound, _ := unstructured.NestedBool(minioMap, "deploy")
+		if !deployFound || deploy {
 			return buildManagedMinIOSpec(dspaName, namespace, minioMap)
 		}
 	}
@@ -130,12 +132,25 @@ func extractObjectStorageSpec(obj map[string]any, dspaName, namespace string) *D
 }
 
 // extractExternalStorageSpec builds DSPAObjectStorageSpec from the externalStorage map.
+// Tries multiple field name variants for the credential secret to handle different DSPA versions.
 func extractExternalStorageSpec(ext map[string]any) *DSPAObjectStorageSpec {
-	cred, _, _ := unstructured.NestedMap(ext, "s3CredentialSecret")
-	secretName, _, _ := unstructured.NestedString(cred, "secretName")
-	if secretName == "" {
-		// Also try alternate key names used by different DSPA versions.
-		secretName, _, _ = unstructured.NestedString(cred, "name")
+	// The credential secret field is "s3CredentialSecret" in the CRD YAML but some
+	// versions or tools may use "s3CredentialsSecret" (with trailing 's'). Try both.
+	var cred map[string]any
+	for _, credField := range []string{"s3CredentialSecret", "s3CredentialsSecret"} {
+		if c, found, _ := unstructured.NestedMap(ext, credField); found {
+			cred = c
+			break
+		}
+	}
+
+	// The secret name field is "secretName" in the CRD but may be "name" in older versions.
+	var secretName string
+	for _, nameField := range []string{"secretName", "name"} {
+		if v, _, _ := unstructured.NestedString(cred, nameField); v != "" {
+			secretName = v
+			break
+		}
 	}
 	if secretName == "" {
 		return nil
