@@ -6,6 +6,16 @@
 inheritance: true
 
 reviews:
+  # "chill" (default) misses bugs; noise is solved via targeted suppression.
+  profile: "assertive"
+  # Decorative features that add clutter to review summaries.
+  in_progress_fortune: false
+  estimate_code_review_effort: false
+  # Temporary — shows which KB files were ingested. Remove after confirming.
+  review_details: true
+  auto_review:
+    # Review every push, not just the first; avoids stale reviews on force-pushes.
+    auto_pause_after_reviewed_commits: 0
   # ── Path filters (additive to baseline) ─────────────────────────
   path_filters:
     # Baseline already excludes: vendor, node_modules, bin, __pycache__,
@@ -21,6 +31,27 @@ reviews:
   # These supplement the baseline instructions (Go, Python, TS, etc.)
   # with odh-dashboard-specific architectural guidance.
   path_instructions:
+    # ── Global reviewer identity (extends org baseline) ─────────
+    # CodeRabbit has no top-level reviews.instructions field; a catch-all
+    # path instruction injects reviewer priorities on every file.
+    - path: "**"
+      instructions: |
+        REVIEW PRIORITIES:
+        1. Security vulnerabilities — provide severity, exploit scenario,
+           and remediation code. Cite CWE/CVE IDs.
+        2. Bugs that could reach production — logic errors, null/undefined,
+           race conditions, incorrect async handling, resource leaks.
+        3. API contract correctness — shape mismatches, missing error handling,
+           silent failures, wrong HTTP status codes.
+        4. Performance only when measurable — O(n^2) in hot paths, unbounded
+           memory growth, missing pagination.
+
+        Do not comment on:
+        - Naming preferences (unless genuinely misleading)
+        - Import ordering or formatting (handled by ESLint and Prettier)
+        - Alternative patterns that are equally valid
+        - Missing docs unless a public API is genuinely unclear
+
     # ── Main frontend app ─────────────────────────────────────────
     - path: "frontend/src/**/*.{ts,tsx}"
       instructions: |
@@ -45,6 +76,9 @@ reviews:
         2. Test behavior, not implementation details. Test names must describe the verified behavior.
         3. Tests must be deterministic — no flaky tests, no timing dependencies.
         4. Follow conventions in .claude/rules/unit-tests.md.
+        5. (Suppression — audit false positives) Mock secrets, fixture tokens,
+           and example credentials in test code are intentional. Do not flag
+           as security issues.
 
     # ── Main backend (Node.js/TypeScript) ─────────────────────────
     - path: "backend/src/**/*.{ts,js}"
@@ -129,6 +163,9 @@ reviews:
         4. Avoid cy.wait(ms) with fixed delays — use cy.intercept() for API readiness.
         5. Tests must be idempotent: runnable in any order without shared state.
         6. Follow conventions in .claude/rules/cypress-e2e.md and .claude/rules/cypress-mock.md.
+        7. (Suppression — audit false positives) Fixture credentials and test
+           tokens in fixtures/ and intercepts/ are controlled test data.
+           Do not flag as security issues.
 
     # ── Package-level Cypress tests ───────────────────────────────
     - path: "packages/*/frontend/src/__tests__/cypress/**/*.{ts,js}"
@@ -223,3 +260,14 @@ reviews:
         1. Shared dependencies in ModuleFederationPlugin must match host app versions.
         2. Remote entry configuration must be consistent with manifests/modular-architecture/.
         3. Changes to shared dependency list require coordination across all plugins.
+
+
+# CodeRabbit auto-ingests AGENTS.md and CLAUDE.md (summary-level) but not the
+# 17 detailed rules in .claude/rules/. Include defaults defensively in case
+# file_patterns replaces rather than extends the built-in list.
+knowledge_base:
+  code_guidelines:
+    file_patterns:
+      - "**/.claude/rules/**"
+      - "**/AGENTS.md"
+      - "**/CLAUDE.md"

@@ -23,13 +23,6 @@ describe('Verify Gen AI Namespace - Creation and Connection', () => {
   let hardwareProfileName: string;
 
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('expected expression') || err.message.includes('Unexpected token')) {
-        return false;
-      }
-      return true;
-    });
-
     cy.fixture('e2e/genAi/testGenAi.yaml', 'utf8')
       .then((yamlContent: string) => {
         testData = yaml.load(yamlContent) as GenAiTestData;

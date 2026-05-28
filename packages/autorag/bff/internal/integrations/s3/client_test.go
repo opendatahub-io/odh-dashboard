@@ -1,13 +1,19 @@
 package s3
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -343,6 +349,293 @@ func (e mockS3CodedError) Error() string {
 
 func (e mockS3CodedError) ErrorCode() string {
 	return e.code
+}
+
+// ---------------------------------------------------------------------------
+// ListObjects — folder marker filtering tests
+// ---------------------------------------------------------------------------
+
+// lastRequest captures the query parameters from the most recent HTTP request
+// handled by the fake S3 server, enabling assertions on the ListObjectsV2
+// parameters (prefix, delimiter, max-keys) that the client sends.
+type lastRequest struct {
+	Query url.Values
+}
+
+// newFakeS3Client creates a RealS3Client backed by an httptest.Server that
+// returns the provided XML body for every ListObjectsV2 request. The returned
+// lastRequest captures query parameters from each request for assertion.
+func newFakeS3Client(t *testing.T, xmlBody string) (*RealS3Client, *httptest.Server, *lastRequest) {
+	t.Helper()
+	lr := &lastRequest{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lr.Query = r.URL.Query()
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(xmlBody))
+	}))
+
+	cfg := aws.Config{
+		Region:      "us-east-1",
+		Credentials: credentials.NewStaticCredentialsProvider("test", "test", ""),
+		HTTPClient:  server.Client(),
+	}
+	s3Client := awss3.NewFromConfig(cfg, func(o *awss3.Options) {
+		o.BaseEndpoint = aws.String(server.URL)
+		o.UsePathStyle = true
+	})
+
+	return &RealS3Client{s3Client: s3Client, options: S3ClientOptions{}.withDefaults()}, server, lr
+}
+
+func TestListObjects_SkipsFolderMarker(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		xml          string
+		path         string
+		wantCount    int
+		wantFirstKey string
+		wantPrefix   string
+	}{
+		{
+			name: "simple path",
+			xml: `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>my folder/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>2</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>my folder/</Key>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>my folder/file.txt</Key>
+    <Size>1234</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`,
+			path:         "my folder",
+			wantCount:    1,
+			wantFirstKey: "my folder/file.txt",
+			wantPrefix:   "my folder/",
+		},
+		{
+			name: "path with spaces",
+			xml: `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>automl input data/timeseries/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>2</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>automl input data/timeseries/</Key>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>automl input data/timeseries/train.csv</Key>
+    <Size>4577869</Size>
+    <LastModified>2026-05-12T15:42:06Z</LastModified>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`,
+			path:         "automl input data/timeseries",
+			wantCount:    1,
+			wantFirstKey: "automl input data/timeseries/train.csv",
+			wantPrefix:   "automl input data/timeseries/",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, server, lr := newFakeS3Client(t, tt.xml)
+			defer server.Close()
+
+			result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+				Path:  tt.path,
+				Limit: 10,
+			})
+			require.NoError(t, err)
+			require.Len(t, result.Contents, tt.wantCount, "folder marker should be filtered out")
+			assert.Equal(t, tt.wantFirstKey, result.Contents[0].Key)
+			assert.Equal(t, tt.wantPrefix, lr.Query.Get("prefix"))
+			assert.Equal(t, "/", lr.Query.Get("delimiter"))
+		})
+	}
+}
+
+func TestListObjects_KeepsNonMarkerContent(t *testing.T) {
+	t.Parallel()
+	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>datasets/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>3</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>datasets/a.csv</Key>
+    <Size>100</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>datasets/b.csv</Key>
+    <Size>200</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>datasets/c.csv</Key>
+    <Size>300</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`
+
+	client, server, _ := newFakeS3Client(t, xml)
+	defer server.Close()
+
+	result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+		Path:  "datasets",
+		Limit: 10,
+	})
+	require.NoError(t, err)
+	assert.Len(t, result.Contents, 3, "all real files should be returned when no folder marker exists")
+}
+
+func TestListObjects_RootListingDoesNotFilter(t *testing.T) {
+	t.Parallel()
+	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix></Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>1</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <CommonPrefixes>
+    <Prefix>datasets/</Prefix>
+  </CommonPrefixes>
+  <Contents>
+    <Key>readme.txt</Key>
+    <Size>42</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`
+
+	client, server, _ := newFakeS3Client(t, xml)
+	defer server.Close()
+
+	result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+		Limit: 10,
+	})
+	require.NoError(t, err)
+	assert.Len(t, result.Contents, 1, "root listing should return all content items")
+	assert.Equal(t, "readme.txt", result.Contents[0].Key)
+	assert.Len(t, result.CommonPrefixes, 1)
+	assert.Equal(t, "datasets/", result.CommonPrefixes[0].Prefix)
+}
+
+func TestListObjects_OnlyFolderMarkerReturnsEmptyContents(t *testing.T) {
+	t.Parallel()
+	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>empty-dir/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>1</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>empty-dir/</Key>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`
+
+	client, server, _ := newFakeS3Client(t, xml)
+	defer server.Close()
+
+	result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+		Path:  "empty-dir",
+		Limit: 10,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, result.Contents, "folder containing only its own marker should return empty contents")
+}
+
+func TestListObjects_SkipsZeroByteMarkerNotMatchingPrefix(t *testing.T) {
+	t.Parallel()
+	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>data/</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>3</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>data/</Key>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>data/orphan-marker/</Key>
+    <Size>0</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+  <Contents>
+    <Key>data/real-file.csv</Key>
+    <Size>500</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`
+
+	client, server, _ := newFakeS3Client(t, xml)
+	defer server.Close()
+
+	result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+		Path:  "data",
+		Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Len(t, result.Contents, 1, "both zero-byte markers should be filtered")
+	assert.Equal(t, "data/real-file.csv", result.Contents[0].Key)
+}
+
+func TestListObjects_PreservesNonMarkerFileMatchingPrefix(t *testing.T) {
+	t.Parallel()
+	const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>bucket</Name>
+  <Prefix>data/exact-match.csv</Prefix>
+  <Delimiter>/</Delimiter>
+  <MaxKeys>10</MaxKeys>
+  <KeyCount>1</KeyCount>
+  <IsTruncated>false</IsTruncated>
+  <Contents>
+    <Key>data/exact-match.csv</Key>
+    <Size>4096</Size>
+    <StorageClass>STANDARD</StorageClass>
+  </Contents>
+</ListBucketResult>`
+
+	client, server, _ := newFakeS3Client(t, xml)
+	defer server.Close()
+
+	result, err := client.ListObjects(context.Background(), "bucket", ListObjectsOptions{
+		Path:   "data",
+		Search: "exact-match.csv",
+		Limit:  10,
+	})
+	require.NoError(t, err)
+	require.Len(t, result.Contents, 1, "non-zero-byte file matching prefix must not be filtered")
+	assert.Equal(t, "data/exact-match.csv", result.Contents[0].Key)
+	assert.Equal(t, int64(4096), result.Contents[0].Size)
 }
 
 func TestIsS3ConditionalCreateConflict(t *testing.T) {
