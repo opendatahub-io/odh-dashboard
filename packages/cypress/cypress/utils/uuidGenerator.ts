@@ -1,27 +1,21 @@
 /**
- * Generates a unique identifier for test runs.
- * Uses Cypress.env() to cache the UUID in the runner process rather than
- * module scope — module-scope variables are reset when cy.visitWithLogin()
- * triggers a cross-origin redirect that re-evaluates the spec file.
- * The UUID is scoped per spec file via Cypress.spec.relative so that
- * sequential specs in the same worker each get their own value.
+ * Generates a deterministic unique identifier for test runs.
+ * The UUID is derived from the spec file path and the CI build number,
+ * so it is always the same for a given spec in a given build — no randomness,
+ * no caching, no state to lose across cross-origin spec re-evaluations.
  *
- * In GitHub Actions: Uses the first 8 characters of GITHUB_SHA
- * In local environment: Generates a random 6-digit number (cached per spec)
+ * Jenkins provides BUILD_NUMBER, GitHub Actions provides GITHUB_RUN_ID.
+ * Both are injected into Cypress config env at load time (Node-side process.env),
+ * which survives cross-origin re-evaluations unlike runtime Cypress.env() calls.
+ * Falls back to '0' for local dev.
  */
 export const generateTestUUID = (): string => {
-  if (Cypress.env('GITHUB_ACTIONS')) {
-    const gitSha = Cypress.env('GITHUB_SHA');
-    if (!gitSha) {
-      throw new Error('GITHUB_SHA environment variable is not set in GitHub Actions');
-    }
-    return gitSha.substring(0, 8);
+  const spec = Cypress.spec.relative;
+  const build = Cypress.env('BUILD_NUMBER') || Cypress.env('GITHUB_RUN_ID') || '0';
+  const input = `${spec}:${build}`;
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
   }
-  const currentSpec = Cypress.spec.relative;
-  if (Cypress.env('TEST_UUID_SPEC') !== currentSpec) {
-    const uuid = Math.random().toString().slice(2, 8);
-    Cypress.env('TEST_UUID', uuid);
-    Cypress.env('TEST_UUID_SPEC', currentSpec);
-  }
-  return Cypress.env('TEST_UUID') as string;
+  return Math.abs(hash).toString().slice(0, 6).padStart(6, '0');
 };
