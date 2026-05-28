@@ -350,8 +350,8 @@ func BuildKFPRunRequest(req models.CreateAutoRAGRunRequest, pipelineID, pipeline
 		"ogx_secret_name":        req.OGXSecretName,
 	}
 
-	if len(req.EmbeddingsModels) > 0 {
-		params["embeddings_models"] = req.EmbeddingsModels
+	if len(req.EmbeddingModels) > 0 {
+		params["embedding_models"] = req.EmbeddingModels
 	}
 	if len(req.GenerationModels) > 0 {
 		params["generation_models"] = req.GenerationModels

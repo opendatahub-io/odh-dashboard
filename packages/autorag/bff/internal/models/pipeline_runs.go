@@ -120,7 +120,7 @@ type CreateAutoRAGRunRequest struct {
 	InputDataBucketName        string   `json:"input_data_bucket_name"`
 	InputDataKey               string   `json:"input_data_key"`
 	OGXSecretName              string   `json:"ogx_secret_name"`
-	EmbeddingsModels           []string `json:"embedding_models,omitempty"`
+	EmbeddingModels            []string `json:"embedding_models,omitempty"`
 	GenerationModels           []string `json:"generation_models,omitempty"`
 	OptimizationMetric         string   `json:"optimization_metric,omitempty"`
 	VectorIOProviderID         string   `json:"vector_io_provider_id,omitempty"`
