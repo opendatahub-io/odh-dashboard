@@ -71,7 +71,7 @@
     "jest-environment-jsdom": "^30.2.0",
     "junit-report-merger": "^8.0.0",
     "mini-css-extract-plugin": "^2.9.0",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.15",
     "prettier": "^3.3.3",
     "prop-types": "^15.8.1",
     "raw-loader": "^4.0.2",
@@ -92,7 +92,7 @@
     "webpack": "^5.105.2",
     "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.0",
+    "webpack-dev-server": "^5.2.4",
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
@@ -103,7 +103,7 @@
     "@patternfly/react-table": "^6.3.1",
     "@patternfly/react-templates": "^6.3.1",
     "classnames": "^2.2.6",
-    "dompurify": "^3.2.4",
+    "dompurify": "^3.4.0",
     "lodash-es": "^4.18.1",
     "mod-arch-core": "^1.10.1",
     "react": "^18",
