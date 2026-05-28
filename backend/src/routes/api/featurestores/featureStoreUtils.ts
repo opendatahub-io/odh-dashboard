@@ -1,3 +1,5 @@
+import * as https from 'https';
+import * as http from 'http';
 import { KubeFastifyInstance } from '../../../types';
 import { getConfigMap } from '../../../utils/envUtils';
 import { V1ConfigMap } from '@kubernetes/client-node';
@@ -327,8 +329,6 @@ export async function makeAuthenticatedHttpRequest<T = unknown>(
 ): Promise<{ data: T; statusCode: number }> {
   const { timeout = 60000, rejectUnauthorized = false, agent } = options;
 
-  const https = require('https');
-  const http = require('http');
   const urlObj = new URL(url);
 
   const isHttps = urlObj.protocol === 'https:';
@@ -404,7 +404,11 @@ export async function batchFetchConfigMapsByNamespace(
         }
       });
     } catch (error) {
-      fastify.log.warn(`Failed to list ConfigMaps in namespace ${namespace}: ${error.message}`);
+      fastify.log.warn(
+        `Failed to list ConfigMaps in namespace ${namespace}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   });
 

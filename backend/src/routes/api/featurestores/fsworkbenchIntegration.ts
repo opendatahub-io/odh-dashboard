@@ -38,7 +38,9 @@ async function checkFeatureStoreAccess(
     return hasAccess;
   } catch (error) {
     fastify.log.info(
-      `Access check for ${projectName}: DENIED (registry not accessible) - ${error.message}`,
+      `Access check for ${projectName}: DENIED (registry not accessible) - ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
     return false;
   }

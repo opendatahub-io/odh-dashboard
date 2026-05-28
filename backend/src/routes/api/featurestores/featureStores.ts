@@ -131,15 +131,12 @@ async function processFeatureStoreConfigs(
 async function handleFeatureStoreProxy(
   fastify: KubeFastifyInstance,
   req: OauthFastifyRequest<{
-    Params: { namespace: string; projectName: string };
+    Params: { namespace: string; projectName: string; '*': string };
   }>,
   reply: FastifyReply,
 ): Promise<void> {
   const { namespace, projectName } = req.params;
-  const urlParts = req.url.split('/');
-  const namespaceIndex = urlParts.indexOf(namespace);
-  const pathAfterProject = urlParts.slice(namespaceIndex + 2).join('/');
-  const path = pathAfterProject || 'api/v1/projects';
+  const path = req.params['*'] || 'api/v1/projects';
 
   const { dashboardNamespace } = getNamespaces(fastify);
   const feastConfig = await fetchConfigMap(fastify, dashboardNamespace, 'feast-configs-registry');
@@ -269,7 +266,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/:namespace/:projectName/*',
     async (
       req: OauthFastifyRequest<{
-        Params: { namespace: string; projectName: string };
+        Params: { namespace: string; projectName: string; '*': string };
       }>,
       reply: FastifyReply,
     ) => {
