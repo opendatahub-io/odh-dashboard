@@ -1,4 +1,5 @@
 import type { PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 
 /**
@@ -166,6 +167,48 @@ export function formatMetricName(metricKey: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
+
+/**
+ * Convert a snake_case key to Title Case (e.g. 'chunk_size' → 'Chunk Size').
+ */
+export const humanize = (key: string): string =>
+  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+/**
+ * Format an unknown value for display in a key-value list.
+ * Returns '—' for null/undefined, stringifies primitives, and JSON.stringifies objects.
+ */
+export const formatDisplayValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '\u2014';
+  }
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return JSON.stringify(value);
+};
+
+/**
+ * Compute a rank map from an array of patterns, ranked by final_score descending.
+ * Returns a Record mapping pattern name to rank (1-based).
+ */
+export function computePatternRankMap(patterns: AutoragPattern[]): Record<string, number> {
+  const sorted = patterns.toSorted((a, b) => b.final_score - a.final_score);
+  const map: Record<string, number> = {};
+  sorted.forEach((p, i) => {
+    map[p.name] = i + 1;
+  });
+  return map;
+}
+
+/**
+ * Read a CSS custom property from the document root, returning a fallback
+ * when the property is empty or not set (e.g. in canvas/ECharts contexts).
+ */
+export const getCSSVar = (name: string, fallback: string): string => {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return value || fallback;
+};
 
 /**
  * Format metric values for display.

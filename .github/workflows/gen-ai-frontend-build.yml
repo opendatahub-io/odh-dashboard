@@ -25,15 +25,15 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: 'packages/gen-ai/bff/go.mod'
           cache-dependency-path: 'packages/gen-ai/bff/go.sum'
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: gen-ai node_modules cache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: packages/gen-ai/frontend/node_modules
           key: ${{ runner.os }}-${{ env.NODE_VERSION }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
@@ -77,3 +77,11 @@ jobs:
               git diff
               exit 1
           fi
+
+      - name: Upload Cypress results on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: gen-ai-cypress-results
+          path: packages/gen-ai/frontend/src/__tests__/cypress/results/
+          retention-days: 1

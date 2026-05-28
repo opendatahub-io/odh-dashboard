@@ -25,6 +25,10 @@ jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', (
   fireMiscTrackingEvent: jest.fn(),
   fireSimpleTrackingEvent: jest.fn(),
 }));
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 
 // Mock child components
 jest.mock('~/app/Chatbot/ChatbotHeader', () => ({
