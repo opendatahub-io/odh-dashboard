@@ -137,10 +137,28 @@ async function handleFeatureStoreProxy(
 ): Promise<void> {
   const { namespace, projectName } = req.params;
   const rawPath = req.params['*'] || 'api/v1/projects';
-  const path = rawPath.replace(/^\/+/, '');
-  if (path.includes('..') || !/^api\/v[0-9]+\/[A-Za-z0-9\-._~/%?=&]*$/.test(path)) {
+  const normalizedPath = rawPath.replace(/^\/+/, '');
+
+  let canonicalPath = normalizedPath;
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      const decoded = decodeURIComponent(canonicalPath);
+      if (decoded === canonicalPath) {
+        break;
+      }
+      canonicalPath = decoded;
+    }
+  } catch {
     throw createCustomError('Invalid proxy path', 'Path is not allowed', 400);
   }
+
+  if (
+    canonicalPath.includes('..') ||
+    !/^api\/v[0-9]+\/[A-Za-z0-9\-._~/%?=&]*$/.test(canonicalPath)
+  ) {
+    throw createCustomError('Invalid proxy path', 'Path is not allowed', 400);
+  }
+  const path = canonicalPath;
 
   const { dashboardNamespace } = getNamespaces(fastify);
   const feastConfig = await fetchConfigMap(fastify, dashboardNamespace, 'feast-configs-registry');
