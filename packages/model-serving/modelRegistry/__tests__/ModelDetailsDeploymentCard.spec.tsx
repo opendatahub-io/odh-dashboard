@@ -105,5 +105,25 @@ describe('ModelDetailsDeploymentCard', () => {
 
       expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
     });
+
+    it('should render metrics link when deployment state is LOADED and stopped', () => {
+      mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+
+      const deployment = mockDeployment({
+        status: {
+          state: ModelDeploymentState.LOADED,
+          stoppedStates: {
+            isRunning: false,
+            isStopped: true,
+            isStarting: false,
+            isStopping: false,
+          },
+        },
+      });
+
+      renderWithContext([deployment], <ModelDetailsDeploymentCard rmId="1" mrName="test-mr" />);
+
+      expect(screen.getByTestId('metrics-link-test-deployment')).toBeInTheDocument();
+    });
   });
 });
