@@ -1,12 +1,13 @@
-let cachedUUID: string | null = null;
-
 /**
  * Generates a unique identifier for test runs.
- * The result is cached per spec file (module scope) so retries reuse the same
- * UUID and don't orphan namespaces created on previous attempts.
+ * Uses Cypress.env() to cache the UUID in the runner process rather than
+ * module scope — module-scope variables are reset when cy.visitWithLogin()
+ * triggers a cross-origin redirect that re-evaluates the spec file.
+ * The UUID is scoped per spec file via Cypress.spec.relative so that
+ * sequential specs in the same worker each get their own value.
  *
  * In GitHub Actions: Uses the first 8 characters of GITHUB_SHA
- * In local environment: Generates a random 6-digit number (cached on first call)
+ * In local environment: Generates a random 6-digit number (cached per spec)
  */
 export const generateTestUUID = (): string => {
   if (Cypress.env('GITHUB_ACTIONS')) {
@@ -16,8 +17,11 @@ export const generateTestUUID = (): string => {
     }
     return gitSha.substring(0, 8);
   }
-  if (cachedUUID === null) {
-    cachedUUID = Cypress._.random(0, 1e6).toString();
+  const currentSpec = Cypress.spec.relative;
+  if (Cypress.env('TEST_UUID_SPEC') !== currentSpec) {
+    const uuid = Math.random().toString().slice(2, 8);
+    Cypress.env('TEST_UUID', uuid);
+    Cypress.env('TEST_UUID_SPEC', currentSpec);
   }
-  return cachedUUID;
+  return Cypress.env('TEST_UUID') as string;
 };
