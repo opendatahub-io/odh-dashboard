@@ -31,6 +31,9 @@ const testProvider = mockProvider({
       name: 'Alpha Bench',
       category: 'Reasoning',
       metrics: ['accuracy', 'f1'],
+      primaryScoreMetric: 'accuracy',
+      lowerIsBetter: false,
+      threshold: 0.25,
     }),
   ],
 });
@@ -174,6 +177,202 @@ describe('Start Evaluation Run - Benchmark Mode', () => {
 
     cy.url().should('include', `/evaluation/${NAMESPACE}`);
     cy.url().should('not.include', '/create');
+  });
+});
+
+describe('Start Evaluation Run - Benchmark Threshold & Primary Metric', () => {
+  beforeEach(() => {
+    initBaseIntercepts();
+    mockMlflowExperiments([]);
+  });
+
+  it('should display threshold slider pre-populated from benchmark metadata', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findBenchmarkThreshold().should('exist');
+    startEvaluationRunPage
+      .findBenchmarkThreshold()
+      .find('input[type="number"]')
+      .should('have.value', '25');
+  });
+
+  it('should display primary scorer metric dropdown with correct default', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('exist');
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'accuracy');
+  });
+
+  it('should allow changing the primary scorer metric', () => {
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    cy.findByRole('option', { name: 'f1' }).click();
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('contain.text', 'f1');
+  });
+
+  it('should include pass_criteria in submission when threshold is set from metadata', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-threshold',
+      name: 'threshold-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobWithThreshold',
+    );
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobWithThreshold').then((interception) => {
+      expect(interception.request.body.benchmarks[0]).to.have.property('pass_criteria');
+      expect(interception.request.body.benchmarks[0].pass_criteria).to.have.property(
+        'threshold',
+        0.25,
+      );
+      expect(interception.request.body.benchmarks[0]).to.have.property('primary_score');
+      expect(interception.request.body.benchmarks[0].primary_score).to.have.property(
+        'metric',
+        'accuracy',
+      );
+    });
+  });
+
+  it('should submit overridden threshold when user modifies the slider value', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-threshold-override',
+      name: 'threshold-override-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobThresholdOverride',
+    );
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage
+      .findBenchmarkThreshold()
+      .find('input[type="number"]')
+      .type('{selectall}50');
+
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobThresholdOverride').then((interception) => {
+      expect(interception.request.body.benchmarks[0].pass_criteria).to.have.property(
+        'threshold',
+        0.5,
+      );
+    });
+  });
+
+  it('should include overridden primary_score when user changes metric', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-metric',
+      name: 'metric-eval',
+      state: 'running',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createJobWithMetric',
+    );
+
+    navigateToBenchmarkStart();
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().click();
+    cy.findByRole('option', { name: 'f1' }).click();
+
+    startEvaluationRunPage.findModelNameInput().type('my-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createJobWithMetric').then((interception) => {
+      expect(interception.request.body.benchmarks[0].primary_score).to.have.property(
+        'metric',
+        'f1',
+      );
+    });
+  });
+});
+
+describe('Start Evaluation Run - Collection Threshold', () => {
+  beforeEach(() => {
+    initBaseIntercepts();
+    mockMlflowExperiments([]);
+  });
+
+  it('should display suite threshold defaulting to 70 when no pass_criteria in metadata', () => {
+    navigateToCollectionStart();
+
+    startEvaluationRunPage.findBenchmarkThreshold().should('exist');
+    startEvaluationRunPage
+      .findBenchmarkThreshold()
+      .find('input[type="number"]')
+      .should('have.value', '70');
+  });
+
+  it('should not display primary scorer metric dropdown for collection flow', () => {
+    navigateToCollectionStart();
+
+    startEvaluationRunPage.findPrimaryScorerMetricToggle().should('not.exist');
+  });
+
+  it('should submit overridden suite threshold when user modifies the slider value', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-col-threshold-override',
+      name: 'col-threshold-override-eval',
+      state: 'running',
+      collectionId: 'col-safety',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createCollectionJobThresholdOverride',
+    );
+
+    navigateToCollectionStart();
+
+    startEvaluationRunPage
+      .findBenchmarkThreshold()
+      .find('input[type="number"]')
+      .type('{selectall}85');
+
+    startEvaluationRunPage.findModelNameInput().type('safety-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://safety.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createCollectionJobThresholdOverride').then((interception) => {
+      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.85);
+    });
+  });
+
+  it('should include top-level pass_criteria in collection submission', () => {
+    const createdJob = mockEvaluationJob({
+      id: 'new-eval-col-threshold',
+      name: 'col-threshold-eval',
+      state: 'running',
+      collectionId: 'col-safety',
+    });
+
+    cy.interceptApi('POST /api/:apiVersion/evaluations/jobs', { path: API_VERSION }, createdJob).as(
+      'createCollectionJobThreshold',
+    );
+
+    navigateToCollectionStart();
+
+    startEvaluationRunPage.findModelNameInput().type('safety-model');
+    startEvaluationRunPage.findEndpointUrlInput().type('https://safety.example.com/v1');
+    startEvaluationRunPage.findSubmitButton().click();
+
+    cy.wait('@createCollectionJobThreshold').then((interception) => {
+      expect(interception.request.body).to.have.property('pass_criteria');
+      expect(interception.request.body.pass_criteria).to.have.property('threshold', 0.7);
+    });
   });
 });
 

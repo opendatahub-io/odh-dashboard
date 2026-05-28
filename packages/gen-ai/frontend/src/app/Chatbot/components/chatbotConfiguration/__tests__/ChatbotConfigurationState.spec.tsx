@@ -11,6 +11,10 @@ import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
 jest.mock('~/app/hooks/useFetchLSDStatus');
 jest.mock('~/app/hooks/useFetchNemoGuardrailsStatus');
 jest.mock('~/app/Chatbot/hooks/useGuardrailsEnabled');
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 
 const mockUseFetchLSDStatus = jest.mocked(useFetchLSDStatus);
 const mockUseFetchNemoGuardrailsStatus = jest.mocked(useFetchNemoGuardrailsStatus);

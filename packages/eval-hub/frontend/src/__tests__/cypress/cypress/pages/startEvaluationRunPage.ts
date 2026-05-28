@@ -69,6 +69,14 @@ class StartEvaluationRunPage {
     return cy.findByTestId('access-token-input');
   }
 
+  findBenchmarkThreshold() {
+    return cy.findByTestId('benchmark-threshold');
+  }
+
+  findPrimaryScorerMetricToggle() {
+    return cy.findByTestId('primary-scorer-metric-toggle');
+  }
+
   findShowAdditionalArgsCheckbox() {
     return cy.findByTestId('show-additional-args');
   }
