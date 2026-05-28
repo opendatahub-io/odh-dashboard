@@ -144,4 +144,20 @@ describe('EmptyProjects', () => {
       `/projects/${startNotebookDataMock.projectName}?section=workbenches`,
     );
   });
+
+  it('should disable the submit button when feature stores are loading', () => {
+    const result = render(
+      <SpawnerFooter
+        startNotebookData={startNotebookDataMock}
+        storageData={mockStorageData}
+        canEnablePipelines
+        envVariables={mockEnvVariables}
+        connections={[mockConnection({})]}
+        featureStoreApiAvailable
+        featureStoresLoading
+      />,
+    );
+
+    expect(result.getByTestId('submit-button')).toBeDisabled();
+  });
 });
