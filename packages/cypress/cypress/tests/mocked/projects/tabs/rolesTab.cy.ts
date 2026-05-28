@@ -11,6 +11,7 @@ import {
 import { mockSelfSubjectAccessReview } from '@odh-dashboard/internal/__mocks__/mockSelfSubjectAccessReview';
 import { ProjectModel, SelfSubjectAccessReviewModel } from '../../../../utils/models';
 import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
+import { projectRoles } from '../../../../pages/projectRoles';
 
 const NAMESPACE = 'test-project';
 
@@ -37,13 +38,12 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should not show the Roles tab', () => {
-      cy.visit(`/projects/${NAMESPACE}?section=overview`);
-      cy.findByTestId('project-roles-tab').should('not.exist');
-      cy.findByRole('tab', { name: 'Roles' }).should('not.exist');
+      projectRoles.visitOverview(NAMESPACE);
+      projectRoles.findRolesTab().should('not.exist');
     });
 
     it('should redirect from /roles/create to the project page when flag is disabled', () => {
-      cy.visit(`/projects/${NAMESPACE}/roles/create`);
+      projectRoles.visitCreateRole(NAMESPACE);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
     });
@@ -56,18 +56,18 @@ describe('Roles tab feature flag gating', () => {
     });
 
     it('should show the Roles tab', () => {
-      cy.visit(`/projects/${NAMESPACE}?section=roles`);
-      cy.findByTestId('project-roles-tab').should('exist');
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findRolesTab().should('exist');
     });
 
     it('should show the Create role button in the Roles tab', () => {
-      cy.visit(`/projects/${NAMESPACE}?section=roles`);
-      cy.findByTestId('create-role-button').should('exist');
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findCreateRoleButton().should('exist');
     });
 
     it('should render the Create role page when user has permission', () => {
-      cy.visit(`/projects/${NAMESPACE}/roles/create`);
-      cy.findByTestId('create-role-page').should('exist');
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findCreateRolePage().should('exist');
     });
   });
 
@@ -75,7 +75,6 @@ describe('Roles tab feature flag gating', () => {
     beforeEach(() => {
       asProjectEditUser();
       initIntercepts({ roleManagement: true });
-      // Override SSAR to deny 'create' on 'roles'
       cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
         const { resourceAttributes } = req.body.spec;
         if (
@@ -100,16 +99,49 @@ describe('Roles tab feature flag gating', () => {
       });
     });
 
-    it('should show the Roles tab for users with list access to roles', () => {
-      cy.visit(`/projects/${NAMESPACE}?section=roles`);
-      cy.findByTestId('project-roles-tab').should('exist');
+    it('should show the Roles tab when user has list access to roles', () => {
+      projectRoles.visit(NAMESPACE);
+      projectRoles.findRolesTab().should('exist');
     });
 
     it('should redirect from /roles/create when user lacks create permission', () => {
-      cy.visit(`/projects/${NAMESPACE}/roles/create`);
+      projectRoles.visitCreateRole(NAMESPACE);
       cy.url().should('not.include', '/roles/create');
       cy.url().should('include', `/projects/${NAMESPACE}`);
       cy.url().should('include', 'section=roles');
+    });
+  });
+
+  describe('with roleManagement flag enabled but user lacks list permission on roles', () => {
+    beforeEach(() => {
+      asProjectEditUser();
+      initIntercepts({ roleManagement: true });
+      cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+        const { resourceAttributes } = req.body.spec;
+        if (
+          resourceAttributes.resource === 'roles' &&
+          resourceAttributes.group === 'rbac.authorization.k8s.io'
+        ) {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: false,
+            }),
+          );
+        } else {
+          req.reply(
+            mockSelfSubjectAccessReview({
+              ...resourceAttributes,
+              allowed: true,
+            }),
+          );
+        }
+      });
+    });
+
+    it('should not show the Roles tab when user lacks list access to roles', () => {
+      projectRoles.visitOverview(NAMESPACE);
+      projectRoles.findRolesTab().should('not.exist');
     });
   });
 });

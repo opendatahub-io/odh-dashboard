@@ -11,9 +11,13 @@ import {
 import { Link, Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
+import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
+import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 
 const CreateRolePage: React.FC = () => {
   const { namespace = '' } = useParams<{ namespace: string }>();
+  const { currentProject } = React.useContext(ProjectDetailsContext);
+  const displayName = getDisplayNameFromK8sResource(currentProject);
 
   const [allowCreate, loaded] = useAccessReview({
     group: 'rbac.authorization.k8s.io',
@@ -41,7 +45,7 @@ const CreateRolePage: React.FC = () => {
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Projects</Link>} />
           <BreadcrumbItem
-            render={() => <Link to={`/projects/${namespace}?section=roles`}>{namespace}</Link>}
+            render={() => <Link to={`/projects/${namespace}?section=roles`}>{displayName}</Link>}
           />
           <BreadcrumbItem isActive>Create role</BreadcrumbItem>
         </Breadcrumb>
