@@ -46,6 +46,17 @@ type ListObjectsOptions struct {
 type GetObjectInput struct {
 	Bucket string
 	Key    string
+	// Range is an optional HTTP range header value (e.g. "bytes=0-1048575").
+	// When set, the raw S3 SDK client is used instead of the transfer manager,
+	// returning exactly the requested byte range in a single HTTP round trip.
+	Range string
+}
+
+// DownloadObjectInput holds the parameters for a DownloadObject operation
+// using the transfer manager (concurrent multipart download for large files).
+type DownloadObjectInput struct {
+	Bucket string
+	Key    string
 }
 
 // UploadObjectInput holds the parameters for an UploadObject operation.

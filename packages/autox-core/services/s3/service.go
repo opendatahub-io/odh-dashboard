@@ -32,7 +32,8 @@ func NewS3Service(cfg S3ServiceConfig, client S3ClientInterface) *S3Service {
 	}
 }
 
-// GetObject retrieves an object from S3 and returns a read-closer and content type.
+// GetObject uses the raw S3 SDK client. Supports the optional Range field in
+// GetObjectInput for efficient partial reads (e.g. CSV schema inspection).
 // The caller is responsible for closing the returned body.
 func (s *S3Service) GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
 	s.Logger.Info("getting S3 object", "bucket", input.Bucket, "key", input.Key)
@@ -40,6 +41,21 @@ func (s *S3Service) GetObject(ctx context.Context, opts S3ConnectionOptions, inp
 	body, contentType, err := s.Client.GetObject(ctx, opts, input)
 	if err != nil {
 		s.Logger.Error("failed to get S3 object", "bucket", input.Bucket, "key", input.Key, "error", err)
+		return nil, "", err
+	}
+
+	return body, contentType, nil
+}
+
+// DownloadObject uses the transfer manager for concurrent multipart download.
+// Preferred for large file downloads where parallelism improves throughput.
+// The caller is responsible for closing the returned body.
+func (s *S3Service) DownloadObject(ctx context.Context, opts S3ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
+	s.Logger.Info("downloading S3 object", "bucket", input.Bucket, "key", input.Key)
+
+	body, contentType, err := s.Client.DownloadObject(ctx, opts, input)
+	if err != nil {
+		s.Logger.Error("failed to download S3 object", "bucket", input.Bucket, "key", input.Key, "error", err)
 		return nil, "", err
 	}
 

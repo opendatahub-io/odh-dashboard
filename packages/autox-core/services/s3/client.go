@@ -59,7 +59,12 @@ type S3ClientProviderInterface interface {
 // S3ClientInterface defines the contract for S3 operations.
 // Signatures: ctx, S3ConnectionOptions, then an operation-specific Input struct.
 type S3ClientInterface interface {
+	// GetObject uses the raw S3 SDK client. Supports the optional Range field in
+	// GetObjectInput for efficient partial reads (e.g. schema inspection, first-N-bytes).
 	GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error)
+	// DownloadObject uses the transfer manager for concurrent multipart download.
+	// Preferred for large file downloads where parallelism improves throughput.
+	DownloadObject(ctx context.Context, opts S3ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error)
 	UploadObject(ctx context.Context, opts S3ConnectionOptions, input UploadObjectInput) error
 	ListObjects(ctx context.Context, opts S3ConnectionOptions, input ListObjectsInput) (*S3ListObjectsResponse, error)
 	ObjectExists(ctx context.Context, opts S3ConnectionOptions, input ObjectExistsInput) (bool, error)
@@ -86,6 +91,36 @@ func NewDefaultS3Client(cfg S3ClientConfig) *S3Client {
 }
 
 func (c *S3Client) GetObject(ctx context.Context, opts S3ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
+	sdkClient, err := c.Provider.CreateClient(opts)
+	if err != nil {
+		return nil, "", err
+	}
+
+	sdkInput := &awss3.GetObjectInput{
+		Bucket: aws.String(input.Bucket),
+		Key:    aws.String(input.Key),
+	}
+	if input.Range != "" {
+		sdkInput.Range = aws.String(input.Range)
+	}
+
+	result, err := sdkClient.GetObject(ctx, sdkInput)
+	if err != nil {
+		if translated := translateS3Error(err); translated != nil {
+			return nil, "", translated
+		}
+		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+	}
+
+	contentType := "application/octet-stream"
+	if result.ContentType != nil {
+		contentType = *result.ContentType
+	}
+
+	return result.Body, contentType, nil
+}
+
+func (c *S3Client) DownloadObject(ctx context.Context, opts S3ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
 	tm, err := c.Provider.CreateTransferManager(opts)
 	if err != nil {
 		return nil, "", err
@@ -99,7 +134,7 @@ func (c *S3Client) GetObject(ctx context.Context, opts S3ConnectionOptions, inpu
 		if translated := translateS3Error(err); translated != nil {
 			return nil, "", translated
 		}
-		return nil, "", fmt.Errorf("error retrieving object from S3: %w", err)
+		return nil, "", fmt.Errorf("error downloading object from S3: %w", err)
 	}
 
 	contentType := "application/octet-stream"

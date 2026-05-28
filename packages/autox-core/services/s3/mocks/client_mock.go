@@ -44,6 +44,11 @@ func (m *MockS3Client) GetObject(_ context.Context, _ s3svc.S3ConnectionOptions,
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
 }
 
+func (m *MockS3Client) DownloadObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.DownloadObjectInput) (io.ReadCloser, string, error) {
+	content := []byte(fmt.Sprintf("[mock download] s3 object at key: %s", input.Key))
+	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
+}
+
 func (m *MockS3Client) UploadObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.UploadObjectInput) error {
 	if slices.Contains(mockStaticListingKeys, input.Key) {
 		return s3svc.ErrObjectAlreadyExists
