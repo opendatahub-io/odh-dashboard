@@ -10,6 +10,7 @@ export const techPreviewFlags = {
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  toolCalling: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
