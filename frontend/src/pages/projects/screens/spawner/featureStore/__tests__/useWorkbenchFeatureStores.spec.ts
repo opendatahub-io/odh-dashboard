@@ -225,6 +225,92 @@ describe('useWorkbenchFeatureStores', () => {
     expect(result).toStrictEqual([]);
   });
 
+  it('should skip namespace entries with non-string namespace field', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        {
+          namespace: 123 as unknown as string,
+          clientConfigs: [
+            {
+              configName: 'some-config',
+              projectName: 'some_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+        {
+          namespace: null as unknown as string,
+          clientConfigs: [
+            {
+              configName: 'other-config',
+              projectName: 'other_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+        {
+          namespace: 'valid-namespace',
+          clientConfigs: [
+            {
+              configName: 'valid-config',
+              projectName: 'valid_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      namespace: 'valid-namespace',
+      configName: 'valid-config',
+      projectName: 'valid_project',
+    });
+  });
+
+  it('should filter out client configs with non-string configName or projectName', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        {
+          namespace: 'test-namespace',
+          clientConfigs: [
+            {
+              configName: null as unknown as string,
+              projectName: 'valid_project',
+              hasAccessToFeatureStore: true,
+            },
+            {
+              configName: 'valid-config',
+              projectName: undefined as unknown as string,
+              hasAccessToFeatureStore: true,
+            },
+            {
+              configName: 'good-config',
+              projectName: 'good_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      namespace: 'test-namespace',
+      configName: 'good-config',
+      projectName: 'good_project',
+    });
+  });
+
   it('should filter out namespaces with non-array clientConfigs and process valid ones', async () => {
     mockGetWorkbenchFeatureStores.mockResolvedValue({
       namespaces: [

@@ -27,16 +27,23 @@ export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => 
       if (!Array.isArray(data.namespaces)) {
         throw new Error('Failed to load feature stores');
       }
-      const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) =>
-        Array.isArray(ns.clientConfigs)
-          ? ns.clientConfigs.map((config) => ({
-              namespace: ns.namespace,
-              configName: config.configName,
-              projectName: config.projectName,
-              configMap: null,
-            }))
-          : [],
-      );
+      const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) => {
+        if (typeof ns.namespace !== 'string' || !Array.isArray(ns.clientConfigs)) {
+          return [];
+        }
+
+        return ns.clientConfigs
+          .filter(
+            (config): config is { configName: string; projectName: string } =>
+              typeof config.configName === 'string' && typeof config.projectName === 'string',
+          )
+          .map((config) => ({
+            namespace: ns.namespace,
+            configName: config.configName,
+            projectName: config.projectName,
+            configMap: null,
+          }));
+      });
       return configs;
     },
     [],
