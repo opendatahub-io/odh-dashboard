@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { toggleFilterValue } from '~/app/shared/components/catalog/utils/catalogFilterUtils';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import { toggleFilterValue } from '../utils/catalogFilterUtils';
 
 export type FilterPanelItem = {
   key: string;
