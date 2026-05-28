@@ -5,6 +5,7 @@ import (
 	"net/url"
 )
 
+// FilterPageValues extracts pagination-related query parameters from URL values.
 func FilterPageValues(values url.Values) url.Values {
 	result := url.Values{}
 
@@ -24,7 +25,8 @@ func FilterPageValues(values url.Values) url.Values {
 	return result
 }
 
-func UrlWithParams(url string, values url.Values) string {
+// URLWithParams appends query parameters to a URL string.
+func URLWithParams(url string, values url.Values) string {
 	queryString := values.Encode()
 	if queryString == "" {
 		return url
@@ -32,7 +34,8 @@ func UrlWithParams(url string, values url.Values) string {
 	return fmt.Sprintf("%s?%s", url, queryString)
 }
 
-func UrlWithPageParams(url string, values url.Values) string {
+// URLWithPageParams appends only pagination-related query parameters to a URL string.
+func URLWithPageParams(url string, values url.Values) string {
 	pageValues := FilterPageValues(values)
-	return UrlWithParams(url, pageValues)
+	return URLWithParams(url, pageValues)
 }

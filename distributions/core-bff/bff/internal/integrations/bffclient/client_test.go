@@ -69,10 +69,13 @@ func TestHTTPBFFClient_Call_CustomAuthHeader(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewHTTPBFFClientWithConfig(
-		server.URL, BFFTargetMaaS, "my-token", nil,
-		"Authorization", "Bearer ", false, nil,
-	)
+	client := newHTTPBFFClient(clientConfig{
+		BaseURL:         server.URL,
+		Target:          BFFTargetMaaS,
+		AuthToken:       "my-token",
+		AuthTokenHeader: "Authorization",
+		AuthTokenPrefix: "Bearer ",
+	})
 	err := client.Call(context.Background(), http.MethodGet, "/test", nil, nil)
 
 	require.NoError(t, err)

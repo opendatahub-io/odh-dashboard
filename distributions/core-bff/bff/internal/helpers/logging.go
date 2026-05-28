@@ -1,4 +1,4 @@
-package helper
+package helpers
 
 import (
 	"context"
@@ -9,10 +9,12 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 )
 
+// GetContextLoggerFromReq extracts the trace logger from a request's context.
 func GetContextLoggerFromReq(r *http.Request) *slog.Logger {
 	return GetContextLogger(r.Context())
 }
 
+// GetContextLogger extracts the trace logger from a context.
 func GetContextLogger(ctx context.Context) *slog.Logger {
 	logger, ok := ctx.Value(constants.TraceLoggerKey).(*slog.Logger)
 
@@ -36,6 +38,7 @@ func isSensitiveHeader(h string) bool {
 	return slices.Contains(sensitiveHeaders, http.CanonicalHeaderKey(h))
 }
 
+// HeaderLogValuer provides safe logging of HTTP headers with sensitive values redacted.
 type HeaderLogValuer struct {
 	Header http.Header
 }
@@ -60,6 +63,7 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
+// RequestLogValuer provides safe logging of HTTP requests with sensitive data redacted.
 type RequestLogValuer struct {
 	Request *http.Request
 }
@@ -78,6 +82,7 @@ func (r RequestLogValuer) LogValue() slog.Value {
 		slog.Any("headers", HeaderLogValuer{Header: r.Request.Header}))
 }
 
+// ResponseLogValuer provides safe logging of HTTP responses.
 type ResponseLogValuer struct {
 	Response *http.Response
 }

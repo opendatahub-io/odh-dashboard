@@ -1,3 +1,4 @@
+// Package kubernetes provides Kubernetes client abstractions and token-based authentication.
 package kubernetes
 
 import (
