@@ -1,0 +1,174 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: dashboard-2-llm-d-health-admin
+spec:
+  display:
+    name: LLM Health
+  duration: 1h
+  variables:
+    - kind: ListVariable
+      spec:
+        name: namespace
+        display:
+          name: Project
+          description: Filter by project
+        allowMultiple: true
+        allowAllValue: true
+        customAllValue: ".*"
+        defaultValue: "$__all"
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: namespace
+            matchers:
+              - kserve_vllm:num_requests_running
+  panels:
+    errorRate:
+      kind: Panel
+      spec:
+        display:
+          name: Error rate
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(inference_model_request_error_total{namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: "Errors/s"
+    throughput:
+      kind: Panel
+      spec:
+        display:
+          name: Throughput (req/s)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(kserve_vllm:request_success_total{namespace=~"$namespace", finished_reason=~"length|stop"}[$__rate_interval]))
+                  seriesNameFormat: "Successful"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(inference_model_request_error_total{namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: "Errors"
+    totalTokens:
+      kind: Panel
+      spec:
+        display:
+          name: Total tokens (tokens/s)
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              mode: list
+              position: bottom
+              values: []
+            visual:
+              areaOpacity: 0
+              connectNulls: false
+              display: line
+              lineWidth: 1.5
+            yAxis:
+              format:
+                unit: decimal
+              min: 0
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(kserve_vllm:prompt_tokens_total{namespace=~"$namespace"}[$__rate_interval])) + sum(rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: "Total"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(kserve_vllm:prompt_tokens_total{namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: "Input"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  datasource:
+                    kind: PrometheusDatasource
+                  query: sum(rate(kserve_vllm:generation_tokens_total{namespace=~"$namespace"}[$__rate_interval]))
+                  seriesNameFormat: "Output"
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Overview
+          collapse:
+            open: true
+        items:
+          - x: 0
+            'y': 0
+            width: 8
+            height: 8
+            content:
+              '$ref': '#/spec/panels/errorRate'
+          - x: 8
+            'y': 0
+            width: 8
+            height: 8
+            content:
+              '$ref': '#/spec/panels/throughput'
+          - x: 16
+            'y': 0
+            width: 8
+            height: 8
+            content:
+              '$ref': '#/spec/panels/totalTokens'
