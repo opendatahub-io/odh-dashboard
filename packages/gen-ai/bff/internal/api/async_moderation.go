@@ -408,7 +408,8 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 
 		// Handle output moderation for text and reasoning delta events
 		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && streamingEvent.Delta != "" {
-			if firstTokenTime == nil {
+			// TTFT tracks first answer token only — reasoning tokens are excluded
+			if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 				now := time.Now()
 				firstTokenTime = &now
 			}

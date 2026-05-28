@@ -3169,26 +3169,6 @@ components:
             When provided, the subscription is forwarded to the MaaS /v1/api-keys endpoint.
             When omitted, the user's highest-priority accessible subscription is used by MaaS.
             Only relevant for MaaS models (model IDs with "maas-" prefix); ignored for other model types.
-        reasoning:
-          type: object
-          properties:
-            effort:
-              type: string
-              enum:
-                - minimal
-                - low
-                - medium
-                - high
-              example: 'medium'
-              description: >-
-                Controls how much reasoning the model performs before generating the response.
-                Higher effort levels produce more thorough thinking at the cost of increased latency.
-          description: >-
-            Reasoning/thinking model configuration. When provided, the model will perform
-            intermediate reasoning steps before generating the final response. Reasoning events
-            are streamed as response.reasoning_text.delta and response.reasoning_text.done events.
-            When guardrail_config with output moderation is set, reasoning events are subject to
-            the same output guardrails as response text.
         guardrail_config:
           $ref: '#/components/schemas/GuardrailInlineConfig'
 

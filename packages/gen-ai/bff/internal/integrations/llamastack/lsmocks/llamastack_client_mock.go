@@ -394,34 +394,6 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 		sequenceNum += 3
 	}
 
-	// When reasoning effort is set, emit reasoning events before the answer text
-	if params.ReasoningEffort != "" {
-		reasoningText := "Let me think about this carefully."
-		reasoningWords := strings.Fields(reasoningText)
-		for i, word := range reasoningWords {
-			chunk := word
-			if i > 0 {
-				chunk = " " + word
-			}
-			events = append(events, unmarshalEvent(map[string]interface{}{
-				"type":            "response.reasoning_text.delta",
-				"sequence_number": sequenceNum,
-				"item_id":         itemID,
-				"output_index":    0,
-				"delta":           chunk,
-			}))
-			sequenceNum++
-		}
-		events = append(events, unmarshalEvent(map[string]interface{}{
-			"type":            "response.reasoning_text.done",
-			"sequence_number": sequenceNum,
-			"item_id":         itemID,
-			"output_index":    0,
-			"text":            reasoningText,
-		}))
-		sequenceNum++
-	}
-
 	events = append(events, unmarshalEvent(map[string]interface{}{
 		"type":            "response.content_part.added",
 		"sequence_number": sequenceNum,

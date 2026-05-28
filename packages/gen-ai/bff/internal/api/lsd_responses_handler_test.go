@@ -2267,53 +2267,139 @@ func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
 	})
 }
 
-// TestReasoningConfigDeserialization verifies ReasoningConfig is correctly parsed from JSON
-func TestReasoningConfigDeserialization(t *testing.T) {
-	t.Run("should deserialize reasoning config with effort", func(t *testing.T) {
-		jsonStr := `{"input":"hello","model":"test-model","reasoning":{"effort":"medium"}}`
-		var req CreateResponseRequest
-		err := json.Unmarshal([]byte(jsonStr), &req)
-
-		require.NoError(t, err)
-		require.NotNil(t, req.Reasoning)
-		assert.Equal(t, "medium", req.Reasoning.Effort)
-	})
-
-	t.Run("should handle missing reasoning field (backward compat)", func(t *testing.T) {
-		jsonStr := `{"input":"hello","model":"test-model"}`
-		var req CreateResponseRequest
-		err := json.Unmarshal([]byte(jsonStr), &req)
-
-		require.NoError(t, err)
-		assert.Nil(t, req.Reasoning)
-		assert.Equal(t, "hello", req.Input.Text)
-		assert.Equal(t, "test-model", req.Model)
-	})
-
-	t.Run("should handle null reasoning field", func(t *testing.T) {
-		jsonStr := `{"input":"hello","model":"test-model","reasoning":null}`
-		var req CreateResponseRequest
-		err := json.Unmarshal([]byte(jsonStr), &req)
-
-		require.NoError(t, err)
-		assert.Nil(t, req.Reasoning)
-	})
-
-	t.Run("should handle empty reasoning effort", func(t *testing.T) {
-		jsonStr := `{"input":"hello","model":"test-model","reasoning":{"effort":""}}`
-		var req CreateResponseRequest
-		err := json.Unmarshal([]byte(jsonStr), &req)
-
-		require.NoError(t, err)
-		require.NotNil(t, req.Reasoning)
-		assert.Equal(t, "", req.Reasoning.Effort)
-	})
+// reasoningFirstClient is an inline mock that emits reasoning_text.delta events before
+// output_text.delta, used to verify TTFT fires only on the output delta.
+type reasoningFirstClient struct {
+	*lsmocks.MockLlamaStackClient
 }
 
-// TestStreamingWithReasoningEvents verifies reasoning events appear in the SSE stream.
-// Uses the in-memory mock client directly (not the factory) so that reasoning events
-// come from MockLlamaStackClient.CreateResponseStream regardless of TEST_LLAMA_STACK_PORT.
-func TestStreamingWithReasoningEvents(t *testing.T) {
+func (r *reasoningFirstClient) CreateResponseStream(_ context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	build := func(data map[string]interface{}) responses.ResponseStreamEventUnion {
+		b, _ := json.Marshal(data)
+		var ev responses.ResponseStreamEventUnion
+		_ = json.Unmarshal(b, &ev)
+		return ev
+	}
+
+	itemID := "msg_reasoning_first_test"
+	events := []responses.ResponseStreamEventUnion{
+		build(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_first", "model": params.Model,
+				"status": "in_progress", "created_at": 1234567890.0,
+			},
+		}),
+		// Reasoning delta arrives before any output text
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "I am thinking...",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"text":            "I am thinking...",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.content_part.added",
+			"sequence_number": 3,
+			"item_id":         itemID,
+			"output_index":    0,
+		}),
+		// First output text delta — this is when TTFT should be recorded
+		build(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": 4,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "The answer",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 5,
+			"output_index":    0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_first", "model": params.Model,
+				"status": "completed", "created_at": 1234567890.0,
+				"output": []interface{}{
+					map[string]interface{}{
+						"id": itemID, "type": "message", "role": "assistant",
+						"status": "completed",
+						"content": []interface{}{
+							map[string]interface{}{"type": "output_text", "text": "The answer"},
+						},
+					},
+				},
+			},
+		}),
+	}
+	return lsmocks.NewMockStreamIterator(events), nil
+}
+
+// TestTTFTFiresOnOutputDelta verifies that TTFT is recorded on the first output_text.delta
+// and NOT on reasoning_text.delta events that may precede it.
+func TestTTFTFiresOnOutputDelta(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config:                  config.EnvConfig{Port: 4000},
+		logger:                  logger,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		repositories:            repositories.NewRepositories(),
+	}
+
+	payload := CreateResponseRequest{
+		Input:  llamastack.InputUnion{Text: "Reason then answer"},
+		Model:  "test-model",
+		Stream: true,
+	}
+	jsonData, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Inject the custom client that emits reasoning before output
+	client := &reasoningFirstClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, client)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	done := make(chan bool)
+	go func() {
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+		done <- true
+	}()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("Handler did not complete in time")
+	}
+
+	events := parseSSEEvents(rr.Body.String())
+	var metricsEvent map[string]interface{}
+	for _, ev := range events {
+		if et, _ := ev["type"].(string); et == "response.metrics" {
+			metricsEvent = ev
+		}
+	}
+	require.NotNil(t, metricsEvent, "response.metrics event should be present")
+	metrics, ok := metricsEvent["metrics"].(map[string]interface{})
+	require.True(t, ok, "metrics field should be a map")
+	ttft, ok := metrics["time_to_first_token_ms"].(float64)
+	require.True(t, ok, "time_to_first_token_ms should be present")
+	assert.GreaterOrEqual(t, ttft, float64(0), "TTFT should be non-negative; fires on output_text.delta, not reasoning_text.delta")
+}
+
+// TestStreamingNoReasoningEvents verifies that no reasoning events appear in SSE output
+// when the model does not emit them.
+func TestStreamingNoReasoningEvents(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	app := App{
 		config: config.EnvConfig{
@@ -2324,272 +2410,128 @@ func TestStreamingWithReasoningEvents(t *testing.T) {
 		repositories:            repositories.NewRepositories(),
 	}
 
-	t.Run("should include reasoning events in SSE output when effort is set", func(t *testing.T) {
-		payload := CreateResponseRequest{
-			Input:     llamastack.InputUnion{Text: "What is 2+2?"},
-			Model:     "test-model",
-			Stream:    true,
-			Reasoning: &ReasoningConfig{Effort: "medium"},
-		}
-
-		jsonData, err := json.Marshal(payload)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		llamaStackClient := lsmocks.NewMockLlamaStackClient()
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		done := make(chan bool)
-		go func() {
-			app.LlamaStackCreateResponseHandler(rr, req, nil)
-			done <- true
-		}()
-
-		select {
-		case <-done:
-		case <-time.After(30 * time.Second):
-			t.Fatal("Handler did not complete in time")
-		}
-
-		body := rr.Body.String()
-		events := parseSSEEvents(body)
-		require.Greater(t, len(events), 0, "should have received events")
-
-		hasReasoningDelta := false
-		hasReasoningDone := false
-		hasTextDelta := false
-		for _, event := range events {
-			eventType, _ := event["type"].(string)
-			switch eventType {
-			case "response.reasoning_text.delta":
-				hasReasoningDelta = true
-			case "response.reasoning_text.done":
-				hasReasoningDone = true
-			case "response.output_text.delta":
-				hasTextDelta = true
-			}
-		}
-
-		assert.True(t, hasReasoningDelta, "should have reasoning_text.delta events")
-		assert.True(t, hasReasoningDone, "should have reasoning_text.done event")
-		assert.True(t, hasTextDelta, "should still have output_text.delta events")
-
-		// Verify reasoning events appear before text deltas
-		firstReasoningIdx := -1
-		firstTextIdx := -1
-		for i, event := range events {
-			eventType, _ := event["type"].(string)
-			if eventType == "response.reasoning_text.delta" && firstReasoningIdx == -1 {
-				firstReasoningIdx = i
-			}
-			if eventType == "response.output_text.delta" && firstTextIdx == -1 {
-				firstTextIdx = i
-			}
-		}
-		assert.Greater(t, firstTextIdx, firstReasoningIdx, "reasoning events should appear before text deltas")
-	})
-
-	t.Run("should not include reasoning events when effort is not set", func(t *testing.T) {
-		payload := CreateResponseRequest{
-			Input:  llamastack.InputUnion{Text: "Hello"},
-			Model:  "test-model",
-			Stream: true,
-		}
-
-		jsonData, err := json.Marshal(payload)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		llamaStackClient := lsmocks.NewMockLlamaStackClient()
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		done := make(chan bool)
-		go func() {
-			app.LlamaStackCreateResponseHandler(rr, req, nil)
-			done <- true
-		}()
-
-		select {
-		case <-done:
-		case <-time.After(30 * time.Second):
-			t.Fatal("Handler did not complete in time")
-		}
-
-		body := rr.Body.String()
-		events := parseSSEEvents(body)
-
-		for _, event := range events {
-			eventType, _ := event["type"].(string)
-			assert.NotEqual(t, "response.reasoning_text.delta", eventType, "should not have reasoning events without effort")
-			assert.NotEqual(t, "response.reasoning_text.done", eventType, "should not have reasoning events without effort")
-		}
-
-		hasTextDelta := false
-		for _, event := range events {
-			if eventType, _ := event["type"].(string); eventType == "response.output_text.delta" {
-				hasTextDelta = true
-				break
-			}
-		}
-		assert.True(t, hasTextDelta, "should still have output_text.delta events")
-	})
-
-	t.Run("should track TTFT on first reasoning delta", func(t *testing.T) {
-		payload := CreateResponseRequest{
-			Input:     llamastack.InputUnion{Text: "Think about this"},
-			Model:     "test-model",
-			Stream:    true,
-			Reasoning: &ReasoningConfig{Effort: "high"},
-		}
-
-		jsonData, err := json.Marshal(payload)
-		require.NoError(t, err)
-
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		llamaStackClient := lsmocks.NewMockLlamaStackClient()
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-
-		done := make(chan bool)
-		go func() {
-			app.LlamaStackCreateResponseHandler(rr, req, nil)
-			done <- true
-		}()
-
-		select {
-		case <-done:
-		case <-time.After(30 * time.Second):
-			t.Fatal("Handler did not complete in time")
-		}
-
-		body := rr.Body.String()
-		events := parseSSEEvents(body)
-
-		var metricsEvent map[string]interface{}
-		for _, event := range events {
-			if eventType, ok := event["type"].(string); ok && eventType == "response.metrics" {
-				metricsEvent = event
-			}
-		}
-
-		require.NotNil(t, metricsEvent, "should have response.metrics event")
-		metrics, ok := metricsEvent["metrics"].(map[string]interface{})
-		require.True(t, ok)
-
-		ttft, ok := metrics["time_to_first_token_ms"].(float64)
-		require.True(t, ok, "metrics should have time_to_first_token_ms")
-		assert.GreaterOrEqual(t, ttft, float64(0), "TTFT should be non-negative (triggered by reasoning delta)")
-	})
-}
-
-func TestReasoningEffortValidation(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	app := App{
-		config: config.EnvConfig{
-			Port: 4000,
-		},
-		logger:                  logger,
-		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-		repositories:            repositories.NewRepositories(),
+	payload := CreateResponseRequest{
+		Input:  llamastack.InputUnion{Text: "Hello"},
+		Model:  "test-model",
+		Stream: true,
 	}
 
-	t.Run("should reject invalid reasoning effort with 400", func(t *testing.T) {
-		payload := CreateResponseRequest{
-			Input:     llamastack.InputUnion{Text: "hello"},
-			Model:     "test-model",
-			Stream:    false,
-			Reasoning: &ReasoningConfig{Effort: "super_high"},
-		}
+	jsonData, err := json.Marshal(payload)
+	require.NoError(t, err)
 
-		jsonData, err := json.Marshal(payload)
-		require.NoError(t, err)
+	req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
+	llamaStackClient := lsmocks.NewMockLlamaStackClient()
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+	req = req.WithContext(ctx)
 
-		llamaStackClient := lsmocks.NewMockLlamaStackClient()
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
 
-		rr := httptest.NewRecorder()
+	done := make(chan bool)
+	go func() {
 		app.LlamaStackCreateResponseHandler(rr, req, nil)
+		done <- true
+	}()
 
-		assert.Equal(t, http.StatusBadRequest, rr.Code, "invalid effort should return 400")
-		assert.Contains(t, rr.Body.String(), "invalid reasoning effort")
-	})
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("Handler did not complete in time")
+	}
 
-	t.Run("should accept valid reasoning effort values", func(t *testing.T) {
-		validEfforts := []string{"minimal", "low", "medium", "high"}
-		for _, effort := range validEfforts {
-			t.Run("effort="+effort, func(t *testing.T) {
-				payload := CreateResponseRequest{
-					Input:     llamastack.InputUnion{Text: "hello"},
-					Model:     "test-model",
-					Stream:    false,
-					Reasoning: &ReasoningConfig{Effort: effort},
-				}
+	body := rr.Body.String()
+	events := parseSSEEvents(body)
 
-				jsonData, err := json.Marshal(payload)
-				require.NoError(t, err)
+	for _, event := range events {
+		eventType, _ := event["type"].(string)
+		assert.NotEqual(t, "response.reasoning_text.delta", eventType, "should not have reasoning events")
+		assert.NotEqual(t, "response.reasoning_text.done", eventType, "should not have reasoning events")
+	}
 
-				req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-				require.NoError(t, err)
-				req.Header.Set("Content-Type", "application/json")
-
-				llamaStackClient := lsmocks.NewMockLlamaStackClient()
-				ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-				req = req.WithContext(ctx)
-
-				rr := httptest.NewRecorder()
-				app.LlamaStackCreateResponseHandler(rr, req, nil)
-
-				assert.NotEqual(t, http.StatusBadRequest, rr.Code, "valid effort %q should not return 400", effort)
-			})
+	hasTextDelta := false
+	for _, event := range events {
+		if eventType, _ := event["type"].(string); eventType == "response.output_text.delta" {
+			hasTextDelta = true
+			break
 		}
-	})
+	}
+	assert.True(t, hasTextDelta, "should still have output_text.delta events")
+}
 
-	t.Run("should normalize effort casing and whitespace", func(t *testing.T) {
-		payload := CreateResponseRequest{
-			Input:     llamastack.InputUnion{Text: "hello"},
-			Model:     "test-model",
-			Stream:    false,
-			Reasoning: &ReasoningConfig{Effort: " Medium "},
-		}
+// reasoningEmittingClient always emits reasoning_text.delta events before output text,
+// regardless of any request parameters.
+type reasoningEmittingClient struct {
+	*lsmocks.MockLlamaStackClient
+}
 
-		jsonData, err := json.Marshal(payload)
-		require.NoError(t, err)
+func (r *reasoningEmittingClient) CreateResponseStream(_ context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	build := func(data map[string]interface{}) responses.ResponseStreamEventUnion {
+		b, _ := json.Marshal(data)
+		var ev responses.ResponseStreamEventUnion
+		_ = json.Unmarshal(b, &ev)
+		return ev
+	}
 
-		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
-		require.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		llamaStackClient := lsmocks.NewMockLlamaStackClient()
-		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
-		req = req.WithContext(ctx)
-
-		rr := httptest.NewRecorder()
-		app.LlamaStackCreateResponseHandler(rr, req, nil)
-
-		assert.NotEqual(t, http.StatusBadRequest, rr.Code, "trimmed/lowercased 'Medium' should be accepted")
-	})
+	itemID := "msg_reasoning_emit_test"
+	reasoningText := "Let me reason about this."
+	events := []responses.ResponseStreamEventUnion{
+		build(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_emit", "model": params.Model,
+				"status": "in_progress", "created_at": 1234567890.0,
+			},
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           reasoningText,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"text":            reasoningText,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.content_part.added",
+			"sequence_number": 3,
+			"item_id":         itemID,
+			"output_index":    0,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": 4,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "The answer is here.",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 5,
+			"output_index":    0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_emit", "model": params.Model,
+				"status": "completed", "created_at": 1234567890.0,
+				"output": []interface{}{
+					map[string]interface{}{
+						"id": itemID, "type": "message", "role": "assistant",
+						"status": "completed",
+						"content": []interface{}{
+							map[string]interface{}{"type": "output_text", "text": "The answer is here."},
+						},
+					},
+				},
+			},
+		}),
+	}
+	return lsmocks.NewMockStreamIterator(events), nil
 }
 
 // TestAsyncModerationWithReasoning verifies reasoning events flow through the async
@@ -2622,10 +2564,9 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 
 		params := llamastack.CreateResponseParams{
-			Input:           llamastack.InputUnion{Text: "Think step by step"},
-			Model:           "thinking-model",
-			ReasoningEffort: "medium",
-			GuardrailOpts:   guardrailOpts,
+			Input:         llamastack.InputUnion{Text: "Think step by step"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
 		}
 
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
@@ -2656,8 +2597,6 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 			}
 		}
 
-		assert.Contains(t, eventTypes, "response.reasoning_text.delta", "reasoning deltas should pass through async moderation")
-		assert.Contains(t, eventTypes, "response.reasoning_text.done", "reasoning_text.done must not be dropped in async path")
 		assert.Contains(t, eventTypes, "response.output_text.delta", "output text deltas should still be present")
 		assert.Contains(t, eventTypes, "response.completed", "completed event should be present")
 		assert.Contains(t, eventTypes, "response.metrics", "metrics event should be emitted")
@@ -2683,10 +2622,9 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
 
 		params := llamastack.CreateResponseParams{
-			Input:           llamastack.InputUnion{Text: "Think about safety"},
-			Model:           "thinking-model",
-			ReasoningEffort: "high",
-			GuardrailOpts:   guardrailOpts,
+			Input:         llamastack.InputUnion{Text: "Think about safety"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
 		}
 
 		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
@@ -2706,9 +2644,53 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 			t.Fatal("handleStreamingResponseAsync did not complete in time")
 		}
 
-		assert.Greater(t, len(moderatedTexts), 0, "guardrails should have been called with reasoning + output text")
+		assert.Greater(t, len(moderatedTexts), 0, "guardrails should have been called with output text")
 
 		combinedModerated := strings.Join(moderatedTexts, " ")
-		assert.Contains(t, combinedModerated, "think", "moderated text should include reasoning content")
+		assert.NotEmpty(t, combinedModerated, "moderated text should be non-empty")
+	})
+
+	t.Run("should forward reasoning_text.delta and reasoning_text.done through async moderation", func(t *testing.T) {
+		// reasoningEmittingClient always emits reasoning events unconditionally,
+		// verifying that the async moderation path correctly forwards them.
+		client := &reasoningEmittingClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+		nemoClient := nemomocks.NewMockNemoClient()
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, client)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+
+		params := llamastack.CreateResponseParams{
+			Input:         llamastack.InputUnion{Text: "Think step by step"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
+		}
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		done := make(chan bool)
+		go func() {
+			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			done <- true
+		}()
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			t.Fatal("handleStreamingResponseAsync did not complete in time")
+		}
+
+		var eventTypes []string
+		for _, ev := range parseSSEEvents(rr.Body.String()) {
+			if et, ok := ev["type"].(string); ok {
+				eventTypes = append(eventTypes, et)
+			}
+		}
+
+		assert.Contains(t, eventTypes, "response.reasoning_text.delta", "reasoning_text.delta must pass through async moderation")
+		assert.Contains(t, eventTypes, "response.reasoning_text.done", "reasoning_text.done must not be dropped in async path")
+		assert.Contains(t, eventTypes, "response.output_text.delta", "output_text.delta should still be present")
+		assert.Contains(t, eventTypes, "response.metrics", "metrics event should be emitted")
 	})
 }

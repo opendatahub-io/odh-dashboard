@@ -146,11 +146,6 @@ type MCPServer struct {
 	AllowedTools  []string `json:"allowed_tools,omitempty"` // List of specific tool names allowed from this server
 }
 
-// ReasoningConfig contains parameters for reasoning/thinking model behavior
-type ReasoningConfig struct {
-	Effort string `json:"effort"` // Reasoning effort level: "minimal", "low", "medium", "high"
-}
-
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
 	Input llamastack.InputUnion `json:"input"`
@@ -168,7 +163,6 @@ type CreateResponseRequest struct {
 	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`     // Inline NeMo guardrail configuration
 	ModelSourceType    string                        `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
 	Subscription       string                        `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
-	Reasoning          *ReasoningConfig              `json:"reasoning,omitempty"`            // Reasoning/thinking model configuration
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -549,16 +543,6 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		GuardrailOpts:      guardrailOpts,
 	}
 
-	if createRequest.Reasoning != nil && createRequest.Reasoning.Effort != "" {
-		validEfforts := map[string]bool{"minimal": true, "low": true, "medium": true, "high": true}
-		effort := strings.TrimSpace(strings.ToLower(createRequest.Reasoning.Effort))
-		if !validEfforts[effort] {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid reasoning effort %q, must be one of: minimal, low, medium, high", createRequest.Reasoning.Effort))
-			return
-		}
-		params.ReasoningEffort = effort
-	}
-
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
 		// Use async moderation path when output moderation is configured
@@ -621,8 +605,8 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
-		// Track TTFT on first text or reasoning delta event
-		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && firstTokenTime == nil {
+		// Track TTFT on first answer token only — reasoning tokens are excluded
+		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 			now := time.Now()
 			firstTokenTime = &now
 		}
