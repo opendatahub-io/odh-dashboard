@@ -311,6 +311,42 @@ describe('useWorkbenchFeatureStores', () => {
     });
   });
 
+  it('should skip null namespace and null clientConfig entries', async () => {
+    mockGetWorkbenchFeatureStores.mockResolvedValue({
+      namespaces: [
+        null as unknown as { namespace: string; clientConfigs: [] },
+        {
+          namespace: 'valid-namespace',
+          clientConfigs: [
+            null as unknown as {
+              configName: string;
+              projectName: string;
+              hasAccessToFeatureStore: boolean;
+            },
+            {
+              configName: 'valid-config',
+              projectName: 'valid_project',
+              hasAccessToFeatureStore: true,
+            },
+          ],
+        },
+      ],
+    });
+
+    testHook(useWorkbenchFeatureStores)();
+    const callbackArg = mockUseFetch.mock.calls[0]?.[0];
+    const result = await callbackArg();
+
+    expect(result).toStrictEqual([
+      {
+        namespace: 'valid-namespace',
+        configName: 'valid-config',
+        projectName: 'valid_project',
+        configMap: null,
+      },
+    ]);
+  });
+
   it('should filter out namespaces with non-array clientConfigs and process valid ones', async () => {
     mockGetWorkbenchFeatureStores.mockResolvedValue({
       namespaces: [

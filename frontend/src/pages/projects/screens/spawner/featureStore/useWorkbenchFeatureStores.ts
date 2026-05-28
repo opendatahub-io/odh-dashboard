@@ -28,14 +28,24 @@ export const useWorkbenchFeatureStores = (): UseWorkbenchFeatureStoresReturn => 
         throw new Error('Failed to load feature stores');
       }
       const configs: WorkbenchFeatureStoreConfig[] = data.namespaces.flatMap((ns) => {
-        if (typeof ns.namespace !== 'string' || !Array.isArray(ns.clientConfigs)) {
+        if (
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: API payload may contain null entries
+          !ns ||
+          typeof ns !== 'object' ||
+          typeof ns.namespace !== 'string' ||
+          !Array.isArray(ns.clientConfigs)
+        ) {
           return [];
         }
 
         return ns.clientConfigs
           .filter(
-            (config): config is { configName: string; projectName: string } =>
-              typeof config.configName === 'string' && typeof config.projectName === 'string',
+            (config) =>
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: API payload may contain null entries
+              !!config &&
+              typeof config === 'object' &&
+              typeof config.configName === 'string' &&
+              typeof config.projectName === 'string',
           )
           .map((config) => ({
             namespace: ns.namespace,
