@@ -1,7 +1,9 @@
 package repositories
 
 import (
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
 // Repositories is a single convenient container for all repository instances.
@@ -15,14 +17,30 @@ type Repositories struct {
 	ModelRegistry *ModelRegistryRepository
 }
 
-func NewRepositories(pipelinesService *corepipelines.PipelinesService, pipelinesCfg PipelinesRepositoryConfig) *Repositories {
+// RepositoriesConfig holds the dependencies needed to construct all repositories.
+type RepositoriesConfig struct {
+	PipelinesService *corepipelines.PipelinesService
+	PipelinesCfg     PipelinesRepositoryConfig
+	K8sService       *corek8s.K8sService
+	S3Service        *cores3.S3Service
+	MockS3           bool
+}
+
+func NewRepositories(cfg RepositoriesConfig) *Repositories {
+	var s3Repo S3RepositoryInterface
+	if cfg.MockS3 {
+		s3Repo = NewMockS3Repository()
+	} else {
+		s3Repo = NewS3Repository(cfg.K8sService, cfg.S3Service, cfg.PipelinesService)
+	}
+
 	return &Repositories{
 		HealthCheck:   NewHealthCheckRepository(),
 		User:          NewUserRepository(),
 		Namespace:     NewNamespaceRepository(),
-		Pipelines:     NewPipelinesRepository(pipelinesService, pipelinesCfg),
+		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		Secret:        NewSecretRepository(),
-		S3:            NewS3Repository(),
+		S3:            s3Repo,
 		ModelRegistry: NewModelRegistryRepository(),
 	}
 }

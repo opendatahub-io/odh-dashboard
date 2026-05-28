@@ -21,6 +21,8 @@ import (
 	corek8smocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
 	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	corepipelinesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines/mocks"
+	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	cores3mocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3/mocks"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
@@ -204,11 +206,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		k8sClient = &corek8smocks.MockK8sClient{}
 	} else {
 		k8sClient, err = corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
-		AuthMethod: cfg.AuthMethod,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
-	}
+			AuthMethod: cfg.AuthMethod,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
+		}
 	}
 	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, k8sClient)
 
@@ -217,18 +219,43 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockPipelineServerClient {
 		pipelinesClient = &corepipelinesmocks.MockPipelinesClient{}
 	} else {
-	pipelinesCfg := corepipelines.PipelinesClientConfig{
-		InsecureSkipVerify: cfg.InsecureSkipVerify,
-		RootCAs:            rootCAs,
-	}
-	if pfManager != nil {
-		pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
-	}
+		pipelinesCfg := corepipelines.PipelinesClientConfig{
+			InsecureSkipVerify: cfg.InsecureSkipVerify,
+			RootCAs:            rootCAs,
+		}
+		if pfManager != nil {
+			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
 		pipelinesClient = corepipelines.NewDefaultPipelinesClient(pipelinesCfg)
 	}
 	pipelinesService := corepipelines.NewPipelinesService(corepipelines.PipelinesServiceConfig{
 		Logger: logger,
 	}, pipelinesClient, k8sService)
+
+	// Initialize autox-core S3 client and service.
+	// SECURITY: AllowUnresolvedEndpoint requires DevMode — autox-core applies these knobs
+	// without policy judgement, so we enforce the guard here before constructing the client.
+	const envAllowUnresolvedS3Endpoints = "ALLOW_UNRESOLVED_S3_ENDPOINTS"
+	allowUnresolvedS3 := os.Getenv(envAllowUnresolvedS3Endpoints) == "true"
+	if !cfg.DevMode && allowUnresolvedS3 {
+		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
+		os.Exit(1)
+	}
+	s3ClientCfg := cores3.S3ClientConfig{
+		RootCAs:                 rootCAs,
+		InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
+		AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
+	}
+	if pfManager != nil {
+		s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+	}
+	var coreS3Client cores3.S3ClientInterface
+	if cfg.MockS3Client {
+		coreS3Client = cores3.NewS3Client(&cores3mocks.MockS3Provider{})
+	} else {
+		coreS3Client = cores3.NewDefaultS3Client(s3ClientCfg)
+	}
+	coreS3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, coreS3Client)
 
 	app := &App{
 		config:                      cfg,
@@ -236,9 +263,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		kubernetesClientFactory:     k8sFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
-		repositories: repositories.NewRepositories(pipelinesService, repositories.PipelinesRepositoryConfig{
-			TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
-			TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
+		repositories: repositories.NewRepositories(repositories.RepositoriesConfig{
+			PipelinesService: pipelinesService,
+			PipelinesCfg: repositories.PipelinesRepositoryConfig{
+				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
+				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
+			},
+			K8sService: k8sService,
+			S3Service:  coreS3Service,
+			MockS3:     cfg.MockS3Client,
 		}),
 		k8sService:         k8sService,
 		testEnv:            testEnv,

@@ -2,129 +2,62 @@ package repositories
 
 import (
 	"context"
-	"fmt"
+	"io"
+	"strings"
 
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
-	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
+	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	cores3mocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3/mocks"
 )
 
-// MockS3Repository is a mock implementation of S3RepositoryInterface for testing.
-// It still performs real Kubernetes secret lookups (via the injected mock K8s client)
-// but skips SSRF endpoint validation, allowing test fixtures to use local endpoints.
-type MockS3Repository struct{}
+// MockS3Repository implements S3RepositoryInterface for testing.
+// It skips credential resolution and delegates S3 operations to MockS3Client.
+type MockS3Repository struct {
+	client cores3mocks.MockS3Client
+}
 
 func NewMockS3Repository() S3RepositoryInterface {
 	return &MockS3Repository{}
 }
 
-func (r *MockS3Repository) GetS3Credentials(
-	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	namespace string,
-	secretName string,
-	identity *k8s.RequestIdentity,
-) (*S3Credentials, error) {
-	secret, err := client.GetSecret(ctx, namespace, secretName, identity)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", secretName, namespace, err)
-	}
-
-	getValue := newSecretLookup(secret.Data)
-
-	accessKeyID, err := getValue("AWS_ACCESS_KEY_ID")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	secretAccessKey, err := getValue("AWS_SECRET_ACCESS_KEY")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	region, err := getValue("AWS_DEFAULT_REGION")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	endpointURL, err := getValue("AWS_S3_ENDPOINT") // not validated — mock only
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-	bucket, err := getValue("AWS_S3_BUCKET")
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", secretName, err)
-	}
-
-	creds := &S3Credentials{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		Region:          region,
-		EndpointURL:     endpointURL,
-		Bucket:          bucket,
-	}
-
-	if creds.AccessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_ACCESS_KEY_ID", secretName)
-	}
-	if creds.SecretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_SECRET_ACCESS_KEY", secretName)
-	}
-	if creds.Region == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_DEFAULT_REGION", secretName)
-	}
-	if creds.EndpointURL == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: AWS_S3_ENDPOINT", secretName)
-	}
-
-	return creds, nil
+func (m *MockS3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (io.ReadCloser, string, error) {
+	return m.client.DownloadObject(ctx, cores3.S3ConnectionOptions{}, cores3.DownloadObjectInput{Bucket: "mock-bucket", Key: key})
 }
 
-func (r *MockS3Repository) GetS3CredentialsFromDSPA(
-	ctx context.Context,
-	client k8s.KubernetesClientInterface,
-	namespace string,
-	dspaStorage *models.DSPAObjectStorage,
-	identity *k8s.RequestIdentity,
-) (*S3Credentials, error) {
-	if dspaStorage == nil {
-		return nil, fmt.Errorf("dspaStorage must not be nil")
-	}
-	if dspaStorage.SecretName == "" {
-		return nil, fmt.Errorf("DSPA spec missing secret name: SecretName is required")
-	}
-	if dspaStorage.EndpointURL == "" {
-		return nil, fmt.Errorf("DSPA spec missing a valid endpoint (scheme + host are required)")
-	}
+func (m *MockS3Repository) UploadObject(ctx context.Context, req S3RequestContext, key string, body io.Reader, contentType string) error {
+	return m.client.UploadObject(ctx, cores3.S3ConnectionOptions{}, cores3.UploadObjectInput{Bucket: "mock-bucket", Key: key, Body: body, ContentType: contentType})
+}
 
-	secret, err := client.GetSecret(ctx, namespace, dspaStorage.SecretName, identity)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching secret '%s' from namespace %s: %w", dspaStorage.SecretName, namespace, err)
-	}
+func (m *MockS3Repository) ListObjects(ctx context.Context, req S3RequestContext, options cores3.ListObjectsOptions) (*cores3.S3ListObjectsResponse, error) {
+	return m.client.ListObjects(ctx, cores3.S3ConnectionOptions{}, cores3.ListObjectsInput{Bucket: "mock-bucket", Prefix: options.Search, Delimiter: "/", Limit: options.Limit, ContinuationToken: options.Next})
+}
 
-	getValue := newSecretLookup(secret.Data)
+func (m *MockS3Repository) ObjectExists(ctx context.Context, req S3RequestContext, key string) (bool, error) {
+	return m.client.ObjectExists(ctx, cores3.S3ConnectionOptions{}, cores3.ObjectExistsInput{Bucket: "mock-bucket", Key: key})
+}
 
-	accessKeyID, err := getValue(dspaStorage.AccessKeyField)
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
+func (m *MockS3Repository) UploadCSVFile(_ context.Context, _ S3RequestContext, key string, body io.Reader, rawContentType, filename string, _ int) (string, error) {
+	if _, err := ValidateCsvUpload(rawContentType, filename); err != nil {
+		return "", err
 	}
-	if accessKeyID == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.AccessKeyField)
+	if err := m.client.UploadObject(context.Background(), cores3.S3ConnectionOptions{}, cores3.UploadObjectInput{Bucket: "mock-bucket", Key: key, Body: body, ContentType: "text/csv"}); err != nil {
+		return "", err
 	}
-	secretAccessKey, err := getValue(dspaStorage.SecretKeyField)
-	if err != nil {
-		return nil, fmt.Errorf("secret '%s': %w", dspaStorage.SecretName, err)
-	}
-	if secretAccessKey == "" {
-		return nil, fmt.Errorf("secret '%s' missing required field: %s", dspaStorage.SecretName, dspaStorage.SecretKeyField)
-	}
+	return key, nil
+}
 
-	region := dspaStorage.Region
-	if region == "" {
-		region = "us-east-1"
+func (m *MockS3Repository) GetCSVSchema(ctx context.Context, req S3RequestContext, key string) (helper.CSVSchemaResult, error) {
+	if !strings.HasSuffix(strings.ToLower(key), ".csv") {
+		return helper.CSVSchemaResult{}, nil
 	}
-
-	return &S3Credentials{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-		EndpointURL:     dspaStorage.EndpointURL,
-		Bucket:          dspaStorage.Bucket,
-		Region:          region,
+	return helper.CSVSchemaResult{
+		Columns: []helper.ColumnSchema{
+			{Name: "id", Type: "integer", TaskType: "regression"},
+			{Name: "value", Type: "double", TaskType: "regression"},
+			{Name: "label", Type: "string", TaskType: "multiclass"},
+		},
 	}, nil
 }
+
+// Compile-time check.
+var _ S3RepositoryInterface = (*MockS3Repository)(nil)
