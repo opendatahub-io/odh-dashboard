@@ -1,6 +1,6 @@
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { Deployment } from '../../../extension-points';
+import type { Deployment, ModelServingMetricsExtension } from '../../../extension-points';
 import { shouldShowDeploymentMetricsLink } from '../deploymentUtils';
 
 const mockDeployment = (overrides: Partial<Deployment> = {}): Deployment => ({
@@ -19,7 +19,11 @@ const mockDeployment = (overrides: Partial<Deployment> = {}): Deployment => ({
   apiProtocol: overrides.apiProtocol,
 });
 
-const metricsExtension = { properties: { platform: 'test' } };
+const metricsExtension: ModelServingMetricsExtension = {
+  type: 'model-serving.metrics',
+  properties: { platform: 'test' },
+  flags: {},
+};
 
 describe('shouldShowDeploymentMetricsLink', () => {
   it('should return false when metricsExtension is null', () => {
