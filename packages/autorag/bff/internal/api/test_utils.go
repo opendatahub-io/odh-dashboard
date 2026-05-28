@@ -59,7 +59,7 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 		kubernetesClientFactory:     k8Factory,
 		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
 		s3ClientFactory:             s3mocks.NewMockClientFactory(),
-		repositories:                repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
+		repositories:                repositories.NewRepositories(repositories.RepositoriesConfig{}),
 	}
 
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
@@ -166,7 +166,7 @@ func setupApiTestPostMultipart(
 		kubernetesClientFactory:     k8Factory,
 		pipelineServerClientFactory: psmocks.NewMockClientFactory(),
 		s3ClientFactory:             s3mocks.NewMockClientFactory(),
-		repositories:                repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
+		repositories:                repositories.NewRepositories(repositories.RepositoriesConfig{}),
 	}
 	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
 	req = req.WithContext(ctx)

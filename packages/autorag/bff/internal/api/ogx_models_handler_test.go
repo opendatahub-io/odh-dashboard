@@ -28,7 +28,7 @@ func newOGXHandlerTestApp(t *testing.T) *App {
 		config:           config.EnvConfig{Port: 4000},
 		logger:           logger,
 		ogxClientFactory: ogxmocks.NewMockClientFactory(),
-		repositories:     repositories.NewRepositories(nil, repositories.PipelinesRepositoryConfig{}),
+		repositories:     repositories.NewRepositories(repositories.RepositoriesConfig{}),
 	}
 }
 
