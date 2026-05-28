@@ -156,6 +156,7 @@ const InnerCustomPipelineRunToolbarSelect = <T extends PipelineVersionKF | Exper
       onOpenChange={(open) => {
         setOpen(open);
         if (!open) {
+          doSetSearchDebounced.cancel();
           setSearch('');
         }
       }}

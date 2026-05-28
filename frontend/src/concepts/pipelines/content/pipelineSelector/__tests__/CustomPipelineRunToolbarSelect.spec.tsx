@@ -67,7 +67,7 @@ describe('ExperimentFilterSelector', () => {
 
     // Advance timers to flush the debounced search
     act(() => {
-      jest.advanceTimersByTime(300);
+      jest.advanceTimersByTime(250);
     });
 
     // The toggle should still be enabled even though no results match
@@ -96,7 +96,7 @@ describe('ExperimentFilterSelector', () => {
 
     // Advance timers to flush debounce
     act(() => {
-      jest.advanceTimersByTime(300);
+      jest.advanceTimersByTime(250);
     });
 
     // Close by clicking toggle again
