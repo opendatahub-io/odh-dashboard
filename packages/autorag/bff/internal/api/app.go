@@ -253,13 +253,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if pfManager != nil {
 		s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 	}
-	var coreS3Client cores3.S3ClientInterface
+	var s3Client cores3.S3ClientInterface
 	if cfg.MockS3Client {
-		coreS3Client = cores3.NewS3Client(&cores3mocks.MockS3Provider{})
+		s3Client = cores3.NewS3Client(&cores3mocks.MockS3Provider{})
 	} else {
-		coreS3Client = cores3.NewDefaultS3Client(s3ClientCfg)
+		s3Client = cores3.NewDefaultS3Client(s3ClientCfg)
 	}
-	coreS3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, coreS3Client)
+	s3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, s3Client)
 
 	app := &App{
 		config:                      cfg,
@@ -274,7 +274,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 				AutoRAGPipelineName: cfg.AutoRAGPipelineNamePrefix,
 			},
 			K8sService: k8sService,
-			S3Service:  coreS3Service,
+			S3Service:  s3Service,
 			MockS3:     cfg.MockS3Client,
 		}),
 		k8sService:         k8sService,
