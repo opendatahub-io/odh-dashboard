@@ -12,7 +12,7 @@ type Repositories struct {
 	HealthCheck     *HealthCheckRepository
 	Secret          *SecretRepository
 	Pipelines       *PipelinesRepository
-	S3              S3RepositoryInterface
+	S3              *S3Repository
 	OGXModels       *OGXModelsRepository
 	OGXVectorStores *OGXVectorStoresRepository
 }
