@@ -9,7 +9,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
-	k8s "github.com/opendatahub-io/automl-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 )
 
@@ -60,12 +59,6 @@ func (app *App) Config() config.EnvConfig { //nolint:unused
 // This allows downstream extensions to use the same logger as the app.
 func (app *App) Logger() *slog.Logger { //nolint:unused
 	return app.logger
-}
-
-// KubernetesClientFactory returns the Kubernetes client factory.
-// This allows downstream extensions to create Kubernetes clients.
-func (app *App) KubernetesClientFactory() k8s.KubernetesClientFactory { //nolint:unused
-	return app.kubernetesClientFactory
 }
 
 // Repositories returns the repositories container.

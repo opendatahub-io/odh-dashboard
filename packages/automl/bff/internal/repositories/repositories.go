@@ -9,10 +9,8 @@ import (
 // Repositories is a single convenient container for all repository instances.
 type Repositories struct {
 	HealthCheck   *HealthCheckRepository
-	User          *UserRepository
-	Namespace     *NamespaceRepository
-	Pipelines     *PipelinesRepository
 	Secret        *SecretRepository
+	Pipelines     *PipelinesRepository
 	S3            S3RepositoryInterface
 	ModelRegistry *ModelRegistryRepository
 }
@@ -28,10 +26,8 @@ type RepositoriesConfig struct {
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
 	return &Repositories{
 		HealthCheck:   NewHealthCheckRepository(),
-		User:          NewUserRepository(),
-		Namespace:     NewNamespaceRepository(),
-		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		Secret:        NewSecretRepository(),
+		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		S3:            NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
 		ModelRegistry: NewModelRegistryRepository(cfg.K8sService, cfg.PipelinesService),
 	}
