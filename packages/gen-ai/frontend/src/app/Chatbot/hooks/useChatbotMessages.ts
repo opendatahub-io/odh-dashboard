@@ -217,12 +217,6 @@ const useChatbotMessages = ({
     messagesRef.current = messages;
   }, [messages]);
 
-  // Sync handleMessageSendRef with handleMessageSend function for handleRetry
-  // This ensures the ref is always set, even if handleMessageSend is never called
-  React.useEffect(() => {
-    handleMessageSendRef.current = handleMessageSend;
-  });
-
   // Update initial message name with the initially selected model (runs once on mount)
   React.useEffect(() => {
     setMessages((prev) =>
@@ -802,6 +796,9 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
   };
+
+  // Keep ref in sync so handleRetry can call the latest version
+  handleMessageSendRef.current = handleMessageSend;
 
   return {
     messages,
