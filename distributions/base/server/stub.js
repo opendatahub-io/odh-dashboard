@@ -67,7 +67,14 @@ const server = http.createServer((req, res) => {
         (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep))
       ) {
         if (fileErr && fileErr.code === 'ENOENT') {
-          serveIndexFallback(res);
+          const isNavigation =
+            req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
+          if (isNavigation) {
+            serveIndexFallback(res);
+          } else {
+            res.writeHead(404);
+            res.end('Not found');
+          }
           return;
         }
         res.writeHead(403);
@@ -82,7 +89,14 @@ const server = http.createServer((req, res) => {
             res.end('Server error');
             return;
           }
-          serveIndexFallback(res);
+          const isNavigation =
+            req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
+          if (isNavigation) {
+            serveIndexFallback(res);
+          } else {
+            res.writeHead(404);
+            res.end('Not found');
+          }
           return;
         }
         res.writeHead(200, { 'Content-Type': contentType });
