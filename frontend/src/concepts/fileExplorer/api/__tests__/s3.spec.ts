@@ -1,43 +1,115 @@
-// eslint-disable-next-line import/no-extraneous-dependencies -- TODO [Gustavo] Fix
-import { handleRestFailures, restCREATE } from 'mod-arch-core';
-import { uploadFileToS3 } from '#~/concepts/fileExplorer/api/s3.ts';
+/* eslint-disable camelcase */
+import { getFiles } from '#~/concepts/fileExplorer/api/s3.ts';
+import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
 
-// TODO [ Gustavo ] mod-arch-core is not a dependency in frontend. Need to convert to raw fetch use.
+const mockFetch = jest.fn();
+global.fetch = mockFetch;
 
-jest.mock('~/app/utilities/const', () => ({
-  URL_PREFIX: '/autorag',
-  BFF_API_VERSION: 'v1',
-}));
+const validResponse: S3ListObjectsResponse = {
+  common_prefixes: [{ prefix: 'folder/' }],
+  contents: [{ key: 'file.txt', size: 100 }],
+  is_truncated: false,
+  key_count: 1,
+  max_keys: 1000,
+};
 
-jest.mock('mod-arch-core', () => ({
-  handleRestFailures: jest.fn(),
-  restCREATE: jest.fn(),
-  isModArchResponse: jest.fn(),
-}));
-
-const mockRestCREATE = jest.mocked(restCREATE);
-const mockHandleRestFailures = jest.mocked(handleRestFailures);
-
-describe('uploadFileToS3', () => {
+describe('getFiles', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should throw for empty key', async () => {
-    const file = new File(['content'], 'test.csv', { type: 'text/csv' });
-    await expect(
-      uploadFileToS3('', { namespace: 'ns', secretName: 'secret', key: '' }, file),
-    ).rejects.toThrow('Upload key must be a non-empty string');
-    expect(mockRestCREATE).not.toHaveBeenCalled();
-    expect(mockHandleRestFailures).not.toHaveBeenCalled();
+  it('should fetch files and return parsed response', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: validResponse }),
+    });
+
+    const result = await getFiles('', {}, { namespace: 'ns', secretName: 'secret' });
+
+    expect(result).toEqual(validResponse);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    const [urlArg, init] = mockFetch.mock.calls[0];
+    const url = urlArg.href;
+    expect(url).toContain('/autorag/api/v1/s3/files');
+    expect(url).toContain('namespace=ns');
+    expect(url).toContain('secretName=secret');
+    expect(init.method).toBe('GET');
   });
 
-  it('should throw for whitespace-only key', async () => {
-    const file = new File(['content'], 'test.csv', { type: 'text/csv' });
-    await expect(
-      uploadFileToS3('', { namespace: 'ns', secretName: 'secret', key: '   ' }, file),
-    ).rejects.toThrow('Upload key must be a non-empty string');
-    expect(mockRestCREATE).not.toHaveBeenCalled();
-    expect(mockHandleRestFailures).not.toHaveBeenCalled();
+  it('should handle responses not wrapped in { data }', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(validResponse),
+    });
+
+    const result = await getFiles('', {}, { namespace: 'ns' });
+
+    expect(result).toEqual(validResponse);
+  });
+
+  it('should pass optional query params when provided', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: validResponse }),
+    });
+
+    await getFiles(
+      '',
+      {},
+      {
+        namespace: 'ns',
+        secretName: 'secret',
+        bucket: 'my-bucket',
+        path: 'docs/',
+        search: 'readme',
+        limit: 25,
+        next: 'token123',
+      },
+    );
+
+    const [urlArg] = mockFetch.mock.calls[0];
+    const url = urlArg.href;
+    expect(url).toContain('bucket=my-bucket');
+    expect(url).toContain('path=docs%2F');
+    expect(url).toContain('search=readme');
+    expect(url).toContain('limit=25');
+    expect(url).toContain('next=token123');
+  });
+
+  it('should forward the abort signal', async () => {
+    const controller = new AbortController();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: validResponse }),
+    });
+
+    await getFiles('', { signal: controller.signal }, { namespace: 'ns' });
+
+    const [, init] = mockFetch.mock.calls[0];
+    expect(init.signal).toBe(controller.signal);
+  });
+
+  it('should throw on non-2xx response', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: () => Promise.resolve('something broke'),
+    });
+
+    await expect(getFiles('', {}, { namespace: 'ns' })).rejects.toThrow('Request failed (500)');
+  });
+
+  it('should throw on invalid response shape', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ data: { not: 'valid' } }),
+    });
+
+    await expect(getFiles('', {}, { namespace: 'ns' })).rejects.toThrow(
+      'Invalid S3ListObjectsResponse',
+    );
   });
 });

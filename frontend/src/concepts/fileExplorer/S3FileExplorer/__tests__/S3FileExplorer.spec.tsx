@@ -15,7 +15,7 @@ import {
 } from '#~/concepts/fileExplorer/__mocks__/mockS3ListObjectsResponse';
 import { getFiles } from '#~/concepts/fileExplorer/api/s3.ts';
 
-jest.mock('~/app/api/s3', () => ({
+jest.mock('#~/concepts/fileExplorer/api/s3.ts', () => ({
   getFiles: jest.fn(),
 }));
 
