@@ -267,7 +267,7 @@ describe('Verify that only the Cluster Admin can access Cluster Settings', () =>
 
       cy.step('Access Settings -> User management');
       userManagement.visit();
-      userManagement.findSubmitButton().should('exist');
+      userManagement.getAdministratorGroupSection().find().should('exist');
     },
   );
 });
