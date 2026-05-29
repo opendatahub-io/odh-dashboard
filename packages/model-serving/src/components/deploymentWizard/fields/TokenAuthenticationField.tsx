@@ -20,8 +20,8 @@ import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import { isTokenAuthField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { isTokenAuthFieldOverride } from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { showAuthWarning } from '../hooks/useAuthWarning';
 
 // Schema
@@ -57,13 +57,13 @@ export const useTokenAuthenticationField = (
   modelServer?: ModelServerSelectField,
   canCreateRoleBindings?: boolean,
 ): TokenAuthenticationFieldHook => {
-  const tokenAuthExtension = useWizardFieldFromExtension(isTokenAuthField, {
+  const tokenAuthOverrides = useWizardFieldOverrides(isTokenAuthFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
   });
   const shouldAutoCheck = React.useMemo(() => {
-    return tokenAuthExtension?.initialValue ?? false;
-  }, [tokenAuthExtension]);
+    return tokenAuthOverrides.some((override) => override.initialValue);
+  }, [tokenAuthOverrides]);
 
   const initialData = React.useMemo(() => {
     if (shouldAutoCheck && !existingData && canCreateRoleBindings === true) {

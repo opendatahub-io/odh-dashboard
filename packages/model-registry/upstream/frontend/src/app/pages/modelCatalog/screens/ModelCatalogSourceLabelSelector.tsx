@@ -179,9 +179,13 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
                 </ToolbarGroup>
               </ToolbarToggleGroup>
               {/* When toggle is OFF, show basic filter chips in the main toolbar */}
-              {/* When toggle is ON, all chips are shown in HardwareConfigurationFilterToolbar below */}
-              {!performanceViewEnabled && onResetAllFilters && hasBasicFiltersApplied && (
-                <ModelCatalogActiveFilters filtersToShow={filtersToShow} />
+              {/* When toggle is ON, keep ToolbarFilters mounted with empty labels to work around */}
+              {/* PF ToolbarFilter not cleaning up filter count on unmount (PF#12247) */}
+              {onResetAllFilters && (
+                <ModelCatalogActiveFilters
+                  filtersToShow={filtersToShow}
+                  forceHideLabels={performanceViewEnabled}
+                />
               )}
             </Flex>
           </ToolbarContent>

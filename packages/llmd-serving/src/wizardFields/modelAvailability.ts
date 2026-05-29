@@ -1,15 +1,15 @@
 import type {
-  ModelAvailabilityField,
+  ModelAvailabilityFieldOverride,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
 import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
 import { isLLMInferenceServiceActive } from '../formUtils';
 
-export const modelAvailabilityField: ModelAvailabilityField = {
+export const modelAvailabilityField: ModelAvailabilityFieldOverride = {
   id: 'modelAvailability',
   type: 'modifier',
   isActive: isLLMInferenceServiceActive,
-  // MaaS checkbox is now provided by the maas package via WizardField2Extension
+  // MaaS checkbox is now provided by the maas package via WizardFieldExtension
   showSaveAsMaaS: false,
 };
 

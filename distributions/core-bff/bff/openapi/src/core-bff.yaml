@@ -1,0 +1,253 @@
+openapi: '3.0.3'
+info:
+  title: 'Core BFF REST API'
+  version: '1.0.0'
+  description: 'REST API for the Core Backend for Frontend (BFF). Replaces Fastify across RHOAI (sidecar) and RHAII (standalone) deployments.'
+  license:
+    name: 'Apache 2.0'
+    url: 'https://www.apache.org/licenses/LICENSE-2.0'
+servers:
+  - url: 'http://localhost:4000'
+    description: 'Local development server'
+
+paths:
+  /healthcheck:
+    summary: BFF service health check (infrastructure)
+    description: >-
+      Health check endpoint for Kubernetes liveness/readiness probes.
+      Not behind authentication middleware.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: healthcheck
+      summary: BFF Health Check (infrastructure)
+      description: Returns BFF service status and version information. Used by Kubernetes probes.
+      security: []
+
+  /api/v1/healthcheck:
+    summary: BFF service health check (API)
+    description: >-
+      Health check endpoint accessible through the API prefix.
+      Goes through authentication middleware.
+    get:
+      tags:
+        - HealthCheck
+      responses:
+        '200':
+          $ref: '#/components/responses/HealthCheckResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: apiHealthcheck
+      summary: BFF Health Check (API)
+      description: Returns BFF service status and version information. Used by the frontend.
+
+  /api/v1/user:
+    summary: Current user identity
+    description: >-
+      Returns the authenticated user's identity and cluster admin status.
+      Requires authentication.
+    get:
+      tags:
+        - User
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getUser
+      summary: Get current user
+
+  /api/v1/namespaces:
+    summary: Accessible namespaces
+    description: >-
+      Returns the list of Kubernetes namespaces accessible to the authenticated user.
+      Requires authentication.
+    get:
+      tags:
+        - Namespaces
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespacesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getNamespaces
+      summary: List accessible namespaces
+
+components:
+  schemas:
+    HealthCheckResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: 'available'
+          description: 'Service availability status'
+        systemInfo:
+          type: object
+          properties:
+            version:
+              type: string
+              example: '1.0.0'
+              description: 'BFF version'
+
+    User:
+      type: object
+      required:
+        - userId
+        - clusterAdmin
+      properties:
+        userId:
+          type: string
+          example: 'user@example.com'
+          description: 'Authenticated user identifier'
+        clusterAdmin:
+          type: boolean
+          example: false
+          description: 'Whether the user has cluster-admin privileges'
+
+    UserEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/User'
+
+    Namespace:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: 'opendatahub'
+          description: 'Kubernetes namespace name'
+        displayName:
+          type: string
+          example: 'Open Data Hub'
+          description: 'Human-readable namespace display name'
+
+    NamespacesEnvelope:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Namespace'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: 'Error code identifier'
+              example: 'INTERNAL_SERVER_ERROR'
+            message:
+              type: string
+              description: 'Human-readable error description'
+              example: 'An unexpected error occurred'
+
+  responses:
+    HealthCheckResponse:
+      description: Service is healthy
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthCheckResponse'
+          example:
+            status: 'available'
+            systemInfo:
+              version: '1.0.0'
+
+    UserResponse:
+      description: Current user identity
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserEnvelope'
+          example:
+            data:
+              userId: 'user@example.com'
+              clusterAdmin: false
+
+    NamespacesResponse:
+      description: List of accessible namespaces
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespacesEnvelope'
+          example:
+            data:
+              - name: 'opendatahub'
+                displayName: 'Open Data Hub'
+              - name: 'my-project'
+                displayName: 'My Project'
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'BAD_REQUEST'
+              message: 'Invalid request parameters'
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'UNAUTHORIZED'
+              message: 'Authentication credentials are missing or invalid'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'NOT_FOUND'
+              message: 'The requested resource was not found'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: 'INTERNAL_SERVER_ERROR'
+              message: 'An unexpected error occurred'

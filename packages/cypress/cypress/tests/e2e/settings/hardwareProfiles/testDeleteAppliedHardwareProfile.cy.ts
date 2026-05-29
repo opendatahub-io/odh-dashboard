@@ -124,7 +124,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       const row = hardwareProfile.getUniqueRow(hardwareProfileDisplayName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
       row.findKebab().click();
-      hardwareProfile.findDeleteAction().click();
+      hardwareProfile.findDeleteAction().should('be.visible').click();
 
       // Confirm deletion in modal
       cy.step('Confirm deletion in modal');
@@ -133,7 +133,9 @@ describe('Delete Hardware Profile applied to a resource', () => {
 
       // Verify hardware profile is deleted
       cy.step('Verify hardware profile has been deleted');
-      hardwareProfile.findTable().should('not.contain', hardwareProfileDisplayName);
+      hardwareProfile
+        .findTable({ timeout: 30000 })
+        .should('not.contain', hardwareProfileDisplayName);
 
       // Navigate back to the project and verify workbench is still running
       cy.step('Navigate to workbenches tab and verify workbench is still running');

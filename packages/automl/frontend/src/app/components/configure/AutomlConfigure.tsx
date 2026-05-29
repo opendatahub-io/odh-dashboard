@@ -41,11 +41,11 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { CubesIcon, EllipsisVIcon, TimesIcon, UploadIcon } from '@patternfly/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
+import type { FileRejection } from 'react-dropzone';
 import { findKey } from 'es-toolkit';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
@@ -82,6 +82,17 @@ import {
 } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import {
+  AUTOML_TRAINING_UPLOAD_MAX_BYTES,
+  AUTOML_TRAINING_UPLOAD_MAX_FILES,
+  AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB,
+  AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL,
+  getTrainingDataDropRejectedNotification,
+  isAllowedTrainingDataUploadFile,
+  resolveSingleFileDropOutcome,
+  TRAINING_DATA_FILE_ACCEPT,
+  TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
+} from '~/app/utilities/automlTrainingDataFile';
 import LoadingFormField from './LoadingFormField';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import './AutomlConfigure.scss';
@@ -116,32 +127,6 @@ const PREDICTION_TYPES: {
       'Predict future activity over a specified date/time range. Data must be structured and sequential.',
   },
 ];
-
-/** MIME types and extensions for the training CSV upload dropzone (react-dropzone `accept` format). */
-const TRAINING_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'text/csv': ['.csv'],
-};
-
-const TRAINING_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(TRAINING_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const TRAINING_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedTrainingDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(TRAINING_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in TRAINING_DATA_FILE_ACCEPT);
-}
 
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -425,8 +410,8 @@ function AutomlConfigure({
       if (!file || !namespace) {
         return;
       }
-      if (file.size > TRAINING_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+      if (file.size > AUTOML_TRAINING_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTOML_TRAINING_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedTrainingDataUploadFile(file)) {
@@ -468,6 +453,28 @@ function AutomlConfigure({
       }
     },
     [namespace, notification, setValue, trainDataBucketName, trainDataSecretName, uploadFileToS3],
+  );
+
+  const handleTrainingDataDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      const payload = getTrainingDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
+      }
+    },
+    [notification],
+  );
+
+  const processTrainingDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleTrainingDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadTrainingDataFile(outcome.file);
+      }
+    },
+    [handleTrainingDataDropRejected, uploadTrainingDataFile],
   );
 
   const openTrainingDataReplaceFileDialog = useCallback(() => {
@@ -687,23 +694,21 @@ function AutomlConfigure({
                             {showTrainingDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="training-data-upload-description"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadTrainingDataFile(file);
-                                }}
+                                data-testid="training-data-upload-zone"
                                 dropzoneProps={{
                                   accept: TRAINING_DATA_FILE_ACCEPT,
                                   disabled: formIsSubmitting || isTrainingDataFileUploading,
-                                  maxFiles: 1,
-                                  maxSize: TRAINING_DATA_UPLOAD_MAX_BYTES,
+                                  maxFiles: AUTOML_TRAINING_UPLOAD_MAX_FILES,
+                                  maxSize: AUTOML_TRAINING_UPLOAD_MAX_BYTES,
                                   multiple: false,
+                                  onDrop: processTrainingDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: CSV. Maximum file size: 32 MiB"
+                                  infoText={`Accepted file types: CSV. Maximum file size: ${AUTOML_TRAINING_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>

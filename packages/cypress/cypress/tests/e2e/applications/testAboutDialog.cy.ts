@@ -3,6 +3,7 @@ import { DataScienceStackComponentMap } from '@odh-dashboard/internal/concepts/a
 import { aboutDialog } from '../../../pages/aboutDialog';
 import {
   getCsvByDisplayName,
+  getInstalledProductName,
   getResourceVersionByName,
   getSubscriptionChannelFromCsv,
   getVersionFromCsv,
@@ -10,16 +11,22 @@ import {
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { retryableBefore } from '../../../utils/retryableHooks';
 
-const productName = Cypress.env('PRODUCT_NAME');
 const dataScienceStackComponentMap = DataScienceStackComponentMap;
 
 describe('Verify RHODS About Dialog', () => {
   let odhCsv: Record<string, unknown>;
+  let productName: string;
 
   retryableBefore(async () => {
-    cy.log(`Prepare the CSV JSON for the tests according to the installed Product: ${productName}`);
-    getCsvByDisplayName(productName, 'default').then((csv) => {
-      odhCsv = csv as Record<string, unknown>;
+    cy.log('Auto-detecting installed product (RHOAI or ODH)...');
+    getInstalledProductName('default').then((detectedProduct) => {
+      productName = detectedProduct;
+      cy.log(
+        `Prepare the CSV JSON for the tests according to the installed Product: ${productName}`,
+      );
+      getCsvByDisplayName(productName, 'default').then((csv) => {
+        odhCsv = csv as Record<string, unknown>;
+      });
     });
   });
 
