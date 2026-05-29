@@ -19,7 +19,7 @@ permissions:
   actions: read
 
 env:
-  NODE_VERSION: 20.x
+  NODE_VERSION: 22.x
   PACKAGES_PATHS: packages
 
 jobs:

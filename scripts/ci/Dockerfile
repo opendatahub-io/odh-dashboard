@@ -8,7 +8,7 @@ ARG POETRY_CACHE=$USER_HOME/.poetry-cache
 ARG CHROME=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
 ARG OCP_CLI=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
 ARG NVM_INSTALLER=https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh
-ARG NODE_VERSION=v20.18.0
+ARG NODE_VERSION=v22.5.1
 ARG OCM_CLI=https://github.com/openshift-online/ocm-cli/releases/download/v1.0.7/ocm-linux-amd64
 
 USER root
