@@ -627,4 +627,27 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.Contains(t, string(mockClient.capturedYAML), overrideImage)
 		assert.NotContains(t, string(mockClient.capturedYAML), pipelines.DefaultAutoRAGImage)
 	})
+
+	t.Run("should use default image when RELATED_IMAGE_ODH_AUTORAG_IMAGE is unset", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "")
+
+		namespace := "test-ns-ensure-default-image"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &capturingMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
+		assert.Contains(t, string(mockClient.capturedYAML), pipelines.DefaultAutoRAGImage)
+	})
 }
