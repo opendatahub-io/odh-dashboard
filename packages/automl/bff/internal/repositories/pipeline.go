@@ -501,9 +501,7 @@ func (r *PipelineRepository) ensurePipelineAndVersion(
 	}
 
 	if override := os.Getenv("RELATED_IMAGE_ODH_AUTOML_IMAGE"); override != "" {
-		yamlBytes = pipelines.ReplaceImages(yamlBytes, map[string]string{
-			pipelines.DefaultAutoMLImage: override,
-		})
+		yamlBytes = pipelines.ReplaceImageRef(yamlBytes, pipelines.AutoMLImagePattern, override)
 		logger.Info("Replaced pipeline image with RELATED_IMAGE_ODH_AUTOML_IMAGE",
 			"pipelineDir", def.PipelineDir, "overrideImage", override)
 	}

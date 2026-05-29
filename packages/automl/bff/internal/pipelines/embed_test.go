@@ -1,39 +1,35 @@
 package pipelines
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestReplaceImages(t *testing.T) {
-	t.Run("replaces all occurrences of the image", func(t *testing.T) {
-		yaml := []byte("image: old-image@sha256:abc\nother: stuff\nimage: old-image@sha256:abc\n")
-		result := ReplaceImages(yaml, map[string]string{
-			"old-image@sha256:abc": "new-image@sha256:def",
-		})
-		assert.NotContains(t, string(result), "old-image@sha256:abc")
-		assert.Contains(t, string(result), "new-image@sha256:def")
-		assert.Equal(t, "image: new-image@sha256:def\nother: stuff\nimage: new-image@sha256:def\n", string(result))
+func TestReplaceImageRef(t *testing.T) {
+	oldDigest := "77d5222d8b4f10828bfeafb692de7348e28c711b45ca3f70854e407bf651a6fd"
+	newDigest := "1b6a063cdde3bf91cd10f5a2be999bd171d76892617444c49384828e326ae9ce"
+
+	t.Run("replaces all occurrences matching the pattern", func(t *testing.T) {
+		yaml := []byte("image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:" + oldDigest + "\nother: stuff\nimage: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:" + oldDigest + "\n")
+		newImage := "registry.redhat.io/rhoai/odh-automl-rhel9@sha256:" + newDigest
+		result := ReplaceImageRef(yaml, AutoMLImagePattern, newImage)
+		assert.NotContains(t, string(result), oldDigest)
+		assert.Equal(t, 2, strings.Count(string(result), newImage))
 	})
 
-	t.Run("empty overrides returns YAML unchanged", func(t *testing.T) {
-		yaml := []byte("image: old-image@sha256:abc\n")
-		result := ReplaceImages(yaml, map[string]string{})
-		assert.Equal(t, yaml, result)
+	t.Run("matches any 64-char hex digest", func(t *testing.T) {
+		yaml := []byte("image: registry.redhat.io/rhoai/odh-automl-rhel9@sha256:" + oldDigest + "\n")
+		newImage := "registry.redhat.io/rhoai/odh-automl-rhel9@sha256:" + newDigest
+		result := ReplaceImageRef(yaml, AutoMLImagePattern, newImage)
+		assert.Contains(t, string(result), newDigest)
+		assert.NotContains(t, string(result), oldDigest)
 	})
 
-	t.Run("override with image not present returns YAML unchanged", func(t *testing.T) {
-		yaml := []byte("image: old-image@sha256:abc\n")
-		result := ReplaceImages(yaml, map[string]string{
-			"nonexistent-image@sha256:xyz": "new-image@sha256:def",
-		})
+	t.Run("no match returns YAML unchanged", func(t *testing.T) {
+		yaml := []byte("image: some-other-image@sha256:" + oldDigest + "\n")
+		result := ReplaceImageRef(yaml, AutoMLImagePattern, "new-image@sha256:"+newDigest)
 		assert.Equal(t, string(yaml), string(result))
-	})
-
-	t.Run("nil overrides returns YAML unchanged", func(t *testing.T) {
-		yaml := []byte("image: old-image@sha256:abc\n")
-		result := ReplaceImages(yaml, nil)
-		assert.Equal(t, yaml, result)
 	})
 }

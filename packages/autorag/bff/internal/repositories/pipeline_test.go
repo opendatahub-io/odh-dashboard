@@ -625,7 +625,7 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.NotNil(t, discovered)
 		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
 		assert.Contains(t, string(mockClient.capturedYAML), overrideImage)
-		assert.NotContains(t, string(mockClient.capturedYAML), pipelines.DefaultAutoRAGImage)
+		assert.False(t, pipelines.AutoRAGImagePattern.Match(mockClient.capturedYAML), "original image pattern should not remain after override")
 	})
 
 	t.Run("should use default image when RELATED_IMAGE_ODH_AUTORAG_IMAGE is unset", func(t *testing.T) {
@@ -648,6 +648,6 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, discovered)
 		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
-		assert.Contains(t, string(mockClient.capturedYAML), pipelines.DefaultAutoRAGImage)
+		assert.True(t, pipelines.AutoRAGImagePattern.Match(mockClient.capturedYAML), "embedded default image should be preserved")
 	})
 }
