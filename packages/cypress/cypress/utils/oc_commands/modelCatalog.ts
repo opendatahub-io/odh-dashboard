@@ -345,20 +345,20 @@ export const detectModelCatalogNamespace = (): Cypress.Chainable<string | null> 
         failOnNonZeroExit: false,
       },
     )
-    .then((result) => {
+    .then((result: Cypress.Exec) => {
       const foundNamespace = result.stdout.trim();
       if (!foundNamespace || result.stderr) {
         Cypress.log({
           name: 'detectModelCatalogNamespace',
           message: 'model-catalog deployment not found in any namespace',
         });
-        return null;
+      } else {
+        Cypress.log({
+          name: 'detectModelCatalogNamespace',
+          message: `✓ Found in namespace: ${foundNamespace}`,
+        });
       }
-      Cypress.log({
-        name: 'detectModelCatalogNamespace',
-        message: `✓ Found in namespace: ${foundNamespace}`,
-      });
-      return foundNamespace;
+      return cy.wrap(!foundNamespace || result.stderr ? null : foundNamespace);
     });
 };
 
