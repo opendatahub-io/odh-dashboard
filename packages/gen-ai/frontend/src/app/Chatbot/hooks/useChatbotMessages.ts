@@ -9,6 +9,7 @@ import {
   ApiError,
   ChatMessageRole,
   CreateResponseRequest,
+  FileSearchCallData,
   GuardrailInlineConfig,
   isApiError,
   InputContentPart,
@@ -51,6 +52,7 @@ export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
   errorClassification?: ClassifiedError;
   onRetryError?: () => void;
+  fileSearchData?: FileSearchCallData;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -677,6 +679,9 @@ const useChatbotMessages = ({
                     extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
                   }),
                   ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                  ...(streamingResponse.fileSearchData && {
+                    fileSearchData: streamingResponse.fileSearchData,
+                  }),
                 }
               : msg,
           ),
@@ -730,6 +735,7 @@ const useChatbotMessages = ({
                   }),
                   ...sourcesProps,
                   ...(response.metrics && { metrics: response.metrics }),
+                  ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
                 }
               : msg,
           ),

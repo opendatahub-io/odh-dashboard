@@ -1,9 +1,11 @@
 import React from 'react';
 import { Message, MessageProps as PFMessageProps } from '@patternfly/chatbot';
+import { Stack, StackItem } from '@patternfly/react-core';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
 import ChatbotErrorAlert from '~/app/Chatbot/components/ChatbotErrorAlert';
+import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -44,6 +46,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         extraContent: messageExtraContent,
         errorClassification,
         onRetryError,
+        fileSearchData,
         ...messageProps
       } = message;
 
@@ -65,9 +68,22 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         );
       }
 
-      // Add metrics to endContent (if present and no error)
-      if (message.role === 'bot' && metrics && !errorClassification) {
-        extraContent.endContent = <ChatbotMessagesMetrics metrics={metrics} />;
+      // Add file search results and metrics to endContent (if present and no error)
+      if (message.role === 'bot' && !errorClassification && (fileSearchData || metrics)) {
+        extraContent.endContent = (
+          <Stack hasGutter>
+            {fileSearchData && (
+              <StackItem>
+                <ChatbotFileSearchResults fileSearchData={fileSearchData} />
+              </StackItem>
+            )}
+            {metrics && (
+              <StackItem>
+                <ChatbotMessagesMetrics metrics={metrics} />
+              </StackItem>
+            )}
+          </Stack>
+        );
       }
 
       // Partial-failure errors: render as beforeMainContent (warning alert above response)
