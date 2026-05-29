@@ -15,6 +15,23 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
+const serveIndexFallback = (res) => {
+  fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (err, fallback) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.writeHead(404);
+        res.end('Not found');
+      } else {
+        res.writeHead(500);
+        res.end('Internal Server Error');
+      }
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(fallback);
+  });
+};
+
 const server = http.createServer((req, res) => {
   // BFF stub: /api/status
   const reqPath = new URL(req.url || '/', 'http://localhost').pathname;
@@ -50,21 +67,7 @@ const server = http.createServer((req, res) => {
         (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep))
       ) {
         if (fileErr && fileErr.code === 'ENOENT') {
-          // SPA fallback for non-existent paths
-          fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-            if (_err) {
-              if (_err.code === 'ENOENT') {
-                res.writeHead(404);
-                res.end('Not found');
-              } else {
-                res.writeHead(500);
-                res.end('Internal Server Error');
-              }
-              return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(fallback);
-          });
+          serveIndexFallback(res);
           return;
         }
         res.writeHead(403);
@@ -79,20 +82,7 @@ const server = http.createServer((req, res) => {
             res.end('Server error');
             return;
           }
-          fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-            if (_err) {
-              if (_err.code === 'ENOENT') {
-                res.writeHead(404);
-                res.end('Not found');
-              } else {
-                res.writeHead(500);
-                res.end('Internal Server Error');
-              }
-              return;
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(fallback);
-          });
+          serveIndexFallback(res);
           return;
         }
         res.writeHead(200, { 'Content-Type': contentType });
