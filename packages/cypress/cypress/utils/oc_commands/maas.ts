@@ -5,6 +5,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const gatewayExternalName = 'gateway-external';
+export const modelsAsAServiceNamespace = 'models-as-a-service';
 
 /** LLM completions can exceed Cypress's default 30s `cy.request` timeout (especially with high `max_tokens`). */
 const completionsRequestTimeoutMs = 180000;
@@ -132,6 +133,29 @@ EOF`;
 
 export type CheckMaaSOptions = {
   expectDeleted?: boolean;
+  groups?: string[];
+  models?: string[];
+};
+
+const getAuthPolicyGroupNames = (doc: Record<string, unknown>): string[] => {
+  const { spec } = doc;
+  if (!isRecord(spec)) {
+    throw new Error('MaaSAuthPolicy spec missing');
+  }
+  const { subjects } = spec;
+  if (!isRecord(subjects)) {
+    throw new Error('MaaSAuthPolicy spec.subjects missing');
+  }
+  const { groups } = subjects;
+  if (!Array.isArray(groups)) {
+    throw new Error('MaaSAuthPolicy spec.subjects.groups missing or not an array');
+  }
+  return groups.map((group, index) => {
+    if (!isRecord(group) || typeof group.name !== 'string') {
+      throw new Error(`MaaSAuthPolicy spec.subjects.groups[${index}] is missing name`);
+    }
+    return group.name;
+  });
 };
 
 /**
@@ -140,7 +164,7 @@ export type CheckMaaSOptions = {
  */
 export const checkMaaSSubscriptionState = (
   subscriptionName: string,
-  namespace = 'models-as-a-service',
+  namespace = modelsAsAServiceNamespace,
   options: CheckMaaSOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc get MaaSSubscription ${subscriptionName} -n ${namespace} -o json`;
@@ -192,7 +216,7 @@ export const checkMaaSSubscriptionState = (
 
 export const checkMaaSAuthPolicyState = (
   policyName: string,
-  namespace = 'models-as-a-service',
+  namespace = modelsAsAServiceNamespace,
   options: CheckMaaSOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc get MaaSAuthPolicy ${policyName} -n ${namespace} -o json`;
@@ -232,6 +256,9 @@ export const checkMaaSAuthPolicyState = (
 
     expect(doc.kind).to.equal('MaaSAuthPolicy');
     expect(metadata.name).to.equal(policyName);
+    if (options.groups) {
+      expect(getAuthPolicyGroupNames(doc)).to.have.members(options.groups);
+    }
 
     cy.log(`✅ MaaSAuthPolicy ${policyName} exists in namespace ${namespace}`);
     return cy.wrap(result);
