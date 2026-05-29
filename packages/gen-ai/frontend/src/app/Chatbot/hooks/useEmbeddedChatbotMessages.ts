@@ -272,7 +272,15 @@ const useEmbeddedChatbotMessages = ({
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === botMessageId
-              ? { ...msg, content: streamingResponse.content, isLoading: false, ...sourcesProps }
+              ? {
+                  ...msg,
+                  content: streamingResponse.content,
+                  isLoading: false,
+                  ...sourcesProps,
+                  ...(streamingResponse.fileSearchData && {
+                    fileSearchData: streamingResponse.fileSearchData,
+                  }),
+                }
               : msg,
           ),
         );

@@ -8,6 +8,7 @@ import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilit
 import {
   ChatMessageRole,
   CreateResponseRequest,
+  FileSearchCallData,
   GuardrailInlineConfig,
   MCPToolCallData,
   MCPServerFromAPI,
@@ -43,6 +44,7 @@ export type GuardrailsConfig = {
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  fileSearchData?: FileSearchCallData;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -472,8 +474,12 @@ const useChatbotMessages = ({
           ),
         );
 
-        // Add tool response and metrics if available from streaming response
-        if (streamingResponse.toolCallData || streamingResponse.metrics) {
+        // Add tool response, metrics, and file search data if available
+        if (
+          streamingResponse.toolCallData ||
+          streamingResponse.metrics ||
+          streamingResponse.fileSearchData
+        ) {
           const toolResponse = streamingResponse.toolCallData
             ? createToolResponse(streamingResponse.toolCallData)
             : undefined;
@@ -484,6 +490,9 @@ const useChatbotMessages = ({
                     ...msg,
                     ...(toolResponse && { toolResponse }),
                     ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                    ...(streamingResponse.fileSearchData && {
+                      fileSearchData: streamingResponse.fileSearchData,
+                    }),
                   }
                 : msg,
             ),
@@ -526,6 +535,7 @@ const useChatbotMessages = ({
           ...(toolResponse && { toolResponse }),
           ...sourcesProps,
           ...(response.metrics && { metrics: response.metrics }),
+          ...(response.fileSearchData && { fileSearchData: response.fileSearchData }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
         // Update last response metrics for pane header display

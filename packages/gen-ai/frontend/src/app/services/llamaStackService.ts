@@ -14,6 +14,7 @@ import {
   CodeExportRequest,
   ContentAnnotation,
   CreateResponseRequest,
+  FileSearchCallData,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
@@ -148,6 +149,26 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+/**
+ * Extracts file_search_call data (queries and results with scores) from response output.
+ */
+const extractFileSearchData = (output?: OutputItem[]): FileSearchCallData | undefined => {
+  if (!output) {
+    return undefined;
+  }
+
+  for (const item of output) {
+    if (item.type === 'file_search_call' && item.results && item.results.length > 0) {
+      return {
+        queries: item.queries ?? [],
+        results: item.results,
+      };
+    }
+  }
+
+  return undefined;
+};
+
 export const RAW_TOOL_CALL_WARNING =
   '⚠️ The model returned a raw tool call instead of generating a response. ' +
   'This usually indicates that the inference server is not configured to handle tool calling. ' +
@@ -208,6 +229,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
   const content = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+  const fileSearchData = extractFileSearchData(backendResponse.output);
 
   return {
     id: backendResponse.id,
@@ -219,6 +241,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
+    ...(fileSearchData && { fileSearchData }),
   };
 };
 
@@ -422,6 +445,7 @@ const streamCreateResponse = (
         const finalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         resolve({
           id: completeResponseData?.id || 'streaming-response',
@@ -432,6 +456,7 @@ const streamCreateResponse = (
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {
@@ -488,8 +513,6 @@ export const createPassthroughResponse = (
   const trimmed = bffBasePath.replace(/\/+$/, '');
   const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
   const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
-
-  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
 
   return new Promise((resolve, reject) => {
     fetch(url, {
@@ -627,6 +650,7 @@ export const createPassthroughResponse = (
         const finalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+        const fileSearchData = extractFileSearchData(completeResponseData?.output);
 
         resolve({
           id: completeResponseData?.id || 'passthrough-response',
@@ -636,6 +660,7 @@ export const createPassthroughResponse = (
           content: finalContent,
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(fileSearchData && { fileSearchData }),
         });
       })
       .catch((error) => {

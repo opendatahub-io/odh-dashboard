@@ -1,8 +1,10 @@
 import React from 'react';
 import { Message } from '@patternfly/chatbot';
+import { Stack, StackItem } from '@patternfly/react-core';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { ChatbotMessageProps } from '~/app/Chatbot/hooks/useChatbotMessages';
 import { ChatbotMessagesMetrics } from '~/app/Chatbot/ChatbotMessagesMetrics';
+import ChatbotFileSearchResults from '~/app/Chatbot/ChatbotFileSearchResults';
 
 type ChatbotMessagesListProps = {
   messageList: ChatbotMessageProps[];
@@ -23,9 +25,11 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   modelDisplayName = 'Bot',
   placeholderContent,
 }) => {
-  // Show loading dots only for non-streaming requests
-  // During streaming, loading dots are handled within the bot message itself
-  const showLoadingDots = isLoading && !isStreamingWithoutContent;
+  // Show loading dots only when no message in the list is already showing its own loading state.
+  // The embedded flow creates a bot message with isLoading=true in the array, so the
+  // standalone loading dots should not also render.
+  const hasLoadingMessage = messageList.some((msg) => msg.isLoading);
+  const showLoadingDots = isLoading && !isStreamingWithoutContent && !hasLoadingMessage;
 
   return (
     <>
@@ -41,14 +45,29 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         />
       )}
       {messageList.map((message, index) => {
-        // Destructure metrics from message to avoid passing it to PatternFly Message component
-        const { metrics, ...messageProps } = message;
+        // Destructure extended props to avoid passing them to PatternFly Message component
+        const { metrics, fileSearchData, ...messageProps } = message;
 
-        // Build extraContent with metrics if present (for bot messages)
-        const extraContent =
-          message.role === 'bot' && metrics
-            ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
-            : undefined;
+        // Build extraContent with file search results and metrics (for bot messages)
+        const hasEndContent = message.role === 'bot' && (fileSearchData || metrics);
+        const extraContent = hasEndContent
+          ? {
+              endContent: (
+                <Stack hasGutter>
+                  {fileSearchData && (
+                    <StackItem>
+                      <ChatbotFileSearchResults fileSearchData={fileSearchData} />
+                    </StackItem>
+                  )}
+                  {metrics && (
+                    <StackItem>
+                      <ChatbotMessagesMetrics metrics={metrics} />
+                    </StackItem>
+                  )}
+                </Stack>
+              ),
+            }
+          : undefined;
 
         return (
           <React.Fragment key={message.id}>
