@@ -9,9 +9,8 @@
   },
   "scripts": {
     "dev": "npm run start:dev",
-    "start:dev": "concurrently -k -n bff,shell \"node server/stub.js\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
+    "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
     "build": "webpack --config ./config/webpack.prod.js",
-    "start": "node server/stub.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
