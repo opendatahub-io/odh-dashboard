@@ -1,9 +1,14 @@
 import { getRayJobDriverLogs } from '../rayJobLogs';
 
 const mockFetch = jest.fn();
-global.fetch = mockFetch;
+const originalFetch = globalThis.fetch;
+globalThis.fetch = mockFetch as typeof fetch;
 
 describe('getRayJobDriverLogs', () => {
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
