@@ -24,8 +24,15 @@ type FileUploadResponse = llamastack.APIResponse
 func (app *App) LlamaStackUploadFileHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+	r.Body = http.MaxBytesReader(w, r.Body, constants.FileUploadMaxBodySize)
+
+	err := r.ParseMultipartForm(constants.FileUploadMaxBodySize)
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
+			return
+		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
 		return
 	}
@@ -282,8 +289,6 @@ func (app *App) LlamaStackFileUploadStatusHandler(w http.ResponseWriter, r *http
 	}
 }
 
-const visionMaxFileSize = 10 << 20 // 10MB
-
 var allowedVisionMIMETypes = map[string]bool{
 	"image/jpeg": true,
 	"image/png":  true,
@@ -294,17 +299,11 @@ var allowedVisionMIMETypes = map[string]bool{
 func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	start := time.Now()
 
-	r.Body = http.MaxBytesReader(w, r.Body, visionMaxFileSize)
-	if err := r.ParseMultipartForm(visionMaxFileSize); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, constants.VisionUploadMaxBodySize)
+	if err := r.ParseMultipartForm(constants.VisionUploadMaxBodySize); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusRequestEntityTooLarge)
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": map[string]string{
-					"message": "file exceeds the 10MB limit for vision uploads",
-				},
-			})
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
 			return
 		}
 		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
@@ -329,14 +328,8 @@ func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	if header.Size > visionMaxFileSize {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusRequestEntityTooLarge)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"error": map[string]string{
-				"message": fmt.Sprintf("file size %d bytes exceeds the 10MB limit for vision uploads", header.Size),
-			},
-		})
+	if header.Size > constants.VisionUploadMaxBodySize {
+		app.payloadTooLargeResponse(w, r, constants.VisionUploadMaxBodySize)
 		return
 	}
 
