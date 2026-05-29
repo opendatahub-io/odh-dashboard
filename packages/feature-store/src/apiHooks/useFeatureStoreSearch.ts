@@ -118,6 +118,7 @@ export const useFeatureStoreSearch = (): {
       } catch (error) {
         // Don't update state if the request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
+          abortControllerRef.current = null;
           return;
         }
         setAllResults([]);
