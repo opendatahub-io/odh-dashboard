@@ -363,6 +363,42 @@ describe('useFeatureStoreSearch', () => {
     }
   });
 
+  it('should abort in-flight request when clearSearch is called during active search', async () => {
+    let resolveSearch: (value: unknown) => void;
+    const searchPromise = new Promise((resolve) => {
+      resolveSearch = resolve;
+    });
+    mockSearch.mockReturnValue(searchPromise);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    act(() => {
+      result.current.handleSearchChange('test');
+    });
+
+    const firstCallArg = mockSearch.mock.calls[0]?.[0];
+    expect(firstCallArg?.signal).toBeDefined();
+    expect(firstCallArg.signal.aborted).toBe(false);
+
+    act(() => {
+      result.current.clearSearch();
+    });
+
+    expect(firstCallArg.signal.aborted).toBe(true);
+    expect(result.current.isSearching).toBe(false);
+    expect(result.current.convertedSearchData).toEqual([]);
+
+    // Clean up the pending promise
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    resolveSearch!(
+      mockGlobalSearchResponse({
+        results: [],
+        pagination: mockGlobalSearchPagination(),
+        errors: [],
+      }),
+    );
+  });
+
   it('should abort in-flight request on unmount when search is active', async () => {
     let resolveSearch: (value: unknown) => void;
     const searchPromise = new Promise((resolve) => {
