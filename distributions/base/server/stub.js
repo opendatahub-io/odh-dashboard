@@ -35,30 +35,70 @@ const server = http.createServer((req, res) => {
   const safePath = path.posix.normalize(reqPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const relativePath = safePath.replace(/^[/\\]+/, '');
   const filePath = path.resolve(PUBLIC_DIR, relativePath || 'index.html');
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      // SPA fallback
-      fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-        if (_err) {
-          res.writeHead(404);
-          res.end('Not found');
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(fallback);
-      });
+  fs.realpath(PUBLIC_DIR, (dirErr, canonicalDir) => {
+    if (dirErr) {
+      res.writeHead(403);
+      res.end('Forbidden');
       return;
     }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
+    fs.realpath(filePath, (fileErr, canonicalFile) => {
+      if (
+        fileErr ||
+        (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep))
+      ) {
+        if (fileErr && fileErr.code === 'ENOENT') {
+          // SPA fallback for non-existent paths
+          fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
+            if (_err) {
+              if (_err.code === 'ENOENT') {
+                res.writeHead(404);
+                res.end('Not found');
+              } else {
+                res.writeHead(500);
+                res.end('Internal Server Error');
+              }
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(fallback);
+          });
+          return;
+        }
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+      }
+
+      fs.readFile(canonicalFile, (err, content) => {
+        if (err) {
+          if (err.code !== 'ENOENT') {
+            res.writeHead(500);
+            res.end('Server error');
+            return;
+          }
+          fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
+            if (_err) {
+              if (_err.code === 'ENOENT') {
+                res.writeHead(404);
+                res.end('Not found');
+              } else {
+                res.writeHead(500);
+                res.end('Internal Server Error');
+              }
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(fallback);
+          });
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content);
+      });
+    });
   });
 });
 

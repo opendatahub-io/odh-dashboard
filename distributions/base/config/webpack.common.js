@@ -30,7 +30,6 @@ module.exports = () => ({
         use: {
           loader: 'file-loader',
           options: {
-            limit: 5000,
             outputPath: 'fonts',
             name: '[name].[ext]',
           },
