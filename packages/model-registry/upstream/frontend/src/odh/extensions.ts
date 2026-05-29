@@ -186,11 +186,11 @@ const extensions: (
       }),
     },
   },
-  // Settings (unchanged)
+  // Settings
   {
     type: 'app.navigation/href',
     flags: {
-      required: [ADMIN_USER],
+      required: [ADMIN_USER, SupportedArea.MODEL_CATALOG],
     },
     properties: {
       id: 'settings-model-catalog',
@@ -204,7 +204,7 @@ const extensions: (
   {
     type: 'app.route',
     flags: {
-      required: [ADMIN_USER],
+      required: [ADMIN_USER, SupportedArea.MODEL_CATALOG],
     },
     properties: {
       path: `${catalogSettingsUrl()}/*`,
