@@ -1,7 +1,7 @@
 import { getRayJobDriverLogs } from '../rayJobLogs';
 
 const mockFetch = jest.fn();
-jest.spyOn(globalThis, 'fetch').mockImplementation(mockFetch);
+global.fetch = mockFetch;
 
 describe('getRayJobDriverLogs', () => {
   beforeEach(() => {
