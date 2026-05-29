@@ -118,9 +118,11 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 	queryParams := r.URL.Query()
 
 	secretName := queryParams.Get("secretName")
-	if secretName != "" && !isValidDNS1123Subdomain(secretName) {
-		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
-		return
+	if secretName != "" {
+		if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
+			return
+		}
 	}
 
 	key, err := url.PathUnescape(ps.ByName("key"))
@@ -273,8 +275,8 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
 		return
 	}
-	if !isValidDNS1123Subdomain(secretName) {
-		app.badRequestResponse(w, r, errors.New("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
+	if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
 		return
 	}
 

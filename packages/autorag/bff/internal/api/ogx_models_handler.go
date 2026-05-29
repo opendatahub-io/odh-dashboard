@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 )
@@ -23,7 +24,7 @@ func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
 		return
 	}
-	if !isValidDNS1123Subdomain(secretName) {
+	if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}

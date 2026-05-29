@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"regexp"
 	"runtime/debug"
 	"strings"
 
@@ -14,28 +13,9 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/config"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
+	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"github.com/rs/cors"
-	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
-
-// dns1123LabelRegex matches valid DNS-1123 labels
-// Rules: lowercase alphanumeric or '-', must start/end with alphanumeric, max 63 chars
-var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
-
-// isValidDNS1123Label validates a string against DNS-1123 label rules
-// Returns true if the label is valid, false otherwise
-func isValidDNS1123Label(label string) bool {
-	if len(label) == 0 || len(label) > 63 {
-		return false
-	}
-	return dns1123LabelRegex.MatchString(label)
-}
-
-// isValidDNS1123Subdomain validates a string against DNS-1123 subdomain rules
-// using the Kubernetes apimachinery validation package.
-func isValidDNS1123Subdomain(name string) bool {
-	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
-}
 
 func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -95,7 +75,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		}
 
 		// Validate namespace against DNS-1123 label rules
-		if !isValidDNS1123Label(namespace) {
+		if err := corek8s.ValidateNamespaceName(namespace); err != nil {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: must be a valid DNS-1123 label (lowercase alphanumeric or '-', start/end with alphanumeric, max 63 chars)"))
 			return
 		}
