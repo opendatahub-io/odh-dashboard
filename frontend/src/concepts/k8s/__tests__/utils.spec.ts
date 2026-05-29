@@ -267,6 +267,11 @@ describe('isValidK8sLabelKeyValue', () => {
     expect(isValidK8sLabelKeyValue(longName, 'value')).toBe(false);
   });
 
+  it('should reject prefix with a DNS segment longer than 63 characters', () => {
+    const segment64 = 'a'.repeat(64);
+    expect(isValidK8sLabelKeyValue(`${segment64}.io/name`, 'value')).toBe(false);
+  });
+
   it('should reject prefix longer than 253 characters', () => {
     const longPrefix = `${'a'.repeat(251)}.io`;
     expect(isValidK8sLabelKeyValue(`${longPrefix}/name`, 'value')).toBe(false);
