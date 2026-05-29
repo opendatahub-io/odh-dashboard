@@ -11,7 +11,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
 import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import { RoleKind } from '#~/k8sTypes';
 import CreateRoleForm from './CreateRoleForm';
@@ -55,7 +55,9 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setLabels(newLabels);
   }, []);
 
-  const hasInvalidLabels = labels.some((label) => !label.key || !label.value);
+  const hasInvalidLabels = labels.some(
+    (label) => !label.key || !label.value || !isValidK8sLabelKeyValue(label.key, label.value),
+  );
 
   const isSubmitDisabled =
     !k8sNameDescriptionData.data.k8sName.value ||
