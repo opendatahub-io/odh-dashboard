@@ -1,4 +1,5 @@
 import * as React from 'react';
+import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
 import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
