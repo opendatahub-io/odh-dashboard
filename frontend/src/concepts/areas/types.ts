@@ -106,6 +106,9 @@ export enum SupportedArea {
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  /* Role Management */
+  ROLE_MANAGEMENT = 'role-management',
 }
 
 export type SupportedAreaType = SupportedArea | string;

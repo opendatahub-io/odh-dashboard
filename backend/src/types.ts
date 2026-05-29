@@ -58,6 +58,7 @@ export type DashboardConfig = K8sResourceCommon & {
       maasAuthPolicies: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;

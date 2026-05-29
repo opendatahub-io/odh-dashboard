@@ -6,6 +6,7 @@ rules:
   - verbs:
       - get
       - list
+      - watch
     apiGroups:
       - template.openshift.io
     resources:
