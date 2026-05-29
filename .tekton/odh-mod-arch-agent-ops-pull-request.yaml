@@ -5,10 +5,14 @@ metadata:
     build.appstudio.openshift.io/repo: https://github.com/opendatahub-io/odh-dashboard?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    pipelinesascode.tekton.dev/cancel-in-progress: "false"
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "$$TARGET_BRANCH$$"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "pull_request"
+      && target_branch == "$$TARGET_BRANCH$$"
+      && ( "packages/agent-ops/**".pathChanged()
+            || ".tekton/odh-mod-arch-agent-ops-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
@@ -23,17 +27,16 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-agent-ops:odh-pr
+    value: quay.io/opendatahub/odh-mod-arch-agent-ops:$$OUTPUT_IMAGE_TAG$$
   - name: dockerfile
     value: packages/agent-ops/Dockerfile.workspace
   - name: path-context
     value: .
-  # additional params
+  - name: pipeline-type
+    value: pull-request
   - name: additional-tags
     value:
     - 'odh-pr-{{revision}}'
-  - name: pipeline-type
-    value: pull-request
   pipelineRef:
     resolver: git
     params:
