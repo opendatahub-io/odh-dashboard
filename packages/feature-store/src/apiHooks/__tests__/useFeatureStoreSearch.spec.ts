@@ -314,4 +314,74 @@ describe('useFeatureStoreSearch', () => {
     // Should not throw when unmounting
     expect(() => unmount()).not.toThrow();
   });
+
+  it('should not update state when search is aborted', async () => {
+    const abortError = new Error('AbortError');
+    abortError.name = 'AbortError';
+    mockSearch.mockRejectedValue(abortError);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+
+    expect(result.current.convertedSearchData).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
+  });
+
+  it('should handle error during loadMoreResults', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: [],
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockRejectedValueOnce(new Error('load error'));
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.hasMorePages).toBe(true);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith('Load more search results failed:', expect.any(Error));
+    expect(result.current.isLoadingMore).toBe(false);
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should abort in-flight request on unmount when search is active', async () => {
+    let resolveSearch: (value: unknown) => void;
+    const searchPromise = new Promise((resolve) => {
+      resolveSearch = resolve;
+    });
+    mockSearch.mockReturnValue(searchPromise);
+
+    const { result, unmount } = renderHook(() => useFeatureStoreSearch());
+
+    act(() => {
+      result.current.handleSearchChange('test');
+    });
+
+    expect(() => unmount()).not.toThrow();
+
+    // Clean up the pending promise
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    resolveSearch!(
+      mockGlobalSearchResponse({
+        results: [],
+        pagination: mockGlobalSearchPagination(),
+        errors: [],
+      }),
+    );
+  });
 });

@@ -137,4 +137,19 @@ describe('FeatureStoreLineageComponent', () => {
     expect(screen.getByTestId('lineage-mock')).toHaveTextContent('loading-0');
     expect(screen.queryByTestId('lineage-error')).not.toBeInTheDocument();
   });
+
+  it('should return empty data when lineage data is empty object', () => {
+    mockedUseFeatureStoreLineage.mockReturnValue({
+      data: {} as never,
+      loaded: true,
+      error: undefined,
+      refresh: jest.fn(),
+    });
+
+    render(<FeatureStoreLineageComponent project="demo-project" />);
+
+    expect(screen.getByTestId('lineage-mock')).toHaveTextContent('loaded-0');
+    expect(screen.queryByTestId('lineage-error')).not.toBeInTheDocument();
+    expect(mockedConvertStore).not.toHaveBeenCalled();
+  });
 });
