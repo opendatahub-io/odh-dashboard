@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Bullseye,
   Button,
@@ -6,7 +7,6 @@ import {
   EmptyStateBody,
   EmptyStateFooter,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import {
   InferenceServiceKind,
@@ -78,7 +78,6 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
   true,
 )(({ children, namespace, getErrorComponent }) => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const navigate = useNavigate();
   const { projects, preferredProject } = React.useContext(ProjectsContext);
   const project = projects.find(byName(namespace)) ?? null;
   const servingRuntimeTemplates = useTemplates(dashboardNamespace);
@@ -169,7 +168,10 @@ const ModelServingContextProvider = conditionalArea<ModelServingContextProviderP
               connections.error?.message}
           </EmptyStateBody>
           <EmptyStateFooter>
-            <Button variant="primary" onClick={() => navigate('/projects')}>
+            <Button
+              variant="primary"
+              component={(props: React.ComponentProps<'a'>) => <Link {...props} to="/projects" />}
+            >
               View my projects
             </Button>
           </EmptyStateFooter>

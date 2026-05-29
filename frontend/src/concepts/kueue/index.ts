@@ -103,7 +103,7 @@ export const getKueueWorkloadStatusWithMessage = (
     { condition: Inadmissible, status: KueueWorkloadStatus.Inadmissible },
     { condition: Evicted, status: KueueWorkloadStatus.Preempted },
     { condition: Preempted, status: KueueWorkloadStatus.Preempted },
-    { condition: Succeeded, status: KueueWorkloadStatus.Succeeded },
+    { condition: Succeeded, status: KueueWorkloadStatus.Complete },
     { condition: Running, status: KueueWorkloadStatus.Running },
     { condition: Admitted, status: KueueWorkloadStatus.Admitted },
     { condition: Pending, status: KueueWorkloadStatus.Queued },
@@ -128,20 +128,17 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
       return {
         label: 'Failed',
         status: 'danger',
-        color: 'red',
         IconComponent: ExclamationCircleIcon,
       };
     case KueueWorkloadStatus.Preempted:
       return {
         label: 'Preempted',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
       };
     case KueueWorkloadStatus.Inadmissible:
       return {
         label: 'Inadmissible',
-        color: 'orange',
         status: 'warning',
         IconComponent: ExclamationTriangleIcon,
       };
@@ -152,13 +149,12 @@ export const getKueueStatusInfo = (status: KueueWorkloadStatus): KueueStatusInfo
         label: 'Starting',
         color: 'blue',
         IconComponent: InProgressIcon,
-        iconClassName: 'odh-u-spin',
+        iconClassName: 'ai-u-spin',
       };
-    case KueueWorkloadStatus.Succeeded:
+    case KueueWorkloadStatus.Complete:
       return {
         label: 'Complete',
         status: 'success',
-        color: 'green',
         IconComponent: CheckCircleIcon,
       };
     default:

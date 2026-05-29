@@ -16,7 +16,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
@@ -31,7 +31,9 @@ import (
 
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes/k8smocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/mlflow/mlflowmocks"
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
 // Package-level test infrastructure - initialized once, shared by all tests.
@@ -93,18 +95,21 @@ func TestAPIHandlers(t *testing.T) {
 
 // SharedTestContext holds common test infrastructure for HTTP tests
 type SharedTestContext struct {
-	App         *App
-	Server      *httptest.Server
-	HTTPClient  *http.Client
-	BaseURL     string
-	Logger      *slog.Logger
-	mlflowState *mlflowmocks.MLflowState
+	App             *App
+	Server          *httptest.Server
+	HTTPClient      *http.Client
+	BaseURL         string
+	Logger          *slog.Logger
+	mlflowState     *mlflowmocks.MLflowState
+	llamaStackState *lsmocks.LlamaStackState
 }
 
 var testCtx *SharedTestContext
 
 // BeforeSuite sets up test infrastructure (envtest and HTTP server) for all Ginkgo tests.
 var _ = BeforeSuite(func() {
+	testutil.ConfigureProductionEnvFromTest()
+
 	By("Setting up envtest environment")
 
 	logf.SetLogger(zap.New(zap.UseDevMode(true)))
@@ -115,8 +120,8 @@ var _ = BeforeSuite(func() {
 	err := clientgoscheme.AddToScheme(testScheme)
 	Expect(err).NotTo(HaveOccurred(), "failed to add Kubernetes types to scheme")
 
-	err = lsdapi.AddToScheme(testScheme)
-	Expect(err).NotTo(HaveOccurred(), "failed to add LlamaStackDistribution types to scheme")
+	err = ogxapi.AddToScheme(testScheme)
+	Expect(err).NotTo(HaveOccurred(), "failed to add OGXServer types to scheme")
 
 	err = kservev1alpha1.AddToScheme(testScheme)
 	Expect(err).NotTo(HaveOccurred(), "failed to add KServe v1alpha1 types to scheme")
@@ -136,7 +141,7 @@ var _ = BeforeSuite(func() {
 		ControlPlaneStartTimeout: 60 * time.Second,
 		ControlPlaneStopTimeout:  60 * time.Second,
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
-			k8smocks.CreateLlamaStackDistributionCRD(),
+			k8smocks.CreateOGXServerCRD(),
 			k8smocks.CreateGuardrailsOrchestratorCRD(),
 		},
 	}
@@ -213,6 +218,21 @@ var _ = BeforeSuite(func() {
 		Timeout: 30 * time.Second,
 	}
 
+	// Start Llama Stack as a child process (SetupLlamaStack also seeds test data)
+	By("Starting LlamaStack")
+	lsState, lsErr := lsmocks.SetupLlamaStack(logger)
+	Expect(lsErr).NotTo(HaveOccurred())
+	Expect(lsState).NotTo(BeNil())
+	Expect(lsState.Seed).NotTo(BeNil(), "SeedData must return a SeedResult")
+	DeferCleanup(func() {
+		By("stopping LlamaStack server")
+		lsmocks.CleanupLlamaStackState(
+			lsState,
+			func(format string, args ...any) { GinkgoWriter.Printf("ERROR: "+format+"\n", args...) },
+			func(format string, args ...any) { GinkgoWriter.Printf(format+"\n", args...) },
+		)
+	})
+
 	// Start MLflow as a child process (SetupMLflow also seeds sample prompts)
 	By("Starting MLflow")
 	mlflowState, mlflowErr := mlflowmocks.SetupMLflow(logger)
@@ -229,12 +249,13 @@ var _ = BeforeSuite(func() {
 	})
 
 	testCtx = &SharedTestContext{
-		App:         app,
-		Server:      server,
-		HTTPClient:  httpClient,
-		BaseURL:     server.URL,
-		Logger:      logger,
-		mlflowState: mlflowState,
+		App:             app,
+		Server:          server,
+		HTTPClient:      httpClient,
+		BaseURL:         server.URL,
+		Logger:          logger,
+		mlflowState:     mlflowState,
+		llamaStackState: lsState,
 	}
 
 	By("HTTP test environment setup complete")

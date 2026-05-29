@@ -4,6 +4,7 @@ import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analytic
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
+import SubscriptionDropdown from '~/app/Chatbot/components/SubscriptionDropdown';
 
 interface ModelTabContentProps {
   temperature: number;
@@ -14,6 +15,8 @@ interface ModelTabContentProps {
   title?: string;
   selectedModel: string;
   onModelChange: (model: string) => void;
+  selectedSubscription: string;
+  onSubscriptionChange: (subscription: string) => void;
 }
 
 const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
@@ -24,6 +27,8 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
   title = 'Model',
   selectedModel,
   onModelChange,
+  selectedSubscription,
+  onSubscriptionChange,
 }) => (
   <TabContentWrapper title={title}>
     <Form>
@@ -35,6 +40,11 @@ const ModelTabContent: React.FunctionComponent<ModelTabContentProps> = ({
           testId="settings-model-selector-toggle"
         />
       </FormGroup>
+      <SubscriptionDropdown
+        selectedModel={selectedModel}
+        selectedSubscription={selectedSubscription}
+        onSubscriptionChange={onSubscriptionChange}
+      />
       <ModelParameterFormGroup
         fieldId="temperature"
         label="Temperature: 0 - 2"

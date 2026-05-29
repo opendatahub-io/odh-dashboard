@@ -21,7 +21,8 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	models = filterModels(models, app.config.FilteredModelKeywords)
+	includeEmbeddingModels := r.URL.Query().Get("include_embedding_models") == "true"
+	models = filterModels(models, app.config.FilteredModelKeywords, includeEmbeddingModels)
 
 	response := ModelsResponse{
 		Data: models,
@@ -33,14 +34,18 @@ func (app *App) LlamaStackModelsHandler(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
-// filterModels filters out models based on hardcoded rules and configurable keywords
-func filterModels(models []openai.Model, filteredKeywords []string) []openai.Model {
+// filterModels filters out models based on hardcoded rules and configurable keywords.
+// When includeEmbeddingModels is true, the default embedding-related keywords are skipped
+// but configurable keywords are still applied.
+func filterModels(models []openai.Model, filteredKeywords []string, includeEmbeddingModels bool) []openai.Model {
 	filtered := []openai.Model{}
-	// Default keywords to filter out (hardcoded rules)
-	defaultFilterKeywords := []string{"embedding", "all-mini", "embed"}
 
-	// Combine default keywords with configured keywords
-	allFilterKeywords := append(defaultFilterKeywords, filteredKeywords...)
+	var allFilterKeywords []string
+	if !includeEmbeddingModels {
+		// Default keywords to filter out embedding models
+		allFilterKeywords = append(allFilterKeywords, "embedding", "all-mini", "embed")
+	}
+	allFilterKeywords = append(allFilterKeywords, filteredKeywords...)
 
 	for _, model := range models {
 		modelNameLower := strings.ToLower(model.ID)

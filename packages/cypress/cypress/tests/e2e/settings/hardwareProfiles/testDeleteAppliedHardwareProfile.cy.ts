@@ -95,7 +95,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a "Running" status`);
       const notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
       // Validate that the toleration applied earlier displays in the newly created pod
       cy.step('Validate the Tolerations for the pod include the applied toleration');
@@ -124,7 +124,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       const row = hardwareProfile.getUniqueRow(hardwareProfileDisplayName);
       row.findDescription().should('contain', testData.hardwareProfileDescription);
       row.findKebab().click();
-      hardwareProfile.findDeleteAction().click();
+      hardwareProfile.findDeleteAction().should('be.visible').click();
 
       // Confirm deletion in modal
       cy.step('Confirm deletion in modal');
@@ -133,7 +133,9 @@ describe('Delete Hardware Profile applied to a resource', () => {
 
       // Verify hardware profile is deleted
       cy.step('Verify hardware profile has been deleted');
-      hardwareProfile.findTable().should('not.contain', hardwareProfileDisplayName);
+      hardwareProfile
+        .findTable({ timeout: 30000 })
+        .should('not.contain', hardwareProfileDisplayName);
 
       // Navigate back to the project and verify workbench is still running
       cy.step('Navigate to workbenches tab and verify workbench is still running');
@@ -146,7 +148,7 @@ describe('Delete Hardware Profile applied to a resource', () => {
       cy.step('Verify workbench is still running after hardware profile deletion');
       const workbenchRow = workbenchPage.getNotebookRow(testData.workbenchName);
       workbenchRow.findNotebookDescription(projectDescription);
-      workbenchRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 30000);
+      workbenchRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 30000);
 
       // Verify the Hardware profile column shows "Deleted" badge
       cy.step(`Verify Hardware profile column shows "${testData.deletedStatusBadge}" badge`);

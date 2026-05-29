@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import { Link } from 'react-router-dom';
 import { ApplicationsPage } from 'mod-arch-shared';
 import { ModelVersionsTab } from '~/app/pages/modelRegistry/screens/ModelVersions/const';
 import useModelVersionsByRegisteredModel from '~/app/hooks/useModelVersionsByRegisteredModel';
@@ -13,9 +12,9 @@ import {
   modelRegistryUrl,
   registeredModelArchiveDetailsUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
-import ModelVersionsTabs from './ModelVersionsTabs';
 import { KnownLabels } from '~/odh/k8sTypes';
 import { MRDeploymentsContextProvider } from '~/odh/components/MRDeploymentsContextProvider';
+import ModelVersionsTabs from './ModelVersionsTabs';
 
 type ModelVersionsProps = {
   tab: ModelVersionsTab | string;
@@ -32,15 +31,16 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
   const loadError = mvLoadError || rmLoadError;
   const loaded = mvLoaded && rmLoaded;
   const navigate = useNavigate();
-  
-
 
   // Find the latest model version (non-archived)
   const latestModelVersion = React.useMemo(() => {
-    if (!modelVersions.items?.length) return undefined;
-    const liveVersions = modelVersions.items.filter(mv => mv.state !== ModelState.ARCHIVED);
-    return liveVersions
-      .toSorted((a, b) => Number(b.createTimeSinceEpoch) - Number(a.createTimeSinceEpoch))[0];
+    if (!modelVersions.items.length) {
+      return undefined;
+    }
+    const liveVersions = modelVersions.items.filter((mv) => mv.state !== ModelState.ARCHIVED);
+    return liveVersions.toSorted(
+      (a, b) => Number(b.createTimeSinceEpoch) - Number(a.createTimeSinceEpoch),
+    )[0];
   }, [modelVersions.items]);
 
   useEffect(() => {
@@ -65,7 +65,9 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
         </Breadcrumb>
       }
       title={rm?.name}
-      headerAction={rm && <ModelVersionsHeaderActions rm={rm} latestModelVersion={latestModelVersion} />}
+      headerAction={
+        rm && <ModelVersionsHeaderActions rm={rm} latestModelVersion={latestModelVersion} />
+      }
       loadError={loadError}
       loaded={loaded}
       provideChildrenPadding
@@ -86,13 +88,17 @@ const ModelVersionsContent: React.FC<ModelVersionsProps> = ({ tab, ...pageProps 
 const ModelVersions: React.FC<ModelVersionsProps> = (props) => {
   const { preferredModelRegistry } = React.useContext(ModelRegistrySelectorContext);
   const { registeredModelId: rmId } = useParams();
-  
-  const labelSelectors = React.useMemo(() => {
-    return rmId ? { [KnownLabels.REGISTERED_MODEL_ID]: rmId } : undefined;
-  }, [rmId]);
-  
+
+  const labelSelectors = React.useMemo(
+    () => (rmId ? { [KnownLabels.REGISTERED_MODEL_ID]: rmId } : undefined),
+    [rmId],
+  );
+
   return (
-    <MRDeploymentsContextProvider labelSelectors={labelSelectors} mrName={preferredModelRegistry?.name}>
+    <MRDeploymentsContextProvider
+      labelSelectors={labelSelectors}
+      mrName={preferredModelRegistry?.name}
+    >
       <ModelVersionsContent {...props} />
     </MRDeploymentsContextProvider>
   );

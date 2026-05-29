@@ -11,14 +11,12 @@ type ProjectSelectorProps = {
   selectedProject: ProjectKind | null;
   setSelectedProject: (project: ProjectKind | null) => void;
   error?: Error;
-  projectLinkExtraUrlParams?: Record<string, string | undefined>;
 };
 
 const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   selectedProject,
   setSelectedProject,
   error,
-  projectLinkExtraUrlParams,
 }) => {
   const { projects } = React.useContext(ProjectsContext);
   const [searchText, setSearchText] = React.useState('');
@@ -33,13 +31,6 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   const visibleProjects = filteredProjects.filter(bySearchText);
   const projectLinkUrlParams = new URLSearchParams();
   projectLinkUrlParams.set('section', ProjectSectionID.MODEL_SERVER);
-  if (projectLinkExtraUrlParams) {
-    Object.entries(projectLinkExtraUrlParams).forEach(([key, value]) => {
-      if (value) {
-        projectLinkUrlParams.set(key, value);
-      }
-    });
-  }
 
   return (
     <FormGroup label="Project" fieldId="deploy-model-project-selector" isRequired>

@@ -59,6 +59,7 @@ const JobsTable: React.FC<JobsTableProps> = ({
               jobStatus={jobStatus}
               isLoadingStatus={isLoadingStatus}
               nodeCount={nodeCountMap.get(jobId) ?? 0}
+              onStatusUpdate={onStatusUpdate}
               onSelectJob={(j) => onSelectJob(j)}
               onDelete={(j) => onDelete(j)}
               isExternallyToggling={isExternallyToggling}

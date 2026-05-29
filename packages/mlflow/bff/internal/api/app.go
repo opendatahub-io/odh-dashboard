@@ -9,10 +9,12 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes/k8mocks"
-	"k8s.io/client-go/kubernetes"
+	mlflowpkg "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
+	"github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow/mlflowmocks"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	helper "github.com/opendatahub-io/mlflow/bff/internal/helpers"
@@ -26,109 +28,150 @@ import (
 const (
 	Version         = "1.0.0"
 	PathPrefix      = "/mlflow"
-	ApiPathPrefix   = "/api/v1"
+	APIPathPrefix   = "/api/v1"
 	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
-	HelloPath       = ApiPathPrefix + "/hello"
+	StatusPath      = APIPathPrefix + "/status"
+	UserPath        = APIPathPrefix + "/user"
+	NamespacePath   = APIPathPrefix + "/namespaces"
+	ExperimentsPath = APIPathPrefix + "/experiments"
 )
 
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
 	kubernetesClientFactory k8s.KubernetesClientFactory
+	mlflowMu                sync.RWMutex
+	mlflowClientFactory     mlflowpkg.MLflowClientFactory
+	mlflowConfigured        bool
+	mlflowTrackingURL       string
+	mlflowWatcherDone       chan struct{}
+	mlflowWatcherWg         sync.WaitGroup
+	shutdownOnce            sync.Once
+	shutdownErr             error
 	repositories            *repositories.Repositories
-	//used only on mocked k8s client
-	testEnv *envtest.Environment
-	// rootCAs used for outbound TLS connections to Client Service
-	rootCAs *x509.CertPool
+	testEnv                 *envtest.Environment     // used only with mocked k8s client
+	rootCAs                 *x509.CertPool           // custom CA pool for outbound TLS connections
+	mlflowState             *mlflowmocks.MLflowState // set when MockHTTPClient starts a child MLflow via uv
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
+
+	rootCAs := initRootCAs(cfg.BundlePaths, logger)
+
 	var k8sFactory k8s.KubernetesClientFactory
-	var err error
-	// used only on mocked k8s client
 	var testEnv *envtest.Environment
-	var rootCAs *x509.CertPool
-
-	// Initialize CA pool if bundle paths are provided
-	if len(cfg.BundlePaths) > 0 {
-		// Start with system certs if available
-		if pool, err := x509.SystemCertPool(); err == nil {
-			rootCAs = pool
-		} else {
-			rootCAs = x509.NewCertPool()
-		}
-		var loadedAny bool
-		for _, p := range cfg.BundlePaths {
-			p = strings.TrimSpace(p)
-			if p == "" {
-				continue
-			}
-			// Read and append each PEM bundle; ignore errors per file, log at debug
-			pemBytes, readErr := os.ReadFile(p)
-			if readErr != nil {
-				logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
-				continue
-			}
-			if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
-				logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
-				continue
-			}
-			loadedAny = true
-			logger.Info("Added CA bundle", slog.String("path", p))
-		}
-		if !loadedAny {
-			// If none were loaded successfully, keep rootCAs nil to fall back to default transport behavior
-			rootCAs = nil
-			logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
-		}
-	}
-
-	if cfg.MockK8Client {
-		//mock all k8s calls with 'env test'
-		var clientset kubernetes.Interface
-		ctx, cancel := context.WithCancel(context.Background())
-		testEnv, clientset, err = k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
-			Logger: logger,
-			Ctx:    ctx,
-			Cancel: cancel,
-		})
+	if cfg.AuthMethod != config.AuthMethodDisabled || cfg.MockK8Client {
+		var err error
+		k8sFactory, testEnv, err = initK8sFactory(cfg, logger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to setup envtest: %w", err)
+			return nil, err
 		}
-		//create mocked kubernetes client factory
-		k8sFactory, err = k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
-
-	} else {
-		//create kubernetes client factory
-		k8sFactory, err = k8s.NewKubernetesClientFactory(cfg, logger)
 	}
 
+	mlflowFactory, mlflowState, trackingURL, mlflowConfigured, err := initMLflowFactory(cfg, logger, rootCAs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+		return nil, err
 	}
 
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
+		mlflowClientFactory:     mlflowFactory,
+		mlflowConfigured:        mlflowConfigured,
+		mlflowTrackingURL:       trackingURL,
 		repositories:            repositories.NewRepositories(),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
+		mlflowState:             mlflowState,
 	}
+
+	if app.shouldWatchMLflow() {
+		app.startMLflowWatcher()
+	}
+
 	return app, nil
 }
 
-func (app *App) Shutdown() error {
-	app.logger.Info("shutting down app...")
-	if app.testEnv == nil {
+func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
+	if len(bundlePaths) == 0 {
 		return nil
 	}
-	//shutdown the envtest control plane when we are in the mock mode.
-	app.logger.Info("shutting env test...")
-	return app.testEnv.Stop()
+
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		pool = x509.NewCertPool()
+	}
+
+	var loadedAny bool
+	for _, p := range bundlePaths {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		pemBytes, readErr := os.ReadFile(p)
+		if readErr != nil {
+			logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
+			continue
+		}
+		if ok := pool.AppendCertsFromPEM(pemBytes); !ok {
+			logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
+			continue
+		}
+		loadedAny = true
+		logger.Info("Added CA bundle", slog.String("path", p))
+	}
+
+	if !loadedAny {
+		logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
+		return nil
+	}
+	return pool
+}
+
+func initK8sFactory(cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, *envtest.Environment, error) {
+	if cfg.MockK8Client {
+		testEnv, clientset, err := k8mocks.SetupEnvTest(k8mocks.TestEnvInput{
+			Ctx: context.Background(),
+		})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to setup envtest: %w", err)
+		}
+		factory, err := k8mocks.NewMockedKubernetesClientFactory(clientset, testEnv, cfg, logger)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to create mocked Kubernetes client: %w", err)
+		}
+		return factory, testEnv, nil
+	}
+
+	factory, err := k8s.NewKubernetesClientFactory(cfg, logger)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
+	}
+	return factory, nil, nil
+}
+
+func (app *App) Shutdown() error {
+	app.shutdownOnce.Do(func() {
+		app.logger.Info("shutting down app...")
+
+		if app.mlflowWatcherDone != nil {
+			close(app.mlflowWatcherDone)
+			app.mlflowWatcherWg.Wait()
+		}
+
+		if app.mlflowState != nil {
+			app.logger.Info("stopping MLflow server...")
+			mlflowmocks.CleanupMLflowState(app.mlflowState, app.logger)
+		}
+
+		if app.testEnv != nil {
+			app.logger.Info("shutting env test...")
+			app.shutdownErr = app.testEnv.Stop()
+		}
+	})
+	return app.shutdownErr
 }
 
 func (app *App) Routes() http.Handler {
@@ -141,14 +184,17 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
-	apiRouter.GET(HelloPath, app.HelloHandler)
+
+	// MLflow API routes
+	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
+	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	appMux.Handle(APIPathPrefix+"/", apiRouter)
+	appMux.Handle(PathPrefix+APIPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)

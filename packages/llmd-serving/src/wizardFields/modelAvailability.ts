@@ -1,29 +1,15 @@
-import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type {
-  ModelAvailabilityField,
+  ModelAvailabilityFieldOverride,
   WizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { LLMdDeployment, LLMInferenceServiceKind } from '../types';
-import { LLMD_SERVING_ID } from '../../extensions/extensions';
+import { type LLMdDeployment, type LLMInferenceServiceKind } from '../types';
+import { isLLMInferenceServiceActive } from '../formUtils';
 
-/**
- * Annotation key for MaaS tiers configuration.
- * Note: MaaS-specific functionality is now handled by the maas package via
- * WizardFieldTransformerExtension and WizardFieldExtractorExtension.
- * This constant is kept for type definitions and backwards compatibility.
- */
-export const MAAS_TIERS_ANNOTATION = 'alpha.maas.opendatahub.io/tiers';
-
-export const modelAvailabilityField: ModelAvailabilityField = {
+export const modelAvailabilityField: ModelAvailabilityFieldOverride = {
   id: 'modelAvailability',
   type: 'modifier',
-  isActive: (wizardFormData) => {
-    return (
-      wizardFormData.modelType?.data?.type === ServingRuntimeModelType.GENERATIVE &&
-      wizardFormData.modelServer?.data?.name === LLMD_SERVING_ID
-    );
-  },
-  // MaaS checkbox is now provided by the maas package via WizardField2Extension
+  isActive: isLLMInferenceServiceActive,
+  // MaaS checkbox is now provided by the maas package via WizardFieldExtension
   showSaveAsMaaS: false,
 };
 
@@ -32,9 +18,6 @@ export const extractModelAvailabilityData = (
 ): WizardFormData['state']['modelAvailability']['data'] => {
   return {
     saveAsAiAsset: deployment.model.metadata.labels?.['opendatahub.io/genai-asset'] === 'true',
-    // Note: MaaS data is now extracted by the maas package's WizardFieldExtractorExtension
-    // This field is kept for backwards compatibility but may be undefined
-    saveAsMaaS: !!deployment.model.metadata.annotations?.[MAAS_TIERS_ANNOTATION],
     useCase: deployment.model.metadata.annotations?.['opendatahub.io/genai-use-case'],
   };
 };

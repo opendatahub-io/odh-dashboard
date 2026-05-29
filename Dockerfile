@@ -56,6 +56,12 @@ RUN rm -rf node_modules/esbuild node_modules/@esbuild node_modules/.bin/esbuild
 
 FROM ${MINIMAL_IMAGE} as runtime
 
+# The curl binary is required in the final image, as it's used for
+# liveness and readiness probes
+USER root
+RUN dnf install -y curl-minimal && dnf clean all && curl --version
+USER 1001:0
+
 WORKDIR /usr/src/app
 
 RUN mkdir /usr/src/app/logs && chmod 775 /usr/src/app/logs

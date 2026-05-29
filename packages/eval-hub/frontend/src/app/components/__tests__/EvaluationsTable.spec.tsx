@@ -7,10 +7,20 @@ import EvaluationsTable from '~/app/components/EvaluationsTable';
 
 const mockOnRefresh = jest.fn();
 
-const renderTable = (props: { evaluations: EvaluationJob[]; loaded: boolean }) =>
+const renderTable = (props: {
+  evaluations: EvaluationJob[];
+  loaded: boolean;
+  collectionNameMap?: Record<string, string>;
+  collectionsLoaded?: boolean;
+}) =>
   render(
     <MemoryRouter>
-      <EvaluationsTable {...props} onRefresh={mockOnRefresh} />
+      <EvaluationsTable
+        {...props}
+        collectionNameMap={props.collectionNameMap ?? {}}
+        collectionsLoaded={props.collectionsLoaded ?? true}
+        onRefresh={mockOnRefresh}
+      />
     </MemoryRouter>,
   );
 
@@ -63,7 +73,9 @@ describe('EvaluationsTable', () => {
 
   it('should render the New evaluation button', () => {
     renderTable({ evaluations: mockJobs, loaded: true });
-    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent('New evaluation');
+    expect(screen.getByTestId('create-evaluation-button')).toHaveTextContent(
+      'Start evaluation run',
+    );
   });
 
   describe('filtering', () => {
@@ -95,6 +107,24 @@ describe('EvaluationsTable', () => {
       fireEvent.click(screen.getByTestId('clear-filters-button'));
       expect(screen.queryByTestId('evaluations-empty-filter-state')).not.toBeInTheDocument();
       expect(screen.getByTestId('evaluations-table')).toBeInTheDocument();
+    });
+
+    it('should disable the evaluation filter option while collections are loading', () => {
+      renderTable({ evaluations: mockJobs, loaded: true, collectionsLoaded: false });
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+
+      const evaluationOption = screen.getByTestId('filter-option-evaluation');
+      expect(evaluationOption).toHaveTextContent('Evaluation (loading…)');
+      expect(evaluationOption.querySelector('button')).toBeDisabled();
+    });
+
+    it('should enable the evaluation filter option once collections are loaded', () => {
+      renderTable({ evaluations: mockJobs, loaded: true, collectionsLoaded: true });
+      fireEvent.click(screen.getByTestId('filter-type-toggle'));
+
+      const evaluationOption = screen.getByTestId('filter-option-evaluation');
+      expect(evaluationOption).not.toHaveAttribute('aria-disabled', 'true');
+      expect(evaluationOption).toHaveTextContent('Evaluation');
     });
 
     it('should be case-insensitive', () => {
@@ -139,11 +169,11 @@ describe('EvaluationsTable', () => {
     it('should render all expected column headers in the table', () => {
       renderTable({ evaluations: mockJobs, loaded: true });
       const table = screen.getByTestId('evaluations-table');
-      expect(table).toHaveTextContent('Evaluation name');
+      expect(table).toHaveTextContent('Name');
       expect(table).toHaveTextContent('Status');
       expect(table).toHaveTextContent('Evaluation');
       expect(table).toHaveTextContent('Evaluated');
-      expect(table).toHaveTextContent('Run date');
+      expect(table).toHaveTextContent('Date');
       expect(table).toHaveTextContent('Result');
     });
   });

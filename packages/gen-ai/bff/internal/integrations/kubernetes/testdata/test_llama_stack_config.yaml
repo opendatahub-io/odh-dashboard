@@ -1,109 +1,74 @@
 # Llama Stack Configuration
-version: "2"
-image_name: rh
+version: '2'
+distro_name: rh
 apis:
-- agents
-- datasetio
+- responses
+- file_processors
 - files
 - inference
-- safety
-- scoring
-- telemetry
 - tool_runtime
 - vector_io
 providers:
   inference:
-  - provider_id: vllm-inference-1
-    provider_type: remote::vllm
-    config:
-      url: http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: ${env.VLLM_API_TOKEN:=fake}
-      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-  - provider_id: sentence-transformers
-    provider_type: inline::sentence-transformers
-    config: {}
-  - provider_id: maas-watsonx
-    provider_type: remote::watsonx
-    config:
-      url: https://us-south.ml.cloud.ibm.com/ml/v1
-      api_key: ${env.WATSONX_API_KEY:=fake-key}
-  - provider_id: maas-vllm-inference-1
-    provider_type: remote::vllm
-    config:
-      url: http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: ${env.VLLM_API_TOKEN_1:=fake}
-      tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+    - provider_id: vllm-inference-1
+      provider_type: remote::vllm
+      config:
+        base_url: http://llama-32-3b-instruct-predictor.crimson-show.svc.cluster.local/v1
+        max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
+        api_token: ${env.VLLM_API_TOKEN_1:=fake}
+        tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+    - provider_id: sentence-transformers
+      provider_type: inline::sentence-transformers
+      config:
+        trust_remote_code: false
+    - provider_id: maas-watsonx
+      provider_type: remote::watsonx
+      config:
+        url: https://us-south.ml.cloud.ibm.com/ml/v1
+        api_key: ${env.WATSONX_API_KEY:=fake-key}
+    - provider_id: maas-vllm-inference-1
+      provider_type: remote::vllm
+      config:
+        base_url: http://maas.apps.rosa.crimson-demo.g9ax.p3.openshiftapps.com/llm/facebook-opt-125m-simulated/v1
+        max_tokens: ${env.VLLM_MAX_TOKENS_2:=4096}
+        api_token: ${env.VLLM_API_TOKEN_2:=fake}
+        tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   vector_io:
-  - provider_id: milvus
-    provider_type: inline::milvus
+  - provider_id: faiss
+    provider_type: inline::faiss
     config:
-      db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
       persistence:
-        namespace: vector_io::milvus
+        namespace: vector_io::faiss
         backend: kv_default
-  safety:
-  - provider_id: trustyai_fms
-    provider_type: remote::trustyai_fms
-    module: llama_stack_provider_trustyai_fms==0.2.2
-    config:
-      orchestrator_url: ${env.FMS_ORCHESTRATOR_URL:=http://localhost}
-      ssl_cert_path: ${env.FMS_SSL_CERT_PATH:=}
-      shields: {}
-  agents:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
+  responses:
+  - provider_id: builtin
+    provider_type: inline::builtin
     config:
       persistence:
-        agent_state:
-          namespace: agents
-          backend: kv_default
         responses:
           table_name: responses
           backend: sql_default
-  eval: []
+          max_write_queue_size: 10000
+          num_writers: 4
+  file_processors:
+  - provider_id: pypdf
+    provider_type: inline::pypdf
+    config: {}
   files:
-  - provider_id: meta-reference-files
+  - provider_id: localfs-files
     provider_type: inline::localfs
     config:
       storage_dir: /opt/app-root/src/.llama/distributions/rh/files
       metadata_store:
         table_name: files_metadata
         backend: sql_default
-  datasetio:
-  - provider_id: huggingface
-    provider_type: remote::huggingface
-    config:
-      kvstore:
-        namespace: datasetio::huggingface
-        backend: kv_default
-  scoring:
-  - provider_id: basic
-    provider_type: inline::basic
-    config: {}
-  - provider_id: llm-as-judge
-    provider_type: inline::llm-as-judge
-    config: {}
-  - provider_id: braintrust
-    provider_type: inline::braintrust
-    config:
-      openai_api_key: ${env.OPENAI_API_KEY:=}
-  telemetry:
-  - provider_id: meta-reference
-    provider_type: inline::meta-reference
-    config:
-      service_name: "${env.OTEL_SERVICE_NAME:=\u200B}"
-      sinks: ${env.TELEMETRY_SINKS:=console,sqlite}
-      sqlite_db_path: /opt/app-root/src/.llama/distributions/rh/trace_store.db
-      otel_exporter_otlp_endpoint: ${env.OTEL_EXPORTER_OTLP_ENDPOINT:=}
   tool_runtime:
-  - provider_id: rag-runtime
-    provider_type: inline::rag-runtime
-    config: {}
-  - provider_id: model-context-protocol
-    provider_type: remote::model-context-protocol
-    config: {}
+    - provider_id: file-search
+      provider_type: inline::file-search
+      config: {}
+    - provider_id: model-context-protocol
+      provider_type: remote::model-context-protocol
+      config: {}
 metadata_store:
   type: sqlite
   db_path: /opt/app-root/src/.llama/distributions/rh/registry.db
@@ -122,11 +87,19 @@ storage:
     inference:
       table_name: inference_store
       backend: sql_default
+      max_write_queue_size: 10000
+      num_writers: 4
     conversations:
       table_name: openai_conversations
       backend: sql_default
+    prompts:
+      table_name: prompts
+      backend: sql_default
+    connectors:
+      table_name: connectors
+      backend: sql_default
 vector_stores:
-  default_provider_id: milvus
+  default_provider_id: faiss
   default_embedding_model:
     provider_id: sentence-transformers
     model_id: ibm-granite/granite-embedding-125m-english
@@ -152,16 +125,7 @@ registered_resources:
       model_id: facebook/opt-125m
       provider_id: maas-vllm-inference-1
       model_type: llm
-  shields: []
-  vector_dbs: []
-  datasets: []
-  scoring_fns: []
-  benchmarks: []
-  tool_groups:
-    - toolgroup_id: builtin::rag
-      provider_id: rag-runtime
+  vector_stores: []
 external_providers_dir: /opt/app-root/.llama/providers.d
 server:
   port: 8321
-
-

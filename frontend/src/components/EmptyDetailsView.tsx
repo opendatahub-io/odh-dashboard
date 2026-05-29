@@ -13,7 +13,6 @@ type EmptyDetailsViewProps = {
   imageAlt?: string;
   allowCreate?: boolean;
   createButton?: React.ReactNode;
-  footerExtraChildren?: React.ReactNode;
   imageSize?: string;
 };
 
@@ -24,7 +23,6 @@ const EmptyDetailsView: React.FC<EmptyDetailsViewProps> = ({
   imageAlt,
   allowCreate = true,
   createButton,
-  footerExtraChildren = null,
   imageSize = '320px',
 }) => (
   <EmptyState
@@ -42,7 +40,6 @@ const EmptyDetailsView: React.FC<EmptyDetailsViewProps> = ({
     {allowCreate && createButton ? (
       <EmptyStateFooter>
         <EmptyStateActions>{createButton}</EmptyStateActions>
-        {footerExtraChildren}
       </EmptyStateFooter>
     ) : null}
   </EmptyState>

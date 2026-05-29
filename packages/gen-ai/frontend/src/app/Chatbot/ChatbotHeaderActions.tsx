@@ -11,7 +11,7 @@ import {
   MenuToggle,
   Tooltip,
 } from '@patternfly/react-core';
-import { CodeIcon, ColumnsIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
+import { CodeIcon, ColumnsIcon, CogIcon, EllipsisVIcon, PlusIcon } from '@patternfly/react-icons';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore, selectSelectedModel, selectConfigIds } from './store';
 
@@ -21,6 +21,8 @@ type ChatbotHeaderActionsProps = {
   onDeletePlayground: () => void;
   onNewChat: () => void;
   onCompareChat: () => void;
+  onSettingsClick: () => void;
+  isSettingsOpen: boolean;
   isCompareMode: boolean;
 };
 
@@ -30,6 +32,8 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
   onDeletePlayground,
   onNewChat,
   onCompareChat,
+  onSettingsClick,
+  isSettingsOpen,
   isCompareMode,
 }) => {
   const { lsdStatus, lastInput } = React.useContext(ChatbotContext);
@@ -72,6 +76,18 @@ const ChatbotHeaderActions: React.FC<ChatbotHeaderActionsProps> = ({
                 </Button>
               </ActionListItem>
             )}
+            <ActionListItem>
+              <Button
+                variant="link"
+                aria-label="Settings"
+                aria-expanded={isSettingsOpen}
+                icon={<CogIcon />}
+                onClick={onSettingsClick}
+                data-testid="settings-button"
+              >
+                Settings
+              </Button>
+            </ActionListItem>
             <ActionListItem>
               <Button
                 variant="link"

@@ -221,6 +221,42 @@ describe('isAreaAvailable', () => {
       });
     });
 
+    describe('catalog areas independent of MODEL_REGISTRY', () => {
+      it('should enable Model Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MODEL_CATALOG,
+          mockDashboardConfig({ disableModelCatalog: false, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ disableModelCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+
+      it('should enable MCP Catalog even when Model Registry is disabled', () => {
+        const isAvailable = isAreaAvailable(
+          SupportedArea.MCP_CATALOG,
+          mockDashboardConfig({ mcpCatalog: true, disableModelRegistry: true }).spec,
+          mockDscStatus({
+            components: {
+              [DataScienceStackComponent.MODEL_REGISTRY]: { managementState: 'Managed' },
+            },
+          }),
+          mockDsciStatus({}),
+        );
+
+        expect(isAvailable.status).toBe(true);
+        expect(isAvailable.featureFlags).toEqual({ mcpCatalog: 'on' });
+        expect(isAvailable.reliantAreas).toBe(null);
+      });
+    });
+
     describe('devFlags', () => {
       it('should enable area if dev flag is true', () => {
         const testDevArea = 'TestDevArea';
@@ -241,6 +277,111 @@ describe('isAreaAvailable', () => {
         expect(isAvailable.status).toBe(true);
         expect(isAvailable.devFlags).toEqual({ [testDevFlag]: 'on' });
       });
+    });
+
+    describe('customCondition', () => {
+      const testArea = 'TestCustomConditionArea';
+
+      it('should enable area when customCondition returns true', () => {
+        const mockAreasStateMap = {
+          [testArea]: {
+            customCondition: () => true,
+          },
+        };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(true);
+      });
+
+      it('should disable area when customCondition returns false', () => {
+        const mockAreasStateMap = {
+          [testArea]: {
+            customCondition: () => false,
+          },
+        };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(false);
+      });
+
+      it('should pass dscStatus to customCondition', () => {
+        const dscStatus = mockDscStatus({});
+        const customCondition = jest.fn(() => true);
+        const mockAreasStateMap = { [testArea]: { customCondition } };
+
+        isAreaAvailable(testArea, mockDashboardConfig({}).spec, dscStatus, mockDsciStatus({}), {
+          internalStateMap: mockAreasStateMap,
+          flagState: {},
+        });
+
+        expect(customCondition).toHaveBeenCalledWith(expect.objectContaining({ dscStatus }));
+      });
+
+      it('should not affect status when customCondition is absent', () => {
+        const mockAreasStateMap = { [testArea]: {} };
+
+        const isAvailable = isAreaAvailable(
+          testArea,
+          mockDashboardConfig({}).spec,
+          mockDscStatus({}),
+          mockDsciStatus({}),
+          { internalStateMap: mockAreasStateMap, flagState: {} },
+        );
+
+        expect(isAvailable.status).toBe(true);
+      });
+    });
+  });
+
+  describe('ROLE_MANAGEMENT area', () => {
+    it('should be available when roleManagement flag is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
+    });
+
+    it('should not be available when roleManagement flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+    });
+
+    it('should not be available by default (flag defaults to false)', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
     });
   });
 });

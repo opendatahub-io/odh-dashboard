@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Popover, Tooltip } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { ProjectSectionID } from '#~/pages/projects/screens/detail/types';
 import {
@@ -33,8 +33,8 @@ const NotebookList: React.FC = () => {
     kueueStatusByNotebookName,
     isKueueLoaded,
   } = React.useContext(ProjectDetailsContext);
-  const navigate = useNavigate();
   const projectName = currentProject.metadata.name;
+  const createWorkbenchHref = `/projects/${projectName}/spawner`;
   const isNotebooksEmpty = notebooks.length === 0;
 
   useRefreshInterval(FAST_POLL_INTERVAL, () =>
@@ -74,7 +74,7 @@ const NotebookList: React.FC = () => {
         <Tooltip content={createDisabledTooltip}>
           <Button
             key={`action-${ProjectSectionID.WORKBENCHES}`}
-            onClick={() => navigate(`/projects/${projectName}/spawner`)}
+            component="button"
             data-testid="create-workbench-button"
             variant="primary"
             isAriaDisabled
@@ -87,7 +87,9 @@ const NotebookList: React.FC = () => {
     return (
       <Button
         key={`action-${ProjectSectionID.WORKBENCHES}`}
-        onClick={() => navigate(`/projects/${projectName}/spawner`)}
+        component={(props: React.ComponentProps<'a'>) => (
+          <Link {...props} to={createWorkbenchHref} />
+        )}
         data-testid="create-workbench-button"
         variant="primary"
       >

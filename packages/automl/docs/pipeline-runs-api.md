@@ -2,7 +2,13 @@
 
 ## Overview
 
-The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for filtering by pipeline version ID. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace. This endpoint is designed for AutoML to track and manage experiment runs associated with RAG optimization workflows.
+The Pipeline Runs API allows querying and creating Kubeflow Pipeline runs from an auto-discovered Pipeline Server, with support for multiple AutoML pipeline types. The API supports both **tabular (binary, multiclass, regression)** and **timeseries forecasting** pipelines, each with their own parameter schemas. The Pipeline Server (DSPipelineApplication) is automatically discovered in the specified namespace.
+
+**Key Features:**
+- **Multi-Pipeline Support:** Unified API for both tabular (binary, multiclass, regression) and timeseries (forecasting) AutoML pipelines
+- **Auto-Discovery:** Automatically discovers and manages multiple pipeline types in a namespace
+- **Type-Safe Schemas:** Discriminated union request bodies based on the `task_type` request body field
+- **Merged Results:** List endpoint returns runs from all discovered pipeline types, sorted by creation time
 
 **API Compatibility:** The response format matches the [Kubeflow Pipelines v2beta1 API](https://www.kubeflow.org/docs/components/pipelines/reference/api/kubeflow-pipeline-api-spec/) structure, ensuring consistency with upstream Kubeflow and making it easier to reference official documentation.
 
@@ -12,12 +18,65 @@ The Pipeline Runs API allows querying Kubeflow Pipeline runs from an auto-discov
 GET  /api/v1/pipeline-runs
 GET  /api/v1/pipeline-runs/{runId}
 POST /api/v1/pipeline-runs
+POST /api/v1/pipeline-runs/{runId}/terminate
+POST /api/v1/pipeline-runs/{runId}/retry
 ```
 
-The API provides three endpoints:
+The API provides five endpoints:
 - **List Runs**: Query multiple pipeline runs with optional filtering and pagination
 - **Get Run**: Retrieve a single pipeline run by its ID with full task details
 - **Create Run**: Submit a new AutoML pipeline run with training parameters
+- **Terminate Run**: Stop an active pipeline run that is currently in progress
+- **Retry Run**: Re-initiate a failed or canceled pipeline run from the point of failure
+
+## Pipeline Types
+
+The API supports two types of AutoML pipelines, determined by the `task_type` field in the request body:
+
+### Tabular (Binary, Multiclass, Regression) (`task_type`: `binary`, `multiclass`, or `regression`)
+Used for binary classification, multiclass classification, and regression tasks on tabular/structured data.
+
+**Use Cases:**
+- Binary classification (e.g., credit default prediction, fraud detection)
+- Multiclass classification (e.g., customer segmentation, product categorization)
+- Regression (e.g., price prediction, sales estimation, risk scoring)
+
+**Required Parameters:**
+- `task_type`: Type of task (`binary`, `multiclass`, or `regression`)
+- `display_name`: Human-readable name for the run
+- `train_data_secret_name`: Name of the K8s secret containing S3 credentials
+- `train_data_bucket_name`: S3 bucket name containing the training data
+- `train_data_file_key`: S3 object key for the training data file
+- `label_column`: Target column name in the training data
+
+**Optional Parameters:**
+- `description`: Description of the run
+- `top_n`: Number of top models to consider (default: 3)
+
+### Timeseries Forecasting (`task_type`: `timeseries`)
+Used for forecasting future values in time series data.
+
+**Use Cases:**
+- Sales forecasting
+- Demand prediction
+- Resource utilization forecasting
+- Weather prediction
+
+**Required Parameters:**
+- `task_type`: Must be `timeseries`
+- `display_name`: Human-readable name for the run
+- `train_data_secret_name`: Name of the K8s secret containing S3 credentials
+- `train_data_bucket_name`: S3 bucket name containing the training data
+- `train_data_file_key`: S3 object key for the training data file
+- `target`: Target column to forecast
+- `id_column`: Column identifying each time series
+- `timestamp_column`: Timestamp/datetime column
+
+**Optional Parameters:**
+- `description`: Description of the run
+- `top_n`: Number of top models to consider (default: 3)
+- `prediction_length`: Number of timesteps to forecast (default: 1)
+- `known_covariates_names`: List of covariate columns that are known in the future
 
 ## Authentication
 
@@ -136,8 +195,7 @@ The endpoint returns a JSON response with the following structure:
         }
       }
     ],
-    "total_size": 1,
-    "next_page_token": ""
+    "total_size": 1
   }
 }
 ```
@@ -211,8 +269,7 @@ The endpoint returns a JSON response with the following structure:
 | Field | Type | Description |
 |-------|------|-------------|
 | `runs` | array | Array of PipelineRun objects |
-| `total_size` | integer | Total number of runs matching the filter |
-| `next_page_token` | string | Token for retrieving the next page (empty if no more pages) |
+| `total_size` | integer | Total number of runs across all discovered AutoML pipelines |
 
 ## Get Single Pipeline Run
 
@@ -314,7 +371,7 @@ Returned when the specified run ID does not exist:
 ```json
 {
   "error": {
-    "code": "NOT_FOUND",
+    "code": "404",
     "message": "the requested resource could not be found"
   }
 }
@@ -333,9 +390,12 @@ POST /api/v1/pipeline-runs
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
-| `pipelineType` | query string | No | AutoML pipeline type to use: `timeseries` (default) or `tabular` |
 
 ### Request Body
+
+The request body schema varies based on the `task_type` field. The API uses a discriminated union with `task_type` as the discriminator to determine which pipeline to use.
+
+#### Common Fields (All Pipeline Types)
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -344,29 +404,112 @@ POST /api/v1/pipeline-runs
 | `train_data_secret_name` | string | Yes | Name of the K8s secret containing S3 credentials |
 | `train_data_bucket_name` | string | Yes | S3 bucket name containing the training data |
 | `train_data_file_key` | string | Yes | S3 object key for the training data file |
+| `task_type` | string | Yes | Type of task (discriminator): `binary`, `multiclass`, `regression`, or `timeseries` |
+| `top_n` | integer | No | Number of top models to consider (default: 3) |
+
+#### Tabular Pipeline Fields (`task_type`: `binary`, `multiclass`, or `regression`)
+
+Additional required fields for tabular pipelines:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
 | `label_column` | string | Yes | Name of the target column in the training data |
-| `task_type` | string | Yes | Type of task: `binary`, `multiclass`, or `regression` |
-| `top_n` | integer | No | Number of top models to consider |
+
+#### Timeseries Pipeline Fields (`task_type`: `timeseries`)
+
+Additional required fields for timeseries forecasting pipelines:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `target` | string | Yes | Name of the target column to forecast |
+| `id_column` | string | Yes | Name of the column identifying each time series (item_id) |
+| `timestamp_column` | string | Yes | Name of the timestamp/datetime column |
+| `prediction_length` | integer | No | Forecast horizon (number of timesteps, default: 1) |
+| `known_covariates_names` | array of strings | No | Optional list of known covariate column names |
 
 **Notes:**
+- `task_type` is required in all requests and determines which pipeline type to use
 - Unknown JSON fields are rejected (strict decoding)
 - `pipeline_id` and `pipeline_version_id` are automatically discovered and injected by the BFF
-- The `pipelineType` query parameter selects between the auto-discovered timeseries and tabular pipelines (defaults to `timeseries`)
+- The `task_type` field selects between the auto-discovered timeseries and tabular pipelines
 - If the requested pipeline type is not found in the namespace, the request returns a 500 error
+- Request body validation is performed based on the selected task type
 
-### Request Example
+### Request Examples
+
+#### Tabular Binary Classification Pipeline
 
 ```bash
 curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
   -H "Authorization: Bearer <your-token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "display_name": "my-automl-run",
-    "train_data_secret_name": "minio-secret",
-    "train_data_bucket_name": "automl-bucket",
-    "train_data_file_key": "data/train.csv",
-    "label_column": "target",
-    "task_type": "binary"
+    "display_name": "Credit Risk Binary Classification",
+    "description": "Binary classification for credit default prediction",
+    "train_data_secret_name": "s3-credentials",
+    "train_data_bucket_name": "ml-datasets",
+    "train_data_file_key": "credit/train.csv",
+    "task_type": "binary",
+    "label_column": "default",
+    "top_n": 5
+  }'
+```
+
+#### Tabular Multiclass Classification Pipeline
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "Customer Segmentation",
+    "description": "Multiclass classification for customer categorization",
+    "train_data_secret_name": "s3-credentials",
+    "train_data_bucket_name": "ml-datasets",
+    "train_data_file_key": "customers/train.csv",
+    "task_type": "multiclass",
+    "label_column": "segment",
+    "top_n": 5
+  }'
+```
+
+#### Tabular Regression Pipeline
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "House Price Prediction",
+    "description": "Regression model for house price estimation",
+    "train_data_secret_name": "s3-credentials",
+    "train_data_bucket_name": "ml-datasets",
+    "train_data_file_key": "housing/train.csv",
+    "task_type": "regression",
+    "label_column": "price",
+    "top_n": 3
+  }'
+```
+
+#### Timeseries Forecasting Pipeline
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "display_name": "Sales Forecasting",
+    "description": "7-day ahead sales forecast by store",
+    "train_data_secret_name": "s3-credentials",
+    "train_data_bucket_name": "ml-datasets",
+    "train_data_file_key": "sales/historical.csv",
+    "task_type": "timeseries",
+    "target": "sales",
+    "id_column": "store_id",
+    "timestamp_column": "date",
+    "prediction_length": 7,
+    "known_covariates_names": ["temperature", "is_holiday"],
+    "top_n": 3
   }'
 ```
 
@@ -378,10 +521,201 @@ Returns `200 OK` with the created pipeline run (same `PipelineRun` structure as 
 
 | Status | Condition |
 |--------|-----------|
-| `400 Bad Request` | Missing required fields, invalid `task_type`, unknown JSON fields, invalid `pipelineType`, or missing `namespace` |
+| `400 Bad Request` | Missing required fields (common or task-type-specific), missing `task_type`, invalid `task_type` value, unknown JSON fields, or missing `namespace` |
 | `401 Unauthorized` | Missing or invalid authentication |
 | `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
 | `500 Internal Server Error` | No matching AutoML pipeline found or KFP client failure |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+#### Example Validation Errors
+
+**Missing task_type:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "task_type is required in request body"
+  }
+}
+```
+
+**Missing tabular-specific fields:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "missing required fields: label_column, task_type"
+  }
+}
+```
+
+**Missing timeseries-specific fields:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "missing required fields: target, id_column, timestamp_column"
+  }
+}
+```
+
+**Invalid task_type value:**
+```json
+{
+  "error": {
+    "code": "400",
+    "message": "invalid task_type \"unsupervised\": must be one of binary, multiclass, regression, timeseries"
+  }
+}
+```
+
+**Note:** The API automatically selects the appropriate pipeline (tabular or timeseries) based on the `task_type` field in the request body. Invalid `task_type` values are reported using the generic invalid task_type error shown above, which lists all valid values. See the [Pipeline Types](#pipeline-types) section for details on supported task types and their corresponding pipelines.
+
+## Terminate Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/terminate
+```
+
+Sends an asynchronous request to cancel an active pipeline run. The run must be in an active state (PENDING, RUNNING, or PAUSED) and belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. The API requests a transition to CANCELING and attempts to cancel running tasks, which may result in a CANCELED final state if successful. However, the final state is not guaranteed — races or failures during cancellation may cause the run to end in a different terminal state.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to terminate |
+
+### Security & Filtering
+
+This endpoint enforces ownership and state validation:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before terminating
+- Validates the run is in a terminatable state (PENDING, RUNNING, or PAUSED) before proceeding
+- Returns `400 Bad Request` if the run is not in a terminatable state (PENDING, RUNNING, or PAUSED)
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Prevents users from terminating runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789/terminate?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in a terminatable state (PENDING, RUNNING, or PAUSED) |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Retry Pipeline Run
+
+### Endpoint
+
+```http
+POST /api/v1/pipeline-runs/{runId}/retry
+```
+
+Re-initiates a failed or canceled pipeline run from the point of failure. The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace and must be in a retryable state (FAILED or CANCELED).
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to retry |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before retrying
+- Validates the run is in FAILED or CANCELED state before retrying
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `400 Bad Request` if the run is not in a retryable state
+- Prevents users from retrying runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X POST "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789/retry?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in FAILED or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
+| `503 Service Unavailable` | Pipeline Server exists but is not ready |
+
+## Delete Pipeline Run
+
+### Endpoint
+
+```http
+DELETE /api/v1/pipeline-runs/{runId}
+```
+
+Permanently deletes a pipeline run that is in a terminal state (SUCCEEDED, FAILED, or CANCELED). The run must belong to one of the discovered AutoML pipelines (timeseries or tabular) in the namespace. This action cannot be undone.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `namespace` | query string | Yes | Kubernetes namespace where the Pipeline Server is deployed |
+| `runId` | path parameter | Yes | Unique identifier of the pipeline run to delete |
+
+### Security & Filtering
+
+This endpoint enforces the same ownership validation as the Terminate Run endpoint:
+
+- Fetches the run and validates it belongs to one of the discovered AutoML pipelines before deleting
+- Validates the run is in SUCCEEDED, FAILED, or CANCELED state before deleting
+- Returns `404 Not Found` if the run does not exist or belongs to a different pipeline
+- Returns `400 Bad Request` if the run is not in an deletable state
+- Prevents users from deleting runs from other pipelines in the same namespace
+
+### Request Example
+
+```bash
+curl -X DELETE "http://localhost:4003/api/v1/pipeline-runs/abc123-def456-ghi789?namespace=my-namespace" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Response Format
+
+Returns `200 OK` with an empty body on success.
+
+### Error Responses
+
+| Status | Condition |
+|--------|-----------|
+| `400 Bad Request` | Missing `runId` parameter, or run is not in SUCCEEDED, FAILED, or CANCELED state |
+| `401 Unauthorized` | Missing or invalid authentication |
+| `403 Forbidden` | User lacks permission to access pipeline servers in the namespace |
+| `404 Not Found` | Run not found, or run belongs to a different pipeline |
+| `500 Internal Server Error` | Pipeline Server error or internal error |
 | `503 Service Unavailable` | Pipeline Server exists but is not ready |
 
 ## Pipeline Discovery
@@ -394,9 +728,9 @@ The API automatically discovers all managed AutoML pipelines (time-series and ta
 4. Applies `page`/`pageSize` pagination to the merged list
 
 **Discovery Details:**
-- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "automl-timeseries")
-- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "automl-tabular")
-- Returns 500 if no managed AutoML pipelines are found in the namespace
+- Time-series prefix: configurable via `AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX` (default: "autogluon-timeseries-training-pipeline")
+- Tabular prefix: configurable via `AUTOML_TABULAR_PIPELINE_NAME_PREFIX` (default: "autogluon-tabular-training-pipeline")
+- Returns 200 with an empty runs list if no managed AutoML pipelines are found in the namespace (pipelines are auto-created when the user submits their first experiment)
 
 ## Error Responses
 
@@ -408,8 +742,10 @@ Returned when:
 
 ```json
 {
-  "code": "BAD_REQUEST",
-  "message": "missing required query parameter: namespace"
+  "error": {
+    "code": "400",
+    "message": "missing required query parameter: namespace"
+  }
 }
 ```
 
@@ -423,8 +759,10 @@ Returned when the authenticated user does not have permission to access pipeline
 
 ```json
 {
-  "code": "FORBIDDEN",
-  "message": "user does not have permission to access pipeline servers in this namespace"
+  "error": {
+    "code": "403",
+    "message": "user does not have permission to access pipeline servers in this namespace"
+  }
 }
 ```
 
@@ -501,7 +839,7 @@ Mock mode returns 4 sample pipeline runs covering both pipeline types:
    - Data Validation (SUCCEEDED)
    - Data Fetch (FAILED)
 
-4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed classification run with 1 task:
+4. **Tabular Run** (`run-tabular-001`) - Tabular pipeline, completed binary/multiclass/regression run with 1 task:
    - Data Preprocessing (SUCCEEDED)
 
 Each task includes detailed information such as:
@@ -547,6 +885,8 @@ The AutoML frontend can use these endpoints to:
 4. Access run state history and metadata
 5. View detailed task execution information for each run
 6. Track individual task progress and status
+7. Terminate runs that are currently in progress
+8. Retry failed or canceled runs
 
 ### Example Frontend Integration
 
@@ -577,6 +917,74 @@ async function fetchPipelineRun(namespace, runId, token) {
     headers: {
       'Authorization': `Bearer ${token}`
     }
+  });
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Create a tabular pipeline run (binary, multiclass, or regression)
+async function createTabularRun(namespace, token, config) {
+  const params = new URLSearchParams({
+    namespace
+  });
+
+  /* eslint-disable camelcase */
+  const body = {
+    display_name: config.displayName,
+    description: config.description,
+    train_data_secret_name: config.secretName,
+    train_data_bucket_name: config.bucketName,
+    train_data_file_key: config.fileKey,
+    task_type: config.taskType,  // 'binary', 'multiclass', or 'regression'
+    label_column: config.labelColumn,
+    top_n: config.topN
+  };
+  /* eslint-enable camelcase */
+
+  const response = await fetch(`/api/v1/pipeline-runs?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  const data = await response.json();
+  return data.data;
+}
+
+// Create a timeseries forecasting pipeline run
+async function createTimeSeriesRun(namespace, token, config) {
+  const params = new URLSearchParams({
+    namespace
+  });
+
+  /* eslint-disable camelcase */
+  const body = {
+    display_name: config.displayName,
+    description: config.description,
+    train_data_secret_name: config.secretName,
+    train_data_bucket_name: config.bucketName,
+    train_data_file_key: config.fileKey,
+    task_type: 'timeseries',
+    target: config.target,
+    id_column: config.idColumn,
+    timestamp_column: config.timestampColumn,
+    prediction_length: config.predictionLength,
+    known_covariates_names: config.covariates,
+    top_n: config.topN
+  };
+  /* eslint-enable camelcase */
+
+  const response = await fetch(`/api/v1/pipeline-runs?${params}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
   });
 
   const data = await response.json();

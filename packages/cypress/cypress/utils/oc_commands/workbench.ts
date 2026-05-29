@@ -31,7 +31,7 @@ export const validateWorkbenchEnvironmentVariables = (
       cy.log(`Executing command: ${validateEnvVarsCommand}`);
 
       return cy.exec(validateEnvVarsCommand, { failOnNonZeroExit: false }).then((envResult) => {
-        if (envResult.code !== 0) {
+        if (envResult.exitCode !== 0) {
           const maskedStderr = maskSensitiveInfo(envResult.stderr);
           throw new Error(`Failed to validate environment variables: ${maskedStderr}`);
         }
@@ -102,7 +102,7 @@ export const validateWorkbenchTolerations = (
     return cy
       .exec(validateTolerationsCommand, { failOnNonZeroExit: false })
       .then((tolerationResult) => {
-        if (tolerationResult.code !== 0) {
+        if (tolerationResult.exitCode !== 0) {
           cy.log(
             `❌ Failed to execute validateTolerationsCommand:\nError: ${tolerationResult.stderr}`,
           );

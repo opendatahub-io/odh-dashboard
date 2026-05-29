@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,9 +11,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	helper "github.com/kubeflow/model-registry/ui/bff/internal/helpers"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	helper "github.com/kubeflow/hub/ui/bff/internal/helpers"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +24,7 @@ import (
 
 const (
 	// DefaultAsyncUploadImage is the default container image for async-upload jobs.
-	DefaultAsyncUploadImage  = "ghcr.io/kubeflow/model-registry/job/async-upload:latest"
+	DefaultAsyncUploadImage  = "ghcr.io/kubeflow/hub/job/async-upload:latest"
 	asyncUploadConfigMapName = "model-registry-ui-config"
 	asyncUploadConfigMapKey  = "images-jobs-async-upload"
 )
@@ -64,14 +66,32 @@ func isK8sJobFailed(job *batchv1.Job) bool {
 	return false
 }
 
-func (m *ModelRegistryRepository) GetAllModelTransferJobs(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, modelRegistryID string) (*models.ModelTransferJobList, error) {
+// ErrForbidden indicates the user does not have permission for the requested operation.
+var ErrForbidden = errors.New("forbidden")
+
+func (m *ModelRegistryRepository) GetAllModelTransferJobs(ctx context.Context, client k8s.KubernetesClientInterface, namespace string, modelRegistryID string, jobNamespace string) (*models.ModelTransferJobList, error) {
 	if modelRegistryID == "" {
 		return &models.ModelTransferJobList{Items: []models.ModelTransferJob{}, Size: 0, PageSize: 0}, nil
 	}
 
 	logger := helper.GetContextLogger(ctx)
 
-	jobList, err := client.GetAllModelTransferJobs(ctx, namespace, modelRegistryID)
+	// If no specific namespace is provided, check if the user can list jobs cluster-wide.
+	if jobNamespace == "" {
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil {
+			return nil, fmt.Errorf("request identity not found in context")
+		}
+		canList, err := client.CanListJobsClusterWide(ctx, identity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check job list permission: %w", err)
+		}
+		if !canList {
+			return nil, fmt.Errorf("%w: user does not have permission to list jobs across all namespaces; provide a jobNamespace query parameter to scope the request", ErrForbidden)
+		}
+	}
+
+	jobList, err := client.GetAllModelTransferJobs(ctx, namespace, modelRegistryID, jobNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch model transfer jobs: %w", err)
 	}
@@ -952,8 +972,7 @@ func buildSourceSecret(generateNamePrefix string, payload models.ModelTransferJo
 }
 
 func buildDestinationSecret(generateNamePrefix string, payload models.ModelTransferJob, jobID string) (*corev1.Secret, error) {
-	// NOTE: Due to async-upload bug, auth is NOT base64 encoded here
-	auth := fmt.Sprintf("%s:%s", payload.Destination.Username, payload.Destination.Password)
+	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", payload.Destination.Username, payload.Destination.Password)))
 
 	registry := payload.Destination.Registry
 	if registry == "" {
@@ -1147,7 +1166,28 @@ func registryOriginOnly(serverAddress string) string {
 	if scheme == "" {
 		scheme = "http"
 	}
-	return scheme + "://" + host
+
+	// Ensure port is explicit so the Python ModelRegistry client (which uses
+	// urlparse) does not append it after the path, producing a malformed URL.
+	port := u.Port()
+	if port == "" {
+		if scheme == "https" {
+			port = "443"
+		} else {
+			port = "80"
+		}
+	}
+	hostPort := host + ":" + port
+
+	// Preserve any routing prefix (e.g. /model-registry/<name>) that the
+	// gateway needs, but strip the MR API path suffix (/api/...).
+	path := u.Path
+	if idx := strings.Index(path, "/api/"); idx >= 0 {
+		path = path[:idx]
+	}
+	path = strings.TrimRight(path, "/")
+
+	return scheme + "://" + hostPort + path
 }
 
 func cloneDestSecretFromExisting(generateNamePrefix, namespace, jobID string, oldSecret *corev1.Secret) *corev1.Secret {

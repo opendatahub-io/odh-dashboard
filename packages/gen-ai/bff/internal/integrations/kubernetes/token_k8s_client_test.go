@@ -26,8 +26,8 @@ import (
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 )
 
-func TestCanListLlamaStackDistributions(t *testing.T) {
-	t.Run("should create proper SAR request for LlamaStackDistribution resources", func(t *testing.T) {
+func TestCanListOGXServers(t *testing.T) {
+	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {
 		// Create a mock config
 		config := &rest.Config{
 			Host: "https://test-cluster.example.com",
@@ -49,7 +49,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		// We expect an error because we don't have a real Kubernetes cluster
 		// but the method should be callable and return appropriate error
@@ -72,7 +72,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, nil, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, nil, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -96,7 +96,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -120,7 +120,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -128,15 +128,15 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 	})
 }
 
-func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
+func TestCanListOGXServersSARStructure(t *testing.T) {
 	t.Run("should create correct SAR request structure", func(t *testing.T) {
 		// Test that we can create the SAR request with correct parameters
 		sar := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
 					Verb:      "list",
-					Group:     "llamastack.io",
-					Resource:  "llamastackdistributions",
+					Group:     "ogx.io",
+					Resource:  "ogxservers",
 					Namespace: "test-namespace",
 				},
 			},
@@ -144,8 +144,8 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 
 		// Verify the SAR structure
 		assert.Equal(t, "list", sar.Spec.ResourceAttributes.Verb)
-		assert.Equal(t, "llamastack.io", sar.Spec.ResourceAttributes.Group)
-		assert.Equal(t, "llamastackdistributions", sar.Spec.ResourceAttributes.Resource)
+		assert.Equal(t, "ogx.io", sar.Spec.ResourceAttributes.Group)
+		assert.Equal(t, "ogxservers", sar.Spec.ResourceAttributes.Resource)
 		assert.Equal(t, "test-namespace", sar.Spec.ResourceAttributes.Namespace)
 	})
 }
@@ -169,7 +169,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should succeed since we're only using MaaS models
 		assert.NoError(t, err)
@@ -210,7 +210,7 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should fail because the model is not ready
 		assert.Error(t, err)
@@ -235,12 +235,32 @@ func TestGenerateLlamaStackConfigWithMaaSModels(t *testing.T) {
 		ctx := context.Background()
 
 		// Test the MaaS model handling logic (with empty guardrails)
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "test-oidc-token")
 
 		// This should fail because the model is not found
 		assert.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("should fail when MaaS models are present but auth token is empty", func(t *testing.T) {
+		mockMaaSClient := &maasmocks.MockMaaSClient{}
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+		}
+
+		models := []models.InstallModel{
+			{ModelName: "llama-2-7b-chat", ModelSourceType: models.ModelSourceTypeMaaS},
+		}
+
+		ctx := context.Background()
+
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", models, nil, mockMaaSClient, "")
+
+		assert.Error(t, err)
+		assert.Empty(t, result)
+		assert.Contains(t, err.Error(), "user auth token is required to list MaaS models")
 	})
 }
 
@@ -259,7 +279,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -288,7 +308,7 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, false, mockMaaSClient)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", testModels, nil, mockMaaSClient, "test-oidc-token")
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
 
@@ -524,12 +544,16 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 
 	t.Run("nil LLMInferenceService returns empty endpoints", func(t *testing.T) {
 		endpoints := client.extractEndpointsFromLLMInferenceService(nil)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
 	t.Run("empty status returns empty endpoints", func(t *testing.T) {
+		// Simulates a stopped llm-d deployment where the address is removed from the CR.
+		// Must return [] (not nil) so the JSON response contains [] instead of null.
 		llmSvc := &kservev1alpha1.LLMInferenceService{}
 		endpoints := client.extractEndpointsFromLLMInferenceService(llmSvc)
+		assert.NotNil(t, endpoints)
 		assert.Empty(t, endpoints)
 	})
 
@@ -660,21 +684,21 @@ func TestExtractEndpointsFromLLMInferenceService(t *testing.T) {
 }
 
 func TestGenerateLlamaStackConfigWithExternalModels(t *testing.T) {
-	t.Run("should successfully generate config with external_cluster model", func(t *testing.T) {
+	t.Run("should successfully generate config with custom_endpoint model", func(t *testing.T) {
 		scheme := runtime.NewScheme()
 		require.NoError(t, corev1.AddToScheme(scheme))
 
 		configMapYAML := `
 providers:
   inference:
-    - provider_id: "cluster-vllm-provider"
-      provider_type: "remote::vllm"
+    - provider_id: "endpoint-1"
+      provider_type: "remote::openai"
       config:
-        base_url: "https://qwen3-06b.test-namespace.svc.cluster.local:8080/v1"
+        base_url: "https://api.openai.com/v1"
 registered_resources:
   models:
-    - model_id: "qwen3-06b"
-      provider_id: "cluster-vllm-provider"
+    - model_id: "gpt-4o"
+      provider_id: "endpoint-1"
       model_type: "llm"
 `
 		configMap := &corev1.ConfigMap{
@@ -699,19 +723,19 @@ registered_resources:
 
 		installModels := []models.InstallModel{
 			{
-				ModelName:       "qwen3-06b",
-				ModelSourceType: models.ModelSourceTypeExternalCluster,
+				ModelName:       "gpt-4o",
+				ModelSourceType: models.ModelSourceTypeCustomEndpoint,
 			},
 		}
 
 		ctx := context.Background()
-		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, false, nil)
+		result, err := client.generateLlamaStackConfig(ctx, "test-namespace", installModels, nil, nil, "")
 
 		require.NoError(t, err)
 		require.NotEmpty(t, result)
-		assert.Contains(t, result, "qwen3-06b")
-		assert.Contains(t, result, "cluster-vllm-provider")
-		assert.Contains(t, result, "svc.cluster.local")
+		assert.Contains(t, result, "gpt-4o")
+		assert.Contains(t, result, "endpoint-1")
+		assert.Contains(t, result, "api.openai.com")
 	})
 }
 
@@ -724,15 +748,8 @@ func TestModelSourceTypeRouting(t *testing.T) {
 		shouldCallCluster  bool
 	}{
 		{
-			name:               "external_provider routes to external model handling",
-			modelSourceType:    models.ModelSourceTypeExternalProvider,
-			expectedHandling:   "external",
-			shouldCallExternal: true,
-			shouldCallCluster:  false,
-		},
-		{
-			name:               "external_cluster routes to external model handling",
-			modelSourceType:    models.ModelSourceTypeExternalCluster,
+			name:               "custom_endpoint routes to external model handling",
+			modelSourceType:    models.ModelSourceTypeCustomEndpoint,
 			expectedHandling:   "external",
 			shouldCallExternal: true,
 			shouldCallCluster:  false,
@@ -757,10 +774,8 @@ func TestModelSourceTypeRouting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify the enum values are correct
 			switch tt.modelSourceType {
-			case models.ModelSourceTypeExternalProvider:
-				assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), tt.modelSourceType)
-			case models.ModelSourceTypeExternalCluster:
-				assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), tt.modelSourceType)
+			case models.ModelSourceTypeCustomEndpoint:
+				assert.Equal(t, models.ModelSourceTypeEnum("custom_endpoint"), tt.modelSourceType)
 			case models.ModelSourceTypeNamespace:
 				assert.Equal(t, models.ModelSourceTypeEnum("namespace"), tt.modelSourceType)
 			}
@@ -782,32 +797,18 @@ func TestModelSourceTypeConstants(t *testing.T) {
 		// These values are part of the API contract and must remain stable
 		assert.Equal(t, models.ModelSourceTypeEnum("namespace"), models.ModelSourceTypeNamespace,
 			"ModelSourceTypeNamespace value must be 'namespace'")
-		assert.Equal(t, models.ModelSourceTypeEnum("external_cluster"), models.ModelSourceTypeExternalCluster,
-			"ModelSourceTypeExternalCluster value must be 'external_cluster'")
-		assert.Equal(t, models.ModelSourceTypeEnum("external_provider"), models.ModelSourceTypeExternalProvider,
-			"ModelSourceTypeExternalProvider value must be 'external_provider'")
+		assert.Equal(t, models.ModelSourceTypeEnum("custom_endpoint"), models.ModelSourceTypeCustomEndpoint,
+			"ModelSourceTypeCustomEndpoint value must be 'custom_endpoint'")
 		assert.Equal(t, models.ModelSourceTypeEnum("maas"), models.ModelSourceTypeMaaS,
 			"ModelSourceTypeMaaS value must be 'maas'")
 	})
 }
 
 func TestInstallModelUnmarshalJSON(t *testing.T) {
-	t.Run("should unmarshal ModelSourceType correctly", func(t *testing.T) {
+
+	t.Run("should handle custom_endpoint ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider"
-		}`)
-
-		var model models.InstallModel
-		err := model.UnmarshalJSON(jsonData)
-
-		assert.NoError(t, err)
-		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
-	})
-
-	t.Run("should handle external_cluster ModelSourceType", func(t *testing.T) {
-		jsonData := []byte(`{
-			"model_name": "qwen3-06b",			"model_source_type": "external_cluster"
+			"model_name": "qwen3-06b",			"model_source_type": "custom_endpoint"
 		}`)
 
 		var model models.InstallModel
@@ -815,7 +816,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "qwen3-06b", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalCluster, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 	})
 
 	t.Run("should handle namespace ModelSourceType", func(t *testing.T) {
@@ -845,7 +846,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle max_tokens with ModelSourceType", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096
 		}`)
 
@@ -854,14 +855,14 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "gpt-4o", model.ModelName)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.NotNil(t, model.MaxTokens)
 		assert.Equal(t, 4096, *model.MaxTokens)
 	})
 
 	t.Run("should handle max_tokens as float64", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096.0
 		}`)
 
@@ -869,14 +870,14 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		err := model.UnmarshalJSON(jsonData)
 
 		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.NotNil(t, model.MaxTokens)
 		assert.Equal(t, 4096, *model.MaxTokens)
 	})
 
 	t.Run("should reject fractional max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": 4096.5
 		}`)
 
@@ -889,7 +890,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 
 	t.Run("should handle nil max_tokens", func(t *testing.T) {
 		jsonData := []byte(`{
-			"model_name": "gpt-4o",			"model_source_type": "external_provider",
+			"model_name": "gpt-4o",			"model_source_type": "custom_endpoint",
 			"max_tokens": null
 		}`)
 
@@ -897,7 +898,7 @@ func TestInstallModelUnmarshalJSON(t *testing.T) {
 		err := model.UnmarshalJSON(jsonData)
 
 		assert.NoError(t, err)
-		assert.Equal(t, models.ModelSourceTypeExternalProvider, model.ModelSourceType)
+		assert.Equal(t, models.ModelSourceTypeCustomEndpoint, model.ModelSourceType)
 		assert.Nil(t, model.MaxTokens)
 	})
 
@@ -1102,7 +1103,7 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 				Inference: []models.InferenceProvider{
 					{
 						ProviderID:   "test-provider",
-						ProviderType: models.ProviderTypeVLLM,
+						ProviderType: models.ProviderTypeOpenAI,
 						Config: models.ProviderConfig{
 							BaseURL: "https://api.example.com/v1",
 						},
@@ -1226,5 +1227,163 @@ func TestValidateExternalModelsConfig(t *testing.T) {
 
 		err := client.validateExternalModelsConfig(config)
 		assert.NoError(t, err)
+	})
+}
+
+func TestGetSecretValue(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	t.Run("should successfully retrieve secret value", func(t *testing.T) {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "endpoint-api-key-1",
+				Namespace: "test-namespace",
+			},
+			Data: map[string][]byte{
+				"api_key": []byte("sk-test-secret-key-12345"),
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secret).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "endpoint-api-key-1", "api_key")
+
+		require.NoError(t, err)
+		assert.Equal(t, "sk-test-secret-key-12345", value)
+	})
+
+	t.Run("should return error when secret doesn't exist", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "nonexistent-secret", "api_key")
+
+		require.Error(t, err)
+		assert.Empty(t, value)
+		assert.Contains(t, err.Error(), "failed to get Secret")
+	})
+
+	t.Run("should return error when secret key doesn't exist", func(t *testing.T) {
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "endpoint-api-key-1",
+				Namespace: "test-namespace",
+			},
+			Data: map[string][]byte{
+				"api_key": []byte("sk-test-secret-key-12345"),
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(secret).
+			Build()
+
+		client := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		ctx := context.Background()
+		value, err := client.GetSecretValue(ctx, nil, "test-namespace", "endpoint-api-key-1", "wrong_key")
+
+		require.Error(t, err)
+		assert.Empty(t, value)
+		assert.Contains(t, err.Error(), "key 'wrong_key' not found in Secret")
+	})
+}
+
+func TestAnonymousClientConfigStripsServiceAccountCredentials(t *testing.T) {
+	t.Run("should strip TLS client cert fields from base config", func(t *testing.T) {
+		baseConfig := &rest.Config{
+			Host: "https://test-cluster.example.com",
+			TLSClientConfig: rest.TLSClientConfig{
+				CertData: []byte("fake-cert-data"),
+				CertFile: "/var/run/secrets/kubernetes.io/serviceaccount/cert.pem",
+				KeyData:  []byte("fake-key-data"),
+				KeyFile:  "/var/run/secrets/kubernetes.io/serviceaccount/key.pem",
+				CAData:   []byte("fake-ca-data"),
+				CAFile:   "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt",
+			},
+			BearerToken:     "sa-token-should-be-stripped",
+			BearerTokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token",
+			Username:        "system:serviceaccount:test:default",
+			Password:        "sa-password",
+		}
+
+		cfg := rest.AnonymousClientConfig(baseConfig)
+		cfg.BearerToken = "user-token"
+
+		assert.Equal(t, "https://test-cluster.example.com", cfg.Host,
+			"server URL must be preserved")
+		assert.Equal(t, []byte("fake-ca-data"), cfg.CAData,
+			"CA data must be preserved for TLS verification")
+		assert.Equal(t, "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", cfg.CAFile,
+			"CA file must be preserved for TLS verification")
+
+		assert.Empty(t, cfg.CertData,
+			"client cert data must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.CertFile,
+			"client cert file must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.KeyData,
+			"client key data must be stripped to prevent SA auth")
+		assert.Empty(t, cfg.KeyFile,
+			"client key file must be stripped to prevent SA auth")
+
+		assert.Equal(t, "user-token", cfg.BearerToken,
+			"user bearer token must be the only auth credential")
+		assert.Empty(t, cfg.BearerTokenFile,
+			"bearer token file must be stripped")
+		assert.Empty(t, cfg.Username,
+			"username must be stripped")
+		assert.Empty(t, cfg.Password,
+			"password must be stripped")
+	})
+
+	t.Run("user-scoped client config should not inherit SA credentials", func(t *testing.T) {
+		baseConfig := &rest.Config{
+			Host: "https://test-cluster.example.com",
+			TLSClientConfig: rest.TLSClientConfig{
+				CertData: []byte("sa-cert"),
+				KeyData:  []byte("sa-key"),
+				CAData:   []byte("cluster-ca"),
+			},
+			BearerToken: "sa-bearer-token",
+		}
+
+		kc := &TokenKubernetesClient{
+			Config: baseConfig,
+			Logger: slog.Default(),
+		}
+
+		userConfig := rest.AnonymousClientConfig(kc.Config)
+		userConfig.BearerToken = "user-token-123"
+		userConfig.BearerTokenFile = ""
+
+		assert.Equal(t, "user-token-123", userConfig.BearerToken)
+		assert.Empty(t, userConfig.CertData,
+			"user config must not carry SA client cert")
+		assert.Empty(t, userConfig.KeyData,
+			"user config must not carry SA client key")
+		assert.Equal(t, []byte("cluster-ca"), userConfig.CAData,
+			"user config must keep cluster CA for TLS verification")
+		assert.Equal(t, "https://test-cluster.example.com", userConfig.Host)
 	})
 }

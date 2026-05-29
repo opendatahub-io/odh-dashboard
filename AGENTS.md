@@ -69,20 +69,63 @@ npm run lint:fix
 npm run type-check
 ```
 
+## Documentation
+
+**[BOOKMARKS.md](BOOKMARKS.md)** indexes key documentation for frontend areas, the backend, and packages. Review relevant docs for the area you are working on before starting a task.
+
+**[Multi-Agent Workflows](docs/multi-agent-workflows.md)** covers running parallel agent sessions locally (git worktrees, Agent Teams, terminal layout) and remotely (Ambient platform).
+
 ## Package-Specific Guidelines
 
 Some packages have their own AGENTS.md with package-specific guidance. Check the package directory for its own AGENTS.md file.
 
 ## Specialized Agent Rules
 
-Before performing certain tasks, read and follow the corresponding specialized rules:
+Before performing certain tasks, read and follow the corresponding specialized rules.
 
-| Task                  | Rule File                                                                    | Trigger                                                                      |
-| --------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| **Jira Creation**     | [docs/agent-rules/jira-creation.md](docs/agent-rules/jira-creation.md)       | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics    |
-| **Contract Tests**    | [docs/agent-rules/contract-tests.md](docs/agent-rules/contract-tests.md)     | When working on contract tests or BFF API validation                         |
-| **Cypress E2E Tests** | [docs/agent-rules/cypress-e2e.md](docs/agent-rules/cypress-e2e.md)           | When creating or modifying E2E tests, Robot Framework migrations             |
-| **Cypress Mock Tests**| [docs/agent-rules/cypress-mock.md](docs/agent-rules/cypress-mock.md)         | When creating or modifying mock/component tests                              |
-| **Unit Tests**        | [docs/agent-rules/unit-tests.md](docs/agent-rules/unit-tests.md)             | When creating or modifying Jest unit tests for utilities, hooks, or components |
+Rules live in `.claude/rules/`. Read the relevant rule file before starting the task.
 
-**Important**: Always read the relevant rule file before starting the task to ensure you follow the project's conventions and patterns.
+| Rule                        | File                          | Trigger                                                                        |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------------------ |
+| **Architecture**            | `architecture.md`             | When making structural changes, adding packages, or modifying package boundaries |
+| **BFF Go**                  | `bff-go.md`                   | When working on Go BFF code in `packages/*/bff/`                               |
+| **Contract Tests**          | `contract-tests.md`           | When working on contract tests or BFF API validation                           |
+| **Conventions**             | `conventions.md`              | When writing or reviewing TypeScript, React, or backend code                   |
+| **CSS & PatternFly**        | `css-patternfly.md`           | When writing or modifying styles, SCSS, or PatternFly components               |
+| **Cypress E2E Tests**       | `cypress-e2e.md`              | When creating or modifying E2E tests, Robot Framework migrations               |
+| **Cypress Mock Tests**      | `cypress-mock.md`             | When creating or modifying mock/component tests                                |
+| **Jira Creation**           | `jira-creation.md`            | When asked to create Jira issues, tickets, bugs, stories, tasks, or epics      |
+| **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
+| **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
+| **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
+| **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
+| **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
+| **Testing Standards**       | `testing-standards.md`        | When working across multiple test types or choosing a testing strategy          |
+| **Third-Party Theming**     | `third-party-theming.md`      | When theming external libraries (Perses, MLflow, etc.) or mapping PF tokens into non-PF component systems |
+| **Unit Tests**              | `unit-tests.md`               | When creating or modifying Jest unit tests for utilities, hooks, or components |
+
+## Agent Skills
+
+Skills provide multi-step workflows. They live in `.claude/skills/`. Read the relevant skill file before starting the task.
+
+| Skill                              | Directory                              | Use when                                                                       |
+| ---------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ |
+| **Dev Workflow**                   | `skills/dev-workflow/`                 | Implementing a feature, fix, or refactor — runs lint, type-check, tests, and optional browser verification |
+| **Docs Create**                    | `skills/docs-create/`                  | Creating a new documentation file from a description                           |
+| **Docs Create Package**            | `skills/docs-create-package/`          | Scaffolding a package doc and registering it in BOOKMARKS.md                   |
+| **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
+| **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
+| **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
+| **Style Review**                   | `skills/style-review/`                 | Reviewing code for PF priority-order compliance, wrapper component usage, and class naming conventions per `css-patternfly.md` |
+| **RBAC Review**                    | `skills/rbac-review/`                  | Reviewing code for proper RBAC enforcement — catches missing SSAR gates, assumed access from `isAdmin`, and pages that break for limited-access users |
+| **Jira Triage**                   | `skills/jira-triage/`                  | Fetching Jira issues by filter criteria, running full triage on New issues (orchestrates all analysis skills), defining triage operations, and bulk-applying them |
+| **Jira Validate Priority/Severity** | `skills/jira-validate-priority-severity/` | Analyzing bugs for missing or incorrect severity and priority fields         |
+| **Jira Validate Description**     | `skills/jira-validate-description/`    | Validating issue descriptions for completeness per type, requesting missing information from reporters |
+| **Jira Evaluate Blockers**        | `skills/jira-evaluate-blockers/`       | Applying needs-\* labels and blocking state during triage, or evaluating whether existing blockers have been resolved |
+| **Jira Validate Issue Type**      | `skills/jira-validate-issue-type/`     | Validating or correcting issue types (Bug, Story, Task) and labeling feature requests |
+| **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
+| **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
+| **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
+
+**Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

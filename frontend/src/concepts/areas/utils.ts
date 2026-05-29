@@ -43,8 +43,14 @@ export const isAreaAvailable = (
   const hasAreaConfig = !!(area in options.internalStateMap);
 
   // If area doesn't exist, use empty config to avoid errors
-  const { devFlags, featureFlags, requiredComponents, reliantAreas, requiredCapabilities } =
-    hasAreaConfig ? options.internalStateMap[area] : {};
+  const {
+    devFlags,
+    featureFlags,
+    requiredComponents,
+    reliantAreas,
+    requiredCapabilities,
+    customCondition,
+  } = hasAreaConfig ? options.internalStateMap[area] : {};
 
   const reliantAreasState = reliantAreas
     ? reliantAreas.reduce<IsAreaAvailableStatus['reliantAreas']>(
@@ -115,13 +121,18 @@ export const isAreaAvailable = (
     ? Object.values(requiredCapabilitiesState).every((v) => v)
     : true;
 
+  const hasMetCustomCondition = customCondition
+    ? customCondition({ dashboardConfigSpec, dscStatus, dsciStatus })
+    : true;
+
   return {
     status:
       hasAreaConfig &&
       hasMetReliantAreas &&
       hasMetFeatureFlags &&
       hasMetRequiredComponents &&
-      hasMetRequiredCapabilities,
+      hasMetRequiredCapabilities &&
+      hasMetCustomCondition,
     reliantAreas: reliantAreasState,
     devFlags: devFlagsState,
     featureFlags: featureFlagState,

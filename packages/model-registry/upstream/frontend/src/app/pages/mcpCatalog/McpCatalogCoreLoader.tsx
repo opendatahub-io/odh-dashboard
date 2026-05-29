@@ -12,21 +12,20 @@ import { useThemeContext } from 'mod-arch-kubeflow';
 import { Outlet } from 'react-router-dom';
 import { McpCatalogContext } from '~/app/context/mcpCatalog/McpCatalogContext';
 import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
-
-const MCP_CATALOG_TITLE = 'MCP Catalog';
-const MCP_CATALOG_DESCRIPTION =
-  'Browse and deploy MCP servers provided by Red Hat partners and other providers.';
+import { hasSourcesWithModels } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { MCP_CATALOG_TITLE, MCP_CATALOG_DESCRIPTION } from '~/app/pages/mcpCatalog/const';
 
 const McpCatalogCoreLoader: React.FC = () => {
-  const { catalogSourcesLoaded, catalogSourcesLoadError, sourceLabels } =
+  const { catalogSources, catalogSourcesLoaded, catalogSourcesLoadError } =
     React.useContext(McpCatalogContext);
   const { isMUITheme } = useThemeContext();
 
   if (catalogSourcesLoadError) {
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={
-          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.mcpCatalog} />
         }
         description={MCP_CATALOG_DESCRIPTION}
         headerContent={null}
@@ -46,8 +45,9 @@ const McpCatalogCoreLoader: React.FC = () => {
   if (!catalogSourcesLoaded) {
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={
-          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.mcpCatalog} />
         }
         description={MCP_CATALOG_DESCRIPTION}
         headerContent={null}
@@ -58,11 +58,12 @@ const McpCatalogCoreLoader: React.FC = () => {
     );
   }
 
-  if (sourceLabels.length === 0) {
+  if (catalogSources?.items?.length === 0 || !hasSourcesWithModels(catalogSources)) {
     return (
       <ApplicationsPage
+        noTitle // rendered inside a TabRoutePage which provides the title
         title={
-          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.modelCatalog} />
+          <TitleWithIcon title={MCP_CATALOG_TITLE} objectType={ProjectObjectType.mcpCatalog} />
         }
         description={MCP_CATALOG_DESCRIPTION}
         empty

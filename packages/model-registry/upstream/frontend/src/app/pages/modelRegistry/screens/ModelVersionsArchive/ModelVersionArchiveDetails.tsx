@@ -58,7 +58,6 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
     }
   }, [rm?.state, mv?.state, mv?.id, mv?.registeredModelId, preferredModelRegistry?.name, navigate]);
 
-
   return (
     <>
       <ApplicationsPage
@@ -74,7 +73,7 @@ const ModelVersionsArchiveDetails: React.FC<ModelVersionsArchiveDetailsProps> = 
           mv && (
             <Flex alignItems={{ default: 'alignItemsCenter' }}>
               <FlexItem>{mv.name}</FlexItem>
-              <Label>Archived</Label>
+              <Label variant="outline">Archived</Label>
             </Flex>
           )
         }

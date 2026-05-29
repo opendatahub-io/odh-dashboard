@@ -1,6 +1,6 @@
-# Kubeflow Model Registry UI BFF
+# Kubeflow Hub UI BFF
 
-The Kubeflow Model Registry UI BFF is the _backend for frontend_ (BFF) used by the Kubeflow Model Registry UI.
+The Kubeflow Hub UI BFF is the _backend for frontend_ (BFF) used by the Kubeflow Hub UI.
 
 ## Pre-requisites:
 
@@ -14,7 +14,7 @@ To be operational, our BFF needs the Model Registry backend running.
 
 > **NOTE:** Docker compose must be installed in your environment.
 
-There are two `docker-compose` files located at the [root](https://github.com/kubeflow/model-registry) of Model Registry repository that make the startup of both model registry easier by simply running:
+There are two `docker-compose` files located at the [root](https://github.com/kubeflow/hub) of Model Registry repository that make the startup of both model registry easier by simply running:
 
 ```shell
 docker compose -f docker-compose[-local].yaml up
@@ -334,6 +334,12 @@ curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/model_ca
 ```
 
 ```
+# GET /api/v1/model_catalog/labels
+curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/model_catalog/labels?namespace=kubeflow"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/model_catalog/labels?namespace=kubeflow"
+```
+
+```
 # GET /api/v1/settings/model_catalog/source_configs
 curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/settings/model_catalog/source_configs?namespace=kubeflow"
 curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/settings/model_catalog/source_configs?namespace=kubeflow"
@@ -498,6 +504,30 @@ curl -i -H "kubeflow-userid: user@example.com" -X DELETE "http://localhost:4000/
 curl -i -H "Authorization: Bearer $TOKEN" -X DELETE "http://localhost:4000/api/v1/model_registry/model-registry/model_transfer_jobs/transfer-job-001?namespace=kubeflow&jobNamespace=kubeflow"
 ```
 
+```
+# GET /api/v1/mcp_catalog/mcp_servers_filter_options
+curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers_filter_options?namespace=kubeflow"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers_filter_options?namespace=kubeflow"
+```
+
+```
+# GET /api/v1/mcp_catalog/mcp_servers
+curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers?namespace=kubeflow"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers?namespace=kubeflow"
+```
+
+```
+# GET /api/v1/mcp_catalog/mcp_servers/{server_id}
+curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers/server-1?namespace=kubeflow"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers/server-1?namespace=kubeflow"
+```
+
+```
+# GET /api/v1/mcp_catalog/mcp_servers/{server_id}/tools
+curl -i -H "kubeflow-userid: user@example.com" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers/server-1/tools?namespace=kubeflow"
+curl -i -H "Authorization: Bearer $TOKEN" "http://localhost:4000/api/v1/mcp_catalog/mcp_servers/server-1/tools?namespace=kubeflow"
+```
+
 ### Pagination
 
 The following query parameters are supported by "Get All" style endpoints to control pagination.
@@ -537,7 +567,7 @@ labels:
 #...
 ```
 
-You can view the complete Model Registry service manifest [here](https://github.com/kubeflow/model-registry/blob/main/manifests/kustomize/base/model-registry-service.yaml#L10).
+You can view the complete Model Registry service manifest [here](https://github.com/kubeflow/hub/blob/main/manifests/kustomize/base/model-registry-service.yaml#L10).
 
 #### 2. What is the structure of the mock Kubernetes environment?
 

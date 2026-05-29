@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes/k8mocks"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -172,7 +172,7 @@ var _ = Describe("TestNamespacesHandler", func() {
 			Expect(actual.Data).ToNot(BeEmpty())
 		})
 
-		It("should return no namespaces for non-authorized existent user", func() {
+		It("should return 403 for non-authorized user who cannot list namespaces", func() {
 			By("creating the HTTP request with a non-authorized user")
 			req, err := http.NewRequest(http.MethodGet, NamespaceListPath, nil)
 			reqIdentity := &kubernetes.RequestIdentity{
@@ -190,11 +190,11 @@ var _ = Describe("TestNamespacesHandler", func() {
 			body, err := io.ReadAll(rs.Body)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("unmarshalling the response")
-			var actual NamespacesEnvelope
+			By("verifying the response is 403 Forbidden")
+			var actual ErrorEnvelope
 			err = json.Unmarshal(body, &actual)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(rr.Code).To(Equal(http.StatusInternalServerError))
+			Expect(rr.Code).To(Equal(http.StatusForbidden))
 
 		})
 	})

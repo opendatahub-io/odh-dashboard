@@ -9,21 +9,21 @@ import (
 	"strings"
 )
 
+// Envelope is the standard JSON response wrapper with data and optional metadata.
 type Envelope[D any, M any] struct {
 	Data     D `json:"data"`
 	Metadata M `json:"metadata,omitempty"`
 }
 
+// None is a type alias for omitted metadata in Envelope responses.
 type None *struct{}
 
+// WriteJSON marshals data as JSON, sets headers, and writes the response.
 func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
-
-	js, err := json.MarshalIndent(data, "", "\t")
-
+	js, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
-
 	js = append(js, '\n')
 
 	for key, value := range headers {
@@ -33,24 +33,18 @@ func (app *App) WriteJSON(w http.ResponseWriter, status int, data any, headers h
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_, err = w.Write(js)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
+// ReadJSON decodes a JSON request body into dst with size limits and strict field checking.
 func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error {
-
-	maxBytes := 1_048_576
-	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+	const maxBytes = 1_048_576
+	r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 
 	err := dec.Decode(dst)
-
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
@@ -95,8 +89,9 @@ func (app *App) ReadJSON(w http.ResponseWriter, r *http.Request, dst any) error 
 	return nil
 }
 
+// ParseURLTemplate replaces :key placeholders in tmpl with values from params.
 func ParseURLTemplate(tmpl string, params map[string]string) string {
-	args := make([]string, len(params)*2)
+	args := make([]string, 0, len(params)*2)
 
 	for k, v := range params {
 		args = append(args, ":"+k, v)

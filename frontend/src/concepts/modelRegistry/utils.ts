@@ -7,7 +7,8 @@ import {
   getModelServingConnectionTypeName,
   ModelServingCompatibleTypes,
 } from '#~/concepts/connectionTypes/utils';
-import { CatalogModelDetailsParams } from '#~/pages/modelCatalog/types';
+import { CatalogModelDetailsParams } from '#~/concepts/modelCatalog/types';
+import { ServiceKind } from '#~/k8sTypes';
 import {
   ModelVersion,
   ModelState,
@@ -186,3 +187,9 @@ export const modelSourcePropertiesToPipelineRunRef = (
     runName: properties.modelSourceName,
   };
 };
+
+export const getServerAddress = (resource: ServiceKind): string =>
+  resource.metadata.annotations?.['routing.opendatahub.io/external-address-rest'] || '';
+
+export const isRedHatRegistryUri = (uri: string): boolean =>
+  uri.startsWith('oci://registry.redhat.io/');

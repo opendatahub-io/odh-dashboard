@@ -30,13 +30,13 @@ export const mockPipelinePodK8sResource = ({
       'notebook-name': name,
       [KnownLabels.DASHBOARD_RESOURCE]: 'true',
       'opendatahub.io/odh-managed': 'true',
-      'opendatahub.io/user': user,
       statefulset: name,
       'statefulset.kubernetes.io/pod-name': name,
     },
     annotations: {
       'openshift.io/scc': 'restricted-v2',
       'seccomp.security.alpha.kubernetes.io/pod': 'runtime/default',
+      'opendatahub.io/user': user,
     },
     ownerReferences: [
       {

@@ -1,64 +1,30 @@
 import * as React from 'react';
-import { Content, ContentVariants, Label, Stack, StackItem } from '@patternfly/react-core';
 import { SortableData } from 'mod-arch-shared';
+import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
 import { AIModel } from '~/app/types';
 
-const sourceTypePopover = (
-  <Stack hasGutter>
-    <StackItem>
-      <Content component={ContentVariants.dl}>
-        <Content component={ContentVariants.dt}>
-          <Label color="blue" isCompact>
-            MaaS
-          </Label>
-        </Content>
-        <Content component={ContentVariants.dd}>
-          Model as a Service &mdash; managed by an admin and shared across projects via the API
-          gateway.
-        </Content>
-        <Content component={ContentVariants.dt}>
-          <Label color="grey" isCompact>
-            Internal
-          </Label>
-        </Content>
-        <Content component={ContentVariants.dd}>Deployed and served within your cluster.</Content>
-      </Content>
-    </StackItem>
-  </Stack>
+const modelColumnPopover = (
+  <div>
+    The model&apos;s {ODH_PRODUCT_NAME} display name, followed by the model ID, which is the exact
+    identifier used in API calls.
+  </div>
 );
 
 export const aiModelColumns: SortableData<AIModel>[] = [
   {
     field: 'model_name',
-    label: 'Model deployment name',
+    label: 'Model',
     sortable: true,
     width: 20,
-  },
-  {
-    field: 'model_source_type',
-    label: 'Source',
-    sortable: false,
-    width: 10,
     info: {
-      popover: sourceTypePopover,
+      popover: modelColumnPopover,
       popoverProps: {
-        headerContent: 'Model source types',
+        headerContent: 'Model',
         minWidth: '400px',
+        position: 'right',
       },
-      ariaLabel: 'Model source types help',
+      ariaLabel: 'Model information',
     },
-  },
-  {
-    field: 'endpoints',
-    label: 'Endpoints',
-    sortable: false,
-    width: 15,
-  },
-  {
-    field: 'model_type',
-    label: 'Model type',
-    sortable: false,
-    width: 10,
   },
   {
     field: 'usecase',
@@ -71,6 +37,12 @@ export const aiModelColumns: SortableData<AIModel>[] = [
     label: 'Status',
     sortable: false,
     width: 10,
+  },
+  {
+    field: 'endpoints',
+    label: 'Endpoints',
+    sortable: false,
+    width: 15,
   },
   {
     field: 'playground',

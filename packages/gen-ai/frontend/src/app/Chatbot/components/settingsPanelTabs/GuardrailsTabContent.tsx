@@ -1,26 +1,78 @@
 import * as React from 'react';
-import { EmptyState, EmptyStateBody, Spinner, Bullseye } from '@patternfly/react-core';
-import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
+import { Bullseye, EmptyState, EmptyStateBody, Spinner } from '@patternfly/react-core';
+import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
 import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
 import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
-import useDarkMode from '~/app/Chatbot/hooks/useDarkMode';
+import GuardrailsPanel from '~/app/Chatbot/components/guardrails/GuardrailsPanel';
 import TabContentWrapper from './TabContentWrapper';
 
 interface GuardrailsTabContentProps {
   configId: string;
-  guardrailModels: string[];
-  guardrailModelsLoaded: boolean;
-  guardrailModelsError?: Error;
 }
 
-const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({
-  configId,
-  guardrailModels,
-  guardrailModelsLoaded,
-  guardrailModelsError,
-}) => {
+const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> = ({ configId }) => {
   const isDarkMode = useDarkMode();
-  if (guardrailModelsLoaded && guardrailModels.length === 0) {
+  const {
+    nemoGuardrailsStatus: nemoStatus,
+    nemoGuardrailsStatusLoaded: loaded,
+    nemoGuardrailsStatusError: error,
+  } = React.useContext(ChatbotContext);
+
+  if (error) {
+    const isNotFound = error.message.toLowerCase().includes('not found');
+
+    if (isNotFound) {
+      return (
+        <EmptyState
+          titleText="No guardrail configuration found"
+          icon={() => (
+            <img
+              src={isDarkMode ? SupportIconLight : SupportIconDark}
+              alt="Support icon"
+              style={{ width: '56px', height: '56px' }}
+            />
+          )}
+          variant="sm"
+          data-testid="guardrails-empty-state"
+        >
+          <EmptyStateBody>
+            This playground does not have a guardrail configuration. Contact a cluster administrator
+            to add guardrails.
+          </EmptyStateBody>
+        </EmptyState>
+      );
+    }
+
+    return (
+      <EmptyState
+        titleText="Failed to load guardrails"
+        icon={() => (
+          <img
+            src={isDarkMode ? SupportIconLight : SupportIconDark}
+            alt="Support icon"
+            style={{ width: '56px', height: '56px' }}
+          />
+        )}
+        variant="sm"
+        data-testid="guardrails-error-state"
+      >
+        <EmptyStateBody>
+          Unable to load guardrail configuration. Please try again later.
+        </EmptyStateBody>
+      </EmptyState>
+    );
+  }
+
+  if (!loaded) {
+    return (
+      <Bullseye>
+        <Spinner size="lg" aria-label="Loading guardrails status" />
+      </Bullseye>
+    );
+  }
+
+  if (!nemoStatus) {
     return (
       <EmptyState
         titleText="No guardrail configuration found"
@@ -42,37 +94,9 @@ const GuardrailsTabContent: React.FunctionComponent<GuardrailsTabContentProps> =
     );
   }
 
-  if (guardrailModelsError) {
-    return (
-      <EmptyState
-        titleText="Failed to load guardrails"
-        icon={() => (
-          <img
-            src={isDarkMode ? SupportIconLight : SupportIconDark}
-            alt="Support icon"
-            style={{ width: '56px', height: '56px' }}
-          />
-        )}
-        variant="sm"
-        data-testid="guardrails-error-state"
-      >
-        <EmptyStateBody>
-          Unable to load guardrail configuration. Please try again later.
-        </EmptyStateBody>
-      </EmptyState>
-    );
-  }
-
-  // Loading or has models: show title with content
   return (
     <TabContentWrapper title="Guardrails" titleTestId="guardrails-section-title">
-      {!guardrailModelsLoaded ? (
-        <Bullseye>
-          <Spinner size="lg" aria-label="Loading guardrail models" />
-        </Bullseye>
-      ) : (
-        <GuardrailsPanel configId={configId} availableModels={guardrailModels} />
-      )}
+      <GuardrailsPanel configId={configId} />
     </TabContentWrapper>
   );
 };

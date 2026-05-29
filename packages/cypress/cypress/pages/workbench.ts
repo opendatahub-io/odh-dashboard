@@ -242,6 +242,18 @@ class NotebookRow extends TableRow {
     return this.find().findByTestId('image-display-name').should('contain.text', name);
   }
 
+  findMigrationRequiredLabel() {
+    return this.find().findByTestId('workbench-migration-required-label');
+  }
+
+  findMigrationRequiredPopoverTitle() {
+    return cy.findByTestId('workbench-migration-required-popover-title');
+  }
+
+  findMigrationRequiredPopover() {
+    return cy.findByTestId('workbench-migration-required-popover');
+  }
+
   findNotebookImageAvailability() {
     return cy.findByTestId('notebook-image-availability');
   }
@@ -580,6 +592,10 @@ class CreateSpawnerPage {
     );
   }
 
+  findEnvironmentVariableFields() {
+    return cy.findAllByTestId('environment-variable-field');
+  }
+
   findNotebookImageSelector() {
     return cy.findByTestId('workbench-image-stream-selection');
   }
@@ -672,8 +688,15 @@ class CreateSpawnerPage {
   }
 
   findConnectionsTableRow(name: string, type: string) {
-    this.findConnectionsTable().find(`[data-label=Name]`).contains(name);
-    this.findConnectionsTable().find(`[data-label=Type]`).contains(type);
+    this.findConnectionsTable().scrollIntoView();
+    this.findConnectionsTable()
+      .find(`[data-label=Name]`)
+      .contains(name)
+      .parents('tr')
+      .within(() => {
+        cy.get('[data-label=Name]').should('be.visible').and('contain.text', name);
+        cy.get('[data-label=Type]').should('be.visible').and('contain.text', type);
+      });
   }
 
   findFeatureStoreSection() {

@@ -191,3 +191,14 @@ export const formatMetricValue = (value: string | number | null | undefined): st
   }
   return String(value);
 };
+
+export const getRestartCount = (pod: PodKind): number => {
+  const statuses = pod.status?.containerStatuses;
+  if (!statuses) {
+    return 0;
+  }
+  return statuses.reduce((total, cs) => {
+    const count = 'restartCount' in cs ? Number(cs.restartCount) : 0;
+    return total + (Number.isNaN(count) ? 0 : count);
+  }, 0);
+};

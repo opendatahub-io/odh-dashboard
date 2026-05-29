@@ -12,6 +12,11 @@ const (
 	AutoMLPipelineVersionID = "22e57c06-030f-4c63-900d-0a808d577899"
 
 	DefaultTopN = 3
+	MinTopN     = 1
+
+	// Maximum top_n values based on pipeline type
+	MaxTopNTabular    = 10
+	MaxTopNTimeSeries = 7
 
 	TaskTypeBinary     = "binary"
 	TaskTypeMulticlass = "multiclass"
@@ -21,6 +26,10 @@ const (
 	PipelineTypeTimeSeries = "timeseries"
 	// PipelineTypeTabular identifies the AutoML tabular pipeline (classification + regression) during discovery.
 	PipelineTypeTabular = "tabular"
+
+	// DefaultPipelineVersionSuffix is the release version suffix appended to pipeline version names.
+	// Override at runtime with the PIPELINE_VERSION_SUFFIX env var.
+	DefaultPipelineVersionSuffix = "3.5.0-ea.1"
 )
 
 var ValidTaskTypes = map[string]bool{

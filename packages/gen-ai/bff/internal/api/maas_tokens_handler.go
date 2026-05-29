@@ -14,13 +14,15 @@ func (app *App) MaaSIssueTokenHandler(w http.ResponseWriter, r *http.Request, _ 
 	var tokenRequest models.MaaSTokenRequest
 
 	// Only try to parse JSON if there's actually a body
-	if r.ContentLength > 0 {
+	// Use r.ContentLength != 0 instead of > 0 to handle chunked transfer encoding
+	// where ContentLength is -1 (common with K8s proxies and Envoy)
+	if r.Body != nil && r.ContentLength != 0 {
 		if err := app.ReadJSON(w, r, &tokenRequest); err != nil {
 			app.badRequestResponse(w, r, err)
 			return
 		}
 	}
-	// If no body, tokenRequest remains empty (TTL="") and client will use default
+	// If no body, tokenRequest remains empty; the client enforces ephemeral=true and defaults TTL to 1h
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, tokenRequest)
 	if err != nil {

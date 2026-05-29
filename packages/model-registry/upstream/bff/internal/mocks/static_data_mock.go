@@ -9,9 +9,9 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/google/uuid"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
 	"github.com/kubeflow/model-registry/pkg/openapi"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
 )
 
 func GetRegisteredModelMocks() []openapi.RegisteredModel {
@@ -361,13 +361,19 @@ func GetCatalogModelMocks() []models.CatalogModel {
 		Name:             "repo1/granite-8b-code-instruct",
 		Description:      stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
 		Provider:         stringToPointer("provider1"),
-		Tasks:            []string{"text-generation", "image-to-text"},
-		License:          stringToPointer("apache-2.0"),
+		Tasks:            []string{"text-generation", "image-to-text", "tool-calling"},
+		ValidatedTasks:   []string{"tool-calling"},
+		License:          stringToPointer("Apache 2.0"),
 		LicenseLink:      stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
 		Maturity:         stringToPointer("Technology preview"),
 		Language:         []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
 		CustomProperties: catalogCustomPropertiesWithVariant(graniteVariantGroupId, "FP16"),
-		Logo:             stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
+		ServingConfig: &models.ServingConfig{
+			ToolCalling: &models.ToolCallingConfig{
+				Args: stringToPointer("--enable-auto-tool-choice \\\n--tool-call-parser granite \\\n--chat-template\nopt/app-root/template/tool_chat_template_granite.jinja"),
+			},
+		},
+		Logo: stringToPointer("data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4="),
 		Readme: stringToPointer(`---
 pipeline_tag: text-generation
 inference: false
@@ -716,7 +722,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description:      stringToPointer("Granite 8B Code Instruct - INT4 quantized variant for efficient inference"),
 		Provider:         stringToPointer("Provider one"),
 		Tasks:            []string{"text-generation", "image-text-to-text"},
-		License:          stringToPointer("apache-2.0"),
+		License:          stringToPointer("Apache 2.0"),
 		Maturity:         stringToPointer("Generally Available"),
 		Language:         []string{"en"},
 		SourceId:         stringToPointer("sample-source"),
@@ -729,7 +735,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description:      stringToPointer("Granite 8B Code Instruct - INT8 quantized variant for balanced performance"),
 		Provider:         stringToPointer("IBM"),
 		Tasks:            []string{"audio-to-text", "text-to-text", "video-to-text"},
-		License:          stringToPointer("mit"),
+		License:          stringToPointer("MIT"),
 		Maturity:         stringToPointer("Generally Available"),
 		Language:         []string{"en"},
 		SourceId:         stringToPointer("sample-source"),
@@ -742,7 +748,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description:      stringToPointer("Granite 8B Code Instruct - BF16 variant for high precision"),
 		Provider:         stringToPointer("IBM"),
 		Tasks:            []string{"text-generation", "code-generation"},
-		License:          stringToPointer("apache-2.0"),
+		License:          stringToPointer("Apache 2.0"),
 		Maturity:         stringToPointer("Generally Available"),
 		Language:         []string{"en"},
 		SourceId:         stringToPointer("sample-source"),
@@ -755,11 +761,40 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("BERT base model (uncased) - Pretrained model on English language"),
 		Provider:    stringToPointer("Google"),
 		Tasks:       []string{"audio-to-text", "text-to-text"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
 		LibraryName: stringToPointer("transformers"),
+		Readme: stringToPointer(`# BERT Base Uncased
+
+BERT is a transformers model pretrained on a large corpus of English data.
+
+## Installation
+
+` + "```bash" + `
+pip install transformers torch
+` + "```" + `
+
+## Quick Start
+
+` + "```python" + `
+from transformers import BertTokenizer, BertModel
+
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased')
+
+text = "Replace this with your text"
+encoded = tokenizer(text, return_tensors='pt')
+output = model(**encoded)
+` + "```" + `
+
+## Using with Pipeline
+
+` + "```bash" + `
+python -c "from transformers import pipeline; nlp = pipeline('fill-mask', model='bert-base-uncased'); print(nlp('The capital of France is [MASK].'))"
+` + "```" + `
+`),
 	}
 
 	huggingFaceModel2 := models.CatalogModel{
@@ -767,7 +802,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("GPT-2 is a transformers model pretrained on a very large corpus of English data"),
 		Provider:    stringToPointer("provider3"),
 		Tasks:       []string{"video-to-text"},
-		License:     stringToPointer("mit"),
+		License:     stringToPointer("MIT"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
@@ -779,7 +814,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("DistilBERT base model (uncased) - A smaller, faster version of BERT"),
 		Provider:    stringToPointer("Hugging Face"),
 		Tasks:       []string{"fill-mask", "text-classification"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("huggingface"),
@@ -791,7 +826,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("sample description"),
 		Provider:    stringToPointer("Admin model 1"),
 		Tasks:       []string{"code-generation", "instruction-following"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("adminModel2"),
@@ -802,7 +837,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("sample description"),
 		Provider:    stringToPointer("Admin model 2"),
 		Tasks:       []string{"text-generation", "conversational"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Maturity:    stringToPointer("Generally Available"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("adminModel1"),
@@ -813,7 +848,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 		Description: stringToPointer("Model without performance data"),
 		Provider:    stringToPointer("Test Provider"),
 		Tasks:       []string{"text-generation"},
-		License:     stringToPointer("apache-2.0"),
+		License:     stringToPointer("Apache 2.0"),
 		Language:    []string{"en"},
 		SourceId:    stringToPointer("no-perf-source"),
 	}
@@ -826,7 +861,7 @@ Granite 3.1 Instruct Models are primarily finetuned using instruction-response p
 			Description:              stringToPointer("Granite-8B-Code-Instruct is a 8B parameter model fine tuned from\nGranite-8B-Code-Base on a combination of permissively licensed instruction\ndata to enhance instruction following capabilities including logical\nreasoning and problem-solving skills."),
 			Provider:                 stringToPointer("provider1"),
 			Tasks:                    []string{"text-generation"},
-			License:                  stringToPointer("apache-2.0"),
+			License:                  stringToPointer("Apache 2.0"),
 			LicenseLink:              stringToPointer("https://www.apache.org/licenses/LICENSE-2.0.txt"),
 			Maturity:                 stringToPointer("Technology preview"),
 			Language:                 []string{"ar", "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pt", "zh"},
@@ -1682,7 +1717,7 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 		Values: []interface{}{
 			"Apache 2.0", "Gemma License", "Llama 3.1 Community License",
 			"Llama 3.3 Community License", "Llama 4 Community License", "MIT",
-			"NVIDIA Open Model License", "modified-mit",
+			"NVIDIA Open Model License", "Modified MIT",
 		},
 	}
 
@@ -1692,6 +1727,13 @@ func GetFilterOptionMocks() map[string]models.FilterOption {
 			"audio-to-text", "automatic-speech-recognition", "automatic-speech-translation",
 			"code-generation", "image-text-to-text", "image-to-text", "text-embedding",
 			"text-generation", "text-to-text", "tool-calling", "video-to-text",
+		},
+	}
+
+	filterOptions["validatedTasks"] = models.FilterOption{
+		Type: FilterOptionTypeString,
+		Values: []interface{}{
+			"tool-calling",
 		},
 	}
 
@@ -2370,6 +2412,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("0.9.2"),
 		License:     stringToPointer("Apache 2.0"),
 		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/cncf/artwork/main/projects/prometheus/icon/color/prometheus-icon-color.svg"),
 		Tags:        []string{"metrics", "monitoring", "alerting"},
 		ToolCount:   15,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
@@ -2407,6 +2450,33 @@ func GetMcpServerMocks() []models.McpServer {
 		SourceCode:    stringToPointer("prometheus-community/prometheus-mcp"),
 		RepositoryURL: stringToPointer("https://github.com/prometheus-community/prometheus-mcp"),
 		LastUpdated:   stringToPointer("1706745600000"),
+		RuntimeMetadata: &models.McpRuntimeMetadata{
+			DefaultPort: func() *int32 { p := int32(9090); return &p }(),
+			McpPath:     stringToPointer("/sse"),
+			DefaultArgs: []string{"--config", "/etc/prometheus/config.yaml"},
+			RequiredEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "PROMETHEUS_URL", Description: "Prometheus server URL", Example: stringToPointer("http://prometheus:9090")},
+			},
+			OptionalEnvironmentVariables: []models.McpEnvVarMetadata{
+				{Name: "LOG_LEVEL", Description: "Logging level", DefaultValue: stringToPointer("info")},
+			},
+			Prerequisites: &models.McpPrerequisites{
+				ServiceAccount: &models.McpServiceAccountRequirement{
+					Required:      &trueVal,
+					SuggestedName: stringToPointer("prometheus-mcp-sa"),
+					Hint:          stringToPointer("Needs prometheus-reader ClusterRole binding"),
+				},
+				Secrets: []models.McpSecretRequirement{
+					{
+						Name:        "prometheus-credentials",
+						Description: "Prometheus auth credentials",
+						Keys: []models.McpSecretKey{
+							{Key: "token", Description: "Bearer token for Prometheus API", EnvVarName: stringToPointer("PROM_TOKEN"), Required: &trueVal},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	kubernetesMcp := models.McpServer{
@@ -2418,6 +2488,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("1.2.0"),
 		License:     stringToPointer("Apache 2.0"),
 		LicenseLink: stringToPointer("https://www.apache.org/licenses/LICENSE-2.0"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/kubernetes/kubernetes/master/logo/logo.svg"),
 		Tags:        []string{"kubernetes", "containers", "orchestration"},
 		ToolCount:   23,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
@@ -2504,6 +2575,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("1.1.0"),
 		License:     stringToPointer("AGPL-3.0"),
 		LicenseLink: stringToPointer("https://www.gnu.org/licenses/agpl-3.0.html"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/grafana/grafana/main/public/img/grafana_icon.svg"),
 		Tags:        []string{"dashboards", "visualization", "monitoring"},
 		ToolCount:   12,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP},
@@ -2515,6 +2587,9 @@ func GetMcpServerMocks() []models.McpServer {
 			VerifiedSource: &trueVal,
 			SecureEndpoint: &trueVal,
 			ReadOnlyTools:  &trueVal,
+		},
+		Endpoints: &models.McpEndpoints{
+			HTTP: stringToPointer("https://api.mcpservers.org/grafana-mcp/v1"),
 		},
 	}
 
@@ -2570,6 +2645,7 @@ func GetMcpServerMocks() []models.McpServer {
 		Version:     stringToPointer("0.8.1"),
 		License:     stringToPointer("BSD-3-Clause"),
 		LicenseLink: stringToPointer("https://opensource.org/licenses/BSD-3-Clause"),
+		Logo:        stringToPointer("https://raw.githubusercontent.com/redis/redis-io/master/public/images/redis-white.png"),
 		Tags:        []string{"cache", "database", "messaging"},
 		ToolCount:   14,
 		Transports:  []models.McpTransportType{models.McpTransportTypeHTTP, models.McpTransportTypeSSE},
@@ -2633,7 +2709,7 @@ func GetMcpServerListMock() models.McpServerList {
 		Items:         allMcpServers,
 		Size:          int32(len(allMcpServers)),
 		PageSize:      int32(10),
-		NextPageToken: "10",
+		NextPageToken: "",
 	}
 }
 
@@ -2642,8 +2718,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	falseVal := false
 
 	queryTool := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "query",
 			Description: stringToPointer("Execute PromQL queries against the Prometheus time-series database"),
@@ -2673,8 +2748,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	getAlertsTool := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "get_alerts",
 			Description: stringToPointer("Retrieve current problems and incidents"),
@@ -2685,8 +2759,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	getPodsTool := models.McpToolWithServer{
-		ServerID:   "kubernetes-mcp",
-		ServerName: "Kubernetes MCP Server",
+		ServerID: "kubernetes-mcp",
 		Tool: models.McpTool{
 			Name:        "get_pods",
 			Description: stringToPointer("List pods in a namespace"),
@@ -2710,8 +2783,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	createMaintenanceWindow := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "create_maintenance_window",
 			Description: stringToPointer("Create a maintenance window to suppress alerts"),
@@ -2753,8 +2825,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	executeDql := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "execute_dql",
 			Description: stringToPointer("Execute Dynatrace Query Language (DQL) queries"),
@@ -2778,8 +2849,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	getServiceHealth := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "get_service_health",
 			Description: stringToPointer("Get health status of services"),
@@ -2797,8 +2867,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	getVulnerabilities := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "get_vulnerabilities",
 			Description: stringToPointer("Retrieve security vulnerability data"),
@@ -2822,8 +2891,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	deployModel := models.McpToolWithServer{
-		ServerID:   "kubernetes-mcp",
-		ServerName: "Kubernetes MCP Server",
+		ServerID: "kubernetes-mcp",
 		Tool: models.McpTool{
 			Name:        "deploy_model",
 			Description: stringToPointer("Deploy a machine learning model to a Kubernetes cluster"),
@@ -2859,8 +2927,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	queryRange := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "query_range",
 			Description: stringToPointer("Execute a PromQL range query over a time window"),
@@ -2896,8 +2963,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	getMetricMetadata := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "get_metric_metadata",
 			Description: stringToPointer("Retrieve metadata about a specific Prometheus metric"),
@@ -2915,8 +2981,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	listTargets := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "list_targets",
 			Description: stringToPointer("List all active and dropped scrape targets"),
@@ -2934,8 +2999,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	deleteAlertSilence := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:        "delete_alert_silence",
 			Description: stringToPointer("Delete an alert silence by ID"),
@@ -2953,8 +3017,7 @@ func GetMcpToolWithServerMocks() []models.McpToolWithServer {
 	}
 
 	legacyExport := models.McpToolWithServer{
-		ServerID:   "prometheus-mcp",
-		ServerName: "Prometheus MCP Server",
+		ServerID: "prometheus-mcp",
 		Tool: models.McpTool{
 			Name:          "legacy_export",
 			Description:   stringToPointer("Export metrics in legacy format (deprecated)"),
@@ -3159,5 +3222,76 @@ func GetMcpServerCatalogSourceListMock() models.CatalogSourceList {
 		Size:          int32(len(allSources)),
 		PageSize:      int32(10),
 		NextPageToken: "",
+	}
+}
+
+func GetMcpServerCatalogLabelListMock() models.CatalogLabelList {
+	communityName := "community_mcp_servers"
+	communityDisplay := "Community MCP Servers"
+	communityDesc := "Community contributed MCP servers from various sources."
+
+	orgName := "organization_mcp_servers"
+	orgDisplay := "Organization MCP Servers"
+	orgDesc := "MCP servers provided and maintained by your organization."
+
+	labels := []models.CatalogLabel{
+		{
+			Name:        &communityName,
+			DisplayName: &communityDisplay,
+			Description: &communityDesc,
+		},
+		{
+			Name:        &orgName,
+			DisplayName: &orgDisplay,
+			Description: &orgDesc,
+		},
+	}
+
+	return models.CatalogLabelList{
+		Items:         labels,
+		Size:          int32(len(labels)),
+		PageSize:      int32(10),
+		NextPageToken: "",
+	}
+}
+
+func GetMcpDeploymentMocks() []models.McpDeployment {
+	return []models.McpDeployment{
+		{
+			Name:              "kubernetes-mcp",
+			DisplayName:       "Kubernetes MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+			CreationTimestamp: "2026-03-10T14:30:00Z",
+			Image:             "quay.io/mcp-servers/kubernetes:1.0.0",
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-10T14:31:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "True", LastTransitionTime: "2026-03-10T14:32:00Z", Reason: "Available"},
+			},
+		},
+		{
+			Name:              "slack-mcp",
+			DisplayName:       "Slack MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+			CreationTimestamp: "2026-03-14T11:00:00Z",
+			Image:             "quay.io/mcp-servers/slack:0.5.0",
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-14T11:00:00Z", Reason: "Initializing", Message: "Waiting for pods to become ready."},
+			},
+		},
+		{
+			Name:              "jira-mcp",
+			DisplayName:       "Jira MCP Server",
+			Namespace:         "mcp-servers",
+			UID:               "c3d4e5f6-a7b8-9012-cdef-123456789012",
+			CreationTimestamp: "2026-03-08T16:45:00Z",
+			Image:             "quay.io/mcp-servers/jira:1.2.0",
+			Conditions: []models.McpDeploymentCondition{
+				{Type: "Accepted", Status: "True", LastTransitionTime: "2026-03-08T16:46:00Z", Reason: "Valid"},
+				{Type: "Ready", Status: "False", LastTransitionTime: "2026-03-08T16:55:00Z", Reason: "DeploymentUnavailable", Message: "Pod crashed."},
+			},
+		},
 	}
 }

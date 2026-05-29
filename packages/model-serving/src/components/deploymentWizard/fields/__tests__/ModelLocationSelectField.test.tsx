@@ -9,9 +9,12 @@ import {
   Connection,
 } from '@odh-dashboard/internal/concepts/connectionTypes/types';
 import { mockPVCK8sResource } from '@odh-dashboard/internal/__mocks__/mockPVCK8sResource';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import type { IsAreaAvailableStatus } from '@odh-dashboard/internal/concepts/areas/types';
 import { ModelLocationData, ModelLocationType } from '../../types';
 import { isValidModelLocationData, useModelLocationData } from '../ModelLocationInputFields';
 import { ModelLocationSelectField } from '../ModelLocationSelectField';
+import type { UseModelDeploymentWizardState } from '../../useDeploymentWizard';
 
 const modelLocationSchema = z.object({
   modelLocationData: z.custom<ModelLocationData>((val) => {
@@ -211,6 +214,18 @@ jest.mock('@odh-dashboard/internal/utilities/useWatchConnectionTypes', () => ({
   useWatchConnectionTypes: () => [mockConnectionTypes, true],
 }));
 
+jest.mock('@odh-dashboard/internal/concepts/areas/useIsAreaAvailable');
+const mockUseIsAreaAvailable = jest.mocked(useIsAreaAvailable);
+const mockAreaStatus = (status: boolean): IsAreaAvailableStatus => ({
+  status,
+  devFlags: null,
+  featureFlags: null,
+  reliantAreas: null,
+  requiredCapabilities: null,
+  requiredComponents: null,
+  customCondition: () => false,
+});
+
 const mockConnections: Connection[] = [];
 const mockPvcs: PersistentVolumeClaimKind[] = [];
 
@@ -251,6 +266,7 @@ describe('ModelLocationSelectField', () => {
     jest.clearAllMocks();
     mockUseWizardContext.mockReturnValue(mockWizardContext);
     mockUseWizardFooter.mockImplementation(() => undefined);
+    mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(false));
   });
   describe('Schema validation', () => {
     it('should validate new S3 connection', () => {
@@ -418,12 +434,29 @@ describe('ModelLocationSelectField', () => {
   });
   describe('Component', () => {
     const mockSetModelLocationData = jest.fn();
+    const mockWizardState: UseModelDeploymentWizardState = {
+      fields: [],
+      state: {
+        createConnectionData: {
+          data: {},
+          setData: jest.fn(),
+        },
+        project: {
+          projectName: undefined,
+        },
+        modelLocationData: {
+          data: undefined,
+          setData: jest.fn(),
+        },
+      },
+    } as unknown as UseModelDeploymentWizardState;
     beforeEach(() => {
       jest.clearAllMocks();
     });
     it('should render with default props', () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -438,6 +471,7 @@ describe('ModelLocationSelectField', () => {
     it('should render with selected value', () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -469,6 +503,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid location type selection', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -512,6 +547,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid URI location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -544,6 +580,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid S3 location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -587,6 +624,7 @@ describe('ModelLocationSelectField', () => {
     it('should call setModelLocationData on valid OCI location input', async () => {
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -622,6 +660,7 @@ describe('ModelLocationSelectField', () => {
     it('should render the custom type select and fields and call setModelLocationData', async () => {
       const { rerender } = render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -670,6 +709,7 @@ describe('ModelLocationSelectField', () => {
       const newData = mockSetModelLocationData.mock.calls.slice(-1)[0][0];
       rerender(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           modelLocation={ModelLocationType.NEW}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
@@ -697,6 +737,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.length = 0;
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -735,6 +776,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.push(mockGeneratedURIConnection);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -793,6 +835,7 @@ describe('ModelLocationSelectField', () => {
       mockConnections.push(mockOtherConnection);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -818,6 +861,7 @@ describe('ModelLocationSelectField', () => {
       mockPvcs.push(mockPVC);
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -836,6 +880,7 @@ describe('ModelLocationSelectField', () => {
       mockPvcs.length = 0;
       render(
         <ModelLocationSelectField
+          wizardState={mockWizardState}
           setModelLocationData={mockSetModelLocationData}
           resetModelLocationData={jest.fn()}
           connections={mockConnections}
@@ -849,6 +894,71 @@ describe('ModelLocationSelectField', () => {
         fireEvent.click(button);
       });
       expect(screen.queryByRole('option', { name: 'Cluster storage' })).not.toBeInTheDocument();
+    });
+    it('should show NVIDIA NIM option when NIM wizard area is enabled', async () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      render(
+        <ModelLocationSelectField
+          wizardState={mockWizardState}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+        />,
+      );
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.getByRole('option', { name: 'NVIDIA NIM' })).toBeInTheDocument();
+    });
+    it('should not show NVIDIA NIM option when NIM wizard area is disabled', async () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(false));
+      render(
+        <ModelLocationSelectField
+          wizardState={mockWizardState}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+        />,
+      );
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      expect(screen.queryByRole('option', { name: 'NVIDIA NIM' })).not.toBeInTheDocument();
+    });
+    it('should call setModelLocationData with NIM type when NVIDIA NIM is selected', async () => {
+      mockUseIsAreaAvailable.mockReturnValue(mockAreaStatus(true));
+      render(
+        <ModelLocationSelectField
+          wizardState={mockWizardState}
+          setModelLocationData={mockSetModelLocationData}
+          resetModelLocationData={jest.fn()}
+          connections={mockConnections}
+          setSelectedConnection={jest.fn()}
+          selectedConnection={undefined}
+          pvcs={mockPvcs}
+        />,
+      );
+      const button = screen.getByTestId('model-location-select');
+      await act(async () => {
+        fireEvent.click(button);
+      });
+      const nimOption = screen.getByRole('option', { name: 'NVIDIA NIM' });
+      await act(async () => {
+        fireEvent.click(nimOption);
+      });
+      expect(mockSetModelLocationData).toHaveBeenCalledWith({
+        type: ModelLocationType.NIM,
+        fieldValues: {},
+        additionalFields: {},
+      });
     });
   });
 });

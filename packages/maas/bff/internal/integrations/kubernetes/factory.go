@@ -159,5 +159,5 @@ func (f *TokenClientFactory) GetClient(ctx context.Context) (KubernetesClientInt
 		return nil, fmt.Errorf("invalid or missing identity token")
 	}
 
-	return newTokenKubernetesClient(identity.Token, f.Logger)
+	return NewTokenKubernetesClient(identity.Token, f.Logger)
 }

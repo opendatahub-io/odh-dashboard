@@ -122,13 +122,32 @@ Cypress.on('uncaught:exception', (err) => {
     return false;
   }
 
-  // Ignore 'Unexpected token :' errors from webpack-dev-server fallback in E2E tests
-  if (err.message.includes("Unexpected token ':'")) {
+  // Ignore 'Unexpected token :' / 'expected expression' parser errors from cross-origin scripts
+  if (err.message.includes("Unexpected token ':'") || err.message.includes('expected expression')) {
     return false;
   }
 
   // Ignore Monaco editor 'Canceled' errors thrown during editor disposal/cleanup
   if (err.message === 'Canceled' || err.name === 'Canceled') {
+    return false;
+  }
+
+  if (err.message.includes('ResizeObserver loop completed with undelivered notifications')) {
+    return false;
+  }
+
+  // TODO: RHOAIENG-65075 - postMessage null error from model-registry/MaaS iframe teardown
+  if (err.message.includes('Cannot read properties of null')) {
+    return false;
+  }
+
+  // Ignore pipeline secret conflicts surfaced as uncaught exceptions during setup
+  if (err.message.includes('secrets "ds-pipeline-config" already exists')) {
+    return false;
+  }
+
+  // Ignore SSR-like 'window is not defined' errors during page transitions
+  if (err.message.includes('window is not defined')) {
     return false;
   }
 

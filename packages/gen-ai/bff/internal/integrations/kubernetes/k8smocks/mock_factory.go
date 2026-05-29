@@ -9,11 +9,12 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/config"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/gen-ai/internal/models"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -38,8 +39,16 @@ func NewMockedKubernetesClientFactory(clientset client.Client, testEnvState *Tes
 		}
 		return k8sFactory, nil
 
+	case config.AuthMethodDisabled:
+		// When auth is disabled, use the default envtest client without impersonation
+		k8sFactory, err := NewDisabledAuthClientFactory(clientset, testEnvState.Env.Config, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create disabled auth client factory: %w", err)
+		}
+		return k8sFactory, nil
+
 	default:
-		return nil, fmt.Errorf("invalid auth method: %q", cfg.AuthMethod)
+		return nil, fmt.Errorf("invalid auth method: %q (must be %s or %s)", cfg.AuthMethod, config.AuthMethodUser, config.AuthMethodDisabled)
 	}
 }
 
@@ -118,12 +127,12 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	impersonatedCfg := rest.CopyConfig(f.restConfig)
 	impersonatedCfg.Impersonate = rest.ImpersonationConfig{}
 
-	// Create a scheme with LSD types for the new client
+	// Create a scheme with OGXServer types for the new client
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
-	if err := lsdapi.AddToScheme(scheme); err != nil {
+	if err := ogxapi.AddToScheme(scheme); err != nil {
 		return nil, err
 	}
 	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
@@ -144,6 +153,79 @@ func (f *MockedTokenClientFactory) GetClient(ctx context.Context) (k8s.Kubernete
 	client := newMockedTokenKubernetesClientFromClientset(ctrlClient, impersonatedCfg, f.logger)
 	f.clients[identity.Token] = client
 	return client, nil
+}
+
+// ─── DISABLED AUTH FACTORY (envtest + "DISABLED" auth) ──────────────────────────
+//
+// DisabledAuthClientFactory creates a Kubernetes client without authentication.
+// This is useful for inter-BFF testing where authentication is disabled.
+// It uses the default envtest credentials without any impersonation.
+type DisabledAuthClientFactory struct {
+	logger     *slog.Logger
+	clientset  client.Client
+	restConfig *rest.Config
+	client     k8s.KubernetesClientInterface
+	initOnce   sync.Once
+}
+
+// NewDisabledAuthClientFactory creates a factory that bypasses authentication
+func NewDisabledAuthClientFactory(ctrlClient client.Client, restConfig *rest.Config, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
+	return &DisabledAuthClientFactory{
+		logger:     logger,
+		clientset:  ctrlClient,
+		restConfig: restConfig,
+	}, nil
+}
+
+func (f *DisabledAuthClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*integrations.RequestIdentity, error) {
+	// For disabled auth, return a dummy identity
+	return &integrations.RequestIdentity{Token: "disabled-auth-token"}, nil
+}
+
+func (f *DisabledAuthClientFactory) ValidateRequestIdentity(identity *integrations.RequestIdentity) error {
+	// For disabled auth, always valid
+	return nil
+}
+
+func (f *DisabledAuthClientFactory) GetClient(ctx context.Context) (k8s.KubernetesClientInterface, error) {
+	var initErr error
+	f.initOnce.Do(func() {
+		// Create a scheme with all required types
+		scheme := runtime.NewScheme()
+		if err := clientgoscheme.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := ogxapi.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := kservev1beta1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+		if err := gorchv1alpha1.AddToScheme(scheme); err != nil {
+			initErr = err
+			return
+		}
+
+		ctrlClient, err := client.New(f.restConfig, client.Options{Scheme: scheme})
+		if err != nil {
+			initErr = fmt.Errorf("failed to create client: %w", err)
+			return
+		}
+
+		f.client = newMockedTokenKubernetesClientFromClientset(ctrlClient, f.restConfig, f.logger)
+	})
+
+	if initErr != nil {
+		return nil, initErr
+	}
+	return f.client, nil
 }
 
 // ─── MOCK FACTORIES FOR TESTING ───────────────────────────────────────────────
@@ -175,7 +257,7 @@ func (f *FailingMockTokenClientFactory) ValidateRequestIdentity(identity *integr
 	return nil
 }
 
-// ConfigurableMockTokenClientFactory allows configuring CanListLlamaStackDistributions behavior
+// ConfigurableMockTokenClientFactory allows configuring CanListOGXServers behavior
 type ConfigurableMockTokenClientFactory struct {
 	CanListLSDAllowed bool
 	CanListLSDError   error
@@ -206,11 +288,25 @@ type ConfigurableMockKubernetesClient struct {
 	CanListLSDError   error
 }
 
-func (c *ConfigurableMockKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+func (c *ConfigurableMockKubernetesClient) GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error) {
+	return "mockUser", nil
+}
+
+func (c *ConfigurableMockKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	if c.CanListLSDError != nil {
 		return false, c.CanListLSDError
 	}
 	return c.CanListLSDAllowed, nil
+}
+
+func (c *ConfigurableMockKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+	// Return error to simulate inability to access ConfigMap
+	return nil, fmt.Errorf("mock: external models ConfigMap not accessible")
+}
+
+func (c *ConfigurableMockKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	// Return error to simulate inability to access Secret
+	return "", fmt.Errorf("mock: secret not accessible")
 }
 
 // Helper functions to create k8s error types for testing

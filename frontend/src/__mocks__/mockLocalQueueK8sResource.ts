@@ -15,7 +15,7 @@ export const mockLocalQueueK8sResource = ({
   isCpuOverQuota = false,
   isMemoryOverQuota = false,
 }: MockResourceConfigType): LocalQueueKind => ({
-  apiVersion: 'kueue.x-k8s.io/v1beta1',
+  apiVersion: 'kueue.x-k8s.io/v1beta2',
   kind: 'LocalQueue',
   metadata: {
     creationTimestamp: '2024-03-26T14:12:10Z',
@@ -40,7 +40,7 @@ export const mockLocalQueueK8sResource = ({
         type: 'Active',
       },
     ],
-    flavorUsage: [
+    flavorsUsage: [
       {
         name: 'test-flavor',
         resources: [

@@ -20,8 +20,9 @@ import * as _ from 'lodash-es';
 import { z } from 'zod';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
 import type { ModelTypeField } from './ModelTypeSelectField';
-import { isTokenAuthField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { isTokenAuthFieldOverride } from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
+import { showAuthWarning } from '../hooks/useAuthWarning';
 
 // Schema
 const tokenSchema = z.object({
@@ -47,6 +48,7 @@ export type TokenAuthenticationFieldHook = {
   data: TokenAuthenticationFieldData | undefined;
   setData: (data: TokenAuthenticationFieldData) => void;
   shouldAutoCheck: boolean;
+  isDisabled: boolean;
 };
 
 export const useTokenAuthenticationField = (
@@ -55,13 +57,13 @@ export const useTokenAuthenticationField = (
   modelServer?: ModelServerSelectField,
   canCreateRoleBindings?: boolean,
 ): TokenAuthenticationFieldHook => {
-  const tokenAuthExtension = useWizardFieldFromExtension(isTokenAuthField, {
+  const tokenAuthOverrides = useWizardFieldOverrides(isTokenAuthFieldOverride, {
     modelType: { data: modelType?.data },
     modelServer: { data: modelServer?.data },
   });
   const shouldAutoCheck = React.useMemo(() => {
-    return tokenAuthExtension?.initialValue ?? false;
-  }, [tokenAuthExtension]);
+    return tokenAuthOverrides.some((override) => override.initialValue);
+  }, [tokenAuthOverrides]);
 
   const initialData = React.useMemo(() => {
     if (shouldAutoCheck && !existingData && canCreateRoleBindings === true) {
@@ -93,6 +95,7 @@ export const useTokenAuthenticationField = (
     data: tokenAuthData,
     setData: setTokenAuthData,
     shouldAutoCheck,
+    isDisabled: false,
   };
 };
 
@@ -189,13 +192,20 @@ type TokenAuthenticationFieldProps = {
   tokens?: TokenAuthenticationFieldData;
   onChange?: TokenAuthenticationFieldHook['setData'];
   allowCreate?: boolean;
+  shouldAutoCheck: boolean;
+  isExternalRouteVisible: boolean;
+  externalRouteData?: boolean;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
   tokens = [],
   onChange,
   allowCreate = false,
+  shouldAutoCheck,
+  isExternalRouteVisible,
+  externalRouteData,
 }) => {
+  const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
     const displayName = 'default-name';
     const duplicated = tokens.filter((token) => token.displayName === displayName);
@@ -227,7 +237,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           id="alt-form-checkbox-auth"
           data-testid="token-authentication-checkbox"
           name="alt-form-checkbox-auth"
-          isDisabled={!allowCreate}
+          isDisabled={isDisabled}
           isChecked={tokens.length > 0}
           onChange={(e, check) => {
             if (check && tokens.length === 0) {
@@ -242,7 +252,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
         <StackItem>
           <div style={{ marginLeft: 'var(--pf-t--global--spacer--lg)' }}>
             <Stack hasGutter>
-              {allowCreate && (
+              {!isDisabled && (
                 <StackItem>
                   <Alert
                     variant="info"
@@ -257,7 +267,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                     newToken={token}
                     existingTokens={tokens}
                     setTokens={onChange}
-                    disabled={!allowCreate}
+                    disabled={isDisabled}
                   />
                 </StackItem>
               ))}
@@ -268,7 +278,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
                   iconPosition="left"
                   variant="link"
                   icon={<PlusCircleIcon />}
-                  isDisabled={!allowCreate}
+                  isDisabled={isDisabled}
                   data-testid="add-service-account-button"
                 >
                   Add a service account
@@ -278,6 +288,23 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           </div>
         </StackItem>
       )}
+      {showAuthWarning({
+        shouldAutoCheckTokens: shouldAutoCheck,
+        isExternalRouteVisible,
+        externalRouteData,
+        tokenAuthData: tokens,
+      }) &&
+        !isDisabled && (
+          <StackItem>
+            <Alert
+              id="no-auth-alert"
+              data-testid="no-auth-alert"
+              variant="warning"
+              isInline
+              title="Making models available by external routes without requiring authorization can lead to security vulnerabilities."
+            />
+          </StackItem>
+        )}
     </Stack>
   );
 };

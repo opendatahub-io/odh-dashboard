@@ -4,3 +4,7 @@
 .vscode/*
 !.vscode/launch.json
 !.vscode/tasks.json
+
+# Claude
+CLAUDE.md
+.claude/settings.local.json

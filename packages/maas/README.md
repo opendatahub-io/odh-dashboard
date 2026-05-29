@@ -81,6 +81,12 @@ The following environment variables are used to configure the deployment and dev
 - **Possible Values**: `mui-theme`, `patternfly-theme`
 - **Example**: `STYLE_THEME=mui-theme`
 
+### `MAAS_API_URL`
+
+- **Description**: Specifies the URL of the MaaS API that the BFF connects to.
+- **Default Value**: *(none)* — if not set, the `dev-bff-federated` Makefile target will auto-detect it by querying the cluster's ingress domain via `oc get ingresses.config.openshift.io cluster`. The resolved URL follows the pattern `http://maas.<CLUSTER_DOMAIN>/maas-api`. When running in-cluster, the BFF performs the same auto-detection using its service account.
+- **Example**: `MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api`
+
 ### Example `.env.local` File
 
 Here is an example of what your `.env.local` file might look like:
@@ -90,6 +96,7 @@ CONTAINER_TOOL=docker
 IMG_UI=quay.io/<personal-registry>/mod-arch-ui:latest
 IMG_UI_STANDALONE=quay.io/<personal-registry>/mod-arch-ui-standalone:latest
 PLATFORM=linux/amd64
+MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
 ```
 
 ## Build and Push Commands

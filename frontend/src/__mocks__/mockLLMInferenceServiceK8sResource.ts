@@ -20,6 +20,11 @@ type MockLLMInferenceServiceConfigType = {
   isNonDashboardItem?: boolean;
   modelType?: ServingRuntimeModelType;
   isStopped?: boolean;
+  baseRefs?: { name?: string }[];
+  description?: string;
+  isMaaS?: boolean;
+  secretName?: string;
+  gatewayRefs?: { name: string; namespace: string }[];
 };
 
 export const mockLLMInferenceServiceK8sResource = ({
@@ -36,6 +41,11 @@ export const mockLLMInferenceServiceK8sResource = ({
   url,
   addresses,
   isStopped = false,
+  baseRefs,
+  description,
+  isMaaS = false,
+  secretName,
+  gatewayRefs,
 }: MockLLMInferenceServiceConfigType): LLMInferenceServiceKind => ({
   apiVersion: 'serving.kserve.io/v1alpha1',
   kind: 'LLMInferenceService',
@@ -46,6 +56,8 @@ export const mockLLMInferenceServiceK8sResource = ({
       'opendatahub.io/hardware-profile-namespace': 'opendatahub',
       'opendatahub.io/model-type': ServingRuntimeModelType.GENERATIVE,
       ...(isStopped ? { [ModelAnnotation.STOPPED_ANNOTATION]: 'true' } : {}),
+      ...(description && { 'openshift.io/description': description }),
+      ...(secretName && { 'opendatahub.io/connections': secretName }),
     },
     creationTimestamp,
     ...(deleted ? { deletionTimestamp: new Date().toUTCString() } : {}),
@@ -59,13 +71,20 @@ export const mockLLMInferenceServiceK8sResource = ({
     uid: genUID('llm-service'),
   },
   spec: {
+    ...(baseRefs && { baseRefs }),
     model: {
       name: modelName,
       uri: modelUri,
     },
     replicas,
     router: {
-      gateway: {},
+      gateway: {
+        ...(gatewayRefs
+          ? { refs: gatewayRefs }
+          : isMaaS
+          ? { refs: [{ name: 'maas-default-gateway', namespace: 'openshift-ingress' }] }
+          : {}),
+      },
       route: {},
       scheduler: {},
     },

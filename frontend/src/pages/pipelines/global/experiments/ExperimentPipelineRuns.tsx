@@ -2,7 +2,7 @@ import * as React from 'react';
 import { BreadcrumbItem, Label, Truncate } from '@patternfly/react-core';
 import { Outlet } from 'react-router';
 import {
-  experimentRunsPageDescription,
+  runGroupRunsPageDescription,
   pipelineRunsPageTitle,
 } from '#~/pages/pipelines/global/runs/const';
 import PipelineCoreApplicationPage from '#~/pages/pipelines/global/PipelineCoreApplicationPage';
@@ -26,7 +26,7 @@ const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
       title={
         <TitleWithIcon title={pipelineRunsPageTitle} objectType={ProjectObjectType.pipelineRun} />
       }
-      description={experimentRunsPageDescription}
+      description={runGroupRunsPageDescription}
       getRedirectPath={experimentsBaseRoute}
       overrideChildPadding
       accessDomain="pipeline runs"
@@ -36,7 +36,7 @@ const ExperimentPipelineRuns: PipelineCoreDetailsPageComponent = ({ breadcrumbPa
           <BreadcrumbItem>
             <Truncate content={experiment?.display_name || 'Loading...'} />
           </BreadcrumbItem>
-          {isExperimentArchived && <Label>Archived</Label>}
+          {isExperimentArchived && <Label variant="outline">Archived</Label>}
         </PipelineContextBreadcrumb>
       }
     >

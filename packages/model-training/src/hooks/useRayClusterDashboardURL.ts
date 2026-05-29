@@ -1,43 +1,55 @@
 import * as React from 'react';
-import { k8sGetResource, K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
+import useFetch, { NotReadyError } from '@odh-dashboard/internal/utilities/useFetch';
+import { k8sGetResource } from '@openshift/dynamic-plugin-sdk-utils';
 import { GatewayModel, HTTPRouteModel } from '@odh-dashboard/internal/api/models';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';
+import { GatewayResource, HTTPRouteResource } from '../k8sTypes';
 
 const GATEWAY_NAME = 'data-science-gateway';
 const GATEWAY_NAMESPACE = 'openshift-ingress';
 
-type GatewayResource = K8sResourceCommon & {
-  spec?: {
-    listeners?: Array<{
-      hostname?: string;
-      [key: string]: unknown;
-    }>;
-  };
-};
+const getGateway = (): Promise<GatewayResource> =>
+  k8sGetResource<GatewayResource>({
+    model: GatewayModel,
+    queryOptions: { name: GATEWAY_NAME, ns: GATEWAY_NAMESPACE },
+  });
 
-type HTTPRouteResource = K8sResourceCommon & {
-  spec?: {
-    rules?: Array<{
-      filters?: Array<{
-        requestRedirect?: {
-          path?: {
-            replaceFullPath?: string;
-            [key: string]: unknown;
-          };
-          [key: string]: unknown;
-        };
-        [key: string]: unknown;
-      }>;
-      [key: string]: unknown;
-    }>;
-  };
+const getHTTPRoute = (name: string, namespace: string): Promise<HTTPRouteResource> =>
+  k8sGetResource<HTTPRouteResource>({
+    model: HTTPRouteModel,
+    queryOptions: { name, ns: namespace },
+  });
+
+/**
+ * Fetches the Gateway hostname from the cluster-wide `data-science-gateway`.
+ * The result is shared across all consumers since the Gateway is a singleton.
+ */
+export const useGatewayHostname = (): {
+  hostname: string | null;
+  loaded: boolean;
+  error: Error | undefined;
+} => {
+  const { data, loaded, error } = useFetch<GatewayResource | null>(
+    React.useCallback(() => getGateway(), []),
+    null,
+    { initialPromisePurity: true },
+  );
+
+  return React.useMemo(
+    () => ({
+      hostname: data?.spec?.listeners?.[0]?.hostname ?? null,
+      loaded,
+      error,
+    }),
+    [data, loaded, error],
+  );
 };
 
 /**
  * Build the RayCluster dashboard URL from Gateway hostname + HTTPRoute path.
  *
  * Gateway: `data-science-gateway` in `openshift-ingress` -> spec.listeners[0].hostname
- * HTTPRoute: `<namespace>-<clustername>` in `redhat-ods-applications` -> spec.rules.filters[0].requestRedirect.path.replaceFullPath
+ * HTTPRoute: `<namespace>-<clustername>` in the dashboard namespace -> spec.rules[0].filters[0].requestRedirect.path.replaceFullPath
  *
  * Final URL: https://<hostname><path>
  */
@@ -46,71 +58,45 @@ export const useRayClusterDashboardURL = (
   namespace: string,
 ): { url: string | null; loaded: boolean; error: Error | undefined } => {
   const { dashboardNamespace } = useDashboardNamespace();
-  const [url, setUrl] = React.useState<string | null>(null);
-  const [loaded, setLoaded] = React.useState(false);
-  const [error, setError] = React.useState<Error | undefined>(undefined);
+  const { hostname, loaded: gatewayLoaded, error: gatewayError } = useGatewayHostname();
 
-  React.useEffect(() => {
-    if (!rayClusterName || !dashboardNamespace) {
-      setUrl(null);
-      setLoaded(true);
-      setError(undefined);
-      return;
+  const {
+    data: httpRoute,
+    loaded: routeLoaded,
+    error: routeError,
+  } = useFetch<HTTPRouteResource | null>(
+    React.useCallback(() => {
+      if (!rayClusterName || !dashboardNamespace) {
+        return Promise.reject(new NotReadyError('Missing cluster name or dashboard namespace'));
+      }
+      return getHTTPRoute(`${namespace}-${rayClusterName}`, dashboardNamespace);
+    }, [rayClusterName, namespace, dashboardNamespace]),
+    null,
+    { initialPromisePurity: true },
+  );
+
+  return React.useMemo(() => {
+    const loaded =
+      (gatewayLoaded || !!gatewayError) &&
+      (routeLoaded || !!routeError || !rayClusterName || !dashboardNamespace);
+    const error = gatewayError ?? routeError;
+
+    if (!loaded || !hostname || !rayClusterName) {
+      return { url: null, loaded, error };
     }
 
-    setUrl(null);
-    setError(undefined);
-    setLoaded(false);
+    const redirect = httpRoute?.spec?.rules?.[0]?.filters?.[0]?.requestRedirect;
+    const path = redirect?.path?.replaceFullPath;
 
-    let cancelled = false;
-
-    const fetchURL = async () => {
-      try {
-        const [gateway, httpRoute] = await Promise.all([
-          k8sGetResource<GatewayResource>({
-            model: GatewayModel,
-            queryOptions: { name: GATEWAY_NAME, ns: GATEWAY_NAMESPACE },
-          }),
-          k8sGetResource<HTTPRouteResource>({
-            model: HTTPRouteModel,
-            queryOptions: {
-              name: `${namespace}-${rayClusterName}`,
-              ns: dashboardNamespace,
-            },
-          }),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        const hostname = gateway.spec?.listeners?.[0]?.hostname;
-        const path =
-          httpRoute.spec?.rules?.[0]?.filters?.[0]?.requestRedirect?.path?.replaceFullPath;
-
-        if (hostname && path) {
-          setUrl(`https://${hostname}${path}`);
-        } else if (hostname) {
-          setUrl(`https://${hostname}`);
-        } else {
-          setUrl(null);
-        }
-        setLoaded(true);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e : new Error('Failed to fetch dashboard URL'));
-          setUrl(null);
-          setLoaded(true);
-        }
-      }
-    };
-
-    fetchURL();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [rayClusterName, namespace, dashboardNamespace]);
-
-  return { url, loaded, error };
+    return { url: path ? `https://${hostname}${path}` : null, loaded, error };
+  }, [
+    gatewayLoaded,
+    routeLoaded,
+    gatewayError,
+    routeError,
+    hostname,
+    httpRoute,
+    rayClusterName,
+    dashboardNamespace,
+  ]);
 };

@@ -1,9 +1,9 @@
 import { TableRow } from '../components/table';
 
 class ManageRunsPage {
-  visit(experimentId: string, projectName: string, runIds: string[]) {
+  visit(projectName: string, runIds: string[]) {
     cy.visitWithLogin(
-      `/develop-train/experiments/${projectName}/${experimentId}/compare-runs/add?compareRuns=${runIds.join(
+      `/develop-train/pipelines/runs/${projectName}/compare-runs/add?compareRuns=${runIds.join(
         ',',
       )}`,
     );
@@ -51,6 +51,10 @@ class ManageRunsRow extends TableRow {
 class ManageRunsTable {
   find() {
     return cy.findByTestId('manage-runs-table');
+  }
+
+  findColumnHeaders() {
+    return this.find().find('thead th');
   }
 
   getRowByName(name: string) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 import {
   EmptyState,
@@ -18,8 +18,6 @@ interface EmptyRunsStateProps {
 }
 
 export const EmptyRunsState: React.FC<EmptyRunsStateProps> = ({ createRunRoute, dataTestId }) => {
-  const navigate = useNavigate();
-
   return (
     <EmptyState
       data-testid={dataTestId}
@@ -37,7 +35,9 @@ export const EmptyRunsState: React.FC<EmptyRunsStateProps> = ({ createRunRoute, 
           <Button
             data-testid="create-run-button"
             variant="primary"
-            onClick={() => navigate(createRunRoute)}
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link {...props} to={createRunRoute} />
+            )}
           >
             Create run
           </Button>

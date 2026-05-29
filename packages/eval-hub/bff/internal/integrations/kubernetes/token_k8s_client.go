@@ -261,7 +261,10 @@ func (kc *TokenKubernetesClient) GetUser(_ *RequestIdentity) (string, error) {
 }
 
 // CanListEvalHubInstances performs a SelfSubjectAccessReview to check whether the user's
-// token has permission to list EvalHub CRs in the given namespace.
+// token has permission to access EvalHub evaluations in the given namespace.
+// Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant
+// (via a RoleBinding in each namespace labelled evalhub.trustyai.opendatahub.io/tenant),
+// not the "evalhubs" CRD which is only accessible to cluster-admins.
 // The RequestIdentity parameter is unused because the token already represents the user.
 func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -270,9 +273,9 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "list",
+				Verb:      "get",
 				Group:     EvalHubCRDGroup,
-				Resource:  EvalHubCRDResource,
+				Resource:  EvalHubVirtualResource,
 				Namespace: namespace,
 			},
 		},
@@ -362,5 +365,5 @@ func (kc *TokenKubernetesClient) GetEvalHubCRStatus(ctx context.Context, _ *Requ
 			"namespace", namespace, "count", len(list.Items))
 	}
 
-	return parseEvalHubCRStatus(&list.Items[0])
+	return ParseEvalHubCRStatus(&list.Items[0])
 }

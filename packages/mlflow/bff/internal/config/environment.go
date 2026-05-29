@@ -7,12 +7,8 @@ import (
 )
 
 const (
-	// AuthMethodInternal uses the credentials of the running backend.
-	// If running inside the cluster, it uses the pod's service account.
-	// If running locally (e.g. for development), it uses the current user's kubeconfig context.
-	// This is the default authentication method.
-	// This uses kubeflow-userid header to carry the user identity.
-	AuthMethodInternal = "internal"
+	// AuthMethodDisabled disables authentication, useful for local development and testing.
+	AuthMethodDisabled = "disabled"
 
 	// AuthMethodUser uses a user-provided Bearer token for authentication.
 	AuthMethodUser = "user_token"
@@ -29,8 +25,6 @@ const (
 type DeploymentMode string
 
 const (
-	// DeploymentModeKubeflow represents the Kubeflow integration mode
-	DeploymentModeKubeflow DeploymentMode = "kubeflow"
 	// DeploymentModeFederated represents the federated platform mode
 	DeploymentModeFederated DeploymentMode = "federated"
 	// DeploymentModeStandalone represents the standalone mode
@@ -45,21 +39,14 @@ func (d DeploymentMode) String() string {
 // Set implements the flag.Value interface
 func (d *DeploymentMode) Set(value string) error {
 	switch strings.ToLower(value) {
-	case "kubeflow":
-		*d = DeploymentModeKubeflow
 	case "federated":
 		*d = DeploymentModeFederated
 	case "standalone":
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be kubeflow, federated, or standalone)", value)
+		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
 	}
 	return nil
-}
-
-// IsKubeflowMode returns true if the deployment mode is Kubeflow
-func (d DeploymentMode) IsKubeflowMode() bool {
-	return d == DeploymentModeKubeflow
 }
 
 // IsStandaloneMode returns true if the deployment mode is standalone
@@ -72,6 +59,7 @@ func (d DeploymentMode) IsFederatedMode() bool {
 	return d == DeploymentModeFederated
 }
 
+// EnvConfig holds all configuration values parsed from CLI flags and environment variables.
 type EnvConfig struct {
 	Port               int
 	MockK8Client       bool
@@ -91,7 +79,7 @@ type EnvConfig struct {
 
 	// ─── AUTH ───────────────────────────────────────────────────
 	// Specifies the authentication method used by the server.
-	// Valid values: "internal" or "user_token"
+	// Valid values: "disabled" or "user_token"
 	AuthMethod string
 
 	// Header used to extract the authentication token.
@@ -101,6 +89,11 @@ type EnvConfig struct {
 	// Optional prefix to strip from the token header value.
 	// Default is "Bearer ", can be set to empty if the token is sent without a prefix.
 	AuthTokenPrefix string
+
+	// ─── MLFLOW ──────────────────────────────────────────────────
+	// MLflowURL is the base URL of the MLflow tracking server.
+	MLflowURL        string
+	StaticMLflowMock bool
 
 	// ─── TLS ────────────────────────────────────────────────────
 	// TLS verification settings for HTTP client connections to the Client

@@ -34,8 +34,20 @@ import {
   type ModelServingPlatform,
 } from '../../concepts/useProjectServingPlatform';
 import DeployedModelsDetails from '../deployments/DeployedModelsVersion';
-import { Deployment } from '../../../extension-points';
+import {
+  DeployedModelServingDetails,
+  Deployment,
+  isDeployedModelServingDetails,
+} from '../../../extension-points';
 import DeploymentStatus from '../deployments/DeploymentStatus';
+import {
+  ExtensionDataEntry,
+  usePlatformExtensionDataMap,
+} from '../../concepts/extensionHelpers/usePlatformExtensionDataMap';
+import {
+  isDataHook,
+  PlatformExtensionDataLoader,
+} from '../../concepts/extensionHelpers/PlatformExtensionDataLoader';
 
 enum FilterStates {
   success = 'success',
@@ -45,12 +57,19 @@ enum FilterStates {
 const SUCCESS_STATUSES = [ModelDeploymentState.LOADED, ModelDeploymentState.STANDBY];
 const FAILED_STATUSES = [ModelDeploymentState.FAILED_TO_LOAD];
 
-const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment }) => {
+const DeployedModelCard: React.FC<{
+  deployment: Deployment;
+  servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
+}> = ({ deployment, servingDetailsEntry }) => {
   const displayName = getDisplayNameFromK8sResource(deployment.model);
 
   return (
     <GalleryItem key={deployment.model.metadata.uid}>
-      <TypeBorderedCard isFullHeight objectType={ProjectObjectType.modelServer}>
+      <TypeBorderedCard
+        isFullHeight
+        objectType={ProjectObjectType.modelServer}
+        data-testid={`deployed-model-card-${deployment.model.metadata.name}`}
+      >
         <CardHeader>
           <Flex gap={{ default: 'gapSm' }} direction={{ default: 'column' }}>
             <FlexItem>
@@ -83,15 +102,19 @@ const DeployedModelCard: React.FC<{ deployment: Deployment }> = ({ deployment })
                 component={ContentVariants.dt}
                 style={{ marginBottom: 'var(--pf-t--global--spacer--xs)' }}
               >
-                Serving runtime
+                Deployment resource
               </Content>
               <Content
                 component={ContentVariants.dd}
+                data-testid="overview-card-serving-runtime"
                 style={{
                   fontSize: 'var(--pf-t--global--font--size--body--sm)',
                 }}
               >
-                <DeployedModelsDetails deployment={deployment} />
+                <DeployedModelsDetails
+                  deployment={deployment}
+                  servingDetailsEntry={servingDetailsEntry}
+                />
               </Content>
             </Content>
           </Content>
@@ -121,6 +144,11 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
   const navigate = useNavigate();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const { deployments } = React.useContext(ModelDeploymentsContext);
+
+  const { extensionDataMap, onLoad } = usePlatformExtensionDataMap(
+    isDeployedModelServingDetails,
+    deployments,
+  );
 
   const filteredDeployments = React.useMemo(
     () =>
@@ -152,13 +180,26 @@ const DeployedModelsGallery: React.FC<DeployedModelsGalleryProps> = ({
 
   return (
     <>
+      <PlatformExtensionDataLoader
+        predicate={isDeployedModelServingDetails}
+        platformIds={Object.keys(extensionDataMap)}
+        onLoad={onLoad}
+        getDataHook={(ext) => {
+          const { dataHook } = ext.properties;
+          return isDataHook(dataHook) ? dataHook : undefined;
+        }}
+      />
       <Gallery
         hasGutter
         minWidths={{ default: '285px' }}
         style={{ marginBottom: 'var(--pf-t--global--spacer--sm)' }}
       >
         {shownDeployments.map((deployment) => (
-          <DeployedModelCard key={deployment.model.metadata.uid} deployment={deployment} />
+          <DeployedModelCard
+            key={deployment.model.metadata.uid}
+            deployment={deployment}
+            servingDetailsEntry={extensionDataMap[deployment.modelServingPlatformId]}
+          />
         ))}
       </Gallery>
       <Flex gap={{ default: 'gapMd' }}>

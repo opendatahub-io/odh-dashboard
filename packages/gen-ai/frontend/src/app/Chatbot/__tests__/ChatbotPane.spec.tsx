@@ -10,14 +10,12 @@ jest.mock('~/app/Chatbot/components/ChatbotPaneHeader', () => ({
     label,
     selectedModel,
     onModelChange,
-    onSettingsClick,
     onCloseClick,
     testIdPrefix,
   }: {
     label: string;
     selectedModel: string;
     onModelChange: (model: string) => void;
-    onSettingsClick: () => void;
     onCloseClick: () => void;
     hasDivider: boolean;
     testIdPrefix: string;
@@ -25,13 +23,6 @@ jest.mock('~/app/Chatbot/components/ChatbotPaneHeader', () => ({
     <div data-testid="mock-pane-header">
       <span data-testid="header-label">{label}</span>
       <span data-testid="header-model">{selectedModel}</span>
-      <button
-        data-testid={`${testIdPrefix}-settings-button`}
-        onClick={onSettingsClick}
-        type="button"
-      >
-        Settings
-      </button>
       <button data-testid={`${testIdPrefix}-close-button`} onClick={onCloseClick} type="button">
         Close
       </button>
@@ -48,7 +39,6 @@ describe('ChatbotPane', () => {
     displayLabel: 'Model 1',
     selectedModel: 'test-model',
     onModelChange: jest.fn(),
-    onSettingsClick: jest.fn(),
     onClose: jest.fn(),
   };
 
@@ -94,20 +84,6 @@ describe('ChatbotPane', () => {
     );
 
     expect(screen.getByTestId('header-model')).toHaveTextContent('test-model');
-  });
-
-  it('calls onSettingsClick when settings button is clicked', async () => {
-    const user = userEvent.setup();
-    const mockOnSettingsClick = jest.fn();
-    render(
-      <ChatbotPane {...defaultProps} onSettingsClick={mockOnSettingsClick}>
-        <div>Child content</div>
-      </ChatbotPane>,
-    );
-
-    await user.click(screen.getByTestId('chatbot-pane-test-config-1-settings-button'));
-
-    expect(mockOnSettingsClick).toHaveBeenCalledTimes(1);
   });
 
   it('calls onClose when close button is clicked', async () => {
@@ -162,12 +138,11 @@ describe('ChatbotPane', () => {
 
   it('uses configId for testIdPrefix in header', () => {
     render(
-      <ChatbotPane {...defaultProps} configId="custom-config">
+      <ChatbotPane {...defaultProps} configId="custom-config" onClose={jest.fn()}>
         <div>Child content</div>
       </ChatbotPane>,
     );
 
-    expect(screen.getByTestId('chatbot-pane-custom-config-settings-button')).toBeInTheDocument();
     expect(screen.getByTestId('chatbot-pane-custom-config-close-button')).toBeInTheDocument();
   });
 

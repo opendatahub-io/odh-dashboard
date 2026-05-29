@@ -23,6 +23,7 @@ export const mockCreateResponseRequest: CreateResponseRequest = {
   vector_store_ids: ['vector-store-1'],
   temperature: 0.7,
   stream: false,
+  model_source_type: 'namespace',
 };
 
 export const mockBackendResponse: BackendResponseData = {

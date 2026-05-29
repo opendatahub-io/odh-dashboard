@@ -58,10 +58,13 @@ class ModelRegistry {
     this.waitLanding();
   }
 
-  visit() {
-    const preferredModelRegistry = 'modelregistry-sample';
-    cy.visitWithLogin(`/ai-hub/registry/${preferredModelRegistry}`);
-    this.wait();
+  visit(registryName = 'modelregistry-sample') {
+    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
+    cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
+  }
+
+  visitWithRegistry(registryName: string) {
+    this.visit(registryName);
   }
 
   navigate() {
@@ -215,6 +218,10 @@ class ModelRegistry {
     return cy.findByTestId('breadcrumb-model');
   }
 
+  findModelVersionBreadcrumbItem() {
+    return cy.findByTestId('breadcrumb-model-version');
+  }
+
   findModelVersionsTableKebab() {
     return cy.findByTestId('model-versions-table-kebab-action');
   }
@@ -245,6 +252,10 @@ class ModelRegistry {
 
   findEmptyModelRegistrySecondaryButton(timeout?: number) {
     return cy.findByTestId('empty-model-registry-secondary-action', { timeout });
+  }
+
+  findModelOverviewTab() {
+    return cy.findByTestId('model-overview-tab');
   }
 
   findModelVersionsTab() {

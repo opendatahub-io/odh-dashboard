@@ -2,8 +2,8 @@ import * as React from 'react';
 import {
   Alert,
   Button,
-  Flex,
-  FlexItem,
+  Form,
+  FormGroup,
   Modal,
   ModalBody,
   ModalFooter,
@@ -17,17 +17,15 @@ import useUser from '~/app/hooks/useUser';
 
 type RevokeAllApiKeysModalProps = {
   onClose: (revoked: boolean) => void;
-  apiKeyCount: number;
 };
 
-const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, apiKeyCount }) => {
+const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose }) => {
   const { userId } = useUser();
   const [revoking, setRevoking] = React.useState(false);
   const [error, setError] = React.useState<Error | undefined>();
   const [value, setValue] = React.useState('');
 
-  const confirmationWord = 'revoke';
-  const isConfirmed = value.trim() === confirmationWord;
+  const isConfirmed = value.trim() === userId;
 
   const handleRevoke = React.useCallback(async () => {
     setRevoking(true);
@@ -54,37 +52,43 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
     <Modal
       isOpen
       onClose={() => onBeforeClose(false)}
-      variant="small"
+      variant="medium"
       data-testid="revoke-all-api-keys-modal"
     >
       <ModalHeader title="Revoke all API keys?" titleIconVariant="warning" />
       <ModalBody>
         <Stack hasGutter>
           <StackItem>
-            This action cannot be undone. Revoking all API keys will immediately remove endpoint
-            access to any applications currently using them. This will revoke {apiKeyCount}{' '}
-            {apiKeyCount === 1 ? 'key' : 'keys'}.
+            All of your API keys will be revoked, and any applications or services currently using
+            them will lose access. The keys will remain visible from within OpenShift AI, but can no
+            longer be used for authentication.
           </StackItem>
 
           <StackItem>
-            <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsSm' }}>
-              <FlexItem>
-                Type <strong>{confirmationWord}</strong> to confirm:
-              </FlexItem>
-
-              <TextInput
-                id="revoke-confirmation-input"
-                data-testid="revoke-confirmation-input"
-                aria-label="Revoke confirmation input"
-                value={value}
-                onChange={(_e, newValue) => setValue(newValue)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && isConfirmed && !revoking) {
-                    handleRevoke();
-                  }
-                }}
-              />
-            </Flex>
+            <Form>
+              <FormGroup
+                label={
+                  <>
+                    Type <b>{userId}</b> to confirm revocation:
+                  </>
+                }
+                isRequired
+                fieldId="revoke-confirmation-input"
+              >
+                <TextInput
+                  id="revoke-confirmation-input"
+                  data-testid="revoke-confirmation-input"
+                  aria-label="Type your username to confirm"
+                  value={value}
+                  onChange={(_e, newValue) => setValue(newValue)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && isConfirmed && !revoking) {
+                      handleRevoke();
+                    }
+                  }}
+                />
+              </FormGroup>
+            </Form>
           </StackItem>
 
           {error && (
@@ -110,7 +114,7 @@ const RevokeAllApiKeysModal: React.FC<RevokeAllApiKeysModalProps> = ({ onClose, 
           onClick={() => onBeforeClose(true)}
           data-testid="revoke-keys-button"
         >
-          Revoke keys
+          Revoke all keys
         </Button>
         <Button
           key="cancel-button"

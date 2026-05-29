@@ -52,6 +52,11 @@ jest.mock('../../ModelDetailsDropdown', () => ({
   ),
 }));
 
+jest.mock('../../SubscriptionDropdown', () => ({
+  __esModule: true,
+  default: () => <div data-testid="subscription-dropdown" />,
+}));
+
 const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
 
 describe('ModelTabContent', () => {
@@ -62,6 +67,8 @@ describe('ModelTabContent', () => {
     onStreamingToggle: jest.fn(),
     selectedModel: 'test-model',
     onModelChange: jest.fn(),
+    selectedSubscription: '',
+    onSubscriptionChange: jest.fn(),
   };
 
   beforeEach(() => {

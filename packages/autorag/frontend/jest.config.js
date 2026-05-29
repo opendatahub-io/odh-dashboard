@@ -21,7 +21,7 @@ module.exports = {
   },
   testEnvironment: 'jest-environment-jsdom',
   transformIgnorePatterns: [
-    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core|mod-arch-shared)',
+    'node_modules/(?!yaml|lodash-es|uuid|@patternfly|delaunator|mod-arch-core|mod-arch-shared|echarts|zrender)',
   ],
   snapshotSerializers: [],
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/unit/jest.setup.ts'],

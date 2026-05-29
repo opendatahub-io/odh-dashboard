@@ -98,6 +98,8 @@ export interface TypeaheadSelectProps extends Omit<SelectProps, 'toggle' | 'onSe
   dataTestId?: string;
   /** Flag to indicate if showing the description under the toggle */
   previewDescription?: boolean;
+  /** Optional icon rendered inside the text input */
+  inputIcon?: React.ReactNode;
 }
 
 const defaultNoOptionsFoundMessage = (filter: string) => `No results found for "${filter}"`;
@@ -127,6 +129,7 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
   isRequired = true,
   previewDescription = true,
   dataTestId,
+  inputIcon,
   ...props
 }: TypeaheadSelectProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -439,9 +442,11 @@ const TypeaheadSelect: React.FunctionComponent<TypeaheadSelectProps> = ({
               autoComplete="off"
               innerRef={textInputRef}
               placeholder={placeholder}
+              icon={inputIcon}
               {...(activeItemId && { 'aria-activedescendant': activeItemId })}
               role="combobox"
               isExpanded={isOpen}
+              className="pf-v6-u-w-100"
             />
           </FlexItem>
           {selected && selected.selectedLabel && <FlexItem>{selected.selectedLabel}</FlexItem>}

@@ -12,11 +12,13 @@ import AutoragRunsTableRow from './AutoragRunsTableRow';
  */
 type AutoragRunsTableProps = {
   runs: PipelineRun[];
+  namespace: string;
   totalSize: number;
   page: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   onPerPageChange: (pageSize: number) => void;
+  onRunActionComplete?: () => void | Promise<void>;
   toolbarContent?: React.ReactElement<typeof ToolbarItem | typeof ToolbarGroup>;
 };
 
@@ -26,11 +28,13 @@ type AutoragRunsTableProps = {
  */
 const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
   runs,
+  namespace,
   totalSize,
   page,
   pageSize,
   onPageChange,
   onPerPageChange,
+  onRunActionComplete,
   toolbarContent,
 }) => (
   <TableBase
@@ -42,7 +46,14 @@ const AutoragRunsTable: React.FC<AutoragRunsTableProps> = ({
     defaultSortColumn={0}
     emptyTableView={<DashboardEmptyTableView onClearFilters={() => undefined} />}
     toolbarContent={toolbarContent}
-    rowRenderer={(run) => <AutoragRunsTableRow key={run.run_id} run={run} />}
+    rowRenderer={(run) => (
+      <AutoragRunsTableRow
+        key={run.run_id}
+        run={run}
+        namespace={namespace}
+        onActionComplete={onRunActionComplete}
+      />
+    )}
     itemCount={totalSize}
     page={page}
     perPage={pageSize}

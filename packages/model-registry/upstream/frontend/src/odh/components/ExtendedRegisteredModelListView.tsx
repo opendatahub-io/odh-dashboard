@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ToolbarGroup } from '@patternfly/react-core';
+import { Button, ToolbarGroup } from '@patternfly/react-core';
 import { useNavigate } from 'react-router-dom';
 import { ProjectObjectType, typedEmptyImage } from '@odh-dashboard/internal/concepts/design/utils';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
@@ -7,6 +7,7 @@ import { ModelVersion, RegisteredModel } from '~/app/types';
 import { ModelRegistrySelectorContext } from '~/app/context/ModelRegistrySelectorContext';
 import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
 import {
+  modelTransferJobsUrl,
   registeredModelArchiveUrl,
   registerModelUrl,
 } from '~/app/pages/modelRegistry/screens/routeUtils';
@@ -21,8 +22,8 @@ import {
 } from '~/app/pages/modelRegistry/screens/const';
 import FilterToolbar from '~/app/shared/components/FilterToolbar';
 import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
-import ExtendedRegisteredModelTable from './ExtendedRegisteredModelTable';
 import RegisteredModelsTableToolbar from '~/app/pages/modelRegistry/screens/RegisteredModels/RegisteredModelsTableToolbar';
+import ExtendedRegisteredModelTable from './ExtendedRegisteredModelTable';
 
 type ExtendedRegisteredModelListViewProps = {
   registeredModels: RegisteredModel[];
@@ -82,6 +83,15 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
         secondaryActionOnClick={() => {
           navigate(registeredModelArchiveUrl(preferredModelRegistry?.name));
         }}
+        customAction={
+          <Button
+            data-testid="empty-model-registry-transfer-jobs-action"
+            variant="link"
+            onClick={() => navigate(modelTransferJobsUrl(preferredModelRegistry?.name))}
+          >
+            View model transfer jobs
+          </Button>
+        }
       />
     );
   }
@@ -139,20 +149,17 @@ const ExtendedRegisteredModelListView: React.FC<ExtendedRegisteredModelListViewP
 
   // Wrap with deployments context providers if available
   if (deploymentsContextLoaded && deploymentsContextExtensions.length > 0) {
-    return deploymentsContextExtensions.reduce(
-      (content, extension) => {
-        const DeploymentsProvider = extension.properties.DeploymentsProvider;
-        return (
-          <DeploymentsProvider
-            key={extension.properties.DeploymentsProvider.toString()}
-            mrName={preferredModelRegistry?.name}
-          >
+    return deploymentsContextExtensions.reduce((content, extension) => {
+      const { DeploymentsProvider } = extension.properties;
+      return (
+        <DeploymentsProvider
+          key={extension.properties.DeploymentsProvider.toString()}
+          mrName={preferredModelRegistry?.name}
+        >
           {() => tableContent}
-          </DeploymentsProvider>
-        );
-      },
-      tableContent
-    );
+        </DeploymentsProvider>
+      );
+    }, tableContent);
   }
 
   return tableContent;

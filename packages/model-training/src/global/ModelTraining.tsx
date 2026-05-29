@@ -29,7 +29,7 @@ import { useRayClusters } from '../api';
 
 const title = 'Jobs';
 const description =
-  'Monitor the progress of TrainJobs and RayJobs, and manage distributed training and computing workloads.';
+  'View and manage the progress of self-terminating jobs such as TrainJobs and RayJobs.';
 
 const ModelTraining = (): React.ReactElement => {
   const navigate = useNavigate();
@@ -144,8 +144,11 @@ const ModelTraining = (): React.ReactElement => {
       job={selectedRayJob}
       displayName={selectedJobDisplayName}
       nodeCount={selectedJobNodeCount}
+      jobStatus={selectedJobStatus}
       onClose={() => setSelectedJob(undefined)}
       onDelete={handleDelete}
+      onStatusUpdate={handleStatusUpdate}
+      onTogglingChange={(isToggling) => setTogglingJobId(isToggling ? selectedJobId : undefined)}
     />
   ) : (
     <TrainingJobDetailsDrawer

@@ -121,7 +121,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		"AWS_ACCESS_KEY_ID":     "test-access-key",
 		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
 		"AWS_DEFAULT_REGION":    "us-east-1",
-		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
 	}, nil)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		"AWS_ACCESS_KEY_ID":     "test-access-key",
 		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
 		"AWS_DEFAULT_REGION":    "us-east-1",
-		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
 		"AWS_S3_BUCKET":         "test-bucket",
 	}, nil)
 	if err != nil {
@@ -144,7 +144,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		"AWS_ACCESS_KEY_ID":     "test-access-key",
 		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
 		"AWS_DEFAULT_REGION":    "us-east-1",
-		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
 	}, map[string]string{
 		"openshift.io/display-name": "Production S3 Credentials",
 	})
@@ -157,10 +157,24 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		"AWS_ACCESS_KEY_ID":     "test-access-key",
 		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
 		"AWS_DEFAULT_REGION":    "us-east-1",
-		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
 	}, map[string]string{
 		"openshift.io/description": "AWS credentials for production S3 storage",
 	})
+	if err != nil {
+		return err
+	}
+
+	// Secret with lowercase and mixed-case AWS_S3_BUCKET variants - for testing case-sensitive key matching
+	err = createSecret(mockK8sClient, ctx, "case-variant-bucket-secret", "default", map[string]string{
+		"AWS_ACCESS_KEY_ID":     "test-access-key",
+		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
+		"AWS_DEFAULT_REGION":    "us-east-1",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
+		"AWS_S3_BUCKET":         "correct-bucket",
+		"aws_s3_bucket":         "lowercase-bucket",
+		"Aws_S3_Bucket":         "mixedcase-bucket",
+	}, nil)
 	if err != nil {
 		return err
 	}
@@ -170,7 +184,7 @@ func setupMock(mockK8sClient kubernetes.Interface, ctx context.Context) error {
 		"AWS_ACCESS_KEY_ID":     "test-access-key",
 		"AWS_SECRET_ACCESS_KEY": "test-secret-key",
 		"AWS_DEFAULT_REGION":    "us-east-1",
-		"AWS_S3_ENDPOINT":       "http://localhost:9000",
+		"AWS_S3_ENDPOINT":       "https://localhost:9000",
 	}, map[string]string{
 		"openshift.io/display-name": "Development S3",
 		"openshift.io/description":  "S3 credentials for development environment",

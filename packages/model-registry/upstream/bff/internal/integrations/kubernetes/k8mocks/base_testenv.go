@@ -4,13 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -70,8 +72,32 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 			fmt.Sprintf("1.29.3-%s-%s", runtime.GOOS, runtime.GOARCH))
 	}
 
+	// Fix for #2136: Configure ControlPlane to bind to 127.0.0.1 instead of
+	// platform-specific addresses (e.g., 192.168.127.254 on macOS) which don't
+	// exist inside Docker containers.
+	//
+	// Pre-allocate a free port on 127.0.0.1 and pass it as a real port number.
+	// envtest treats Port:"0" as a literal string (not auto-select), which causes
+	// kube-apiserver to reject it with "--secure-port 0 must be between 1 and 65535".
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to allocate free port on 127.0.0.1: %w", err)
+	}
+	freePort := ln.Addr().(*net.TCPAddr).Port
+	ln.Close()
+
 	testEnv := &envtest.Environment{
 		BinaryAssetsDirectory: binaryAssetsDir,
+		ControlPlane: envtest.ControlPlane{
+			APIServer: &envtest.APIServer{
+				SecureServing: envtest.SecureServing{
+					ListenAddr: envtest.ListenAddr{
+						Address: "127.0.0.1",
+						Port:    strconv.Itoa(freePort),
+					},
+				},
+			},
+		},
 	}
 
 	cfg, err := testEnv.Start()
@@ -321,7 +347,7 @@ catalogs:
 	}
 
 	if _, err := k8sClient.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{}); err != nil {
-		return fmt.Errorf("failed to create model-catalog-default-sources configmap: %w", err)
+		return fmt.Errorf("failed to create default-catalog-sources configmap: %w", err)
 	}
 
 	return nil
@@ -897,7 +923,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 							Env: []corev1.EnvVar{
 								{Name: "MODEL_SYNC_SOURCE_TYPE", Value: "s3"},
 								{Name: "MODEL_SYNC_SOURCE_AWS_KEY", Value: "models/my-model"},
@@ -1019,7 +1045,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 						},
 					},
 				},
@@ -1096,7 +1122,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 					Containers: []corev1.Container{
 						{
 							Name:  "async-upload",
-							Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest",
+							Image: "ghcr.io/kubeflow/hub/job/async-upload:latest",
 						},
 					},
 				},
@@ -1142,7 +1168,7 @@ func createModelTransferJob(k8sClient kubernetes.Interface, ctx context.Context,
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
-						{Name: "async-upload", Image: "ghcr.io/kubeflow/model-registry/job/async-upload:latest"},
+						{Name: "async-upload", Image: "ghcr.io/kubeflow/hub/job/async-upload:latest"},
 					},
 				},
 			},

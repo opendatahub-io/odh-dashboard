@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { Grid, GridItem, Stack } from '@patternfly/react-core';
+import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
+import { useParams } from 'react-router';
 import { RegisteredModel } from '~/app/types';
+import { isModelDetailsDeploymentCardExtension } from '~/odh/extension-points';
 import ModelDetailsCard from './ModelDetailsCard';
 import ModelVersionsCard from './ModelVersionsCard';
-import { useExtensions } from '@odh-dashboard/plugin-core';
-import { isModelDetailsDeploymentCardExtension } from '~/odh/extension-points';
-import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { useParams } from 'react-router';
 
 type ModelDetailsViewProps = {
   registeredModel: RegisteredModel;

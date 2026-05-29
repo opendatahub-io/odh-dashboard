@@ -10,12 +10,16 @@ import {
   mockCatalogPerformanceMetricsArtifact,
   mockCatalogSource,
   mockCatalogSourceList,
+  mockDefaultSources,
+  mockProviderAndCustomSources,
+  mockTwoProviderSources,
 } from '~/__mocks__';
-import type { CatalogSource } from '~/app/modelCatalogTypes';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import { mockCatalogFilterOptionsList } from '~/__mocks__/mockCatalogFilterOptionsList';
-import { SourceLabel } from '~/app/modelCatalogTypes';
+import { SourceLabel, type CatalogSource } from '~/app/modelCatalogTypes';
 import { ModelRegistryMetadataType } from '~/app/types';
+import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import { ModelCatalogStringFilterKey } from '~/concepts/modelCatalog/const';
 
 type FilteredModelsInterceptConfig = {
   returnModelsForFilters?: boolean;
@@ -90,7 +94,7 @@ const calculateExpectedCategoryCount = (sources: CatalogSource[]): number => {
 };
 
 const initIntercepts = ({
-  sources = [mockCatalogSource({}), mockCatalogSource({ id: 'source-2', name: 'source 2' })],
+  sources = mockDefaultSources(),
   modelsPerCategory = 4,
   hasValidatedModels = false,
   includeAllModelsIntercept = true,
@@ -275,15 +279,9 @@ describe('Model Catalog Page', () => {
   });
 
   it('checkbox should work', () => {
-    // Calculate expected category count based on sources
-    const defaultSources = [
-      mockCatalogSource({}),
-      mockCatalogSource({ id: 'source-2', name: 'source 2' }),
-    ];
+    const expectedCategoryCount = calculateExpectedCategoryCount(mockDefaultSources());
 
-    const expectedCategoryCount = calculateExpectedCategoryCount(defaultSources);
-
-    initIntercepts({ sources: defaultSources, includeAllModelsIntercept: false });
+    initIntercepts({ sources: mockDefaultSources(), includeAllModelsIntercept: false });
 
     setupFilteredModelsIntercept({
       returnModelsForFilters: true,
@@ -328,14 +326,9 @@ describe('Model Catalog Page', () => {
   });
 
   it('tensor type filter combined with other filters should work', () => {
-    const defaultSources = [
-      mockCatalogSource({}),
-      mockCatalogSource({ id: 'source-2', name: 'source 2' }),
-    ];
+    const expectedCategoryCount = calculateExpectedCategoryCount(mockDefaultSources());
 
-    const expectedCategoryCount = calculateExpectedCategoryCount(defaultSources);
-
-    initIntercepts({ sources: defaultSources, includeAllModelsIntercept: false });
+    initIntercepts({ sources: mockDefaultSources(), includeAllModelsIntercept: false });
 
     setupFilteredModelsIntercept({
       returnModelsForFilters: true,
@@ -357,16 +350,119 @@ describe('Model Catalog Page', () => {
       expect(url).to.include('provider%3D%27Google%27');
     });
   });
+
+  it('should not display validated arguments filter when feature flag is off', () => {
+    initIntercepts({});
+    modelCatalog.visit();
+    modelCatalog.findFilter('Validated arguments').should('not.exist');
+  });
+
+  describe('Validated arguments Filter (feature flag on)', () => {
+    beforeEach(() => {
+      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
+    });
+
+    afterEach(() => {
+      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
+    });
+
+    it('checkbox should filter models', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
+        .scrollIntoView()
+        .click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        expect(interception.request.url).to.include('validatedTasks%3D%27tool-calling%27');
+      });
+    });
+
+    it('should work combined with other filters', () => {
+      initIntercepts({ includeAllModelsIntercept: true });
+      setupFilteredModelsIntercept({
+        returnModelsForFilters: true,
+        modelsToReturn: [mockCatalogModel({})],
+      });
+
+      modelCatalog.visit();
+      modelCatalog
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
+        .scrollIntoView()
+        .click();
+      cy.wait('@getFilteredModels');
+
+      modelCatalog.findFilterCheckbox('Provider', 'Google').click();
+
+      cy.wait('@getFilteredModels').then((interception) => {
+        const { url } = interception.request;
+        expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+        expect(url).to.include('provider%3D%27Google%27');
+      });
+    });
+
+    describe('with multiple options', () => {
+      const multiOptionFilterOptions = mockCatalogFilterOptionsList({
+        filters: {
+          ...mockCatalogFilterOptionsList().filters,
+          [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+            type: 'string',
+            values: ['tool-calling', 'text-generation', 'question-answering'],
+          },
+        },
+      });
+
+      const initMultiOptionIntercepts = (props: HandlersProps) => {
+        initIntercepts(props);
+        cy.interceptApi(
+          `GET /api/:apiVersion/model_catalog/models/filter_options`,
+          {
+            path: { apiVersion: MODEL_CATALOG_API_VERSION },
+            query: { namespace: 'kubeflow' },
+          },
+          multiOptionFilterOptions,
+        );
+      };
+
+      it('should send AND conditions instead of IN for multiple selections', () => {
+        initMultiOptionIntercepts({ includeAllModelsIntercept: true });
+        setupFilteredModelsIntercept({
+          returnModelsForFilters: true,
+          modelsToReturn: [mockCatalogModel({})],
+        });
+
+        modelCatalog.visit();
+        modelCatalog
+          .findFilterCheckbox('Validated arguments', 'tool-calling')
+          .scrollIntoView()
+          .click();
+        cy.wait('@getFilteredModels');
+
+        modelCatalog.findFilterCheckbox('Validated arguments', 'text-generation').click();
+
+        cy.wait('@getFilteredModels').then((interception) => {
+          const { url } = interception.request;
+          expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+          expect(url).to.include('AND');
+          expect(url).to.include('validatedTasks%3D%27text-generation%27');
+          expect(url).to.not.include('IN');
+        });
+      });
+    });
+  });
 });
 
 describe('Performance Empty State', () => {
   describe('Community & Custom Section', () => {
     it('should show performance empty state when toggle is ON', () => {
       initIntercepts({
-        sources: [
-          mockCatalogSource({ labels: ['Provider one'] }),
-          mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
-        ],
+        sources: mockProviderAndCustomSources(),
         hasValidatedModels: true,
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -386,10 +482,7 @@ describe('Performance Empty State', () => {
 
     it('should show models when toggle is OFF', () => {
       initIntercepts({
-        sources: [
-          mockCatalogSource({ labels: ['Provider one'] }),
-          mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
-        ],
+        sources: mockProviderAndCustomSources(),
       });
       modelCatalog.visit();
 
@@ -403,7 +496,7 @@ describe('Performance Empty State', () => {
   describe('Labeled Section Without Validated Models', () => {
     it('should show performance empty state when toggle is ON and no validated models', () => {
       initIntercepts({
-        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        sources: mockTwoProviderSources(),
         hasValidatedModels: false,
       });
       // No user filters/search; this scenario should hit the special "No performance data" state.
@@ -420,7 +513,7 @@ describe('Performance Empty State', () => {
 
     it('should show models when toggle is OFF', () => {
       initIntercepts({
-        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        sources: mockTwoProviderSources(),
         hasValidatedModels: false,
       });
       modelCatalog.visit();
@@ -434,7 +527,7 @@ describe('Performance Empty State', () => {
   describe('Labeled Section With Validated Models', () => {
     it('should show models when toggle is ON and section has validated models', () => {
       initIntercepts({
-        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        sources: mockTwoProviderSources(),
         hasValidatedModels: true,
       });
       modelCatalog.visit();
@@ -450,10 +543,7 @@ describe('Performance Empty State', () => {
   describe('Empty State Actions', () => {
     it('should turn off toggle when clicking "Turn Model performance view off"', () => {
       initIntercepts({
-        sources: [
-          mockCatalogSource({ labels: ['Provider one'] }),
-          mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
-        ],
+        sources: mockProviderAndCustomSources(),
         hasValidatedModels: true,
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -471,10 +561,7 @@ describe('Performance Empty State', () => {
 
     it('should navigate to All models when clicking "View all models with performance data"', () => {
       initIntercepts({
-        sources: [
-          mockCatalogSource({ labels: ['Provider one'] }),
-          mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
-        ],
+        sources: mockProviderAndCustomSources(),
         hasValidatedModels: true,
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -491,7 +578,7 @@ describe('Performance Empty State', () => {
 
     it('should show performance empty state after clicking Reset filters when toggle is ON', () => {
       initIntercepts({
-        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        sources: mockTwoProviderSources(),
         hasValidatedModels: false,
       });
       setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -512,12 +599,57 @@ describe('Performance Empty State', () => {
     });
   });
 
+  describe('Single Category Empty State Actions', () => {
+    beforeEach(() => {
+      initIntercepts({
+        sources: [mockCatalogSource({ labels: ['Provider one'] })],
+        hasValidatedModels: false,
+      });
+      setupFilteredModelsIntercept({ returnModelsForFilters: false });
+      modelCatalog.visit();
+    });
+
+    it('should show single-category title and description when performance empty state is displayed', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .should('contain.text', 'No performance data available')
+        .and('not.contain.text', 'in selected category');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .should(
+          'contain.text',
+          'No models have performance data available. Turn off model performance view to see all models.',
+        );
+    });
+
+    it('should not show "View all models with performance data" button when single category', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog
+        .findPerformanceEmptyState()
+        .contains('button', /View all models with performance data/i)
+        .should('not.exist');
+    });
+
+    it('should turn off toggle when clicking "Turn off model performance view" in single category', () => {
+      modelCatalog.togglePerformanceView();
+      modelCatalog.findPerformanceEmptyState().should('be.visible');
+
+      modelCatalog.findSetPerformanceOffLink().click();
+
+      modelCatalog.findPerformanceViewToggleValue().should('not.be.checked');
+      modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+    });
+  });
+
   it('should work correctly when toggling performance view', () => {
     initIntercepts({
-      sources: [
-        mockCatalogSource({ labels: ['Provider one'] }),
-        mockCatalogSource({ id: 'custom-source', name: 'Custom Source', labels: [] }),
-      ],
+      sources: mockProviderAndCustomSources(),
       hasValidatedModels: true,
     });
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -541,7 +673,7 @@ describe('Performance Empty State', () => {
 
   it('should show "No results found" when toggle is ON and user applies filter that returns 0 results', () => {
     initIntercepts({
-      sources: [mockCatalogSource({ labels: ['Provider one'] })],
+      sources: mockTwoProviderSources(),
       hasValidatedModels: true,
     });
     setupFilteredModelsIntercept({ returnModelsForFilters: false });
@@ -562,7 +694,7 @@ describe('Performance Empty State', () => {
 describe('All Models Section', () => {
   it('should show models in All models section even when toggle is ON', () => {
     initIntercepts({
-      sources: [mockCatalogSource({ labels: ['Provider one'] })],
+      sources: mockTwoProviderSources(),
       hasValidatedModels: true,
     });
     modelCatalog.visit();
@@ -573,5 +705,57 @@ describe('All Models Section', () => {
     modelCatalog.findAllModelsToggle().click();
     modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
     modelCatalog.findPerformanceEmptyState().should('not.exist');
+  });
+});
+
+describe('Single Category Behavior', () => {
+  it('should hide category toggle when only one category is active', () => {
+    initIntercepts({
+      sources: [mockCatalogSource({ labels: ['Provider one'] })],
+    });
+    modelCatalog.visit();
+
+    cy.findByTestId('label-Provider one').should('not.exist');
+    cy.findByTestId('all').should('not.exist');
+  });
+
+  it('should auto-select the single active category and show its models', () => {
+    initIntercepts({
+      sources: [mockCatalogSource({ labels: ['Provider one'] })],
+    });
+    modelCatalog.visit();
+
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+  });
+
+  it('should show full grid view for the auto-selected single category', () => {
+    initIntercepts({
+      sources: [mockCatalogSource({ labels: ['Provider one'] })],
+      hasValidatedModels: true,
+    });
+    modelCatalog.visit();
+
+    modelCatalog.togglePerformanceView();
+    modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+  });
+});
+
+describe('Clear All Filters Button Behavior', () => {
+  it('should not show clear all filters button when performance view is activated with filters applied', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: true, modelsToReturn: [] });
+
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    cy.wait('@getFilteredModels');
+
+    modelCatalog.togglePerformanceView();
+
+    cy.findByRole('button', { name: /Clear all filters/i }).should('not.exist');
   });
 });

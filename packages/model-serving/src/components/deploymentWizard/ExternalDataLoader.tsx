@@ -1,13 +1,17 @@
 import React from 'react';
 import { HookNotify } from '@odh-dashboard/plugin-core';
-import type { InitialWizardFormData, WizardField } from './types';
+import type { WizardField } from './types';
+import { WizardFormAction, WizardFormState } from './useDeploymentWizardReducer';
+import { getFieldDependencies } from './dynamicFormUtils';
 
 export type ExternalDataMap = Record<string, { loaded: boolean; loadError?: Error; data: unknown }>;
 
 type ExternalDataLoaderProps = {
   fields: WizardField<unknown, unknown>[];
-  initialData?: InitialWizardFormData;
+  // initialData?: InitialWizardFormData; // We'll probably need this later
+  formState: WizardFormState;
   setExternalData: React.Dispatch<React.SetStateAction<ExternalDataMap>>;
+  dispatch: React.Dispatch<WizardFormAction>;
 };
 
 /**
@@ -17,8 +21,9 @@ type ExternalDataLoaderProps = {
  */
 export const ExternalDataLoader: React.FC<ExternalDataLoaderProps> = ({
   fields,
-  initialData,
+  formState,
   setExternalData,
+  dispatch,
 }) => {
   return (
     <>
@@ -28,8 +33,9 @@ export const ExternalDataLoader: React.FC<ExternalDataLoaderProps> = ({
             <ExternalDataHookNotify
               key={f.id}
               field={f}
-              initialData={initialData}
+              formState={formState}
               setExternalData={setExternalData}
+              dispatch={dispatch}
             />
           );
         }
@@ -40,35 +46,52 @@ export const ExternalDataLoader: React.FC<ExternalDataLoaderProps> = ({
 };
 
 const ExternalDataHookNotify: React.FC<{
-  field: WizardField<unknown, unknown>;
-  initialData?: InitialWizardFormData;
+  field: WizardField;
+  formState: WizardFormState;
   setExternalData: React.Dispatch<React.SetStateAction<ExternalDataMap>>;
-}> = ({ field, initialData, setExternalData }) => {
+  dispatch: React.Dispatch<WizardFormAction>;
+}> = ({ field, formState, setExternalData, dispatch }) => {
   const hook = React.useMemo(() => field.externalDataHook, [field.externalDataHook]);
 
-  const hookArgs: [InitialWizardFormData | undefined] = React.useMemo(
-    () => [initialData],
-    [initialData],
+  const dependencies = React.useMemo(
+    () => getFieldDependencies(field, formState),
+    [field, formState],
   );
+  const hookArgs: Parameters<NonNullable<WizardField['externalDataHook']>> = React.useMemo(
+    () => [dependencies],
+    [dependencies],
+  );
+
+  const prevLoadedRef = React.useRef<boolean | undefined>(undefined);
 
   const onDataChange = React.useCallback(
     (data: { loaded: boolean; loadError?: Error; data: unknown } | undefined) => {
       if (data) {
+        const wasLoaded = prevLoadedRef.current;
+        prevLoadedRef.current = data.loaded;
+
         setExternalData((prev) => {
           const existing = field.id in prev ? prev[field.id] : undefined;
-          // Skip update if loaded state and data reference are the same to avoid infinite re-renders
           if (
             existing !== undefined &&
             existing.loaded === data.loaded &&
-            existing.data === data.data
+            existing.data === data.data &&
+            existing.loadError === data.loadError
           ) {
             return prev;
           }
           return { ...prev, [field.id]: data };
         });
+
+        if (wasLoaded === false && data.loaded === true) {
+          dispatch({
+            type: 'initFieldData',
+            payload: { field, externalData: data },
+          });
+        }
       }
     },
-    [field.id, setExternalData],
+    [setExternalData, dispatch, field],
   );
 
   const onUnmount = React.useCallback(() => {

@@ -7,6 +7,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { translateConnectionTypeError } from '#~/pages/connectionTypes/utils';
 
 type Props = {
   onSave: () => Promise<void>;
@@ -49,7 +50,11 @@ const ManageConnectionTypeFooter: React.FC<Props> = ({
                 setIsSaving(true);
                 onSave()
                   .catch((e) => {
-                    setError(e instanceof Error ? e.message : 'Error saving connection type');
+                    setError(
+                      translateConnectionTypeError(
+                        e instanceof Error ? e.message : 'Error saving connection type',
+                      ),
+                    );
                   })
                   .finally(() => {
                     setIsSaving(false);

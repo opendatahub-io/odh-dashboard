@@ -44,3 +44,10 @@ export type ModelCatalogSource = {
 export type ModelCatalogSourcesObject = {
   sources: ModelCatalogSource[];
 };
+
+export type CatalogModelDetailsParams = {
+  sourceName?: string;
+  repositoryName?: string;
+  modelName?: string;
+  tag?: string;
+};

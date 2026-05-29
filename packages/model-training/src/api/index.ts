@@ -5,6 +5,7 @@ export * from './rayJobs';
 export * from './rayClusters';
 export * from './workloads';
 export * from './lifecycle';
+export * from './rayJobLifecycle';
 export * from './scaling';
 export * from './events';
 export * from './queue';

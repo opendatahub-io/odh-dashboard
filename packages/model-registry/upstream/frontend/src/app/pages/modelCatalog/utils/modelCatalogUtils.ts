@@ -1,6 +1,4 @@
-import React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -14,7 +12,6 @@ import {
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
-  ModelCatalogStringFilterValueType,
   MetricsType,
   ModelCatalogFilterKey,
   SourceLabel,
@@ -33,9 +30,16 @@ import {
   SortField,
   CatalogModelCustomPropertyKey,
   ModelType,
+  ModelCatalogTask,
+  MATCH_ALL_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
-import { CatalogSourceStatus } from '~/concepts/modelCatalogSettings/const';
-import { ModelRegistryMetadataType } from '~/app/types';
+import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
+import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
+import {
+  buildCustomPropertiesWithModelType,
+  getModelTypeStoredValueFromCustomProperties,
+} from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+import { eqFilter, inFilter, andFilter } from '~/app/shared/components/catalog';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -80,9 +84,9 @@ export const filterEnabledCatalogSources = (
     return null;
   }
 
-  // Filter sources that are enabled AND have available models
+  // Filter sources that are enabled AND have available models (including partially-available)
   const filteredItems = catalogSources.items?.filter(
-    (source) => source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE,
+    (source) => source.enabled !== false && isSourceStatusWithModels(source.status),
   );
 
   return {
@@ -180,54 +184,16 @@ export const isModelValidated = (model: CatalogModel): boolean => {
 };
 
 // Utility function to check if a model is from Red Hat
-export const isRedHatModel = (model: CatalogModel): boolean =>
-  model.provider === 'Red Hat';
+export const isRedHatModel = (model: CatalogModel): boolean => model.provider === 'Red Hat';
 
 export const shouldShowValidatedInsights = (
   model: CatalogModel,
   artifacts: CatalogArtifacts[],
 ): boolean => isModelValidated(model) && hasPerformanceArtifacts(artifacts);
 
-export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
-  filterKey: K,
-): {
-  isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-  setSelected: (value: string, selected: boolean) => void;
-} => {
-  type Value = ModelCatalogStringFilterValueType[K];
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selections: string[] = filterData[filterKey];
-  const isValidStringState = (state: string[]): state is ModelCatalogFilterStates[K] =>
-    Object.values(ModelCatalogStringFilterKey).includes(filterKey);
-  const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
-  const setSelected = (value: string, selected: boolean) => {
-    const nextState = selected
-      ? [...selections, value]
-      : selections.filter((item) => item !== value);
-    if (isValidStringState(nextState)) {
-      setFilterData(filterKey, nextState);
-    }
-  };
-
-  return { isSelected, setSelected };
-};
-
-export const useCatalogNumberFilterState = (
-  filterKey: ModelCatalogNumberFilterKey,
-): {
-  value: number | undefined;
-  setValue: (value: number | undefined) => void;
-} => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
-  const setValue = React.useCallback(
-    (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
-    },
-    [filterKey, setFilterData],
-  );
-  return { value, setValue };
-};
+export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
+  model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
+  model.servingConfig?.toolCalling != null;
 
 const isArrayOfSelections = (
   filterOption: CatalogFilterOptions[keyof CatalogFilterOptions],
@@ -340,11 +306,8 @@ export const getSortParams = (
   };
 };
 
-const wrapInQuotes = (v: string): string => `'${v}'`;
-
-const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
-const inFilter = (k: string, values: string[]) =>
-  `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
+const isMatchAllFilter = (filterId: string): boolean =>
+  MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
 
 /**
  * Check if a filter key has the artifacts.* prefix.
@@ -438,7 +401,7 @@ const serializeFilterEntry = (
       case 1:
         return eqFilter(queryKey, data[0]);
       default:
-        return inFilter(queryKey, data);
+        return isMatchAllFilter(filterId) ? andFilter(queryKey, data) : inFilter(queryKey, data);
     }
   }
 
@@ -509,12 +472,8 @@ export const getUniqueSourceLabels = (catalogSources: CatalogSourceList | null):
   const allLabels = new Set<string>();
 
   catalogSources.items.forEach((source) => {
-    // Only include labels from sources that are enabled AND have available models
-    if (
-      source.enabled &&
-      source.status === CatalogSourceStatus.AVAILABLE &&
-      source.labels.length > 0
-    ) {
+    // Only include labels from sources that are enabled AND have models (available or partially-available)
+    if (source.enabled && isSourceStatusWithModels(source.status) && source.labels.length > 0) {
       source.labels.forEach((label) => {
         if (label.trim()) {
           allLabels.add(label.trim());
@@ -532,8 +491,8 @@ export const hasSourcesWithoutLabels = (catalogSources: CatalogSourceList | null
   }
 
   return catalogSources.items.some((source) => {
-    // Only consider sources that are enabled AND have available models
-    if (source.enabled !== false && source.status === CatalogSourceStatus.AVAILABLE) {
+    // Only consider sources that are enabled AND have models (available or partially-available)
+    if (source.enabled !== false && isSourceStatusWithModels(source.status)) {
       // Check if source has no labels or only empty/whitespace labels
       return source.labels.length === 0 || source.labels.every((label) => !label.trim());
     }
@@ -611,8 +570,8 @@ export const isValueDifferentFromDefault = (
 };
 
 /**
- * Filters catalog sources to only include those with available models.
- * A source has models if its status is AVAILABLE.
+ * Filters catalog sources to only include those with discoverable models.
+ * A source has models if its status is AVAILABLE or PARTIALLY_AVAILABLE.
  * This is used to filter out disabled sources or sources with errors from the switcher.
  */
 export const filterSourcesWithModels = (
@@ -622,8 +581,8 @@ export const filterSourcesWithModels = (
     return null;
   }
 
-  const filteredItems = catalogSources.items?.filter(
-    (source) => source.status === CatalogSourceStatus.AVAILABLE,
+  const filteredItems = catalogSources.items?.filter((source) =>
+    isSourceStatusWithModels(source.status),
   );
 
   return {
@@ -635,14 +594,14 @@ export const filterSourcesWithModels = (
 
 /**
  * Checks if there are any catalog sources that have models available.
- * Returns true if at least one source has status === AVAILABLE.
+ * Returns true if at least one source has status AVAILABLE or PARTIALLY_AVAILABLE.
  */
 export const hasSourcesWithModels = (catalogSources: CatalogSourceList | null): boolean => {
   if (!catalogSources?.items) {
     return false;
   }
 
-  return catalogSources.items.some((source) => source.status === CatalogSourceStatus.AVAILABLE);
+  return catalogSources.items.some((source) => isSourceStatusWithModels(source.status));
 };
 
 export const generateCategoryName = (name: string): string =>
@@ -674,14 +633,18 @@ export const findLabelData = (
 
 /**
  * Gets the display name for a source label, using the catalog labels data if available.
- * Falls back to the raw label name with " models" appended if no display name is found.
+ * Falls back to the raw label name with the given suffix appended if no display name is found.
  * @param sourceLabel The label string from a source (or SourceLabel.other for unlabeled sources)
  * @param catalogLabels The list of catalog labels from the API
+ * @param otherFallback Display name for sources without labels (default: 'Other models')
+ * @param categorySuffix Suffix appended to the label name when no display name exists (default: 'models')
  * @returns The display name to show in the UI
  */
 export const getLabelDisplayName = (
   sourceLabel: string | undefined,
   catalogLabels: CatalogLabelList | null,
+  otherFallback = 'Other models',
+  categorySuffix = 'models',
 ): string => {
   if (!sourceLabel) {
     return '';
@@ -689,19 +652,17 @@ export const getLabelDisplayName = (
 
   const labelData = findLabelData(sourceLabel, catalogLabels);
 
-  // If we have a displayName from the API, use it
   if (labelData?.displayName) {
     return labelData.displayName;
   }
 
-  // Otherwise fall back to generating a name from the label
-  // For SourceLabel.other, this should not happen if the API is working correctly
-  // but we handle it gracefully
   if (sourceLabel === SourceLabel.other) {
-    return 'Other models'; // fallback for the special null case
+    return otherFallback;
   }
 
-  return generateCategoryName(sourceLabel);
+  return sourceLabel.toLowerCase().endsWith(categorySuffix)
+    ? sourceLabel
+    : `${sourceLabel} ${categorySuffix}`;
 };
 
 /**
@@ -756,6 +717,21 @@ export const orderLabelsByPriority = (
   return orderedLabels;
 };
 
+export const getActiveSourceLabels = (
+  catalogSources: CatalogSourceList | null,
+  catalogLabels: CatalogLabelList | null,
+): string[] => {
+  const enabledSources = filterEnabledCatalogSources(catalogSources);
+  const uniqueLabels = getUniqueSourceLabels(enabledSources);
+  const orderedLabels = orderLabelsByPriority(uniqueLabels, catalogLabels);
+
+  if (hasSourcesWithoutLabels(enabledSources)) {
+    return [...orderedLabels, SourceLabel.other];
+  }
+
+  return orderedLabels;
+};
+
 /**
  * Formats model type value for display in the UI.
  * Converts raw API values (generative, predictive, unknown) to user-friendly display labels.
@@ -779,4 +755,16 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
   }
   // Fallback: capitalize whatever value we got
   return capitalize(modelTypeRaw.trim());
+};
+
+/**
+ * Returns model registry customProperties entries to prefill `model_type` when registering
+ * from the catalog. Recognized values (generative, predictive, unknown) are copied;
+ * unrecognized or missing values yield {}.
+ */
+export const getCatalogModelTypePropertyForRegistration = (
+  customProperties?: ModelRegistryCustomProperties,
+): ModelRegistryCustomProperties => {
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
+  return buildCustomPropertiesWithModelType(undefined, stored);
 };

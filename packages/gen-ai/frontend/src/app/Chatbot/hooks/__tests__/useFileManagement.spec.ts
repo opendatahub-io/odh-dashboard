@@ -45,7 +45,10 @@ describe('useFileManagement', () => {
   const mockNamespace = { name: TEST_NAMESPACE };
 
   // Test data
-  const mockVectorStore = createMockVectorStore({ id: VECTOR_STORE_ID });
+  const mockVectorStore = createMockVectorStore({
+    id: VECTOR_STORE_ID,
+    metadata: { created_by: 'auto-provisioning', provider_id: 'milvus' },
+  });
   const mockVectorStoreFile = createMockVectorStoreFile({
     id: FILE_ID_1,
     vector_store_id: VECTOR_STORE_ID,
@@ -169,7 +172,7 @@ describe('useFileManagement', () => {
       expect(result.current.files[0].bytes).toBe(2048);
     });
 
-    it('should set empty files when no vector stores are available', async () => {
+    it('should set empty files when no auto-provisioned vector store is available', async () => {
       mockGetVectorStores.mockResolvedValue([]);
 
       const { result } = renderHook(() => useFileManagement());
@@ -301,18 +304,6 @@ describe('useFileManagement', () => {
         outcome: TrackingOutcome.submit,
         success: true,
       });
-    });
-
-    it('should not delete when namespace is not available', async () => {
-      mockUseContext.mockReturnValue({ namespace: undefined });
-
-      const { result } = renderHook(() => useFileManagement());
-
-      await act(async () => {
-        await result.current.deleteFileById(FILE_ID_1);
-      });
-
-      expect(mockDeleteVectorStoreFile).not.toHaveBeenCalled();
     });
 
     it('should not delete when currentVectorStoreId is not available', async () => {

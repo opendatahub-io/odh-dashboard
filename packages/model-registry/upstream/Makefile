@@ -59,6 +59,9 @@ dev-bff-kubeflow:
 	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_MR_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_MODEL_REGISTRY_PORT=8085 DEV_MODE_CATALOG_PORT=8086
 
 ########### Dev Federated ###########
+FEDERATED_FRONTEND_PORT ?= 9100
+FEDERATED_BFF_PORT ?= 4000
+
 .PHONY: dev-start-federated
 dev-start-federated:
 	@trap 'exit 0' INT; \
@@ -66,41 +69,57 @@ dev-start-federated:
 
 .PHONY: dev-frontend-federated
 dev-frontend-federated:
-	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=9100 npm run start:dev
+	cd frontend && AUTH_METHOD=user_token DEPLOYMENT_MODE=federated STYLE_THEME=patternfly PORT=$(FEDERATED_FRONTEND_PORT) PROXY_PORT=$(FEDERATED_BFF_PORT) npm run start:dev
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4000 MOCK_K8S_CLIENT=false MOCK_MR_CLIENT=false MOCK_MR_CATALOG_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_MODEL_REGISTRY_PORT=8085 DEV_MODE_CATALOG_PORT=8086 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=$(FEDERATED_BFF_PORT) MOCK_K8S_CLIENT=false MOCK_MR_CLIENT=false MOCK_MR_CATALOG_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_MODEL_REGISTRY_PORT=8085 DEV_MODE_CATALOG_PORT=8086 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
+############ E2E Test Targets ############
+# These targets are used by the GitHub Actions e2e workflow to start BFFs
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+
+E2E_BFF_PORT ?= 4000
+
+.PHONY: dev-bff-e2e-mock
+dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_MR_CLIENT=true MOCK_MR_CATALOG_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+
+.PHONY: dev-bff-e2e-cluster
+dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_MR_CLIENT=false MOCK_MR_CATALOG_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated DEV_MODE_MODEL_REGISTRY_PORT=8085 DEV_MODE_CATALOG_PORT=8086 AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 
+DOCKER_BUILD_ARGS := --build-arg UI_SOURCE_CODE=clients/ui/frontend --build-arg BFF_SOURCE_CODE=clients/ui/bff
+
 .PHONY: docker-build
 docker-build:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} .
+	$(CONTAINER_TOOL) build -f Dockerfile $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme -t ${IMG_UI} ../..
 
 .PHONY: docker-build-standalone
 docker-build-standalone:
-	$(CONTAINER_TOOL) build -f Dockerfile.standalone --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build -f Dockerfile.standalone $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-standalone-release
 docker-build-standalone-release:
-	$(CONTAINER_TOOL) build -f Dockerfile.standalone --target release --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} .
+	$(CONTAINER_TOOL) build -f Dockerfile.standalone --target release $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme -t ${IMG_UI_STANDALONE} ../..
 
 .PHONY: docker-build-federated
 docker-build-federated:
-	$(CONTAINER_TOOL) build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} .
+	$(CONTAINER_TOOL) build -f Dockerfile $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly -t ${IMG_UI_FEDERATED} ../..
 
 .PHONY: docker-buildx
 docker-buildx:
-	docker buildx build --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push .
+	docker buildx build -f Dockerfile $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=kubeflow --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI} --push ../..
 
 .PHONY: docker-buildx-standalone
 docker-buildx-standalone:
-	docker buildx build -f Dockerfile.standalone --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push .
+	docker buildx build -f Dockerfile.standalone $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=standalone --build-arg STYLE_THEME=mui-theme --platform ${PLATFORM} -t ${IMG_UI_STANDALONE} --push ../..
 
 .PHONY: docker-buildx-federated
 docker-buildx-federated:
-	docker buildx build --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push .
+	docker buildx build -f Dockerfile $(DOCKER_BUILD_ARGS) --build-arg DEPLOYMENT_MODE=federated --build-arg STYLE_THEME=patternfly --platform ${PLATFORM} -t ${IMG_UI_FEDERATED} --push ../..
 
 ############ Push ############
 

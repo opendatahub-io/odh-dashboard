@@ -1,6 +1,13 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useContext } from 'react';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
-import { MLflowPrompt, MLflowPromptsResponse, MLflowPromptVersion } from '~/app/types';
+import { GenAiContext } from '~/app/context/GenAiContext';
+import {
+  MLflowPrompt,
+  MLflowPromptsResponse,
+  MLflowPromptVersion,
+  MLflowRegisterPromptRequest,
+} from '~/app/types';
 
 type UsePromptsListOptions = {
   maxResults?: number;
@@ -19,6 +26,7 @@ type UsePromptsListResult = {
 export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsListResult {
   const { api, apiAvailable } = useGenAiAPI();
   const { maxResults, filterName } = options;
+  const { namespace } = useContext(GenAiContext);
 
   const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage, error } =
     useInfiniteQuery<
@@ -28,7 +36,7 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
       [string, string, { maxResults?: number; filterName?: string }],
       string | undefined
     >({
-      queryKey: ['prompts', 'list', { maxResults, filterName }],
+      queryKey: [`${namespace?.name}_prompts`, 'list', { maxResults, filterName }],
       queryFn: async ({ pageParam }) => {
         const queryParams: Record<string, unknown> = {};
         if (maxResults !== undefined) {
@@ -70,9 +78,10 @@ type UsePromptVersionsResult = {
 
 export function usePromptVersions(promptName: string | null): UsePromptVersionsResult {
   const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = useContext(GenAiContext);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['prompts', promptName, 'versions'],
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'versions'],
     queryFn: async () => {
       if (!promptName) {
         return [];
@@ -92,6 +101,75 @@ export function usePromptVersions(promptName: string | null): UsePromptVersionsR
   return {
     versions: data ?? [],
     isLoading,
+    error: error ?? null,
+  };
+}
+
+type UseLatestPromptVersionResult = {
+  latestVersion: number | null;
+  isLoading: boolean;
+  error: Error | null;
+};
+
+export function useLatestPromptVersion(promptName: string | null): UseLatestPromptVersionResult {
+  const { api, apiAvailable } = useGenAiAPI();
+  const { namespace } = useContext(GenAiContext);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: [`${namespace?.name}_prompts`, promptName, 'latest'],
+    queryFn: () => api.getMLflowPrompt({ name: promptName! }),
+    enabled: !!promptName && apiAvailable,
+    staleTime: 0,
+  });
+
+  return {
+    latestVersion: data?.version ?? null,
+    isLoading,
+    error: error ?? null,
+  };
+}
+
+type UseCreatePromptOptions = {
+  onSuccess?: (data: MLflowPromptVersion) => void;
+  onError?: (error: Error) => void;
+};
+
+type UseCreatePromptResult = {
+  createPrompt: (request: MLflowRegisterPromptRequest) => void;
+  isCreating: boolean;
+  error: Error | null;
+};
+
+export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreatePromptResult {
+  const { api, apiAvailable } = useGenAiAPI();
+  const queryClient = useQueryClient();
+  const { namespace } = useContext(GenAiContext);
+  const { onSuccess, onError } = options;
+
+  const { mutate, isPending, error } = useMutation<
+    MLflowPromptVersion,
+    Error,
+    MLflowRegisterPromptRequest
+  >({
+    mutationFn: async (request) => {
+      if (!apiAvailable) {
+        throw new Error('API is not available');
+      }
+      return api.registerMLflowPrompt(request);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: [`${namespace?.name}_prompts`, 'list'] });
+      queryClient.invalidateQueries({
+        queryKey: [`${namespace?.name}_prompts`, data.name, 'versions'],
+      });
+      onSuccess?.(data);
+    },
+    onError,
+  });
+
+  return {
+    createPrompt: mutate,
+    isCreating: isPending,
     error: error ?? null,
   };
 }

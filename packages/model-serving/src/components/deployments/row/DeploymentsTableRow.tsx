@@ -1,4 +1,5 @@
 import React from 'react';
+import { Spinner } from '@patternfly/react-core';
 import { Td, Tbody } from '@patternfly/react-table';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
@@ -19,13 +20,15 @@ import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
-  isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
+  type DeployedModelServingDetails,
 } from '../../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
+import { ExtensionDataEntry } from '../../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 
 export const DeploymentRow: React.FC<{
   deployment: Deployment;
@@ -33,7 +36,15 @@ export const DeploymentRow: React.FC<{
   onDelete: (deployment: Deployment) => void;
   rowIndex: number;
   showExpandedToggle?: boolean;
-}> = ({ deployment, platformColumns, onDelete, rowIndex, showExpandedToggle }) => {
+  servingDetailsEntry?: ExtensionDataEntry<DeployedModelServingDetails>;
+}> = ({
+  deployment,
+  platformColumns,
+  onDelete,
+  rowIndex,
+  showExpandedToggle,
+  servingDetailsEntry,
+}) => {
   const metricsExtension = useDeploymentExtension(isModelServingMetricsExtension, deployment);
 
   const startStopActionExtension = useDeploymentExtension(
@@ -85,19 +96,22 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && pathsLoaded && (
-          <Td
-            {...{
-              'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
-              expand: {
-                rowIndex,
-                expandId: `${deployment.modelServingPlatformId}-model-row-item`,
-                isExpanded,
-                onToggle: () => setExpanded(!isExpanded),
-              },
-            }}
-          />
-        )}
+        {showExpandedToggle &&
+          (pathsLoaded ? (
+            <Td
+              {...{
+                'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+                expand: {
+                  rowIndex,
+                  expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                  isExpanded,
+                  onToggle: () => setExpanded(!isExpanded),
+                },
+              }}
+            />
+          ) : (
+            <Td />
+          ))}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
             {metricsExtension &&
@@ -117,8 +131,11 @@ export const DeploymentRow: React.FC<{
             {column.cellRenderer(deployment, column.field)}
           </Td>
         ))}
-        <Td dataLabel="Serving runtime">
-          <DeployedModelsVersion deployment={deployment} />
+        <Td dataLabel="Deployment resource">
+          <DeployedModelsVersion
+            deployment={deployment}
+            servingDetailsEntry={servingDetailsEntry}
+          />
         </Td>
         <Td dataLabel="Inference endpoints">
           <DeploymentStatus
@@ -126,10 +143,13 @@ export const DeploymentRow: React.FC<{
             stoppedStates={deployment.status?.stoppedStates}
           />
         </Td>
-        <DeploymentHardwareProfileCell
-          deployment={deployment}
-          hardwareProfilePaths={hardwareProfilePaths}
-        />
+        {formDataResolved ? (
+          <DeploymentHardwareProfileCell deployment={deployment} />
+        ) : (
+          <Td dataLabel="Hardware profile">
+            <Spinner size="md" />
+          </Td>
+        )}
         <Td dataLabel="Last deployed">
           <DeploymentLastDeployed deployment={deployment} />
         </Td>
@@ -147,7 +167,6 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
-              isDisabledWhileStarting={false}
             />
           ) : (
             '-'
@@ -162,9 +181,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   navigateToDeploymentWizard(deployment.model.metadata.namespace);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
               { isSeparator: true },
               {
@@ -172,9 +188,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   onDelete(deployment);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
             ]}
           />

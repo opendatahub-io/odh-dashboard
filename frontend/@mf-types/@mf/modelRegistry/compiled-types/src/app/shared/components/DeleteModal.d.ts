@@ -10,6 +10,10 @@ type DeleteModalProps = {
     children: React.ReactNode;
     testId?: string;
     genericLabel?: boolean;
+    inputPlaceholder?: string;
+    inputHelperText?: string;
+    /** When true, append a required indicator (*) after the confirmation prompt. */
+    confirmationRequiredIndicator?: boolean;
 };
 declare const DeleteModal: React.FC<DeleteModalProps>;
 export default DeleteModal;

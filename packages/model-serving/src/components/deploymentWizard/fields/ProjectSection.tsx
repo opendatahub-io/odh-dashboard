@@ -4,7 +4,7 @@ import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSe
 import { ProjectsContext, byName } from '@odh-dashboard/internal/concepts/projects/ProjectsContext';
 import { ODH_PRODUCT_NAME } from '@odh-dashboard/internal/utilities/const';
 
-type ProjectSectionType = {
+export type ProjectSectionType = {
   initialProjectName?: string;
   projectName?: string;
   setProjectName: (projectName?: string) => void;
@@ -59,7 +59,7 @@ const ProjectSection: React.FC<ProjectSectionType> = ({
       <HelperText>
         <HelperTextItem>{projectLabel}</HelperTextItem>
       </HelperText>
-      <TextInput value={projectName} isDisabled data-testid="project-name" />
+      <TextInput id="project-name" value={projectName} isDisabled data-testid="project-name" />
     </FormGroup>
   );
 };

@@ -16,6 +16,10 @@ export const getRoutePathForWorkbench = (
   workbenchName: string,
 ): string => `/notebook/${workbenchNamespace}/${workbenchName}`;
 
+export const isWorkbenchMigrated = (
+  notebook: NotebookKind | Notebook | null | undefined,
+): boolean => notebook?.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true';
+
 export const getNotebookResourcesPath = (
   notebook: NotebookKind | Notebook | null | undefined,
 ): string => {

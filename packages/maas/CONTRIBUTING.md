@@ -41,8 +41,34 @@ npm run dev
 
 2. Open a second terminal in the `packages/maas` directory
 
-```
+```shell
 make dev-start-federated
+```
+
+Alternatively to run in mock mode run the following from the `packages/maas` directory
+
+```shell
+make dev-start-mock-federated
+```
+
+#### `MAAS_API_URL` auto-detection
+
+The `dev-start-federated` (and `dev-bff-federated`) targets need a `MAAS_API_URL` to connect to the MaaS API. If you don't set one, the Makefile will auto-detect it by querying your cluster's ingress domain:
+
+```shell
+oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}'
+```
+
+The resulting URL is `http://maas.<CLUSTER_DOMAIN>/maas-api`. For this to work you must be logged into the cluster (`oc login`).
+
+You can also set the URL explicitly via environment variable or `.env.local`:
+
+```shell
+# environment variable
+MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api make dev-start-federated
+
+# or in .env.local
+MAAS_API_URL=http://maas.apps.my-cluster.example.com/maas-api
 ```
 
 ### Kubernetes Deployment

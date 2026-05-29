@@ -14,29 +14,29 @@ class ExternalRedirect {
   }
 
   findHomeButton() {
-    return cy.findByRole('button', { name: 'Go to Home' });
+    return cy.findByRole('link', { name: 'Go to Home' });
   }
 }
 
 class PipelinesSdkRedirect {
   findPipelinesButton() {
-    return cy.findByRole('button', { name: 'Go to Pipeline definitions' });
+    return cy.findByRole('link', { name: 'Go to Pipeline definitions' });
   }
 
   findExperimentsButton() {
-    return cy.findByRole('button', { name: 'Go to Experiments' });
+    return cy.findByRole('link', { name: 'Go to Experiments' });
   }
 }
 
 class ElyraRedirect {
   findPipelinesButton() {
-    return cy.findByRole('button', { name: 'Go to Pipeline definitions' });
+    return cy.findByRole('link', { name: 'Go to Pipeline definitions' });
   }
 }
 
 class CatalogModelRedirect {
   findModelCatalogButton() {
-    return cy.findByRole('button', { name: 'Go to Model Catalog' });
+    return cy.findByRole('link', { name: 'Go to Model Catalog' });
   }
 }
 

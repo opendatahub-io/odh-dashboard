@@ -7,12 +7,13 @@ import {
   Button,
 } from '@patternfly/react-core';
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { HardwareProfileKind } from '#~/k8sTypes';
 import { HardwareProfileFormData } from '#~/pages/hardwareProfiles/manage/types';
 import { createHardwareProfile, updateHardwareProfile } from '#~/api';
 import useNotification from '#~/utilities/useNotification';
 import { useDashboardNamespace } from '#~/redux/selectors';
+import { humanizeHardwareProfileError } from '#~/pages/hardwareProfiles/manage/utils';
 
 type ManageHardwareProfileFooterProps = {
   state: HardwareProfileFormData;
@@ -49,7 +50,9 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
                 <Button
                   isInline
                   variant="link"
-                  onClick={() => navigate(`/settings/environment-setup/hardware-profiles`)}
+                  component={(props: React.ComponentProps<'a'>) => (
+                    <Link {...props} to="/settings/environment-setup/hardware-profiles" />
+                  )}
                 >
                   View profile details
                 </Button>
@@ -60,7 +63,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         navigate(redirectPath);
       })
       .catch((err) => {
-        setErrorMessage(err.message);
+        setErrorMessage(humanizeHardwareProfileError(err.message));
       })
       .finally(() => {
         setIsLoading(false);
@@ -84,7 +87,7 @@ const ManageHardwareProfileFooter: React.FC<ManageHardwareProfileFooterProps> = 
         .then(() => Promise.all(getUpdatePromises(false)))
         .then(() => navigate(redirectPath))
         .catch((err) => {
-          setErrorMessage(err.message);
+          setErrorMessage(humanizeHardwareProfileError(err.message));
         })
         .finally(() => {
           setIsLoading(false);

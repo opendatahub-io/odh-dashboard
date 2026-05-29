@@ -11,7 +11,7 @@ import {
   LabelGroup,
 } from '@patternfly/react-core';
 import { FlatBenchmark } from '~/app/types';
-import { getCategoryColor, VISIBLE_METRICS_COUNT } from './benchmarkUtils';
+import { capitalizeFirst, getCategoryColor, VISIBLE_METRICS_COUNT } from './benchmarkUtils';
 
 type BenchmarkCardProps = {
   benchmark: FlatBenchmark;
@@ -31,45 +31,45 @@ const BenchmarkCard: React.FC<BenchmarkCardProps> = ({
   return (
     <Card
       isSelected={isSelected}
-      style={{ cursor: 'pointer' }}
       data-testid={`benchmark-card-${benchmark.providerId}-${benchmark.id}`}
-      onClick={onSelect}
     >
       {benchmark.category && (
         <CardHeader>
           <Label color={color} isCompact>
-            {benchmark.category}
+            {capitalizeFirst(benchmark.category)}
           </Label>
         </CardHeader>
       )}
-      <CardTitle>{benchmark.name}</CardTitle>
+      <CardTitle>
+        <Button
+          variant="link"
+          isInline
+          style={{
+            textDecoration: 'none',
+            fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+          }}
+          onClick={onSelect}
+        >
+          {benchmark.name}
+        </Button>
+      </CardTitle>
 
       <CardBody>
         {benchmark.description && <Content component="p">{benchmark.description}</Content>}
         {benchmark.metrics && benchmark.metrics.length > 0 && (
-          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-          <div onClick={(e) => e.stopPropagation()}>
-            <LabelGroup numLabels={VISIBLE_METRICS_COUNT} isCompact>
-              {benchmark.metrics.map((metric) => (
-                <Label key={metric} isCompact variant="outline">
-                  {metric}
-                </Label>
-              ))}
-            </LabelGroup>
-          </div>
+          <LabelGroup numLabels={VISIBLE_METRICS_COUNT} isCompact>
+            {benchmark.metrics.map((metric) => (
+              <Label key={metric} isCompact variant="outline">
+                {metric}
+              </Label>
+            ))}
+          </LabelGroup>
         )}
       </CardBody>
 
       <CardFooter>
-        <Button
-          variant="link"
-          isInline
-          onClick={(e) => {
-            e.stopPropagation();
-            onRunBenchmark();
-          }}
-        >
-          Run benchmark
+        <Button variant="secondary" isInline onClick={onRunBenchmark}>
+          Select benchmark
         </Button>
       </CardFooter>
     </Card>

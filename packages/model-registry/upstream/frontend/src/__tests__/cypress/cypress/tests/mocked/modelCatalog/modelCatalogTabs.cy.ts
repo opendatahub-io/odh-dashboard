@@ -1,9 +1,15 @@
+/* eslint-disable camelcase */
 import { mockModArchResponse } from 'mod-arch-core';
-import { mockFilteredPerformanceArtifactsByWorkloadType } from '~/__mocks__/mockCatalogModelArtifactList';
+import {
+  mockCatalogPerformanceMetricsArtifact,
+  mockFilteredPerformanceArtifactsByWorkloadType,
+} from '~/__mocks__/mockCatalogModelArtifactList';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { UseCaseOptionValue } from '~/concepts/modelCatalog/const';
+import { ModelDetailsTab, UseCaseOptionValue } from '~/concepts/modelCatalog/const';
+import { ModelRegistryMetadataType } from '~/app/types';
+import { catalogModelDetailsTabUrl } from '~/__tests__/cypress/cypress/utils/modelCatalogTestRoutes';
 import {
   setupModelCatalogIntercepts,
   interceptPerformanceArtifactsList,
@@ -74,13 +80,19 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findOverviewTabContent().should('be.visible');
         modelCatalog.findDetailsDescription().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
       });
 
       it('should switch to Performance Insights tab when clicked', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // Click Performance Insights tab
         modelCatalog.clickPerformanceInsightsTab();
@@ -89,13 +101,23 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findPerformanceInsightsTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'false');
         modelCatalog.findPerformanceInsightsTabContent().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/performance-insights');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(
+            ModelDetailsTab.PERFORMANCE_INSIGHTS,
+            'validated-model',
+            'source-2',
+          ),
+        );
       });
 
       it('should switch back to Overview tab when clicked', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // First switch to Performance Insights
         modelCatalog.clickPerformanceInsightsTab();
@@ -106,7 +128,10 @@ describe('Model Catalog Details Tabs', () => {
         modelCatalog.findOverviewTab().should('have.attr', 'aria-selected', 'true');
         modelCatalog.findPerformanceInsightsTab().should('have.attr', 'aria-selected', 'false');
         modelCatalog.findOverviewTabContent().should('be.visible');
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
       });
     });
 
@@ -221,7 +246,10 @@ describe('Model Catalog Details Tabs', () => {
       it('should maintain tab state when switching between tabs', () => {
         modelCatalog.findModelCatalogDetailLink().first().click();
 
-        cy.url().should('include', '/model-catalog/source-2/validated-model/overview');
+        cy.url().should(
+          'include',
+          catalogModelDetailsTabUrl(ModelDetailsTab.OVERVIEW, 'validated-model', 'source-2'),
+        );
 
         // Switch to Performance Insights
         modelCatalog.clickPerformanceInsightsTab();
@@ -607,5 +635,92 @@ describe('Server-Side Filtering', () => {
       // Verify table shows long_rag-filtered items
       modelCatalog.findHardwareConfigurationTableRows().should('have.length', 2);
     });
+  });
+});
+
+describe('Performance Insights Pagination', () => {
+  beforeEach(() => {
+    cy.intercept('GET', '/model-registry/api/v1/model_registry*', [
+      mockModelRegistry({ name: 'modelregistry-sample' }),
+    ]).as('getModelRegistries');
+
+    initIntercepts({ useValidatedModel: true, includePerformanceArtifacts: true });
+  });
+
+  it('loads next page when clicking Load more', () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: new RegExp(
+          `/api/${MODEL_CATALOG_API_VERSION}/model_catalog/sources/.*/performance_artifacts/.*`,
+        ),
+      },
+      (req) => {
+        const { nextPageToken } = req.query;
+        const pageSize = Number(req.query.pageSize) || 20;
+        const total = 25;
+        const start = nextPageToken ? Number(nextPageToken) : 0;
+        const end = Math.min(start + pageSize, total);
+
+        const items = Array.from({ length: end - start }, (_, i) =>
+          mockCatalogPerformanceMetricsArtifact({
+            customProperties: {
+              config_id: {
+                metadataType: ModelRegistryMetadataType.STRING,
+                string_value: `paginated-config-${start + i + 1}`,
+              },
+              hardware_count: {
+                metadataType: ModelRegistryMetadataType.INT,
+                int_value: `${(start + i + 1) % 8 || 1}`,
+              },
+              hardware_type: {
+                metadataType: ModelRegistryMetadataType.STRING,
+                string_value: 'H100-80',
+              },
+              hardware_configuration: {
+                metadataType: ModelRegistryMetadataType.STRING,
+                string_value: `${(start + i + 1) % 8 || 1} x H100-80`,
+              },
+              requests_per_second: {
+                metadataType: ModelRegistryMetadataType.DOUBLE,
+                double_value: 10 + i,
+              },
+              ttft_p90: {
+                metadataType: ModelRegistryMetadataType.DOUBLE,
+                double_value: 40 + i,
+              },
+              use_case: {
+                metadataType: ModelRegistryMetadataType.STRING,
+                string_value: UseCaseOptionValue.CHATBOT,
+              },
+            },
+          }),
+        );
+
+        req.reply(
+          mockModArchResponse({
+            items,
+            size: total,
+            pageSize,
+            nextPageToken: end < total ? String(end) : '',
+          }),
+        );
+      },
+    ).as('getPaginatedPerformanceArtifacts');
+
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.togglePerformanceView();
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.clickPerformanceInsightsTab();
+
+    cy.wait('@getPaginatedPerformanceArtifacts');
+    modelCatalog.findHardwareConfigurationTableRows().should('have.length', 20);
+
+    modelCatalog.findHardwareConfigLoadMoreButton().click();
+    cy.wait('@getPaginatedPerformanceArtifacts');
+
+    modelCatalog.findHardwareConfigurationTableRows().should('have.length', 25);
+    modelCatalog.findHardwareConfigLoadMoreButton().should('not.exist');
   });
 });

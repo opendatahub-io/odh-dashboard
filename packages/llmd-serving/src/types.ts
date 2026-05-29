@@ -6,10 +6,38 @@ import type {
 } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
 import type { PodContainer } from '@odh-dashboard/internal/types';
-import { MAAS_TIERS_ANNOTATION } from './wizardFields/modelAvailability';
 import { LLMD_SERVING_ID } from '../extensions/extensions';
 
+export const MAAS_ENDPOINT_LABEL = 'opendatahub.io/maas-endpoint';
+
 export type LLMdContainer = { name: string; args?: string[] } & Partial<PodContainer>;
+
+// Shared by both LLMInferenceService and LLMInferenceServiceConfig
+// https://kserve.github.io/website/docs/reference/crd-api#llminferenceservice
+type LLMInferenceServiceSpec = {
+  baseRefs?: {
+    name?: string;
+  }[];
+  model: {
+    uri: string;
+    name?: string;
+  };
+  replicas?: number;
+  router?: {
+    gateway?: {
+      refs?: {
+        name?: string;
+        namespace?: string;
+      }[];
+    };
+    route?: object;
+    scheduler?: object;
+  };
+  template?: {
+    containers?: LLMdContainer[];
+    imagePullSecrets?: ImagePullSecret[];
+  };
+};
 
 export const VLLM_ADDITIONAL_ARGS = 'VLLM_ADDITIONAL_ARGS';
 
@@ -23,33 +51,13 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     } & {
       'opendatahub.io/model-type'?: 'generative';
       'opendatahub.io/genai-use-case'?: string;
-      [MAAS_TIERS_ANNOTATION]?: string;
     };
     labels?: {
       'opendatahub.io/genai-asset'?: 'true' | 'false';
+      [MAAS_ENDPOINT_LABEL]?: 'true';
     };
   };
-  spec: {
-    model: {
-      uri: string;
-      name?: string;
-    };
-    replicas?: number;
-    router?: {
-      gateway?: {
-        refs?: {
-          name?: string;
-          namespace?: string;
-        }[];
-      };
-      route?: object;
-      scheduler?: object;
-    };
-    template?: {
-      containers?: LLMdContainer[];
-      imagePullSecrets?: ImagePullSecret[];
-    };
-  };
+  spec: LLMInferenceServiceSpec;
   status?: {
     conditions?: {
       lastTransitionTime?: string;
@@ -64,8 +72,32 @@ export type LLMInferenceServiceKind = K8sResourceCommon & {
     observedGeneration?: number;
   };
 };
+export const isLLMInferenceService = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceKind => resource?.kind === 'LLMInferenceService';
 
-export type LLMdDeployment = Deployment<LLMInferenceServiceKind>;
+export type LLMInferenceServiceConfigKind = K8sResourceCommon & {
+  kind: 'LLMInferenceServiceConfig';
+  metadata: {
+    name: string;
+    namespace: string;
+    annotations?: DisplayNameAnnotations & {
+      'opendatahub.io/recommended-accelerators'?: string;
+      'opendatahub.io/runtime-version'?: string;
+      'opendatahub.io/template-name'?: string;
+      'opendatahub.io/disabled'?: 'true' | 'false';
+    };
+    labels?: {
+      'opendatahub.io/config-type'?: 'accelerator' | string;
+    };
+  };
+  spec?: LLMInferenceServiceSpec;
+};
+export const isLLMInferenceServiceConfig = (
+  resource?: K8sResourceCommon,
+): resource is LLMInferenceServiceConfigKind => resource?.kind === 'LLMInferenceServiceConfig';
+
+export type LLMdDeployment = Deployment<LLMInferenceServiceKind, LLMInferenceServiceConfigKind>;
 
 export const isLLMdDeployment = (deployment: Deployment): deployment is LLMdDeployment =>
   deployment.modelServingPlatformId === LLMD_SERVING_ID;
@@ -76,3 +108,17 @@ export const LLMInferenceServiceModel: K8sModelCommon = {
   kind: 'LLMInferenceService',
   plural: 'llminferenceservices',
 };
+
+export const LLMInferenceServiceConfigModel: K8sModelCommon = {
+  apiVersion: 'v1alpha1',
+  apiGroup: 'serving.kserve.io',
+  kind: 'LLMInferenceServiceConfig',
+  plural: 'llminferenceserviceconfigs',
+};
+
+export enum LLMInferenceServiceReadyConditionReason {
+  PROGRESS_DEADLINE_EXCEEDED = 'ProgressDeadlineExceeded',
+  STOPPED = 'Stopped',
+  MINIMUM_REPLICAS_UNAVAILABLE = 'MinimumReplicasUnavailable',
+  PROGRESSING = 'Progressing',
+}

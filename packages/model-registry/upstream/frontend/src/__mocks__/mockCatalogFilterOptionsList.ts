@@ -1,16 +1,16 @@
 /* eslint-disable camelcase */
-import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '../app/modelCatalogTypes';
+import { CatalogFilterOptionsList, NamedQuery, FilterOperator } from '~/app/modelCatalogTypes';
 import {
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
-  ModelCatalogLicense,
   ModelCatalogProvider,
   ModelCatalogTask,
+  ValidatedConfiguration,
   AllLanguageCode,
   UseCaseOptionValue,
   DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME,
   ModelCatalogTensorType,
-} from '../concepts/modelCatalog/const';
+} from '~/concepts/modelCatalog/const';
 
 export const mockNamedQueries: Record<string, NamedQuery> = {
   // Default performance filters applied when performance toggle is turned on
@@ -70,7 +70,7 @@ export const mockCatalogFilterOptionsList = (
     },
     [ModelCatalogStringFilterKey.LICENSE]: {
       type: 'string',
-      values: [ModelCatalogLicense.APACHE_2_0, ModelCatalogLicense.MIT],
+      values: ['Apache 2.0', 'MIT'],
     },
     [ModelCatalogStringFilterKey.TASK]: {
       type: 'string',
@@ -111,6 +111,10 @@ export const mockCatalogFilterOptionsList = (
         ModelCatalogTensorType.INT8,
         ModelCatalogTensorType.MXFP4,
       ],
+    },
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+      type: 'string',
+      values: [ValidatedConfiguration.TOOL_CALLING],
     },
     [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
       type: 'string',

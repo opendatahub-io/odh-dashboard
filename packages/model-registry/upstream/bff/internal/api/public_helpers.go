@@ -7,9 +7,9 @@ import (
 	"log/slog"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/model-registry/ui/bff/internal/config"
-	k8s "github.com/kubeflow/model-registry/ui/bff/internal/integrations/kubernetes"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/config"
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
 
 // BadRequest exposes the internal bad request helper for extensions.
@@ -26,6 +26,30 @@ func (app *App) ServerError(w http.ResponseWriter, r *http.Request, err error) {
 		return
 	}
 	app.serverErrorResponse(w, r, err)
+}
+
+// NotFound exposes the internal not-found helper for extensions.
+func (app *App) NotFound(w http.ResponseWriter, r *http.Request) {
+	if app == nil {
+		return
+	}
+	app.notFoundResponse(w, r)
+}
+
+// Forbidden exposes the internal forbidden helper for extensions.
+func (app *App) Forbidden(w http.ResponseWriter, r *http.Request, message string) {
+	if app == nil {
+		return
+	}
+	app.forbiddenResponse(w, r, message)
+}
+
+// Conflict exposes the internal conflict helper for extensions.
+func (app *App) Conflict(w http.ResponseWriter, r *http.Request, message string) {
+	if app == nil {
+		return
+	}
+	app.conflictResponse(w, r, message)
 }
 
 // NotImplemented writes a standard placeholder response for unimplemented endpoints.

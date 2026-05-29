@@ -8,6 +8,7 @@ import {
 import { NotebookKind } from '#~/k8sTypes';
 import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
 import { fireMiscTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
+import { isWorkbenchMigrated } from '#~/concepts/notebooks/utils';
 import { useGetNotebookRoute } from '#~/utilities/useGetNotebookRoute';
 import { hasStopAnnotation } from './utils';
 
@@ -37,9 +38,7 @@ const NotebookRouteLink: React.FC<NotebookRouteLinkProps> = ({
   const routeLink = useGetNotebookRoute(
     canLink ? notebook.metadata.namespace : undefined,
     canLink ? notebook.metadata.name : undefined,
-    canLink
-      ? notebook.metadata.annotations?.['notebooks.opendatahub.io/inject-auth'] === 'true'
-      : undefined,
+    canLink ? isWorkbenchMigrated(notebook) : undefined,
   );
 
   return (

@@ -1,33 +1,37 @@
 import * as React from 'react';
-import EmptyDetailsView from '@odh-dashboard/internal/components/EmptyDetailsView';
-import { Button } from '@patternfly/react-core';
-import CreateApiKeyModal from './CreateApiKeyModal';
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateBody,
+  EmptyStateFooter,
+} from '@patternfly/react-core';
+import apiKeysEmptyStateImg from '@odh-dashboard/internal/images/empty-state-api-keys.svg';
 
-const EmptyApiKeysPage: React.FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-
-  return (
-    <>
-      <EmptyDetailsView
-        title="No API keys"
-        description="To get started, create an API key."
-        imageAlt="create an API key"
-        createButton={
-          <Button variant="primary" onClick={() => setIsModalOpen(true)}>
-            Create API key
-          </Button>
-        }
-      />
-      {isModalOpen && (
-        <CreateApiKeyModal
-          onClose={() => {
-            setIsModalOpen(false);
-            onRefresh();
-          }}
-        />
-      )}
-    </>
-  );
+type EmptyApiKeysPageProps = {
+  onCreateApiKey: () => void;
 };
+
+const EmptyApiKeysPage: React.FC<EmptyApiKeysPageProps> = ({ onCreateApiKey }) => (
+  <EmptyState
+    data-testid="empty-state-title"
+    headingLevel="h3"
+    titleText="No API keys"
+    variant="sm"
+    icon={() => <img src={apiKeysEmptyStateImg} alt="No API keys" />}
+  >
+    <EmptyStateBody>
+      API keys let you authenticate with AI model endpoints. Create a key to start making requests
+      to models available in your subscriptions.
+    </EmptyStateBody>
+    <EmptyStateFooter>
+      <EmptyStateActions>
+        <Button variant="primary" onClick={onCreateApiKey} data-testid="create-api-key-button">
+          Create API key
+        </Button>
+      </EmptyStateActions>
+    </EmptyStateFooter>
+  </EmptyState>
+);
 
 export default EmptyApiKeysPage;

@@ -1,13 +1,13 @@
 import * as React from 'react';
 import axios from '#~/utilities/axios';
 import { PrometheusQueryResponse } from '#~/types';
-import useFetchState, { FetchOptions, FetchState, NotReadyError } from '#~/utilities/useFetchState';
+import useFetch, { FetchOptions, FetchStateObject, NotReadyError } from '#~/utilities/useFetch';
 
 const usePrometheusQuery = <TResponse = PrometheusQueryResponse>(
   apiPath: string,
   query?: string,
   fetchOptions?: Partial<FetchOptions>,
-): FetchState<TResponse | null> => {
+): FetchStateObject<TResponse | null> => {
   const fetchData = React.useCallback(() => {
     if (!query) {
       return Promise.reject(new NotReadyError('No query'));
@@ -18,7 +18,7 @@ const usePrometheusQuery = <TResponse = PrometheusQueryResponse>(
       .then((response) => response.data.response);
   }, [query, apiPath]);
 
-  return useFetchState<TResponse | null>(fetchData, null, fetchOptions);
+  return useFetch<TResponse | null>(fetchData, null, fetchOptions);
 };
 
 export default usePrometheusQuery;

@@ -4,6 +4,7 @@ export enum ModelCatalogStringFilterKey {
   LICENSE = 'license',
   LANGUAGE = 'language',
   TENSOR_TYPE = 'tensor_type.string_value',
+  VALIDATED_CONFIGURATION = 'validatedTasks',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
   HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
@@ -184,6 +185,17 @@ export const MODEL_CATALOG_TASK_NAME_MAPPING = {
   [ModelCatalogTask.VIDEO_TO_TEXT]: 'Video-to-text',
 };
 
+export enum ValidatedConfiguration {
+  TOOL_CALLING = 'tool-calling',
+}
+
+export const MODEL_CATALOG_VALIDATED_CONFIGURATION_NAME_MAPPING: Record<
+  ValidatedConfiguration,
+  string
+> = {
+  [ValidatedConfiguration.TOOL_CALLING]: 'Tool calling',
+};
+
 export const MODEL_CATALOG_TASK_DESCRIPTION = {
   [ModelCatalogTask.AUDIO_TO_TEXT]: 'Audio transcription and speech recognition models',
   [ModelCatalogTask.IMAGE_TEXT_TO_TEXT]: 'Multimodal models that process both images and text',
@@ -247,7 +259,7 @@ export enum ModelCatalogTensorType {
 
 export const MODEL_CATALOG_POPOVER_MESSAGES = {
   VALIDATED:
-    'Validated models are benchmarked for performance and quality using leading open source evaluation datasets.',
+    'Validated models are benchmarked for performance and quality using leading open source evaluation datasets. Some of these include tested runtime arguments for enabling additional capabilities.',
   RED_HAT: 'Red Hat AI models are provided and supported by Red Hat.',
 } as const;
 
@@ -264,71 +276,6 @@ export enum ModelType {
   PREDICTIVE = 'predictive',
   UNKNOWN = 'unknown',
 }
-
-export enum ModelCatalogLicense {
-  APACHE_2_0 = 'apache-2.0',
-  GEMMA = 'gemma',
-  LLLAMA_3_3 = 'llama-3.3',
-  LLLAMA_3_1 = 'llama3.1',
-  LLLAMA_3_3_ALTERNATE = 'llama3.3',
-  LLLAMA_4 = 'llama4',
-  MIT = 'mit',
-  MODIFIED_MIT = 'modified-mit',
-}
-
-export const MODEL_CATALOG_LICENSE_NAME_MAPPING = {
-  [ModelCatalogLicense.APACHE_2_0]: 'Apache 2.0',
-  [ModelCatalogLicense.GEMMA]: 'Gemma',
-  [ModelCatalogLicense.LLLAMA_3_3]: 'Llama 3.3',
-  [ModelCatalogLicense.LLLAMA_3_1]: 'Llama 3.1',
-  [ModelCatalogLicense.LLLAMA_3_3_ALTERNATE]: 'Llama 3.3 (variant)',
-  [ModelCatalogLicense.LLLAMA_4]: 'Llama 4',
-  [ModelCatalogLicense.MIT]: 'MIT',
-  [ModelCatalogLicense.MODIFIED_MIT]: 'Modified MIT',
-};
-
-export const MODEL_CATALOG_LICENSE_DETAILS = {
-  [ModelCatalogLicense.APACHE_2_0]: {
-    name: 'Apache 2.0',
-    type: 'Open Source',
-    description: 'Permissive Apache License 2.0',
-  },
-  [ModelCatalogLicense.GEMMA]: {
-    name: 'Gemma',
-    type: 'Custom',
-    description: 'Google Gemma model license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_3]: {
-    name: 'Llama 3.3',
-    type: 'Custom',
-    description: 'Meta Llama 3.3 license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_1]: {
-    name: 'Llama 3.1',
-    type: 'Custom',
-    description: 'Meta Llama 3.1 license',
-  },
-  [ModelCatalogLicense.LLLAMA_3_3_ALTERNATE]: {
-    name: 'Llama 3.3 (variant)',
-    type: 'Custom',
-    description: 'Meta Llama 3.3 license (variant)',
-  },
-  [ModelCatalogLicense.LLLAMA_4]: {
-    name: 'Llama 4',
-    type: 'Custom',
-    description: 'Meta Llama 4 license',
-  },
-  [ModelCatalogLicense.MIT]: {
-    name: 'MIT',
-    type: 'Open Source',
-    description: 'Permissive MIT license',
-  },
-  [ModelCatalogLicense.MODIFIED_MIT]: {
-    name: 'Modified MIT',
-    type: 'Open Source',
-    description: 'Modified MIT license',
-  },
-};
 
 export enum EuropeanLanguagesCode {
   BG = 'bg',
@@ -509,6 +456,17 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
   ModelCatalogStringFilterKey.TASK,
   ModelCatalogStringFilterKey.LANGUAGE,
   ModelCatalogStringFilterKey.TENSOR_TYPE,
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
+];
+
+/**
+ * Filters that use AND logic when multiple values are selected.
+ * Standard filters use OR (IN operator): items matching ANY selected value.
+ * AND filters require items to match ALL selected values.
+ * Add a filter key here to switch it from OR to AND behavior.
+ */
+export const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
+  ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
 ];
 
 /**
@@ -615,6 +573,7 @@ export const MODEL_CATALOG_FILTER_CATEGORY_NAMES: Record<ModelCatalogFilterKey, 
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: 'Hardware',
   [ModelCatalogStringFilterKey.USE_CASE]: 'Workload type',
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: 'Tensor type',
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: 'Validated arguments',
   // Number filter keys
   [ModelCatalogNumberFilterKey.MAX_RPS]: 'Max RPS',
   // Latency field names - all use "Latency" as category name

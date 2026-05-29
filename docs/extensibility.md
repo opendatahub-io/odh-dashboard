@@ -428,3 +428,112 @@ const ModelCard: React.FC<{ extension: ModelExtension }> = ({ extension }) => {
 - **Bundle Analysis**: Monitor plugin bundle sizes and optimize imports
 - **Feature Flag Filtering**: Use flags to prevent loading unused extensions entirely
 - **Memory Management**: Properly clean up resources in `HookNotify` components
+
+## Chunk Naming Strategy
+
+The build system uses a **single-chunk-per-plugin** strategy for extension code references. This section applies to extension packages that are bundled into the host application (i.e., workspace packages with a `./extensions` export). For Module Federation remotes, chunking is handled by each remote's own webpack build.
+
+### Scope
+
+The chunk grouping strategy **only affects dynamic imports originating from extension definition files** (files matching `extensions.ts` or files in an `extensions/` directory). Any other code-splitting within a plugin — such as `React.lazy()` route splitting inside components — retains normal webpack behavior and is not merged into the plugin chunk.
+
+### Default Behavior
+
+When a plugin defines code references with dynamic imports in its extension files, the build system automatically groups all modules from the same plugin package into a **single async chunk**. The chunk is named `plugin-<package-short-name>`.
+
+For example, a plugin at `@odh-dashboard/kserve` with multiple code references:
+
+```typescript
+const extensions = [
+  {
+    type: 'model-serving.platform/watch-deployments',
+    properties: {
+      watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
+    },
+  },
+  {
+    type: 'model-serving.deployment/deploy',
+    properties: {
+      deploy: () => import('./src/deploy').then((m) => m.deployKServeDeployment),
+    },
+  },
+  {
+    type: 'model-serving.deployment/form-data',
+    properties: {
+      extractHardwareProfileConfig: () =>
+        import('./src/hardware').then((m) => m.extractHardwareProfileConfig),
+    },
+  },
+];
+```
+
+All three imports (`./src/deployments`, `./src/deploy`, `./src/hardware`) are bundled into one chunk named `plugin-kserve`. This reduces the number of network requests when a plugin's functionality is loaded.
+
+### Custom Chunk Names with `webpackChunkName`
+
+Extension authors can override the default grouping using webpack's [`webpackChunkName`](https://webpack.js.org/api/module-methods/#webpackchunkname) magic comment. This is useful when a plugin is large enough to benefit from logical separation into multiple chunks.
+
+```typescript
+const extensions = [
+  {
+    type: 'model-serving.deployment/deploy',
+    properties: {
+      // Placed in its own chunk named "kserve-deploy"
+      deploy: () =>
+        import(/* webpackChunkName: "kserve-deploy" */ './src/deploy').then(
+          (m) => m.deployKServeDeployment,
+        ),
+    },
+  },
+  {
+    type: 'model-serving.platform/watch-deployments',
+    properties: {
+      // Remains in the default "plugin-kserve" chunk
+      watch: () => import('./src/deployments').then((m) => m.useWatchDeployments),
+    },
+  },
+];
+```
+
+In this example, `./src/deploy` gets its own chunk (`kserve-deploy`) while `./src/deployments` stays in the default plugin chunk (`plugin-kserve`).
+
+**Grouping related imports:** Multiple imports from different files can share a `webpackChunkName` to be grouped into the same chunk:
+
+```typescript
+// Both imports land in a chunk named "kserve-hardware"
+extractHardwareProfileConfig: () =>
+  import(/* webpackChunkName: "kserve-hardware" */ './src/hardwareProfiles').then(
+    (m) => m.extractHardwareProfileConfig,
+  ),
+extractReplicas: () =>
+  import(/* webpackChunkName: "kserve-hardware" */ './src/replicas').then(
+    (m) => m.extractReplicas,
+  ),
+```
+
+### Shared Modules
+
+When a module is imported by both a named chunk and the default plugin chunk (or by two differently named chunks), the build system places it in the **default plugin chunk** rather than in any named chunk. This prevents a named chunk from becoming a hidden dependency of other chunks.
+
+For example, if `./src/deploy` (in chunk `kserve-deploy`) and `./src/deployments` (in the default chunk) both import `./src/utils`, then `./src/utils` is placed in `plugin-kserve`. This keeps the named `kserve-deploy` chunk genuinely optional — loading the default plugin chunk does not force the browser to also fetch the named chunk.
+
+### When to Use Custom Chunk Names
+
+| Scenario | Recommendation |
+|----------|---------------|
+| Small plugin (< 50 KB) | Use default single-chunk grouping |
+| Large plugin with distinct features | Split into logical chunks (e.g., deploy vs. monitoring) |
+| Rarely used code paths | Separate into dedicated chunks to defer loading |
+| Multiple imports from the same file | No need for `webpackChunkName` — they share the same module |
+
+### Naming Convention
+
+When using `webpackChunkName`, prefix the chunk name with the plugin name:
+
+```typescript
+// Good: prefixed with plugin name
+import(/* webpackChunkName: "kserve-deploy" */ './src/deploy')
+
+// Avoid: generic name may collide with other plugins
+import(/* webpackChunkName: "deploy" */ './src/deploy')
+```

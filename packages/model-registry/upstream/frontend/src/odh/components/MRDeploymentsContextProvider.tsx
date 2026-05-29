@@ -1,6 +1,6 @@
 import React from 'react';
-import { DeploymentsStateContext } from '~/odh/hooks/useDeploymentsState';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
+import { DeploymentsStateContext } from '~/odh/hooks/useDeploymentsState';
 import { isModelRegistryVersionDeploymentsContextExtension } from '~/odh/extension-points/deploy';
 
 interface MRDeploymentsContextProviderProps {
@@ -24,23 +24,28 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
 
   const DeploymentsProviderComponent = React.useMemo(
     () =>
-      deploymentsContextLoaded && deploymentsContextExtensions?.[0]?.properties.DeploymentsProvider,
+      deploymentsContextLoaded && deploymentsContextExtensions[0]?.properties.DeploymentsProvider,
     [deploymentsContextLoaded, deploymentsContextExtensions],
   );
+
+  // Default to "loaded with no deployments" when no extension provides a real provider (standalone mode).
+  const defaultValue = React.useMemo(() => ({ loaded: true, deployments: [] }), []);
 
   if (deploymentsContextLoaded && DeploymentsProviderComponent) {
     return (
       <DeploymentsProviderComponent labelSelectors={labelSelectors} mrName={mrName}>
-        {
-          (deploymentsContextValue) => (
-              <DeploymentsStateContext.Provider value={deploymentsContextValue}>
-                {children}
-              </DeploymentsStateContext.Provider>
-          )
-        }
+        {(deploymentsContextValue) => (
+          <DeploymentsStateContext.Provider value={deploymentsContextValue}>
+            {children}
+          </DeploymentsStateContext.Provider>
+        )}
       </DeploymentsProviderComponent>
     );
   }
 
-  return children;
+  return (
+    <DeploymentsStateContext.Provider value={defaultValue}>
+      {children}
+    </DeploymentsStateContext.Provider>
+  );
 };

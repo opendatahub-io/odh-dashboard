@@ -1,8 +1,8 @@
 import { APIOptions } from 'mod-arch-core';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths, import/order
 import {
   ModelCatalogTask,
   ModelCatalogProvider,
-  ModelCatalogLicense,
   AllLanguageCode,
   ModelCatalogStringFilterKey,
   ModelCatalogNumberFilterKey,
@@ -12,6 +12,11 @@ import {
   ModelCatalogFilterKey,
   ModelCatalogTensorType,
 } from '../concepts/modelCatalog/const';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {
+  CatalogFilterStringOption,
+  CatalogFilterNumberOption,
+} from './shared/components/catalog';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
@@ -30,11 +35,19 @@ export type CatalogSource = {
   name: string;
   labels: string[];
   enabled?: boolean;
-  status?: 'available' | 'error' | 'disabled';
+  status?: 'available' | 'partially-available' | 'error' | 'disabled';
   error?: string;
 };
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
+
+export type ToolCallingConfig = {
+  args?: string;
+};
+
+export type ServingConfig = {
+  toolCalling?: ToolCallingConfig;
+};
 
 export type CatalogModel = {
   source_id?: string;
@@ -45,6 +58,7 @@ export type CatalogModel = {
   language?: string[];
   logo?: string;
   tasks?: string[];
+  validatedTasks?: string[];
   libraryName?: string;
   license?: string;
   licenseLink?: string;
@@ -52,6 +66,7 @@ export type CatalogModel = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
+  servingConfig?: ServingConfig;
 };
 
 export type PaginationParams = {
@@ -169,18 +184,7 @@ export type CatalogPerformanceArtifactList = PaginationParams & {
   items: CatalogPerformanceMetricsArtifact[];
 };
 
-export type CatalogFilterNumberOption = {
-  type: 'number';
-  range?: {
-    max?: number;
-    min?: number;
-  };
-};
-
-export type CatalogFilterStringOption<T extends string> = {
-  type: 'string';
-  values?: T[];
-};
+export type { CatalogFilterStringOption, CatalogFilterNumberOption };
 
 export type GetCatalogModelsBySource = (
   opts: APIOptions,
@@ -238,7 +242,14 @@ export type GetArtifactFilterOptions = (
 
 export type GetCatalogFilterOptionList = (opts: APIOptions) => Promise<CatalogFilterOptionsList>;
 
-export type GetCatalogLabels = (opts: APIOptions) => Promise<CatalogLabelList>;
+export type CatalogLabelListParams = {
+  assetType?: CatalogAssetType;
+};
+
+export type GetCatalogLabels = (
+  opts: APIOptions,
+  listParams?: CatalogLabelListParams,
+) => Promise<CatalogLabelList>;
 
 export type GetMcpServerList = (
   opts: APIOptions,
@@ -276,9 +287,10 @@ export type { ModelCatalogFilterKey };
 export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask;
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider;
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense;
+  [ModelCatalogStringFilterKey.LICENSE]: string;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
@@ -342,9 +354,10 @@ export type ComputedPerformanceProperties = {
 export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.TASK]: ModelCatalogTask[];
   [ModelCatalogStringFilterKey.PROVIDER]: ModelCatalogProvider[];
-  [ModelCatalogStringFilterKey.LICENSE]: ModelCatalogLicense[];
+  [ModelCatalogStringFilterKey.LICENSE]: string[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];

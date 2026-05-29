@@ -1,0 +1,24 @@
+.automl-topology-wrapper {
+  position: relative;
+}
+
+.automl-topology-overlay {
+  position: absolute;
+  top: var(--pf-t--global--spacer--md);
+  left: var(--pf-t--global--spacer--md);
+  z-index: 1;
+}
+
+.automl-topology-container {
+  height: 400px;
+  border-radius: 16px;
+  border: 1px solid var(--pf-t--global--border--color--default);
+  overflow: hidden;
+
+  /* Default view: larger than body--lg for long pipeline labels at default zoom. */
+  --pf-topology-pipelines__pill-text--FontSize: 1.3125rem;
+
+  .pf-topology-content {
+    background-color: var(--pf-t--global--background--color--primary--default);
+  }
+}

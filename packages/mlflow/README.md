@@ -17,7 +17,7 @@ You can find the OpenAPI specification for the MLflow UI in the [openapi](./api/
 
 There are two main environments that the MLflow UI is targeted for:
 
-1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes a `/namespace` endpoint that returns all the namespaces in the cluster.
+1. **Standalone**: This is the default environment for local development. The UI is served by the BFF and the BFF is responsible for serving the API requests. The BFF exposes an `/api/v1/namespaces` endpoint that returns all the namespaces in the cluster.
 
 2. **Federated**: This is the environment where the MLflow UI runs as a micro-frontend inside the ODH dashboard via Module Federation. The BFF handles API requests, and authentication flows through OAuth.
 
@@ -71,6 +71,20 @@ The following environment variables are used to configure the deployment and dev
 - **Possible Values**: `mui-theme`, `patternfly-theme`
 - **Example**: `STYLE_THEME=mui-theme`
 
+### `MLFLOW_URL`
+
+- **Description**: URL of the MLflow tracking server to connect to. Only needed for remote MLflow mode.
+- **Default Value**: *(empty — in mock mode, the BFF auto-starts a local MLflow instance)*
+- **Example**: `MLFLOW_URL=https://my-mlflow-server.example.com`
+
+### `INSECURE_SKIP_VERIFY`
+
+- **Description**: Skip TLS certificate verification when connecting to MLflow. Useful for self-signed certificates.
+- **Default Value**: `false`
+- **Possible Values**: `true`, `false`
+- **Example**: `INSECURE_SKIP_VERIFY=true`
+- **Warning**: Do not enable in production. Disabling TLS verification exposes the connection to man-in-the-middle attacks.
+
 ### Example `.env.local` File
 
 Here is an example of what your `.env.local` file might look like:
@@ -79,7 +93,12 @@ Here is an example of what your `.env.local` file might look like:
 CONTAINER_TOOL=docker
 IMG_UI=quay.io/<personal-registry>/mlflow-ui:latest
 IMG_UI_STANDALONE=quay.io/<personal-registry>/mlflow-ui-standalone:latest
+IMG_UI_FEDERATED=quay.io/<personal-registry>/mlflow-ui-federated:latest
 PLATFORM=linux/amd64
+
+# Optional: for remote MLflow (standalone or federated mode)
+# MLFLOW_URL=https://my-mlflow-server.example.com
+# INSECURE_SKIP_VERIFY=false
 ```
 
 ## Build and Push Commands
@@ -90,29 +109,41 @@ The following Makefile targets are used to build and push the Docker images. The
 
 - **`docker-build`**: Builds the Docker image for the UI platform.
   - Command: `make docker-build`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables.
 
 - **`docker-buildx`**: Builds the Docker image with buildX for multiarch support.
   - Command: `make docker-buildx`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+  - This command uses `IMG_UI` and `PLATFORM` environment variables.
 
 - **`docker-build-standalone`**: Builds the Docker image for the UI platform **in standalone mode**.
   - Command: `make docker-build-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables.
+
+- **`docker-build-federated`**: Builds the Docker image for the UI platform **in federated mode**.
+  - Command: `make docker-build-federated`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_FEDERATED` environment variables.
 
 - **`docker-buildx-standalone`**: Builds the Docker image with buildX for multiarch support **in standalone mode**.
   - Command: `make docker-buildx-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+  - This command uses `IMG_UI_STANDALONE` and `PLATFORM` environment variables.
+
+- **`docker-buildx-federated`**: Builds the Docker image with buildX for multiarch support **in federated mode**.
+  - Command: `make docker-buildx-federated`
+  - This command uses `IMG_UI_FEDERATED` and `PLATFORM` environment variables.
 
 ### Push Commands
 
 - **`docker-push`**: Pushes the Docker image for the UI service to the container registry.
   - Command: `make docker-push`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables to push the image.
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI` environment variables.
 
 - **`docker-push-standalone`**: Pushes the Docker image for the UI service to the container registry **in standalone mode**.
   - Command: `make docker-push-standalone`
-  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables to push the image.
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_STANDALONE` environment variables.
+
+- **`docker-push-federated`**: Pushes the Docker image for the UI service to the container registry **in federated mode**.
+  - Command: `make docker-push-federated`
+  - This command uses the `CONTAINER_TOOL` and `IMG_UI_FEDERATED` environment variables.
 
 ## Deployments
 

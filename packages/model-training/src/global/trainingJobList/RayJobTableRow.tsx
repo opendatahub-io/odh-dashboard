@@ -9,16 +9,23 @@ import {
   Skeleton,
   Tooltip,
 } from '@patternfly/react-core';
-import { CubesIcon, PencilAltIcon } from '@patternfly/react-icons';
+import { CubesIcon, ExternalLinkAltIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/internal/utilities/time';
 import JobProject from './JobProject';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import RayJobStatus from './components/RayJobStatus';
+import RayJobStatusModal from './RayJobStatusModal';
 import StateActionToggle from './StateActionToggle';
 import { getStatusFlags, getRayJobStatusSync } from './utils';
-import { KUEUE_QUEUE_LABEL } from '../../const';
+import PauseRayJobModal from './PauseRayJobModal';
+import { useRayJobPauseResume } from './hooks/useRayJobPauseResume';
+import {
+  KUEUE_QUEUE_LABEL,
+  PAUSE_RAY_JOB_TOOLTIP_CONTENT,
+  RAY_CLUSTER_SELECTOR_LABEL,
+} from '../../const';
 import { RayJobKind } from '../../k8sTypes';
-import { JobDisplayState } from '../../types';
+import { JobDisplayState, RayJobState } from '../../types';
 import { useRayClusterDashboardURL } from '../../hooks/useRayClusterDashboardURL';
 import { useRayJobNodeScaling } from '../../hooks/useRayJobNodeScaling';
 import ScaleRayJobNodesModal from '../rayJobDetailsDrawer/ScaleRayJobNodesModal';
@@ -30,6 +37,7 @@ type RayJobTableRowProps = {
   nodeCount: number;
   onDelete: (job: RayJobKind) => void;
   onSelectJob: (job: RayJobKind) => void;
+  onStatusUpdate?: (jobId: string, newStatus: RayJobState) => void;
   isExternallyToggling?: boolean;
 };
 
@@ -40,11 +48,14 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   nodeCount,
   onDelete,
   onSelectJob,
+  onStatusUpdate,
   isExternallyToggling = false,
 }) => {
   const displayName = job.metadata.name;
   const localQueueName = job.metadata.labels?.[KUEUE_QUEUE_LABEL];
   const { isPaused, canPauseResume } = getStatusFlags(jobStatus ?? getRayJobStatusSync(job));
+  const isClusterSelectorJob = !!job.spec.clusterSelector?.[RAY_CLUSTER_SELECTOR_LABEL];
+  const [statusModalOpen, setStatusModalOpen] = React.useState(false);
 
   const {
     workerGroupReplicas,
@@ -57,6 +68,17 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
     handleSave,
   } = useRayJobNodeScaling(job, jobStatus);
 
+  const {
+    isSubmitting,
+    pauseModalOpen,
+    closePauseModal,
+    onPauseClick,
+    handlePause,
+    handleResume,
+    dontShowModalValue,
+    setDontShowModalValue,
+  } = useRayJobPauseResume(job, onStatusUpdate);
+
   const rayClusterName = job.status?.rayClusterName || job.spec.clusterSelector?.['ray.io/cluster'];
   const { url: dashboardURL, loaded: urlLoaded } = useRayClusterDashboardURL(
     rayClusterName,
@@ -66,9 +88,30 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   const actions = React.useMemo(() => {
     const items: React.ComponentProps<typeof ActionsColumn>['items'] = [];
 
+    if (canEditNodes) {
+      items.push({
+        title: 'Edit node count',
+        onClick: () => setModalOpen(true),
+      });
+    }
+
+    if (canPauseResume) {
+      items.push({
+        title: isPaused ? 'Resume job' : 'Pause job',
+        isDisabled: isSubmitting || isExternallyToggling,
+        isAriaDisabled: isClusterSelectorJob,
+        ...(isClusterSelectorJob && {
+          tooltipProps: {
+            content: PAUSE_RAY_JOB_TOOLTIP_CONTENT,
+          },
+        }),
+        onClick: isClusterSelectorJob ? undefined : isPaused ? handleResume : onPauseClick,
+      });
+    }
+
     items.push(
       {
-        title: 'View job details',
+        title: 'View more details',
         onClick: () => onSelectJob(job),
       },
       {
@@ -81,7 +124,20 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
     );
 
     return items;
-  }, [job, onDelete, onSelectJob]);
+  }, [
+    canPauseResume,
+    isPaused,
+    handleResume,
+    onPauseClick,
+    isSubmitting,
+    isExternallyToggling,
+    isClusterSelectorJob,
+    canEditNodes,
+    setModalOpen,
+    job,
+    onSelectJob,
+    onDelete,
+  ]);
 
   const renderRayClusterCell = () => {
     if (!rayClusterName) {
@@ -99,6 +155,8 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           href={dashboardURL}
           target="_blank"
           rel="noopener noreferrer"
+          icon={<ExternalLinkAltIcon />}
+          iconPosition="end"
         >
           {rayClusterName}
         </Button>
@@ -173,23 +231,69 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
           )}
         </Td>
         <Td dataLabel="Status">
-          {/* TODO RHOAIENG-52542: add onClick={() => setStatusModalOpen(true)} when modal is built */}
-          <RayJobStatus job={job} jobStatus={jobStatus} isLoading={isLoadingStatus} />
+          <RayJobStatus
+            job={job}
+            jobStatus={jobStatus}
+            isLoading={isLoadingStatus}
+            onClick={() => setStatusModalOpen(true)}
+          />
         </Td>
         <Td>
           {canPauseResume && (
-            <StateActionToggle
-              isPaused={isPaused}
-              onPause={() => undefined}
-              onResume={() => undefined}
-              isLoading={isExternallyToggling}
-            />
+            <Tooltip
+              content={PAUSE_RAY_JOB_TOOLTIP_CONTENT}
+              trigger={isClusterSelectorJob ? 'mouseenter focus' : ''}
+              aria={isClusterSelectorJob ? 'describedby' : 'none'}
+            >
+              <span>
+                <StateActionToggle
+                  isPaused={isPaused}
+                  onPause={onPauseClick}
+                  onResume={handleResume}
+                  isLoading={isSubmitting || isExternallyToggling}
+                  isDisabled={isClusterSelectorJob}
+                />
+              </span>
+            </Tooltip>
           )}
         </Td>
         <Td isActionCell>
           <ActionsColumn items={actions} />
         </Td>
       </Tr>
+
+      {pauseModalOpen && (
+        <PauseRayJobModal
+          job={job}
+          isPausing={isSubmitting}
+          onClose={closePauseModal}
+          onConfirm={handlePause}
+          dontShowModalValue={dontShowModalValue}
+          setDontShowModalValue={setDontShowModalValue}
+        />
+      )}
+
+      {statusModalOpen && (
+        <RayJobStatusModal
+          job={job}
+          jobStatus={jobStatus}
+          onClose={() => setStatusModalOpen(false)}
+          onDelete={() => {
+            setStatusModalOpen(false);
+            onDelete(job);
+          }}
+          onPauseClick={() => {
+            setStatusModalOpen(false);
+            onPauseClick();
+          }}
+          onResumeClick={() => {
+            setStatusModalOpen(false);
+            handleResume();
+          }}
+          isToggling={isSubmitting}
+          isPauseDisabled={isClusterSelectorJob}
+        />
+      )}
 
       {modalOpen && (
         <ScaleRayJobNodesModal

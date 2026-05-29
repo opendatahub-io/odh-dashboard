@@ -199,6 +199,19 @@ describe('getTopLevelExtensions', () => {
     expect(result.map((e) => e.properties.id)).toEqual(['section2', 'section1']);
   });
 
+  it('should deduplicate sections with the same id', () => {
+    const extensions: NavExtension[] = [
+      createNavSection('gen-ai-studio', '4_gen_ai_studio'),
+      createNavSection('gen-ai-studio', '4_gen_ai_studio'),
+      createNavItem('item1', '1_first', 'gen-ai-studio'),
+    ];
+
+    const result = getTopLevelExtensions(extensions);
+
+    expect(result).toHaveLength(1);
+    expect(result.map((e) => e.properties.id)).toEqual(['gen-ai-studio']);
+  });
+
   it('should handle multiple orphaned groups with complex sorting', () => {
     const extensions: NavExtension[] = [
       createNavItem('top1', '1_first'),

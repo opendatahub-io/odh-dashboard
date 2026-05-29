@@ -5,7 +5,9 @@ import {
   k8sUpdateResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
-import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
+import { createPatchesFromDiff, groupVersionKind } from '@odh-dashboard/internal/api/k8sUtils';
+import { CustomWatchK8sResult } from '@odh-dashboard/internal/types';
+import useK8sWatchResourceList from '@odh-dashboard/internal/utilities/useK8sWatchResourceList';
 import { LLMInferenceServiceKind, LLMInferenceServiceModel } from '../types';
 
 export const createLLMInferenceService = (
@@ -73,5 +75,22 @@ export const patchLLMInferenceService = (
       },
       opts,
     ),
+  );
+};
+
+export const useWatchLLMInferenceService = (
+  namespace: string,
+  opts?: K8sAPIOptions,
+  labelSelectors?: { [key: string]: string },
+): CustomWatchK8sResult<LLMInferenceServiceKind[]> => {
+  return useK8sWatchResourceList<LLMInferenceServiceKind[]>(
+    {
+      isList: true,
+      groupVersionKind: groupVersionKind(LLMInferenceServiceModel),
+      namespace,
+      ...(labelSelectors && { selector: labelSelectors }),
+    },
+    LLMInferenceServiceModel,
+    opts,
   );
 };

@@ -7,12 +7,12 @@ class ModelCatalog {
   }
 
   visit() {
-    cy.visitWithLogin(`/ai-hub/catalog`);
+    cy.visitWithLogin(`/ai-hub/models/catalog`);
     this.wait();
   }
 
   navigate() {
-    appChrome.findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' }).click();
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).click();
     this.wait();
   }
 
@@ -21,22 +21,20 @@ class ModelCatalog {
   }
 
   private wait() {
-    cy.findByTestId('app-page-title').should('exist');
-    cy.findByTestId('app-page-title').contains('Catalog');
+    cy.findByTestId('app-tab-page-title').should('exist');
+    cy.findByText('Discover models that are available for your organization', {
+      exact: false,
+    }).should('exist');
     cy.testA11y();
   }
 
   tabEnabled() {
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
     return this;
   }
 
   tabDisabled() {
-    appChrome
-      .findNavItem({ name: 'Catalog', rootSection: 'AI hub', subSection: 'Models' })
-      .should('not.exist');
+    appChrome.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('not.exist');
     return this;
   }
 
@@ -79,7 +77,7 @@ class ModelCatalog {
       this.findCatalogDeployButton().click();
 
       cy.location('pathname').then((path) => {
-        if (!path.includes('/ai-hub/deployments/deploy') && attempt < maxRetries) {
+        if (!path.includes('/ai-hub/models/deployments/deploy') && attempt < maxRetries) {
           cy.log('Wizard did not open, retrying...');
           tryClick();
         }

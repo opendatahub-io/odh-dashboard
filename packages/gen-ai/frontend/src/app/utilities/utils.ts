@@ -1,7 +1,14 @@
 /* eslint-disable camelcase */
 import { K8sResourceCommon } from 'mod-arch-shared';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
-import { AIModel, TokenInfo, MCPServerFromAPI, MCPServerConfig, MaaSModel } from '~/app/types';
+import {
+  AIModel,
+  LlamaModel,
+  TokenInfo,
+  MCPServerFromAPI,
+  MCPServerConfig,
+  MaaSModel,
+} from '~/app/types';
 
 /**
  * Generates a UUID v4 string
@@ -48,6 +55,34 @@ export const splitLlamaModelId = (llamaModelId: string): { providerId: string; i
   return { providerId, id };
 };
 
+/**
+ * Returns true if a provider-qualified LlamaStack model ID belongs to a MaaS provider.
+ * MaaS providers are registered in LlamaStack with a "maas-" prefix (e.g. "maas-vllm-inference-1").
+ *
+ * NOTE: this is brittle. Ideally we should fetch /v1/providers from LLS
+ * and cross reference the MaaS URL with the provider URL.
+ */
+export const isMaasLlamaModelId = (llamaModelId: string): boolean =>
+  splitLlamaModelId(llamaModelId).providerId.startsWith('maas-');
+
+/**
+ * Returns true if a playground LlamaModel corresponds to the given AIModel, accounting for
+ * model_source_type. MaaS playground models have a "maas-" provider prefix in their full id;
+ * namespace and custom_endpoint models do not. Without this check, two AIModels that share the
+ * same model_id but differ in model_source_type would incorrectly match the same playground entry.
+ */
+export const isPlaygroundModelMatchForAIModel = (
+  playgroundModel: LlamaModel,
+  aiModel: AIModel,
+): boolean => {
+  if (playgroundModel.modelId !== aiModel.model_id) {
+    return false;
+  }
+  return aiModel.model_source_type === 'maas'
+    ? isMaasLlamaModelId(playgroundModel.id)
+    : !isMaasLlamaModelId(playgroundModel.id);
+};
+
 export const getLlamaModelDisplayName = (modelId: string, aiModels: AIModel[]): string => {
   const { id, providerId } = splitLlamaModelId(modelId);
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
@@ -75,7 +110,9 @@ export const isLlamaModelEnabled = (
   const enabledModel = aiModels.find((aiModel) => aiModel.model_id === id);
 
   if (enabledModel) {
-    return enabledModel.status === 'Running';
+    return (
+      enabledModel.status === 'Running' || enabledModel.model_source_type === 'custom_endpoint'
+    );
   }
 
   const maasModel = maasModels.find((m) => m.id === id);
@@ -118,10 +155,43 @@ export const parseEndpointByPrefix = (
     ?.replace(`${prefix}:`, '')
     .trim();
 
+/**
+ * Checks if a URL points to a Kubernetes cluster-local service.
+ * It properly parses the URL and checks only the hostname to prevent manipulation
+ * via query parameters or path components.
+ *
+ * Examples:
+ *   - "http://service.namespace.svc.cluster.local" -> true
+ *   - "https://service.namespace.svc.cluster.local:8080/path" -> true
+ *   - "https://evil.com/redirect?to=http://internal.svc.cluster.local" -> false
+ *   - "https://api.openai.com" -> false
+ *
+ * If the URL cannot be parsed, it returns false (treats it as external for safety).
+ *
+ * @param rawURL - The URL to check
+ * @param clusterDomains - Additional cluster domain suffixes to treat as internal
+ * @returns true if the URL is cluster-local, false otherwise
+ */
+export const isClusterLocalURL = (rawURL: string, clusterDomains: string[] = []): boolean => {
+  try {
+    const url = new URL(rawURL);
+
+    // Always check .svc.cluster.local as a fallback
+    if (url.hostname.endsWith('.svc.cluster.local')) {
+      return true;
+    }
+
+    // Check configured cluster domains
+    return clusterDomains.some((domain) => domain && url.hostname.endsWith(domain));
+  } catch {
+    // If we can't parse it, treat it as external for safety
+    return false;
+  }
+};
+
 const SOURCE_LABELS: Record<string, string> = {
   namespace: 'Internal',
-  external_cluster: 'Public route',
-  external_provider: 'External',
+  custom_endpoint: 'Custom endpoint',
   maas: 'MaaS',
 };
 
@@ -145,8 +215,7 @@ export const getSourceLabel = (model: AIModel): string => {
 
 const SOURCE_LABEL_COLORS: Record<string, 'blue' | 'green' | 'orange' | 'grey'> = {
   MaaS: 'blue',
-  External: 'green',
-  'Public route': 'orange',
+  'Custom endpoint': 'green',
   Internal: 'grey',
 };
 
@@ -178,6 +247,7 @@ export const convertMaaSModelToAIModel = (maasModel: MaaSModel): AIModel => ({
   externalEndpoint: maasModel.url || undefined,
   internalEndpoint: undefined,
   model_type: maasModel.model_type,
+  subscriptions: maasModel.subscriptions,
 });
 
 /**
@@ -188,6 +258,8 @@ export type ClipboardCopyTrackingProperties = {
   assetId?: string;
   copyTarget?: 'endpoint' | 'service_token';
   endpointType?: 'external' | 'internal' | 'maas_route';
+  modelType?: 'inference' | 'embedding';
+  endpointSource?: 'custom_endpoint' | 'namespace' | 'maas';
 };
 
 /**
@@ -208,4 +280,62 @@ export const copyToClipboardWithTracking = async (
   } catch {
     // Do nothing
   }
+};
+
+export type EmbeddingModelStatus = 'not_available' | 'available' | 'registered';
+
+/**
+ * The default embedding model auto-provisioned when a playground is installed.
+ * Matches the Go BFF constant in bff/internal/constants/llamastack.go.
+ */
+export const DEFAULT_EMBEDDING_MODEL_ID =
+  'sentence-transformers/ibm-granite/granite-embedding-125m-english';
+// The ProviderModelID form — this is what the vector store configmap stores as embedding_model.
+export const DEFAULT_EMBEDDING_NORMALIZED_ID = splitLlamaModelId(DEFAULT_EMBEDDING_MODEL_ID).id;
+
+/**
+ * Determines whether a vector store's embedding model is available for use.
+ * - 'registered': the model is already registered and running in the LlamaStack Distribution (LSD).
+ * - 'available': the model exists in AI Assets or MaaS but is not yet installed in the LSD,
+ *                or it is the default embedding model (auto-provisioned on playground install).
+ * - 'not_available': the model is unknown — the vector store cannot be used.
+ *
+ * @param assetModels - AI Assets + MaaS models (candidates that can be installed into the LSD)
+ * @param playgroundModels - models currently registered in the LSD (referred to as lsdModels elsewhere)
+ */
+export const computeEmbeddingModelStatus = (
+  embeddingModel: string,
+  assetModels: AIModel[],
+  playgroundModels: LlamaModel[],
+): EmbeddingModelStatus => {
+  const { id: normalizedId } = splitLlamaModelId(embeddingModel);
+
+  const isRegistered = playgroundModels.some(
+    (m) => m.modelId === embeddingModel || m.modelId === normalizedId,
+  );
+  if (isRegistered) {
+    return 'registered';
+  }
+
+  const isAvailable = assetModels.some((m) => {
+    const { id: normalizedModelId } = splitLlamaModelId(m.model_id);
+    return m.model_id === embeddingModel || normalizedModelId === normalizedId;
+  });
+  if (isAvailable) {
+    return 'available';
+  }
+
+  // The default embedding model is auto-provisioned when a playground is installed,
+  // so treat it as available even before any playground instance exists.
+  // The configmap stores it as the ProviderModelID (DEFAULT_EMBEDDING_NORMALIZED_ID),
+  // e.g. 'ibm-granite/granite-embedding-125m-english', so check that form too.
+  if (
+    embeddingModel === DEFAULT_EMBEDDING_MODEL_ID ||
+    embeddingModel === DEFAULT_EMBEDDING_NORMALIZED_ID ||
+    normalizedId === DEFAULT_EMBEDDING_NORMALIZED_ID
+  ) {
+    return 'available';
+  }
+
+  return 'not_available';
 };

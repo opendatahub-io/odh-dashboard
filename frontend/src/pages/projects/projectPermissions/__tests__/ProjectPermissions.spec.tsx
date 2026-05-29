@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SubjectScopeFilter } from '#~/pages/projects/projectPermissions/const';
 import ProjectPermissions from '#~/pages/projects/projectPermissions/ProjectPermissions';
@@ -56,7 +57,11 @@ describe('ProjectPermissions', () => {
   });
 
   it('should show/hide Users and Groups sections based on subject scope', () => {
-    render(<ProjectPermissions />);
+    render(
+      <MemoryRouter>
+        <ProjectPermissions />
+      </MemoryRouter>,
+    );
 
     // default scope = all => show both
     expect(screen.getByTestId('mock-subject-roles-section-user')).toBeInTheDocument();
@@ -75,5 +80,16 @@ describe('ProjectPermissions', () => {
     });
     expect(screen.queryByTestId('mock-subject-roles-section-user')).not.toBeInTheDocument();
     expect(screen.getByTestId('mock-subject-roles-section-group')).toBeInTheDocument();
+  });
+
+  it('should expose manage permissions as an href-capable button', () => {
+    render(
+      <MemoryRouter>
+        <ProjectPermissions />
+      </MemoryRouter>,
+    );
+    const button = screen.getByTestId('permissions-assign-roles-button');
+    expect(button).toHaveAttribute('href');
+    expect(button.getAttribute('href')).toContain('/permissions/assign');
   });
 });

@@ -1,20 +1,26 @@
 import * as React from 'react';
 import { AIModel } from '~/app/types';
 import { AssetsFilterOptions, assetsFilterSelectOptions } from '~/app/AIAssets/data/filterOptions';
-import { getSourceLabel, getModelTypeLabel } from '~/app/utilities/utils';
 
 export type FilterData = Record<string, string | string[] | undefined>;
 
-const getStatusLabel = (status: string): string => (status === 'Running' ? 'Active' : 'Inactive');
+const getStatusLabel = (status: string): string => {
+  switch (status) {
+    case 'Running':
+      return 'Ready';
+    case 'Stop':
+      return 'Inactive';
+    default:
+      return 'Unknown';
+  }
+};
 
 const isSelectFilter = (filterType: string): boolean => filterType in assetsFilterSelectOptions;
 
 const INITIAL_FILTER_STATE: FilterData = {
   [AssetsFilterOptions.NAME]: undefined,
-  [AssetsFilterOptions.SOURCE]: undefined,
   [AssetsFilterOptions.USE_CASE]: undefined,
   [AssetsFilterOptions.STATUS]: undefined,
-  [AssetsFilterOptions.MODEL_TYPE]: undefined,
 };
 
 const useAIModelsFilter = (
@@ -53,13 +59,6 @@ const useAIModelsFilter = (
           return false;
         }
 
-        const sourceValues = filterData[AssetsFilterOptions.SOURCE];
-        if (Array.isArray(sourceValues) && sourceValues.length > 0) {
-          if (!sourceValues.includes(getSourceLabel(model))) {
-            return false;
-          }
-        }
-
         const useCaseValue = filterData[AssetsFilterOptions.USE_CASE];
         const normalizedUseCase =
           typeof useCaseValue === 'string' ? useCaseValue.trim().toLowerCase() : '';
@@ -70,13 +69,6 @@ const useAIModelsFilter = (
         const statusValues = filterData[AssetsFilterOptions.STATUS];
         if (Array.isArray(statusValues) && statusValues.length > 0) {
           if (!statusValues.includes(getStatusLabel(model.status))) {
-            return false;
-          }
-        }
-
-        const modelTypeValues = filterData[AssetsFilterOptions.MODEL_TYPE];
-        if (Array.isArray(modelTypeValues) && modelTypeValues.length > 0) {
-          if (!modelTypeValues.includes(getModelTypeLabel(model.model_type))) {
             return false;
           }
         }

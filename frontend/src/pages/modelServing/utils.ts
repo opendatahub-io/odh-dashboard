@@ -250,20 +250,21 @@ export const getInferenceServiceSizeOrReturnEmpty = (
 export const getServingRuntimeOrReturnEmpty = (
   servingRuntime?: ServingRuntimeKind,
 ): ContainerResources | undefined => {
-  if (
-    servingRuntime?.spec.containers[0]?.resources &&
-    Object.keys(servingRuntime.spec.containers[0]?.resources).length === 0
-  ) {
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const resources = servingRuntime?.spec?.containers?.[0]?.resources;
+  if (resources && Object.keys(resources).length === 0) {
     return undefined;
   }
-
-  return servingRuntime?.spec.containers[0]?.resources;
+  return resources;
 };
 
 export const getKServeContainer = (
   servingRuntime?: ServingRuntimeKind,
 ): ServingContainer | undefined =>
-  servingRuntime?.spec.containers.find((container) => container.name === 'kserve-container');
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  servingRuntime?.spec?.containers?.find((container) => container.name === 'kserve-container');
 
 // will return `undefined` if no kserve container, force empty array if there is kserve with no args
 export const getKServeContainerArgs = (
@@ -320,9 +321,13 @@ const isPodSpecOptionsChanged = (
   const currentSize = getServingRuntimeOrReturnEmpty(existingServingRuntime);
 
   const initialTolerations = currentPodSpecOptionsState.podSpecOptions.tolerations;
-  const currentTolerations = existingServingRuntime?.spec.tolerations;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const currentTolerations = existingServingRuntime?.spec?.tolerations;
 
-  const currentNodeSelector = existingServingRuntime?.spec.nodeSelector;
+  // K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const currentNodeSelector = existingServingRuntime?.spec?.nodeSelector;
   const initialNodeSelector = currentPodSpecOptionsState.podSpecOptions.nodeSelector;
 
   return (
@@ -339,10 +344,13 @@ export const isModelServerEditInfoChanged = (
 ): boolean =>
   editInfo?.servingRuntime
     ? getDisplayNameFromK8sResource(editInfo.servingRuntime) !== createData.name ||
-      editInfo.servingRuntime.spec.replicas !== createData.numReplicas ||
+      // K8s resources can arrive without spec/annotations at runtime (RHOAIENG-32511)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      editInfo.servingRuntime.spec?.replicas !== createData.numReplicas ||
       editInfo.servingRuntime.metadata.annotations?.['enable-route'] !==
         String(createData.externalRoute) ||
-      editInfo.servingRuntime.metadata.annotations['enable-auth'] !==
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      editInfo.servingRuntime.metadata.annotations?.['enable-auth'] !==
         String(createData.tokenAuth) ||
       isPodSpecOptionsChanged(podSpecOptionsState, editInfo.servingRuntime) ||
       (createData.tokenAuth &&

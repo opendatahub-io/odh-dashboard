@@ -15,12 +15,17 @@ import * as watchModule from '../api/watch';
 // Mock the watch module
 jest.mock('../api/watch');
 
+// Mock plugin-core - [resolvedExtensions, resolved, errors]
+jest.mock('@odh-dashboard/plugin-core', () => ({
+  useResolvedExtensions: jest.fn(() => [[], true, []]),
+}));
+
 const mockUseWatchInferenceServices = watchModule.useWatchInferenceServices as jest.Mock;
 const mockUseWatchServingRuntimes = watchModule.useWatchServingRuntimes as jest.Mock;
 const mockUseWatchDeploymentPods = watchModule.useWatchDeploymentPods as jest.Mock;
 
 // Type helper for hook return value
-type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error | undefined];
+type DeploymentHookResult = [KServeDeployment[] | undefined, boolean, Error[] | undefined];
 
 describe('useWatchDeployments', () => {
   let mockProject: ProjectKind;
@@ -76,7 +81,7 @@ describe('useWatchDeployments', () => {
 
     expect(deployments).toHaveLength(3);
     expect(loaded).toBe(true);
-    expect(error).toBeUndefined();
+    expect(error).toHaveLength(0);
   });
 
   it('should filter deployments when filterFn is provided', () => {
@@ -91,7 +96,7 @@ describe('useWatchDeployments', () => {
     expect(deployments?.[0].model.metadata.name).toBe('model-1');
     expect(deployments?.[1].model.metadata.name).toBe('model-2');
     expect(loaded).toBe(true);
-    expect(error).toBeUndefined();
+    expect(error).toHaveLength(0);
   });
 
   it('should return empty array when filterFn filters out all deployments', () => {
@@ -104,7 +109,7 @@ describe('useWatchDeployments', () => {
 
     expect(deployments).toHaveLength(0);
     expect(loaded).toBe(true);
-    expect(error).toBeUndefined();
+    expect(error).toHaveLength(0);
   });
 
   it('should match serving runtimes to inference services', () => {
@@ -155,9 +160,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , error] = renderResult.result.current as DeploymentHookResult;
+    const [, , errors] = renderResult.result.current as DeploymentHookResult;
 
-    expect(error).toBe(mockError);
+    expect(errors).toContain(mockError);
   });
 
   it('should pass through error state from serving runtimes', () => {
@@ -166,9 +171,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , error] = renderResult.result.current as DeploymentHookResult;
+    const [, , errors] = renderResult.result.current as DeploymentHookResult;
 
-    expect(error).toBe(mockError);
+    expect(errors).toContain(mockError);
   });
 
   it('should pass through error state from deployment pods', () => {
@@ -177,9 +182,9 @@ describe('useWatchDeployments', () => {
 
     const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
 
-    const [, , error] = renderResult.result.current as DeploymentHookResult;
+    const [, , errors] = renderResult.result.current as DeploymentHookResult;
 
-    expect(error).toBe(mockError);
+    expect(errors).toContain(mockError);
   });
 
   it('should update deployments when filterFn changes', () => {
@@ -331,5 +336,52 @@ describe('useWatchDeployments', () => {
 
     expect(deployments).toHaveLength(1);
     expect(deployments?.[0].model.metadata.name).toBe('model-1');
+  });
+
+  it('should exclude InferenceServices matched by exclusion extensions', () => {
+    const { useResolvedExtensions } = jest.requireMock('@odh-dashboard/plugin-core');
+    (useResolvedExtensions as jest.Mock).mockReturnValue([
+      [
+        {
+          properties: {
+            platform: 'nvidia-nim',
+            excludeFromPlatform: 'kserve',
+            filter: (is: InferenceServiceKind) =>
+              is.metadata.ownerReferences?.some(
+                (ref: { kind: string }) => ref.kind === 'NIMService',
+              ) ?? false,
+          },
+        },
+      ],
+      true,
+      [],
+    ]);
+
+    const nimOwnedIS = mockInferenceServiceK8sResource({
+      name: 'nim-model',
+      namespace: 'test-project',
+    });
+    nimOwnedIS.metadata.ownerReferences = [
+      {
+        apiVersion: 'apps.nvidia.com/v1alpha1',
+        kind: 'NIMService',
+        name: 'my-nim',
+        uid: 'abc-123',
+      },
+    ];
+
+    mockUseWatchInferenceServices.mockReturnValue([
+      [...mockInferenceServices, nimOwnedIS],
+      true,
+      undefined,
+    ]);
+
+    const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+
+    const [deployments, loaded] = renderResult.result.current as DeploymentHookResult;
+
+    expect(loaded).toBe(true);
+    expect(deployments).toHaveLength(3);
+    expect(deployments?.find((d) => d.model.metadata.name === 'nim-model')).toBeUndefined();
   });
 });

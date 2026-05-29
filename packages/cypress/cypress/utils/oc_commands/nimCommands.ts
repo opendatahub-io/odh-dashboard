@@ -16,7 +16,7 @@ export const checkNIMApplicationExists = (
   cy.log(`Checking if NIM application exists: ${checkCommand}`);
 
   return cy.exec(checkCommand, { failOnNonZeroExit: false }).then((result) => {
-    const exists = result.code === 0;
+    const exists = result.exitCode === 0;
     cy.log(`NIM application exists: ${exists}`);
     return cy.wrap(exists);
   });
@@ -38,8 +38,8 @@ export const applyNIMApplication = (
 
   cy.log(`Debug: Applying NIM manifest: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    cy.log(`Command exit code: ${result.code}`);
-    if (result.code !== 0) {
+    cy.log(`Command exit code: ${result.exitCode}`);
+    if (result.exitCode !== 0) {
       const maskedStderr = maskSensitiveInfo(result.stderr);
       const maskedStdout = maskSensitiveInfo(result.stdout);
       throw new Error(`Failed to apply NIM manifest: ${maskedStderr || maskedStdout}`);
@@ -60,7 +60,7 @@ export const deleteNIMAccount = (
   cy.log(`Executing: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
-    if (result.code === 0) {
+    if (result.exitCode === 0) {
       // Account was successfully deleted
       cy.log(`Account deletion: ${result.stdout}`);
     } else if (result.stderr.includes('not found')) {

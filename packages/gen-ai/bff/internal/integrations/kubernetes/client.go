@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/maas"
 	"github.com/opendatahub-io/gen-ai/internal/models"
@@ -15,7 +15,7 @@ import (
 // ErrExternalModelNotFound is returned when an external model is not found in the ConfigMap
 var ErrExternalModelNotFound = errors.New("external model not found")
 
-const ComponenetLabelValue = "llama-stack"
+const ComponentLabelValue = "ogx"
 
 type KubernetesClientInterface interface {
 	// Namespace access
@@ -30,12 +30,16 @@ type KubernetesClientInterface interface {
 	// Identity
 	GetUser(ctx context.Context, identity *integrations.RequestIdentity) (string, error)
 
-	// LlamaStack Distribution
-	GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error)
-	CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
-	InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error)
-	DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error)
+	// OGX Server (OGXServer CR)
+	GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error)
+	CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
+	InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error)
+	DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error)
 	GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*types.ModelProviderInfo, error)
+
+	// NemoGuardrails operations
+	CreateNemoGuardrailsResources(ctx context.Context, namespace string) (string, error)
+	GetNemoGuardrailsStatus(ctx context.Context, namespace string) (*models.NemoGuardrailsStatus, error)
 
 	// ConfigMap operations
 	GetConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*corev1.ConfigMap, error)
@@ -46,11 +50,21 @@ type KubernetesClientInterface interface {
 	CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error
 	DeleteExternalModel(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) error
 	DeleteSecret(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string) error
+	GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error)
+	GetVectorStoresConfig(ctx context.Context, namespace string) (*models.ExternalVectorStoresDocument, error)
+	GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error)
 
 	// Guardrails operations
 	CanListGuardrailsOrchestrator(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error)
 	GetGuardrailsOrchestratorStatus(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.GuardrailsStatus, error)
 
-	// Safety Config - parses llama-stack-config ConfigMap and returns guardrail models/shields
-	GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error)
+	// NemoGuardrails operations
+	// GetNemoGuardrailsServiceURL returns the in-cluster service URL for the NemoGuardrails CR
+	// in the given namespace. Returns ("", nil) if no NemoGuardrails CR exists.
+	GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error)
+
+	// GetInferenceServiceURL returns the internal endpoint URL for an InferenceService or
+	// LLMInferenceService whose K8s resource name matches modelName.
+	// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+	GetInferenceServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelName string) (string, error)
 }

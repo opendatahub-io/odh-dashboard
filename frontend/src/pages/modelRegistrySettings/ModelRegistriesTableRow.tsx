@@ -1,11 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
-import { useNavigate } from 'react-router-dom';
 import { Button, Flex, FlexItem, Label, Popover, Tooltip } from '@patternfly/react-core';
 import { BellIcon, InfoCircleIcon } from '@patternfly/react-icons';
 import { ModelRegistryKind, RoleBindingKind } from '#~/k8sTypes';
 import { FetchStateObject } from '#~/utilities/useFetch';
 import ResourceNameTooltip from '#~/components/ResourceNameTooltip';
+import TruncatedText from '#~/components/TruncatedText';
 import { filterRoleBindingSubjects } from '#~/concepts/roleBinding/utils';
 import { RoleBindingPermissionsRBType } from '#~/concepts/roleBinding/types';
 import { ModelRegistryTableRowStatus } from './ModelRegistryTableRowStatus';
@@ -23,7 +24,6 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
   onEditRegistry,
   onDeleteRegistry,
 }) => {
-  const navigate = useNavigate();
   const filteredRoleBindings = roleBindings.data.filter(
     (rb) =>
       rb.metadata.labels?.['app.kubernetes.io/name'] ===
@@ -85,7 +85,10 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
           )}
         </Flex>
         {mr.metadata.annotations?.['openshift.io/description'] && (
-          <p>{mr.metadata.annotations['openshift.io/description']}</p>
+          <TruncatedText
+            maxLines={2}
+            content={mr.metadata.annotations['openshift.io/description']}
+          />
         )}
       </Td>
       <Td dataLabel="Status">
@@ -101,11 +104,12 @@ const ModelRegistriesTableRow: React.FC<ModelRegistriesTableRowProps> = ({
         ) : (
           <Button
             variant="link"
-            onClick={() =>
-              navigate(
-                `/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`,
-              )
-            }
+            component={(props: React.ComponentProps<'a'>) => (
+              <Link
+                {...props}
+                to={`/settings/model-resources-operations/model-registry/permissions/${mr.metadata.name}`}
+              />
+            )}
           >
             Manage permissions
           </Button>

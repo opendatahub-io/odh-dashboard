@@ -14,4 +14,28 @@ var (
 		Version:  "v1",
 		Resource: "ratelimitpolicies",
 	}
+
+	MaaSSubscriptionGvr = schema.GroupVersionResource{
+		Group:    "maas.opendatahub.io",
+		Version:  "v1alpha1",
+		Resource: "maassubscriptions",
+	}
+
+	MaaSAuthPolicyGvr = schema.GroupVersionResource{
+		Group:    "maas.opendatahub.io",
+		Version:  "v1alpha1",
+		Resource: "maasauthpolicies",
+	}
+
+	MaaSModelRefGvr = schema.GroupVersionResource{
+		Group:    "maas.opendatahub.io",
+		Version:  "v1alpha1",
+		Resource: "maasmodelrefs",
+	}
+
+	GroupGvr = schema.GroupVersionResource{
+		Group:    "user.openshift.io",
+		Version:  "v1",
+		Resource: "groups",
+	}
 )

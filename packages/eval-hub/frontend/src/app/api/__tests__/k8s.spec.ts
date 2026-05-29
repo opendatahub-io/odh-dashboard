@@ -106,71 +106,82 @@ describe('getCollections', () => {
     (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
   });
 
-  it('should return the array directly when response data is already an array', async () => {
+  it('should return items from object response', async () => {
     const collections: Collection[] = [{ resource: { id: 'col-1' }, name: 'Alpha' }];
-    mockRestGET.mockResolvedValue({ data: collections });
-    mockIsModArchResponse.mockReturnValue(true);
-
-    const result = await getCollections('', 'test-ns')({});
-
-    expect(result).toEqual(collections);
-  });
-
-  it('should return items from the envelope when response data has an items property', async () => {
-    const collections: Collection[] = [{ resource: { id: 'col-2' }, name: 'Beta' }];
     mockRestGET.mockResolvedValue({ data: { items: collections } });
     mockIsModArchResponse.mockReturnValue(true);
 
-    const result = await getCollections('', 'test-ns')({});
+    const result = await getCollections('', { namespace: 'test-ns' })({});
 
-    expect(result).toEqual(collections);
+    expect(result).toEqual({ items: collections });
   });
 
-  it('should return empty array when response data items is null', async () => {
+  it('should wrap array response in items object for backward compatibility', async () => {
+    const collections: Collection[] = [{ resource: { id: 'col-2' }, name: 'Beta' }];
+    mockRestGET.mockResolvedValue({ data: collections });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'test-ns' })({});
+
+    expect(result).toEqual({ items: collections });
+  });
+
+  it('should return empty items when response has no items', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    const result = await getCollections('', { namespace: 'test-ns' })({});
+
+    expect(result).toEqual({ items: [] });
+  });
+
+  it('should coerce null items to empty array', async () => {
     mockRestGET.mockResolvedValue({ data: { items: null } });
     mockIsModArchResponse.mockReturnValue(true);
 
-    const result = await getCollections('', 'test-ns')({});
+    const result = await getCollections('', { namespace: 'test-ns' })({});
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ items: [] });
   });
 
-  it('should return empty array when response data items is undefined', async () => {
-    mockRestGET.mockResolvedValue({ data: {} });
+  it('should return empty items when data is null', async () => {
+    mockRestGET.mockResolvedValue({ data: null });
     mockIsModArchResponse.mockReturnValue(true);
 
-    const result = await getCollections('', 'test-ns')({});
+    const result = await getCollections('', { namespace: 'test-ns' })({});
 
-    expect(result).toEqual([]);
+    expect(result).toEqual({ items: [] });
   });
 
   it('should throw when response is not a valid mod-arch response', async () => {
     mockRestGET.mockResolvedValue({ invalid: 'format' });
     mockIsModArchResponse.mockReturnValue(false);
 
-    await expect(getCollections('', 'test-ns')({})).rejects.toThrow('Invalid response format');
+    await expect(getCollections('', { namespace: 'test-ns' })({})).rejects.toThrow(
+      'Invalid response format',
+    );
   });
 
-  it('should call restGET with the correct URL and namespace query param', async () => {
-    mockRestGET.mockResolvedValue({ data: [] });
+  it('should call restGET with namespace and limit query params', async () => {
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
     mockIsModArchResponse.mockReturnValue(true);
 
     const opts = {};
-    await getCollections('', 'my-ns')(opts);
+    await getCollections('', { namespace: 'my-ns', limit: 200 })(opts);
 
     expect(mockRestGET).toHaveBeenCalledWith(
       '',
       '/eval-hub/api/v1/evaluations/collections',
-      { namespace: 'my-ns' },
+      { namespace: 'my-ns', limit: '200' },
       opts,
     );
   });
 
   it('should pass the hostPath to restGET', async () => {
-    mockRestGET.mockResolvedValue({ data: [] });
+    mockRestGET.mockResolvedValue({ data: { items: [] } });
     mockIsModArchResponse.mockReturnValue(true);
 
-    await getCollections('http://my-host', 'ns')({});
+    await getCollections('http://my-host', { namespace: 'ns' })({});
 
     expect(mockRestGET).toHaveBeenCalledWith(
       'http://my-host',

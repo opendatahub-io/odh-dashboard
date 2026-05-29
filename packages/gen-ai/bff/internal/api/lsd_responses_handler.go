@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	k8s "github.com/opendatahub-io/gen-ai/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
-	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
+	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
@@ -26,11 +27,15 @@ import (
 var supportedEventTypes = map[string]bool{
 	"response.created":            true, // Response generation started
 	"response.content_part.added": true, // New content part added to response
-	"response.output_text.delta":  true, // Text delta/chunk for streaming text
-	"response.content_part.done":  true, // Content part completed
-	"response.completed":          true, // Response generation completed
-	"response.refusal.delta":      true, // Refusal text
-	"response.refusal.done":       true, // Refusal text completed
+	// NOTE: delta events may contain raw citation markers (<|uuid|>) during
+	// streaming. These are ephemeral display-only tokens; the final cleaned
+	// text and annotations are sent via the response.completed event, which
+	// the frontend uses for the definitive render.
+	"response.output_text.delta": true, // Text delta/chunk for streaming text
+	"response.content_part.done": true, // Content part completed
+	"response.completed":         true, // Response generation completed
+	"response.refusal.delta":     true, // Refusal text
+	"response.refusal.done":      true, // Refusal text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -93,11 +98,21 @@ type ContentItem struct {
 	Annotations []interface{} `json:"annotations,omitempty"` // For content annotations
 }
 
-// SearchResult represents search results with essential fields
+// SearchResult represents search results from file_search_call
 type SearchResult struct {
-	Score    float64 `json:"score"`
-	Text     string  `json:"text"`
-	Filename string  `json:"filename,omitempty"`
+	Score      float64                `json:"score"`
+	Text       string                 `json:"text"`
+	FileID     string                 `json:"file_id,omitempty"`
+	Filename   string                 `json:"filename,omitempty"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
+}
+
+// FileCitationAnnotation represents a resolved file citation in output_text
+type FileCitationAnnotation struct {
+	Type     string `json:"type"`
+	FileID   string `json:"file_id"`
+	Filename string `json:"filename"`
+	Index    int    `json:"index"`
 }
 
 // ResponseMetrics contains timing and usage metrics for the response
@@ -133,17 +148,18 @@ type CreateResponseRequest struct {
 	Input string `json:"input"`
 	Model string `json:"model"`
 
-	VectorStoreIDs     []string             `json:"vector_store_ids,omitempty"`     // Enables RAG
-	ChatContext        []ChatContextMessage `json:"chat_context,omitempty"`         // Conversation history
-	Temperature        *float64             `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
-	TopP               *float64             `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
-	Instructions       string               `json:"instructions,omitempty"`         // System message/behavior
-	Stream             bool                 `json:"stream,omitempty"`               // Enable streaming response
-	MCPServers         []MCPServer          `json:"mcp_servers,omitempty"`          // MCP server configurations
-	PreviousResponseID string               `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
-	Store              *bool                `json:"store,omitempty"`                // Store response for later retrieval (default true)
-	InputShieldID      string               `json:"input_shield_id,omitempty"`      // Shield ID for input moderation (e.g., "trustyai_input")
-	OutputShieldID     string               `json:"output_shield_id,omitempty"`     // Shield ID for output moderation (e.g., "trustyai_output")
+	VectorStoreIDs     []string                      `json:"vector_store_ids,omitempty"`     // Enables RAG
+	ChatContext        []ChatContextMessage          `json:"chat_context,omitempty"`         // Conversation history
+	Temperature        *float64                      `json:"temperature,omitempty"`          // Controls creativity (0.0-2.0)
+	TopP               *float64                      `json:"top_p,omitempty"`                // Controls randomness (0.0-1.0)
+	Instructions       string                        `json:"instructions,omitempty"`         // System message/behavior
+	Stream             bool                          `json:"stream,omitempty"`               // Enable streaming response
+	MCPServers         []MCPServer                   `json:"mcp_servers,omitempty"`          // MCP server configurations
+	PreviousResponseID string                        `json:"previous_response_id,omitempty"` // Link to previous response for conversation continuity
+	Store              *bool                         `json:"store,omitempty"`                // Store response for later retrieval (default true)
+	GuardrailConfig    *models.GuardrailInlineConfig `json:"guardrail_config,omitempty"`     // Inline NeMo guardrail configuration
+	ModelSourceType    string                        `json:"model_source_type,omitempty"`    // Source type: "namespace", "custom_endpoint", "maas"
+	Subscription       string                        `json:"subscription,omitempty"`         // MaaS subscription name for API key generation
 }
 
 // convertToStreamingEvent converts a LlamaStack event to our clean StreamingEvent schema
@@ -185,6 +201,106 @@ func convertToResponseData(llamaResponse interface{}) ResponseData {
 	_ = json.Unmarshal(responseJSON, &responseData)
 
 	return responseData
+}
+
+// citationMarkerRegex matches OGX citation markers: UUIDs and file-prefixed IDs
+var citationMarkerRegex = regexp.MustCompile(`<\|((?:file-)?[a-zA-Z0-9_-]+)\|>`)
+
+// extractAttributeString extracts a string value from an OGX attributes map.
+// Attributes can be plain strings or union-typed objects with OfString/OfFloat/OfBool fields
+// (as returned by the OpenAI Go SDK for typed attribute values).
+func extractAttributeString(attrs map[string]interface{}, key string) string {
+	val, ok := attrs[key]
+	if !ok {
+		return ""
+	}
+	if s, ok := val.(string); ok {
+		return s
+	}
+	if m, ok := val.(map[string]interface{}); ok {
+		if s, ok := m["OfString"].(string); ok && s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+// processResponseCitations extracts citation markers from output text, resolves them
+// to human-readable filenames using file_search_call results, and replaces them with
+// proper annotations. This handles the upstream OGX bug where the server's regex is
+// too restrictive to match the actual document IDs from file processors.
+func processResponseCitations(responseData *ResponseData) {
+	// Build citation map from file_search_call results: file_id → filename
+	citationFiles := make(map[string]string)
+	for _, item := range responseData.Output {
+		if item.Type != "file_search_call" {
+			continue
+		}
+		for _, result := range item.Results {
+			fileID := result.FileID
+			if fileID == "" {
+				fileID = result.Filename
+			}
+			if fileID == "" {
+				continue
+			}
+
+			// The actual filename lives in attributes["filename"] (from chunk metadata).
+			// result.Filename is the document_id (raw UUID), not the human-readable name.
+			// The OGX SDK serializes attributes as union types with OfString/OfFloat/OfBool fields.
+			filename := extractAttributeString(result.Attributes, "filename")
+			if filename == "" {
+				filename = fileID
+			}
+			citationFiles[fileID] = filename
+		}
+	}
+
+	// Always run the stripping loop even when citationFiles is empty -- markers
+	// must never leak to the client regardless of whether results were returned.
+	for i, item := range responseData.Output {
+		if item.Type != "message" {
+			continue
+		}
+		for j, content := range item.Content {
+			if content.Type != "output_text" || content.Text == "" {
+				continue
+			}
+
+			matches := citationMarkerRegex.FindAllStringSubmatchIndex(content.Text, -1)
+			if len(matches) == 0 {
+				continue
+			}
+
+			var annotations []interface{}
+			cleanText := content.Text
+			offset := 0
+
+			for _, match := range matches {
+				fullStart, fullEnd := match[0], match[1]
+				groupStart, groupEnd := match[2], match[3]
+				fileID := content.Text[groupStart:groupEnd]
+
+				if filename, ok := citationFiles[fileID]; ok {
+					annotations = append(annotations, FileCitationAnnotation{
+						Type:     "file_citation",
+						FileID:   fileID,
+						Filename: filename,
+						Index:    fullStart - offset,
+					})
+				}
+
+				cleanText = cleanText[:fullStart-offset] + cleanText[fullEnd-offset:]
+				offset += fullEnd - fullStart
+			}
+
+			responseData.Output[i].Content[j].Text = cleanText
+			if len(annotations) > 0 {
+				existing := responseData.Output[i].Content[j].Annotations
+				responseData.Output[i].Content[j].Annotations = append(existing, annotations...)
+			}
+		}
+	}
 }
 
 // extractUsage extracts usage data from a LlamaStack response
@@ -258,6 +374,8 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		app.badRequestResponse(w, r, errors.New("model is required"))
 		return
 	}
+
+	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
 
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
@@ -334,37 +452,62 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	// INPUT MODERATION: If InputShieldID is set, moderate the user input first
-	if createRequest.InputShieldID != "" {
-		modResult, err := app.checkModeration(ctx, createRequest.Input, createRequest.InputShieldID)
+	// Build inline guardrail options when the request includes a guardrail config.
+	// The BFF resolves the model endpoint URL and API key so the frontend never handles credentials.
+	var guardrailOpts nemo.GuardrailsOptions
+	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
+		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
-			app.logger.Error("Input moderation failed", "error", err, "shield_id", createRequest.InputShieldID)
-			app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)
+			app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 			return
 		}
-		if modResult.Flagged {
-			app.logger.Info("Input blocked by guardrails",
-				"shield_id", createRequest.InputShieldID,
-				"reason", modResult.ViolationReason)
 
-			// Use streaming format if stream=true, otherwise return JSON
-			if createRequest.Stream {
-				app.sendInputGuardrailViolationStreaming(w, createRequest.Model)
-			} else {
-				responseData := createGuardrailViolationResponse("", createRequest.Model, true)
-				apiResponse := llamastack.APIResponse{Data: responseData}
-				if err := app.WriteJSON(w, http.StatusCreated, apiResponse, nil); err != nil {
-					app.serverErrorResponse(w, r, err)
+		// NeMo needs the bare model name (e.g. "claude-haiku-4-5-20251001"), not the
+		// LlamaStack-qualified ID (e.g. "endpoint-1/claude-haiku-4-5-20251001").
+		guardrailModelName := createRequest.GuardrailConfig.GuardrailModel
+		if idx := strings.Index(guardrailModelName, "/"); idx != -1 {
+			guardrailModelName = guardrailModelName[idx+1:]
+		}
+		guardrailOpts = buildInlineGuardrailOptions(
+			baseURL,
+			guardrailModelName,
+			apiKey,
+			createRequest.GuardrailConfig.InputPrompt,
+			createRequest.GuardrailConfig.OutputPrompt,
+		)
+
+		if createRequest.GuardrailConfig.InputPrompt != "" {
+			inputMessages := make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
+			for _, msg := range createRequest.ChatContext {
+				if msg.Role == "user" {
+					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content})
 				}
 			}
-			return
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
+
+			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+			if modErr != nil {
+				app.logger.Error("Input moderation check failed", "error", modErr)
+				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				return
+			}
+			if result != nil && result.Flagged {
+				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
+				return
+			}
 		}
 	}
 
-	// Retrieve and inject provider data for custom headers (MaaS or LLMInferenceService)
-	providerData := app.getProviderData(ctx, createRequest.Model)
+	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
+	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	if err != nil {
+		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
+		return
+	}
 
-	// Convert to client params (only working parameters)
 	params := llamastack.CreateResponseParams{
 		Input:              createRequest.Input,
 		Model:              createRequest.Model,
@@ -377,14 +520,13 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		PreviousResponseID: createRequest.PreviousResponseID,
 		Store:              createRequest.Store,
 		ProviderData:       providerData,
-		InputShieldID:      createRequest.InputShieldID,
-		OutputShieldID:     createRequest.OutputShieldID,
+		GuardrailOpts:      guardrailOpts,
 	}
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		// Use async moderation for better streaming performance when output moderation is enabled
-		if createRequest.OutputShieldID != "" {
+		// Use async moderation path when output moderation is configured
+		if hasOutputModeration(guardrailOpts) {
 			app.handleStreamingResponseAsync(w, r, ctx, params)
 		} else {
 			app.handleStreamingResponse(w, r, ctx, params)
@@ -411,15 +553,6 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	// Create streaming response
 	stream, err := app.repositories.Responses.CreateResponseStream(ctx, params)
 	if err != nil {
-		// Check if this is a mock streaming error - delegate to mock client
-		if _, ok := err.(*lsmocks.MockStreamError); ok {
-			if client, clientErr := app.repositories.Responses.GetClient(r.Context()); clientErr == nil {
-				if mockClient, ok := client.(*lsmocks.MockLlamaStackClient); ok {
-					mockClient.HandleMockStreaming(ctx, w, flusher, params)
-					return
-				}
-			}
-		}
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
@@ -458,9 +591,12 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			firstTokenTime = &now
 		}
 
-		// Extract usage from completed event
+		// Extract usage and process citations from completed event
 		if streamingEvent.Type == "response.completed" {
 			usage = extractUsageFromEvent(event)
+			if streamingEvent.Response != nil {
+				processResponseCitations(streamingEvent.Response)
+			}
 		}
 
 		// Convert clean streaming event to JSON
@@ -533,22 +669,24 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	// Convert to clean response data
 	responseData := convertToResponseData(llamaResponse)
 
-	// OUTPUT MODERATION: If OutputShieldID is set, moderate the response content
-	if params.OutputShieldID != "" {
-		outputText := extractResponseText(&responseData)
-		if outputText != "" {
-			modResult, err := app.checkModeration(ctx, outputText, params.OutputShieldID)
-			if err != nil {
-				app.logger.Error("Output moderation failed", "error", err, "shield_id", params.OutputShieldID)
-				app.serverErrorResponse(w, r, fmt.Errorf("guardrails service unavailable: %w", err))
+	// Process citation markers into proper annotations before moderation or returning
+	processResponseCitations(&responseData)
+
+	// Output moderation: check the assistant response before returning to the client.
+	if hasOutputModeration(params.GuardrailOpts) {
+		responseText := extractResponseText(&responseData)
+		if responseText != "" {
+			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
+			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			if modErr != nil {
+				app.logger.Error("Output moderation check failed", "error", modErr)
+				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
-			if modResult.Flagged {
-				app.logger.Info("Output blocked by guardrails",
-					"shield_id", params.OutputShieldID,
-					"reason", modResult.ViolationReason)
-				// Replace response with guardrail violation message
-				responseData = createGuardrailViolationResponse(responseData.ID, responseData.Model, false)
+			if result != nil && result.Flagged {
+				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
+				return
 			}
 		}
 	}
@@ -574,110 +712,9 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// sendInputGuardrailViolationStreaming sends a guardrail violation response in streaming SSE format
-// using the OpenAI standard refusal content type and streaming events.
-// This is used when input moderation flags content and the client requested streaming.
-func (app *App) sendInputGuardrailViolationStreaming(w http.ResponseWriter, model string) {
-	// Check if ResponseWriter supports streaming
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		// Fallback to JSON if streaming not supported
-		responseData := createGuardrailViolationResponse("", model, true)
-		apiResponse := llamastack.APIResponse{Data: responseData}
-		_ = app.WriteJSON(w, http.StatusCreated, apiResponse, nil) // Best effort - client may have disconnected
-		return
-	}
-
-	// Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-transform")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	message := constants.InputGuardrailViolationMessage
-
-	// Generate IDs for the response
-	responseID := "resp_guardrail_" + fmt.Sprintf("%d", getCurrentTimestamp())
-	itemID := "msg_guardrail"
-
-	// Send response.created event
-	createdEvent := &StreamingEvent{
-		Type:           "response.created",
-		SequenceNumber: 0,
-		Response: &ResponseData{
-			ID:        responseID,
-			Model:     model,
-			Status:    "in_progress",
-			CreatedAt: getCurrentTimestamp(),
-		},
-	}
-	if eventData, err := json.Marshal(createdEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.refusal.delta with the guardrail message (OpenAI standard)
-	refusalDeltaEvent := &StreamingEvent{
-		Type:           "response.refusal.delta",
-		SequenceNumber: 1,
-		ItemID:         itemID,
-		OutputIndex:    0,
-		ContentIndex:   0,
-		Delta:          message,
-	}
-	if eventData, err := json.Marshal(refusalDeltaEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.refusal.done (OpenAI standard)
-	refusalDoneEvent := &StreamingEvent{
-		Type:           "response.refusal.done",
-		SequenceNumber: 2,
-		ItemID:         itemID,
-		OutputIndex:    0,
-		ContentIndex:   0,
-		Refusal:        message,
-	}
-	if eventData, err := json.Marshal(refusalDoneEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-
-	// Send response.completed with refusal content type (OpenAI standard)
-	completedEvent := &StreamingEvent{
-		Type:           "response.completed",
-		SequenceNumber: 3,
-		Response: &ResponseData{
-			ID:        responseID,
-			Model:     model,
-			Status:    "completed",
-			CreatedAt: getCurrentTimestamp(),
-			Output: []OutputItem{
-				{
-					ID:     itemID,
-					Type:   "message",
-					Role:   "assistant",
-					Status: "completed",
-					Content: []ContentItem{
-						{
-							Type:    "refusal",
-							Refusal: message,
-						},
-					},
-				},
-			},
-		},
-	}
-	if eventData, err := json.Marshal(completedEvent); err == nil {
-		fmt.Fprintf(w, "data: %s\n\n", eventData)
-		flusher.Flush()
-	}
-}
-
-// getCurrentTimestamp returns the current Unix timestamp
-func getCurrentTimestamp() int64 {
-	return int64(0) // Use 0 for consistency with other guardrail responses
+// hasOutputModeration returns true when the guardrail options include output rails.
+func hasOutputModeration(opts nemo.GuardrailsOptions) bool {
+	return opts.Config != nil && opts.Config.Rails.Output != nil
 }
 
 // validatePreviousResponse validates that a previous response ID exists and is accessible
@@ -695,14 +732,74 @@ func (app *App) validatePreviousResponse(ctx context.Context, responseID string)
 	return nil
 }
 
-// getProviderData retrieves provider data (auth tokens) for models
-func (app *App) getProviderData(ctx context.Context, modelID string) map[string]interface{} {
-	// Try MaaS first
-	if maasData := app.getMaaSProviderData(ctx, modelID); maasData != nil {
-		return maasData
+// getProviderData retrieves provider data (auth tokens) for models.
+// If vectorStoreIDs is non-empty, it also checks for a custom-endpoint embedding model
+// backing one of those stores and injects its URL and secret. Returns an error if the
+// passthrough embedding lookup fails so the handler can fail closed.
+func (app *App) getProviderData(ctx context.Context, modelID string, modelSourceType string, subscription string, vectorStoreIDs []string) (map[string]interface{}, error) {
+	var providerData map[string]interface{}
+
+	if modelSourceType == string(models.ModelSourceTypeCustomEndpoint) {
+		// Inference custom endpoints are always remote::openai
+		if apiKey := app.getCustomEndpointSecret(ctx, modelID); apiKey != "" {
+			providerData = map[string]interface{}{"openai_api_key": apiKey}
+		}
+	} else if maasData := app.getMaaSProviderData(ctx, modelID, subscription); maasData != nil {
+		providerData = maasData
+	} else {
+		providerData = app.getUserJWTProviderData(ctx, modelID)
 	}
-	// Then try user JWT for InferenceService and LLMInferenceService
-	return app.getUserJWTProviderData(ctx, modelID)
+
+	// Inject passthrough_url and passthrough_api_key for custom-endpoint embedding models used by vector stores
+	passthroughURL, passthroughKey, err := app.getPassthroughEmbeddingSecret(ctx, vectorStoreIDs)
+	if err != nil {
+		return nil, err
+	}
+	if passthroughURL != "" || passthroughKey != "" {
+		if providerData == nil {
+			providerData = make(map[string]interface{})
+		}
+		providerData["passthrough_url"] = passthroughURL
+		providerData["passthrough_api_key"] = passthroughKey
+	}
+
+	return providerData, nil
+}
+
+// getPassthroughEmbeddingSecret delegates to ExternalModelsRepository to find the first
+// vector store in vectorStoreIDs that uses a custom-endpoint (remote::passthrough) embedding
+// model and returns its base URL and API key. Returns an error on ConfigMap or Secret
+// read failures so the caller can fail closed rather than proceed with bogus credentials.
+func (app *App) getPassthroughEmbeddingSecret(ctx context.Context, vectorStoreIDs []string) (string, string, error) {
+	if len(vectorStoreIDs) == 0 {
+		return "", "", nil
+	}
+
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", nil
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", "", nil
+	}
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", err)
+	}
+
+	info, err := app.repositories.ExternalModels.GetPassthroughEmbeddingProviderInfo(k8sClient, ctx, identity, namespace, vectorStoreIDs)
+	if err != nil {
+		return "", "", err
+	}
+	if info == nil {
+		return "", "", nil
+	}
+
+	app.logger.Debug("Resolved passthrough embedding provider info", "url", info.BaseURL)
+	return info.BaseURL, info.APIKey, nil
 }
 
 // getUserJWTProviderData retrieves user JWT token for InferenceService and LLMInferenceService models
@@ -719,7 +816,7 @@ func (app *App) getUserJWTProviderData(ctx context.Context, modelID string) map[
 }
 
 // getMaaSProviderData retrieves and caches MaaS tokens for MaaS models
-func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[string]interface{} {
+func (app *App) getMaaSProviderData(ctx context.Context, modelID string, subscription string) map[string]interface{} {
 	// Early return if context doesn't have required data
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
@@ -744,10 +841,10 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 		return nil
 	}
 
-	app.logger.Debug("Detected MaaS model", "model", modelID)
+	app.logger.Debug("Detected MaaS model", "model", modelID, "subscription", subscription)
 
 	// Get or generate MaaS token
-	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID)
+	token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, modelID, subscription)
 	if token == "" {
 		return nil
 	}
@@ -759,8 +856,9 @@ func (app *App) getMaaSProviderData(ctx context.Context, modelID string) map[str
 	}
 }
 
-// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one
-func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID string) string {
+// getMaaSTokenForModel retrieves a MaaS token from cache or generates a new one.
+// subscription is the optional MaaSSubscription name to bind the ephemeral key to.
+func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace, modelID, subscription string) string {
 	// Get username for cache key
 	username, err := k8sClient.GetUser(ctx, identity)
 	if err != nil || username == "" {
@@ -768,11 +866,17 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 		return ""
 	}
 
+	// Build cache key that incorporates subscription so different subscriptions get separate tokens
+	cacheKey := modelID
+	if subscription != "" {
+		cacheKey = modelID + "|" + subscription
+	}
+
 	// Check cache first
-	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, modelID); found {
+	if cachedValue, found := app.memoryStore.Get(namespace, username, constants.CacheAccessTokensCategory, cacheKey); found {
 		// Safe type assertion to prevent panic
 		if token, ok := cachedValue.(string); ok {
-			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace)
+			app.logger.Debug("Using cached MaaS token", "model", modelID, "namespace", namespace, "subscription", subscription)
 			return token
 		}
 		// Unexpected type in cache - log warning and continue to generate new token
@@ -780,22 +884,327 @@ func (app *App) getMaaSTokenForModel(ctx context.Context, k8sClient k8s.Kubernet
 	}
 
 	// Cache miss - generate new token
-	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace)
+	app.logger.Debug("No MaaS token found in cache: requesting new token", "model", modelID, "namespace", namespace, "subscription", subscription)
 
 	tokenResponse, err := app.repositories.MaaSModels.IssueToken(ctx, models.MaaSTokenRequest{
-		TTL: constants.MaaSTokenTTLString,
+		ExpiresIn:    constants.MaaSTokenTTLString,
+		Subscription: subscription,
 	})
 	if err != nil {
-		app.logger.Warn("Failed to issue MaaS token", "model", modelID, "error", err)
+		app.logger.Warn("Failed to issue MaaS API key", "model", modelID, "error", err)
 		return ""
 	}
 
-	// Cache the new token
-	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, modelID, tokenResponse.Token, constants.MaaSTokenTTLDuration); err != nil {
-		app.logger.Warn("Failed to cache MaaS token", "model", modelID, "error", err)
-	} else {
-		app.logger.Debug("Cached new MaaS token", "model", modelID, "namespace", namespace, "expiresAt", tokenResponse.ExpiresAt)
+	// Compute cache TTL from the key's actual expiry, with a safety buffer
+	cacheTTL := constants.MaaSTokenTTLDuration
+	ttlSource := "default"
+	if tokenResponse.ExpiresAt != "" {
+		if expiresAt, parseErr := time.Parse(time.RFC3339, tokenResponse.ExpiresAt); parseErr == nil {
+			const safetyBuffer = 30 * time.Second
+			computed := time.Until(expiresAt) - safetyBuffer
+			if computed > 0 && computed <= 24*time.Hour {
+				cacheTTL = computed
+				ttlSource = "expiresAt"
+			}
+		}
 	}
 
-	return tokenResponse.Token
+	// Cache the new API key
+	app.logger.Debug("Caching MaaS API key", "model", modelID, "namespace", namespace, "subscription", subscription, "ttl", cacheTTL, "ttlSource", ttlSource, "expiresAt", tokenResponse.ExpiresAt)
+	if err := app.memoryStore.Set(namespace, username, constants.CacheAccessTokensCategory, cacheKey, tokenResponse.Key, cacheTTL); err != nil {
+		app.logger.Warn("Failed to cache MaaS API key", "model", modelID, "error", err)
+	}
+
+	return tokenResponse.Key
+}
+
+// getCustomEndpointSecret retrieves the raw API key for a provider-qualified custom endpoint
+// model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B"). Returns "" when the secret cannot
+// be resolved so the caller can skip injection.
+func (app *App) getCustomEndpointSecret(ctx context.Context, modelID string) string {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return ""
+	}
+
+	// Model ID must be provider-qualified to prevent ambiguity when multiple providers expose same model_id
+	if !strings.Contains(modelID, "/") {
+		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
+		return ""
+	}
+
+	// Split on FIRST slash only (model IDs can contain slashes like "meta-llama/Llama-3.1-8B")
+	parts := strings.SplitN(modelID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		app.logger.Warn("Invalid custom endpoint model ID format", "model", modelID)
+		return ""
+	}
+
+	providerPrefix := parts[0]
+	actualModelID := parts[1]
+	app.logger.Debug("Parsed provider-qualified model ID", "original", modelID, "provider", providerPrefix, "modelID", actualModelID)
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return ""
+	}
+
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return ""
+	}
+
+	// Match BOTH ProviderID and ModelID to prevent returning the wrong key
+	var foundModel *models.RegisteredModel
+	for i := range externalModelsConfig.RegisteredResources.Models {
+		m := &externalModelsConfig.RegisteredResources.Models[i]
+		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
+			foundModel = m
+			break
+		}
+	}
+	if foundModel == nil {
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID, "namespace", namespace)
+		return ""
+	}
+
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID, "namespace", namespace)
+		return ""
+	}
+
+	apiKey := app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	app.logger.Debug("Resolved custom endpoint secret", "model", modelID, "actualModelID", actualModelID, "provider", foundProvider.ProviderID)
+	return apiKey
+}
+
+// getCustomEndpointBaseURLAndKey retrieves both the base URL and API key for a
+// provider-qualified custom endpoint model ID (e.g. "endpoint-1/meta-llama/Llama-3.1-8B").
+// Returns ("", "") when the information cannot be resolved so the caller can skip injection.
+func (app *App) getCustomEndpointBaseURLAndKey(ctx context.Context, modelID string) (baseURL, apiKey string) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", ""
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", ""
+	}
+
+	if !strings.Contains(modelID, "/") {
+		app.logger.Warn("Custom endpoint model ID must be provider-qualified (provider/model)", "model", modelID)
+		return "", ""
+	}
+
+	parts := strings.SplitN(modelID, "/", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", ""
+	}
+
+	providerPrefix := parts[0]
+	actualModelID := parts[1]
+
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.logger.Warn("Failed to get Kubernetes client for custom endpoint", "model", modelID, "error", err)
+		return "", ""
+	}
+
+	externalModelsConfig, err := k8sClient.GetExternalModelsConfig(ctx, namespace)
+	if err != nil {
+		app.logger.Warn("Failed to get external models ConfigMap", "model", modelID, "namespace", namespace, "error", err)
+		return "", ""
+	}
+
+	var foundModel *models.RegisteredModel
+	for i := range externalModelsConfig.RegisteredResources.Models {
+		m := &externalModelsConfig.RegisteredResources.Models[i]
+		if m.ProviderID == providerPrefix && m.ModelID == actualModelID {
+			foundModel = m
+			break
+		}
+	}
+	if foundModel == nil {
+		app.logger.Warn("Custom endpoint model not found in ConfigMap", "provider", providerPrefix, "model", actualModelID)
+		return "", ""
+	}
+
+	var foundProvider *models.InferenceProvider
+	for i := range externalModelsConfig.Providers.Inference {
+		if externalModelsConfig.Providers.Inference[i].ProviderID == foundModel.ProviderID {
+			foundProvider = &externalModelsConfig.Providers.Inference[i]
+			break
+		}
+	}
+	if foundProvider == nil {
+		app.logger.Warn("Provider not found for custom endpoint model", "model", actualModelID, "providerID", foundModel.ProviderID)
+		return "", ""
+	}
+
+	baseURL = foundProvider.Config.BaseURL
+	apiKey = app.fetchSecretFromProvider(ctx, k8sClient, identity, namespace, foundProvider, actualModelID)
+	return baseURL, apiKey
+}
+
+// getGuardrailModelEndpointAndKey resolves the raw inference endpoint URL and API key
+// for the given guardrail model ID. NeMo Guardrails calls this endpoint directly,
+// bypassing LlamaStack, so the URL must point at the model's native API surface.
+//
+// Resolution mirrors getProviderData for the main model:
+//  1. maas- prefix              → ephemeral MaaS token + MaaS catalog URL
+//  2. "custom_endpoint"         → URL + key from external-models ConfigMap / K8s Secret
+//  3. "namespace" or fallback   → InferenceService URL (falls back to LlamaStack config) + user JWT
+func (app *App) resolveMaaSModelInferenceURL(ctx context.Context, identity *integrations.RequestIdentity, guardrailModelID string) (string, error) {
+	bareID := guardrailModelID
+	if strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix) {
+		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
+			bareID = guardrailModelID[idx+1:]
+		}
+	}
+
+	maasModels, err := app.repositories.MaaSModels.ListModels(ctx, identity.Token)
+	if err != nil {
+		return "", fmt.Errorf("failed to list MaaS models: %w", err)
+	}
+
+	for _, m := range maasModels {
+		if m.ID == bareID {
+			// MaaS catalog returns the raw gateway URL (http, no /v1).
+			// Normalize to vLLM-compatible format (strip trailing slash, ensure /v1 suffix)
+			// so NeMo receives the correct openai_api_base.
+			url := strings.TrimSuffix(m.URL, "/")
+			if !strings.HasSuffix(url, "/v1") {
+				url += "/v1"
+			}
+			return url, nil
+		}
+	}
+
+	return "", fmt.Errorf("MaaS model %q not found in MaaS catalog", guardrailModelID)
+}
+
+func (app *App) getGuardrailModelEndpointAndKey(ctx context.Context, guardrailModelID string, guardrailModelSourceType models.ModelSourceTypeEnum, subscription string) (baseURL, apiKey string, err error) {
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
+	if !ok || identity == nil {
+		return "", "", fmt.Errorf("missing RequestIdentity in context")
+	}
+
+	namespace, ok := ctx.Value(constants.NamespaceQueryParameterKey).(string)
+	if !ok || namespace == "" {
+		return "", "", fmt.Errorf("missing namespace in context")
+	}
+
+	k8sClient, getErr := app.kubernetesClientFactory.GetClient(ctx)
+	if getErr != nil {
+		return "", "", fmt.Errorf("failed to get Kubernetes client: %w", getErr)
+	}
+
+	// Mirrors getProviderData() in the main model: maas- prefix wins, then explicit source type,
+	// then namespace as the default fallback. No K8s auto-detect.
+	var effectiveSourceType models.ModelSourceTypeEnum
+	switch {
+	case strings.HasPrefix(guardrailModelID, constants.MaaSProviderPrefix):
+		effectiveSourceType = models.ModelSourceTypeMaaS
+	case guardrailModelSourceType == models.ModelSourceTypeMaaS:
+		effectiveSourceType = models.ModelSourceTypeMaaS
+	case guardrailModelSourceType == models.ModelSourceTypeCustomEndpoint:
+		effectiveSourceType = models.ModelSourceTypeCustomEndpoint
+	default:
+		effectiveSourceType = models.ModelSourceTypeNamespace
+	}
+
+	switch effectiveSourceType {
+	case models.ModelSourceTypeCustomEndpoint:
+		extURL, extKey := app.getCustomEndpointBaseURLAndKey(ctx, guardrailModelID)
+		if extURL == "" {
+			return "", "", fmt.Errorf("could not resolve endpoint URL for guardrail model %q", guardrailModelID)
+		}
+		baseURL = extURL
+		apiKey = extKey
+
+	case models.ModelSourceTypeMaaS:
+		if app.resolveMaaSBaseURL() == "" {
+			return "", "", fmt.Errorf("MaaS is not available (no MAAS_URL or cluster domain configured)")
+		}
+		token := app.getMaaSTokenForModel(ctx, k8sClient, identity, namespace, guardrailModelID, subscription)
+		if token == "" {
+			return "", "", fmt.Errorf("failed to obtain MaaS token for guardrail model %q", guardrailModelID)
+		}
+		inferenceURL, urlErr := app.resolveMaaSModelInferenceURL(ctx, identity, guardrailModelID)
+		if urlErr != nil {
+			return "", "", fmt.Errorf("failed to resolve MaaS inference URL for guardrail model %q: %w", guardrailModelID, urlErr)
+		}
+		baseURL = inferenceURL
+		apiKey = token
+
+	default:
+		// Strip provider prefix (e.g. "vllm-inference-1/qwen3" → "qwen3") then try ISVC
+		// lookup first (Option B); fall back to LlamaStack config (Option A) if not found.
+		bareModelName := guardrailModelID
+		if idx := strings.Index(guardrailModelID, "/"); idx != -1 {
+			bareModelName = guardrailModelID[idx+1:]
+		}
+		isvcURL, isvcErr := k8sClient.GetInferenceServiceURL(ctx, identity, namespace, bareModelName)
+		if isvcErr != nil {
+			return "", "", fmt.Errorf("failed to get InferenceService URL for guardrail model %q: %w", guardrailModelID, isvcErr)
+		}
+		if isvcURL != "" {
+			app.logger.Debug("Resolved guardrail model URL via InferenceService lookup",
+				"model", guardrailModelID, "url", isvcURL)
+			baseURL = isvcURL
+		} else {
+			app.logger.Debug("InferenceService not found, falling back to LlamaStack config",
+				"model", guardrailModelID)
+			providerInfo, infoErr := k8sClient.GetModelProviderInfo(ctx, identity, namespace, guardrailModelID)
+			if infoErr != nil {
+				return "", "", fmt.Errorf("failed to get provider URL for guardrail model %q: %w", guardrailModelID, infoErr)
+			}
+			baseURL = providerInfo.URL
+		}
+		apiKey = identity.Token
+	}
+
+	if baseURL == "" {
+		return "", "", fmt.Errorf("could not resolve endpoint URL for guardrail model %q", guardrailModelID)
+	}
+
+	app.logger.Debug("Resolved guardrail model endpoint",
+		"model", guardrailModelID,
+		"sourceType", effectiveSourceType,
+		"hasKey", apiKey != "")
+	return baseURL, apiKey, nil
+}
+
+// fetchSecretFromProvider reads the API key referenced by a provider's SecretRef,
+// defaulting to "fake" when no secret is configured or the fetch fails.
+func (app *App) fetchSecretFromProvider(ctx context.Context, k8sClient k8s.KubernetesClientInterface, identity *integrations.RequestIdentity, namespace string, provider *models.InferenceProvider, logModelID string) string {
+	secretName := provider.Config.CustomGenAI.APIKey.SecretRef.Name
+	secretKey := provider.Config.CustomGenAI.APIKey.SecretRef.Key
+	if secretName == "" || secretKey == "" {
+		return "fake"
+	}
+	val, err := k8sClient.GetSecretValue(ctx, identity, namespace, secretName, secretKey)
+	if err != nil {
+		app.logger.Warn("Failed to get secret for custom endpoint model", "model", logModelID, "secretName", secretName, "error", err)
+		return "fake"
+	}
+	if val == "" {
+		return "fake"
+	}
+	return val
 }

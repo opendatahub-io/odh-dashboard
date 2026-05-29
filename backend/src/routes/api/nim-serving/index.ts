@@ -36,12 +36,11 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       }
 
       try {
-        // Fetch the resource from Kubernetes using the dynamically retrieved name
-        if (resourceInfo.type === 'Secret') {
-          return await coreV1Api.readNamespacedSecret(resourceName, namespace);
-        } else {
-          return await coreV1Api.readNamespacedConfigMap(resourceName, namespace);
-        }
+        const result =
+          resourceInfo.type === 'Secret'
+            ? await coreV1Api.readNamespacedSecret(resourceName, namespace)
+            : await coreV1Api.readNamespacedConfigMap(resourceName, namespace);
+        return { body: result.body };
       } catch (e: any) {
         fastify.log.error(
           `Failed to fetch ${resourceInfo.type.toLowerCase()} ${resourceName}: ${e.message}`,

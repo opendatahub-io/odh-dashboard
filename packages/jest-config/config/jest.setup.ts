@@ -9,6 +9,15 @@ import type { BooleanValues, RenderHookResultExt } from '../types';
 // @ts-ignore
 global.TextEncoder = TextEncoder;
 
+// jsdom does not include structuredClone
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+if (typeof global.structuredClone === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  global.structuredClone = (obj: unknown) => JSON.parse(JSON.stringify(obj));
+}
+
 // Mock webpack-injected global variables
 declare global {
   // eslint-disable-next-line no-var, @typescript-eslint/naming-convention

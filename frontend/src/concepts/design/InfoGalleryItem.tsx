@@ -8,6 +8,7 @@ import {
   Stack,
   StackItem,
 } from '@patternfly/react-core';
+import { Link } from 'react-router-dom';
 import { ProjectObjectType, SectionType } from '#~/concepts/design/utils';
 import DividedGalleryItem from '#~/concepts/design/DividedGalleryItem';
 import HeaderIcon from '#~/concepts/design/HeaderIcon';
@@ -18,6 +19,7 @@ type InfoGalleryItemProps = {
   resourceType: ProjectObjectType;
   description: React.ReactNode;
   isOpen: boolean;
+  href?: string;
   onClick?: () => void;
   testId?: string;
 } & GalleryItemProps;
@@ -28,6 +30,7 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
   sectionType,
   description,
   isOpen,
+  href,
   onClick,
   testId,
   ...rest
@@ -43,11 +46,16 @@ const InfoGalleryItem: React.FC<InfoGalleryItemProps> = ({
           <FlexItem>
             <HeaderIcon type={resourceType} sectionType={sectionType} />
           </FlexItem>
-          {onClick ? (
+          {onClick || href ? (
             <Button
               data-testid={testId ? `${testId}-button` : undefined}
               variant={ButtonVariant.link}
               isInline
+              component={
+                href
+                  ? (props: React.ComponentProps<'a'>) => <Link {...props} to={href} />
+                  : 'button'
+              }
               onClick={onClick}
               style={{
                 fontSize: 'var(--pf-t--global--font--size--body--default)',

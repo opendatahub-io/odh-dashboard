@@ -10,6 +10,7 @@ import {
 import { Bullseye } from '@patternfly/react-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AppRoutes from '~/app/AppRoutes';
+import ToastNotifications from '~/app/components/ToastNotifications';
 import { AppContext } from '~/app/context/AppContext';
 
 const modularArchConfig: ModularArchConfig = {
@@ -36,6 +37,7 @@ const MaasWrapperContent: React.FC = () => {
     <AppContext.Provider value={contextValue}>
       <BrowserStorageContextProvider>
         <NotificationContextProvider>
+          <ToastNotifications />
           <AppRoutes />
         </NotificationContextProvider>
       </BrowserStorageContextProvider>

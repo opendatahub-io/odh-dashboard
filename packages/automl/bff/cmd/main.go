@@ -5,17 +5,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os/signal"
-	"strings"
-	"syscall"
-
-	"github.com/opendatahub-io/automl-library/bff/internal/api"
-	"github.com/opendatahub-io/automl-library/bff/internal/config"
-
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/automl-library/bff/internal/api"
+	"github.com/opendatahub-io/automl-library/bff/internal/config"
 )
 
 func main() {
@@ -27,10 +26,10 @@ func main() {
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
-	flag.StringVar(&cfg.PipelineServerURL, "pipeline-server-url", getEnvAsString("PIPELINE_SERVER_URL", ""), "Override Pipeline Server URL for local testing (e.g., http://localhost:8888)")
-	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "automl-timeseries"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: automl-timeseries)")
-	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "automl-tabular"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: automl-tabular)")
+	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "autogluon-timeseries-training-pipeline"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: autogluon-timeseries-training-pipeline)")
+	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "autogluon-tabular-training-pipeline"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: autogluon-tabular-training-pipeline)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
@@ -63,7 +62,7 @@ func main() {
 
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
+	if (cfg.MockK8Client || cfg.MockS3Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 
@@ -85,6 +84,20 @@ func main() {
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {
 		logger.Error("invalid auth method: (must be disabled, internal, or user_token)", "authMethod", cfg.AuthMethod)
+		os.Exit(1)
+	}
+
+	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)
+	if cfg.MockS3Client && !cfg.DevMode {
+		logger.Error("mock-s3-client can only be enabled in development mode (set -dev-mode flag)")
+		os.Exit(1)
+	}
+
+	// MockS3Client depends on MockK8Client since GetS3Credentials needs
+	// a mock Kubernetes client to fetch secrets
+	if cfg.MockS3Client && !cfg.MockK8Client {
+		logger.Error("mock-s3-client requires mock-k8s-client to be enabled (mock S3 depends on mock K8s for credential retrieval)",
+			"mock-s3-client", cfg.MockS3Client, "mock-k8s-client", cfg.MockK8Client)
 		os.Exit(1)
 	}
 

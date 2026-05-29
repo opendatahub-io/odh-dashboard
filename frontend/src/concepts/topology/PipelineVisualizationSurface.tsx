@@ -177,33 +177,35 @@ const PipelineVisualizationSurface: React.FC<PipelineVisualizationSurfaceProps> 
     <TopologyView
       className={css('pipeline-visualization', !!selectedNode && 'm-is-open')}
       controlBar={
-        <TopologyControlBar
-          controlButtons={createTopologyControlButtons({
-            ...defaultControlButtonsOptions,
-            expandAll: !!collapseAllCallback,
-            collapseAll: !!collapseAllCallback,
-            zoomInCallback: action(() => {
-              controller.getGraph().scaleBy(4 / 3);
-            }),
-            zoomOutCallback: action(() => {
-              controller.getGraph().scaleBy(0.75);
-            }),
-            fitToScreenCallback: action(() => {
-              controller.getGraph().fit(80);
-            }),
-            resetViewCallback: action(() => {
-              controller.getGraph().reset();
-              controller.getGraph().layout();
-            }),
-            expandAllCallback: action(() => {
-              collapseAllCallback(false);
-            }),
-            collapseAllCallback: action(() => {
-              collapseAllCallback(true);
-            }),
-            legend: false,
-          })}
-        />
+        <div data-testid="pipeline-topology-control-bar">
+          <TopologyControlBar
+            controlButtons={createTopologyControlButtons({
+              ...defaultControlButtonsOptions,
+              expandAll: !!collapseAllCallback,
+              collapseAll: !!collapseAllCallback,
+              zoomInCallback: action(() => {
+                controller.getGraph().scaleBy(4 / 3);
+              }),
+              zoomOutCallback: action(() => {
+                controller.getGraph().scaleBy(0.75);
+              }),
+              fitToScreenCallback: action(() => {
+                controller.getGraph().fit(80);
+              }),
+              resetViewCallback: action(() => {
+                controller.getGraph().reset();
+                controller.getGraph().layout();
+              }),
+              expandAllCallback: action(() => {
+                collapseAllCallback(false);
+              }),
+              collapseAllCallback: action(() => {
+                collapseAllCallback(true);
+              }),
+              legend: false,
+            })}
+          />
+        </div>
       }
       sideBarOpen={!!selectedNode}
       sideBarResizable

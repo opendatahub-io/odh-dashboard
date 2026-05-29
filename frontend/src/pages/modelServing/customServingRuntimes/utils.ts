@@ -127,7 +127,8 @@ export const getDisplayNameFromServingRuntimeTemplate = (resource: ServingRuntim
     resource.metadata.annotations?.['opendatahub.io/template-display-name'] ||
     resource.metadata.annotations?.['opendatahub.io/template-name'];
   const legacyTemplateName =
-    resource.spec.builtInAdapter?.serverType === 'ovms' ? 'OpenVINO Model Server' : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- K8s resources can arrive without spec at runtime (RHOAIENG-32511)
+    resource.spec?.builtInAdapter?.serverType === 'ovms' ? 'OpenVINO Model Server' : undefined;
 
   return templateName || legacyTemplateName || 'Unknown Serving Runtime';
 };
@@ -154,11 +155,13 @@ export const findTemplateByName = (
   templates: TemplateKind[],
   templateName: string,
 ): TemplateKind | undefined =>
-  templates.find((t) => getServingRuntimeNameFromTemplate(t) === templateName);
+  templates.find(
+    (t) =>
+      getServingRuntimeNameFromTemplate(t) === templateName || t.metadata.name === templateName,
+  );
 
-export const isTemplateKind = (
-  resource: ServingRuntimeKind | TemplateKind,
-): resource is TemplateKind => resource.kind === 'Template';
+export const isTemplateKind = (resource: K8sResourceCommon): resource is TemplateKind =>
+  resource.kind === 'Template';
 
 export const getEnabledPlatformsFromTemplate = (
   template: TemplateKind,

@@ -35,7 +35,7 @@ describe('Workbench and PVSs tests', () => {
     // Check if a default storage class exists - if not, skip tests
     // (workbench tests require real storage provisioner to create PVCs)
     getOpenshiftDefaultStorageClass().then((result) => {
-      if (result.code !== 0 || !result.stdout.trim()) {
+      if (result.exitCode !== 0 || !result.stdout.trim()) {
         cy.log(
           'No default storage class found - skipping workbench tests (requires real storage provisioner)',
         );
@@ -137,7 +137,7 @@ describe('Workbench and PVSs tests', () => {
 
           cy.step(`Wait for Workbench ${workbenchName} to display a "Running" status`);
           const notebookRow = workbenchPage.getNotebookRow(workbenchName);
-          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Running, 120000);
+          notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
           // Use dynamic image name verification based on what was actually selected
           getImageStreamDisplayName(selectedImageStream).then((displayName) => {

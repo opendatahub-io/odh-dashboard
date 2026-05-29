@@ -30,10 +30,10 @@ type CapturingMockClientFactory struct {
 
 func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool, apiPath string) llamastack.LlamaStackClientInterface {
 	f.CapturedURL = baseURL
-	return lsmocks.NewMockLlamaStackClient()
+	return lsmocks.NewMockClientFactory().CreateClient(baseURL, authToken, insecureSkipVerify, rootCAs, apiPath)
 }
 
-var _ = Describe("AttachLlamaStackClient", func() {
+var _ = Describe("AttachOGXClient", func() {
 	It("should attach mock client when MockLSClient is true", func() {
 		t := GinkgoT()
 		app := App{
@@ -46,12 +46,14 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			client := r.Context().Value(constants.LlamaStackClientKey)
 			assert.NotNil(t, client)
-			mockClient := client.(*lsmocks.MockLlamaStackClient)
-			models, _ := mockClient.ListModels(r.Context())
-			assert.Len(t, models, 4)
+			lsClient, ok := client.(llamastack.LlamaStackClientInterface)
+			assert.True(t, ok, "client should implement LlamaStackClientInterface")
+			models, err := lsClient.ListModels(r.Context())
+			assert.NoError(t, err)
+			assert.Greater(t, len(models), 0, "should have at least one model")
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
@@ -63,7 +65,7 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		mockFactory := &CapturingMockClientFactory{}
 
 		app := App{
-			config:                  config.EnvConfig{LlamaStackURL: testutil.TestLlamaStackURL},
+			config:                  config.EnvConfig{LlamaStackURL: testutil.GetTestLlamaStackURL()},
 			llamaStackClientFactory: mockFactory,
 			repositories:            repositories.NewRepositories(),
 		}
@@ -74,16 +76,16 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
-		assert.Equal(t, testutil.TestLlamaStackURL, mockFactory.CapturedURL)
+		assert.Equal(t, testutil.GetTestLlamaStackURL(), mockFactory.CapturedURL)
 	})
 
-	It("should retrieve service url from LlamaStackDistribution when no env provided", func() {
+	It("should retrieve service url from OGXServer when no env provided", func() {
 		t := GinkgoT()
 		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
 		require.NoError(t, err)
@@ -102,7 +104,7 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		req = req.WithContext(reqCtx)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			assert.NotNil(t, r.Context().Value(constants.LlamaStackClientKey))
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
@@ -121,7 +123,7 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		req := httptest.NewRequest("GET", "/gen-ai/api/v1/llamastack-distribution/status", nil)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
@@ -140,7 +142,7 @@ var _ = Describe("AttachLlamaStackClient", func() {
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceQueryParameterKey, testutil.TestNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClient(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
@@ -306,7 +308,7 @@ var _ = Describe("RequireAccessToService", func() {
 		assert.Contains(t, rr.Body.String(), "insufficient permissions to access services in this namespace")
 	})
 
-	It("should return server error when CanListLlamaStackDistributions returns other error", func() {
+	It("should return server error when CanListOGXServers returns other error", func() {
 		t := GinkgoT()
 		// Use a K8sError to match what the real implementation returns after wrapping
 		mockFactory := &k8smocks.ConfigurableMockTokenClientFactory{

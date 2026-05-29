@@ -26,20 +26,21 @@ export const getStatusLabel = (
   status: ModelTransferJobStatus,
 ): {
   label: string;
-  color: React.ComponentProps<typeof Label>['color'];
+  color?: React.ComponentProps<typeof Label>['color'];
+  status?: React.ComponentProps<typeof Label>['status'];
   icon: React.ReactNode;
 } => {
   switch (status) {
     case ModelTransferJobStatus.COMPLETED:
-      return { label: 'Complete', color: 'green', icon: <CheckCircleIcon /> };
+      return { label: 'Complete', status: 'success', icon: <CheckCircleIcon /> };
     case ModelTransferJobStatus.RUNNING:
       return { label: 'Running', color: 'blue', icon: <InProgressIcon /> };
     case ModelTransferJobStatus.PENDING:
-      return { label: 'Pending', color: 'grey', icon: <PendingIcon /> };
+      return { label: 'Pending', color: 'purple', icon: <PendingIcon /> };
     case ModelTransferJobStatus.FAILED:
-      return { label: 'Failed', color: 'red', icon: <ExclamationCircleIcon /> };
+      return { label: 'Failed', status: 'danger', icon: <ExclamationCircleIcon /> };
     case ModelTransferJobStatus.CANCELLED:
-      return { label: 'Cancelled', color: 'grey', icon: <BanIcon /> };
+      return { label: 'Canceled', color: 'grey', icon: <BanIcon /> };
     default:
       return { label: status, color: 'grey', icon: null };
   }
@@ -130,27 +131,52 @@ const ModelTransferJobTableRow: React.FC<ModelTransferJobTableRowProps> = ({
         </Content>
       </Td>
       <Td dataLabel="Transfer job status">
-        <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+        <Flex direction={{ default: 'column' }} spaceItems={{ default: 'spaceItemsXs' }}>
           <FlexItem>
-            <Label
-              color={statusInfo.color}
-              icon={statusInfo.icon}
-              data-testid="job-status"
-              isClickable
-              onClick={() => setIsStatusModalOpen(true)}
+            <Flex
+              alignItems={{ default: 'alignItemsCenter' }}
+              spaceItems={{ default: 'spaceItemsSm' }}
             >
-              {statusInfo.label}
-            </Label>
+              <FlexItem>
+                <Label
+                  color={statusInfo.color}
+                  status={statusInfo.status}
+                  icon={statusInfo.icon}
+                  data-testid="job-status"
+                  variant="filled"
+                  isClickable
+                  onClick={() => setIsStatusModalOpen(true)}
+                >
+                  {statusInfo.label}
+                </Label>
+              </FlexItem>
+              {job.status === ModelTransferJobStatus.FAILED && onRequestRetry && (
+                <FlexItem>
+                  <Button
+                    variant="link"
+                    isInline
+                    onClick={() => onRequestRetry(job)}
+                    data-testid="job-retry-button"
+                  >
+                    Retry
+                  </Button>
+                </FlexItem>
+              )}
+            </Flex>
           </FlexItem>
-          {job.status === ModelTransferJobStatus.FAILED && onRequestRetry && (
+          {job.status === ModelTransferJobStatus.FAILED && job.errorMessage && (
             <FlexItem>
               <Button
                 variant="link"
                 isInline
-                onClick={() => onRequestRetry(job)}
-                data-testid="job-retry-button"
+                onClick={() => setIsStatusModalOpen(true)}
+                data-testid="job-error-message"
+                style={{
+                  textDecoration: 'underline dotted',
+                  textUnderlineOffset: 'var(--pf-t--global--spacer--xs)',
+                }}
               >
-                Retry
+                <Truncate content={job.errorMessage} />
               </Button>
             </FlexItem>
           )}

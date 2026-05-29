@@ -5,6 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/jest-config": "*",
-    "@odh-dashboard/tsconfig": "*"
+    "@odh-dashboard/tsconfig": "*",
+    "@types/node": "^22.0.0"
   }
 }

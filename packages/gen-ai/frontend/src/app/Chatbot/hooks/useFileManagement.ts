@@ -60,20 +60,20 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       // First, get the list of vector stores
       const vectorStores = await api.listVectorStores();
 
-      if (vectorStores.length === 0) {
-        // No vector stores available, set empty files list
+      // Find the auto-provisioned file-upload store for this user
+      const userStore = vectorStores.find((vs) => vs.metadata.created_by === 'auto-provisioning');
+      if (!userStore) {
         setFiles([]);
         return;
       }
 
-      // Use the first vector store ID
-      const firstVectorStoreId = vectorStores[0].id;
-      setCurrentVectorStoreId(firstVectorStoreId);
+      const inlineVectorStoreId = userStore.id;
+      setCurrentVectorStoreId(inlineVectorStoreId);
 
-      // Get files from the first vector store
+      // Get files from the inline vector store
       const vectorStoreFiles = await api.listVectorStoreFiles({
         // eslint-disable-next-line camelcase
-        vector_store_id: firstVectorStoreId,
+        vector_store_id: inlineVectorStoreId,
         limit: 50,
         order: 'desc',
         filter: 'completed',

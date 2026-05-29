@@ -11,7 +11,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,10 +39,10 @@ func cleanupTestNamespace(ctx context.Context, namespace string) {
 	}
 	_ = testK8sClient.Delete(ctx, configMap)
 
-	lsdList := &lsdapi.LlamaStackDistributionList{}
-	_ = testK8sClient.List(ctx, lsdList, client.InNamespace(namespace))
-	for _, lsd := range lsdList.Items {
-		_ = testK8sClient.Delete(ctx, &lsd)
+	ogxList := &ogxapi.OGXServerList{}
+	_ = testK8sClient.List(ctx, ogxList, client.InNamespace(namespace))
+	for _, item := range ogxList.Items {
+		_ = testK8sClient.Delete(ctx, &item)
 	}
 }
 
@@ -340,7 +340,7 @@ var _ = Describe("LlamaStackDistributionInstallHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "LlamaStackDistribution already exists in namespace mock-test-namespace-2")
+		assert.Contains(t, errorMap["message"], "OGXServer already exists in namespace mock-test-namespace-2")
 	})
 })
 
@@ -671,6 +671,167 @@ var _ = Describe("LlamaStackDistributionInstallHandlerWithMaaSModels", func() {
 	})
 })
 
+var _ = Describe("LlamaStackDistributionInstallHandlerWithVectorStores", func() {
+	var app App
+
+	BeforeEach(func() {
+		k8sFactory, err := k8smocks.NewTokenClientFactory(testK8sClient, testCfg, slog.Default())
+		require.NoError(GinkgoT(), err)
+
+		app = App{
+			config: config.EnvConfig{
+				Port: 4000,
+			},
+			logger:                  slog.Default(),
+			kubernetesClientFactory: k8sFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+	})
+
+	It("should install LSD successfully with empty vector_stores", func() {
+		t := GinkgoT()
+		namespace := fmt.Sprintf("vs-empty-test-%d", time.Now().UnixNano())
+		ctx := context.Background()
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-2-7b-chat", "model_source_type": "maas"},
+			},
+			"vector_stores": []interface{}{},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		_, hasData := response["data"]
+		assert.True(t, hasData)
+	})
+
+	It("should install LSD with a valid vector store", func() {
+		t := GinkgoT()
+		// mock-test-namespace-1 has gen-ai-aa-vector-stores ConfigMap pre-seeded.
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+		cleanupTestNamespace(ctx, namespace)
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-2-7b-chat", "model_source_type": "maas"},
+			},
+			"vector_stores": []map[string]interface{}{
+				{"vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba"},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		body, _ := io.ReadAll(rr.Result().Body)
+		t.Logf("Response: %s", string(body))
+		assert.Equal(t, http.StatusOK, rr.Code)
+	})
+
+	It("should return 400 when vector_store_id is not found in ConfigMap", func() {
+		t := GinkgoT()
+		namespace := "mock-test-namespace-1"
+		ctx := context.Background()
+		cleanupTestNamespace(ctx, namespace)
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-2-7b-chat", "model_source_type": "maas"},
+			},
+			"vector_stores": []map[string]interface{}{
+				{"vector_store_id": "nonexistent-store"},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		errorMap, _ := response["error"].(map[string]interface{})
+		assert.Contains(t, errorMap["message"], "nonexistent-store")
+	})
+
+	It("should return 400 when vector stores ConfigMap is absent from the namespace", func() {
+		t := GinkgoT()
+		// Use a fresh namespace that has no pre-seeded ConfigMap.
+		namespace := fmt.Sprintf("vs-no-configmap-%d", time.Now().UnixNano())
+		ctx := context.Background()
+
+		requestBody := map[string]interface{}{
+			"models": []map[string]interface{}{
+				{"model_name": "llama-2-7b-chat", "model_source_type": "maas"},
+			},
+			"vector_stores": []map[string]interface{}{
+				{"vector_store_id": "vs_4c4b74e3-30ac-4e46-9057-213154f83dba"},
+			},
+		}
+		jsonBody, err := json.Marshal(requestBody)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/llamastack-distribution/install", bytes.NewReader(jsonBody))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		ctx = context.WithValue(ctx, constants.NamespaceQueryParameterKey, namespace)
+		ctx = context.WithValue(ctx, constants.RequestIdentityKey, &integrations.RequestIdentity{Token: "FAKE_BEARER_TOKEN"})
+		ctx = context.WithValue(ctx, constants.MaaSClientKey, maasmocks.NewMockMaaSClient())
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackDistributionInstallHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		var response map[string]interface{}
+		err = json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		errorMap, _ := response["error"].(map[string]interface{})
+		assert.Contains(t, errorMap["message"], "gen-ai-aa-vector-stores")
+	})
+})
+
 var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 	var app App
 
@@ -756,7 +917,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		dataMap, ok := data.(map[string]interface{})
 		assert.True(t, ok, "Data should be a map")
 
-		assert.Equal(t, "LlamaStackDistribution deleted successfully", dataMap["data"])
+		assert.Equal(t, "OGXServer deleted successfully", dataMap["data"])
 	})
 
 	It("should return error when request body is missing", func() {
@@ -827,7 +988,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "lsd name cannot be empty")
+		assert.Contains(t, errorMap["message"], "ogx server name cannot be empty")
 	})
 
 	It("should return error when namespace is missing from context", func() {
@@ -902,7 +1063,7 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "LlamaStackDistribution with name 'non-existent-lsd' not found")
+		assert.Contains(t, errorMap["message"], "OGXServer with name 'non-existent-lsd' not found")
 	})
 
 	It("should return error when no LSDs found in namespace", func() {
@@ -945,6 +1106,6 @@ var _ = Describe("LlamaStackDistributionDeleteHandler", func() {
 		assert.True(t, ok, "Error should be a map")
 
 		assert.Equal(t, "400", errorMap["code"])
-		assert.Contains(t, errorMap["message"], "no LlamaStackDistribution found in namespace mock-test-namespace-1 with OpenDataHubDashboardLabelKey annotation")
+		assert.Contains(t, errorMap["message"], "no OGXServer found in namespace mock-test-namespace-1 with OpenDataHubDashboardLabelKey annotation")
 	})
 })

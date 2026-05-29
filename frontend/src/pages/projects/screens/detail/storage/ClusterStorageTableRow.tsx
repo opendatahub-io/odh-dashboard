@@ -98,7 +98,7 @@ const ClusterStorageTableRow: React.FC<ClusterStorageTableRowProps> = ({
         ) : (
           <>
             {obj.notebookDisplayName ?? obj.name}{' '}
-            <Label isCompact color="green">
+            <Label isCompact variant="outline" status="success">
               Connected
             </Label>
           </>

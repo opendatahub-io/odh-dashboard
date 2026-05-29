@@ -19,3 +19,22 @@ export const evaluationBenchmarksRoute = (namespace?: string): string =>
 
 export const evaluationStartRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/start`;
+
+export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;
+
+export const evaluationCompareRoute = (
+  namespace?: string,
+  experimentIds?: string[],
+  runUuids?: string[],
+): string => {
+  const base = `${evaluationsBaseRoute(namespace)}/compare`;
+  if (!experimentIds?.length || !runUuids?.length) {
+    return base;
+  }
+  const params = new URLSearchParams({
+    experimentIds: experimentIds.join(','),
+    runUuids: runUuids.join(','),
+  });
+  return `${base}?${params.toString()}`;
+};

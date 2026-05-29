@@ -62,3 +62,25 @@ export async function getPipelineRunsFromBFF(
   }
   throw new Error('Invalid response format');
 }
+
+export async function getPipelineRunFromBFF(
+  hostPath: string,
+  runId: string,
+  namespace: string,
+  opts?: APIOptions,
+): Promise<PipelineRun> {
+  const queryParams: Record<string, string> = { namespace };
+
+  const response = await handleRestFailures(
+    restGET(
+      hostPath,
+      `${URL_PREFIX}/api/${BFF_API_VERSION}/pipeline-runs/${encodeURIComponent(runId)}`,
+      queryParams,
+      opts ?? {},
+    ),
+  );
+  if (isModArchResponse<PipelineRun>(response)) {
+    return response.data;
+  }
+  throw new Error('Invalid response format');
+}

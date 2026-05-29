@@ -6,6 +6,7 @@ import {
   getAllConsumedResources,
   convertToBaseUnit,
   getDefaultPodContainerName,
+  getRestartCount,
   formatDuration,
   formatMetricLabel,
   formatMetricValue,
@@ -941,5 +942,49 @@ describe('formatMetricValue', () => {
     it('should handle empty string', () => {
       expect(formatMetricValue('')).toBe('');
     });
+  });
+});
+
+describe('getRestartCount', () => {
+  it('should return 0 when no containerStatuses', () => {
+    const pod = { status: {} } as PodKind;
+    expect(getRestartCount(pod)).toBe(0);
+  });
+
+  it('should return 0 when containerStatuses is empty', () => {
+    const pod = { status: { containerStatuses: [] } } as unknown as PodKind;
+    expect(getRestartCount(pod)).toBe(0);
+  });
+
+  it('should sum restart counts from all containers', () => {
+    const pod = {
+      status: {
+        containerStatuses: [{ restartCount: 3 }, { restartCount: 2 }],
+      },
+    } as unknown as PodKind;
+    expect(getRestartCount(pod)).toBe(5);
+  });
+
+  it('should handle containers without restartCount', () => {
+    const pod = {
+      status: {
+        containerStatuses: [{ name: 'main' }],
+      },
+    } as unknown as PodKind;
+    expect(getRestartCount(pod)).toBe(0);
+  });
+
+  it('should handle NaN restartCount values', () => {
+    const pod = {
+      status: {
+        containerStatuses: [{ restartCount: 'invalid' }],
+      },
+    } as unknown as PodKind;
+    expect(getRestartCount(pod)).toBe(0);
+  });
+
+  it('should handle missing status', () => {
+    const pod = {} as PodKind;
+    expect(getRestartCount(pod)).toBe(0);
   });
 });

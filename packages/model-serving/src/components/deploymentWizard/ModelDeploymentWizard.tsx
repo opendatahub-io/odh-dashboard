@@ -140,8 +140,9 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
       >
         <ExternalDataLoader
           fields={wizardFormData.fields}
-          initialData={existingData}
+          formState={wizardFormData.state}
           setExternalData={setExternalData}
+          dispatch={wizardFormData.dispatch}
         />
         {isExitModalOpen && (
           <ExitDeploymentModal onClose={closeExitModal} onConfirm={handleExitConfirm} />
@@ -185,6 +186,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               <ModelSourceStepContent
                 wizardState={wizardFormData}
                 validation={validation.modelSource}
+                externalData={externalData}
               />
             </WizardStep>
             <WizardStep
@@ -195,6 +197,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               <ModelDeploymentStepContent
                 projectName={currentProjectName}
                 wizardState={wizardFormData}
+                externalData={externalData}
               />
             </WizardStep>
             <WizardStep

@@ -120,7 +120,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     properties: {
-      path: '/ai-hub/deployments/*',
+      path: '/ai-hub/models/deployments/*',
       component: () => import('#~/pages/modelServing/ModelServingRoutes'),
     },
     flags: {
@@ -131,28 +131,15 @@ const extensions: RouteExtension[] = [
     type: 'app.route',
     properties: {
       path: '/modelServing/*',
-      component: createRedirectComponent({ from: '/modelServing/*', to: '/ai-hub/deployments/*' }),
+      component: createRedirectComponent({
+        from: '/modelServing/*',
+        to: '/ai-hub/models/deployments/*',
+      }),
     },
     flags: {
       disallowed: [SupportedArea.PLUGIN_MODEL_SERVING],
     },
   },
-  // // This is being replaced by the upstream extension for model registry and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088.
-  // {
-  //   type: 'app.route',
-  //   properties: {
-  //     path: '/modelRegistry/*',
-  //     component: () => import('#~/pages/modelRegistry/ModelRegistryRoutes'),
-  //   },
-  // },
-  // This is being replaced by the upstream extension for model catalog and will be removed along with the old MR UI code as part of https://issues.redhat.com/browse/RHOAIENG-34088
-  // {
-  //   type: 'app.route',
-  //   properties: {
-  //     path: '/modelCatalog/*',
-  //     component: () => import('#~/pages/modelCatalog/ModelCatalogRoutes'),
-  //   },
-  // },
   {
     type: 'app.route',
     properties: {
@@ -454,29 +441,6 @@ const extensions: RouteExtension[] = [
       component: createRedirectComponent({
         from: '/hardwareProfiles/*',
         to: '/settings/environment-setup/hardware-profiles/*',
-      }),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      path: '/develop-train/evaluations/*',
-      component: () => import('#~/pages/lmEval/LMEvalRoutes'),
-    },
-  },
-  {
-    type: 'app.route',
-    flags: {
-      required: [SupportedArea.LM_EVAL],
-    },
-    properties: {
-      path: '/modelEvaluations/*',
-      component: createRedirectComponent({
-        from: '/modelEvaluations/*',
-        to: '/develop-train/evaluations/*',
       }),
     },
   },

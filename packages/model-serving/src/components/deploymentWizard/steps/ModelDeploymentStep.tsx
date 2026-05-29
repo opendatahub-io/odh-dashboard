@@ -6,16 +6,19 @@ import ProjectSection from '../fields/ProjectSection';
 import { ModelServingHardwareProfileSection } from '../fields/ModelServingHardwareProfileSection';
 import { ModelFormatField } from '../fields/ModelFormatField';
 import { NumReplicasField } from '../fields/NumReplicasField';
-import ModelServerTemplateSelectField from '../fields/ModelServerTemplateSelectField';
+import { GenericFieldRenderer } from '../fields/GenericFieldRenderer';
+import { ExternalDataMap } from '../ExternalDataLoader';
 
 type ModelDeploymentStepProps = {
   projectName?: string;
   wizardState: UseModelDeploymentWizardState;
+  externalData?: ExternalDataMap;
 };
 
 export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   projectName,
   wizardState,
+  externalData,
 }) => {
   if (!wizardState.loaded.modelDeploymentLoaded) {
     return <Spinner data-testid="spinner" />;
@@ -47,10 +50,11 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
             isEditing={wizardState.initialData?.isEditing}
           />
         )}
-        <ModelServerTemplateSelectField
-          modelServerState={wizardState.state.modelServer}
-          hardwareProfile={wizardState.state.hardwareProfileConfig.formData.selectedProfile}
-          isEditing={wizardState.initialData?.isEditing && !!wizardState.initialData.modelServer}
+        <GenericFieldRenderer
+          stateKey="modelServer"
+          wizardState={wizardState}
+          externalData={externalData}
+          isEditing={wizardState.initialData?.isEditing}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
       </FormSection>

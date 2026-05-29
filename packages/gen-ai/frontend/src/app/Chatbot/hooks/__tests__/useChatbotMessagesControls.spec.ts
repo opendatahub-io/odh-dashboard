@@ -2,7 +2,7 @@
 import * as React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
-import { CreateResponseRequest, SimplifiedResponseData, ChatbotSourceSettings } from '~/app/types';
+import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 
 // Mock external dependencies
 jest.mock('~/app/services/llamaStackService');
@@ -10,6 +10,10 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({
   getId: jest.fn(() => 'mock-id'),
   getLlamaModelDisplayName: jest.fn((modelId: string) => modelId || 'Bot'),
+  splitLlamaModelId: jest.fn((modelId: string) => ({
+    providerId: 'provider-id',
+    id: modelId,
+  })),
 }));
 
 jest.mock('~/app/Chatbot/ChatbotMessagesToolResponse', () => ({
@@ -36,13 +40,6 @@ const mockCreateResponse = jest.fn<
 
 // Test constants
 const mockModelId = 'test-model-id';
-const mockSourceSettings: ChatbotSourceSettings = {
-  vectorStore: 'test-vector-db',
-  embeddingModel: 'test-embedding-model',
-  maxChunkLength: 500,
-  delimiter: '\n\n',
-  chunkOverlap: 50,
-};
 
 const mockSuccessResponse: SimplifiedResponseData = {
   id: 'resp-123',
@@ -80,23 +77,25 @@ const setupMocks = (): void => {
 
 // Helper to create default hook props
 const createDefaultHookProps = (overrides?: {
+  configId?: string;
   modelId?: string;
-  selectedSourceSettings?: ChatbotSourceSettings | null;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
 }) => ({
   ...defaultMcpProps,
+  configId: 'default',
   modelId: mockModelId,
-  selectedSourceSettings: mockSourceSettings,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
-  currentVectorStoreId: null,
+  currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });
@@ -446,14 +445,7 @@ describe('useChatbotMessages - controls', () => {
         result.current.clearConversation();
       });
 
-      // Should have only the initial bot message
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0]).toMatchObject({
-        role: 'bot',
-        content:
-          'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-        name: mockModelId,
-      });
+      expect(result.current.messages).toHaveLength(0);
     });
 
     it('should reset all state variables', () => {
@@ -506,10 +498,7 @@ describe('useChatbotMessages - controls', () => {
       expect(capturedAbortSignal?.aborted).toBe(true);
 
       // Messages should be reset
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe(
-        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      );
+      expect(result.current.messages).toHaveLength(0);
     });
 
     it('should preserve model and configuration settings', async () => {
@@ -561,10 +550,7 @@ describe('useChatbotMessages - controls', () => {
         });
       }).not.toThrow();
 
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe(
-        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      );
+      expect(result.current.messages).toHaveLength(0);
     });
 
     it('should clear conversation history but retain RAG configuration', async () => {
@@ -629,10 +615,7 @@ describe('useChatbotMessages - controls', () => {
       });
 
       // Should only have the initial message - abort error was silently ignored
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe(
-        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      );
+      expect(result.current.messages).toHaveLength(0);
     });
 
     it('should silently handle abort when clearing during streaming', async () => {
@@ -678,10 +661,7 @@ describe('useChatbotMessages - controls', () => {
       });
 
       // Should only have the initial message - abort was silently handled
-      expect(result.current.messages).toHaveLength(1);
-      expect(result.current.messages[0].content).toBe(
-        'Before you begin chatting, you can change the model, edit the system prompt, adjust model parameters to fit your specific use case.',
-      );
+      expect(result.current.messages).toHaveLength(0);
     });
   });
 });

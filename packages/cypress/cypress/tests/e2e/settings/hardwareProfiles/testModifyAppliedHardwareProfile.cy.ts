@@ -14,6 +14,7 @@ import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { projectListPage, projectDetails } from '../../../../pages/projects';
 import { createCleanProject } from '../../../../utils/projectChecker';
 import { hardwareProfileSection } from '../../../../pages/components/HardwareProfileSection';
+import { NotebookStatusLabel } from '../../../../types';
 
 describe('Modify Hardware Profile applied to a running Workbench', () => {
   let testData: HardwareProfilesData;
@@ -149,7 +150,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       cy.step(`Wait for workbench ${testData.workbenchName} to display a status`);
       let notebookRow = workbenchPage.getNotebookRow(testData.workbenchName);
       notebookRow.findNotebookDescription(projectDescription);
-      notebookRow.expectStatusLabelToBe(testData.workbenchRunningStatus, 120000);
+      notebookRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
       // Edit the workbench and update
       cy.step("Editing the workbench's applied Hardware Profile");
@@ -176,7 +177,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
 
       // Verify workbench is running before modifying the hardware profile
       cy.step('Verify workbench is running with the updated hardware profile');
-      notebookEditedRow.expectStatusLabelToBe(testData.workbenchRunningStatus, 120000);
+      notebookEditedRow.expectStatusLabelToBe(NotebookStatusLabel.Ready, 120000);
 
       // Modify the hardware profile while the workbench is running
       cy.step('Navigate to Hardware Profiles to modify the applied profile');
@@ -205,7 +206,7 @@ describe('Modify Hardware Profile applied to a running Workbench', () => {
       // Verify the workbench is still running (hasn't stopped)
       cy.step('Verify workbench is still running and has not stopped');
       const notebookAfterModification = workbenchPage.getNotebookRow(testData.workbenchName);
-      notebookAfterModification.expectStatusLabelToBe(testData.workbenchRunningStatus, 30000);
+      notebookAfterModification.expectStatusLabelToBe(NotebookStatusLabel.Ready, 30000);
 
       // Verify the "Updated" tag is present in the hardware profile column
       cy.step('Verify the "Updated" tag is displayed in the hardware profile column');

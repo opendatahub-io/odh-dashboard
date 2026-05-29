@@ -12,7 +12,7 @@ const NoProjectsPage: React.FC = () => {
       <EmptyStateFooter>
         <NewProjectButton
           closeOnCreate
-          onProjectCreated={(projectName) => navigate(`/ai-hub/deployments/${projectName}`)}
+          onProjectCreated={(projectName) => navigate(`/ai-hub/models/deployments/${projectName}`)}
         />
       </EmptyStateFooter>
     </EmptyState>

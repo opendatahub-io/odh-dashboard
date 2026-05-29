@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { PageSection, Content, ContentVariants } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardBody, PageSection, Content, ContentVariants } from '@patternfly/react-core';
 import CollapsibleSection from '#~/concepts/design/CollapsibleSection';
 import { ProjectObjectType, SectionType, sectionTypeBorderColor } from '#~/concepts/design/utils';
 import DividedGallery from '#~/concepts/design/DividedGallery';
@@ -12,7 +11,6 @@ import useIsAreaAvailable from '#~/concepts/areas/useIsAreaAvailable';
 import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 export const useEnableTeamSection = (): React.ReactNode => {
-  const navigate = useNavigate();
   const [resourcesOpen, setResourcesOpen] = useBrowserStorage<boolean>(
     'odh.home.admin.open',
     true,
@@ -29,13 +27,12 @@ export const useEnableTeamSection = (): React.ReactNode => {
     return null;
   }
 
-  const trackAndNavigate = (section: string, to: string): void => {
+  const trackLinkClick = (section: string, to: string): void => {
     fireLinkTrackingEvent('HomeCardClicked', {
       to: `${to}`,
       type: 'enableTeam',
       section: `${section}`,
     });
-    navigate(to);
   };
 
   const infoItems = [];
@@ -47,8 +44,9 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--notebook-images"
         isOpen={resourcesOpen}
         title="Workbench images"
+        href="/settings/environment-setup/workbench-images"
         onClick={() =>
-          trackAndNavigate('workbench-images', '/settings/environment-setup/workbench-images')
+          trackLinkClick('workbench-images', '/settings/environment-setup/workbench-images')
         }
         resourceType={ProjectObjectType.notebookImage}
         sectionType={SectionType.setup}
@@ -56,7 +54,7 @@ export const useEnableTeamSection = (): React.ReactNode => {
           <Content>
             <Content component="small">
               These are instances of your development and experimentation environment. They
-              typically contain IDEs, such as JupyterLab, RStudio, and Visual Studio Code.
+              typically contain IDEs, such as JupyterLab and Visual Studio Code.
             </Content>
           </Content>
         }
@@ -70,8 +68,9 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--serving-runtimes"
         isOpen={resourcesOpen}
         title="Serving runtimes"
+        href="/settings/model-resources-operations/serving-runtimes"
         onClick={() =>
-          trackAndNavigate(
+          trackLinkClick(
             'serving-runtimes',
             '/settings/model-resources-operations/serving-runtimes',
           )
@@ -96,7 +95,8 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--cluster-settings"
         isOpen={resourcesOpen}
         title="Cluster settings"
-        onClick={() => trackAndNavigate('cluster-settings', '/settings/cluster/general')}
+        href="/settings/cluster/general"
+        onClick={() => trackLinkClick('cluster-settings', '/settings/cluster/general')}
         resourceType={ProjectObjectType.clusterSettings}
         sectionType={SectionType.setup}
         description={
@@ -117,7 +117,8 @@ export const useEnableTeamSection = (): React.ReactNode => {
         testId="landing-page-admin--user-management"
         isOpen={resourcesOpen}
         title="User management"
-        onClick={() => trackAndNavigate('user-management', '/settings/user-management')}
+        href="/settings/user-management"
+        onClick={() => trackLinkClick('user-management', '/settings/user-management')}
         resourceType={ProjectObjectType.permissions}
         sectionType={SectionType.setup}
         description={
@@ -138,25 +139,29 @@ export const useEnableTeamSection = (): React.ReactNode => {
   }
 
   return (
-    <PageSection hasBodyWrapper={false} data-testid="landing-page-admin">
-      <CollapsibleSection
-        title="Enable your team"
-        titleVariant={ContentVariants.h1}
-        open={resourcesOpen}
-        setOpen={setResourcesOpen}
-        showChildrenWhenClosed
-      >
-        <DividedGallery
-          minSize="225px"
-          itemCount={infoItems.length}
-          style={{
-            borderRadius: 16,
-            border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
-          }}
-        >
-          {infoItems}
-        </DividedGallery>
-      </CollapsibleSection>
+    <PageSection variant="secondary" hasBodyWrapper={false} data-testid="landing-page-admin">
+      <Card className="odh-home-card">
+        <CardBody>
+          <CollapsibleSection
+            title="Enable your team"
+            titleVariant={ContentVariants.h2}
+            open={resourcesOpen}
+            setOpen={setResourcesOpen}
+            showChildrenWhenClosed
+          >
+            <DividedGallery
+              minSize="225px"
+              itemCount={infoItems.length}
+              style={{
+                borderRadius: 'var(--pf-t--global--border--radius--medium)',
+                border: `1px solid ${sectionTypeBorderColor(SectionType.setup)}`,
+              }}
+            >
+              {infoItems}
+            </DividedGallery>
+          </CollapsibleSection>
+        </CardBody>
+      </Card>
     </PageSection>
   );
 };

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Bullseye, Content, Flex, FlexItem, Spinner, Title } from '@patternfly/react-core';
+import { Bullseye, Content, Flex, FlexItem, Spinner } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -8,6 +8,8 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
+import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
   promptManagementPath,
   mlflowPromptManagementBaseRoute,
@@ -41,10 +43,11 @@ const MlflowPromptManagementPage: React.FC = () => {
       title={
         isTopLevel ? (
           <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapLg' }}>
-            <FlexItem>
-              <Title headingLevel="h1" data-testid="page-title">
-                {PROMPT_MANAGEMENT_PAGE_TITLE}
-              </Title>
+            <FlexItem data-testid="prompt-management-page-title">
+              <TitleWithIcon
+                title={PROMPT_MANAGEMENT_PAGE_TITLE}
+                objectType={ProjectObjectType.promptManagement}
+              />
             </FlexItem>
             <FlexItem>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
@@ -74,7 +77,11 @@ const MlflowPromptManagementPage: React.FC = () => {
       }
       headerAction={
         isTopLevel ? (
-          <LaunchMlflowButton testId="mlflow-prompts-jump-link" section="prompt-management-page" />
+          <LaunchMlflowButton
+            testId="mlflow-prompts-jump-link"
+            section="prompt-management-page"
+            workspace={workspace}
+          />
         ) : undefined
       }
       keepBodyWrapper={false}

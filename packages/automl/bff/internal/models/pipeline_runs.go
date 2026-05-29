@@ -1,5 +1,7 @@
 package models
 
+import "encoding/json"
+
 // PipelineRun represents a Kubeflow Pipeline Run from the v2beta1 API
 // This is the stable public API format exposed to the frontend
 type PipelineRun struct {
@@ -15,6 +17,7 @@ type PipelineRun struct {
 	CreatedAt                string                    `json:"created_at"`
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
+	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
@@ -56,6 +59,7 @@ type KFPipelineRun struct {
 	CreatedAt                string                    `json:"created_at,omitempty"`
 	ScheduledAt              string                    `json:"scheduled_at,omitempty"`
 	FinishedAt               string                    `json:"finished_at,omitempty"`
+	PipelineSpec             json.RawMessage           `json:"pipeline_spec,omitempty"`
 	StateHistory             []RuntimeStatus           `json:"state_history,omitempty"`
 	Error                    *ErrorInfo                `json:"error,omitempty"`
 	RunDetails               *RunDetails               `json:"run_details,omitempty"`
@@ -105,15 +109,38 @@ type ChildTask struct {
 }
 
 // CreateAutoMLRunRequest is the BFF-level input for creating an AutoML pipeline run.
+// This struct supports both tabular and timeseries pipeline types.
+// Required fields vary based on pipelineType:
+//
+// Common fields (all pipeline types):
+//   - DisplayName, TrainDataSecretName, TrainDataBucketName, TrainDataFileKey
+//
+// Tabular-specific required fields (pipelineType=tabular):
+//   - LabelColumn, TaskType
+//
+// Timeseries-specific required fields (pipelineType=timeseries):
+//   - Target, IDColumn, TimestampColumn
+//
+// Optional fields: Description, TopN, PredictionLength, KnownCovariatesNames
 type CreateAutoMLRunRequest struct {
+	// Common fields for all pipeline types
 	DisplayName         string `json:"display_name"`
 	Description         string `json:"description,omitempty"`
 	TrainDataSecretName string `json:"train_data_secret_name"`
 	TrainDataBucketName string `json:"train_data_bucket_name"`
 	TrainDataFileKey    string `json:"train_data_file_key"`
-	LabelColumn         string `json:"label_column"`
-	TaskType            string `json:"task_type"`
 	TopN                *int   `json:"top_n,omitempty"`
+
+	// Tabular-specific fields
+	LabelColumn *string `json:"label_column,omitempty"`
+	TaskType    *string `json:"task_type,omitempty"`
+
+	// Timeseries-specific fields
+	Target               *string   `json:"target,omitempty"`
+	IDColumn             *string   `json:"id_column,omitempty"`
+	TimestampColumn      *string   `json:"timestamp_column,omitempty"`
+	PredictionLength     *int      `json:"prediction_length,omitempty"`
+	KnownCovariatesNames *[]string `json:"known_covariates_names,omitempty"`
 }
 
 // CreatePipelineRunKFRequest is the payload sent to the KFP v2beta1 POST /runs endpoint.
@@ -127,21 +154,24 @@ type CreatePipelineRunKFRequest struct {
 // KFPipeline represents a pipeline definition from the KFP v2beta1 API.
 // Used by pipeline discovery to identify managed AutoML pipelines in a namespace.
 type KFPipeline struct {
-	PipelineID  string `json:"pipeline_id"`  // Unique pipeline identifier
-	DisplayName string `json:"display_name"` // Human-readable pipeline name (used for discovery matching)
-	Description string `json:"description,omitempty"`
-	CreatedAt   string `json:"created_at,omitempty"` // ISO 8601 timestamp
-	Namespace   string `json:"namespace,omitempty"`
+	PipelineID  string            `json:"pipeline_id"`  // Unique pipeline identifier
+	DisplayName string            `json:"display_name"` // Human-readable pipeline name (used for discovery matching)
+	Description string            `json:"description,omitempty"`
+	CreatedAt   string            `json:"created_at,omitempty"` // ISO 8601 timestamp
+	Namespace   string            `json:"namespace,omitempty"`
+	Tags        map[string]string `json:"tags,omitempty"` // Pipeline tags (e.g. {"managed": "true"})
 }
 
 // KFPipelineVersion represents a version of a pipeline from the KFP v2beta1 API.
-// Used to retrieve the version ID of a discovered pipeline for run creation.
+// Used by pipeline discovery (ListPipelineVersions) and topology enrichment (GetPipelineVersion).
+// The PipelineSpec field is only populated by GetPipelineVersion (single-version endpoint).
 type KFPipelineVersion struct {
-	PipelineID        string `json:"pipeline_id"`         // ID of the parent pipeline
-	PipelineVersionID string `json:"pipeline_version_id"` // Unique version identifier
-	DisplayName       string `json:"display_name"`        // Human-readable version name (e.g., "v1.0.0")
-	Description       string `json:"description,omitempty"`
-	CreatedAt         string `json:"created_at,omitempty"` // ISO 8601 timestamp
+	PipelineID        string          `json:"pipeline_id"`         // ID of the parent pipeline
+	PipelineVersionID string          `json:"pipeline_version_id"` // Unique version identifier
+	DisplayName       string          `json:"display_name"`        // Human-readable version name (e.g., "v1.0.0")
+	Description       string          `json:"description,omitempty"`
+	CreatedAt         string          `json:"created_at,omitempty"`    // ISO 8601 timestamp
+	PipelineSpec      json.RawMessage `json:"pipeline_spec,omitempty"` // DAG definition (only from GetPipelineVersion)
 }
 
 // KFPipelinesResponse represents the response from GET /apis/v2beta1/pipelines.

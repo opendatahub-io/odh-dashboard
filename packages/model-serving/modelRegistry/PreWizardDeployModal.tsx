@@ -197,16 +197,6 @@ export const PreWizardDeployModal: React.FC<PreWizardDeployModalProps> = ({
                 setSelectedConnection(undefined);
               }}
               error={projectsLoadError}
-              projectLinkExtraUrlParams={
-                modelDeployPrefill.data.modelRegistryInfo
-                  ? {
-                      modelRegistryName: modelDeployPrefill.data.modelRegistryInfo.mrName,
-                      registeredModelId:
-                        modelDeployPrefill.data.modelRegistryInfo.registeredModelId,
-                      modelVersionId: modelDeployPrefill.data.modelRegistryInfo.modelVersionId,
-                    }
-                  : undefined
-              }
             />
           </FormSection>
           {selectedProject && showConnectionSelection && (

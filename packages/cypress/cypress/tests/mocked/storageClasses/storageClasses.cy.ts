@@ -128,6 +128,23 @@ describe('Storage classes', () => {
         .shouldContainAccessModeLabels(['RWO']);
     });
 
+    it('does not show corrupted metadata warning when accessModeSettings is missing (pre-access-mode config)', () => {
+      const preAccessModeConfig = JSON.stringify({
+        displayName: 'Pre-Access-Mode SC',
+        isDefault: false,
+        isEnabled: true,
+        lastModified: '2024-08-22T15:42:53.100Z',
+      });
+      const storageClass = buildMockStorageClass(otherStorageClass, preAccessModeConfig);
+
+      storageClassesPage.mockGetStorageClasses([openshiftDefaultStorageClass, storageClass]);
+      storageClassesPage.visit();
+
+      const row = storageClassesTable.getRowByConfigName('Pre-Access-Mode SC');
+      row.shouldContainAccessModeLabels(['RWO']);
+      row.find().findByTestId('corrupted-metadata-alert').should('not.exist');
+    });
+
     it('table rows allow for toggling of Enable and Default values', () => {
       storageClassesPage.mockGetStorageClasses();
       storageClassesPage.visit();
@@ -415,7 +432,9 @@ describe('Storage classes', () => {
 
       cy.wait('@patchStorageClass');
       cy.wait('@refreshStorageClasses');
-      storageClassTableRow.findDisplayNameValue().should('have.text', 'Test malformed description');
+      storageClassTableRow
+        .findDisplayNameValue()
+        .should('contain.text', 'Test malformed description');
     });
 
     it('can reset invalid config display name & description', () => {
@@ -594,7 +613,7 @@ describe('Storage classes', () => {
         .and('be.checked');
     });
 
-    it('should keep unsupported access modes disabled even when the config has extra keys', () => {
+    it('should show access modes as enabled when the config has extra keys', () => {
       const config = {
         accessModeSettings: {
           [AccessMode.RWO]: true,
@@ -604,11 +623,7 @@ describe('Storage classes', () => {
           AnyKey: true,
         },
       };
-      const manilaStorageClass = {
-        ...openshiftDefaultStorageClass,
-        provisioner: 'manila.csi.openstack.org',
-      };
-      const storageClass = buildMockStorageClass(manilaStorageClass, config);
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
       storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
       storageClassesTable
@@ -633,19 +648,15 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('be.checked');
     });
 
-    it('should keep unsupported access modes disabled with empty access mode settings', () => {
+    it('should show access mode checkboxes with empty access mode settings', () => {
       const config = {
         accessModeSettings: {},
       };
-      const manilaStorageClass = {
-        ...openshiftDefaultStorageClass,
-        provisioner: 'manila.csi.openstack.org',
-      };
-      const storageClass = buildMockStorageClass(manilaStorageClass, config);
+      const storageClass = buildMockStorageClass(openshiftDefaultStorageClass, config);
       storageClassesPage.mockGetStorageClasses([storageClass]);
       storageClassesPage.visit();
       storageClassesTable
@@ -670,7 +681,7 @@ describe('Storage classes', () => {
 
       storageClassEditModal
         .findAccessModeCheckbox(AccessMode.RWOP)
-        .should('be.disabled')
+        .should('be.enabled')
         .and('not.be.checked');
     });
 

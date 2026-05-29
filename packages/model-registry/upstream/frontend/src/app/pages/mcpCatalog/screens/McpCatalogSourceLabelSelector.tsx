@@ -79,21 +79,26 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           key={hasFiltersAppliedValue ? 'has-filters' : 'no-filters'}
           {...(toolbarClearAllProps ?? {})}
         >
           <ToolbarContent rowWrap={{ default: 'wrap' }}>
-            <Flex>
-              <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon />}>
-                <ToolbarGroup variant="filter-group" gap={{ default: 'gapMd' }} alignItems="center">
-                  <ToolbarItem>
+            <Flex style={{ flex: 1 }}>
+              <ToolbarToggleGroup style={{ flex: 1 }} breakpoint="md" toggleIcon={<FilterIcon />}>
+                <ToolbarGroup
+                  style={{ flex: 1 }}
+                  variant="filter-group"
+                  gap={{ default: 'gapMd' }}
+                  alignItems="center"
+                >
+                  <ToolbarItem style={{ flex: 1 }}>
                     <ThemeAwareSearchInput
                       data-testid="mcp-catalog-search-input"
                       aria-label="Search with submit button"
                       className="toolbar-fieldset-wrapper"
-                      placeholder="Search MCP servers..."
+                      placeholder="Search by name, keyword, or description"
                       value={inputValue}
-                      style={{ width: '100%', maxWidth: '600px' }}
                       onChange={handleSearchInputChange}
                       onSearch={handleSearchInputSearch}
                       onClear={handleClear}

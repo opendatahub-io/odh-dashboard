@@ -28,6 +28,7 @@ import { attemptToClickTooltip } from '../../../../utils/models';
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 let modelFilePath: string;
 let pvStorageName: string;
@@ -47,12 +48,6 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;
@@ -170,7 +165,9 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -185,7 +182,7 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
       // Verify the model created and is running
       cy.step('Verify that the Model is running');
       // Verify model deployment is ready
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       modelServingSection.findModelMetricsLink(modelName);

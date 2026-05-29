@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workspaces-controller
+spec:
+  template:
+    metadata:
+      annotations:
+        # don't inject a sidecar because this is a webhook that needs to be accessible by the kubernetes api server
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: USE_ISTIO
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-istio-config
+              key: USE_ISTIO
+        - name: ISTIO_GATEWAY
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-istio-config
+              key: ISTIO_GATEWAY
+        - name: ISTIO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-istio-config
+              key: ISTIO_HOST
+        - name: CLUSTER_DOMAIN
+          valueFrom:
+            configMapKeyRef:
+              name: kubeflow-workspaces-istio-config
+              key: CLUSTER_DOMAIN

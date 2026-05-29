@@ -18,6 +18,7 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.prod.json",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test-unit": "jest --silent",
     "test-unit-coverage": "jest --silent --coverage",
     "type-check": "tsc --noEmit"

@@ -1,7 +1,7 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import type { MaaSFieldValue } from './MaaSEndpointCheckbox';
 
-const MAAS_DEFAULT_GATEWAY = {
+export const MAAS_DEFAULT_GATEWAY = {
   name: 'maas-default-gateway',
   namespace: 'openshift-ingress',
 };
@@ -25,15 +25,15 @@ export const applyMaaSEndpointData = (
   const filteredRefs = existingRefs.filter((ref) => !isMaaSGateway(ref));
 
   if (fieldData.isChecked) {
-    // Add the MaaS gateway
-    const newRefs = [...filteredRefs, MAAS_DEFAULT_GATEWAY];
+    // Add the MaaS gateway and remove the enable-auth annotation — MaaS manages auth externally
     result.model.spec.router = {
       ...result.model.spec.router,
       gateway: {
         ...result.model.spec.router?.gateway,
-        refs: newRefs,
+        refs: [...filteredRefs, MAAS_DEFAULT_GATEWAY],
       },
     };
+    delete result.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
   } else if (filteredRefs.length > 0) {
     // Keep other gateways if they exist
     result.model.spec.router = {

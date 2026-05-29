@@ -9,7 +9,7 @@ import {
 import { ExclamationCircleIcon } from '@patternfly/react-icons/dist/esm/icons/exclamation-circle-icon';
 import { containsOnlySlashes, isS3PathValid } from '#~/utilities/string';
 import useDebounceCallback from '#~/utilities/useDebounceCallback';
-import { trimInputOnBlur, trimInputOnPaste } from '#~/concepts/connectionTypes/utils';
+import { trimInputOnBlur, trimInputOnPaste } from '#~/utilities/trimInput';
 
 type ConnectionFolderPathFieldProps = {
   folderPath: string;
@@ -56,7 +56,7 @@ const ConnectionS3FolderPathField: React.FC<ConnectionFolderPathFieldProps> = ({
         placeholder="Example, data_folder"
         onChange={(e, newFolderPath: string) => handlePathChange(newFolderPath)}
         onBlur={(e) => trimInputOnBlur(folderPath, setFolderPath)(e)}
-        onPaste={(e) => trimInputOnPaste(folderPath, setFolderPath)(e)}
+        onPaste={trimInputOnPaste(setFolderPath)}
       />
       <FormHelperText>
         <HelperText>

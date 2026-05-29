@@ -9,7 +9,7 @@ export const ModelCatalogDeployButton = ({
 }: {
   model: CatalogModel;
   renderRegisterButton?: (isDeployAvailable: boolean) => React.ReactNode;
-}) => (
+}): React.ReactElement => (
   <ModelCatalogDeployWrapper
     model={model}
     render={(buttonState, onOpenWizard, isWizardAvailable) => {
@@ -18,8 +18,8 @@ export const ModelCatalogDeployButton = ({
           id="deploy-button"
           aria-label="Deploy model"
           variant={ButtonVariant.primary}
-          onClick={buttonState?.enabled ? onOpenWizard : undefined}
-          isAriaDisabled={!buttonState?.enabled}
+          onClick={buttonState.enabled ? onOpenWizard : undefined}
+          isAriaDisabled={!buttonState.enabled}
           data-testid="deploy-button"
         >
           Deploy model

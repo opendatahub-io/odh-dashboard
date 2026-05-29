@@ -11,4 +11,3 @@ export type ModelCatalogBannerExtension = Extension<
 export const isModelCatalogBannerExtension = (
   extension: Extension,
 ): extension is ModelCatalogBannerExtension => extension.type === 'model-catalog.page/banner';
-

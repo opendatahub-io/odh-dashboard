@@ -1,20 +1,6 @@
-import type {
-  NavExtension,
-  RouteExtension,
-  AreaExtension,
-} from '@odh-dashboard/plugin-core/extension-points';
+import type { NavExtension, RouteExtension } from '@odh-dashboard/plugin-core/extension-points';
 
-const MLFLOW = 'mlflow';
-
-const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
-  {
-    type: 'app.area',
-    properties: {
-      id: MLFLOW,
-      requiredComponents: [],
-      featureFlags: ['mlflow'],
-    },
-  },
+const extensions: (NavExtension | RouteExtension)[] = [
   // Navigation section kept commented out, only used for local testing
   // {
   //   type: 'app.navigation/section',
@@ -36,9 +22,9 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
   //   properties: {
   //     id: 'mlflow-view',
   //     title: 'Main Page',
-  //     href: '/mlflow/main-view',
+  //     href: '/mlflow-bff/main-view',
   //     section: 'mlflow',
-  //     path: '/mlflow/main-view/*',
+  //     path: '/mlflow-bff/main-view/*',
   //     label: 'Tech Preview',
   //   },
   // },
@@ -48,7 +34,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension)[] = [
       required: [],
     },
     properties: {
-      path: '/mlflow/main-view/*',
+      path: '/mlflow-bff/main-view/*',
       component: () => import('./MlflowWrapper'),
     },
   },

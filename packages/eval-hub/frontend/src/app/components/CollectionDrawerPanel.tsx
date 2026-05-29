@@ -1,20 +1,26 @@
 import * as React from 'react';
 import {
   Button,
+  Card,
+  CardBody,
   Content,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  Panel,
-  PanelMain,
-  PanelMainBody,
+  Flex,
+  FlexItem,
+  Label,
   Stack,
   StackItem,
   Title,
 } from '@patternfly/react-core';
+import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Collection } from '~/app/types';
+import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
+import { capitalizeFirst, getCategoryColor, toSafeExternalUrl } from './benchmarkUtils';
 
 type CollectionDrawerPanelProps = {
   collection: Collection | undefined;
@@ -31,79 +37,131 @@ const CollectionDrawerPanel: React.FC<CollectionDrawerPanelProps> = ({
     return null;
   }
 
+  const color = getCategoryColor(collection.category);
+
   return (
     <DrawerPanelContent isResizable minSize="380px" data-testid="collection-drawer-panel">
       <DrawerHead>
         <Stack hasGutter>
-          <StackItem>
-            <Title headingLevel="h2" size="xl">
-              {collection.name}
-            </Title>
-          </StackItem>
-          <StackItem>
-            {collection.benchmarks && collection.benchmarks.length > 0 && (
-              <Content component="small">
-                <strong>
-                  {collection.benchmarks.length} benchmark
-                  {collection.benchmarks.length !== 1 ? 's' : ''}
-                </strong>
-              </Content>
-            )}
-          </StackItem>
-          {collection.description && (
+          {collection.category && (
             <StackItem>
-              <Content component="p">{collection.description}</Content>
+              <Label color={color}>{capitalizeFirst(collection.category)}</Label>
             </StackItem>
           )}
+          <StackItem>
+            <Title headingLevel="h2">{collection.name}</Title>
+          </StackItem>
         </Stack>
         <DrawerActions>
           <DrawerCloseButton onClick={onClose} />
         </DrawerActions>
       </DrawerHead>
 
-      <DrawerPanelBody>
+      <DrawerPanelBody style={{ flex: 1, overflowY: 'auto' }}>
         <Stack hasGutter>
+          {collection.description && (
+            <StackItem>
+              <Content component="p">{collection.description}</Content>
+            </StackItem>
+          )}
+
           {collection.benchmarks && collection.benchmarks.length > 0 && (
             <StackItem>
               <Stack hasGutter>
                 <StackItem>
-                  <Content component="h4">Benchmarks</Content>
+                  <Title
+                    headingLevel="h4"
+                    style={{
+                      fontSize: 'var(--pf-t--global--font--size--body--default)',
+                      fontWeight: 'var(--pf-t--global--font--weight--heading--default)',
+                    }}
+                  >
+                    Benchmarks
+                  </Title>
                 </StackItem>
-                {collection.benchmarks.map((b) => (
-                  <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
-                    <Panel variant="bordered">
-                      <PanelMain>
-                        <PanelMainBody>
+                {collection.benchmarks.map((b) => {
+                  const safeUrl = toSafeExternalUrl(b.url);
+                  return (
+                    <StackItem key={`${b.provider_id ?? 'unknown'}-${b.id}`}>
+                      <Card isCompact>
+                        <CardBody>
                           <Stack hasGutter>
                             <StackItem>
-                              <strong>{b.id}</strong>
+                              <Content
+                                component="p"
+                                style={{
+                                  fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                }}
+                              >
+                                {safeUrl ? (
+                                  <Button
+                                    variant="link"
+                                    isInline
+                                    component="a"
+                                    href={safeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    icon={<ExternalLinkAltIcon />}
+                                    iconPosition="end"
+                                    onClick={() =>
+                                      fireMiscTrackingEvent(EVAL_HUB_EVENTS.EXTERNAL_LINK_CLICKED, {
+                                        url: safeUrl,
+                                        benchmarkId: b.id,
+                                        surface: 'collection_drawer',
+                                      })
+                                    }
+                                  >
+                                    {b.id}
+                                  </Button>
+                                ) : (
+                                  b.id
+                                )}
+                              </Content>
                             </StackItem>
                             {b.provider_id && (
-                              <StackItem>
-                                <Content component="small">Provider: {b.provider_id}</Content>
-                              </StackItem>
-                            )}
-                            {b.weight !== undefined && (
-                              <StackItem>
-                                <Content component="small">Weight: {b.weight}</Content>
-                              </StackItem>
+                              <Stack>
+                                <StackItem>
+                                  <Content
+                                    component="p"
+                                    style={{
+                                      fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
+                                    }}
+                                  >
+                                    Evaluation framework
+                                  </Content>
+                                </StackItem>
+                                <StackItem>{b.provider_id}</StackItem>
+                              </Stack>
                             )}
                           </Stack>
-                        </PanelMainBody>
-                      </PanelMain>
-                    </Panel>
-                  </StackItem>
-                ))}
+                        </CardBody>
+                      </Card>
+                    </StackItem>
+                  );
+                })}
               </Stack>
             </StackItem>
           )}
-
-          <StackItem>
-            <Button variant="primary" onClick={() => onRunCollection(collection)}>
-              Run collection
-            </Button>
-          </StackItem>
         </Stack>
+      </DrawerPanelBody>
+
+      <DrawerPanelBody style={{ flex: '0 0 auto' }} className="pf-v6-u-mt-md">
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FlexItem>
+            <Button
+              variant="primary"
+              data-testid="use-benchmark-suite-button"
+              onClick={() => onRunCollection(collection)}
+            >
+              Select benchmark suite
+            </Button>
+          </FlexItem>
+          <FlexItem>
+            <Button variant="link" onClick={onClose} data-testid="collection-drawer-close-footer">
+              Close
+            </Button>
+          </FlexItem>
+        </Flex>
       </DrawerPanelBody>
     </DrawerPanelContent>
   );

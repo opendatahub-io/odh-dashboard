@@ -74,7 +74,10 @@ describe('ChatbotConfigurationTableRow', () => {
     model: createMockAIModel({ model_source_type: 'namespace' }),
     isChecked: false,
     onToggleCheck: jest.fn(),
+    modelType: 'Inference',
+    onModelTypeChange: jest.fn(),
     onMaxTokensChange: jest.fn(),
+    onEmbeddingDimensionChange: jest.fn(),
   };
 
   beforeEach(() => {
@@ -93,7 +96,7 @@ describe('ChatbotConfigurationTableRow', () => {
     expect(screen.getByText('llm')).toBeInTheDocument();
   });
 
-  it('renders MaaS badge for MaaS models', () => {
+  it('renders display name for MaaS models without a source badge', () => {
     const maasModel = createMockAIModel({
       model_source_type: 'maas',
       display_name: 'MaaS Test Model',
@@ -106,48 +109,22 @@ describe('ChatbotConfigurationTableRow', () => {
     );
 
     expect(screen.getByText('MaaS Test Model')).toBeInTheDocument();
-    expect(screen.getByText('MaaS')).toBeInTheDocument();
+    expect(screen.queryByTestId('model-source-badge')).not.toBeInTheDocument();
   });
 
-  it('renders External badge for external provider models', () => {
-    const externalModel = createMockAIModel({
-      model_source_type: 'external_provider',
-      display_name: 'External Test Model',
+  it('renders display name for custom endpoint models without a source badge', () => {
+    const customEndpointModel = createMockAIModel({
+      model_source_type: 'custom_endpoint',
+      display_name: 'Custom Endpoint Model',
     });
 
     render(
       <TestWrapper>
-        <ChatbotConfigurationTableRow {...defaultProps} model={externalModel} />
+        <ChatbotConfigurationTableRow {...defaultProps} model={customEndpointModel} />
       </TestWrapper>,
     );
 
-    expect(screen.getByText('External Test Model')).toBeInTheDocument();
-    expect(screen.getByText('External')).toBeInTheDocument();
-  });
-
-  it('renders Public route badge for external cluster models', () => {
-    const externalClusterModel = createMockAIModel({
-      model_source_type: 'external_cluster',
-      display_name: 'Cross-NS Model',
-    });
-
-    render(
-      <TestWrapper>
-        <ChatbotConfigurationTableRow {...defaultProps} model={externalClusterModel} />
-      </TestWrapper>,
-    );
-
-    expect(screen.getByText('Cross-NS Model')).toBeInTheDocument();
-    expect(screen.getByText('Public route')).toBeInTheDocument();
-  });
-
-  it('does not render source badge for internal models', () => {
-    render(
-      <TestWrapper>
-        <ChatbotConfigurationTableRow {...defaultProps} />
-      </TestWrapper>,
-    );
-
+    expect(screen.getByText('Custom Endpoint Model')).toBeInTheDocument();
     expect(screen.queryByTestId('model-source-badge')).not.toBeInTheDocument();
   });
 

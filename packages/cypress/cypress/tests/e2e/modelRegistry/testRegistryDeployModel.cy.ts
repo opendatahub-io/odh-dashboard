@@ -29,6 +29,10 @@ import { checkInferenceServiceState } from '../../../utils/oc_commands/modelServ
 import { createCleanProject } from '../../../utils/projectChecker';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { AWS_BUCKETS } from '../../../utils/s3Buckets';
+import {
+  cleanupHardwareProfiles,
+  createCleanHardwareProfile,
+} from '../../../utils/oc_commands/hardwareProfiles';
 
 describe('Verify models can be deployed from model registry', () => {
   // Skip entire suite on BYOIDC clusters
@@ -38,9 +42,12 @@ describe('Verify models can be deployed from model registry', () => {
   let registryName: string;
   let modelName: string;
   let projectName: string;
+  let resourceName: string;
   let deploymentName: string;
   let modelFormat: string;
   let servingRuntime: string;
+  let hardwareProfileName: string;
+  let hardwareProfileYamlPath: string;
   const uuid = generateTestUUID();
   const databaseName = `model-registry-db-${uuid}`;
 
@@ -54,6 +61,8 @@ describe('Verify models can be deployed from model registry', () => {
       deploymentName = testData.operatorDeploymentName;
       modelFormat = testData.modelFormat;
       servingRuntime = testData.servingRuntime;
+      hardwareProfileName = testData.hardwareProfileName;
+      hardwareProfileYamlPath = testData.hardwareProfileYamlPath;
 
       // ensure operator has optimal memory
       cy.step('Ensure operator has optimal memory for testing');
@@ -68,6 +77,9 @@ describe('Verify models can be deployed from model registry', () => {
 
       cy.step('Create a project for model deployment');
       createCleanProject(projectName);
+
+      cy.step('Create hardware profile for model deployment');
+      createCleanHardwareProfile(hardwareProfileYamlPath);
     });
   });
 
@@ -92,6 +104,9 @@ describe('Verify models can be deployed from model registry', () => {
 
     cy.step('Delete the SQL database');
     deleteModelRegistryDatabase(databaseName).should('be.true');
+
+    cy.step('Clean up hardware profile');
+    cleanupHardwareProfiles(hardwareProfileName);
   });
 
   it(
@@ -104,10 +119,7 @@ describe('Verify models can be deployed from model registry', () => {
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Visit Model Registry Page');
-      modelRegistry.visit();
-
-      cy.step('Select the created model registry');
-      modelRegistry.findSelectModelRegistry(registryName);
+      modelRegistry.visitWithRegistry(registryName);
 
       cy.step('Register a model using object storage');
       clickRegisterModelButton(30000);
@@ -117,6 +129,7 @@ describe('Verify models can be deployed from model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -199,7 +212,10 @@ describe('Verify models can be deployed from model registry', () => {
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
+      modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileName);
       modelServingWizard.findModelFormatSelectOption(modelFormat).click();
       modelServingWizard.selectServingRuntimeOption(servingRuntime);
       modelServingWizard.findNextButton().click();
@@ -215,14 +231,14 @@ describe('Verify models can be deployed from model registry', () => {
 
       // Verify model deployment is ready
       cy.step('Verify the model is deployed and started in backend');
-      cy.get<string>('@resourceName').then((resourceName) => {
+      cy.then(() => {
         checkInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
       // Check deployment link and verify status in deployments view
-      modelRegistry.visit();
+      modelRegistry.visitWithRegistry(registryName);
       cy.contains('1 deployment', { timeout: 30000 }).should('be.visible').click();
       cy.contains(modelName).should('be.visible');
-      cy.contains(ModelStateLabel.STARTED).should('be.visible');
+      cy.contains(ModelStateLabel.READY).should('be.visible');
     },
   );
 });

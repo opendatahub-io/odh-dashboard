@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/kubeflow/model-registry/ui/bff/internal/constants"
-	"github.com/kubeflow/model-registry/ui/bff/internal/models"
-	"github.com/kubeflow/model-registry/ui/bff/internal/repositories"
+	"github.com/kubeflow/hub/ui/bff/internal/constants"
+	"github.com/kubeflow/hub/ui/bff/internal/models"
+	"github.com/kubeflow/hub/ui/bff/internal/repositories"
 )
 
 type ModelTransferJobListEnvelope Envelope[*models.ModelTransferJobList, None]
@@ -36,8 +36,15 @@ func (app *App) GetAllModelTransferJobsHandler(w http.ResponseWriter, r *http.Re
 		app.badRequestResponse(w, r, fmt.Errorf("model registry name is required"))
 		return
 	}
-	transferJobs, err := app.repositories.ModelRegistry.GetAllModelTransferJobs(ctx, client, namespace, modelRegistryID)
+
+	jobNamespace := r.URL.Query().Get("jobNamespace")
+
+	transferJobs, err := app.repositories.ModelRegistry.GetAllModelTransferJobs(ctx, client, namespace, modelRegistryID, jobNamespace)
 	if err != nil {
+		if errors.Is(err, repositories.ErrForbidden) {
+			app.forbiddenResponse(w, r, err.Error())
+			return
+		}
 		app.serverErrorResponse(w, r, err)
 		return
 	}

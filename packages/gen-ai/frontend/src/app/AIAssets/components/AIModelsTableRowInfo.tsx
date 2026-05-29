@@ -7,6 +7,7 @@ import {
   Popover,
   Flex,
   FlexItem,
+  Label,
 } from '@patternfly/react-core';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
@@ -23,6 +24,13 @@ const AIModelsTableRowInfo: React.FC<AIModelsTableRowInfoProps> = ({ model }) =>
   return (
     <Flex gap={{ default: 'gapXs' }} alignItems={{ default: 'alignItemsCenter' }}>
       <FlexItem>{model.display_name}</FlexItem>
+      {model.model_type === 'embedding' && (
+        <FlexItem style={{ fontWeight: 'normal' }}>
+          <Label color="blue" isCompact>
+            Embedding
+          </Label>
+        </FlexItem>
+      )}
       <Popover
         position="right"
         isVisible={isOpen}

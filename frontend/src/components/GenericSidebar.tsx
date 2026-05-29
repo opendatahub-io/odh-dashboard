@@ -29,14 +29,17 @@ const GenericSidebar: React.FC<GenericSidebarProps> = ({
     {/* Note from PF: the zIndex override here can be removed once the following issue is resolved:
     https://github.com/patternfly/patternfly/issues/7229
     */}
-    <SidebarPanel variant="sticky" style={{ maxWidth, zIndex: 'var(--pf-t--global--z-index--sm)' }}>
+    <SidebarPanel
+      variant="sticky"
+      className="pf-v6-u-display-none pf-v6-u-display-block-on-md"
+      style={{ maxWidth, zIndex: 'var(--pf-t--global--z-index--sm)' }}
+    >
       <JumpLinks
         isVertical
         label="Jump to section"
         scrollableSelector={scrollableSelector}
         offset={16}
         expandable={{ default: 'expandable', md: 'nonExpandable' }}
-        isExpanded
       >
         {sections.map((section) => (
           <JumpLinksItem

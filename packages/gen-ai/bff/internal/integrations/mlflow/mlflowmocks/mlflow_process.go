@@ -11,12 +11,14 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/gen-ai/internal/testutil"
 )
 
 const (
 	defaultMLflowPort    = 5001
 	defaultMLflowVersion = "3.9.0"
-	healthTimeout        = 30 * time.Second
+	healthTimeout        = 90 * time.Second
 	healthPoll           = 2 * time.Second
 	shutdownWait         = 5 * time.Second
 )
@@ -75,7 +77,7 @@ func SetupMLflow(logger *slog.Logger) (*MLflowState, error) {
 		return nil, nil
 	}
 
-	uvBin, err := resolveUVBinary()
+	uvBin, err := testutil.ResolveUVBinary()
 	if err != nil {
 		return nil, fmt.Errorf("uv binary not found: %w", err)
 	}
@@ -196,34 +198,6 @@ func CleanupMLflowState(
 			infoLogger("Removed MLflow data directory %s", state.DataDir)
 		}
 	}
-}
-
-// resolveUVBinary finds the uv binary by walking up to the project root (go.mod),
-// then checking <projectRoot>/bin/uv. Falls back to PATH lookup.
-// This mirrors getFirstFoundEnvTestBinaryDir's strategy for locating project-local tools
-// regardless of which directory Go test sets as cwd.
-func resolveUVBinary() (string, error) {
-	cwd, err := os.Getwd()
-	if err == nil {
-		projectRoot := cwd
-		for {
-			if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-				localUV := filepath.Join(projectRoot, "bin", "uv")
-				if _, err := os.Stat(localUV); err == nil {
-					return localUV, nil
-				}
-				break
-			}
-			parent := filepath.Dir(projectRoot)
-			if parent == projectRoot {
-				break
-			}
-			projectRoot = parent
-		}
-	}
-
-	// Fall back to PATH
-	return exec.LookPath("uv")
 }
 
 func isMLflowHealthy(port int) bool {

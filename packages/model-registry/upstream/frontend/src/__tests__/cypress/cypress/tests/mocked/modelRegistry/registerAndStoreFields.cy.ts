@@ -8,6 +8,7 @@ import { ModelTransferJobStatus } from '~/app/types';
 import type { ModelRegistry, ModelTransferJob, RegisteredModel } from '~/app/types';
 import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { mockModelTransferJob } from '~/__mocks__/mockModelTransferJob';
+import { modelRegistryUrl } from '~/app/pages/modelRegistry/screens/routeUtils';
 
 type HandlersProps = {
   modelRegistries?: ModelRegistry[];
@@ -134,25 +135,13 @@ describe('Register and Store Fields - NamespaceSelector', () => {
     registerAndStoreFields.shouldShowSelectedNamespace('namespace-2');
   });
 
-  it('Should handle empty namespace list gracefully', () => {
+  it('Should show text input when namespace list is empty', () => {
     initIntercepts({ namespaces: [] });
     registerAndStoreFields.visit();
     registerAndStoreFields.selectRegisterAndStoreMode();
 
-    registerAndStoreFields.findNamespaceSelector().should('exist');
-    registerAndStoreFields.shouldBeNamespaceSelectorDisabled();
-    registerAndStoreFields.shouldShowNoNamespacesMessage();
-    registerAndStoreFields.shouldShowPlaceholder('Select a namespace');
-  });
-
-  it('Should show no-access message and keep dropdown disabled when no namespaces', () => {
-    initIntercepts({ namespaces: [] });
-    registerAndStoreFields.visit();
-    registerAndStoreFields.selectRegisterAndStoreMode();
-
-    registerAndStoreFields.findNamespaceSelector().should('exist');
-    registerAndStoreFields.shouldBeNamespaceSelectorDisabled();
-    registerAndStoreFields.shouldShowNoNamespacesMessage();
+    registerAndStoreFields.findNamespaceTextInput().should('exist');
+    registerAndStoreFields.findNamespaceSelector().should('not.exist');
   });
 });
 
@@ -263,15 +252,65 @@ describe('Register and Store Fields - Namespace access check error', () => {
   });
 });
 
-describe('Register and Store Fields - Who is my admin popover (namespace wording)', () => {
+describe('Register and Store Fields - Cannot check namespace access (non-admin user)', () => {
   beforeEach(() => {
-    initIntercepts({ namespaces: [] });
+    initIntercepts({});
+    cy.intercept('POST', '**/api/v1/check-namespace-registry-access', {
+      statusCode: 200,
+      body: { data: { hasAccess: false, cannotCheck: true } },
+    }).as('checkNamespaceAccessCannotCheck');
     registerAndStoreFields.visit();
     registerAndStoreFields.selectRegisterAndStoreMode();
   });
 
-  it('Should show Who is my admin popover with namespace wording when no namespaces', () => {
-    registerAndStoreFields.shouldShowNoNamespacesMessage();
+  it('Should show info alert when user lacks permission to check namespace access', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccessCannotCheck');
+    registerAndStoreFields.shouldShowCannotCheckAlert('modelregistry-sample');
+  });
+
+  it('Should not show the no-access warning when cannotCheck is true', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccessCannotCheck');
+    registerAndStoreFields.findNamespaceRegistryAccessAlert().should('not.exist');
+  });
+
+  it('Should not show the error alert when cannotCheck is true', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccessCannotCheck');
+    registerAndStoreFields.findNamespaceAccessCheckError().should('not.exist');
+  });
+
+  it('Should still show form sections when cannotCheck is true', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccessCannotCheck');
+    registerAndStoreFields.shouldShowOriginLocationSection();
+    registerAndStoreFields.shouldShowDestinationLocationSection();
+  });
+
+  it('Should allow form submission when cannotCheck is true and all fields are filled', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccessCannotCheck');
+    registerAndStoreFields.fillAllRequiredFields();
+    registerAndStoreFields.findSubmitButton().should('not.be.disabled');
+  });
+});
+
+describe('Register and Store Fields - Who is my admin popover', () => {
+  beforeEach(() => {
+    initIntercepts({});
+    cy.intercept('POST', '**/api/v1/check-namespace-registry-access', {
+      statusCode: 200,
+      body: { data: { hasAccess: false } },
+    }).as('checkNamespaceAccess');
+    registerAndStoreFields.visit('namespace-1');
+    registerAndStoreFields.selectRegisterAndStoreMode();
+  });
+
+  it('Should show Who is my admin popover with namespace wording when no access', () => {
+    registerAndStoreFields.selectNamespace('namespace-1');
+    cy.wait('@checkNamespaceAccess');
+    registerAndStoreFields.shouldShowNoAccessWarning();
     registerAndStoreFields.openWhoIsMyAdminPopover();
     registerAndStoreFields.shouldShowWhoIsMyAdminPopoverWithNamespaceWording();
   });
@@ -293,6 +332,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when S3 access key ID is missing', () => {
     // Fill all fields except S3 access key ID
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -311,6 +351,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when S3 secret access key is missing', () => {
     // Fill all fields except S3 secret access key
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -329,6 +370,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when OCI username is missing', () => {
     // Fill all fields except OCI username
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -347,6 +389,7 @@ describe('Register and Store Fields - Credential Validation', () => {
   it('Should have submit button disabled when OCI password is missing', () => {
     // Fill all fields except OCI password
     registerAndStoreFields.fillModelName('test-model');
+    registerAndStoreFields.selectModelType();
     registerAndStoreFields.fillVersionName('v1.0.0');
     registerAndStoreFields.fillJobName('my-transfer-job');
     registerAndStoreFields.fillSourceEndpoint('https://s3.amazonaws.com');
@@ -453,7 +496,7 @@ describe('Register and Store Fields - Form Submission', () => {
     });
 
     // Should navigate to model list (not version page)
-    cy.url().should('include', '/model-registry/modelregistry-sample');
+    cy.url().should('include', modelRegistryUrl('modelregistry-sample'));
     cy.url().should('not.include', '/register');
   });
 

@@ -21,22 +21,50 @@ import (
 
 func newMinimalTestApp() *App {
 	return &App{
-		config:       config.EnvConfig{AuthMethod: config.AuthMethodInternal},
+		config: config.EnvConfig{
+			AuthMethod:                         config.AuthMethodInternal,
+			AutoMLTimeSeriesPipelineNamePrefix: "autogluon-timeseries-training-pipeline",
+			AutoMLTabularPipelineNamePrefix:    "autogluon-tabular-training-pipeline",
+		},
 		logger:       slog.Default(),
 		repositories: repositories.NewRepositories(slog.Default()),
 	}
 }
 
-func validCreateRequest() models.CreateAutoMLRunRequest {
+func validTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
+	labelColumn := "target"
+	taskType := "binary"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		Description:         "a test run",
 		TrainDataSecretName: "minio-secret",
 		TrainDataBucketName: "automl-bucket",
 		TrainDataFileKey:    "data/train.csv",
-		LabelColumn:         "target",
-		TaskType:            "binary",
+		LabelColumn:         &labelColumn,
+		TaskType:            &taskType,
+		TopN:                &topN,
+	}
+}
+
+func validTimeseriesRequest() models.CreateAutoMLRunRequest {
+	topN := 3
+	taskType := "timeseries"
+	target := "temperature"
+	idColumn := "series_id"
+	timestampColumn := "timestamp"
+	predictionLength := 24
+	return models.CreateAutoMLRunRequest{
+		DisplayName:         "test-run",
+		Description:         "a test run",
+		TrainDataSecretName: "minio-secret",
+		TrainDataBucketName: "automl-bucket",
+		TrainDataFileKey:    "data/train.csv",
+		TaskType:            &taskType,
+		Target:              &target,
+		IDColumn:            &idColumn,
+		TimestampColumn:     &timestampColumn,
+		PredictionLength:    &predictionLength,
 		TopN:                &topN,
 	}
 }
@@ -45,34 +73,17 @@ func newCreateRequest(t *testing.T, body interface{}) *http.Request {
 	t.Helper()
 	b, err := json.Marshal(body)
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost,
-		"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
-		bytes.NewReader(b))
+	url := "/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa"
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	return req
 }
 
 func withPipelineClient(req *http.Request, client ps.PipelineServerClientInterface) *http.Request {
-	ids := psmocks.DeriveMockIDs("test-namespace")
 	ctx := context.WithValue(req.Context(), constants.PipelineServerClientKey, client)
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "test-namespace")
-	// Inject discovered pipelines map — both types use the same mock IDs for simplicity
-	discoveredPipelines := map[string]*repositories.DiscoveredPipeline{
-		constants.PipelineTypeTimeSeries: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.LatestVersionID,
-			PipelineName:      "automl-timeseries-pipeline",
-			Namespace:         "test-namespace",
-		},
-		constants.PipelineTypeTabular: {
-			PipelineID:        ids.PipelineID,
-			PipelineVersionID: ids.OldVersionID,
-			PipelineName:      "automl-tabular-pipeline",
-			Namespace:         "test-namespace",
-		},
-	}
-	ctx = context.WithValue(ctx, constants.DiscoveredPipelinesKey, discoveredPipelines)
+	ctx = context.WithValue(ctx, constants.PipelineServerBaseURLKey, "mock://test-namespace")
 	return req.WithContext(ctx)
 }
 
@@ -80,9 +91,9 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 	app := newMinimalTestApp()
 	mockClient := psmocks.NewMockPipelineServerClient("mock://test-namespace")
 
-	t.Run("should create run with all required fields", func(t *testing.T) {
+	t.Run("should create tabular run with all required fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest()), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -99,9 +110,30 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 		assert.Equal(t, "binary", response.Data.RuntimeConfig.Parameters["task_type"])
 	})
 
+	t.Run("should create timeseries run with all required fields", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data)
+		assert.NotEmpty(t, response.Data.RunID)
+		assert.Equal(t, "test-run", response.Data.DisplayName)
+		assert.Equal(t, "PENDING", response.Data.State)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		assert.Equal(t, "temperature", response.Data.RuntimeConfig.Parameters["target"])
+		assert.Equal(t, "series_id", response.Data.RuntimeConfig.Parameters["id_column"])
+		assert.Equal(t, "timestamp", response.Data.RuntimeConfig.Parameters["timestamp_column"])
+	})
+
 	t.Run("should default top_n to 3 when not provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		body.TopN = nil
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
@@ -119,8 +151,9 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should accept multiclass task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "multiclass"
+		body := validTabularRequest()
+		taskType := "multiclass"
+		body.TaskType = &taskType
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -130,8 +163,9 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should accept regression task type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "regression"
+		body := validTabularRequest()
+		taskType := "regression"
+		body.TaskType = &taskType
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -141,7 +175,7 @@ func TestCreatePipelineRunHandler_Success(t *testing.T) {
 
 	t.Run("should use custom top_n when provided", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		topN := 5
 		body.TopN = &topN
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
@@ -176,9 +210,24 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("should reject missing required fields", func(t *testing.T) {
+	t.Run("should reject missing task_type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		body := models.CreateAutoMLRunRequest{DisplayName: "only-name"}
+		req := withPipelineClient(newCreateRequest(t, body), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+		assert.Contains(t, rr.Body.String(), "task_type is required")
+	})
+
+	t.Run("should reject missing required fields", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		taskType := "binary"
+		body := models.CreateAutoMLRunRequest{
+			DisplayName: "only-name",
+			TaskType:    &taskType,
+		}
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -189,8 +238,9 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject invalid task_type", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
-		body.TaskType = "invalid_type"
+		body := validTabularRequest()
+		taskType := "invalid_type"
+		body.TaskType = &taskType
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -201,7 +251,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject unknown JSON fields", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		raw := `{"display_name":"test","unknown_field":"bad"}`
+		raw := `{"display_name":"test","task_type":"binary","unknown_field":"bad"}`
 		req, err := http.NewRequest(http.MethodPost,
 			"/api/v1/pipeline-runs?namespace=test-namespace&pipelineServerId=dspa",
 			bytes.NewReader([]byte(raw)))
@@ -231,7 +281,7 @@ func TestCreatePipelineRunHandler_Validation(t *testing.T) {
 
 	t.Run("should reject missing display_name", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		body := validCreateRequest()
+		body := validTabularRequest()
 		body.DisplayName = ""
 		req := withPipelineClient(newCreateRequest(t, body), mockClient)
 
@@ -247,8 +297,20 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 
 	t.Run("should fail without pipeline server client in context", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := newCreateRequest(t, validCreateRequest())
+		req := newCreateRequest(t, validTabularRequest())
 		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		req = req.WithContext(ctx)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("should fail without pipeline server base URL in context", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := newCreateRequest(t, validTabularRequest())
+		ctx := context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, "test-namespace")
+		ctx = context.WithValue(ctx, constants.PipelineServerClientKey, psmocks.NewMockPipelineServerClient(""))
 		req = req.WithContext(ctx)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
@@ -259,7 +321,7 @@ func TestCreatePipelineRunHandler_ErrorCases(t *testing.T) {
 	t.Run("should return 500 when KFP client fails", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 		failClient := &failingPipelineServerClient{}
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), failClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest()), failClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -273,7 +335,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 	t.Run("should return envelope with data field", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest()), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -289,7 +351,7 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 
 	t.Run("should include run_id, display_name, state, created_at in response", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest()), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -302,9 +364,9 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.NotEmpty(t, response.Data.CreatedAt)
 	})
 
-	t.Run("should include runtime_config with submitted parameters", func(t *testing.T) {
+	t.Run("should include runtime_config with submitted tabular parameters", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTabularRequest()), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -320,9 +382,31 @@ func TestCreatePipelineRunHandler_ResponseContract(t *testing.T) {
 		assert.Equal(t, "binary", params["task_type"])
 	})
 
-	t.Run("should include pipeline_version_reference from hardcoded pipeline ID", func(t *testing.T) {
+	t.Run("should include runtime_config with submitted timeseries parameters", func(t *testing.T) {
 		rr := httptest.NewRecorder()
-		req := withPipelineClient(newCreateRequest(t, validCreateRequest()), mockClient)
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotNil(t, response.Data.RuntimeConfig)
+		params := response.Data.RuntimeConfig.Parameters
+		assert.Equal(t, "minio-secret", params["train_data_secret_name"])
+		assert.Equal(t, "automl-bucket", params["train_data_bucket_name"])
+		assert.Equal(t, "data/train.csv", params["train_data_file_key"])
+		assert.Equal(t, "temperature", params["target"])
+		assert.Equal(t, "series_id", params["id_column"])
+		assert.Equal(t, "timestamp", params["timestamp_column"])
+		assert.Equal(t, float64(24), params["prediction_length"])
+		// task_type should NOT be in parameters for timeseries (it's used for discrimination only)
+		assert.NotContains(t, params, "task_type")
+	})
+
+	t.Run("should include pipeline_version_reference from discovered pipeline ID", func(t *testing.T) {
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), mockClient)
 
 		app.CreatePipelineRunHandler(rr, req, nil)
 
@@ -341,4 +425,84 @@ type failingPipelineServerClient struct {
 
 func (f *failingPipelineServerClient) CreateRun(_ context.Context, _ models.CreatePipelineRunKFRequest) (*models.KFPipelineRun, error) {
 	return nil, fmt.Errorf("connection refused")
+}
+
+// oldVersionOnlyClient returns pipelines whose versions don't match DefaultPipelineVersion,
+// forcing EnsurePipeline to create the missing version via UploadPipelineVersion.
+type oldVersionOnlyClient struct {
+	*psmocks.MockPipelineServerClient
+	uploadedVersionName string
+	uploadedCallCount   int
+}
+
+func (m *oldVersionOnlyClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	if m.uploadedVersionName != "" {
+		// After upload, return both old and new versions so EnsurePipeline's retry succeeds
+		return &models.KFPipelineVersionsResponse{
+			PipelineVersions: []models.KFPipelineVersion{
+				{PipelineID: pipelineID, PipelineVersionID: "uploaded-version-id", DisplayName: m.uploadedVersionName, CreatedAt: "2026-03-01T10:00:00Z"},
+				{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "autogluon-timeseries-training-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
+			},
+			TotalSize: 2,
+		}, nil
+	}
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{
+			{PipelineID: pipelineID, PipelineVersionID: "old-version-id", DisplayName: "autogluon-timeseries-training-pipeline-3.4.0", CreatedAt: "2026-02-20T10:00:00Z"},
+		},
+		TotalSize: 1,
+	}, nil
+}
+
+func (m *oldVersionOnlyClient) UploadPipelineVersion(_ context.Context, pipelineID string, versionName string, _ []byte) (*models.KFPipelineVersion, error) {
+	m.uploadedCallCount++
+	m.uploadedVersionName = versionName
+	return &models.KFPipelineVersion{
+		PipelineID:        pipelineID,
+		PipelineVersionID: "uploaded-version-id",
+		DisplayName:       versionName,
+		CreatedAt:         "2026-03-01T10:00:00Z",
+	}, nil
+}
+
+func TestCreatePipelineRunHandler_EnsurePipeline(t *testing.T) {
+	app := newMinimalTestApp()
+
+	t.Run("should create missing default version when only older versions exist", func(t *testing.T) {
+		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
+
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), client)
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, 1, client.uploadedCallCount, "EnsurePipeline should have called UploadPipelineVersion exactly once")
+		assert.NotEmpty(t, client.uploadedVersionName, "EnsurePipeline should have uploaded the missing version")
+		assert.Contains(t, client.uploadedVersionName, repositories.DefaultPipelineVersion)
+
+		var response CreatePipelineRunEnvelope
+		err := json.Unmarshal(rr.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "uploaded-version-id", response.Data.PipelineVersionReference.PipelineVersionID,
+			"run should use the newly created version, not the old one")
+	})
+
+	t.Run("should use existing default version without uploading", func(t *testing.T) {
+		baseMock := psmocks.NewMockPipelineServerClient("mock://test-namespace")
+		client := &oldVersionOnlyClient{MockPipelineServerClient: baseMock}
+		// Pre-set the uploaded version name so ListPipelineVersions returns the default version
+		client.uploadedVersionName = fmt.Sprintf("autogluon-timeseries-training-pipeline-%s", repositories.DefaultPipelineVersion)
+
+		rr := httptest.NewRecorder()
+		req := withPipelineClient(newCreateRequest(t, validTimeseriesRequest()), client)
+
+		prevCount := client.uploadedCallCount
+
+		app.CreatePipelineRunHandler(rr, req, nil)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, prevCount, client.uploadedCallCount, "should not have called UploadPipelineVersion")
+	})
 }

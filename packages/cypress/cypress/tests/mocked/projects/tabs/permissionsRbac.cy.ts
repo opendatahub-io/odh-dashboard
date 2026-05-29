@@ -30,7 +30,16 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    projectRbacPermissions.findAssignRolesButton().should('be.enabled').click();
+    // Let the page settle after async data loads before interacting
+    cy.wait('@listRoleBindings');
+    projectRbacPermissions.findUsersTable().should('exist');
+
+    // Use native click because the Button's inline `component` prop recreates
+    // the <a> DOM node on every parent re-render, making cy.click() flaky.
+    projectRbacPermissions
+      .findAssignRolesButton()
+      .should('not.have.attr', 'aria-disabled', 'true')
+      .then(($btn) => $btn[0].click());
     cy.url().should('include', `/projects/${NAMESPACE}/permissions/assign`);
     projectRbacPermissions.findAssignRolesPage().should('exist');
   });
@@ -53,7 +62,7 @@ describe('Permissions tab (projectRBAC) - Tables and Filtering', () => {
     initProjectRbacIntercepts();
     projectRbacPermissions.visit(NAMESPACE);
 
-    projectRbacPermissions.findAssignRolesButton().should('be.enabled');
+    projectRbacPermissions.findAssignRolesButton().should('not.have.attr', 'aria-disabled', 'true');
 
     // Users table: rowSpan grouping should result in a single name cell for test-user-1
     usersTable.findNameCell('test-user-1').should('have.attr', 'rowspan', '2');

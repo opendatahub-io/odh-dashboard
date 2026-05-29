@@ -22,13 +22,11 @@ const (
 )
 
 var envConfig = config.EnvConfig{
-	AllowedOrigins:          []string{"*"},
-	AuthMethod:              "internal",
-	TiersConfigMapNamespace: "maas-api",
-	TiersConfigMapName:      "tier-to-group-mapping",
-	GatewayNamespace:        "openshift-ingress",
-	GatewayName:             "maas-default-gateway",
-	MockHTTPClient:          true,
+	AllowedOrigins:   []string{"*"},
+	AuthMethod:       "internal",
+	GatewayNamespace: "openshift-ingress",
+	GatewayName:      "maas-default-gateway",
+	MockHTTPClient:   true,
 }
 
 var _ = Describe("TestUserHandler", func() {
@@ -37,7 +35,7 @@ var _ = Describe("TestUserHandler", func() {
 
 		BeforeAll(func() {
 			By("creating the test app")
-			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig)
+			repos, err := repositories.NewRepositories(logger, k8Factory, envConfig, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			testApp = App{
 				kubernetesClientFactory: k8Factory,

@@ -78,6 +78,7 @@ const AppRoutes = (): React.ReactElement => (
       }
     >
       <Route path=":namespace" element={<AIAssetsPage />} />
+      <Route path=":namespace/:tab" element={<AIAssetsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

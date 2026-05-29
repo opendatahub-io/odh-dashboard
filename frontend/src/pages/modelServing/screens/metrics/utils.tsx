@@ -107,7 +107,7 @@ export const per100: TranslatePoint = (point) => ({
 
 export const toPercentage: TranslatePoint = (point) => ({
   ...point,
-  y: point.y * 100,
+  y: Number((point.y * 100).toFixed(2)),
 });
 
 export const createGraphMetricLine = ({

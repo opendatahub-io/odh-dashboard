@@ -1,17 +1,7 @@
 import React from 'react';
-import {
-  Alert,
-  Button,
-  Form,
-  FormSection,
-  Spinner,
-  Modal,
-  ModalBody,
-  ModalHeader,
-  ModalFooter,
-} from '@patternfly/react-core';
+import { Alert, Form, FormSection, Spinner } from '@patternfly/react-core';
 import { ProjectKind } from '#~/k8sTypes';
-import useProjectErrorForPrefilledModel from '#~/pages/modelServing/screens/projects/useProjectErrorForPrefilledModel';
+import ContentModal from '#~/components/modals/ContentModal';
 import ProjectSelector from '#~/pages/modelServing/screens/projects/InferenceServiceModal/ProjectSelector';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import useServingPlatformStatuses from '#~/pages/modelServing/useServingPlatformStatuses';
@@ -21,7 +11,7 @@ import ModelServingContextProvider, {
   ModelServingContext,
 } from '#~/pages/modelServing/ModelServingContext';
 import { getKServeTemplates } from '#~/pages/modelServing/customServingRuntimes/utils';
-import { isRedHatRegistryUri } from '#~/pages/modelRegistry/screens/utils';
+import { isRedHatRegistryUri } from '#~/concepts/modelRegistry/utils';
 import useServingConnections from '#~/pages/projects/screens/detail/connections/useServingConnections';
 import { isOciModelUri } from '#~/pages/modelServing/utils';
 import { ModelDeployPrefillInfo } from './usePrefillModelDeployModal';
@@ -79,27 +69,9 @@ const DeployPrefilledModelModalContents: React.FC<
   const [connections] = useServingConnections(selectedProject?.metadata.name);
   const isOciModel = isOciModelUri(modelDeployPrefillInfo.modelArtifactUri);
   const platformToUse = platform || (isOciModel ? ServingRuntimePlatform.SINGLE : undefined);
-  const { error: projectError } = useProjectErrorForPrefilledModel(
-    selectedProject?.metadata.name,
-    platformToUse,
-  );
-
-  const error = platformError || projectError;
 
   const loaded = servingContextLoaded && prefillInfoLoaded;
   const loadError = prefillInfoLoadError; // Note: serving context load errors are handled/rendered in ModelServingContextProvider
-
-  const projectLinkExtraUrlParams = React.useMemo(
-    () =>
-      modelDeployPrefillInfo.modelRegistryInfo
-        ? {
-            modelRegistryName: modelDeployPrefillInfo.modelRegistryInfo.mrName,
-            registeredModelId: modelDeployPrefillInfo.modelRegistryInfo.registeredModelId,
-            modelVersionId: modelDeployPrefillInfo.modelRegistryInfo.modelVersionId,
-          }
-        : undefined,
-    [modelDeployPrefillInfo],
-  );
 
   const handleSubmit = React.useCallback(async () => {
     if (selectedProject) {
@@ -122,8 +94,7 @@ const DeployPrefilledModelModalContents: React.FC<
     <ProjectSelector
       selectedProject={selectedProject}
       setSelectedProject={setSelectedProject}
-      error={error}
-      projectLinkExtraUrlParams={projectLinkExtraUrlParams}
+      error={platformError}
     />
   );
 
@@ -153,24 +124,27 @@ const DeployPrefilledModelModalContents: React.FC<
     );
 
     return (
-      <Modal variant="medium" isOpen onClose={() => onClose(false)}>
-        <ModalHeader
-          title="Deploy model"
-          description="Configure properties for deploying your model"
-        />
-        <ModalBody>{modalForm}</ModalBody>
-        <ModalFooter>
-          {/* The Deploy button is disabled as this particular return of the Modal
-          only happens when there's not a valid selected project, otherwise we'll
-          render the ManageKServeModal */}
-          <Button key="deploy" variant="primary" isDisabled>
-            Deploy
-          </Button>
-          <Button key="cancel" variant="link" onClick={() => onClose(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+      <ContentModal
+        title="Deploy model"
+        description="Configure properties for deploying your model"
+        onClose={() => onClose(false)}
+        contents={modalForm}
+        buttonActions={[
+          {
+            label: 'Deploy',
+            onClick: () => onClose(true),
+            variant: 'primary',
+            isDisabled: true,
+            dataTestId: 'deploy-button',
+          },
+          {
+            label: 'Cancel',
+            onClick: () => onClose(false),
+            variant: 'link',
+            dataTestId: 'cancel-button',
+          },
+        ]}
+      />
     );
   }
 
@@ -178,7 +152,7 @@ const DeployPrefilledModelModalContents: React.FC<
     <ManageKServeModal
       onClose={onClose}
       servingRuntimeTemplates={getKServeTemplates(templates, templateOrder, templateDisablement)}
-      shouldFormHidden={!!error}
+      shouldFormHidden={!!platformError}
       modelDeployPrefillInfo={modelDeployPrefillInfo}
       projectContext={{ currentProject: selectedProject, connections }}
       projectSection={projectSection}

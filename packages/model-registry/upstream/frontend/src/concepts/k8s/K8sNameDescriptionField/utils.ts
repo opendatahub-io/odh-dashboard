@@ -1,28 +1,17 @@
+import { translateDisplayNameForK8s } from '~/app/shared/components/utils';
 import {
   K8sNameDescriptionFieldData,
   K8sNameDescriptionFieldUpdateFunctionInternal,
   UseK8sNameDescriptionDataConfiguration,
 } from './types';
 
-const MAX_K8S_NAME_LENGTH = 253;
+export const MAX_K8S_NAME_LENGTH = 253;
 
-/**
- * Translates a name to a k8s-safe value.
- * @see https://kubernetes.io/docs/concepts/overview/working-with-objects/names/
- */
-export const translateDisplayNameForK8s = (name = '', safePrefix = ''): string => {
-  const translatedName = name
-    .trim()
-    .toLowerCase()
-    .replace(/\s/g, '-')
-    .replace(/[^A-Za-z0-9-]/g, '');
+export const getMaxLengthErrorMessage = (maxLength: number): string =>
+  `Cannot exceed ${maxLength} characters`;
 
-  if (safePrefix) {
-    return `${safePrefix}${translatedName}`;
-  }
-
-  return translatedName;
-};
+export const INVALID_K8S_NAME_CHARACTERS_MESSAGE =
+  'Must start and end with a lowercase letter or number. Valid characters include lowercase letters, numbers, and hyphens (-).';
 
 export const checkValidK8sName = (
   value: string,

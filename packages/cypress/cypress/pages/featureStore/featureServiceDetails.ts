@@ -33,7 +33,7 @@ class FeatureServiceDetails {
   }
 
   findDetailsTabs() {
-    return new FeatureServiceDetailsTabs(() => cy.findByTestId('feature-details-page'));
+    return new FeatureServiceDetailsTabs(() => cy.findByTestId('feature-service-details-tabs'));
   }
 
   shouldShowLoadingState() {
@@ -165,6 +165,6 @@ export const featureServiceDetailsBreadcrumb = new FeatureServiceDetailsBreadcru
   cy.findByTestId('feature-service-details-page'),
 );
 export const featureServiceDetailsTabs = new FeatureServiceDetailsTabs(() =>
-  cy.findByTestId('feature-details-page'),
+  cy.findByTestId('feature-service-details-tabs'),
 );
 export const featureServiceDetailsPage = new FeatureServiceDetailsPage();

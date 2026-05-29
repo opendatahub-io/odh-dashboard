@@ -1,16 +1,21 @@
 import React from 'react';
 import {
+  Button,
   DescriptionList,
   DescriptionListTerm,
   DescriptionListGroup,
   DescriptionListDescription,
   Drawer,
+  DrawerCloseButton,
   DrawerPanelContent,
   DrawerContent,
   DrawerContentBody,
   DrawerHead,
   DrawerActions,
-  DrawerCloseButton,
+  MenuToggle,
+  Select,
+  SelectList,
+  SelectOption,
   TextArea,
   Spinner,
   Title,
@@ -20,8 +25,48 @@ import {
   LabelGroup,
   Label,
 } from '@patternfly/react-core';
-import { SimpleSelect } from '@patternfly/react-templates';
+import { CompressAltIcon } from '@patternfly/react-icons';
 import { MLflowPromptVersion } from '~/app/types';
+
+const VersionSelect: React.FC<{
+  versions: MLflowPromptVersion[];
+  selected: number;
+  onChange: (version: number) => void;
+}> = ({ versions, selected, onChange }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <Select
+      isOpen={isOpen}
+      isScrollable
+      selected={String(selected)}
+      onSelect={(_e, value) => {
+        onChange(Number(value));
+        setIsOpen(false);
+      }}
+      onOpenChange={setIsOpen}
+      toggle={(toggleRef) => (
+        <MenuToggle
+          ref={toggleRef}
+          data-testid="prompt-version-select"
+          onClick={() => setIsOpen((prev) => !prev)}
+          isExpanded={isOpen}
+        >
+          {`Version ${selected}`}
+        </MenuToggle>
+      )}
+      shouldFocusToggleOnSelect
+    >
+      <SelectList>
+        {versions.map((v) => (
+          <SelectOption key={v.version} value={String(v.version)}>
+            {`Version ${v.version}`}
+          </SelectOption>
+        ))}
+      </SelectList>
+    </Select>
+  );
+};
 
 export default function PromptDrawer({
   isLoadingDetails,
@@ -39,14 +84,14 @@ export default function PromptDrawer({
   children: React.ReactNode;
 }): React.ReactNode {
   const selectedPrompt = selectedPromptVersions.find((v) => v.version === selectedVersion);
-  const isExpanded = !!selectedPrompt;
+  const isExpanded = !!selectedPrompt || isLoadingDetails;
 
   function buildContent() {
     if (isLoadingDetails) {
       return (
-        <DrawerPanelContent>
+        <DrawerPanelContent data-testid="prompt-drawer-loading">
           <DrawerHead>
-            <Title headingLevel="h2">Loading Prompt Details...</Title>
+            <Title headingLevel="h3">Loading Prompt Details...</Title>
             <DrawerActions>
               <DrawerCloseButton onClick={onClose} />
             </DrawerActions>
@@ -70,25 +115,19 @@ export default function PromptDrawer({
       updated_at: updatedAt,
     } = selectedPrompt;
 
-    const versionOptions = selectedPromptVersions.map((prompt) => ({
-      value: prompt.version,
-      content: `Version ${prompt.version.toString()}`,
-    }));
-
-    const initialOptions = versionOptions.map((o) => ({
-      ...o,
-      selected: o.value === version,
-    }));
-
-    function onVersionSelect(_: React.MouseEvent, selection: string | number) {
-      onVersionChange(Number(selection));
-    }
     return (
-      <DrawerPanelContent>
+      <DrawerPanelContent data-testid="prompt-drawer-panel">
         <DrawerHead>
           <Title headingLevel="h2">{name}</Title>
           <DrawerActions>
-            <DrawerCloseButton onClick={onClose} />
+            <Button
+              data-testid="prompt-drawer-close"
+              variant="plain"
+              aria-label="Close drawer"
+              onClick={onClose}
+            >
+              <CompressAltIcon />
+            </Button>
           </DrawerActions>
         </DrawerHead>
         <Flex
@@ -98,17 +137,18 @@ export default function PromptDrawer({
             paddingRight: 'var(--pf-t--global--spacer--md)',
           }}
         >
-          <SimpleSelect isScrollable initialOptions={initialOptions} onSelect={onVersionSelect} />
+          <VersionSelect
+            versions={selectedPromptVersions}
+            selected={version}
+            onChange={onVersionChange}
+          />
           <div>
             <TextArea
+              data-testid="prompt-drawer-template"
               style={{ minHeight: '200px' }}
               resizeOrientation="vertical"
               aria-label="prompt template"
-              value={JSON.stringify(
-                template || messages?.find((m) => m.role === 'system')?.content,
-                null,
-                2,
-              )}
+              value={template || messages?.find((m) => m.role === 'system')?.content}
               readOnlyVariant="default"
             />
           </div>
@@ -116,7 +156,11 @@ export default function PromptDrawer({
             <DescriptionListGroup>
               <DescriptionListTerm>Last Modified:</DescriptionListTerm>
               <DescriptionListDescription>
-                <Timestamp date={new Date(updatedAt)} dateFormat={TimestampFormat.full} />
+                <Timestamp
+                  date={new Date(updatedAt)}
+                  dateFormat={TimestampFormat.full}
+                  style={{ fontSize: '14px' }}
+                />
               </DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>

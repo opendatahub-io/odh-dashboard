@@ -11,13 +11,8 @@ func TestIsExternalModelSource(t *testing.T) {
 		expected   bool
 	}{
 		{
-			name:       "external_provider is external",
-			sourceType: ModelSourceTypeExternalProvider,
-			expected:   true,
-		},
-		{
-			name:       "external_cluster is external",
-			sourceType: ModelSourceTypeExternalCluster,
+			name:       "custom_endpoint is external",
+			sourceType: ModelSourceTypeCustomEndpoint,
 			expected:   true,
 		},
 		{

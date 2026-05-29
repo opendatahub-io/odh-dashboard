@@ -14,7 +14,11 @@ import { mockPodLogs } from '@odh-dashboard/internal/__mocks__/mockPodLogs';
 import { buildMockRunKF } from '@odh-dashboard/internal/__mocks__/mockRunKF';
 import { mockPipelinePodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPipelinePodK8sResource';
 import { buildMockExperimentKF, buildMockPipeline } from '@odh-dashboard/internal/__mocks__';
-import { RecurringRunStatus } from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
+import { mock404Error, mock500Error } from '@odh-dashboard/internal/__mocks__/mockK8sStatus';
+import {
+  RecurringRunStatus,
+  RuntimeStateKF,
+} from '@odh-dashboard/internal/concepts/pipelines/kfTypes';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import {
   pipelineDetails,
@@ -31,6 +35,7 @@ import {
   SecretModel,
 } from '../../../../utils/models';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
+import { toastNotifications } from '../../../../pages/components/ToastNotifications';
 import { initMlmdIntercepts } from '../mlmdUtils';
 
 const projectId = 'test-project';
@@ -170,6 +175,16 @@ const initIntercepts = () => {
       },
     },
     buildMockExperimentKF({ experiment_id: 'test-experiment' }),
+  );
+  cy.interceptOdh(
+    'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/experiments',
+    {
+      path: { namespace: projectId, serviceName: 'dspa' },
+    },
+    {
+      experiments: [buildMockExperimentKF({ experiment_id: 'test-experiment' })],
+      total_size: 1,
+    },
   );
   cy.interceptK8s(
     PodModel,
@@ -409,6 +424,62 @@ describe('Pipeline topology', () => {
       });
     });
 
+    describe('Retry action', () => {
+      const failedRunId = 'failed-run-id';
+      const failedRunName = 'Failed pipeline run';
+      const mockFailedRun = buildMockRunKF({
+        display_name: failedRunName,
+        run_id: failedRunId,
+        state: RuntimeStateKF.FAILED,
+        pipeline_version_reference: {
+          pipeline_id: mockPipeline.pipeline_id,
+          pipeline_version_id: mockVersion.pipeline_version_id,
+        },
+      });
+
+      beforeEach(() => {
+        initIntercepts();
+        cy.interceptOdh(
+          'GET /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+          { path: { namespace: projectId, serviceName: 'dspa', runId: failedRunId } },
+          mockFailedRun,
+        );
+      });
+
+      it('shows success notification after retrying a failed run', () => {
+        pipelineRunDetails.mockRetryRun(failedRunId, projectId);
+        pipelineRunDetails.visit(projectId, failedRunId);
+        pipelineRunDetails.selectActionDropdownItem('Retry');
+
+        toastNotifications
+          .findToastNotification(0)
+          .should('contain.text', `${failedRunName} pipeline run retried successfully`);
+      });
+
+      it('shows error notification when retry fails', () => {
+        cy.interceptOdh(
+          'POST /api/service/pipelines/:namespace/:serviceName/apis/v2beta1/runs/:runId',
+          { path: { namespace: projectId, serviceName: 'dspa', runId: `${failedRunId}:retry` } },
+          (req) => {
+            req.reply({
+              statusCode: 200,
+              body: {
+                error: 'Internal server error',
+                code: 500,
+                message: 'Internal server error',
+              },
+            });
+          },
+        );
+        pipelineRunDetails.visit(projectId, failedRunId);
+        pipelineRunDetails.selectActionDropdownItem('Retry');
+
+        toastNotifications
+          .findToastNotification(0)
+          .should('contain.text', `Unable to retry ${failedRunName} pipeline run`);
+      });
+    });
+
     it('Test pipeline recurring run tab parameters', () => {
       initIntercepts();
 
@@ -491,12 +562,12 @@ describe('Pipeline topology', () => {
       pipelineRunDetails
         .findDetailItem('Started')
         .findValue()
-        .contains('Friday, March 15, 2024 at 5:59:35 PM UTC');
+        .contains('Friday, March 15, 2024 at 5:59:36 PM UTC');
       pipelineRunDetails
         .findDetailItem('Finished')
         .findValue()
         .contains('Friday, March 15, 2024 at 6:00:25 PM UTC');
-      pipelineRunDetails.findDetailItem('Duration').findValue().contains('50 seconds');
+      pipelineRunDetails.findDetailItem('Duration').findValue().contains('49 seconds');
     });
 
     it('Test pipeline triggered run tab parameters', () => {
@@ -750,6 +821,167 @@ describe('Pipeline topology', () => {
       pipelineRunDetails.findLogsKebabToggle().click();
       pipelineRunDetails.findRawLogs().should('not.be.enabled');
       pipelineRunDetails.findLogsKebabToggle().click();
+    });
+
+    it('should handle log retrieval errors (404, 500)', () => {
+      const mockPod = () =>
+        cy.interceptK8s(
+          PodModel,
+          mockPipelinePodK8sResource({
+            namespace: projectId,
+            name: 'iris-training-pipeline-v4zp7-2757091352',
+            isPending: false,
+          }),
+        );
+
+      // 404 pod not found
+      mockPod();
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: { container: 'step-main', tailLines: '500' },
+        },
+        { statusCode: 404, body: mock404Error({}) },
+      ).as('logs404');
+
+      navigateToLogsTab();
+      cy.wait('@logs404');
+      pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
+
+      // 500 server error
+      mockPod();
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: { container: 'step-main', tailLines: '500' },
+        },
+        { statusCode: 500, body: mock500Error({}) },
+      ).as('logs500');
+
+      navigateToLogsTab();
+      cy.wait('@logs500');
+      pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogsSuccessAlert().should('not.exist');
+    });
+
+    it('should handle empty and malformed log data', () => {
+      const mockPod = () =>
+        cy.interceptK8s(
+          PodModel,
+          mockPipelinePodK8sResource({
+            namespace: projectId,
+            name: 'iris-training-pipeline-v4zp7-2757091352',
+            isPending: false,
+          }),
+        );
+
+      // Empty logs
+      mockPod();
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: { container: 'step-main', tailLines: '500' },
+        },
+        '',
+      ).as('emptyLogs');
+
+      navigateToLogsTab();
+      cy.wait('@emptyLogs');
+      pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogs().contains('No logs available');
+
+      // Malformed log data — still a successful HTTP 200, so the component renders it as content
+      mockPod();
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: { container: 'step-main', tailLines: '500' },
+        },
+        '\x00\x01\x02malformed\nlog\ndata',
+      ).as('malformedLogs');
+
+      navigateToLogsTab();
+      cy.wait('@malformedLogs');
+      pipelineRunDetails.findLogs().should('be.visible');
+      pipelineRunDetails.findLogs().should('contain.text', 'malformed');
+    });
+
+    it('should retrieve logs for different containers', () => {
+      cy.interceptK8s(
+        PodModel,
+        mockPipelinePodK8sResource({
+          namespace: projectId,
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          isPending: false,
+        }),
+      );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: {
+            container: 'step-main',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectId,
+          podName: 'iris-training-pipeline-v4zp7-2757091352',
+          containerName: 'step-main',
+        }),
+      ).as('mainStepLogs');
+
+      navigateToLogsTab();
+
+      cy.wait('@mainStepLogs');
+      pipelineRunDetails
+        .findLogs()
+        .contains(
+          'sample log for namespace test-project, pod name iris-training-pipeline-v4zp7-2757091352 and for step step-main',
+        );
+
+      cy.interceptK8s(
+        {
+          model: PodModel,
+          path: 'log',
+          name: 'iris-training-pipeline-v4zp7-2757091352',
+          ns: projectId,
+          queryParams: {
+            container: 'step-move-all-results-to-tekton-home',
+            tailLines: '500',
+          },
+        },
+        mockPodLogs({
+          namespace: projectId,
+          podName: 'iris-training-pipeline-v4zp7-2757091352',
+          containerName: 'step-move-all-results-to-tekton-home',
+        }),
+      ).as('moveStepLogs');
+
+      pipelineRunDetails.selectStepByName('step-move-all-results-to-tekton-home');
+
+      cy.wait('@moveStepLogs');
+      pipelineRunDetails
+        .findLogs()
+        .contains(
+          'sample log for namespace test-project, pod name iris-training-pipeline-v4zp7-2757091352 and for step step-move-all-results-to-tekton-home',
+        );
     });
   });
 });

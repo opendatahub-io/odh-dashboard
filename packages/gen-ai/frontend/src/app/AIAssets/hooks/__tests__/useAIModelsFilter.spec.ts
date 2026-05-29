@@ -33,10 +33,8 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
         [AssetsFilterOptions.STATUS]: undefined,
-        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
     });
 
@@ -101,24 +99,6 @@ describe('useAIModelsFilter', () => {
     });
   });
 
-  describe('Filter by source', () => {
-    it('should filter models by source (select filter)', () => {
-      const models = [
-        createMockAIModel({ model_id: 'model-1', model_source_type: 'namespace' }),
-        createMockAIModel({ model_id: 'model-2', model_source_type: 'maas' }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.SOURCE, 'Internal');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-1');
-    });
-  });
-
   describe('Filter by use case', () => {
     it('should filter models by usecase', () => {
       const models = [
@@ -152,7 +132,7 @@ describe('useAIModelsFilter', () => {
   });
 
   describe('Filter by status', () => {
-    it('should filter models by status (select filter)', () => {
+    it('should filter models by Ready status', () => {
       const models = [
         createMockAIModel({ model_id: 'model-1', status: 'Running' }),
         createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
@@ -162,7 +142,7 @@ describe('useAIModelsFilter', () => {
       const { result } = testHook(useAIModelsFilter)(models);
 
       act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Active');
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Ready');
       });
 
       expect(result.current.filteredModels).toHaveLength(2);
@@ -170,7 +150,7 @@ describe('useAIModelsFilter', () => {
       expect(result.current.filteredModels[1].model_id).toBe('model-3');
     });
 
-    it('should filter for inactive models', () => {
+    it('should filter models by Inactive status', () => {
       const models = [
         createMockAIModel({ model_id: 'model-1', status: 'Running' }),
         createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
@@ -185,41 +165,22 @@ describe('useAIModelsFilter', () => {
       expect(result.current.filteredModels).toHaveLength(1);
       expect(result.current.filteredModels[0].model_id).toBe('model-2');
     });
-  });
 
-  describe('Filter by model type', () => {
-    it('should filter models by model type (select filter)', () => {
+    it('should filter models by Unknown status', () => {
       const models = [
-        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
-        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
-        createMockAIModel({ model_id: 'model-3', model_type: 'llm' }),
+        createMockAIModel({ model_id: 'model-1', status: 'Running' }),
+        createMockAIModel({ model_id: 'model-2', status: 'Stop' }),
+        createMockAIModel({ model_id: 'model-3', status: 'Pending' }),
       ];
 
       const { result } = testHook(useAIModelsFilter)(models);
 
       act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Inferencing');
-      });
-
-      expect(result.current.filteredModels).toHaveLength(2);
-      expect(result.current.filteredModels[0].model_id).toBe('model-1');
-      expect(result.current.filteredModels[1].model_id).toBe('model-3');
-    });
-
-    it('should filter for embedding models', () => {
-      const models = [
-        createMockAIModel({ model_id: 'model-1', model_type: 'llm' }),
-        createMockAIModel({ model_id: 'model-2', model_type: 'embedding' }),
-      ];
-
-      const { result } = testHook(useAIModelsFilter)(models);
-
-      act(() => {
-        result.current.onFilterUpdate(AssetsFilterOptions.MODEL_TYPE, 'Embedding');
+        result.current.onFilterUpdate(AssetsFilterOptions.STATUS, 'Unknown');
       });
 
       expect(result.current.filteredModels).toHaveLength(1);
-      expect(result.current.filteredModels[0].model_id).toBe('model-2');
+      expect(result.current.filteredModels[0].model_id).toBe('model-3');
     });
   });
 
@@ -295,10 +256,8 @@ describe('useAIModelsFilter', () => {
 
       expect(result.current.filterData).toEqual({
         [AssetsFilterOptions.NAME]: undefined,
-        [AssetsFilterOptions.SOURCE]: undefined,
         [AssetsFilterOptions.USE_CASE]: undefined,
         [AssetsFilterOptions.STATUS]: undefined,
-        [AssetsFilterOptions.MODEL_TYPE]: undefined,
       });
       expect(result.current.filteredModels).toEqual(models);
     });

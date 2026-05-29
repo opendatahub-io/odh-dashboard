@@ -16,6 +16,7 @@ import {
   URL_PREFIX,
 } from '~/app/utilities/const';
 import App from '~/app/App';
+import ToastNotifications from '~/app/components/ToastNotifications';
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 
@@ -32,6 +33,7 @@ root.render(
       <ModularArchContextProvider config={modularArchConfig}>
         <BrowserStorageContextProvider>
           <NotificationContextProvider>
+            <ToastNotifications />
             <App />
           </NotificationContextProvider>
         </BrowserStorageContextProvider>

@@ -12,9 +12,9 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type LlamaStackDistributionStatusEnvelope Envelope[*models.LlamaStackDistributionModel, None]
+type OGXServerStatusEnvelope Envelope[*models.OGXServerModel, None]
 
-// LlamaStackDistributionStatusHandler handles requests for LSD status
+// LlamaStackDistributionStatusHandler handles requests for OGX server (LSD) status.
 func (app *App) LlamaStackDistributionStatusHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 
@@ -38,8 +38,8 @@ func (app *App) LlamaStackDistributionStatusHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Get LSD status
-	lsdModel, err := app.repositories.LlamaStackDistribution.GetLlamaStackDistributionStatus(
+	// Get OGX server status
+	ogxModel, err := app.repositories.OGXServer.GetOGXServerStatus(
 		client,
 		ctx,
 		identity,
@@ -54,11 +54,11 @@ func (app *App) LlamaStackDistributionStatusHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	lsdEnvelope := LlamaStackDistributionStatusEnvelope{
-		Data: lsdModel,
+	ogxEnvelope := OGXServerStatusEnvelope{
+		Data: ogxModel,
 	}
 
-	err = app.WriteJSON(w, http.StatusOK, lsdEnvelope, nil)
+	err = app.WriteJSON(w, http.StatusOK, ogxEnvelope, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

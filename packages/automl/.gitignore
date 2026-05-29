@@ -353,3 +353,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Claude
+CLAUDE.md
+.claude/settings.local.json

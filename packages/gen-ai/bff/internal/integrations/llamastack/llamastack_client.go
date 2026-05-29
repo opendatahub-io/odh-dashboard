@@ -15,14 +15,19 @@ import (
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/openai/openai-go/v2/responses"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
+	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 )
 
 // LlamaStackClient wraps the OpenAI client for Llama Stack communication.
 type LlamaStackClient struct {
 	client *openai.Client
+}
+
+// SetClientForTest replaces the internal OpenAI client (test use only).
+func SetClientForTest(c *LlamaStackClient, client *openai.Client) {
+	c.client = client
 }
 
 // NewLlamaStackClient creates a new client configured for Llama Stack.
@@ -383,9 +388,11 @@ type CreateResponseParams struct {
 	// Tools contains MCP server configurations for tool-enabled responses.
 	Tools []MCPServerParam
 	// ProviderData contains custom provider headers (e.g., vllm_api_token)
-	ProviderData   map[string]interface{}
-	InputShieldID  string
-	OutputShieldID string
+	ProviderData map[string]interface{}
+	// GuardrailOpts carries the inline NeMo guardrail configuration for this request.
+	// Input moderation is applied before the LlamaStack call; output moderation is applied
+	// after. An empty GuardrailOpts (Config == nil) means no moderation.
+	GuardrailOpts nemo.GuardrailsOptions
 }
 
 // prepareResponseParams validates input parameters and prepares the API parameters for response creation.
@@ -477,6 +484,12 @@ func (c *LlamaStackClient) prepareResponseParams(params CreateResponseParams) (*
 	if len(params.VectorStoreIDs) > 0 {
 		fileSearchTool := responses.ToolParamOfFileSearch(params.VectorStoreIDs)
 		tools = append(tools, fileSearchTool)
+
+		// Request file_search_call results so the BFF can build citation annotations
+		// from result attributes (deterministic filename resolution)
+		apiParams.Include = []responses.ResponseIncludable{
+			responses.ResponseIncludableFileSearchCallResults,
+		}
 	}
 
 	// Add MCP servers if provided
@@ -543,7 +556,7 @@ func (c *LlamaStackClient) CreateResponse(ctx context.Context, params CreateResp
 }
 
 // CreateResponseStream creates an AI response stream using the specified parameters.
-func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (*ssestream.Stream[responses.ResponseStreamEventUnion], error) {
+func (c *LlamaStackClient) CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error) {
 	apiParams, err := c.prepareResponseParams(params)
 	if err != nil {
 		return nil, err
@@ -571,7 +584,7 @@ func (c *LlamaStackClient) buildRequestOptions(providerData map[string]interface
 
 	headerValue := string(jsonBytes)
 	return []option.RequestOption{
-		option.WithHeader("x-llamastack-provider-data", headerValue),
+		option.WithHeader("x-ogx-provider-data", headerValue),
 	}
 }
 
@@ -717,6 +730,23 @@ func (c *LlamaStackClient) ListVectorStoreFiles(ctx context.Context, vectorStore
 	return filesPage.Data, nil
 }
 
+// GetVectorStoreFile retrieves a single file from a vector store by ID.
+func (c *LlamaStackClient) GetVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) (*openai.VectorStoreFile, error) {
+	if vectorStoreID == "" {
+		return nil, NewInvalidRequestError("vectorStoreID is required")
+	}
+	if fileID == "" {
+		return nil, NewInvalidRequestError("fileID is required")
+	}
+
+	file, err := c.client.VectorStores.Files.Get(ctx, vectorStoreID, fileID)
+	if err != nil {
+		return nil, wrapClientError(err, "GetVectorStoreFile")
+	}
+
+	return file, nil
+}
+
 // DeleteVectorStoreFile removes a file from a vector store.
 func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error {
 	if vectorStoreID == "" {
@@ -732,29 +762,4 @@ func (c *LlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vectorStor
 	}
 
 	return nil
-}
-
-// CreateModeration runs content moderation using the Moderations API (OpenAI-compatible).
-// Returns the SDK type directly for simplicity.
-func (c *LlamaStackClient) CreateModeration(ctx context.Context, input string, model string) (*openai.ModerationNewResponse, error) {
-	if input == "" {
-		return nil, fmt.Errorf("input is required")
-	}
-	if model == "" {
-		return nil, fmt.Errorf("model (shield ID) is required")
-	}
-
-	params := openai.ModerationNewParams{
-		Input: openai.ModerationNewParamsInputUnion{
-			OfString: openai.String(input),
-		},
-		Model: openai.ModerationModel(model),
-	}
-
-	response, err := c.client.Moderations.New(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create moderation: %w", err)
-	}
-
-	return response, nil
 }

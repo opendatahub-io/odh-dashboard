@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
@@ -20,9 +21,35 @@ func (app *App) CollectionsHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	namespace := r.URL.Query().Get("namespace")
+	query := r.URL.Query()
 
-	result, err := client.ListCollections(ctx, namespace)
+	params := evalhub.ListCollectionsParams{
+		Namespace: query.Get("namespace"),
+		Name:      query.Get("name"),
+		Category:  query.Get("category"),
+		Tags:      query.Get("tags"),
+		Scope:     query.Get("scope"),
+	}
+
+	if limitStr := query.Get("limit"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid limit parameter: must be a positive integer"))
+			return
+		}
+		params.Limit = limit
+	}
+
+	if offsetStr := query.Get("offset"); offsetStr != "" {
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || offset < 0 {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid offset parameter: must be a non-negative integer"))
+			return
+		}
+		params.Offset = offset
+	}
+
+	result, err := client.ListCollections(ctx, params)
 	if err != nil {
 		app.serverErrorResponse(w, r, fmt.Errorf("failed to list collections: %w", err))
 		return

@@ -24,12 +24,12 @@ import { mock200Status, mock404Error } from '@odh-dashboard/internal/__mocks__/m
 import { mockConnectionTypeConfigMap } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import type { HardwareProfileKind, NotebookKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
 import { IdentifierResourceType, SchedulingType } from '@odh-dashboard/internal/types';
-import type { EnvironmentFromVariable } from '@odh-dashboard/internal/pages/projects/types';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { SpawnerPageSectionID } from '@odh-dashboard/internal/pages/projects/screens/spawner/types';
-import { AccessMode } from '@odh-dashboard/internal/pages/storageClasses/storageEnums.ts';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { mockWorkloadK8sResource } from '@odh-dashboard/internal/__mocks__/mockWorkloadK8sResource';
 import { WorkloadStatusType } from '@odh-dashboard/internal/concepts/distributedWorkloads/utils';
+import { AccessMode } from '../../../../types';
 import {
   ConfigMapModel,
   ClusterQueueModel,
@@ -64,10 +64,12 @@ import { hardwareProfileSection } from '../../../../pages/components/HardwarePro
 
 const configYamlPath = './cypress/fixtures/resources/yaml/mock-upload-configmap.yaml';
 
+type MockNotebookConfig = Parameters<typeof mockNotebookK8sResource>[0];
+
 type HandlersProps = {
   isEmpty?: boolean;
   mockPodList?: PodKind[];
-  envFrom?: EnvironmentFromVariable[];
+  envFrom?: MockNotebookConfig['envFrom'];
   disableProjectScoped?: boolean;
   notebooks?: NotebookKind[];
   hardwareProfiles?: {
@@ -621,7 +623,7 @@ describe('Workbench page', () => {
     initIntercepts({ isEmpty: true });
     workbenchPage.visit('test-project');
     workbenchPage.findEmptyState().should('exist');
-    workbenchPage.findCreateButton().should('be.enabled');
+    workbenchPage.findCreateButton().should('not.have.attr', 'aria-disabled', 'true');
   });
 
   it('Cancel button', () => {
@@ -642,6 +644,34 @@ describe('Workbench page', () => {
     createSpawnerPage.findSideBarItems(SpawnerPageSectionID.CONNECTIONS).click();
     createSpawnerPage.findCancelButton().click();
     verifyRelativeURL('/projects/test-project?section=workbenches');
+  });
+
+  it('Create workbench form shows character limit helper text and warnings', () => {
+    initIntercepts({ isEmpty: true });
+    workbenchPage.visit('test-project');
+    workbenchPage.findCreateButton().click();
+    verifyRelativeURL('/projects/test-project/spawner');
+
+    createSpawnerPage.getNameInput().should('be.visible');
+    createSpawnerPage.getDescriptionInput().should('be.visible');
+
+    // Name field approaching limit (exactly 241 characters), same pattern as BYON image form
+    const longWorkbenchName =
+      'Data--Science-Workbench-Image-v2..0-with-Python-3.9-TensorFlow-2.8-PyTorch-1.11-Scikit-learn-1.0-Pandas-1.4-NumPy-1.22-Jupyter-Lab-3.4-CUDA-11.6-for-Machine-Learning-and-Deep-Learning-Development-Environment-Extended-Build-2024-03-Latest-End';
+
+    createSpawnerPage.getNameInput().clear();
+    createSpawnerPage.getNameInput().type(longWorkbenchName, { delay: 0 });
+    createSpawnerPage.getNameInput().should('have.value', longWorkbenchName);
+    cy.contains('Cannot exceed 250 characters (9 remaining)').should('be.visible');
+
+    // Description field approaching limit (exactly 5252 characters)
+    const repeatingPart = 'A'.repeat(52);
+    const longDescription = repeatingPart.repeat(101);
+
+    createSpawnerPage.getDescriptionInput().clear();
+    createSpawnerPage.getDescriptionInput().type(longDescription, { delay: 0 });
+    createSpawnerPage.getDescriptionInput().should('have.value', longDescription);
+    cy.contains('Cannot exceed 5500 characters (248 remaining)').should('be.visible');
   });
 
   it('Create workbench', () => {
@@ -783,7 +813,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = createSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project-scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project-scoped test image/, hidden: true })
       .click();
     createSpawnerPage.findProjectScopedLabel().should('exist');
     hardwareProfileSection.findHardwareProfileSearchSelector().should('exist').click();
@@ -795,7 +825,7 @@ describe('Workbench page', () => {
     const globalScopedNotebookImage = createSpawnerPage.getGlobalScopedNotebookImages();
     globalScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Test Image', hidden: true })
+      .findByRole('menuitem', { name: /^Test Image/, hidden: true })
       .click();
     createSpawnerPage.findGlobalScopedLabel().should('exist');
   });
@@ -876,11 +906,11 @@ describe('Workbench page', () => {
             app: 'wb-1234',
             'opendatahub.io/dashboard': 'true',
             'opendatahub.io/odh-managed': 'true',
-            'opendatahub.io/user': 'test-2duser',
           },
           annotations: {
             'openshift.io/display-name': '1234',
             'openshift.io/description': 'test-description',
+            'opendatahub.io/user': 'test-2duser',
             'opendatahub.io/hardware-profile-name': 'small-profile',
             'opendatahub.io/hardware-profile-namespace': 'opendatahub',
           },
@@ -1014,6 +1044,75 @@ describe('Workbench page', () => {
     cy.contains('Latest image version');
   });
 
+  it('Shows migration required label and popover for unmigrated workbenches', () => {
+    initIntercepts({
+      notebooks: [
+        mockNotebookK8sResource({
+          name: 'test-notebook',
+          displayName: 'Unmigrated Notebook',
+          injectAuth: null,
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+        mockNotebookK8sResource({
+          name: 'migrated-notebook',
+          displayName: 'Migrated Notebook',
+          lastImageSelection: 'test-imagestream:1.2',
+          opts: {
+            metadata: {
+              labels: {
+                'opendatahub.io/notebook-image': 'true',
+              },
+              annotations: {
+                'opendatahub.io/image-display-name': 'Test image',
+              },
+            },
+          },
+        }),
+      ],
+    });
+    cy.interceptK8sList(
+      PVCModel,
+      mockK8sResourceList([
+        mockPVCK8sResource({ name: 'test-notebook' }),
+        mockPVCK8sResource({ name: 'migrated-notebook' }),
+      ]),
+    );
+    workbenchPage.visit('test-project');
+
+    const unmigratedRow = workbenchPage.getNotebookRow('Unmigrated Notebook');
+    unmigratedRow.findMigrationRequiredLabel().should('have.text', 'Migration required').click();
+    unmigratedRow.findMigrationRequiredPopoverTitle().should('have.text', 'Migration required');
+    unmigratedRow
+      .findMigrationRequiredPopover()
+      .should(
+        'contain.text',
+        'To prevent access issues, migrate this workbench by editing the workbench description and saving.',
+      )
+      .and(
+        'contain.text',
+        'Alternatively, delete this workbench and create a new one using the same cluster storage to preserve user data.',
+      )
+      .and(
+        'contain.text',
+        'Note: Once migrated, the old URL will no longer work. Access the new URL by clicking on the name link.',
+      );
+
+    workbenchPage
+      .getNotebookRow('Migrated Notebook')
+      .findMigrationRequiredLabel()
+      .should('not.exist');
+  });
+
   it('Shows popover with version details', () => {
     initIntercepts({});
     cy.interceptK8sList(
@@ -1123,7 +1222,7 @@ describe('Workbench page', () => {
     notebookRow.find().findByText('Test Image').should('exist');
     notebookRow.findProjectScopedLabel().should('exist');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
   });
 
@@ -1262,7 +1361,7 @@ describe('Workbench page', () => {
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
     notebookRow.shouldHaveNotebookImageName('Test Image');
     notebookRow.shouldHaveHardwareProfile('Small');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findNotebookRouteLink().should('not.have.attr', 'aria-disabled');
 
     //Name sorting
@@ -1704,7 +1803,7 @@ describe('Workbench page', () => {
     const projectScopedNotebookImage = editSpawnerPage.getProjectScopedNotebookImages();
     projectScopedNotebookImage
       .find()
-      .findByRole('menuitem', { name: 'Project scoped test image', hidden: true })
+      .findByRole('menuitem', { name: /^Project scoped test image/, hidden: true })
       .click();
 
     cy.findAllByTestId('project-scoped-label').should('have.length', 2);
@@ -1953,7 +2052,7 @@ describe('Workbench page', () => {
     initIntercepts({});
     notFoundSpawnerPage.visit('updated-notebook');
     notFoundSpawnerPage.shouldHaveErrorMessageTitle('Unable to edit workbench');
-    notFoundSpawnerPage.findReturnToPage().should('be.enabled');
+    notFoundSpawnerPage.findReturnToPage().should('have.attr', 'href').and('not.be.empty');
     notFoundSpawnerPage.findReturnToPage().click();
     verifyRelativeURL('/projects/test-project');
   });
@@ -2484,11 +2583,11 @@ describe('Workbench page', () => {
     );
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
-    workbenchStatusModal.getNotebookStatus('Running');
+    workbenchStatusModal.getNotebookStatus('Ready');
 
     workbenchStatusModal.findProgressTab().should('be.visible').click();
     workbenchStatusModal.findProgressSteps().should('exist');
@@ -2503,7 +2602,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');
@@ -2516,7 +2615,7 @@ describe('Workbench page', () => {
     initKueueEnabledForStatusModal();
     workbenchPage.visit('test-project');
     const notebookRow = workbenchPage.getNotebookRow('Test Notebook');
-    notebookRow.findHaveNotebookStatusText().should('have.text', 'Running');
+    notebookRow.findHaveNotebookStatusText().should('have.text', 'Ready');
     notebookRow.findHaveNotebookStatusText().click();
 
     workbenchStatusModal.find().should('be.visible');

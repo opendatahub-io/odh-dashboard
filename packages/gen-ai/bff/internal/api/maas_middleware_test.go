@@ -34,7 +34,7 @@ func TestAttachMaaSClient(t *testing.T) {
 			assert.NotNil(t, client)
 			// Verify the mock client is attached and is functional
 			mockClient := client.(*maasmocks.MockMaaSClient)
-			models, err := mockClient.ListModels(r.Context())
+			models, err := mockClient.ListModels(r.Context(), "")
 			assert.NoError(t, err)
 			assert.Len(t, models, 5) // Our mock returns 5 models
 			w.WriteHeader(http.StatusOK)

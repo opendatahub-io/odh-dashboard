@@ -36,6 +36,7 @@ import {
 import { CatalogArtifacts, CatalogModel, CatalogModelDetailsParams } from '~/app/modelCatalogTypes';
 import { getCatalogModelDetailsRoute } from '~/app/routes/modelCatalog/catalogModelDetails';
 import {
+  getCatalogModelTypePropertyForRegistration,
   getModelArtifactUri,
   getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
@@ -81,7 +82,11 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
     jobResourceName: '',
     modelRegistry: preferredModelRegistry.name,
     namespace: '',
-    modelCustomProperties: { ...getLabelsFromCustomProperties(model?.customProperties), ...tasks },
+    modelCustomProperties: {
+      ...getLabelsFromCustomProperties(model?.customProperties),
+      ...tasks,
+      ...getCatalogModelTypePropertyForRegistration(model?.customProperties),
+    },
     versionCustomProperties: {
       ...model?.customProperties,
       License: {
@@ -105,6 +110,7 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
     hasAccess: namespaceHasAccess,
     isLoading: isNamespaceAccessLoading,
     error: namespaceAccessError,
+    cannotCheck: namespaceCannotCheck,
   } = useCheckNamespaceRegistryAccess(
     preferredModelRegistry.name,
     registryNamespace,
@@ -243,6 +249,8 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
                 setData={setData}
                 hasModelNameError={hasModelNameError}
                 isModelNameDuplicate={isModelNameDuplicate}
+                isModelTypeRequired
+                isModelTypeReadOnly
               />
               <RegistrationCommonFormSections
                 formData={formData}
@@ -252,6 +260,8 @@ const RegisterCatalogModelForm: React.FC<RegisterCatalogModelFormProps> = ({
                 namespaceHasAccess={namespaceHasAccess}
                 isNamespaceAccessLoading={isNamespaceAccessLoading}
                 namespaceAccessError={namespaceAccessError}
+                namespaceCannotCheck={namespaceCannotCheck}
+                registryName={preferredModelRegistry.name}
               />
             </StackItem>
           </Stack>

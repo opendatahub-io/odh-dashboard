@@ -11,8 +11,21 @@ class PipelineRunFilterBar extends PipelineFilterBar {
     return cy.findByTestId('search-for-run-name');
   }
 
-  findExperimentSelect() {
-    return cy.findByTestId('experiment-toggle-button');
+  findRunGroupSelect() {
+    return cy.findByTestId('run-group-toggle-button');
+  }
+
+  selectRunGroupByName(name: string) {
+    this.findRunGroupSelect().click();
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cy.findByTestId('run-group-selector-table-list')
+      .contains('td', new RegExp(`^${escaped}$`))
+      .click();
+    return this;
+  }
+
+  findMlflowExperimentSelect() {
+    return cy.findByTestId('mlflow-experiment-selector-toggle');
   }
 
   findPipelineVersionSelect() {
@@ -59,12 +72,6 @@ class PipelineRunFilterBar extends PipelineFilterBar {
   selectPipelineVersionByName(name: string) {
     this.findPipelineVersionSelect().click();
     cy.findByTestId('pipeline-version-selector-table-list').find('td').contains(name).click();
-    return this;
-  }
-
-  selectExperimentByName(name: string) {
-    this.findExperimentSelect().click();
-    cy.findByTestId('experiment-selector-table-list').find('td').contains(name).click();
     return this;
   }
 

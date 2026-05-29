@@ -11,9 +11,8 @@ import {
   Label,
   Popover,
   Skeleton,
-  Truncate,
 } from '@patternfly/react-core';
-import { ChartBarIcon } from '@patternfly/react-icons';
+import { CheckCircleIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { CatalogModel, CatalogSource } from '~/app/modelCatalogTypes';
 import { catalogModelDetailsFromModel } from '~/app/routes/modelCatalog/catalogModel';
@@ -24,20 +23,20 @@ import {
   getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { useTempDevFeatureAvailable, TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 
 type ModelCatalogCardProps = {
   model: CatalogModel;
   source: CatalogSource | undefined;
-  truncate?: boolean;
 };
 
-const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, truncate = false }) => {
-  // Extract labels from customProperties and check for validated label
+const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) => {
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
+  const isToolCallingEnabled = useTempDevFeatureAvailable(TempDevFeature.ToolCallingConfiguration);
 
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
@@ -58,7 +57,12 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
               <Flex spaceItems={{ default: 'spaceItemsSm' }}>
                 {isValidated && (
                   <Popover bodyContent={MODEL_CATALOG_POPOVER_MESSAGES.VALIDATED}>
-                    <Label color="purple" isClickable icon={<ChartBarIcon />}>
+                    <Label
+                      variant="outline"
+                      isClickable
+                      status="success"
+                      icon={<CheckCircleIcon />}
+                    >
                       Validated
                     </Label>
                   </Popover>
@@ -85,17 +89,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
                 fontWeight: 'var(--pf-t--global--font--weight--body--bold)',
               }}
             >
-              {truncate ? (
-                <Truncate
-                  data-testid="model-catalog-card-name"
-                  content={getModelName(model.name)}
-                  position="middle"
-                  tooltipPosition="top"
-                  style={{ textDecoration: 'underline' }}
-                />
-              ) : (
-                <span data-testid="model-catalog-card-name">{getModelName(model.name)}</span>
-              )}
+              <span data-testid="model-catalog-card-name">{getModelName(model.name)}</span>
             </Button>
           </Link>
         </CardTitle>
@@ -106,6 +100,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source, trun
       <CardFooter>
         <ModelCatalogLabels
           tasks={model.tasks ?? []}
+          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
           provider={model.provider}
           labels={allLabels.filter((label) => label !== 'validated')}
           numLabels={isValidated ? 2 : 3}

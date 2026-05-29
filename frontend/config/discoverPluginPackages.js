@@ -1,18 +1,27 @@
 const { execSync } = require('child_process');
 
+// Avoids running `npm query` multiple times within the same webpack build process,
+// since both discoverPluginPackages() and getPluginPackageDetails() need this data.
+let cachedWorkspacePackages = null;
+
 /**
- * Get all workspace packages using npm query
+ * Get all workspace packages using npm query (memoized).
  * @returns {Array} Array of workspace package objects
  */
 function getWorkspacePackages() {
+  if (cachedWorkspacePackages) {
+    return cachedWorkspacePackages;
+  }
   try {
     const stdout = execSync('npm query .workspace --json', {
       encoding: 'utf8',
     });
-    return JSON.parse(stdout);
+    cachedWorkspacePackages = JSON.parse(stdout);
+    return cachedWorkspacePackages;
   } catch (error) {
     console.warn('Error querying workspaces with npm query:', error.message);
-    return [];
+    cachedWorkspacePackages = [];
+    return cachedWorkspacePackages;
   }
 }
 
@@ -74,6 +83,36 @@ function discoverPluginPackages() {
   return availablePluginNames;
 }
 
+/**
+ * Get details of plugin packages for webpack chunk grouping.
+ * Returns the short name and filesystem location for each plugin package,
+ * excluding the host internal package.
+ * @returns {{ name: string, shortName: string, location: string }[]}
+ */
+function getPluginPackageDetails() {
+  const workspacePackages = getWorkspacePackages();
+  const pluginPackages = filterPluginPackages(workspacePackages);
+  return pluginPackages
+    .filter((pkg) => {
+      if (pkg.name === '@odh-dashboard/internal') {
+        return false;
+      }
+      if (!pkg.path) {
+        console.warn(
+          `Plugin package ${pkg.name} has no path from npm query, skipping chunk grouping`,
+        );
+        return false;
+      }
+      return true;
+    })
+    .map((pkg) => ({
+      name: pkg.name,
+      shortName: pkg.name.replace(/^@[^/]+\//, ''),
+      location: pkg.path,
+    }));
+}
+
 module.exports = {
   discoverPluginPackages,
+  getPluginPackageDetails,
 };

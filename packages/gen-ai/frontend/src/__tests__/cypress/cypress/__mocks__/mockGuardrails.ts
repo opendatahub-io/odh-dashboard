@@ -1,48 +1,24 @@
 /* eslint-disable camelcase */
-import type { GuardrailModelConfig, SafetyConfigResponse } from '~/app/types';
 
 /**
- * Mock a single guardrail model configuration
- *
- * @param overrides - Partial properties to override defaults
- * @returns GuardrailModelConfig object
+ * Mock a ready NemoGuardrails CR status.
+ * Used to make GuardrailsTabContent render the panel (not the empty/loading state).
  */
-export const mockGuardrailModelConfig = (
-  overrides?: Partial<GuardrailModelConfig>,
-): GuardrailModelConfig => ({
-  model_name: 'llama-guard-3',
-  input_shield_id: 'trustyai_input',
-  output_shield_id: 'trustyai_output',
-  ...overrides,
-});
-
-/**
- * Mock safety config response with guardrail models
- *
- * @param models - Array of guardrail model configs (optional)
- * @returns SafetyConfigResponse object
- */
-export const mockSafetyConfig = (
-  models?: Partial<GuardrailModelConfig>[],
-): SafetyConfigResponse => {
-  if (!models || models.length === 0) {
-    return {
-      guardrail_models: [mockGuardrailModelConfig()],
-    };
-  }
-
-  return {
-    guardrail_models: models.map((model) => mockGuardrailModelConfig(model)),
-  };
-};
-
-/**
- * Mock an empty safety config response (no guardrails available)
- *
- * @returns SafetyConfigResponse with empty guardrail_models array
- */
-export const mockEmptySafetyConfig = (): SafetyConfigResponse => ({
-  guardrail_models: [],
+export const mockNemoGuardrailsStatus = (
+  name = 'default-guardrails',
+  phase = 'Ready',
+): Record<string, unknown> => ({
+  name,
+  phase,
+  conditions: [
+    {
+      type: 'Ready',
+      status: 'True',
+      reason: 'AsExpected',
+      message: 'NemoGuardrails is ready',
+      lastTransitionTime: new Date().toISOString(),
+    },
+  ],
 });
 
 /**

@@ -1,4 +1,5 @@
 import { DEFAULT_SYSTEM_INSTRUCTIONS } from '~/app/Chatbot/const';
+import { MLflowPromptVersion } from '~/app/types';
 
 /**
  * MCP tool selections map structure:
@@ -24,8 +25,16 @@ export interface ChatbotConfiguration {
   guardrail: string;
   guardrailUserInputEnabled: boolean;
   guardrailModelOutputEnabled: boolean;
+  guardrailSubscription: string;
   /** Whether RAG (Retrieval Augmented Generation) is enabled for this pane */
   isRagEnabled: boolean;
+  /** Which knowledge source mode is active: inline file upload or an external vector store */
+  knowledgeMode: 'inline' | 'external';
+  /** The vector store ID selected for RAG in this pane */
+  selectedVectorStoreId: string | null;
+  selectedSubscription: string;
+  activePrompt: MLflowPromptVersion | null;
+  dirtyPrompt: MLflowPromptVersion | null;
 }
 
 /**
@@ -42,8 +51,14 @@ export const DEFAULT_CONFIGURATION: ChatbotConfiguration = {
   guardrail: '',
   guardrailUserInputEnabled: false,
   guardrailModelOutputEnabled: false,
+  guardrailSubscription: '',
   // RAG default - OFF
   isRagEnabled: false,
+  knowledgeMode: 'inline',
+  selectedVectorStoreId: null,
+  selectedSubscription: '',
+  activePrompt: null,
+  dirtyPrompt: null,
 };
 
 /**
@@ -85,15 +100,26 @@ export interface ChatbotConfigStoreActions {
   updateGuardrail: (id: string, value: string) => void;
   updateGuardrailUserInputEnabled: (id: string, value: boolean) => void;
   updateGuardrailModelOutputEnabled: (id: string, value: boolean) => void;
+  updateGuardrailSubscription: (id: string, value: string) => void;
+
+  updateSelectedSubscription: (id: string, value: string) => void;
 
   // RAG toggle (per-pane)
   updateRagEnabled: (id: string, value: boolean) => void;
+  updateKnowledgeMode: (id: string, value: 'inline' | 'external') => void;
+  updateSelectedVectorStoreId: (id: string, value: string | null) => void;
+
+  updateActivePrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  updateDirtyPrompt: (id: string, prompt: MLflowPromptVersion | null) => void;
+  resetDirtyPrompt: (id: string) => void;
+  clearPromptState: (id: string, newDirtyPrompt: MLflowPromptVersion | null) => void;
 
   // Configuration management
   resetConfiguration: (initialValues?: Partial<ChatbotConfiguration>) => void;
 
   // Utility
   getConfiguration: (id: string) => ChatbotConfiguration | undefined;
+  getPromptSourceType: (id: string) => string;
 }
 
 /**

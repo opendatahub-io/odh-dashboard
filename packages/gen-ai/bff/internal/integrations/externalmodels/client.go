@@ -21,9 +21,8 @@ import (
 
 // chatCompletionRequest represents an OpenAI-compatible chat completion request
 type chatCompletionRequest struct {
-	Model     string                  `json:"model"`
-	Messages  []chatCompletionMessage `json:"messages"`
-	MaxTokens int                     `json:"max_tokens,omitempty"`
+	Model    string                  `json:"model"`
+	Messages []chatCompletionMessage `json:"messages"`
 }
 
 // chatCompletionMessage represents a message in the chat completion request
@@ -53,6 +52,11 @@ const (
 type ClientOptions struct {
 	// SkipSSRFValidation bypasses SSRF protection (testing only)
 	SkipSSRFValidation bool
+	// AllowHTTP permits HTTP (non-HTTPS) base URLs; SSRF protection still applies
+	AllowHTTP bool
+	// SkipTLSVerification skips TLS certificate verification for cluster-local services
+	// that use self-signed certificates not present in the system CA pool
+	SkipTLSVerification bool
 	// RootCAs for TLS verification (defaults to system pool if not provided)
 	RootCAs *x509.CertPool
 }
@@ -161,7 +165,7 @@ func NewExternalModelsClient(
 	}
 
 	// Basic URL validation (no DNS lookup - SSRF check happens at request time)
-	if err := validateBaseURL(baseURL, opts.SkipSSRFValidation); err != nil {
+	if err := validateBaseURL(baseURL, opts.AllowHTTP || opts.SkipSSRFValidation); err != nil {
 		return nil, err
 	}
 
@@ -178,7 +182,15 @@ func NewExternalModelsClient(
 
 	// Configure HTTP transport
 	var transport http.RoundTripper
-	if rootCAs != nil {
+	if opts.SkipTLSVerification {
+		// Skip TLS verification for cluster-local URLs
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, //nolint:gosec // cluster-local services use self-signed certs not in the system CA pool
+				MinVersion:         tls.VersionTLS12,
+			},
+		}
+	} else if rootCAs != nil {
 		transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs:    rootCAs,
@@ -222,15 +234,14 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 			Messages: []chatCompletionMessage{
 				{Role: "user", Content: "test"},
 			},
-			MaxTokens: 10,
 		}
 		requestBody, err = json.Marshal(chatReq)
 		if err != nil {
 			return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to marshal chat request: %v", err))
 		}
 	} else {
-		// Embeddings test - send minimal request to validate endpoint compatibility
-		endpoint = "/embeddings"
+		// Embeddings test - send minimal request to validate endpoint compatibility - LLS appends the /v1 here
+		endpoint = "/v1/embeddings"
 		embeddingReq := embeddingRequest{
 			Model:      modelID,
 			Input:      "test",
@@ -253,8 +264,10 @@ func (c *ExternalModelsClient) VerifyModel(ctx context.Context, modelID string, 
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	// Set headers
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	// Set headers — omit Authorization over plain HTTP to avoid leaking tokens
+	if c.apiKey != "" && req.URL.Scheme == "https" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	// SSRF protection: validate destination at request time (prevents DNS rebinding attacks)

@@ -37,8 +37,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	// Import the typed LlamaStackDistribution types
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	// Import the typed OGXServer types
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	// Import KServe types
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
@@ -64,7 +64,7 @@ const (
 	// Gen-ai playground LLS distribution name
 	lsdName = "lsd-genai-playground"
 
-	// Label for LSD identification
+	// Label for dashboard-managed OGXServer identification
 	OpenDataHubDashboardLabelKey = "opendatahub.io/dashboard"
 
 	// Labels for identifying KServe services
@@ -76,11 +76,6 @@ const (
 	// Annotation for authentication
 	authAnnotationKey = "security.opendatahub.io/enable-auth"
 )
-
-type modelProviderInfoEntry struct {
-	providerID  string
-	tokenEnvVar string
-}
 
 type modelDetailsResult struct {
 	modelID     string
@@ -205,8 +200,8 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 		return nil, fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	// Use CopyConfig for explicit, clean copying
-	cfg := rest.CopyConfig(baseConfig)
+	// Start with an anonymous config to avoid preloaded auth
+	cfg := rest.AnonymousClientConfig(baseConfig)
 	cfg.BearerToken = token
 
 	// Explicitly clear all other auth mechanisms
@@ -216,7 +211,7 @@ func newTokenKubernetesClient(token string, logger *slog.Logger, envConfig confi
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
 
-	// Build custom scheme with LlamaStackDistribution types
+	// Build custom scheme with OGXServer types
 	scheme, err := helper.BuildScheme()
 	if err != nil {
 		logger.Error("failed to build scheme", "error", err)
@@ -254,7 +249,7 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, identity *in
 	}
 
 	// Create a dynamic client with user token
-	userConfig := rest.CopyConfig(kc.Config)
+	userConfig := rest.AnonymousClientConfig(kc.Config)
 	userConfig.BearerToken = identity.Token
 	userConfig.BearerTokenFile = ""
 
@@ -335,7 +330,7 @@ func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -367,8 +362,8 @@ func (kc *TokenKubernetesClient) CanListNamespaces(ctx context.Context, identity
 	return resp.Status.Allowed, nil
 }
 
-// CanListLlamaStackDistributions performs a SubjectAccessReview to check if the user has permission to list LlamaStackDistribution resources
-func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
+// CanListOGXServers performs a SubjectAccessReview to check if the user has permission to list OGXServer resources
+func (kc *TokenKubernetesClient) CanListOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -379,7 +374,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -390,13 +385,13 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 		return false, fmt.Errorf("failed to create kubernetes clientset: %w", err)
 	}
 
-	// Create SelfSubjectAccessReview to check if user can list LlamaStackDistribution resources
+	// Create SelfSubjectAccessReview to check if user can list OGXServer resources
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
 				Verb:      "list",
-				Group:     "llamastack.io",
-				Resource:  "llamastackdistributions",
+				Group:     "ogx.io",
+				Resource:  "ogxservers",
 				Namespace: namespace,
 			},
 		},
@@ -404,7 +399,7 @@ func (kc *TokenKubernetesClient) CanListLlamaStackDistributions(ctx context.Cont
 
 	resp, err := clientset.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform LlamaStackDistribution list SAR", "error", err)
+		kc.Logger.Error("failed to perform OGXServer list SAR", "error", err)
 		return false, wrapK8sSubjectAccessReviewError(err, namespace)
 	}
 
@@ -423,7 +418,7 @@ func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Conte
 	}
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -455,11 +450,11 @@ func (kc *TokenKubernetesClient) CanListGuardrailsOrchestrator(ctx context.Conte
 	return resp.Status.Allowed, nil
 }
 
-func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*lsdapi.LlamaStackDistributionList, error) {
+func (kc *TokenKubernetesClient) GetOGXServers(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*ogxapi.OGXServerList, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	lsdList := &lsdapi.LlamaStackDistributionList{}
+	serverList := &ogxapi.OGXServerList{}
 
 	listOptions := &client.ListOptions{
 		Namespace: namespace,
@@ -467,12 +462,45 @@ func (kc *TokenKubernetesClient) GetLlamaStackDistributions(ctx context.Context,
 			OpenDataHubDashboardLabelKey: "true",
 		}),
 	}
-	err := kc.Client.List(ctx, lsdList, listOptions)
+	err := kc.Client.List(ctx, serverList, listOptions)
 	if err != nil {
-		kc.Logger.Error("failed to list LlamaStackDistributions", "error", err, "namespace", namespace)
+		kc.Logger.Error("failed to list OGXServers", "error", err, "namespace", namespace)
 		return nil, err
 	}
-	return lsdList, nil
+	return serverList, nil
+}
+
+// GetNemoGuardrailsServiceURL lists NemoGuardrails CRs (trustyai.opendatahub.io/v1alpha1)
+// in the namespace and derives the in-cluster service URL from the first CR found.
+// The TrustyAI operator creates a Service with the same name as the CR on port 443.
+// Returns ("", nil) if no NemoGuardrails CR exists in the namespace.
+func (kc *TokenKubernetesClient) GetNemoGuardrailsServiceURL(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	list := &unstructured.UnstructuredList{}
+	list.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "trustyai.opendatahub.io",
+		Version: "v1alpha1",
+		Kind:    "NemoGuardrailsList",
+	})
+
+	if err := kc.Client.List(ctx, list, client.InNamespace(namespace)); err != nil {
+		kc.Logger.Error("failed to list NemoGuardrails CRs", "error", err, "namespace", namespace)
+		return "", fmt.Errorf("failed to list NemoGuardrails CRs: %w", err)
+	}
+
+	if len(list.Items) == 0 {
+		return "", nil
+	}
+
+	crName := list.Items[0].GetName()
+	serviceURL := fmt.Sprintf("https://%s.%s.svc.cluster.local:443", crName, namespace)
+	kc.Logger.Debug("Discovered NemoGuardrails service URL from CR",
+		"namespace", namespace,
+		"crName", crName,
+		"serviceURL", serviceURL)
+	return serviceURL, nil
 }
 
 func (kc *TokenKubernetesClient) BearerToken() (string, error) {
@@ -485,7 +513,7 @@ func (kc *TokenKubernetesClient) GetUser(ctx context.Context, identity *integrat
 	defer cancel()
 
 	// Create a new config with the token from the request identity
-	config := rest.CopyConfig(kc.Config)
+	config := rest.AnonymousClientConfig(kc.Config)
 	config.BearerToken = identity.Token
 	config.BearerTokenFile = ""
 
@@ -543,6 +571,170 @@ func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, identity *int
 	}
 
 	return configMap, nil
+}
+
+// ValidatedVectorStore pairs a VectorIOProvider with its associated RegisteredVectorStore
+// after they have been correlated by provider_id from the gen-ai-aa-vector-stores ConfigMap.
+type ValidatedVectorStore struct {
+	Provider        models.VectorIOProvider
+	RegisteredStore models.RegisteredVectorStore
+	// CredEnvVarName is the env var name (e.g. "VS_CREDENTIAL_1") that will hold the
+	// credential value at runtime. Empty when the provider has no credentials.
+	CredEnvVarName string
+	// CredSecretRef is the K8s secret reference from custom_gen_ai.credentials.secretRefs.
+	// Nil when the provider has no credentials.
+	CredSecretRef *models.SecretKeyRef
+}
+
+// getVectorStoresConfig retrieves and parses the gen-ai-aa-vector-stores ConfigMap.
+// The GetConfigMap error is returned unwrapped so callers can inspect it (e.g. apierrors.IsNotFound).
+func (kc *TokenKubernetesClient) getVectorStoresConfig(
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+) (*models.ExternalVectorStoresDocument, error) {
+	configMap, err := kc.GetConfigMap(ctx, identity, namespace, constants.VectorStoresConfigMapName)
+	if err != nil {
+		return nil, err
+	}
+
+	storesYAML, ok := configMap.Data[constants.VectorStoresYAMLKey]
+	if !ok || storesYAML == "" {
+		return nil, fmt.Errorf("%s key not found in ConfigMap %s", constants.VectorStoresYAMLKey, constants.VectorStoresConfigMapName)
+	}
+
+	var doc models.ExternalVectorStoresDocument
+	if err := yaml.Unmarshal([]byte(storesYAML), &doc); err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %w", constants.VectorStoresYAMLKey, err)
+	}
+
+	return &doc, nil
+}
+
+// GetVectorStoresConfig retrieves and parses the gen-ai-aa-vector-stores ConfigMap.
+// This is the public interface method; identity is not required because the client
+// uses its own configured auth context.
+func (kc *TokenKubernetesClient) GetVectorStoresConfig(ctx context.Context, namespace string) (*models.ExternalVectorStoresDocument, error) {
+	return kc.getVectorStoresConfig(ctx, nil, namespace)
+}
+
+// validateVectorStores looks up each requested vector store in the parsed config document,
+// correlates it with its provider entry by provider_id, assigns credential env vars for
+// providers that need them, and returns the ordered slice.
+func validateVectorStores(vectorStores []models.InstallVectorStore, doc *models.ExternalVectorStoresDocument) ([]ValidatedVectorStore, error) {
+	providersByID := make(map[string]models.VectorIOProvider, len(doc.Providers.VectorIO))
+	for _, p := range doc.Providers.VectorIO {
+		providersByID[p.ProviderID] = p
+	}
+	registeredByID := make(map[string]models.RegisteredVectorStore, len(doc.RegisteredResources.VectorStores))
+	for _, s := range doc.RegisteredResources.VectorStores {
+		registeredByID[s.VectorStoreID] = s
+	}
+
+	// credByProvider tracks the VS_CREDENTIAL_N env var name and secret ref assigned to each
+	// provider on first encounter. Providers without credentials map to the zero value (empty name, nil ref).
+	type providerCred struct {
+		envVarName string
+		secretRef  *models.SecretKeyRef
+	}
+	credByProvider := make(map[string]providerCred)
+	credCounter := 0
+
+	result := make([]ValidatedVectorStore, 0, len(vectorStores))
+	for _, vs := range vectorStores {
+		registered, found := registeredByID[vs.VectorStoreID]
+		if !found {
+			return nil, fmt.Errorf("vector store %q not found in ConfigMap %s", vs.VectorStoreID, constants.VectorStoresConfigMapName)
+		}
+		if registered.EmbeddingModel == "" {
+			return nil, fmt.Errorf("vector store %q has empty embedding_model", vs.VectorStoreID)
+		}
+
+		provider, found := providersByID[registered.ProviderID]
+		if !found {
+			return nil, fmt.Errorf("vector store %q references provider_id %q which was not found in providers.vector_io", vs.VectorStoreID, registered.ProviderID)
+		}
+
+		cred, seen := credByProvider[provider.ProviderID]
+		if !seen {
+			secretRef := extractCredentialSecretRef(provider.Config.CustomGenAI)
+			if secretRef != nil {
+				credCounter++
+				cred = providerCred{
+					envVarName: fmt.Sprintf("VS_CREDENTIAL_%s_%d", sanitizeEnvVarSegment(provider.ProviderID), credCounter),
+					secretRef:  secretRef,
+				}
+			}
+			credByProvider[provider.ProviderID] = cred
+		}
+
+		result = append(result, ValidatedVectorStore{
+			Provider:        provider,
+			RegisteredStore: registered,
+			CredEnvVarName:  cred.envVarName,
+			CredSecretRef:   cred.secretRef,
+		})
+	}
+
+	return result, nil
+}
+
+// LoadAndValidateVectorStores reads the gen-ai-aa-vector-stores ConfigMap, looks up each
+// requested vector store by vector_store_id, correlates it with its provider entry by
+// provider_id, and returns the ordered slice. Exported so the mock can reuse this logic.
+func (kc *TokenKubernetesClient) LoadAndValidateVectorStores(
+	ctx context.Context,
+	identity *integrations.RequestIdentity,
+	namespace string,
+	vectorStores []models.InstallVectorStore,
+) ([]ValidatedVectorStore, error) {
+	doc, err := kc.getVectorStoresConfig(ctx, identity, namespace)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("vector stores were supplied but the %s ConfigMap was not found in namespace %s", constants.VectorStoresConfigMapName, namespace)
+		}
+		return nil, fmt.Errorf("failed to get vector stores ConfigMap: %w", err)
+	}
+
+	return validateVectorStores(vectorStores, doc)
+}
+
+// sanitizeEnvVarSegment converts s into a safe env var name segment by uppercasing it,
+// replacing any character that is not A-Z, 0-9, or _ with an underscore, and truncating
+// to 50 characters to keep env var names manageable.
+const maxEnvVarSegmentLen = 50
+
+func sanitizeEnvVarSegment(s string) string {
+	result := strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' {
+			return r
+		}
+		if r >= 'a' && r <= 'z' {
+			return r - 32 // to uppercase
+		}
+		return '_'
+	}, s)
+	if len(result) > maxEnvVarSegmentLen {
+		result = result[:maxEnvVarSegmentLen]
+	}
+	return result
+}
+
+// extractCredentialSecretRef returns the first secretRef from custom_gen_ai.credentials.secretRefs
+// that has a non-empty name and key. The key is used directly as the LlamaStack provider config
+// field name (e.g. "password" for pgvector, "token" for milvus, "api_key" for qdrant), so the
+// platform engineer controls the mapping without any BFF-side provider type lookup.
+// Returns nil if no valid ref is found.
+func extractCredentialSecretRef(cga *models.CustomGenAIConfig) *models.SecretKeyRef {
+	if cga == nil || cga.Credentials == nil {
+		return nil
+	}
+	for _, ref := range cga.Credentials.SecretRefs {
+		if ref.Name != "" && ref.Key != "" {
+			return &models.SecretKeyRef{Name: ref.Name, Key: ref.Key}
+		}
+	}
+	return nil
 }
 
 // GetGuardrailsOrchestratorStatus lists GuardrailsOrchestrators in the namespace and returns the first one found.
@@ -992,7 +1184,7 @@ func (kc *TokenKubernetesClient) extractEndpointsFromLLMInferenceService(llmSvc 
 		}
 	}
 
-	var endpoints []string
+	endpoints := []string{}
 	if internalURL != "" {
 		endpoints = append(endpoints, fmt.Sprintf("internal: %s", internalURL))
 	}
@@ -1059,6 +1251,11 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 		return nil, fmt.Errorf("failed to unmarshal external models config: %w", err)
 	}
 
+	if err := kc.validateExternalModelsConfig(&config); err != nil {
+		kc.Logger.Error("external models config failed validation", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("invalid external models ConfigMap: %w", err)
+	}
+
 	// Build a map of provider ID to provider for quick lookup
 	providerMap := make(map[string]models.InferenceProvider)
 	for _, provider := range config.Providers.Inference {
@@ -1083,28 +1280,21 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 			useCases = model.Metadata.CustomGenAI.UseCases
 		}
 
-		// Determine model source type based on URL
-		sourceType := models.ModelSourceTypeExternalProvider
-		endpoint := fmt.Sprintf("external: %s", provider.Config.BaseURL)
-		if helper.IsClusterLocalURL(provider.Config.BaseURL) {
-			sourceType = models.ModelSourceTypeExternalCluster
-			endpoint = fmt.Sprintf("internal: %s", provider.Config.BaseURL)
-		}
-
 		aaModel := models.AAModel{
-			ModelName:       model.ModelID,
-			ModelID:         model.ModelID,
-			DisplayName:     model.Metadata.DisplayName,
-			ServingRuntime:  string(provider.ProviderType),
-			APIProtocol:     "REST",
-			Version:         "",
-			Usecase:         useCases,
-			Description:     "",
-			Endpoints:       []string{endpoint},
-			Status:          "Running",
-			SAToken:         models.SAToken{},
-			ModelSourceType: sourceType,
-			ModelType:       model.ModelType,
+			ModelName:          model.ModelID,
+			ModelID:            model.ModelID,
+			DisplayName:        model.Metadata.DisplayName,
+			ServingRuntime:     string(provider.ProviderType),
+			APIProtocol:        "REST",
+			Version:            "",
+			Usecase:            useCases,
+			Description:        "",
+			Endpoints:          []string{provider.Config.BaseURL},
+			Status:             models.ModelStatusUnknown,
+			SAToken:            models.SAToken{},
+			ModelSourceType:    models.ModelSourceTypeCustomEndpoint,
+			ModelType:          model.ModelType,
+			EmbeddingDimension: model.Metadata.EmbeddingDimension,
 		}
 		aaModels = append(aaModels, aaModel)
 	}
@@ -1117,53 +1307,18 @@ func (kc *TokenKubernetesClient) GetAAModelsFromExternalModels(ctx context.Conte
 
 // findGuardrailsServiceAccountTokenSecret finds the token secret for the guardrails service account
 // This follows the same pattern as VLLM token discovery - finding SA token secrets by type and annotation
-func (kc *TokenKubernetesClient) findGuardrailsServiceAccountTokenSecret(ctx context.Context, namespace string) (string, error) {
-	// Look for the guardrails service account
-	saName := constants.DefaultGuardrailsServiceAccountName
-
-	// Check if the service account exists
-	var sa corev1.ServiceAccount
-	err := kc.Client.Get(ctx, types.NamespacedName{Name: saName, Namespace: namespace}, &sa)
-	if err != nil {
-		kc.Logger.Debug("guardrails service account not found", "name", saName, "namespace", namespace, "error", err)
-		return "", fmt.Errorf("guardrails service account '%s' not found in namespace '%s': %w", saName, namespace, err)
-	}
-
-	// Find the token secret for this service account (same pattern as findSecretForServiceAccount)
-	secretName := kc.findSecretForServiceAccount(ctx, namespace, saName)
-	if secretName == "" {
-		// Fallback: Search for any secret starting with "guardrails-service" that is a service account token
-		var secretList corev1.SecretList
-		err := kc.Client.List(ctx, &secretList, client.InNamespace(namespace))
-		if err == nil {
-			for _, secret := range secretList.Items {
-				if secret.Type == corev1.SecretTypeServiceAccountToken &&
-					strings.HasPrefix(secret.Name, "guardrails-service") {
-					kc.Logger.Debug("found guardrails token secret by prefix matching", "secretName", secret.Name)
-					return secret.Name, nil
-				}
-			}
-		}
-		kc.Logger.Debug("no token secret found for guardrails service account", "serviceAccount", saName)
-		return "", fmt.Errorf("no token secret found for guardrails service account '%s'", saName)
-	}
-
-	kc.Logger.Debug("found guardrails service account token secret", "serviceAccount", saName, "secretName", secretName)
-	return secretName, nil
-}
-
-func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, models []models.InstallModel, guardrailsFeatureEnabled bool, maasClient maas.MaaSClientInterface) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) InstallOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, installModels []models.InstallModel, vectorStores []models.InstallVectorStore, maasClient maas.MaaSClientInterface) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	// Check if LSD already exists in the namespace
-	existingLSDList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	// Check if an OGXServer already exists in the namespace
+	existingList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check for existing LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to check for existing OGXServer: %w", err)
 	}
 
-	if len(existingLSDList.Items) > 0 {
-		return nil, fmt.Errorf("LlamaStackDistribution already exists in namespace %s", namespace)
+	if len(existingList.Items) > 0 {
+		return nil, fmt.Errorf("OGXServer already exists in namespace %s", namespace)
 	}
 
 	// Step 1: Collect existing service account token secrets for each model
@@ -1175,7 +1330,7 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 
 	modelSecrets := make(map[string]modelSecretInfo)
 
-	for _, model := range models {
+	for _, model := range installModels {
 		var (
 			secretName string
 			foundType  string
@@ -1214,22 +1369,41 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 			Value: "false",
 		},
 		{
-			Name:  "MILVUS_DB_PATH",
-			Value: "~/.llama/milvus.db",
+			Name:  "FAISS_STORE_DIR",
+			Value: "~/.llama/faiss",
 		},
 		{
-			Name:  "FMS_ORCHESTRATOR_URL",
-			Value: "http://localhost",
+			Name:  "SENTENCE_TRANSFORMERS_HOME",
+			Value: "/opt/app-root/src/.cache/huggingface/hub",
 		},
 		{
-			Name:  "VLLM_MAX_TOKENS",
-			Value: "4096",
+			Name:  "HF_HUB_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "TRANSFORMERS_OFFLINE",
+			Value: "1",
+		},
+		{
+			Name:  "HF_DATASETS_OFFLINE",
+			Value: "1",
 		},
 	}
 
-	// Add token environment variables from existing secrets
-	for i, model := range models {
+	// Add per-model token and max_tokens environment variables
+	for i, model := range installModels {
 		envVarName := fmt.Sprintf("VLLM_API_TOKEN_%d", i+1)
+
+		// Per-model max_tokens: use user-specified value or default to 4096
+		maxTokensEnvName := fmt.Sprintf("VLLM_MAX_TOKENS_%d", i+1)
+		maxTokensValue := "4096"
+		if model.MaxTokens != nil {
+			maxTokensValue = strconv.Itoa(*model.MaxTokens)
+		}
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  maxTokensEnvName,
+			Value: maxTokensValue,
+		})
 
 		if secretInfo, exists := modelSecrets[model.ModelName]; exists && secretInfo.hasToken && secretInfo.secretName != "" {
 			// Only reference the secret if it actually exists and has a valid name
@@ -1268,56 +1442,80 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		}
 	}
 
-	// Step 1b: If the guardrails feature is enabled, find the guardrails service account token secret
-	// This follows the same pattern as VLLM token discovery
-	// Fail fast if the guardrails feature is enabled but the token is missing - this is a security feature
-	// and users should not have a false sense of protection from a non-functional guardrail setup
-	// The guardrailsReady variable tracks whether guardrails were successfully configured
-	// with a valid token. If guardrailsFeatureEnabled is true and the orchestrator is ready but the token
-	// cannot be found, we return an error instead of silently setting guardrailsReady to false.
-	guardrailsReady := false
+	// Step 4: Validate vector stores and inject credential env vars for providers that need them.
+	var validatedVectorStores []ValidatedVectorStore
+	if len(vectorStores) > 0 {
+		validatedVectorStores, err = kc.LoadAndValidateVectorStores(ctx, identity, namespace, vectorStores)
+		if err != nil {
+			return nil, err
+		}
 
-	// Only auto-detect infrastructure if feature flag is enabled
-	if guardrailsFeatureEnabled {
-		guardrailStatus, err := kc.GetGuardrailsOrchestratorStatus(ctx, identity, namespace)
-		if err == nil && guardrailStatus.Phase == constants.GuardrailsPhaseReady {
-			guardrailsTokenSecret, tokenErr := kc.findGuardrailsServiceAccountTokenSecret(ctx, namespace)
-			if tokenErr != nil {
-				return nil, fmt.Errorf("guardrails are enabled but token secret could not be found: %w", tokenErr)
+		// Inject one env var per unique provider credential (deduped by env var name).
+		injectedEnvVars := make(map[string]bool)
+		for _, vs := range validatedVectorStores {
+			if vs.CredEnvVarName == "" || injectedEnvVars[vs.CredEnvVarName] {
+				continue
 			}
+
+			// Verify the credential secret exists and contains the expected key before
+			// referencing it in the OGX server pod spec. This gives a clear error at install time
+			// rather than a cryptic pod failure after the OGXServer is created.
+			var secret corev1.Secret
+			if err := kc.Client.Get(ctx, types.NamespacedName{
+				Name:      vs.CredSecretRef.Name,
+				Namespace: namespace,
+			}, &secret); err != nil {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q not found in namespace %s: %w",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, namespace, err)
+			}
+			if _, ok := secret.Data[vs.CredSecretRef.Key]; !ok {
+				return nil, fmt.Errorf("vector store provider %q credential secret %q is missing key %q",
+					vs.Provider.ProviderID, vs.CredSecretRef.Name, vs.CredSecretRef.Key)
+			}
+
 			envVars = append(envVars, corev1.EnvVar{
-				Name: constants.GuardrailAuthTokenEnvName,
+				Name: vs.CredEnvVarName,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: guardrailsTokenSecret,
-						},
-						Key: "token",
+						LocalObjectReference: corev1.LocalObjectReference{Name: vs.CredSecretRef.Name},
+						Key:                  vs.CredSecretRef.Key,
 					},
 				},
 			})
-			guardrailsReady = true
-			kc.Logger.Debug("Added guardrails auth token from secret", "secretName", guardrailsTokenSecret, "envVar", constants.GuardrailAuthTokenEnvName)
+			injectedEnvVars[vs.CredEnvVarName] = true
+			kc.Logger.Debug("Injected vector store credential env var",
+				"envVar", vs.CredEnvVarName, "secret", vs.CredSecretRef.Name, "key", vs.CredSecretRef.Key)
 		}
 	}
 
-	// Step 2: Generate ConfigMap content first (before creating LSD)
+	// Step 5: Generate ConfigMap content first (before creating OGXServer)
 	configMapName := "llama-stack-config"
-	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, models, guardrailsReady, maasClient)
+	userAuthToken := ""
+	for _, model := range installModels {
+		if model.ModelSourceType == models.ModelSourceTypeMaaS {
+			if identity.Token == "" {
+				return nil, fmt.Errorf("user auth token is required to install MaaS models")
+			}
+			userAuthToken = identity.Token
+			break
+		}
+	}
+	runYAML, err := kc.generateLlamaStackConfig(ctx, namespace, installModels, validatedVectorStores, maasClient, userAuthToken)
 	if err != nil {
 		kc.Logger.Error("failed to generate Llama Stack configuration", "error", err, "namespace", namespace)
 		return nil, fmt.Errorf("failed to generate Llama Stack configuration: %w", err)
 	}
 
-	// Step 3: Create ConfigMap BEFORE creating LSD (without owner reference yet)
-	// This prevents the LSD from failing with "ConfigMap not found" during initial reconciliation
+	// Step 6: Create ConfigMap BEFORE creating OGXServer (without owner reference yet)
+	// This prevents the OGXServer from failing with "ConfigMap not found" during initial reconciliation
 	configMap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
 			Namespace: namespace,
 			Labels: map[string]string{
 				OpenDataHubDashboardLabelKey: "true",
-				"llamastack.io/distribution": lsdName,
+				"ogx.io/server":              lsdName,
+				"ogx.io/watch":               "true",
 			},
 		},
 		Data: map[string]string{
@@ -1330,10 +1528,21 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
 	}
 
-	kc.Logger.Info("ConfigMap created successfully (before LSD creation)", "namespace", namespace, "configMapName", configMapName)
+	kc.Logger.Info("ConfigMap created successfully (before OGXServer creation)", "namespace", namespace, "configMapName", configMapName)
 
-	// Step 4: Create LlamaStackDistribution
-	lsd := &lsdapi.LlamaStackDistribution{
+	// Step 7: Create OGXServer
+	replicas := int32(1)
+	workloadResources := &corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("250m"),
+			corev1.ResourceMemory: resource.MustParse("500Mi"),
+		},
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("2"),
+			corev1.ResourceMemory: resource.MustParse("12Gi"),
+		},
+	}
+	ogxServer := &ogxapi.OGXServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      lsdName,
 			Namespace: namespace,
@@ -1344,76 +1553,59 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 				OpenDataHubDashboardLabelKey: "true",
 			},
 		},
-		Spec: lsdapi.LlamaStackDistributionSpec{
-			Replicas: 1,
-			Network: &lsdapi.NetworkSpec{
-				AllowedFrom: &lsdapi.AllowedFromSpec{
-					Namespaces: []string{namespace},
+		Spec: ogxapi.OGXServerSpec{
+			Distribution: func() ogxapi.DistributionSpec {
+				name := kc.EnvConfig.DistributionName
+				if strings.Contains(name, "/") || strings.Contains(name, ":") {
+					return ogxapi.DistributionSpec{Image: name}
+				}
+				return ogxapi.DistributionSpec{Name: name}
+			}(),
+			OverrideConfig: &ogxapi.ConfigMapKeyRef{
+				Name: configMapName,
+				Key:  constants.LlamaStackConfigYAMLKey,
+			},
+			Workload: &ogxapi.WorkloadSpec{
+				Replicas:  &replicas,
+				Resources: workloadResources,
+				Overrides: &ogxapi.WorkloadOverrides{
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
+					Env: append(envVars, corev1.EnvVar{
+						Name:  "OGX_CONFIG_DIR",
+						Value: "/opt/app-root/src/.ogx/distributions/rh/",
+					}),
 				},
 			},
-			Server: lsdapi.ServerSpec{
-				ContainerSpec: lsdapi.ContainerSpec{
-					Command: []string{"/bin/sh", "-c", "llama stack run /etc/llama-stack/config.yaml"},
-					Resources: corev1.ResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("250m"),
-							corev1.ResourceMemory: resource.MustParse("500Mi"),
-						},
-						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("2"),
-							corev1.ResourceMemory: resource.MustParse("12Gi"),
-						},
-					},
-					Env: append(envVars, corev1.EnvVar{
-						Name:  "LLAMA_STACK_CONFIG_DIR",
-						Value: "/opt/app-root/src/.llama/distributions/rh/",
-					}),
-					Name: "llama-stack",
-					Port: 8321,
-				},
-				Distribution: func() lsdapi.DistributionType {
-					// Check if distributionName contains registry patterns indicating it's a container image
-					name := kc.EnvConfig.DistributionName
-					if strings.Contains(name, "/") || strings.Contains(name, ":") {
-						return lsdapi.DistributionType{
-							Image: name,
-						}
-					}
-					return lsdapi.DistributionType{
-						Name: name,
-					}
-				}(),
-				UserConfig: &lsdapi.UserConfigSpec{
-					ConfigMapName: configMapName,
-				},
+			Network: &ogxapi.NetworkSpec{
+				Port: 8321,
 			},
 		},
 	}
 
-	// Create the LlamaStackDistribution
-	if err := kc.Client.Create(ctx, lsd); err != nil {
-		kc.Logger.Error("failed to create LlamaStackDistribution", "error", err, "namespace", namespace, "lsdName", lsdName)
+	// Create the OGXServer
+	if err := kc.Client.Create(ctx, ogxServer); err != nil {
+		kc.Logger.Error("failed to create OGXServer", "error", err, "namespace", namespace, "lsdName", lsdName)
 
-		// Clean up the ConfigMap we just created since LSD creation failed
+		// Clean up the ConfigMap we just created since OGXServer creation failed
 		if deleteErr := kc.Client.Delete(ctx, configMap); deleteErr != nil {
-			kc.Logger.Error("failed to clean up ConfigMap after LSD creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
+			kc.Logger.Error("failed to clean up ConfigMap after OGXServer creation failure", "error", deleteErr, "namespace", namespace, "configMapName", configMapName)
 		} else {
-			kc.Logger.Info("ConfigMap cleaned up after LSD creation failure", "namespace", namespace, "configMapName", configMapName)
+			kc.Logger.Info("ConfigMap cleaned up after OGXServer creation failure", "namespace", namespace, "configMapName", configMapName)
 		}
 
-		return nil, fmt.Errorf("failed to create LlamaStackDistribution: %w", err)
+		return nil, fmt.Errorf("failed to create OGXServer: %w", err)
 	}
 
-	kc.Logger.Info("LlamaStackDistribution created successfully", "namespace", namespace, "lsdName", lsdName, "models", models)
+	kc.Logger.Info("OGXServer created successfully", "namespace", namespace, "lsdName", lsdName, "models", installModels)
 
-	// Step 5: Update ConfigMap to add owner reference to the LSD
-	// This ensures the ConfigMap is garbage collected when the LSD is deleted
+	// Step 8: Update ConfigMap to add owner reference to the OGXServer
+	// This ensures the ConfigMap is garbage collected when the OGXServer is deleted
 	configMap.OwnerReferences = []metav1.OwnerReference{
 		{
-			APIVersion:         "llamastack.io/v1alpha1",
-			Kind:               "LlamaStackDistribution",
+			APIVersion:         "ogx.io/v1beta1",
+			Kind:               "OGXServer",
 			Name:               lsdName,
-			UID:                lsd.UID,
+			UID:                ogxServer.UID,
 			Controller:         &[]bool{true}[0],
 			BlockOwnerDeletion: &[]bool{false}[0],
 		},
@@ -1422,13 +1614,13 @@ func (kc *TokenKubernetesClient) InstallLlamaStackDistribution(ctx context.Conte
 	if err := kc.Client.Update(ctx, configMap); err != nil {
 		kc.Logger.Error("failed to update ConfigMap with owner reference", "error", err, "namespace", namespace, "configMapName", configMapName)
 		// Don't fail the entire operation, just log the warning
-		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when LSD is deleted")
-		// Continue without failing - the LSD is created successfully
+		kc.Logger.Warn("ConfigMap will not be automatically garbage collected when OGXServer is deleted")
+		// Continue without failing - the OGXServer is created successfully
 	} else {
 		kc.Logger.Info("ConfigMap updated with owner reference", "namespace", namespace, "configMapName", configMapName, "owner", lsdName)
 	}
 
-	return lsd, nil
+	return ogxServer, nil
 }
 
 // ensureVLLMCompatibleURL ensures the URL has /v1 suffix for vLLM provider compatibility
@@ -1443,8 +1635,37 @@ func ensureVLLMCompatibleURL(url string) string {
 	return url + "/v1"
 }
 
+// buildEmbeddingModelLookup returns a map from user-supplied embedding_model values
+// as found in entries under registered_resources > vector_stores in the gen-ai-aa-vector-stores ConfigMap,
+// to the full LlamaStack model identifier (provider_id/effective_provider_model_id),
+// mirroring the logic in llama-stack models.py: identifier = f"{provider_id}/{provider_model_id or model_id}"
+// Both model_id and provider_model_id are added as keys so the lookup succeeds regardless
+// of which value the admin used in the ConfigMap.
+// Example of lookup entries this would produce:
+//
+//	embedding_model: ibm-granite/granite-embedding-125m-english -> sentence-transformers/ibm-granite/granite-embedding-125m-english
+//	embedding_model: RedHatAI/granite-embedding-english-r2      -> granite-embed-provider/RedHatAI/granite-embedding-english-r2
+func buildEmbeddingModelLookup(ms []Model) map[string]string {
+	lookup := make(map[string]string, len(ms))
+	for _, m := range ms {
+		if m.ModelType != string(models.ModelTypeEmbedding) {
+			continue
+		}
+		effectiveProviderModelID := m.ProviderModelID
+		if effectiveProviderModelID == "" {
+			effectiveProviderModelID = m.ModelID
+		}
+		identifier := fmt.Sprintf("%s/%s", m.ProviderID, effectiveProviderModelID)
+		lookup[m.ModelID] = identifier
+		if m.ProviderModelID != "" {
+			lookup[m.ProviderModelID] = identifier
+		}
+	}
+	return lookup
+}
+
 // generateLlamaStackConfig generates the Llama Stack configuration YAML
-func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, enableGuardrails bool, maasClient maas.MaaSClientInterface) (string, error) {
+func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, namespace string, installModels []models.InstallModel, vectorStores []ValidatedVectorStore, maasClient maas.MaaSClientInterface, userAuthToken string) (string, error) {
 	// Create a new config to build
 	config := NewDefaultLlamaStackConfig()
 
@@ -1461,8 +1682,10 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		}
 
 		if hasMaaSModels {
-			// Get all MaaS models once
-			maasModels, err := maasClient.ListModels(ctx)
+			if userAuthToken == "" {
+				return "", fmt.Errorf("user auth token is required to list MaaS models")
+			}
+			maasModels, err := maasClient.ListModels(ctx, userAuthToken)
 			if err != nil {
 				kc.Logger.Error("failed to list MaaS models", "error", err)
 				return "", fmt.Errorf("failed to list MaaS models: %w", err)
@@ -1492,7 +1715,7 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	var externalModelsConfig *models.ExternalModelsConfig
 	for _, model := range installModels {
 		if models.IsExternalModelSource(model.ModelSourceType) {
-			cfg, err := kc.getExternalModelsConfig(ctx, namespace)
+			cfg, err := kc.GetExternalModelsConfig(ctx, namespace)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					return "", fmt.Errorf("external models ConfigMap not found in namespace %s", namespace)
@@ -1504,9 +1727,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			break
 		}
 	}
-
-	// Track provider IDs and token env vars for guardrails configuration
-	modelProviderInfo := make(map[string]modelProviderInfoEntry, len(installModels))
 
 	for i, model := range installModels {
 		kc.Logger.Debug("Processing model for installation", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1526,13 +1746,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 
 			// Create provider and model for MaaS model
 			providerID := fmt.Sprintf("maas-vllm-inference-%d", i+1)
-			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 			endpointURL := ensureVLLMCompatibleURL(maasModel.URL)
-			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, "llm", nil, model.MaxTokens)
+			resolvedMaaSType := model.ModelType
+			if resolvedMaaSType == "" {
+				resolvedMaaSType = "llm"
+			}
+			config.AddVLLMProviderAndModel(providerID, endpointURL, i, maasModel.ID, resolvedMaaSType, nil, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added MaaS model to configuration", "model", maasModel.ID, "endpoint", endpointURL, "maxTokens", model.MaxTokens)
-
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
 		} else if models.IsExternalModelSource(model.ModelSourceType) {
 			// Handle external models from ConfigMap
 			kc.Logger.Debug("Handling as external model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1542,13 +1762,13 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 				return "", fmt.Errorf("cannot find external model '%s': %w", model.ModelName, err)
 			}
 
-			// External models don't use env vars - secrets fetched at runtime by Llama Stack
-			config.AddExternalProviderAndModel(extDetails.providerID, extDetails.providerType, extDetails.endpointURL, i, extDetails.modelID, extDetails.modelType, extDetails.metadata, model.MaxTokens)
-			kc.Logger.Info("Added external model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
-
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: extDetails.providerID, tokenEnvVar: ""}
-
+			// Custom endpoint models don't use env vars - secrets fetched at runtime by Llama Stack
+			resolvedExtType := model.ModelType
+			if resolvedExtType == "" {
+				resolvedExtType = extDetails.modelType
+			}
+			config.AddCustomEndpointProviderAndModel(extDetails.providerID, extDetails.endpointURL, i, extDetails.modelID, resolvedExtType, extDetails.providerType, extDetails.metadata, model.MaxTokens, model.EmbeddingDimension, model.IsClusterLocal)
+			kc.Logger.Info("Added custom endpoint model to configuration", "model", extDetails.modelID, "providerID", extDetails.providerID, "endpoint", extDetails.endpointURL, "maxTokens", model.MaxTokens)
 		} else {
 			// Handle regular cluster models (InferenceService/LLMInferenceService)
 			kc.Logger.Debug("Handling as cluster model", "model", model.ModelName, "modelSourceType", model.ModelSourceType)
@@ -1559,13 +1779,86 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 			}
 
 			providerID := fmt.Sprintf("vllm-inference-%d", i+1)
-			tokenEnvVar := fmt.Sprintf("${env.VLLM_API_TOKEN_%d:=fake}", i+1)
 
-			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, details.modelType, details.metadata, model.MaxTokens)
+			resolvedClusterType := model.ModelType
+			if resolvedClusterType == "" {
+				resolvedClusterType = details.modelType
+			}
+			config.AddVLLMProviderAndModel(providerID, details.endpointURL, i, details.modelID, resolvedClusterType, details.metadata, model.MaxTokens, model.EmbeddingDimension)
 			kc.Logger.Info("Added cluster model to configuration", "model", details.modelID, "providerID", providerID, "endpoint", details.endpointURL, "maxTokens", model.MaxTokens)
+		}
+	}
 
-			// Track provider info for guardrails
-			modelProviderInfo[model.ModelName] = modelProviderInfoEntry{providerID: providerID, tokenEnvVar: tokenEnvVar}
+	// Vector stores processing happens here after all the model providers above have been processed.
+	// This allows us to know the full list of models, including default embedding model, to be included,
+	// and thus to validate that each vector store collection has an associated embedding model that will be available.
+	if len(vectorStores) > 0 {
+		// Build a map from user-supplied embedding_model in gen-ai-aa-vector-stores ConfigMap → full LlamaStack identifier.
+		embeddingModelLookup := buildEmbeddingModelLookup(config.RegisteredResources.Models)
+
+		// Collect built-in/default VectorIO provider IDs so we can detect collisions with external providers.
+		builtinProviderIDs := make(map[string]bool, len(config.Providers.VectorIO))
+		for _, p := range config.Providers.VectorIO {
+			builtinProviderIDs[p.ProviderID] = true
+		}
+
+		// Track which external providers have already been added (dedup when multiple vector stores share one provider).
+		addedProviders := make(map[string]bool)
+
+		for _, vs := range vectorStores {
+			rs := vs.RegisteredStore
+
+			// Resolve the gen-ai-aa-vector-stores ConfigMap supplied embedding_model (bare provider_model_id) to the full
+			// LlamaStack identifier (provider_id/effective_provider_model_id).
+			resolvedEmbeddingModel, ok := embeddingModelLookup[rs.EmbeddingModel]
+			if !ok {
+				return "", fmt.Errorf("vector store %q requires embedding model %q but it's not included in the registered models", rs.VectorStoreID, rs.EmbeddingModel)
+			}
+
+			// Add the provider once, copying the pass-through config fields and injecting the credential env var ref.
+			if !addedProviders[vs.Provider.ProviderID] {
+				if builtinProviderIDs[vs.Provider.ProviderID] {
+					return "", fmt.Errorf("external vector store provider %q conflicts with a built-in provider ID; choose a unique provider_id", vs.Provider.ProviderID)
+				}
+				providerConfig := make(map[string]interface{}, len(vs.Provider.Config.Extra))
+				for k, v := range vs.Provider.Config.Extra {
+					providerConfig[k] = v
+				}
+				// Ensure persistence is present (in some providers the OGX server pod will crash if not included).
+				// Use the user-supplied value if present; otherwise inject a safe default.
+				if _, hasPersistence := providerConfig["persistence"]; !hasPersistence {
+					providerConfig["persistence"] = map[string]interface{}{
+						"backend":   "kv_default",
+						"namespace": fmt.Sprintf("vector_io::%s", vs.Provider.ProviderID),
+					}
+					kc.Logger.Info("injected default persistence config for provider", "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType)
+				}
+				if vs.CredEnvVarName != "" {
+					providerConfig[vs.CredSecretRef.Key] = fmt.Sprintf("${env.%s:=}", vs.CredEnvVarName)
+				}
+				config.AddVectorIOProvider(Provider{
+					ProviderID:   vs.Provider.ProviderID,
+					ProviderType: vs.Provider.ProviderType,
+					Config:       providerConfig,
+				})
+				addedProviders[vs.Provider.ProviderID] = true
+			}
+
+			vsEntry := VectorStore{
+				ProviderID:            rs.ProviderID,
+				VectorStoreID:         rs.VectorStoreID,
+				EmbeddingModel:        resolvedEmbeddingModel,
+				EmbeddingDimension:    rs.EmbeddingDimension,
+				VectorStoreName:       rs.VectorStoreName,
+				ProviderVectorStoreID: rs.ProviderVectorStoreID,
+			}
+			if rs.Metadata.Description != "" {
+				vsEntry.Metadata = map[string]interface{}{"description": rs.Metadata.Description}
+			}
+			config.RegisterVectorStore(vsEntry)
+
+			kc.Logger.Info("Added external vector store to configuration",
+				"vectorStoreID", rs.VectorStoreID, "providerID", vs.Provider.ProviderID, "providerType", vs.Provider.ProviderType, "embeddingModel", rs.EmbeddingModel, "vectorStoreName", rs.VectorStoreName)
 		}
 	}
 
@@ -1587,40 +1880,6 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 		kc.Logger.Debug("RBAC auth is disabled for LlamaStack config (set ENABLE_LLAMASTACK_RBAC=true to enable)")
 	}
 
-	// Add guardrails configuration if enabled
-	// When enableGuardrails is true, automatically add safety shields for all selected models
-	if enableGuardrails && len(installModels) > 0 {
-		guardrailConfigs := make([]models.GuardrailInput, len(installModels))
-
-		// Default policies for guardrails (input includes jailbreak, output does not)
-		defaultInputPolicies := models.DefaultInputGuardrailPolicies()
-		defaultOutputPolicies := models.DefaultOutputGuardrailPolicies()
-		lsdServiceURL := fmt.Sprintf("http://%s-service.%s.svc.cluster.local:8321/v1/chat/completions", lsdName, namespace)
-		kc.Logger.Debug("Using Llama Stack service URL for guardrails", "url", lsdServiceURL)
-
-		for i, model := range installModels {
-			// Get provider info from the tracking map
-			providerInfo, exists := modelProviderInfo[model.ModelName]
-			if !exists {
-				kc.Logger.Error("Provider info not found for model in guardrails config", "model", model.ModelName)
-				return "", fmt.Errorf("provider info not found for model '%s' when configuring guardrails", model.ModelName)
-			}
-
-			guardrailConfigs[i] = models.GuardrailInput{
-				ModelName:      model.ModelName,
-				ProviderID:     providerInfo.providerID,
-				TokenEnvVar:    providerInfo.tokenEnvVar,
-				ModelURL:       lsdServiceURL,
-				DetectorURL:    constants.DefaultDetectorURL, // Always use constant default
-				InputPolicies:  defaultInputPolicies,
-				OutputPolicies: defaultOutputPolicies,
-			}
-		}
-
-		config.AddGuardrailsToConfig(guardrailConfigs)
-		kc.Logger.Debug("Added guardrails to configuration for all models", "count", len(installModels))
-	}
-
 	// Convert the config to YAML
 	configYAML, err := config.ToYAML()
 	if err != nil {
@@ -1632,8 +1891,8 @@ func (kc *TokenKubernetesClient) generateLlamaStackConfig(ctx context.Context, n
 	return configYAML, nil
 }
 
-// getExternalModelsConfig retrieves and parses the gen-ai-aa-external-models ConfigMap
-func (kc *TokenKubernetesClient) getExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
+// GetExternalModelsConfig retrieves and parses the gen-ai-aa-custom-model-endpoints ConfigMap
+func (kc *TokenKubernetesClient) GetExternalModelsConfig(ctx context.Context, namespace string) (*models.ExternalModelsConfig, error) {
 	// Get the ConfigMap
 	configMap := &corev1.ConfigMap{}
 	configMapName := types.NamespacedName{
@@ -1673,16 +1932,9 @@ func (kc *TokenKubernetesClient) validateExternalModelsConfig(config *models.Ext
 			return fmt.Errorf("provider at index %d has empty provider_id", i)
 		}
 
-		// Validate ProviderType is one of the allowed values
-		validProviderTypes := map[models.ProviderTypeEnum]bool{
-			models.ProviderTypeGemini:      true,
-			models.ProviderTypeOpenAI:      true,
-			models.ProviderTypeAnthropic:   true,
-			models.ProviderTypeVLLM:        true,
-			models.ProviderTypePassthrough: true,
-		}
-		if !validProviderTypes[provider.ProviderType] {
-			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be one of: remote::vllm, remote::openai, remote::anthropic, remote::gemini, remote::passthrough", provider.ProviderID, provider.ProviderType)
+		// Validate ProviderType is remote::openai or remote::passthrough
+		if provider.ProviderType != models.ProviderTypeOpenAI && provider.ProviderType != models.ProviderTypePassThrough {
+			return fmt.Errorf("provider '%s' has invalid provider_type '%s', must be remote::openai or remote::passthrough", provider.ProviderID, provider.ProviderType)
 		}
 
 		// Validate BaseURL is a well-formed URL with scheme and host
@@ -2057,53 +2309,62 @@ func (kc *TokenKubernetesClient) extractEndpointFromLLMInferenceService(ctx cont
 	return internalURL, nil
 }
 
-func (kc *TokenKubernetesClient) DeleteLlamaStackDistribution(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*lsdapi.LlamaStackDistribution, error) {
+func (kc *TokenKubernetesClient) DeleteOGXServer(ctx context.Context, identity *integrations.RequestIdentity, namespace string, name string) (*ogxapi.OGXServer, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// First, fetch the LSD in the namespace with the OpenDataHubDashboardLabelKey annotation
-	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	// First, fetch OGXServers in the namespace with the OpenDataHubDashboardLabelKey label
+	serverList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		kc.Logger.Error("failed to fetch LlamaStackDistributions", "error", err, "namespace", namespace)
-		return nil, fmt.Errorf("failed to fetch LlamaStackDistributions: %w", err)
+		kc.Logger.Error("failed to fetch OGXServers", "error", err, "namespace", namespace)
+		return nil, fmt.Errorf("failed to fetch OGXServers: %w", err)
 	}
 
-	// Check if any LSD resources were found
-	if len(lsdList.Items) == 0 {
-		kc.Logger.Error("no LlamaStackDistribution found with OpenDataHubDashboardLabelKey annotation", "namespace", namespace)
-		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s with OpenDataHubDashboardLabelKey annotation", namespace)
+	if len(serverList.Items) == 0 {
+		kc.Logger.Error("no OGXServer found with OpenDataHubDashboardLabelKey label", "namespace", namespace)
+		return nil, fmt.Errorf("no OGXServer found in namespace %s with OpenDataHubDashboardLabelKey label", namespace)
 	}
 
-	// Find the LSD with matching k8s name
-	var targetLSD *lsdapi.LlamaStackDistribution
-	for i := range lsdList.Items {
-		lsd := &lsdList.Items[i]
-		if lsd.Name == name {
-			targetLSD = lsd
+	var targetServer *ogxapi.OGXServer
+	for i := range serverList.Items {
+		srv := &serverList.Items[i]
+		if srv.Name == name {
+			targetServer = srv
 			break
 		}
 	}
 
-	// If no LSD with matching k8s name found, return error
-	if targetLSD == nil {
-		kc.Logger.Error("LlamaStackDistribution with matching name not found", "k8sName", name, "namespace", namespace)
-		return nil, fmt.Errorf("LlamaStackDistribution with name '%s' not found in namespace %s", name, namespace)
+	if targetServer == nil {
+		kc.Logger.Error("OGXServer with matching name not found", "k8sName", name, "namespace", namespace)
+		return nil, fmt.Errorf("OGXServer with name '%s' not found in namespace %s", name, namespace)
 	}
 
-	// Delete the LSD using the actual resource name
-	err = kc.Client.Delete(ctx, &lsdapi.LlamaStackDistribution{ObjectMeta: metav1.ObjectMeta{Name: targetLSD.Name, Namespace: namespace}})
+	err = kc.Client.Delete(ctx, &ogxapi.OGXServer{ObjectMeta: metav1.ObjectMeta{Name: targetServer.Name, Namespace: namespace}})
 	if err != nil {
-		kc.Logger.Error("failed to delete LlamaStackDistribution", "error", err, "namespace", namespace, "name", targetLSD.Name)
-		return nil, fmt.Errorf("failed to delete LlamaStackDistribution: %w", err)
+		kc.Logger.Error("failed to delete OGXServer", "error", err, "namespace", namespace, "name", targetServer.Name)
+		return nil, fmt.Errorf("failed to delete OGXServer: %w", err)
 	}
 
-	kc.Logger.Info("successfully deleted LlamaStackDistribution", "namespace", namespace, "name", targetLSD.Name, "displayName", name)
-	return targetLSD, nil
+	kc.Logger.Info("successfully deleted OGXServer", "namespace", namespace, "name", targetServer.Name, "displayName", name)
+	return targetServer, nil
+}
+
+// GetInferenceServiceURL returns the internal endpoint URL for the InferenceService or
+// LLMInferenceService whose K8s resource name equals modelName.
+// Returns ("", nil) when no matching resource is found so callers can fall back gracefully.
+func (kc *TokenKubernetesClient) GetInferenceServiceURL(ctx context.Context, _ *integrations.RequestIdentity, namespace string, modelName string) (string, error) {
+	details, err := kc.getModelDetailsFromServingRuntime(ctx, namespace, modelName)
+	if err != nil {
+		kc.Logger.Debug("GetInferenceServiceURL: no InferenceService/LLMInferenceService found",
+			"namespace", namespace, "modelName", modelName, "error", err)
+		return "", nil
+	}
+	return details.endpointURL, nil
 }
 
 // GetModelProviderInfo retrieves provider configuration for a model from LlamaStackConfig
 func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, identity *integrations.RequestIdentity, namespace string, modelID string) (*genaitypes.ModelProviderInfo, error) {
-	// Get LlamaStackDistribution
+	// Load OGX config from the ConfigMap referenced by the namespace OGXServer
 	config, err := kc.loadLlamaStackConfig(ctx, identity, namespace)
 	if config == nil {
 		return nil, err
@@ -2114,26 +2375,26 @@ func (kc *TokenKubernetesClient) GetModelProviderInfo(ctx context.Context, ident
 
 // loadLlamaStackConfig loads the LlamaStack configuration from a ConfigMap in the cluster
 func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*LlamaStackConfig, error) {
-	lsdList, err := kc.GetLlamaStackDistributions(ctx, identity, namespace)
+	serverList, err := kc.GetOGXServers(ctx, identity, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get LlamaStackDistributions: %w", err)
+		return nil, fmt.Errorf("failed to get OGXServers: %w", err)
 	}
 
-	if len(lsdList.Items) == 0 {
-		return nil, fmt.Errorf("no LlamaStackDistribution found in namespace %s", namespace)
+	if len(serverList.Items) == 0 {
+		return nil, fmt.Errorf("no OGXServer found in namespace %s", namespace)
 	}
 
-	if len(lsdList.Items) > 1 {
-		kc.Logger.Warn("Multiple LlamaStackDistributions found, using first one",
-			"namespace", namespace, "count", len(lsdList.Items))
+	if len(serverList.Items) > 1 {
+		kc.Logger.Warn("Multiple OGXServers found, using first one",
+			"namespace", namespace, "count", len(serverList.Items))
 	}
 
-	lsd := lsdList.Items[0]
+	srv := serverList.Items[0]
 
 	// Get configmap name
 	configMapName := constants.LlamaStackConfigMapName
-	if lsd.Spec.Server.UserConfig != nil && lsd.Spec.Server.UserConfig.ConfigMapName != "" {
-		configMapName = lsd.Spec.Server.UserConfig.ConfigMapName
+	if srv.Spec.OverrideConfig != nil && srv.Spec.OverrideConfig.Name != "" {
+		configMapName = srv.Spec.OverrideConfig.Name
 	}
 
 	// Retrieve configmap
@@ -2157,108 +2418,6 @@ func (kc *TokenKubernetesClient) loadLlamaStackConfig(ctx context.Context, ident
 	config.EnsureStorageField()
 
 	return &config, nil
-}
-
-// GetSafetyConfig parses the llama-stack-config ConfigMap and returns guardrail models/shields
-func (kc *TokenKubernetesClient) GetSafetyConfig(ctx context.Context, identity *integrations.RequestIdentity, namespace string) (*models.SafetyConfigResponse, error) {
-	// Load the llama stack config from ConfigMap
-	config, err := kc.loadLlamaStackConfig(ctx, identity, namespace)
-	if err != nil {
-		// If no LSD found, return empty array
-		kc.Logger.Debug("no llama stack config found", "namespace", namespace, "error", err)
-		return &models.SafetyConfigResponse{
-			GuardrailModels: []models.GuardrailModelConfig{},
-		}, nil
-	}
-
-	// Check if safety providers exist
-	if len(config.Providers.Safety) == 0 {
-		return &models.SafetyConfigResponse{
-			GuardrailModels: []models.GuardrailModelConfig{},
-		}, nil
-	}
-
-	// Extract shields from safety provider config (only trustyai_fms provider)
-	guardrailModels := kc.extractGuardrailModelsFromSafetyProviders(config, namespace)
-
-	return &models.SafetyConfigResponse{
-		GuardrailModels: guardrailModels,
-	}, nil
-}
-
-// extractGuardrailModelsFromSafetyProviders extracts guardrail models from safety provider config
-func (kc *TokenKubernetesClient) extractGuardrailModelsFromSafetyProviders(config *LlamaStackConfig, namespace string) []models.GuardrailModelConfig {
-	var guardrailModels []models.GuardrailModelConfig
-
-	for _, provider := range config.Providers.Safety {
-		// Only process trustyai_fms provider
-		if provider.ProviderID != "trustyai_fms" {
-			continue
-		}
-
-		// Extract shields from provider config
-		shields, ok := provider.Config["shields"].(map[interface{}]interface{})
-		if !ok {
-			kc.Logger.Debug("No shields found in provider config", "provider_id", provider.ProviderID)
-			continue
-		}
-
-		// Map to group shields by model name
-		modelShields := make(map[string]*models.GuardrailModelConfig)
-
-		for shieldID, shieldConfig := range shields {
-			shieldIDStr, ok := shieldID.(string)
-			if !ok {
-				continue
-			}
-
-			shieldMap, ok := shieldConfig.(map[interface{}]interface{})
-			if !ok {
-				continue
-			}
-
-			// Extract model name from detector_params
-			if detectorParams, ok := shieldMap["detector_params"].(map[interface{}]interface{}); ok {
-				if custom, ok := detectorParams["custom"].(map[interface{}]interface{}); ok {
-					for guardrailKey, guardrailConfig := range custom {
-						guardrailKeyStr, _ := guardrailKey.(string)
-						gc, ok := guardrailConfig.(map[interface{}]interface{})
-						if !ok {
-							continue
-						}
-
-						modelName, ok := gc["guardrail_model"].(string)
-						if !ok || modelName == "" {
-							continue
-						}
-
-						// Get or create the config for this model
-						if _, exists := modelShields[modelName]; !exists {
-							modelShields[modelName] = &models.GuardrailModelConfig{
-								ModelName: modelName,
-							}
-						}
-
-						// Determine if this is input or output shield
-						if strings.Contains(guardrailKeyStr, "input") {
-							modelShields[modelName].InputShieldID = shieldIDStr
-						} else if strings.Contains(guardrailKeyStr, "output") {
-							modelShields[modelName].OutputShieldID = shieldIDStr
-						}
-					}
-				}
-			}
-		}
-
-		// Add all discovered model configs
-		for _, config := range modelShields {
-			if config.InputShieldID != "" || config.OutputShieldID != "" {
-				guardrailModels = append(guardrailModels, *config)
-			}
-		}
-	}
-
-	return guardrailModels
 }
 
 // GenerateProviderID generates a unique provider ID for external models
@@ -2287,9 +2446,9 @@ func (kc *TokenKubernetesClient) GenerateProviderID(ctx context.Context, identit
 	// This prevents collisions when providers are deleted or reordered
 	maxID := 0
 	for _, provider := range config.Providers.Inference {
-		// Provider IDs are in format "external-model-provider-{id}"
+		// Provider IDs are in format "endpoint-{id}"
 		// Extract the numeric ID part
-		idStr := strings.TrimPrefix(provider.ProviderID, "external-model-provider-")
+		idStr := strings.TrimPrefix(provider.ProviderID, "endpoint-")
 		if id, err := strconv.Atoi(idStr); err == nil {
 			if id > maxID {
 				maxID = id
@@ -2329,7 +2488,7 @@ func (kc *TokenKubernetesClient) CreateExternalModelSecret(ctx context.Context, 
 	return nil
 }
 
-// CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-external-models ConfigMap
+// CreateOrUpdateExternalModelConfigMap creates or updates the gen-ai-aa-custom-model-endpoints ConfigMap
 func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx context.Context, identity *integrations.RequestIdentity, namespace string, providerID string, secretName string, req models.ExternalModelRequest) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -2371,10 +2530,15 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		}
 	}
 
-	// Add new provider
+	// Select provider type based on model type: embedding models use passthrough, inference models use openai
+	providerType := models.ProviderTypeOpenAI
+	if req.ModelType == models.ModelTypeEmbedding {
+		providerType = models.ProviderTypePassThrough
+	}
+
 	newProvider := models.InferenceProvider{
-		ProviderID:   fmt.Sprintf("external-model-provider-%s", providerID),
-		ProviderType: req.ProviderType,
+		ProviderID:   fmt.Sprintf("endpoint-%s", providerID),
+		ProviderType: providerType,
 		Config: models.ProviderConfig{
 			BaseURL: req.BaseURL,
 			CustomGenAI: models.CustomGenAI{
@@ -2388,8 +2552,8 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 		},
 	}
 
-	// For Gemini and OpenAI providers with specific models, add allowed_models
-	if req.ProviderType == models.ProviderTypeGemini || req.ProviderType == models.ProviderTypeOpenAI {
+	// For OpenAI provider, add allowed_models
+	if providerType == models.ProviderTypeOpenAI {
 		newProvider.Config.AllowedModels = []string{req.ModelID}
 	}
 
@@ -2397,7 +2561,7 @@ func (kc *TokenKubernetesClient) CreateOrUpdateExternalModelConfigMap(ctx contex
 
 	// Add new registered model
 	newModel := models.RegisteredModel{
-		ProviderID: fmt.Sprintf("external-model-provider-%s", providerID),
+		ProviderID: fmt.Sprintf("endpoint-%s", providerID),
 		ModelID:    req.ModelID,
 		ModelType:  req.ModelType,
 		Metadata: models.RegisteredModelMetadata{
@@ -2575,4 +2739,31 @@ func (kc *TokenKubernetesClient) DeleteSecret(ctx context.Context, identity *int
 
 	kc.Logger.Info("successfully deleted Secret", "namespace", namespace, "secretName", secretName)
 	return nil
+}
+
+// GetSecretValue retrieves a specific value from a Kubernetes Secret
+func (kc *TokenKubernetesClient) GetSecretValue(ctx context.Context, identity *integrations.RequestIdentity, namespace string, secretName string, secretKey string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	secret := &corev1.Secret{}
+	secretNamespacedName := types.NamespacedName{
+		Name:      secretName,
+		Namespace: namespace,
+	}
+
+	if err := kc.Client.Get(ctx, secretNamespacedName, secret); err != nil {
+		kc.Logger.Error("failed to get Secret", "error", err, "namespace", namespace, "secretName", secretName)
+		return "", fmt.Errorf("failed to get Secret: %w", err)
+	}
+
+	// Get the value from the secret
+	value, ok := secret.Data[secretKey]
+	if !ok {
+		kc.Logger.Warn("secret key not found in Secret", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
+		return "", fmt.Errorf("key '%s' not found in Secret '%s'", secretKey, secretName)
+	}
+
+	kc.Logger.Debug("successfully retrieved secret value", "namespace", namespace, "secretName", secretName, "secretKey", secretKey)
+	return string(value), nil
 }

@@ -21,6 +21,17 @@ func (app *App) LogError(r *http.Request, err error) {
 	app.logger.Error(err.Error(), "method", method, "uri", uri)
 }
 
+func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, message string) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusBadRequest,
@@ -37,6 +48,17 @@ func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, messag
 		StatusCode: http.StatusForbidden,
 		ErrorResponse: integrations.ErrorResponse{
 			Code:    strconv.Itoa(http.StatusForbidden),
+			Message: message,
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, message string) {
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusConflict,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusConflict),
 			Message: message,
 		},
 	}

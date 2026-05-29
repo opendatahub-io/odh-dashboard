@@ -3,15 +3,27 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/pipelines"
 )
+
+func getEnvOrDefault(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 // TODO: Confirm caching architecture for shared ODH deployments
 // This implementation uses in-memory caching which has the following considerations:
@@ -43,7 +55,19 @@ type DiscoveredPipeline struct {
 	PipelineVersionID string
 	PipelineName      string
 	Namespace         string
+	AllVersionIDs     []string
 	DiscoveredAt      time.Time
+}
+
+// DefaultPipelineVersion is the release version suffix appended to pipeline version names.
+// Override via PIPELINE_VERSION_SUFFIX env var, otherwise defaults to constants.DefaultPipelineVersionSuffix.
+var DefaultPipelineVersion = getEnvOrDefault("PIPELINE_VERSION_SUFFIX", constants.DefaultPipelineVersionSuffix)
+
+// PipelineDefinition describes a managed pipeline type for discovery and auto-creation.
+type PipelineDefinition struct {
+	Name        string // Exact pipeline display name for discovery and creation
+	PipelineDir string // Directory name containing pipeline.yaml (matches upstream repo structure)
+	Version     string // Release version suffix for the version name (e.g. "3.5.0-ea.1")
 }
 
 // pipelineCacheEntry wraps a map of discovered pipelines with expiration and LRU tracking.
@@ -137,29 +161,65 @@ func (c *pipelineCache) evictOldest() {
 	}
 }
 
+// getCachedVersionIDs looks up the pipeline cache for pre-fetched version IDs.
+// Returns nil on cache miss, letting the caller fall back to an API call.
+func getCachedVersionIDs(pipelineID string) []string {
+	globalPipelineCache.mu.RLock()
+	defer globalPipelineCache.mu.RUnlock()
+
+	for _, entry := range globalPipelineCache.entries {
+		if time.Now().After(entry.expiresAt) {
+			continue
+		}
+		for _, dp := range entry.pipelines {
+			if dp.PipelineID == pipelineID && len(dp.AllVersionIDs) > 0 {
+				n := len(dp.AllVersionIDs)
+				if n > maxVersionIDs {
+					n = maxVersionIDs
+				}
+				result := make([]string, n)
+				copy(result, dp.AllVersionIDs[:n])
+				return result
+			}
+		}
+	}
+	return nil
+}
+
 // PipelineRepository handles pipeline discovery logic
-type PipelineRepository struct{}
+type PipelineRepository struct {
+	inFlight   map[string]chan struct{} // per-key completion signals for in-flight creation
+	inFlightMu sync.Mutex               // guards inFlight map
+}
 
 // NewPipelineRepository creates a new pipeline repository
 func NewPipelineRepository() *PipelineRepository {
-	return &PipelineRepository{}
+	return &PipelineRepository{
+		inFlight: make(map[string]chan struct{}),
+	}
 }
 
 // DiscoverNamedPipelines discovers multiple managed pipelines in the given namespace,
-// one per entry in the definitions map (pipeline type key → name prefix).
+// one per entry in the definitions map (pipeline type key → pipeline name).
+//
+// Used for listing runs: the returned DiscoveredPipeline includes AllVersionIDs so that
+// callers can query runs across every version of the pipeline, not just the default one.
+// If the default version (DefaultPipelineVersion) is not present, discovery falls back to
+// any available version — contrast with EnsurePipeline which requires the exact version.
 //
 // This method:
 //  1. Checks the in-memory cache (5-minute TTL) for a previously discovered result
-//  2. For each definition, calls discoverOnePipeline
-//  3. Builds a partial result map — missing keys mean the pipeline was not found
-//  4. Caches the partial result for future requests
+//  2. For each definition, calls discoverOnePipeline with exact name matching
+//  3. Falls back to any available version if the default version is not found
+//  4. Builds a partial result map — missing keys mean the pipeline was not found
+//  5. Caches the partial result for future requests
 //
 // Parameters:
 //   - client: Pipeline Server client interface
 //   - ctx: Request context
 //   - namespace: Kubernetes namespace to search in
 //   - pipelineServerBaseURL: Base URL of the pipeline server (used in cache key)
-//   - definitions: map from pipeline type key to name prefix
+//   - definitions: map from pipeline type key to exact pipeline display name
 //
 // Returns:
 //   - map[string]*DiscoveredPipeline: partial map; missing key means pipeline not found
@@ -190,37 +250,51 @@ func (r *PipelineRepository) DiscoverNamedPipelines(
 	result := make(map[string]*DiscoveredPipeline)
 
 	for pipelineType, namePrefix := range definitions {
-		discovered, err := r.discoverOnePipeline(client, ctx, namespace, namePrefix)
+		effectivePrefix := namePrefix
+		if effectivePrefix == "" {
+			effectivePrefix = defaultPipelineNamePrefix
+		}
+		versionName := fmt.Sprintf("%s-%s", effectivePrefix, DefaultPipelineVersion)
+		discovered, err := r.discoverOnePipeline(client, ctx, namespace, effectivePrefix, versionName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to discover pipeline %q: %w", pipelineType, err)
+		}
+		if discovered == nil {
+			// Exact version not found — fall back to any available version so runs
+			// from older pipeline versions are still discoverable.
+			discovered, err = r.discoverOnePipeline(client, ctx, namespace, effectivePrefix, "")
+			if err != nil {
+				return nil, fmt.Errorf("failed to discover pipeline %q (fallback): %w", pipelineType, err)
+			}
 		}
 		if discovered != nil {
 			result[pipelineType] = discovered
 		}
 	}
 
-	// Cache the result (even if partial or empty)
-	globalPipelineCache.set(cacheKey, result)
+	// Only cache when at least one pipeline was discovered to avoid long-lived negative caches
+	// that would delay detection of pipelines deployed after the initial miss.
+	if len(result) > 0 {
+		globalPipelineCache.set(cacheKey, result)
+	}
 
 	return result, nil
 }
 
-// discoverOnePipeline finds a single managed pipeline by name prefix in the given namespace.
+// discoverOnePipeline finds a pipeline by exact display name and optionally by version name.
+// If versionName is empty, the latest version is used.
 //
 // Returns:
-//   - (*DiscoveredPipeline, nil): pipeline found
-//   - (nil, nil): no pipeline matching the prefix (soft miss — not an error)
+//   - (*DiscoveredPipeline, nil): pipeline and version found
+//   - (nil, nil): no matching pipeline or version (soft miss — not an error)
 //   - (nil, err): API failure (hard error)
 func (r *PipelineRepository) discoverOnePipeline(
 	client ps.PipelineServerClientInterface,
 	ctx context.Context,
 	namespace string,
 	namePrefix string,
+	versionName string,
 ) (*DiscoveredPipeline, error) {
-	if namePrefix == "" {
-		namePrefix = defaultPipelineNamePrefix
-	}
-
 	// Build a server-side filter to reduce the result set. The Go-side HasPrefix check
 	// below remains the authoritative gate for correctness.
 	nameFilter := buildPipelineNameFilter(namePrefix)
@@ -235,55 +309,72 @@ func (r *PipelineRepository) discoverOnePipeline(
 		return nil, nil
 	}
 
-	// Find matching pipeline by namespace and name (case-insensitive prefix match).
+	// Find matching pipeline by exact display name (case-insensitive).
 	// Namespace guard is a defence-in-depth measure: the KFP API is already scoped to
-	// the DSPA in this namespace, but an empty or cross-namespace response could otherwise
-	// leak pipelines from other tenants.
-	// TODO: Replace with attribute-based lookup once managed pipeline metadata is available
+	// the DSPA in this namespace, but an empty or cross-namespace response could
+	// otherwise leak pipelines from other tenants.
 	var matchedPipeline *models.KFPipeline
 	for i := range pipelinesResp.Pipelines {
 		pipeline := &pipelinesResp.Pipelines[i]
 		if (pipeline.Namespace == "" || pipeline.Namespace == namespace) &&
-			strings.HasPrefix(strings.ToLower(pipeline.DisplayName), strings.ToLower(namePrefix)) {
+			strings.EqualFold(pipeline.DisplayName, namePrefix) {
 			matchedPipeline = pipeline
 			break
 		}
 	}
 
 	if matchedPipeline == nil {
-		// No pipeline matches the prefix — soft miss
 		return nil, nil
 	}
 
-	// Get pipeline versions
+	// Get pipeline versions and match by exact version name
 	versionsResp, err := client.ListPipelineVersions(ctx, matchedPipeline.PipelineID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list versions for pipeline %s: %w", matchedPipeline.PipelineID, err)
 	}
 
 	if versionsResp == nil || len(versionsResp.PipelineVersions) == 0 {
-		// No versions yet — treat as soft miss so other pipelines can still be discovered
 		return nil, nil
 	}
 
-	// Use the first version (most recently created, as client requests sorted by created_at desc)
-	version := versionsResp.PipelineVersions[0]
+	// Match by exact version name if provided, otherwise use the latest
+	var matchedVersion *models.KFPipelineVersion
+	if versionName != "" {
+		for i := range versionsResp.PipelineVersions {
+			v := &versionsResp.PipelineVersions[i]
+			if strings.EqualFold(v.DisplayName, versionName) {
+				matchedVersion = v
+				break
+			}
+		}
+	} else {
+		matchedVersion = &versionsResp.PipelineVersions[0]
+	}
+
+	if matchedVersion == nil {
+		return nil, nil
+	}
+
+	allIDs := make([]string, 0, len(versionsResp.PipelineVersions))
+	for _, v := range versionsResp.PipelineVersions {
+		allIDs = append(allIDs, v.PipelineVersionID)
+	}
 
 	return &DiscoveredPipeline{
 		PipelineID:        matchedPipeline.PipelineID,
-		PipelineVersionID: version.PipelineVersionID,
+		PipelineVersionID: matchedVersion.PipelineVersionID,
 		PipelineName:      matchedPipeline.DisplayName,
 		Namespace:         namespace,
+		AllVersionIDs:     allIDs,
 		DiscoveredAt:      time.Now(),
 	}, nil
 }
 
 // buildPipelineNameFilter builds a KFP predicate JSON filter that restricts ListPipelines
-// results to pipelines whose display_name contains the given prefix (IS_SUBSTRING).
-// Returns an empty string if namePrefix is empty, which signals the client to omit the filter.
-// The Go-side HasPrefix check in discoverOnePipeline is the authoritative gate.
-func buildPipelineNameFilter(namePrefix string) string {
-	if namePrefix == "" {
+// results to pipelines whose display_name exactly matches the given name (EQUALS).
+// Returns an empty string if name is empty, which signals the client to omit the filter.
+func buildPipelineNameFilter(name string) string {
+	if name == "" {
 		return ""
 	}
 
@@ -291,8 +382,8 @@ func buildPipelineNameFilter(namePrefix string) string {
 		"predicates": []map[string]interface{}{
 			{
 				"key":          "display_name",
-				"operation":    "IS_SUBSTRING",
-				"string_value": namePrefix,
+				"operation":    "EQUALS",
+				"string_value": name,
 			},
 		},
 	}
@@ -300,7 +391,7 @@ func buildPipelineNameFilter(namePrefix string) string {
 	filterJSON, err := json.Marshal(filter)
 	if err != nil {
 		// Fall back to no filter rather than blocking discovery
-		slog.Error("Failed to marshal pipeline name filter", "error", err, "namePrefix", namePrefix)
+		slog.Error("Failed to marshal pipeline name filter", "error", err, "name", name)
 		return ""
 	}
 
@@ -312,4 +403,187 @@ func buildPipelineNameFilter(namePrefix string) string {
 func (r *PipelineRepository) InvalidateCache(pipelineServerBaseURL, namespace string) {
 	cacheKey := fmt.Sprintf("%s:%s", pipelineServerBaseURL, namespace)
 	globalPipelineCache.invalidate(cacheKey)
+}
+
+// EnsurePipeline discovers a pipeline by definition, creating it if it does not exist.
+// This is called at run creation time so pipelines are created lazily.
+// Unlike DiscoverNamedPipelines, this requires the exact DefaultPipelineVersion — if the
+// specific version is missing it creates it rather than falling back to an older version.
+func (r *PipelineRepository) EnsurePipeline(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	namespace string,
+	pipelineServerBaseURL string,
+	def PipelineDefinition,
+) (*DiscoveredPipeline, error) {
+	// Normalize pipeline name — use default if empty
+	pipelineName := def.Name
+	if pipelineName == "" {
+		pipelineName = defaultPipelineNamePrefix
+	}
+	version := def.Version
+	if version == "" {
+		version = DefaultPipelineVersion
+	}
+	versionName := fmt.Sprintf("%s-%s", pipelineName, version)
+
+	// Try discovery first
+	discovered, err := r.discoverOnePipeline(client, ctx, namespace, pipelineName, versionName)
+	if err != nil {
+		return nil, err
+	}
+	if discovered != nil {
+		return discovered, nil
+	}
+
+	// Soft miss — create the pipeline and/or version
+	if def.PipelineDir == "" {
+		return nil, fmt.Errorf("no pipeline %q version %q found and no YAML available for auto-creation", pipelineName, versionName)
+	}
+
+	// Serialize creation per key to prevent duplicate pipelines from concurrent requests.
+	createKey := fmt.Sprintf("%s:%s:%s", pipelineServerBaseURL, namespace, versionName)
+	r.inFlightMu.Lock()
+	if doneCh, ok := r.inFlight[createKey]; ok {
+		r.inFlightMu.Unlock()
+		select {
+		case <-doneCh:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+		discovered, err = r.discoverOnePipeline(client, ctx, namespace, pipelineName, versionName)
+		if err != nil {
+			return nil, err
+		}
+		if discovered != nil {
+			return discovered, nil
+		}
+		return nil, fmt.Errorf("pipeline %q version %q was not found after concurrent creation completed", pipelineName, versionName)
+	}
+	doneCh := make(chan struct{})
+	r.inFlight[createKey] = doneCh
+	r.inFlightMu.Unlock()
+	defer func() {
+		close(doneCh)
+		r.inFlightMu.Lock()
+		delete(r.inFlight, createKey)
+		r.inFlightMu.Unlock()
+	}()
+
+	// Double-check after registering
+	discovered, err = r.discoverOnePipeline(client, ctx, namespace, pipelineName, versionName)
+	if err != nil {
+		return nil, err
+	}
+	if discovered != nil {
+		return discovered, nil
+	}
+
+	return r.ensurePipelineAndVersion(client, ctx, namespace, pipelineServerBaseURL, pipelineName, versionName, def)
+}
+
+// ensurePipelineAndVersion creates the pipeline shell and/or uploads a named version as needed.
+// Handles three cases: no pipeline exists, pipeline exists but version missing, both exist.
+func (r *PipelineRepository) ensurePipelineAndVersion(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	namespace string,
+	pipelineServerBaseURL string,
+	pipelineName string,
+	versionName string,
+	def PipelineDefinition,
+) (*DiscoveredPipeline, error) {
+	logger := slog.Default()
+
+	yamlBytes, err := pipelines.GetPipelineYAML(def.PipelineDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", def.PipelineDir, err)
+	}
+
+	// Step 1: Find or create the pipeline shell
+	pipelineID, err := r.findOrCreatePipeline(client, ctx, namespace, pipelineName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: Upload the named version
+	version, err := client.UploadPipelineVersion(ctx, pipelineID, versionName, yamlBytes)
+	if err != nil {
+		// Handle 409 Conflict — version may already exist (created by another instance)
+		var httpErr *ps.HTTPError
+		if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusConflict {
+			logger.Info("Pipeline version already exists, retrying discovery",
+				"pipelineName", pipelineName, "versionName", versionName, "namespace", namespace)
+			discovered, discoverErr := r.discoverOnePipeline(client, ctx, namespace, pipelineName, versionName)
+			if discoverErr != nil {
+				return nil, discoverErr
+			}
+			if discovered != nil {
+				return discovered, nil
+			}
+			return nil, fmt.Errorf("pipeline version %q already exists but could not be discovered", versionName)
+		}
+		return nil, fmt.Errorf("failed to upload pipeline version %q: %w", versionName, err)
+	}
+
+	logger.Info("Auto-created pipeline version",
+		"pipelineID", pipelineID,
+		"versionID", version.PipelineVersionID,
+		"versionName", versionName,
+		"pipelineName", pipelineName,
+		"namespace", namespace)
+
+	// Invalidate cache so subsequent discovery picks up the new version
+	r.InvalidateCache(pipelineServerBaseURL, namespace)
+
+	return &DiscoveredPipeline{
+		PipelineID:        pipelineID,
+		PipelineVersionID: version.PipelineVersionID,
+		PipelineName:      pipelineName,
+		Namespace:         namespace,
+		DiscoveredAt:      time.Now(),
+	}, nil
+}
+
+// findOrCreatePipeline returns the pipeline ID for the given name, creating the shell if needed.
+func (r *PipelineRepository) findOrCreatePipeline(
+	client ps.PipelineServerClientInterface,
+	ctx context.Context,
+	namespace string,
+	pipelineName string,
+) (string, error) {
+	const maxRetries = 3
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Search for existing pipeline by exact name
+		nameFilter := buildPipelineNameFilter(pipelineName)
+		pipelinesResp, err := client.ListPipelines(ctx, nameFilter)
+		if err != nil {
+			return "", fmt.Errorf("failed to list pipelines: %w", err)
+		}
+
+		if pipelinesResp != nil {
+			for i := range pipelinesResp.Pipelines {
+				p := &pipelinesResp.Pipelines[i]
+				if (p.Namespace == "" || p.Namespace == namespace) &&
+					strings.EqualFold(p.DisplayName, pipelineName) {
+					return p.PipelineID, nil
+				}
+			}
+		}
+
+		// Pipeline doesn't exist — create shell
+		created, err := client.CreatePipeline(ctx, pipelineName)
+		if err != nil {
+			var httpErr *ps.HTTPError
+			if errors.As(err, &httpErr) && httpErr.StatusCode == http.StatusConflict {
+				// Another instance created it — retry search on next iteration
+				continue
+			}
+			return "", fmt.Errorf("failed to create pipeline %q: %w", pipelineName, err)
+		}
+
+		return created.PipelineID, nil
+	}
+
+	return "", fmt.Errorf("failed to find or create pipeline %q after %d attempts", pipelineName, maxRetries)
 }

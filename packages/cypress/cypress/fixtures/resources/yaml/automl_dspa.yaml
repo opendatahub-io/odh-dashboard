@@ -1,0 +1,50 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: dspa
+  namespace: {{NAMESPACE}}
+spec:
+  apiServer:
+    caBundleFileMountPath: ''
+    stripEOF: true
+    dbConfigConMaxLifetimeSec: 120
+    applyTektonCustomResource: true
+    caBundleFileName: ''
+    deploy: true
+    enableSamplePipeline: false
+    autoUpdatePipelineDefaultVersion: true
+    archiveLogs: false
+    terminateStatus: Cancelled
+    enableOauth: true
+    trackArtifacts: true
+    collectMetrics: true
+    injectDefaultScript: true
+  database:
+    disableHealthCheck: false
+    mariaDB:
+      deploy: true
+      pipelineDBName: mlpipeline
+      pvcSize: 10Gi
+      username: mlpipeline
+  dspVersion: v2
+  podToPodTLS: false
+  objectStorage:
+    disableHealthCheck: true
+    enableExternalRoute: false
+    externalStorage:
+      basePath: ''
+      bucket: {{AWS_S3_BUCKET}}
+      host: {{AWS_S3_HOST}}
+      port: ''
+      region: {{AWS_REGION}}
+      s3CredentialsSecret:
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY
+        secretName: {{DSPA_SECRET_NAME}}
+      scheme: {{AWS_S3_SCHEME}}
+  persistenceAgent:
+    deploy: true
+    numWorkers: 2
+  scheduledWorkflow:
+    cronScheduleTimezone: UTC
+    deploy: true

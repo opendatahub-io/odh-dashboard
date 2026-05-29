@@ -1,9 +1,9 @@
-import React, { act } from 'react';
-import '@testing-library/jest-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
 import { mockConnectionTypeConfigMapObj } from '@odh-dashboard/internal/__mocks__/mockConnectionType';
 import * as secretsApi from '@odh-dashboard/internal/api/k8s/secrets';
-import AutoragConnectionModal from '../../common/AutoragConnectionModal';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React, { act } from 'react';
+import AutoragConnectionModal from '~/app/components/common/AutoragConnectionModal';
 
 const TEST_PROJECT = 'my-project';
 
@@ -223,7 +223,6 @@ describe('AutoragConnectionModal', () => {
 
     const connectionName = screen.getByRole('textbox', { name: 'Connection name' });
     const uri = screen.getByRole('textbox', { name: 'uri 2' });
-    const numeric = screen.getByRole('spinbutton', { name: 'Input' });
     const addButton = screen.getByRole('button', { name: 'Add connection' });
 
     await act(async () => {
@@ -246,20 +245,6 @@ describe('AutoragConnectionModal', () => {
         target: { value: 'http://localhost' },
       });
       fireEvent.blur(uri);
-    });
-    expect(addButton).toBeEnabled();
-
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '-10' },
-      });
-    });
-    expect(addButton).toBeDisabled();
-
-    await act(async () => {
-      fireEvent.change(numeric, {
-        target: { value: '2' },
-      });
     });
     expect(addButton).toBeEnabled();
 

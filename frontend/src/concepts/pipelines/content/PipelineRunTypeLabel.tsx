@@ -34,7 +34,12 @@ const PipelineRunTypeLabel: React.FC<PipelineRunTypeLabelProps> = ({
     {isModelRegistered && (
       <>
         {' '}
-        <Label color="green" isCompact={isCompact} data-testid="model-registered-label">
+        <Label
+          variant="outline"
+          status="success"
+          isCompact={isCompact}
+          data-testid="model-registered-label"
+        >
           Model registered
         </Label>
       </>

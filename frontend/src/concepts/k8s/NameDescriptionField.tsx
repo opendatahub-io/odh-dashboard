@@ -86,7 +86,9 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             validated={hasNameError ? 'error' : 'default'}
           />
           {nameHelperText}
-          {maxLengthName && <CharLimitHelperText limit={maxLengthName} />}
+          {!!maxLengthName && (
+            <CharLimitHelperText limit={maxLengthName} currentLength={data.name.length} />
+          )}
         </FormGroup>
       </StackItem>
       {showK8sName && (
@@ -145,7 +147,9 @@ const NameDescriptionField: React.FC<NameDescriptionFieldProps> = ({
             maxLength={maxLengthDesc}
           />
 
-          {maxLengthDesc && <CharLimitHelperText limit={maxLengthDesc} />}
+          {!!maxLengthDesc && (
+            <CharLimitHelperText limit={maxLengthDesc} currentLength={data.description.length} />
+          )}
         </FormGroup>
       </StackItem>
     </Stack>

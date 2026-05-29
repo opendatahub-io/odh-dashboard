@@ -17,38 +17,43 @@ const NOTIFICATION_BRIDGE_EVENT = 'odh-notification-bridge';
 
 export const useNotificationListener = (): void => {
   const { notifications } = useContext(NotificationContext);
-  const lastBridgedIndexRef = useRef(0);
+  // Relies on mod-arch-core's NotificationContext reducer preserving object references for existing notifications
+  const bridgedRef = useRef<WeakSet<object>>(new WeakSet());
 
   useEffect(() => {
-    const newNotifications = notifications.slice(lastBridgedIndexRef.current);
-    lastBridgedIndexRef.current = notifications.length;
+    notifications.forEach((notification) => {
+      if (bridgedRef.current.has(notification)) {
+        return;
+      }
+      bridgedRef.current.add(notification);
 
-    newNotifications.forEach((notification) => {
       if (notification.hidden || typeof notification.title !== 'string') {
         return;
       }
 
-      try {
-        const messageStr =
-          typeof notification.messageText === 'string'
-            ? notification.messageText
-            : typeof notification.message === 'string'
-              ? notification.message
-              : undefined;
+      const messageStr =
+        typeof notification.messageText === 'string'
+          ? notification.messageText
+          : typeof notification.message === 'string'
+            ? notification.message
+            : undefined;
 
+      try {
         const detail: Record<string, unknown> = {
           status: notification.status,
           title: notification.title,
           message: messageStr,
-          timestamp: notification.timestamp?.toISOString() || new Date().toISOString(),
-          ...(notification.linkUrl && notification.linkLabel && {
-            linkUrl: notification.linkUrl,
-            linkLabel: notification.linkLabel,
-          }),
+          timestamp: notification.timestamp.toISOString(),
+          ...(notification.linkUrl &&
+            notification.linkLabel && {
+              linkUrl: notification.linkUrl,
+              linkLabel: notification.linkLabel,
+            }),
         };
 
         window.dispatchEvent(new CustomEvent(NOTIFICATION_BRIDGE_EVENT, { detail }));
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error('[NotificationBridge] Failed to dispatch notification:', error);
       }
     });

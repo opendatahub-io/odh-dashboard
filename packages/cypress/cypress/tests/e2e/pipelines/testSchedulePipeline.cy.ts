@@ -78,8 +78,7 @@ describe('Verify that a pipeline can be scheduled to run', { testIsolation: fals
       pipelineRunsGlobal.findScheduleRunButton().click();
 
       cy.step('Schedule the pipeline to run every 1 minute');
-      createSchedulePage.experimentSelect.findToggleButton().click();
-      createSchedulePage.selectExperimentByName(experimentName);
+      createSchedulePage.fillRunGroup(experimentName);
       createSchedulePage.fillName(scheduleName);
       createSchedulePage.fillDescription(scheduleDescription);
 

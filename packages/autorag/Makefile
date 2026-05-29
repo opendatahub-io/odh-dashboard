@@ -31,12 +31,12 @@ dev-install-dependencies:
 	cd frontend && npm install
 
 .PHONY: dev-bff-mock
-dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server, LlamaStack)
-	cd bff && make run PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_LS_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+dev-bff-mock: ## Run BFF with all mocks enabled (K8s, Pipeline Server, OGX)
+	cd bff && make run PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff-mock-debug
-dev-bff-mock-debug: ## Run BFF with all mocks and Delve debugger on port 2345
-	cd bff && make debug PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_LS_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
+dev-bff-mock-debug: ## Run BFF with all mocks (K8s, Pipeline Server, OGX) and Delve debugger on port 2345
+	cd bff && make debug PORT=4001 LOG_LEVEL=debug MOCK_K8S_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true MOCK_OGX_CLIENT=true AUTH_METHOD=internal DEPLOYMENT_MODE=standalone
 
 .PHONY: dev-bff
 dev-bff:
@@ -101,6 +101,20 @@ dev-start-federated-mock:
 .PHONY: dev-bff-federated-mock
 dev-bff-federated-mock:
 	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true MOCK_PIPELINE_SERVER_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+
+############ E2E Test Targets ############
+# These targets are used by the GitHub Actions e2e workflow to start BFFs
+# Port is configurable via E2E_BFF_PORT environment variable for parallel runner support
+
+E2E_BFF_PORT ?= 4001
+
+.PHONY: dev-bff-e2e-mock
+dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
+
+.PHONY: dev-bff-e2e-cluster
+dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

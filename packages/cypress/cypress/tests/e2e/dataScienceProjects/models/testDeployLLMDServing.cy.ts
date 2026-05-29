@@ -2,6 +2,7 @@ import {
   ModelLocationSelectOption,
   ModelStateLabel,
   ModelTypeLabel,
+  YAMLViewerToggleOption,
 } from '@odh-dashboard/model-serving/types/form-data';
 import { deleteOpenShiftProject } from '../../../../utils/oc_commands/project';
 import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../../utils/e2eUsers';
@@ -12,6 +13,8 @@ import {
   modelServingGlobal,
   modelServingSection,
   modelServingWizard,
+  deleteModelServingModal,
+  inferenceServiceActions,
 } from '../../../../pages/modelServing';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
 import type { DataScienceProjectData } from '../../../../types';
@@ -20,21 +23,24 @@ import {
   createCleanHardwareProfile,
   cleanupHardwareProfiles,
 } from '../../../../utils/oc_commands/hardwareProfiles';
-import { patchOpenShiftResource } from '../../../../utils/oc_commands/baseCommands';
 import { checkLLMInferenceServiceState } from '../../../../utils/oc_commands/modelServing';
+import { stubClipboard, getClipboardContent } from '../../../../utils/clipboardUtils';
 
 let testData: DataScienceProjectData;
 let projectName: string;
+let resourceName: string;
 let modelName: string;
 const uuid = generateTestUUID();
 let hardwareProfileResourceName: string;
 let hardwareProfileYamlPath: string;
 let modelURI: string;
 let servingRuntime: string;
-let resourceType: string;
-let Image: string;
+let existingImage: string;
+let replaceImage: string;
+let yamlEditorModelName: string;
+let yamlEditorModelPath: string;
 
-describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () => {
+describe('A user can deploy an LLMD model', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadDSPFixture('e2e/dataScienceProjects/testDeployLLMDServing.yaml')
@@ -46,8 +52,10 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
         servingRuntime = testData.servingRuntime;
         hardwareProfileResourceName = `${testData.hardwareProfileName}`;
         hardwareProfileYamlPath = `resources/yaml/llmd-hardware-profile.yaml`;
-        resourceType = testData.resourceType;
-        Image = testData.Image;
+        existingImage = testData.existingImage;
+        replaceImage = testData.replaceImage;
+        yamlEditorModelName = testData.yamlEditorModelName;
+        yamlEditorModelPath = 'cypress/fixtures/resources/yaml/yaml_editor_model_serving.yaml';
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -73,11 +81,14 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
   it(
     'Verify User Can Deploy an LLMD Model in Deployments',
     {
-      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent', '@Maintain'],
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
     },
     () => {
       cy.step('Log into the application as admin');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true,vLLMDeploymentOnMaaS=true',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
 
       cy.step(`Navigate to the Project list tab and search for ${projectName}`);
       projectListPage.navigate();
@@ -100,6 +111,10 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
         .clear()
         .type(`${modelName}${testData.connectionNameSuffix}`);
       modelServingWizard.findModelTypeSelectOption(ModelTypeLabel.GENERATIVE).click();
+
+      cy.step('Verify legacy deployment checkbox appears and is unchecked');
+      modelServingWizard.findLegacyModeCheckbox().should('exist').should('not.be.checked');
+
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Select Model deployment');
@@ -109,10 +124,38 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
         .findResourceNameInput()
         .should('be.visible')
         .invoke('val')
-        .as('resourceName');
+        .then((val) => {
+          resourceName = val as string;
+        });
       modelServingWizard.selectPotentiallyDisabledProfile(hardwareProfileResourceName);
+
+      cy.step('Verify YAML Viewer');
+      // Stub clipboard API AFTER page load (window changes on navigation)
+      stubClipboard('copiedYAML');
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
+      modelServingWizard.findYAMLEditorEmptyState().should('be.visible');
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption(servingRuntime).should('exist').click();
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
+      modelServingWizard.findYAMLCodeEditor().waitForReady();
+
+      cy.step('Patch YAML to use CPU image (workaround for non-GPU cluster)');
+      // Add the CPU image to the containers spec so deployment works without GPU
+      modelServingWizard.findYAMLCodeEditor().replaceInEditor(existingImage, replaceImage);
+      modelServingWizard.findYAMLCodeEditor().copyToClipboard().click();
+      // Verify the actual copied YAML content
+      getClipboardContent('copiedYAML').then((copied) => {
+        expect(copied).to.have.length.at.least(1);
+        const yamlContent = copied[0];
+        expect(yamlContent).to.include('apiVersion: serving.kserve.io/v1alpha1');
+        expect(yamlContent).to.include('kind: LLMInferenceService');
+        expect(yamlContent).to.include(`name: ${modelName}`);
+        expect(yamlContent).to.include(replaceImage);
+      });
+      modelServingWizard.findYAMLCodeEditor().download().should('exist').click();
+      // Back to Form view
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.FORM).should('exist').click();
       // Verify replica settings are available for LLMD
       modelServingWizard.findNumReplicasInputField().should('exist').should('have.value', '1');
       modelServingWizard.findNextButton().should('be.enabled').click();
@@ -128,22 +171,70 @@ describe('[Automation Bug: RHOAIENG-52476] A user can deploy an LLMD model', () 
       cy.step('Verify the model is available in UI');
       modelServingSection.findModelServerDeployedName(modelName);
 
-      cy.step('Patch the LLM Inference Service to set image to VLLM CPU');
-      // Patch the LLM Inference Service to set image to VLLM CPU
-      // workaround for model to be deployed without GPUs.
-      cy.get<string>('@resourceName').then((resourceName) => {
-        patchOpenShiftResource(resourceType, resourceName, Image, projectName);
-        cy.step('Verify that the Model is ready');
+      cy.step('Verify that the Model is ready');
+      // Image was patched in YAML editor before submit, so no post-deployment patching needed
+      cy.then(() => {
         checkLLMInferenceServiceState(resourceName, projectName, { checkReady: true });
       });
 
       cy.step('Verify the model Row');
-      modelServingGlobal.visit(projectName);
-
       const llmdRow = modelServingGlobal.getDeploymentRow(modelName);
-      llmdRow.findStatusLabel(ModelStateLabel.STARTED).should('exist');
-      // Expand row to verify deployment details
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
       llmdRow.findServingRuntime().should('have.text', servingRuntime);
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findDeleteInferenceServiceAction().click();
+      deleteModelServingModal.findInput().clear().type(modelName);
+      deleteModelServingModal.findSubmitButton().should('be.enabled').click();
+    },
+  );
+  it(
+    'Verify User can deploy an LLmd Model from Manual YAML editor',
+    {
+      tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@NonConcurrent'],
+    },
+    () => {
+      cy.step('Log into the application as admin with YAML viewer feature flag enabled');
+      cy.visitWithLogin(
+        '/?devFeatureFlags=deploymentWizardYAMLViewer=true',
+        HTPASSWD_CLUSTER_ADMIN_USER,
+      );
+
+      cy.step(`Navigate to the Project list tab and search for ${projectName}`);
+      projectListPage.navigate();
+      projectListPage.filterProjectByName(projectName);
+      projectListPage.findProjectLink(projectName).click();
+
+      cy.step('Deploy LLMD Model From YAML Editor');
+      projectDetails.findSectionTab('model-server').click();
+      modelServingGlobal.selectSingleServingModelButtonIfExists();
+      modelServingGlobal.findDeployModelButton().click();
+
+      cy.step('Enter Manual YAML editor Mode');
+      modelServingWizard.findYAMLViewerToggle(YAMLViewerToggleOption.YAML).should('exist').click();
+      modelServingWizard.findManualEditModeButton().click();
+      modelServingWizard.findSwitchToYAMLEditorConfirmButton().click();
+      modelServingWizard.findSubmitButton().should('be.disabled');
+
+      cy.step('Load YAML content from fixture and deploy');
+      const yamlEditor = modelServingWizard.findYAMLCodeEditor();
+      yamlEditor.findStartFromScratchButton().click();
+      yamlEditor.findUpload().selectFile(yamlEditorModelPath, {
+        force: true,
+      });
+      modelServingWizard.findYAMLCodeEditor().waitForReady();
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
+      const llmdRow = modelServingGlobal.getDeploymentRow(yamlEditorModelName);
+      cy.then(() => {
+        checkLLMInferenceServiceState(yamlEditorModelName, projectName, { checkReady: true });
+      });
+
+      cy.step('Verify the model Row');
+      llmdRow.findStatusLabel(ModelStateLabel.READY).should('exist');
+      llmdRow.findKebab().click();
+      inferenceServiceActions.findEditInferenceServiceAction().click();
+      modelServingWizard.findYAMLEditFallbackAlert().should('exist');
+      modelServingWizard.findYAMLCodeEditor().findInput().should('not.be.empty');
+      modelServingWizard.findSubmitButton().should('be.enabled').click();
     },
   );
 });

@@ -59,7 +59,7 @@ describe('create', () => {
 
     categorySection.findMultiGroupInput().type('New category');
 
-    categorySection.findMultiGroupSelectButton('Option').click();
+    categorySection.findMultiGroupSelectButton('New-category').click();
     categorySection.findChipItem('New category').should('exist');
     categorySection.findMultiGroupInput().type('{esc}');
 
@@ -94,6 +94,28 @@ describe('create', () => {
     createConnectionTypePage.findSubmitButton().should('be.enabled').click();
 
     createConnectionTypePage.findFooterError().should('contain.text', 'returned error message');
+  });
+
+  it('Shows user-friendly error message when connection type name already exists', () => {
+    cy.interceptOdh('POST /api/connection-types', {
+      success: false,
+      error: 'Unable to add connection type: configmaps "existing-name" already exists.',
+    });
+    const categorySection = createConnectionTypePage.getCategorySection();
+    createConnectionTypePage.visitCreatePage();
+
+    createConnectionTypePage.findConnectionTypeName().type('existing-name');
+    categorySection.findCategoryTable();
+    categorySection.findMultiGroupSelectButton('Object-storage').click();
+    createConnectionTypePage.findSubmitButton().should('be.enabled').click();
+
+    createConnectionTypePage
+      .findFooterError()
+      .should(
+        'contain.text',
+        'A connection type with this name already exists. Please choose a different name.',
+      );
+    createConnectionTypePage.findFooterError().should('not.contain.text', 'configmaps');
   });
 
   it('redirect from v2 to v3 route', () => {
@@ -157,7 +179,7 @@ describe('duplicate', () => {
     row1.findName().should('contain.text', 'Short text 1');
     row1.findType().should('have.text', 'Text - Short');
     row1.findDefault().should('have.text', '-');
-    row1.findRequired().not('be.checked');
+    row1.findRequired().should('not.be.checked');
 
     // Row 2 - Short text field
     const row2 = createConnectionTypePage.getFieldsTableRow(2);

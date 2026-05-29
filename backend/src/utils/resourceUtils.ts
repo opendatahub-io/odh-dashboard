@@ -359,9 +359,7 @@ const fetchDocs = async (fastify: KubeFastifyInstance): Promise<OdhDocument[]> =
             }
             return;
           }
-          if (appDefs.find((def) => def.metadata.name === doc.spec.appName)) {
-            docs.push(doc);
-          }
+          docs.push(doc);
         });
       }
     } catch (e) {
@@ -534,6 +532,11 @@ const applyFeatureLockouts = (config: DashboardConfig): DashboardConfig => ({
        * Fine Tuning feature is no longer supported
        */
       disableFineTuning: true,
+
+      /**
+       * MLflow is now always enabled when the operator component is present
+       */
+      mlflow: true,
     },
   },
 });

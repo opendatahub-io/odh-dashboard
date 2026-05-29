@@ -1,54 +1,16 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
-import { Button, PageSection } from '@patternfly/react-core';
-import { PlusIcon } from '@patternfly/react-icons';
 import React from 'react';
-import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
-import CreateApiKeyModal from './CreateApiKeyModal';
-import ApiKeysTable from './allKeys/ApiKeysTable';
-import EmptyApiKeysPage from './EmptyApiKeysPage';
-import ApiKeysActions from './ApiKeysActions';
+import ApiKeysTab from './ApiKeysTab';
 
-const AllApiKeysPage: React.FC = () => {
-  const [apiKeys, loaded, error, refresh] = useFetchApiKeys();
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+const AllApiKeysPage: React.FC = () => (
+  <ApplicationsPage
+    title="API keys"
+    description="Manage API keys that can be used to authenticate with model endpoints."
+    loaded
+    empty={false}
+  >
+    <ApiKeysTab />
+  </ApplicationsPage>
+);
 
-  return (
-    <ApplicationsPage
-      title="API Keys"
-      description="Manage personal API keys that can be used to access AI asset endpoints."
-      empty={loaded && !error && apiKeys.length === 0}
-      loaded={loaded}
-      loadError={error}
-      emptyStatePage={<EmptyApiKeysPage onRefresh={() => refresh()} />}
-      headerAction={<ApiKeysActions apiKeyCount={apiKeys.length} onRefresh={refresh} />}
-    >
-      {isModalOpen && (
-        <CreateApiKeyModal
-          onClose={() => {
-            setIsModalOpen(false);
-            refresh();
-          }}
-        />
-      )}
-
-      {loaded && (
-        <PageSection isFilled>
-          <ApiKeysTable
-            apiKeys={apiKeys}
-            toolbarContent={
-              <Button
-                variant="primary"
-                icon={<PlusIcon />}
-                onClick={() => setIsModalOpen(true)}
-                data-testid="create-api-key-button"
-              >
-                Create API key
-              </Button>
-            }
-          />
-        </PageSection>
-      )}
-    </ApplicationsPage>
-  );
-};
 export default AllApiKeysPage;

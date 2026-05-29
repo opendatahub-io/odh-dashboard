@@ -3,9 +3,13 @@ import { useHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardw
 import { useK8sNameDescriptionFieldData } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
 import {
   extractK8sNameDescriptionFieldData,
+  INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
+  INFERENCE_SERVICE_NAME_REGEX,
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -16,12 +20,16 @@ import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
 import { useDeploymentStrategyField } from './fields/DeploymentStrategyField';
-import { useDeploymentWizardReducer, type WizardFormAction } from './useDeploymentWizardReducer';
+import {
+  useDeploymentWizardReducer,
+  wizardFormReducer,
+  WizardFormState,
+  type WizardFormAction,
+} from './useDeploymentWizardReducer';
 import type { ExternalDataMap } from './ExternalDataLoader';
 
 export type UseModelDeploymentWizardState = WizardFormData & {
@@ -45,8 +53,24 @@ export const useModelDeploymentWizard = (
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
+  const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
+  // Declare reducer state first so field hooks can access it
+  // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
+  const [formReducerState, formReducerDispatch] = React.useReducer(wizardFormReducer, {
+    fieldValues: {},
+    initialValues: {},
+  });
+  const formState: Partial<WizardFormState> = React.useMemo(
+    () => ({
+      ...formReducerState.initialValues,
+      ...formReducerState.fieldValues,
+      ...{ devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled } },
+    }),
+    [formReducerState.initialValues, formReducerState.fieldValues, vLLMDeploymentOnMaaSEnabled],
+  );
+
   // Step 1: Model Source
-  const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
 
   const [canCreateRoleBindings] = useAccessReview({
@@ -63,6 +87,11 @@ export const useModelDeploymentWizard = (
     initialData?.createConnectionData,
     modelLocationData.data,
   );
+  const modelType = useModelTypeField(
+    initialData?.modelTypeField,
+    modelLocationData.data,
+    vLLMDeploymentOnMaaSEnabled,
+  );
 
   // loaded state
   const modelSourceLoaded = React.useMemo(() => {
@@ -74,20 +103,14 @@ export const useModelDeploymentWizard = (
     initialData: extractK8sNameDescriptionFieldData(initialData?.k8sNameDesc),
     editableK8sName: !initialData?.k8sNameDesc?.k8sName.state.immutable,
     limitNameResourceType: LimitNameResourceType.MODEL_DEPLOYMENT,
+    regexp: INFERENCE_SERVICE_NAME_REGEX,
+    invalidCharsMessage: INFERENCE_SERVICE_NAME_INVALID_CHARS_MESSAGE,
   });
   const hardwareProfileConfig = useHardwareProfileConfig(...(initialData?.hardwareProfile ?? []));
   const modelFormatState = useModelFormatField(
     initialData?.modelFormat,
     modelType.data,
     project.projectName,
-  );
-
-  const modelServer = useModelServerSelectField(
-    initialData?.modelServer,
-    modelFormatState.templatesFilteredForModelType,
-    modelFormatState.modelFormat,
-    modelType.data,
-    hardwareProfileConfig.formData.selectedProfile,
   );
 
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
@@ -106,13 +129,13 @@ export const useModelDeploymentWizard = (
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     modelType,
-    modelServer,
+    formState.modelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
-    modelServer,
+    formState.modelServer,
     canCreateRoleBindings,
   );
 
@@ -123,12 +146,12 @@ export const useModelDeploymentWizard = (
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
     modelType,
-    modelServer,
+    formState.modelServer,
   );
 
   // Step 4: Summary
 
-  const baseFormState: WizardFormData['state'] = React.useMemo(
+  const mergedFormState: WizardFormData['state'] = React.useMemo(
     () => ({
       project,
       modelType,
@@ -146,9 +169,9 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
+      ...formState,
     }),
     [
       project,
@@ -164,22 +187,36 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
+      formState,
     ],
   );
 
   // The reducer manages dynamic field state and computes active fields from merged state
-  const { state, dispatch, fields, externalDataLoaded } = useDeploymentWizardReducer(
-    baseFormState,
-    initialData,
-    externalDataMap,
+  const { state, dispatch, fields, externalDataLoaded, computedOverrides } =
+    useDeploymentWizardReducer(mergedFormState, formReducerDispatch, initialData, externalDataMap);
+
+  const tokenAuthDisabled = computedOverrides.tokenAuthentication?.isDisabled ?? false;
+  const stateWithOverrides: WizardFormData['state'] = React.useMemo(
+    () => ({
+      ...state,
+      tokenAuthentication: {
+        ...state.tokenAuthentication,
+        isDisabled: tokenAuthDisabled,
+        ...(tokenAuthDisabled ? { data: [] } : {}),
+      },
+      'llmd-serving/gateway': {
+        ...(state['llmd-serving/gateway'] ?? {}),
+        ...computedOverrides['llmd-serving/gateway'],
+      },
+    }),
+    [state, tokenAuthDisabled, computedOverrides],
   );
 
   return {
     initialData,
-    state,
+    state: stateWithOverrides,
     dispatch,
     fields,
     loaded: {

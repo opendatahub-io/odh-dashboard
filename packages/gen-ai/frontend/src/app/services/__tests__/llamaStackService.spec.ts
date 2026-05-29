@@ -271,6 +271,7 @@ describe('llamaStackService', () => {
           expect.objectContaining({
             input: mockCreateResponseRequest.input,
             model: mockCreateResponseRequest.model,
+            model_source_type: mockCreateResponseRequest.model_source_type,
           }),
           expect.objectContaining({ namespace: TEST_NAMESPACE }),
           {},
@@ -474,7 +475,7 @@ describe('llamaStackService', () => {
           { onStreamData: mockStreamData },
         );
 
-        expect(result.content).toBe('World');
+        expect(result.content).toBe(' World');
         expect(mockStreamData).toHaveBeenCalledTimes(1); // Only delta events processed
       });
 

@@ -58,15 +58,20 @@ import { hardwareProfileSection } from '../../../pages/components/HardwareProfil
 const initIntercepts = ({
   modelType,
   rejectAddSupportServingPlatformProject = false,
+  vLLMDeploymentOnMaaS = false,
 }: {
   modelType?: ServingRuntimeModelType;
   rejectAddSupportServingPlatformProject?: boolean;
+  vLLMDeploymentOnMaaS?: boolean;
 }) => {
   cy.interceptOdh(
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
         [DataScienceStackComponent.K_SERVE]: { managementState: 'Managed' },
+        // Gen AI plugin registers PLUGIN_GEN_AI with this required component; without it the
+        // save-as-ai-asset UI stays hidden while genAiStudio is still true in dashboard config.
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
     }),
   );
@@ -76,6 +81,8 @@ const initIntercepts = ({
       disableNIMModelServing: true,
       disableKServe: false,
       deploymentWizardYAMLViewer: true,
+      vLLMDeploymentOnMaaS,
+      genAiStudio: true,
     }),
   );
   // used by addSupportServingPlatformProject
@@ -316,14 +323,17 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingGlobal.visit('test-project');
     modelServingGlobal.findDeployModelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/deploy');
+    cy.url().should('include', 'ai-hub/models/deployments/deploy');
     cy.findByRole('heading', { name: 'Deploy a model' }).should('exist');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findCancelButton().click();
-    cy.url().should('include', 'ai-hub/deployments/deploy');
+    cy.url().should('include', 'ai-hub/models/deployments/deploy');
     cy.findByRole('button', { name: 'Cancel' }).click();
     modelServingWizard.findDiscardButton().click();
-    cy.url().should('eq', `${Cypress.config().baseUrl ?? ''}/ai-hub/deployments/test-project`);
+    cy.url().should(
+      'eq',
+      `${Cypress.config().baseUrl ?? ''}/ai-hub/models/deployments/test-project`,
+    );
 
     modelServingSection.visit('test-project');
     modelServingSection.findDeployModelButton().click();
@@ -336,8 +346,8 @@ describe('Model Serving Deploy Wizard', () => {
     cy.url().should('include', 'projects/test-project?section=model-server');
   });
 
-  it('Create a new generative deployment and submit', () => {
-    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE });
+  it('Create a new legacy generative deployment and submit', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE, vLLMDeploymentOnMaaS: true });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
       mockK8sResourceList([mockInferenceServiceK8sResource({})]),
@@ -365,8 +375,9 @@ describe('Model Serving Deploy Wizard', () => {
       .findExistingConnectionSelectOption('Test URI Secret')
       .should('exist')
       .click();
-
     modelServingWizard.findSaveConnectionCheckbox().should('not.exist');
+
+    modelServingWizard.findLegacyModeCheckbox().should('exist').click();
     modelServingWizard.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
@@ -377,11 +388,18 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizard.findModelDeploymentDescriptionInput().type('test-description');
     hardwareProfileSection.findSelect().should('contain.text', 'Small');
 
-    // hardwareProfileSection.findGlobalScopedLabel().should('exist');
+    // Generative has no model format select (they are all vLLM)
     modelServingWizard.findModelFormatSelect().should('not.exist');
-    modelServingWizard.findServingRuntimeTemplateSearchSelector().should('exist');
+    // verify next is disabled when no server selection has been made
+    modelServingWizard.findModelServerAutoSelectRadio().should('not.be.checked');
+    modelServingWizard
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'Select one');
+    modelServingWizard.findNextButton().should('be.disabled');
     modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
-    modelServingWizard.findGlobalScopedTemplateOption('vLLM NVIDIA').should('exist').click();
+
+    modelServingWizard.selectGlobalScopedTemplateOption('vLLM NVIDIA');
+    modelServingWizard.findNextButton().should('be.enabled');
 
     modelServingWizard.findNumReplicasInput().should('exist');
     modelServingWizard.findNumReplicasInputField().should('have.value', '1');
@@ -1339,7 +1357,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('Edit an existing deployment', () => {
+  it('Edit an existing predictive deployment', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
       { model: InferenceServiceModel, ns: 'test-project' },
@@ -1424,6 +1442,74 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
   });
 
+  it('Edit an existing legacy generative deployment', () => {
+    initIntercepts({ modelType: ServingRuntimeModelType.GENERATIVE, vLLMDeploymentOnMaaS: true });
+    cy.interceptK8sList(
+      { model: InferenceServiceModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockInferenceServiceK8sResource({
+          modelType: ServingRuntimeModelType.GENERATIVE,
+          hasExternalRoute: true,
+          secretName: 'test-uri-secret',
+          hardwareProfileName: 'small-profile',
+          hardwareProfileNamespace: 'opendatahub',
+          description: 'test-description',
+        }),
+      ]),
+    );
+    cy.interceptK8sList(
+      { model: ServingRuntimeModel, ns: 'test-project' },
+      mockK8sResourceList([
+        mockServingRuntimeK8sResource({
+          scope: 'global',
+          templateDisplayName: 'vLLM NVIDIA',
+        }),
+      ]),
+    );
+
+    modelServingGlobal.visit('test-project');
+    modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
+
+    // Step 1: Model source
+    modelServingWizardEdit.findModelLocationSelect().should('exist');
+    modelServingWizardEdit.findExistingConnectionValue().should('have.value', 'Test URI Secret');
+    modelServingWizardEdit.findModelSourceStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    modelServingWizardEdit
+      .findModelTypeSelect()
+      .should('have.text', ModelTypeLabel.GENERATIVE)
+      .should('be.disabled');
+
+    modelServingWizardEdit.findLegacyModeCheckbox().should('be.checked').should('be.disabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 2: Model deployment
+    modelServingWizardEdit
+      .findModelDeploymentDescriptionInput()
+      .should('contain.text', 'test-description');
+    modelServingWizardEdit.findModelDeploymentStep().should('be.enabled');
+    modelServingWizardEdit.findNextButton().should('be.enabled');
+
+    modelServingWizardEdit
+      .findModelDeploymentNameInput()
+      .should('have.value', 'Test Inference Service');
+    hardwareProfileSection.findSelect().should('be.visible');
+    hardwareProfileSection.findSelect().should('contain.text', 'Small');
+    modelServingWizardEdit.findServingRuntimeTemplateSearchSelector().should('exist');
+    modelServingWizardEdit
+      .findServingRuntimeTemplateSearchSelector()
+      .should('contain.text', 'vLLM NVIDIA');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    // Step 3: Advanced options
+    modelServingWizardEdit.findAdvancedOptionsStep().should('be.enabled');
+    modelServingWizardEdit.findExternalRouteCheckbox().should('be.checked');
+    modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+    modelServingWizardEdit.findUpdateDeploymentButton().should('be.enabled').click();
+  });
+
   it('Verify cpu and memory request and limits values when editing KServe model', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8sList(
@@ -1431,6 +1517,7 @@ describe('Model Serving Deploy Wizard', () => {
       mockK8sResourceList([
         mockInferenceServiceK8sResource({
           modelType: ServingRuntimeModelType.PREDICTIVE,
+          secretName: 'test-uri-secret',
           hasExternalRoute: true,
           hardwareProfileName: 'large-profile',
           hardwareProfileNamespace: 'opendatahub',
@@ -1457,14 +1544,11 @@ describe('Model Serving Deploy Wizard', () => {
     modelServingGlobal.visit('test-project');
     modelServingGlobal.getModelRow('Test Inference Service').findKebabAction('Edit').click();
     // Step 1: Model source
-    modelServingWizard.findSaveConnectionCheckbox().should('be.checked');
-    modelServingWizard.findSaveConnectionCheckbox().click();
-    modelServingWizard.findSaveConnectionCheckbox().should('not.be.checked');
     modelServingWizardEdit.findNextButton().should('be.enabled').click();
 
     // Step 2: Model deployment
     hardwareProfileSection.findSelect().should('contain.text', 'Large Profile');
-    hardwareProfileSection.findCustomizeButton().should('exist').click();
+    hardwareProfileSection.expandCustomizeSection();
     modelServingWizardEdit.findCPURequestedInput().should('have.value', '6');
     modelServingWizardEdit.findCPULimitInput().should('have.value', '6');
     modelServingWizardEdit.findMemoryRequestedInput().should('have.value', '10');
@@ -1596,8 +1680,11 @@ describe('Model Serving Deploy Wizard', () => {
       expect(interception.request.body.metadata.name).to.satisfy(isGeneratedSecretName);
       expect(interception.request.body.metadata.namespace).to.equal('test-project');
       expect(interception.request.body.metadata.labels['opendatahub.io/dashboard']).to.equal(
-        'false',
+        'true',
       );
+      expect(
+        interception.request.body.metadata.annotations['opendatahub.io/connection-hidden'],
+      ).to.equal('true');
       expect(
         interception.request.body.metadata.annotations['opendatahub.io/connection-type-protocol'],
       ).to.equal('uri');
@@ -2002,7 +2089,7 @@ describe('Model Serving Deploy Wizard', () => {
     it('deploy create', () => {
       cy.visitWithLogin(`/modelServing/deploy`);
       cy.findByTestId('app-page-title').contains('Deploy a model');
-      cy.url().should('include', '/ai-hub/deployments/deploy');
+      cy.url().should('include', '/ai-hub/models/deployments/deploy');
     });
   });
 
@@ -2043,21 +2130,21 @@ describe('Model Serving Deploy Wizard', () => {
       // Select openvino_ir - opset1 format - should autoselect OpenVINO (only 1 match)
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset1').click();
       // Verify autoselect is checked and OpenVINO is selected
-      modelServingWizard.findServingRuntimeAutoSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
       cy.findByText('OpenVINO').should('exist');
 
       // Step 3: Override autoselect - manually select Caikit
-      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.selectGlobalScopedTemplateOption('Caikit');
       // Verify manual selection is active
-      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
 
       // Step 4: Change model format to openvino_ir - opset13 - manual selection should persist
       modelServingWizard.findModelFormatSelect().click();
       modelServingWizard.findModelFormatSelectOption('openvino_ir - opset13').click();
       // Verify Caikit is still selected (manual override persists)
-      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'Caikit');
@@ -2077,15 +2164,15 @@ describe('Model Serving Deploy Wizard', () => {
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('NVIDIA GPU Profile');
       // Verify autoselect is checked and vLLM NVIDIA is selected (only nvidia-compatible runtime)
-      modelServingWizard.findServingRuntimeAutoSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerAutoSelectRadio().should('be.checked');
       cy.findByText('vLLM NVIDIA').should('exist');
 
       // Step 8: Manual override to vLLM AMD
-      modelServingWizard.findServingRuntimeSelectRadio().click();
+      modelServingWizard.findModelServerManualSelectRadio().click();
       modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
       modelServingWizard.findGlobalScopedTemplateOption('vLLM AMD').click();
       // Verify manual selection is active
-      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'vLLM AMD');
@@ -2094,7 +2181,7 @@ describe('Model Serving Deploy Wizard', () => {
       hardwareProfileSection.findSelect().click();
       hardwareProfileSection.selectProfileContaining('Small Profile');
       // Verify vLLM AMD is still selected (manual override persists)
-      modelServingWizard.findServingRuntimeSelectRadio().should('be.checked');
+      modelServingWizard.findModelServerManualSelectRadio().should('be.checked');
       modelServingWizard
         .findServingRuntimeTemplateSearchSelector()
         .should('contain.text', 'vLLM AMD');

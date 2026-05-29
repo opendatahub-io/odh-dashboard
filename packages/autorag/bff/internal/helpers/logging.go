@@ -62,19 +62,29 @@ func (h HeaderLogValuer) LogValue() slog.Value {
 	return slog.GroupValue(values...)
 }
 
+const maxBodySize = 10 * 1024 * 1024 // 10 MB
+
 func CloneBody(r *http.Request) ([]byte, error) {
 	if r.Body == nil {
 		return nil, fmt.Errorf("no body provided")
 	}
-	buf, _ := io.ReadAll(r.Body)
-	readerCopy := io.NopCloser(bytes.NewBuffer(buf))
-	readerOriginal := io.NopCloser(bytes.NewBuffer(buf))
-	r.Body = readerOriginal
-
-	defer readerCopy.Close()
-	cloneBody, err := io.ReadAll(readerCopy)
-
-	return cloneBody, err
+	// Read one byte beyond the limit so we can distinguish "exactly at limit"
+	// from "over limit" without consuming an unbounded stream.
+	buf, err := io.ReadAll(io.LimitReader(r.Body, maxBodySize+1))
+	if err != nil {
+		// Restore whatever was read so downstream handlers are not left with a drained body.
+		r.Body = io.NopCloser(bytes.NewBuffer(buf))
+		return nil, fmt.Errorf("reading request body: %w", err)
+	}
+	if int64(len(buf)) > maxBodySize {
+		// Restore the partially-read bytes before returning so downstream handlers
+		// can still inspect the body (e.g., to emit a 413 response).
+		r.Body = io.NopCloser(bytes.NewBuffer(buf))
+		return nil, fmt.Errorf("request body too large: exceeds %d bytes", maxBodySize)
+	}
+	// Restore r.Body with the full, untruncated content for downstream handlers.
+	r.Body = io.NopCloser(bytes.NewBuffer(buf))
+	return buf, nil
 }
 
 type RequestLogValuer struct {

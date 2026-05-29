@@ -34,10 +34,13 @@ const envVarSchema = z.object({
   value: z.string(),
 });
 
-export const environmentVariablesFieldSchema = z.object({
-  enabled: z.boolean(),
-  variables: z.array(envVarSchema),
-});
+export const environmentVariablesFieldSchema = z.discriminatedUnion('enabled', [
+  z.object({ enabled: z.literal(true), variables: z.array(envVarSchema) }),
+  z.object({
+    enabled: z.literal(false),
+    variables: z.array(z.object({ name: z.string(), value: z.string() })),
+  }),
+]);
 
 export type EnvironmentVariablesFieldData = z.infer<typeof environmentVariablesFieldSchema>;
 
@@ -128,8 +131,10 @@ export const EnvironmentVariablesField: React.FC<EnvironmentVariablesFieldProps>
     onChange?.(newData);
   };
 
-  const handleCheckboxChange = (event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
-    const newData = { ...data, enabled: checked };
+  const handleCheckboxChange = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
+    const newData: EnvironmentVariablesFieldData = checked
+      ? { enabled: true, variables: data.variables }
+      : { enabled: false, variables: data.variables };
     onChange?.(newData);
   };
 

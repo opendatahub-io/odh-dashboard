@@ -21,16 +21,26 @@ const DeleteJobModal: React.FC<DeleteJobModalProps> = ({ job, onClose }) => {
   };
 
   const deleteName = job.metadata.name;
+  const rayJob = isRayJob(job);
   const status = getUnifiedJobStatusSync(job);
-
   const isTerminalState =
     status === TrainingJobState.SUCCEEDED || status === TrainingJobState.FAILED;
+  const performDelete = rayJob ? deleteRayJob : deleteTrainJob;
 
-  const performDelete = isRayJob(job) ? deleteRayJob : deleteTrainJob;
+  const modalBody = rayJob ? (
+    <>
+      The <strong>{deleteName}</strong> job and all of its resources will be deleted.
+    </>
+  ) : (
+    <>
+      The <strong>{deleteName}</strong> job will be deleted.
+      {!isTerminalState && ' Any running pods will be terminated.'}
+    </>
+  );
 
   return (
     <DeleteModal
-      title="Delete job?"
+      title={`Delete ${deleteName} job?`}
       onClose={() => onBeforeClose(false)}
       submitButtonLabel="Delete"
       onDelete={() => {
@@ -48,8 +58,7 @@ const DeleteJobModal: React.FC<DeleteJobModalProps> = ({ job, onClose }) => {
       error={error}
       deleteName={deleteName}
     >
-      The <strong>{deleteName}</strong> job will be deleted.
-      {!isTerminalState && ' Any running pods will be terminated.'}
+      {modalBody}
     </DeleteModal>
   );
 };

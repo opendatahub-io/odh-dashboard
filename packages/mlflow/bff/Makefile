@@ -3,11 +3,13 @@ MOCK_K8S_CLIENT ?= false
 MOCK_HTTP_CLIENT ?= false
 DEV_MODE ?= false
 DEV_MODE_CLIENT_PORT ?= 8080
-DEPLOYMENT_MODE ?= kubeflow
-AUTH_METHOD ?= internal
+DEPLOYMENT_MODE ?= standalone
+AUTH_METHOD ?= user_token
 AUTH_TOKEN_HEADER ?= Authorization
 AUTH_TOKEN_PREFIX ?= Bearer
 INSECURE_SKIP_VERIFY ?= false
+STATIC_MLFLOW_MOCK ?= false
+MLFLOW_URL ?=
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -16,6 +18,11 @@ LOG_LEVEL ?= info
 ALLOWED_ORIGINS ?= ""
 DEBUG ?= false
 GCFLAGS_DEBUG := -gcflags="all=-N -l"
+
+# MLflow configuration
+MLFLOW_VERSION ?= 3.10.1
+MLFLOW_PORT ?= 5001
+MLFLOW_DATA ?= $(shell pwd)/.mlflow
 
 .PHONY: all
 all: build
@@ -41,7 +48,7 @@ lint-fix: golangci-lint ## Run golangci-lint to automatically check source code 
 	$(GOLANGCI_LINT) run --fix
 
 .PHONY: vet
-vet:  . ## Runs static analysis tools on source files and reports suspicious constructs that could be bugs or syntactical errors.
+vet: ## Runs static analysis tools on source files and reports suspicious constructs that could be bugs or syntactical errors.
 	go vet ./...
 
 .PHONY: test
@@ -61,7 +68,29 @@ endif
 run: fmt vet envtest ## Runs the project.
 	trap 'exit 0' INT; \
 	ENVTEST_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY)
+	go run ./cmd --port=$(PORT) --auth-method=${AUTH_METHOD} --auth-token-header=$(AUTH_TOKEN_HEADER) --auth-token-prefix="$(AUTH_TOKEN_PREFIX)" --static-assets-dir=$(STATIC_ASSETS_DIR) --mock-k8s-client=$(MOCK_K8S_CLIENT) --mock-http-client=$(MOCK_HTTP_CLIENT) --dev-mode=$(DEV_MODE) --dev-mode-client-port=$(DEV_MODE_CLIENT_PORT) --deployment-mode=$(DEPLOYMENT_MODE) --log-level=$(LOG_LEVEL) --allowed-origins=$(ALLOWED_ORIGINS) --insecure-skip-verify=$(INSECURE_SKIP_VERIFY) --static-mlflow-mock=$(STATIC_MLFLOW_MOCK) --mlflow-url="$(MLFLOW_URL)"
+
+##@ MLflow
+
+.PHONY: mlflow-up
+mlflow-up: uv ## Start local MLflow tracking server via uv.
+	@mkdir -p $(MLFLOW_DATA)
+	@echo "Starting MLflow server on port $(MLFLOW_PORT)... (Ctrl+C to stop)"
+	$(UV) run --with mlflow==$(MLFLOW_VERSION) mlflow server \
+		--host 127.0.0.1 \
+		--port $(MLFLOW_PORT) \
+		--backend-store-uri sqlite:///$(MLFLOW_DATA)/mlflow.db \
+		--default-artifact-root $(MLFLOW_DATA)/artifacts
+
+.PHONY: mlflow-down
+mlflow-down: ## Stop local MLflow tracking server.
+	@-lsof -t -i :$(MLFLOW_PORT) | xargs kill 2>/dev/null || true
+	@echo "MLflow server stopped"
+
+.PHONY: mlflow-clean
+mlflow-clean: mlflow-down ## Remove local MLflow data.
+	rm -rf $(MLFLOW_DATA) $(MLFLOW_DATA)-test
+	@echo "MLflow data cleaned"
 
 ##@ Dependencies
 
@@ -73,6 +102,7 @@ $(LOCALBIN):
 ## Tool Binaries
 ENVTEST ?= $(LOCALBIN)/setup-envtest-$(ENVTEST_VERSION)
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint-$(GOLANGCI_LINT_VERSION)
+UV ?= $(LOCALBIN)/uv
 
 ## Tool Versions
 GOLANGCI_LINT_VERSION ?= v2.0.2
@@ -88,6 +118,15 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,${GOLANGCI_LINT_VERSION})
 
+
+.PHONY: uv
+uv: $(UV) ## Download uv locally if necessary.
+$(UV): $(LOCALBIN)
+	@[ -f $(UV) ] || { \
+	echo "Installing uv..." ; \
+	curl -LsSf https://astral.sh/uv/install.sh | CARGO_HOME=$(LOCALBIN)/.cargo UV_INSTALL_DIR=$(LOCALBIN) sh ; \
+	test -f $(UV) || (echo "uv installation failed" && exit 1) ; \
+	}
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary (ideally with version)

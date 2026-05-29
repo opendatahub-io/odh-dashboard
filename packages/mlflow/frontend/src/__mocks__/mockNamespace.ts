@@ -4,6 +4,6 @@ type MockNamespace = {
   name?: string;
 };
 
-export const mockNamespace = ({ name = 'kubeflow' }: MockNamespace): Namespace => ({
+export const mockNamespace = ({ name = 'test-ns' }: MockNamespace): Namespace => ({
   name,
 });

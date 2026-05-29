@@ -60,10 +60,7 @@ class GlobalDistributedWorkloads {
   selectProjectByName(name: string) {
     this.findProjectSelect().click();
     cy.findByTestId('project-selector-search').fill(name);
-    cy.findByTestId('project-selector-menuList')
-      .contains('button', name)
-      .should('be.visible')
-      .click();
+    cy.findByTestId('project-selector-menuList').contains('a', name).should('be.visible').click();
   }
 
   private wait() {

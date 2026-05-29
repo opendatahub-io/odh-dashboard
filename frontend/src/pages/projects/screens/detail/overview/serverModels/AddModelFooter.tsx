@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { CardFooter, Flex } from '@patternfly/react-core';
+import { CardFooter } from '@patternfly/react-core';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
 import ModelServingPlatformButtonAction from '#~/pages/modelServing/screens/projects/ModelServingPlatformButtonAction';
 import { ServingRuntimePlatform } from '#~/types';
@@ -10,7 +10,6 @@ import {
 } from '#~/pages/modelServing/customServingRuntimes/utils';
 import ManageKServeModal from '#~/pages/modelServing/screens/projects/kServeModal/ManageKServeModal';
 import ManageNIMServingModal from '#~/pages/modelServing/screens/projects/nim/NIMServiceModal/ManageNIMServingModal';
-import { NavigateBackToRegistryButton } from '#~/concepts/modelServing/NavigateBackToRegistryButton.tsx';
 
 type AddModelFooterProps = {
   isNIM?: boolean;
@@ -48,16 +47,13 @@ const AddModelFooter: React.FC<AddModelFooterProps> = ({ isNIM }) => {
 
   return (
     <CardFooter>
-      <Flex gap={{ default: 'gapMd' }}>
-        <ModelServingPlatformButtonAction
-          emptyTemplates={emptyTemplates}
-          onClick={() => setModalShown(true)}
-          variant="link"
-          isInline
-          testId="model-serving-platform-button"
-        />
-        <NavigateBackToRegistryButton />
-      </Flex>
+      <ModelServingPlatformButtonAction
+        emptyTemplates={emptyTemplates}
+        onClick={() => setModalShown(true)}
+        variant="link"
+        isInline
+        testId="model-serving-platform-button"
+      />
       {modalShown && !isNIM ? (
         <ManageKServeModal
           projectContext={{ currentProject, connections }}

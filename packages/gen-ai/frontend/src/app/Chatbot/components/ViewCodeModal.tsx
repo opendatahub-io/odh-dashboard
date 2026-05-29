@@ -12,6 +12,7 @@ import {
 } from '@patternfly/react-core';
 import { CodeEditor, Language } from '@patternfly/react-code-editor';
 import { CodeExportRequest, FileModel, MCPServerFromAPI, TokenInfo } from '~/app/types';
+import { GUARDRAIL_INPUT_PROMPT, GUARDRAIL_OUTPUT_PROMPT } from '~/app/Chatbot/const';
 import { generateMCPServerConfig, getLlamaModelDisplayName } from '~/app/utilities';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
@@ -147,7 +148,18 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         return;
       }
 
-      const { selectedModel, systemInstruction, selectedMcpServerIds, isRagEnabled } = config;
+      const {
+        selectedModel,
+        systemInstruction,
+        selectedMcpServerIds,
+        isRagEnabled,
+        knowledgeMode,
+        selectedVectorStoreId,
+        activePrompt,
+        guardrail,
+        guardrailUserInputEnabled,
+        guardrailModelOutputEnabled,
+      } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
       );
@@ -166,10 +178,30 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         return;
       }
 
-      if (!vectorStoresLoaded || vectorStores.length === 0) {
+      if (isRagEnabled && !selectedVectorStoreId) {
+        setCodeStates((prev) => ({
+          ...prev,
+          [cfgId]: { code: '', isLoading: false, error: 'No vector store selected' },
+        }));
+        return;
+      }
+
+      if (isRagEnabled && !vectorStoresLoaded) {
         setCodeStates((prev) => ({
           ...prev,
           [cfgId]: { code: '', isLoading: false, error: 'Vector stores not loaded' },
+        }));
+        return;
+      }
+
+      const selectedVectorStore = isRagEnabled
+        ? vectorStores.find((vs) => vs.id === selectedVectorStoreId)
+        : undefined;
+
+      if (isRagEnabled && !selectedVectorStore) {
+        setCodeStates((prev) => ({
+          ...prev,
+          [cfgId]: { code: '', isLoading: false, error: 'Selected vector store not available' },
         }));
         return;
       }
@@ -191,14 +223,39 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
             }
             return serverConfig;
           }),
-          vector_store: {
-            name: vectorStores[0].name,
-            provider_id: vectorStores[0].metadata.provider_id,
-          },
-          files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
-          ...(files.length > 0 &&
-            isRagEnabled && {
-              tools: [{ type: 'file_search', vector_store_ids: [vectorStores[0].id] }],
+          // Both modes: reference the vector store
+          ...(isRagEnabled &&
+            selectedVectorStore && {
+              vector_store: {
+                name: selectedVectorStore.name,
+                provider_id: selectedVectorStore.metadata.provider_id,
+                // External mode: pass ID (and embedding model if known) so the template
+                // references the existing store rather than creating a new one
+                ...(knowledgeMode === 'external' && {
+                  id: selectedVectorStore.id,
+                  ...(selectedVectorStore.metadata.embedding_model && {
+                    embedding_model: selectedVectorStore.metadata.embedding_model,
+                  }),
+                }),
+              },
+              // Always pass the file_search tool so vector_store_ids reaches responses.create
+              tools: [{ type: 'file_search', vector_store_ids: [selectedVectorStore.id] }],
+              // Inline mode: also upload files to the vector store
+              ...(knowledgeMode === 'inline' &&
+                files.length > 0 && {
+                  files: files.map((file) => ({ file: file.filename, purpose: file.purpose })),
+                }),
+            }),
+          ...(activePrompt && {
+            prompt: { name: activePrompt.name, version: activePrompt.version },
+          }),
+          ...(guardrail &&
+            (guardrailUserInputEnabled || guardrailModelOutputEnabled) && {
+              guardrail_config: {
+                guardrail_model: guardrail,
+                ...(guardrailUserInputEnabled && { input_prompt: GUARDRAIL_INPUT_PROMPT }),
+                ...(guardrailModelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
+              },
             }),
         };
         /* eslint-enable camelcase */

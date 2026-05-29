@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
@@ -36,100 +35,71 @@ func hashUsername(username string) string {
 	return hex.EncodeToString(hash[:16])
 }
 
-// LlamaStackListVectorStoresHandler handles GET /gen-ai/api/v1/vectorstores
-// TEMPORARY: This handler implements username-based vectorstore isolation by filtering
-// the list to return only the vectorstore matching the hashed username.
-// TODO: Replace with proper multi-tenant vectorstore support when available
+// LlamaStackListVectorStoresHandler handles GET /gen-ai/api/v1/vectorstores.
+//
+// Returns all vector stores from LlamaStack. Callers are responsible for
+// distinguishing between the auto-provisioned file-upload inline store and external
+// registered stores using the metadata fields:
+//   - Auto-provisioned (Milvus file-upload): metadata.created_by == "auto-provisioning"
+//   - External (registered from llama-stack-config): metadata.created_by is absent
+//
+// The handler ensures the current user's auto-provisioned store exists, creating
+// it if necessary, before returning all stores.
+// TEMPORARY: Auto-provisioning will be replaced with proper multi-tenant support.
 func (app *App) LlamaStackListVectorStoresHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	// TEMPORARY: Get username from context for vectorstore isolation
+	// TEMPORARY: Ensure the current user's auto-provisioned store exists.
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*integrations.RequestIdentity)
 	if !ok || identity == nil {
 		app.unauthorizedResponse(w, r, errors.New("user identity not found in context"))
 		return
 	}
 
-	// Get the Kubernetes client to fetch username (uses identity from context)
 	client, err := app.kubernetesClientFactory.GetClient(ctx)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	// Fetch the username from the Kubernetes API
 	username, err := client.GetUser(ctx, identity)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	hashedUsername := hashUsername(username)
-
-	// TEMPORARY: Ignore limit and order parameters from request
-	// We always return exactly 1 vectorstore (user's own), so we need to fetch all
-	// vectorstores to find the match. Empty params means fetch all with defaults.
-	params := llamastack.ListVectorStoresParams{}
-
-	// // Parse limit parameter (1-100, default 20)
-	// if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-	// 	if limit, err := strconv.ParseInt(limitStr, 10, 64); err == nil {
-	// 		if limit >= 1 && limit <= 100 {
-	// 			params.Limit = &limit
-	// 		}
-	// 	}
-	// }
-
-	// // Parse order parameter ("asc" or "desc")
-	// if order := r.URL.Query().Get("order"); order == "asc" || order == "desc" {
-	// 	params.Order = order
-	// }
-
-	// Get all vectorstores
-	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, params)
+	vectorStores, err := app.repositories.VectorStores.ListVectorStores(ctx, llamastack.ListVectorStoresParams{})
 	if err != nil {
 		app.handleLlamaStackClientError(w, r, err)
 		return
 	}
 
-	// TEMPORARY: Filter vectorstores to find the one matching hashed username
-	var userVectorStore *openai.VectorStore
-	foundUserVectorStore := false
-
-	for i := range vectorStores {
-		if vectorStores[i].Name == hashedUsername {
-			userVectorStore = &vectorStores[i]
-			foundUserVectorStore = true
+	// TEMPORARY: Create the user's auto-provisioned store if it doesn't exist yet.
+	hashedUsername := hashUsername(username)
+	hasUserStore := false
+	for _, vs := range vectorStores {
+		if vs.Name == hashedUsername {
+			hasUserStore = true
 			break
 		}
 	}
 
-	// TEMPORARY: If no vectorstore found for this user, create one automatically
-	if !foundUserVectorStore {
-		createParams := llamastack.CreateVectorStoreParams{
+	if !hasUserStore {
+		newStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, llamastack.CreateVectorStoreParams{
 			Name: hashedUsername,
 			Metadata: map[string]string{
 				"created_by": "auto-provisioning",
 				"username":   username,
 			},
-		}
-
-		newVectorStore, err := app.repositories.VectorStores.CreateVectorStore(ctx, createParams)
+		})
 		if err != nil {
 			app.handleLlamaStackClientError(w, r, err)
 			return
 		}
-
-		userVectorStore = newVectorStore
+		vectorStores = append(vectorStores, *newStore)
 	}
 
-	// TEMPORARY: Return only the user's vectorstore as a single-item array
-	response := VectorStoresResponse{
-		Data: []openai.VectorStore{*userVectorStore},
-	}
-
-	err = app.WriteJSON(w, http.StatusOK, response, nil)
-	if err != nil {
+	if err := app.WriteJSON(w, http.StatusOK, VectorStoresResponse{Data: vectorStores}, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
 }

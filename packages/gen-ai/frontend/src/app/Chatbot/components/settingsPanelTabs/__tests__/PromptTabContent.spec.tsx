@@ -4,16 +4,32 @@ import userEvent from '@testing-library/user-event';
 import PromptTabContent from '~/app/Chatbot/components/settingsPanelTabs/PromptTabContent';
 
 let mockPromptManagementEnabled = false;
-const mockSetIsPromptManagementModalOpen = jest.fn();
+const mockOpenModal = jest.fn();
 
 jest.mock('@openshift/dynamic-plugin-sdk', () => ({
   useFeatureFlag: jest.fn(() => [mockPromptManagementEnabled]),
 }));
 
+jest.mock('~/app/components/SafeNavigationBlocker', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/store', () => ({
+  useChatbotConfigStore: jest.fn(() => null),
+  selectDirtyPrompt: jest.fn(() => () => null),
+  DEFAULT_CONFIG_ID: 'default',
+}));
+
 jest.mock('~/app/Chatbot/store/usePlaygroundStore', () => ({
   usePlaygroundStore: jest.fn(() => ({
-    setIsPromptManagementModalOpen: mockSetIsPromptManagementModalOpen,
+    openModal: mockOpenModal,
+    closeModal: jest.fn(),
   })),
+}));
+
+jest.mock('~/app/Chatbot/hooks/usePromptEdited', () => ({
+  usePromptEdited: jest.fn(() => false),
 }));
 
 jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
@@ -36,6 +52,27 @@ jest.mock('../../SystemInstructionFormGroup', () => ({
         value={systemInstruction}
         onChange={(e) => onSystemInstructionChange(e.target.value)}
         aria-label="system instructions"
+      />
+    </div>
+  ),
+}));
+
+jest.mock('../../PromptAssistantFormGroup', () => ({
+  __esModule: true,
+  default: ({
+    systemInstruction,
+    onSystemInstructionChange,
+  }: {
+    configId?: string;
+    systemInstruction: string;
+    onSystemInstructionChange: (value: string) => void;
+  }) => (
+    <div data-testid="prompt-assistant-form-group">
+      <textarea
+        data-testid="prompt-assistant-textarea"
+        value={systemInstruction}
+        onChange={(e) => onSystemInstructionChange(e.target.value)}
+        aria-label="prompt assistant"
       />
     </div>
   ),
@@ -106,7 +143,7 @@ describe('PromptTabContent', () => {
       expect(screen.getByRole('button', { name: /load prompt/i })).toBeInTheDocument();
     });
 
-    it('calls setIsPromptManagementModalOpen when Load Prompt button is clicked', async () => {
+    it('calls openModal when Load Prompt button is clicked', async () => {
       mockPromptManagementEnabled = true;
       const user = userEvent.setup();
       render(<PromptTabContent {...defaultProps} />);
@@ -114,7 +151,7 @@ describe('PromptTabContent', () => {
       const loadPromptButton = screen.getByRole('button', { name: /load prompt/i });
       await user.click(loadPromptButton);
 
-      expect(mockSetIsPromptManagementModalOpen).toHaveBeenCalledWith(true);
+      expect(mockOpenModal).toHaveBeenCalledWith('allPrompts', 'default', null);
     });
   });
 });

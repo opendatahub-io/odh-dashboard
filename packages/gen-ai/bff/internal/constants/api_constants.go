@@ -13,21 +13,21 @@ const (
 	OpenAPIYAMLPath = PathPrefix + "/openapi.yaml"
 	SwaggerUIPath   = PathPrefix + "/swagger-ui"
 
-	// LlamaStack Distribution (LSD) endpoints
-	ModelsListPath                    = ApiPathPrefix + "/lsd/models"
-	VectorStoresListPath              = ApiPathPrefix + "/lsd/vectorstores"
-	VectorStoresDeletePath            = ApiPathPrefix + "/lsd/vectorstores/delete"
-	ResponsesPath                     = ApiPathPrefix + "/lsd/responses"
-	FilesListPath                     = ApiPathPrefix + "/lsd/files"
-	FilesUploadPath                   = ApiPathPrefix + "/lsd/files/upload"
-	FilesUploadStatusPath             = ApiPathPrefix + "/lsd/files/upload/status"
-	FilesDeletePath                   = ApiPathPrefix + "/lsd/files/delete"
-	VectorStoreFilesListPath          = ApiPathPrefix + "/lsd/vectorstores/files"
-	VectorStoreFilesUploadPath        = ApiPathPrefix + "/lsd/vectorstores/files/upload"
-	VectorStoreFilesDeletePath        = ApiPathPrefix + "/lsd/vectorstores/files/delete"
-	LlamaStackDistributionStatusPath  = ApiPathPrefix + "/lsd/status"
-	LlamaStackDistributionInstallPath = ApiPathPrefix + "/lsd/install"
-	LlamaStackDistributionDeletePath  = ApiPathPrefix + "/lsd/delete"
+	// OGX Server CR-backed endpoints (URL paths remain /lsd/... for frontend compatibility)
+	ModelsListPath             = ApiPathPrefix + "/lsd/models"
+	VectorStoresListPath       = ApiPathPrefix + "/lsd/vectorstores"
+	VectorStoresDeletePath     = ApiPathPrefix + "/lsd/vectorstores/delete"
+	ResponsesPath              = ApiPathPrefix + "/lsd/responses"
+	FilesListPath              = ApiPathPrefix + "/lsd/files"
+	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
+	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"
+	FilesDeletePath            = ApiPathPrefix + "/lsd/files/delete"
+	VectorStoreFilesListPath   = ApiPathPrefix + "/lsd/vectorstores/files"
+	VectorStoreFilesUploadPath = ApiPathPrefix + "/lsd/vectorstores/files/upload"
+	VectorStoreFilesDeletePath = ApiPathPrefix + "/lsd/vectorstores/files/delete"
+	OGXServerStatusPath        = ApiPathPrefix + "/lsd/status"
+	OGXServerInstallPath       = ApiPathPrefix + "/lsd/install"
+	OGXServerDeletePath        = ApiPathPrefix + "/lsd/delete"
 
 	// General endpoints
 	CodeExporterPath = ApiPathPrefix + "/code-exporter"
@@ -49,9 +49,13 @@ const (
 	VerifyExternalModelPath  = ApiPathPrefix + "/models/external/verify"
 	ExternalVectorStoresPath = ApiPathPrefix + "/vectorstores/external"
 
-	// Model as a Service (MaaS) endpoints
+	// Model as a Service (MaaS) endpoints - direct MaaS controller calls
 	MaaSModelsPath = ApiPathPrefix + "/maas/models"
 	MaaSTokensPath = ApiPathPrefix + "/maas/tokens"
+
+	// Inter-BFF Communication endpoints - calls to other BFF services
+	// These use the BFF client for inter-service communication
+	BFFMaaSTokensPath = ApiPathPrefix + "/bff/maas/tokens"
 
 	// MLflow endpoints
 	MLflowPromptsPath        = ApiPathPrefix + "/mlflow/prompts"
@@ -61,7 +65,7 @@ const (
 
 	GuardrailsStatusPath = ApiPathPrefix + "/guardrails/status"
 
-	// LSD Safety endpoint - returns configured guardrail models and shields
-	// Parsed from llama-stack-config ConfigMap
-	LSDSafetyPath = ApiPathPrefix + "/lsd/safety"
+	// NemoGuardrails endpoints
+	NemoGuardrailsInitPath   = ApiPathPrefix + "/nemo-guardrails/init"
+	NemoGuardrailsStatusPath = ApiPathPrefix + "/nemo-guardrails/status"
 )
