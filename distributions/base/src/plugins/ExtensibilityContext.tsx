@@ -1,6 +1,7 @@
 // TODO: Dedup — this is a copy of frontend/src/plugins/ExtensibilityContext.tsx.
 // Consider moving to plugin-core as a shared provider.
 import * as React from 'react';
+import { Bullseye, Spinner } from '@patternfly/react-core';
 import { PluginStoreProvider } from '@openshift/dynamic-plugin-sdk';
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { useAppExtensions } from './useAppExtensions';
@@ -11,5 +12,12 @@ export const ExtensibilityContextProvider: React.FC<React.PropsWithChildren> = (
     () => (loaded ? new PluginStore(appExtensions) : null),
     [appExtensions, loaded],
   );
-  return store ? <PluginStoreProvider store={store}>{children}</PluginStoreProvider> : null;
+  if (!store) {
+    return (
+      <Bullseye>
+        <Spinner />
+      </Bullseye>
+    );
+  }
+  return <PluginStoreProvider store={store}>{children}</PluginStoreProvider>;
 };

@@ -1,4 +1,3 @@
-/* eslint-disable @odh-dashboard/no-restricted-imports */
 import React from 'react';
 import {
   Content,
@@ -20,8 +19,11 @@ import {
   MenuToggle,
   Spinner,
   Button,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shell has no ContentModal wrapper
   Modal,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalBody,
+  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
   ModalHeader,
 } from '@patternfly/react-core';
 import { MoonIcon, SunIcon, QuestionCircleIcon, UserIcon } from '@patternfly/react-icons';
@@ -48,7 +50,7 @@ const ShellBrand: React.FC = () => {
     return (
       <MastheadBrand data-codemods>
         <Link to={href} style={{ display: 'inline-flex' }}>
-          <LazyCodeRefComponent component={logoComponent} />
+          <LazyCodeRefComponent key={brandExtensions[0].uid} component={logoComponent} />
         </Link>
       </MastheadBrand>
     );
