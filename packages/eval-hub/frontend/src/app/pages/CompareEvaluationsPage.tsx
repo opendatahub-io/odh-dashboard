@@ -25,6 +25,9 @@ const CompareEvaluationsPage: React.FC = () => {
 
   const hasValidParams = experimentIds.length > 0 && experimentIds.length === runUuids.length;
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
+  const emptyMessage = !hasValidParams
+    ? 'Provide matching experimentIds and runUuids query parameters to compare runs.'
+    : 'Comparison is only available in federated deployment mode.';
 
   return (
     <ApplicationsPage
@@ -38,18 +41,16 @@ const CompareEvaluationsPage: React.FC = () => {
         </Breadcrumb>
       }
       loaded
-      empty={!hasValidParams}
-      emptyMessage="Provide matching experimentIds and runUuids query parameters to compare runs."
+      empty={!showCompare}
+      emptyMessage={emptyMessage}
       provideChildrenPadding
     >
-      {showCompare ? (
-        <MlflowCompareRuns
-          key={runUuids.join(',')}
-          experimentIds={experimentIds}
-          runUuids={runUuids}
-          workspace={namespace}
-        />
-      ) : null}
+      <MlflowCompareRuns
+        key={runUuids.join(',')}
+        experimentIds={experimentIds}
+        runUuids={runUuids}
+        workspace={namespace}
+      />
     </ApplicationsPage>
   );
 };
