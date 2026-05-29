@@ -1,8 +1,13 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 
+	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/integrations"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 )
@@ -47,41 +52,81 @@ func (app *App) getDefaultStatusCodeForLlamaStackClientError(errorCode string) i
 	}
 }
 
-// determineErrorComponentAndRetriability determines the component and retriability of a LlamaStack error
-func (app *App) determineErrorComponentAndRetriability(errorCode string, statusCode int) (component string, retriable bool) {
-	// Determine component from error code
+// isRetriable determines whether an error is transient and worth retrying.
+// Matches known OGX response.failed codes first (see OGXErr* constants in
+// llamastack/errors.go), then falls back to HTTP status code heuristics for
+// codes from other paths (type:"error" events, non-streaming HTTP errors).
+func (app *App) isRetriable(errorCode string, statusCode int) bool {
 	switch errorCode {
-	case "tool_not_found", "tool_error", "mcp_error":
-		component = "mcp"
-	case "resource_not_found", "vector_store_not_found":
-		component = "rag"
-	case "invalid_model", "model_not_found", "model_unavailable", "model_error", "invalid_parameter", "invalid_request_error":
-		component = "model"
-	case "INVALID_REQUEST", "UNAUTHORIZED", "NOT_FOUND", "CONNECTION_FAILED", "SERVER_UNAVAILABLE", "INTERNAL_ERROR", "TIMEOUT":
-		component = "bff"
-	default:
-		component = "llama_stack"
-	}
-
-	// Determine if error is retriable
-	// An error is retriable when:
-	// - The error code is a known transient code (timeout, server_error, rate_limit, etc.), OR
-	// - The HTTP status is 429, 500, 502, 503, or 504
-	switch errorCode {
-	case "rate_limit_exceeded", "insufficient_quota", "requests_per_minute_exceeded":
-		retriable = true
-	case "timeout", "request_timeout", "gateway_timeout":
-		retriable = true
-	case "server_error", "internal_error", "service_unavailable":
-		retriable = true
-	case "tool_not_found", "tool_error", "mcp_error":
-		retriable = true
+	// OGX response.failed codes that are transient
+	case llamastack.OGXErrServerError, llamastack.OGXErrRateLimitExceeded,
+		llamastack.OGXErrVectorStoreTimeout:
+		return true
 	default:
 		// HTTP 429 (Too Many Requests) and 5xx errors are retriable
-		retriable = statusCode == http.StatusTooManyRequests || statusCode >= 500
+		return statusCode == http.StatusTooManyRequests || statusCode >= 500
+	}
+}
+
+// buildStreamingErrorEvent constructs the SSE error JSON payload that the frontend
+// expects on every streaming error: {error: {message, code, component, retriable}}.
+// Returns nil if marshaling fails (should never happen with simple map types).
+func buildStreamingErrorEvent(code, message, component string, retriable bool) []byte {
+	errorData := map[string]interface{}{
+		"error": map[string]interface{}{
+			"message":   message,
+			"code":      code,
+			"component": component,
+			"retriable": retriable,
+		},
+	}
+	data, _ := json.Marshal(errorData)
+	return data
+}
+
+// extractStreamingError parses a stream.Err() error into the four fields the
+// frontend needs. Supports wrapped LlamaStackError via errors.As(), raw network
+// errors (*url.Error), and OpenAI API errors; falls back to generic values for
+// unknown error types.
+func (app *App) extractStreamingError(err error) (message, code, component string, retriable bool) {
+	var lsErr *llamastack.LlamaStackError
+	if errors.As(err, &lsErr) {
+		message = lsErr.Message
+		code = lsErr.ErrorCode
+		if code == "" {
+			code = lsErr.Code
+		}
+		component = lsErr.Component
+
+		statusCode := lsErr.StatusCode
+		if statusCode == 0 {
+			statusCode = app.getDefaultStatusCodeForLlamaStackClientError(lsErr.Code)
+		}
+		retriable = app.isRetriable(code, statusCode)
+		return
 	}
 
-	return component, retriable
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return fmt.Sprintf("Failed to connect to LlamaStack server: %s", urlErr.Err.Error()),
+			llamastack.ErrCodeConnectionFailed, llamastack.ComponentLlamaStack, true
+	}
+
+	var apiErr *openai.Error
+	if errors.As(err, &apiErr) {
+		errorCode := apiErr.Code
+		if errorCode == "" {
+			errorCode = llamastack.ErrCodeInternalError
+		}
+		component = llamastack.ResolveComponent(errorCode)
+		apiMessage := apiErr.Message
+		if apiMessage == "" {
+			apiMessage = apiErr.Error()
+		}
+		return apiMessage, errorCode, component, app.isRetriable(errorCode, apiErr.StatusCode)
+	}
+
+	return "An error occurred during streaming. Please try again.", "streaming_error", llamastack.ComponentBFF, false
 }
 
 func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaStackError, statusCode int) *integrations.FrontendErrorResponse {
@@ -90,17 +135,17 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 		errorCode = lsErr.Code
 	}
 
-	component, retriable := app.determineErrorComponentAndRetriability(errorCode, statusCode)
+	retriable := app.isRetriable(errorCode, statusCode)
 
 	toolName := ""
-	if component == "mcp" && lsErr.Param != "" {
+	if lsErr.Component == llamastack.ComponentMCP && lsErr.Param != "" {
 		toolName = lsErr.Param
 	}
 
 	return &integrations.FrontendErrorResponse{
 		StatusCode: statusCode,
 		Error: &integrations.ErrorDetail{
-			Component: component,
+			Component: lsErr.Component,
 			Code:      errorCode,
 			Message:   lsErr.Message,
 			ToolName:  toolName,

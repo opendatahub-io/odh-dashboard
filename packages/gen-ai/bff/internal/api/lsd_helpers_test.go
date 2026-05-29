@@ -1,13 +1,17 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	"github.com/openai/openai-go/v2"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/stretchr/testify/assert"
 )
@@ -71,7 +75,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewConnectionError("connection refused"),
 			expectedStatusCode: http.StatusBadGateway,
 			expectedBodyContains: []string{
-				`"component": "bff"`,
+				`"component": "llama_stack"`,
 				`"code": "CONNECTION_FAILED"`,
 				`"message": "connection refused"`,
 			},
@@ -174,33 +178,22 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		expectedStatusCode      int
 		expectedMessageContains string
 		expectedRetriable       bool
-		expectedToolName        string
 	}{
 		{
 			name:                    "bad request with invalid parameter",
 			lsErr:                   llamastack.NewInvalidRequestError("temperature must be between 0.0 and 2.0"),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "bff",
+			expectedComponent:       llamastack.ComponentBFF,
 			expectedCode:            "INVALID_REQUEST",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "temperature must be between 0.0 and 2.0",
 			expectedRetriable:       false,
 		},
 		{
-			name:                    "bad request with token limit",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "max_tokens exceeds limit", "invalid_request_error", "invalid_request_error", "", http.StatusBadRequest),
-			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "model",
-			expectedCode:            "invalid_request_error",
-			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "max_tokens exceeds limit",
-			expectedRetriable:       false,
-		},
-		{
 			name:                    "unauthorized error",
 			lsErr:                   llamastack.NewUnauthorizedError("invalid token"),
 			statusCode:              http.StatusUnauthorized,
-			expectedComponent:       "bff",
+			expectedComponent:       llamastack.ComponentBFF,
 			expectedCode:            "UNAUTHORIZED",
 			expectedStatusCode:      http.StatusUnauthorized,
 			expectedMessageContains: "invalid token",
@@ -210,7 +203,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "not found error",
 			lsErr:                   llamastack.NewNotFoundError("resource not found"),
 			statusCode:              http.StatusNotFound,
-			expectedComponent:       "bff",
+			expectedComponent:       llamastack.ComponentBFF,
 			expectedCode:            "NOT_FOUND",
 			expectedStatusCode:      http.StatusNotFound,
 			expectedMessageContains: "resource not found",
@@ -220,17 +213,21 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "connection error",
 			lsErr:                   llamastack.NewConnectionError("connection refused"),
 			statusCode:              http.StatusBadGateway,
-			expectedComponent:       "bff",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "CONNECTION_FAILED",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "connection refused",
 			expectedRetriable:       true,
 		},
 		{
-			name:                    "timeout error - keeps 504",
-			lsErr:                   llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504),
+			name: "timeout error - keeps 504",
+			lsErr: func() *llamastack.LlamaStackError {
+				e := llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504)
+				e.Component = llamastack.ComponentLlamaStack
+				return e
+			}(),
 			statusCode:              http.StatusGatewayTimeout,
-			expectedComponent:       "bff",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "TIMEOUT",
 			expectedStatusCode:      http.StatusGatewayTimeout,
 			expectedMessageContains: "request timed out",
@@ -238,72 +235,29 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "overload error - keeps 429",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", 429),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentLlamaStack,429),
 			statusCode:              http.StatusTooManyRequests,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "rate_limit_exceeded",
 			expectedStatusCode:      http.StatusTooManyRequests,
 			expectedMessageContains: "model is currently overloaded",
 			expectedRetriable:       true,
 		},
 		{
-			name:                    "RAG vector store not found",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "vector store 'vs_123' not found", "invalid_request_error", "resource_not_found", "", http.StatusBadRequest),
-			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "rag",
-			expectedCode:            "resource_not_found",
-			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "vector store 'vs_123' not found",
-			expectedRetriable:       false,
-		},
-		{
 			name:                    "guardrails violation",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", 400),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", llamastack.ComponentLlamaStack,400),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "content_policy_violation",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "content blocked by guardrails",
 			expectedRetriable:       false,
 		},
 		{
-			name:                    "MCP tool error with tool name",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "tool invocation failed", "tool_error", "tool_error", "github-search", 500),
-			statusCode:              http.StatusInternalServerError,
-			expectedComponent:       "mcp",
-			expectedCode:            "tool_error",
-			expectedStatusCode:      http.StatusInternalServerError,
-			expectedMessageContains: "tool invocation failed",
-			expectedRetriable:       true,
-			expectedToolName:        "github-search",
-		},
-		{
-			name:                    "MCP tool not found with tool name",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "tool not found", "invalid_request_error", "tool_not_found", "weather-api", 400),
-			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "mcp",
-			expectedCode:            "tool_not_found",
-			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "tool not found",
-			expectedRetriable:       true,
-			expectedToolName:        "weather-api",
-		},
-		{
-			name:                    "MCP error without tool name",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "mcp server error", "mcp_error", "mcp_error", "", 500),
-			statusCode:              http.StatusInternalServerError,
-			expectedComponent:       "mcp",
-			expectedCode:            "mcp_error",
-			expectedStatusCode:      http.StatusInternalServerError,
-			expectedMessageContains: "mcp server error",
-			expectedRetriable:       true,
-			expectedToolName:        "",
-		},
-		{
 			name:                    "HTTP 429 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "too many requests", "server_error", "unknown_error", "", 429),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "too many requests", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,429),
 			statusCode:              http.StatusTooManyRequests,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusTooManyRequests,
 			expectedMessageContains: "too many requests",
@@ -311,9 +265,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 500 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "internal server error", "server_error", "unknown_error", "", 500),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "internal server error", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,500),
 			statusCode:              http.StatusInternalServerError,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusInternalServerError,
 			expectedMessageContains: "internal server error",
@@ -321,9 +275,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 502 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "bad gateway", "server_error", "unknown_error", "", 502),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "bad gateway", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,502),
 			statusCode:              http.StatusBadGateway,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "bad gateway",
@@ -331,9 +285,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 503 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service unavailable", "server_error", "unknown_error", "", 503),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service unavailable", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,503),
 			statusCode:              http.StatusServiceUnavailable,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "service unavailable",
@@ -341,9 +295,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 504 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "gateway timeout", "server_error", "unknown_error", "", 504),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "gateway timeout", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,504),
 			statusCode:              http.StatusGatewayTimeout,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusGatewayTimeout,
 			expectedMessageContains: "gateway timeout",
@@ -351,9 +305,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 400 with generic error code is not retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "bad request", "invalid_request_error", "unknown_error", "", 400),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "bad request", "invalid_request_error", "unknown_error", "", llamastack.ComponentLlamaStack,400),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "bad request",
@@ -361,9 +315,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 403 with generic error code is not retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "forbidden", "server_error", "unknown_error", "", 403),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "forbidden", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,403),
 			statusCode:              http.StatusForbidden,
-			expectedComponent:       "llama_stack",
+			expectedComponent:       llamastack.ComponentLlamaStack,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusForbidden,
 			expectedMessageContains: "forbidden",
@@ -381,11 +335,6 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			assert.Equal(t, tc.expectedCode, frontendErr.Error.Code)
 			assert.Contains(t, frontendErr.Error.Message, tc.expectedMessageContains)
 			assert.Equal(t, tc.expectedRetriable, frontendErr.Error.Retriable)
-
-			// For MCP errors, verify tool name is populated from Param field
-			if tc.expectedComponent == "mcp" {
-				assert.Equal(t, tc.expectedToolName, frontendErr.Error.ToolName)
-			}
 		})
 	}
 }
@@ -455,26 +404,11 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "the server encountered a problem")
 	})
 
-	t.Run("should categorize RAG errors correctly", func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/test", nil)
-		rr := httptest.NewRecorder()
-
-		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "vector store 'vs_123' not found", "invalid_request_error", "resource_not_found", "", http.StatusBadRequest)
-
-		app.handleLlamaStackClientError(rr, req, lsErr)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"component": "rag"`)
-		assert.Contains(t, rr.Body.String(), `"code": "resource_not_found"`)
-		assert.Contains(t, rr.Body.String(), "vector store")
-		assert.Contains(t, rr.Body.String(), `"retriable": false`)
-	})
-
 	t.Run("should categorize timeout errors correctly and keep 500", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
-		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "request timed out", "server_error", "timeout", "", 500)
+		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "request timed out", "server_error", "timeout", "", llamastack.ComponentLlamaStack,500)
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
@@ -484,4 +418,212 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "timed out")
 		assert.Contains(t, rr.Body.String(), `"retriable": true`)
 	})
+}
+
+func TestBuildStreamingErrorEvent(t *testing.T) {
+	testCases := []struct {
+		name             string
+		code             string
+		message          string
+		component        string
+		retriable        bool
+		expectedContains []string
+	}{
+		{
+			name:      "server error from llama_stack",
+			code:      "server_error",
+			message:   "An unexpected error occurred",
+			component: "llama_stack",
+			retriable: true,
+			expectedContains: []string{
+				`"code":"server_error"`,
+				`"message":"An unexpected error occurred"`,
+				`"component":"llama_stack"`,
+				`"retriable":true`,
+			},
+		},
+		{
+			name:      "model not found",
+			code:      "404",
+			message:   "Model 'nonexistent' not found",
+			component: "llama_stack",
+			retriable: false,
+			expectedContains: []string{
+				`"code":"404"`,
+				`"message":"Model 'nonexistent' not found"`,
+				`"component":"llama_stack"`,
+				`"retriable":false`,
+			},
+		},
+		{
+			name:      "guardrail violation",
+			code:      "guardrail_output_violation",
+			message:   "output blocked by safety guardrails",
+			component: "guardrails",
+			retriable: false,
+			expectedContains: []string{
+				`"code":"guardrail_output_violation"`,
+				`"component":"guardrails"`,
+				`"retriable":false`,
+			},
+		},
+		{
+			name:      "MCP tool error",
+			code:      "tool_error",
+			message:   "tool invocation failed",
+			component: "mcp",
+			retriable: true,
+			expectedContains: []string{
+				`"code":"tool_error"`,
+				`"component":"mcp"`,
+				`"retriable":true`,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := buildStreamingErrorEvent(tc.code, tc.message, tc.component, tc.retriable)
+			assert.NotNil(t, result)
+
+			resultStr := string(result)
+			for _, expected := range tc.expectedContains {
+				assert.Contains(t, resultStr, expected)
+			}
+
+			// Verify it's valid JSON with the expected top-level structure
+			var parsed map[string]interface{}
+			err := json.Unmarshal(result, &parsed)
+			assert.NoError(t, err)
+			assert.Contains(t, parsed, "error")
+		})
+	}
+}
+
+func TestExtractStreamingError(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := &App{
+		logger: logger,
+	}
+
+	testCases := []struct {
+		name              string
+		err               error
+		expectedMessage   string
+		expectedCode      string
+		expectedComponent string
+		expectedRetriable bool
+	}{
+		{
+			name:              "LlamaStackError with ErrorCode",
+			err:               llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "rate limit hit", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentLlamaStack, 429),
+			expectedMessage:   "rate limit hit",
+			expectedCode:      "rate_limit_exceeded",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+		{
+			name:              "LlamaStackError without ErrorCode falls back to Code",
+			err:               llamastack.NewConnectionError("connection refused"),
+			expectedMessage:   "connection refused",
+			expectedCode:      "CONNECTION_FAILED",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+		{
+			name:              "generic error",
+			err:               errors.New("something went wrong"),
+			expectedMessage:   "An error occurred during streaming. Please try again.",
+			expectedCode:      "streaming_error",
+			expectedComponent: llamastack.ComponentBFF,
+			expectedRetriable: false,
+		},
+		{
+			name: "wrapped LlamaStackError",
+			err: func() error {
+				lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service down", "server_error", "service_unavailable", "", llamastack.ComponentLlamaStack, 503)
+				return fmt.Errorf("stream failed: %w", lsErr)
+			}(),
+			expectedMessage:   "service down",
+			expectedCode:      "service_unavailable",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+		{
+			name:              "connection refused (url.Error)",
+			err:               &url.Error{Op: "Post", URL: "http://localhost:8321/v1/responses", Err: fmt.Errorf("connect: connection refused")},
+			expectedMessage:   "Failed to connect to LlamaStack server: connect: connection refused",
+			expectedCode:      "CONNECTION_FAILED",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+		{
+			name:              "OpenAI API error (500)",
+			err:               &openai.Error{StatusCode: 500, Message: "internal server error", Code: "server_error"},
+			expectedMessage:   "internal server error",
+			expectedCode:      "server_error",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+		{
+			name:              "OpenAI API error (429 rate limit)",
+			err:               &openai.Error{StatusCode: 429, Message: "rate limit exceeded", Code: "rate_limit_exceeded"},
+			expectedMessage:   "rate limit exceeded",
+			expectedCode:      "rate_limit_exceeded",
+			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedRetriable: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			message, code, component, retriable := app.extractStreamingError(tc.err)
+			assert.Equal(t, tc.expectedMessage, message)
+			assert.Equal(t, tc.expectedCode, code)
+			assert.Equal(t, tc.expectedComponent, component)
+			assert.Equal(t, tc.expectedRetriable, retriable)
+		})
+	}
+}
+
+func TestIsRetriable(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := &App{
+		logger: logger,
+	}
+
+	tests := []struct {
+		errorCode  string
+		statusCode int
+		expected   bool
+	}{
+		// OGX response.failed codes that are retriable
+		{llamastack.OGXErrServerError, 0, true},
+		{llamastack.OGXErrRateLimitExceeded, 0, true},
+		{llamastack.OGXErrVectorStoreTimeout, 0, true},
+
+		// OGX response.failed codes that are NOT retriable
+		{llamastack.OGXErrInvalidPrompt, 0, false},
+		{llamastack.OGXErrInvalidImage, 0, false},
+		{llamastack.OGXErrImageContentPolicyViolation, 0, false},
+
+		// Status-code fallback: 429 and 5xx are retriable
+		{"unknown_error", 429, true},
+		{"unknown_error", 500, true},
+		{"unknown_error", 502, true},
+		{"unknown_error", 503, true},
+		{"unknown_error", 504, true},
+
+		// Status-code fallback: 4xx (non-429) are NOT retriable
+		{"unknown_error", 400, false},
+		{"unknown_error", 401, false},
+		{"unknown_error", 403, false},
+		{"unknown_error", 404, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.errorCode+"_"+http.StatusText(tt.statusCode), func(t *testing.T) {
+			assert.Equal(t, tt.expected, app.isRetriable(tt.errorCode, tt.statusCode))
+		})
+	}
 }
