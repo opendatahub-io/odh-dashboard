@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import FeatureStoreCodeBlock from '../FeatureStoreCodeBlock';
+import FeatureStoreCodeBlock from '#~/pages/projects/screens/spawner/featureStore/FeatureStoreCodeBlock';
 
 describe('FeatureStoreCodeBlock', () => {
   let writeTextMock: jest.Mock;
