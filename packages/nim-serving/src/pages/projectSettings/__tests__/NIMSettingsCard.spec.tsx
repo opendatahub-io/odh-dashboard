@@ -12,6 +12,7 @@ jest.mock('../../../api/accounts/hooks', () => ({
   __esModule: true,
   default: jest.fn(),
   NIMAccountStatus: {
+    LOADING: 'LOADING',
     NOT_FOUND: 'NOT_FOUND',
     PENDING: 'PENDING',
     ERROR: 'ERROR',
@@ -55,6 +56,18 @@ describe('NIMSettingsCard', () => {
 
   it('should show skeleton while access reviews are loading', () => {
     mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: false, allowed: undefined });
+    render(<NIMSettingsCard namespace="test-ns" />);
+    expect(screen.getByTestId('nim-permissions-loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('nim-enable-button')).not.toBeInTheDocument();
+  });
+
+  it('should show skeleton while NIM account status is loading', () => {
+    mockUseNIMSettingsAccessAllowed.mockReturnValue({ loaded: true, allowed: true });
+    mockUseNIMAccountStatus.mockReturnValue({
+      ...defaultAccountStatus,
+      status: NIMAccountStatus.LOADING,
+      loaded: false,
+    });
     render(<NIMSettingsCard namespace="test-ns" />);
     expect(screen.getByTestId('nim-permissions-loading')).toBeInTheDocument();
     expect(screen.queryByTestId('nim-enable-button')).not.toBeInTheDocument();
