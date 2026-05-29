@@ -45,7 +45,6 @@ import {
   ToggleGroupItem,
   Tooltip,
   Truncate,
-  type DropEvent,
 } from '@patternfly/react-core';
 import {
   CubesIcon,
@@ -57,6 +56,7 @@ import {
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { findKey } from 'es-toolkit';
 import { DashboardPopupIconButton } from 'mod-arch-shared';
+import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext, useWatch, Watch } from 'react-hook-form';
 import { Navigate, useParams } from 'react-router';
@@ -80,42 +80,24 @@ import { OPTIMIZATION_METRIC_LABELS, REQUIRED_CONNECTION_SECRET_KEYS } from '~/a
 import { SecretListItem } from '~/app/types';
 import { autoragExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
+import {
+  AUTORAG_UPLOAD_MAX_BYTES,
+  AUTORAG_UPLOAD_MAX_FILES,
+  AUTORAG_UPLOAD_MAX_SIZE_MIB,
+  AUTORAG_UPLOAD_TOO_LARGE_DETAIL,
+  resolveSingleFileDropOutcome,
+} from '~/app/utilities/dropzoneFileUpload';
+import {
+  getInputDataDropRejectedNotification,
+  INPUT_DATA_FILE_ACCEPT,
+  INPUT_DATA_UPLOAD_NATIVE_ACCEPT,
+  isAllowedInputDataUploadFile,
+} from '~/app/utilities/autoragInputDataFile';
 import AutoragEvaluationSelect from './AutoragEvaluationSelect';
 import AutoragExperimentSettings from './AutoragExperimentSettings';
 import AutoragVectorStoreSelector from './AutoragVectorStoreSelector';
 import EvaluationTemplateModal from './EvaluationTemplateModal';
 import './AutoragConfigure.scss';
-
-/** MIME types and extensions for the knowledge document upload dropzone (react-dropzone `accept` format). */
-const INPUT_DATA_FILE_ACCEPT: Record<string, string[]> = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-  'text/markdown': ['.md', '.markdown'],
-  'text/html': ['.html', '.htm'],
-  'text/plain': ['.txt'],
-};
-
-const INPUT_DATA_UPLOAD_NATIVE_ACCEPT = [
-  ...new Set(Object.values(INPUT_DATA_FILE_ACCEPT).flat()),
-].join(',');
-
-/** Matches MultipleFileUpload dropzone `maxSize` (32 MiB). */
-const INPUT_DATA_UPLOAD_MAX_BYTES = 32 * 1024 * 1024;
-
-/** Same allowlist as the dropzone `accept` map (extension and/or MIME). */
-function isAllowedInputDataUploadFile(file: File): boolean {
-  const dot = file.name.lastIndexOf('.');
-  const ext = dot === -1 ? '' : file.name.slice(dot).toLowerCase();
-  if (ext) {
-    for (const allowed of Object.values(INPUT_DATA_FILE_ACCEPT).flat()) {
-      if (allowed.toLowerCase() === ext) {
-        return true;
-      }
-    }
-  }
-  return Boolean(file.type && file.type in INPUT_DATA_FILE_ACCEPT);
-}
 
 const OPTIMIZATION_METRICS: {
   value: ConfigureSchema['optimization_metric'];
@@ -328,8 +310,8 @@ function AutoragConfigure({
       if (!file || !namespace) {
         return;
       }
-      if (file.size > INPUT_DATA_UPLOAD_MAX_BYTES) {
-        notification.error('File too large', 'File size must be 32 MiB or less.');
+      if (file.size > AUTORAG_UPLOAD_MAX_BYTES) {
+        notification.error('File too large', AUTORAG_UPLOAD_TOO_LARGE_DETAIL);
         return;
       }
       if (!isAllowedInputDataUploadFile(file)) {
@@ -374,6 +356,28 @@ function AutoragConfigure({
       }
     },
     [inputDataBucketName, inputDataSecretName, namespace, notification, setValue, uploadFileToS3],
+  );
+
+  const handleInputDataDropRejected = useCallback(
+    (fileRejections: FileRejection[]) => {
+      const payload = getInputDataDropRejectedNotification(fileRejections);
+      if (payload) {
+        notification.error(payload.title, payload.description);
+      }
+    },
+    [notification],
+  );
+
+  const processInputDataDropOutcome = useCallback(
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      const outcome = resolveSingleFileDropOutcome(acceptedFiles, fileRejections);
+      if (outcome.kind === 'reject') {
+        handleInputDataDropRejected(outcome.fileRejections);
+      } else if (outcome.kind === 'upload') {
+        void uploadInputDataFile(outcome.file);
+      }
+    },
+    [handleInputDataDropRejected, uploadInputDataFile],
   );
 
   const openInputDataReplaceFileDialog = useCallback(() => {
@@ -580,23 +584,21 @@ function AutoragConfigure({
                             {showInputDataUploadDropzone && (
                               <MultipleFileUpload
                                 aria-describedby="input-data-upload-description"
-                                onFileDrop={(_event: DropEvent, droppedFiles: File[]) => {
-                                  const [file] = droppedFiles;
-                                  void uploadInputDataFile(file);
-                                }}
+                                data-testid="knowledge-upload-zone"
                                 dropzoneProps={{
                                   accept: INPUT_DATA_FILE_ACCEPT,
                                   disabled: isSubmitting || isInputDataFileUploading,
-                                  maxFiles: 1,
-                                  maxSize: INPUT_DATA_UPLOAD_MAX_BYTES,
+                                  maxFiles: AUTORAG_UPLOAD_MAX_FILES,
+                                  maxSize: AUTORAG_UPLOAD_MAX_BYTES,
                                   multiple: false,
+                                  onDrop: processInputDataDropOutcome,
                                 }}
                               >
                                 <MultipleFileUploadMain
                                   titleIcon={<UploadIcon />}
                                   titleText="Drag and drop files here"
                                   titleTextSeparator="or"
-                                  infoText="Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: 32 MiB"
+                                  infoText={`Accepted file types: PDF, DOCX, PPTX, Markdown, HTML, Plain text. Maximum file size: ${AUTORAG_UPLOAD_MAX_SIZE_MIB} MiB`}
                                   browseButtonText="Upload"
                                 />
                               </MultipleFileUpload>

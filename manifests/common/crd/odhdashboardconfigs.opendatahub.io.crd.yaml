@@ -165,6 +165,9 @@ spec:
                     mcpCatalog:
                       type: boolean
                       description: 'When true, enables the MCP (Model Context Protocol) Catalog page.'
+                    toolCalling:
+                      type: boolean
+                      description: 'When true, enables tool-calling configuration for supported models in the model catalog.'
                     projectRBAC:
                       type: boolean
                       description: 'When true, enables project-level RBAC (Role-Based Access Control) settings.'

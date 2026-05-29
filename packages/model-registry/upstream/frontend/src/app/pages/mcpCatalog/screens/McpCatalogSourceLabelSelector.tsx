@@ -79,6 +79,7 @@ const McpCatalogSourceLabelSelector: React.FC<McpCatalogSourceLabelSelectorProps
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           key={hasFiltersAppliedValue ? 'has-filters' : 'no-filters'}
           {...(toolbarClearAllProps ?? {})}
         >

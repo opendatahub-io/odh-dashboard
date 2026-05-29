@@ -8,6 +8,29 @@ import {
 } from './const';
 
 /**
+ * Whether the run is in a state where it completed successfully.
+ */
+export const isRunCompleted = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase();
+  return s === RuntimeStateKF.SUCCEEDED;
+};
+
+/**
+ * Whether the run is in a state where it is no longer running.
+ */
+export const isRunInTerminalState = (state: string | undefined): boolean => {
+  const s = state?.toUpperCase() ?? '';
+  const TERMINAL_STATES: Set<string> = new Set([
+    RuntimeStateKF.SUCCEEDED,
+    RuntimeStateKF.FAILED,
+    RuntimeStateKF.CANCELED,
+    RuntimeStateKF.SKIPPED,
+    RuntimeStateKF.CACHED,
+  ]);
+  return TERMINAL_STATES.has(s);
+};
+
+/**
  * Whether the run is in a state where it can be terminated (stopped).
  */
 export const isRunTerminatable = (state: string | undefined): boolean => {
