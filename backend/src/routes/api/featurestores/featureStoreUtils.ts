@@ -14,6 +14,17 @@ export interface FeatureStoreCRD {
   };
   spec?: {
     feastProject?: string;
+    services?: {
+      registry?: {
+        local?: {
+          server?: {
+            tls?: {
+              disable?: boolean;
+            };
+          };
+        };
+      };
+    };
   };
   status?: {
     conditions?: Array<{
@@ -203,10 +214,15 @@ export function isRegistryReady(crd: FeatureStoreCRD): boolean {
 export function getServiceFromCRD(crd: FeatureStoreCRD): {
   serviceName: string;
   namespace: string;
+  protocol: 'http' | 'https';
+  port: string;
 } {
+  const tlsDisabled = crd.spec?.services?.registry?.local?.server?.tls?.disable === true;
   return {
     serviceName: `feast-${crd.metadata.name}-registry-rest`,
     namespace: crd.metadata.namespace,
+    protocol: tlsDisabled ? 'http' : 'https',
+    port: tlsDisabled ? '80' : '443',
   };
 }
 

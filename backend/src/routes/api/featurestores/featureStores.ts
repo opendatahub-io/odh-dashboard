@@ -1,6 +1,7 @@
 import { FastifyReply } from 'fastify';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getAccessToken, getDirectCallOptions } from '../../../utils/directCallUtils';
+import createError from 'http-errors';
 import { createCustomError } from '../../../utils/requestUtils';
 import {
   listFeastNamespaces,
@@ -89,37 +90,55 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             return [];
           }
 
-          const { serviceName, namespace: registryNamespace } = getServiceFromCRD(crd);
+          const {
+            serviceName,
+            namespace: registryNamespace,
+            protocol,
+            port,
+          } = getServiceFromCRD(crd);
           const registryUrl = constructRegistryProxyUrl(
             serviceName,
             registryNamespace,
             'api/v1/projects',
             true,
+            protocol,
+            port,
           );
           const baseRegistryUrl = constructRegistryProxyUrl(
             serviceName,
             registryNamespace,
             '',
             true,
+            protocol,
+            port,
           ).replace(/\/$/, '');
 
           try {
-            const { data } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
+            const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
               fastify,
               registryUrl,
               token,
               {},
             );
 
+            if (statusCode < 200 || statusCode >= 300) {
+              throw new Error(`Registry returned ${statusCode}`);
+            }
+
+            const targetProject = crd.spec?.feastProject;
             const projects = data.projects || [];
             return projects
               .map((fs) => fs.spec?.name || fs.name)
-              .filter((n): n is string => !!n)
+              .filter((projectName): projectName is string => {
+                if (!projectName) return false;
+                if (targetProject) return projectName === targetProject;
+                return true;
+              })
               .map((projectName) =>
                 // name = CRD name for proxy lookup; project = Feast project name.
                 createFeatureStoreResponse(
                   crd.metadata.name,
-                  crd.spec?.feastProject || projectName,
+                  projectName,
                   baseRegistryUrl,
                   'True',
                   crd.metadata.namespace,
@@ -138,6 +157,9 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
       reply.send(buildFeatureStoreResponse(featureStoreResults.flat(), enabledCRDCount));
     } catch (error) {
+      if (createError.isHttpError(error)) {
+        throw error;
+      }
       const errorMessage = handleError(fastify, error, 'Failed to fetch feature stores');
       throw createCustomError('Failed to fetch feature stores', errorMessage, 500);
     }
@@ -154,15 +176,21 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/:namespace/:name/*',
     async (
       req: OauthFastifyRequest<{
-        Params: { namespace: string; name: string };
+        Params: { namespace: string; name: string; '*': string };
       }>,
       reply: FastifyReply,
     ) => {
-      const { namespace, name } = req.params;
-      const urlParts = req.url.split('/');
-      const namespaceIndex = urlParts.indexOf(namespace);
-      const pathAfterName = urlParts.slice(namespaceIndex + 2).join('/');
-      const path = pathAfterName || 'api/v1/projects';
+      const { namespace, name, '*': wildcardPath } = req.params;
+      const path = wildcardPath || 'api/v1/projects';
+
+      const DNS1123_REGEX = /^[a-z0-9]([a-z0-9-]{0,251}[a-z0-9])?$/;
+      if (!DNS1123_REGEX.test(namespace) || !DNS1123_REGEX.test(name)) {
+        throw createCustomError(
+          'Invalid parameters',
+          'namespace and name must be valid DNS-1123 subdomains',
+          400,
+        );
+      }
 
       const kubeHeaders = (await getDirectCallOptions(fastify, req, '')).headers as Record<
         string,
@@ -184,8 +212,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         );
       }
 
-      const { serviceName, namespace: svcNs } = getServiceFromCRD(crd);
-      const proxyUrl = constructRegistryProxyUrl(serviceName, svcNs, path, true);
+      const { serviceName, namespace: svcNs, protocol, port } = getServiceFromCRD(crd);
+      const proxyUrl = constructRegistryProxyUrl(serviceName, svcNs, path, true, protocol, port);
 
       try {
         const { data, statusCode } = await makeAuthenticatedHttpRequest(fastify, proxyUrl, token, {

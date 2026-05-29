@@ -33,14 +33,24 @@ async function hasAccessToProject(
   token: string,
 ): Promise<boolean> {
   try {
-    const { serviceName, namespace } = getServiceFromCRD(crd);
-    const registryUrl = constructRegistryProxyUrl(serviceName, namespace, 'api/v1/projects', true);
-    const { data } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const registryUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      'api/v1/projects',
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
       fastify,
       registryUrl,
       token,
       {},
     );
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Registry returned ${statusCode}`);
+    }
     const projectName = crd.spec?.feastProject || crd.metadata.name;
     const projects = data.projects || [];
     return projects.some((p) => (p.spec?.name || p.name) === projectName);

@@ -171,7 +171,7 @@ describe('featureStoreUtils', () => {
   });
 
   describe('getServiceFromCRD', () => {
-    it('should derive service name and namespace from CRD', () => {
+    it('should derive service name, namespace, and default to https/443 when TLS is not configured', () => {
       const crd = createFeatureStoreCRD();
 
       const result = getServiceFromCRD(crd);
@@ -179,10 +179,12 @@ describe('featureStoreUtils', () => {
       expect(result).toEqual({
         serviceName: SERVICE_NAME.BANKING_REST,
         namespace: NAMESPACE.VIEWER,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
       });
     });
 
-    it('should handle CRD names with hyphens', () => {
+    it('should handle CRD names with hyphens and default to https/443', () => {
       const crd = createFeatureStoreCRD({
         metadata: { name: 'my-complex-name', namespace: NAMESPACE.DEFAULT },
       });
@@ -192,10 +194,12 @@ describe('featureStoreUtils', () => {
       expect(result).toEqual({
         serviceName: 'feast-my-complex-name-registry-rest',
         namespace: NAMESPACE.DEFAULT,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
       });
     });
 
-    it('should handle CRD names with underscores', () => {
+    it('should handle CRD names with underscores and default to https/443', () => {
       const crd = createFeatureStoreCRD({
         metadata: { name: 'feast_rbac', namespace: NAMESPACE.TEST_NS },
       });
@@ -205,6 +209,58 @@ describe('featureStoreUtils', () => {
       expect(result).toEqual({
         serviceName: 'feast-feast_rbac-registry-rest',
         namespace: NAMESPACE.TEST_NS,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
+      });
+    });
+
+    it('should return http/80 when tls.disable is true', () => {
+      const crd = createFeatureStoreCRD({
+        spec: {
+          services: {
+            registry: {
+              local: {
+                server: {
+                  tls: { disable: true },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = getServiceFromCRD(crd);
+
+      expect(result).toEqual({
+        serviceName: SERVICE_NAME.BANKING_REST,
+        namespace: NAMESPACE.VIEWER,
+        protocol: PROTOCOL.HTTP,
+        port: PORT.HTTP_DEFAULT,
+      });
+    });
+
+    it('should return https/443 when tls.disable is false', () => {
+      const crd = createFeatureStoreCRD({
+        spec: {
+          services: {
+            registry: {
+              local: {
+                server: {
+                  tls: { disable: false },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = getServiceFromCRD(crd);
+
+      expect(result).toEqual({
+        serviceName: SERVICE_NAME.BANKING_REST,
+        namespace: NAMESPACE.VIEWER,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
       });
     });
   });
