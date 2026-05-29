@@ -139,6 +139,7 @@ describe('FeatureStoreLineageComponent', () => {
   });
 
   it('should return empty data when lineage data is empty object', () => {
+    mockedConvertStore.mockClear();
     mockedUseFeatureStoreLineage.mockReturnValue({
       data: {} as never,
       loaded: true,

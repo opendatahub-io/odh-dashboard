@@ -341,22 +341,26 @@ describe('useFeatureStoreSearch', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { result } = renderHook(() => useFeatureStoreSearch());
 
-    const { result } = renderHook(() => useFeatureStoreSearch());
+      await act(async () => {
+        await result.current.handleSearchChange('test');
+      });
+      expect(result.current.hasMorePages).toBe(true);
 
-    await act(async () => {
-      await result.current.handleSearchChange('test');
-    });
-    expect(result.current.hasMorePages).toBe(true);
+      await act(async () => {
+        await result.current.loadMoreResults();
+      });
 
-    await act(async () => {
-      await result.current.loadMoreResults();
-    });
-
-    expect(consoleSpy).toHaveBeenCalledWith('Load more search results failed:', expect.any(Error));
-    expect(result.current.isLoadingMore).toBe(false);
-
-    consoleSpy.mockRestore();
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Load more search results failed:',
+        expect.any(Error),
+      );
+      expect(result.current.isLoadingMore).toBe(false);
+    } finally {
+      consoleSpy.mockRestore();
+    }
   });
 
   it('should abort in-flight request on unmount when search is active', async () => {
@@ -373,6 +377,9 @@ describe('useFeatureStoreSearch', () => {
     });
 
     expect(() => unmount()).not.toThrow();
+    const firstCallArg = mockSearch.mock.calls[0]?.[0];
+    expect(firstCallArg?.signal).toBeDefined();
+    expect(firstCallArg.signal.aborted).toBe(true);
 
     // Clean up the pending promise
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
