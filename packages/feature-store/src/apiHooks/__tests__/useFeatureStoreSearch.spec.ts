@@ -388,15 +388,21 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.isSearching).toBe(false);
     expect(result.current.convertedSearchData).toEqual([]);
 
-    // Clean up the pending promise
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    resolveSearch!(
-      mockGlobalSearchResponse({
-        results: [],
-        pagination: mockGlobalSearchPagination(),
-        errors: [],
-      }),
-    );
+    // Resolve the aborted promise and verify state remains cleared
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      resolveSearch!(
+        mockGlobalSearchResponse({
+          results: [],
+          pagination: mockGlobalSearchPagination(),
+          errors: [],
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(result.current.convertedSearchData).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
   });
 
   it('should abort in-flight request on unmount when search is active', async () => {
