@@ -1,4 +1,4 @@
-# testMaaSSubscriptions.cy.ts Test Data #
+# testMaaSPolicies.cy.ts Test Data #
 projectResourceName: 'test-maas-policies-deployment'
 singleModelName: 'test-maas-policies-model'
 connectionNameSuffix: '-connection'
@@ -18,4 +18,4 @@ tokenRateLimit :
 phase: 'Active'
 apiKeyName: 'a-test-maas-subscription-api-key'
 apiKeyDescription: 'Cypress test: API key for test-maas-policies-sub'
-ExpirationTime: '1'
+apiKeyExpirationTime: '1'

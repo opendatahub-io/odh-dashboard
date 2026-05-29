@@ -5,6 +5,7 @@ import {
   cleanupSubscription,
   createLLMInferenceServiceWithMaaSEnabled,
   createMaaSModelRef,
+  modelsAsAServiceNamespace,
 } from '../../../utils/oc_commands/maas';
 import { verifyMaasModelExistsForUser } from '../../../utils/maasApiKeyClipboardInference';
 import {
@@ -49,8 +50,10 @@ let policiesName: string;
 let policiesDescription: string;
 let apiKeyName: string;
 let apiKeyExpirationTime: string;
+let policiesModelsCount: number;
+let policiesGroupsCount: number;
 
-describe('A admin can create a MaaS policy and acess maas model endpoint', () => {
+describe('An admin can manage MaaS authorization policies and control model access via group membership', () => {
   retryableBefore(() => {
     cy.log('Loading test data');
     return loadMaaSFixture('e2e/modelsAsService/testMaaSPolicies.yaml')
@@ -107,10 +110,10 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
 
   after(() => {
     cy.log(`Cleaning up Auth Policy: ${policiesName}`);
-    cleanupAuthPolicy(policiesName, 'models-as-a-service');
+    cleanupAuthPolicy(policiesName, modelsAsAServiceNamespace);
     cy.log(`Cleaning up Subscription: ${subscriptionName}`);
-    cleanupSubscription(subscriptionName, 'models-as-a-service');
-    cleanupAuthPolicy(`${subscriptionName}-policy`, 'models-as-a-service');
+    cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
+    cleanupAuthPolicy(`${subscriptionName}-policy`, modelsAsAServiceNamespace);
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
   it(
@@ -128,8 +131,9 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       policyPage.findDisplayNameInput().type(policiesName);
       policyPage.findDescriptionInput().type(policiesDescription);
       policyPage.selectGroup(testData.policiesGroups[0]);
-      policyPage.findAddModelsButton().click();
+      policiesGroupsCount = 1;
 
+      policyPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
       addModelsToSubscriptionModal.findFilterInput().type(modelName);
@@ -137,8 +141,8 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       addModelsToSubscriptionModal.findToggleModelButton(modelName).click();
       addModelsToSubscriptionModal.findConfirmButton().click();
       policyPage.findModelsTable().should('contain.text', modelName);
-
-      policyPage.findSubmitButton().should('be.enabled').click();
+      policiesModelsCount = 1;
+      policyPage.findSubmitButton().click();
 
       cy.step('Verify the authorization policy exists on the cluster');
       cy.then(() => {
@@ -150,8 +154,8 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       let policyRow = authPoliciesPage.getRow(policiesName);
       policyRow.findName().should('contain.text', policiesName);
       policyRow.findDescription().should('contain.text', policiesDescription);
-      policyRow.findGroups().should('contain.text', '1 Group');
-      policyRow.findModels().should('contain.text', `${testData.policiesModelsCount} Model`);
+      policyRow.findGroups().should('contain.text', `${policiesGroupsCount} Group`);
+      policyRow.findModels().should('contain.text', `${policiesModelsCount} Model`);
       policyRow.findActionsToggle().click();
       policyRow.findViewDetailsActionButton().should('be.visible');
       policyRow.findEditActionButton().should('be.visible');
@@ -175,6 +179,7 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       policyPage.findDisplayNameInput().type(`${policiesName}-edited`);
       policyPage.findDescriptionInput().type(`${policiesDescription}-edited`);
       policyPage.selectGroup(testData.policiesGroups[1]);
+      policiesGroupsCount = 2;
       policyPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
       addModelsToSubscriptionModal.findTable().should('exist');
@@ -185,8 +190,8 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       policyRow = authPoliciesPage.getRow(policiesName);
       policyRow.findTitleButton().should('contain.text', `${policiesName}-edited`);
       policyRow.findDescription().should('contain.text', `${policiesDescription}-edited`);
-      policyRow.findGroups().should('contain.text', '2 Groups');
-      policyRow.findModels().should('contain.text', '1 Model');
+      policyRow.findGroups().should('contain.text', `${policiesGroupsCount} Group`);
+      policyRow.findModels().should('contain.text', `${testData.policiesModelsCount} Model`);
 
       cy.step('Delete the authorization policy');
       policyRow.findActionsToggle().click();
@@ -196,7 +201,7 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
 
       cy.step('Verify the authorization policy is deleted');
       cy.then(() => {
-        checkMaaSAuthPolicyState(policiesName, 'models-as-a-service', { expectDeleted: true });
+        checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, { expectDeleted: true });
       });
     },
   );
@@ -219,7 +224,6 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
       createSubscriptionPage.findPriorityInput().should('be.visible').invoke('val').as('priority');
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[0]);
       createSubscriptionPage.selectCustomGroup(subscriptionGroups[1]);
-
       // Add a model to the subscription
       createSubscriptionPage.findAddModelsButton().click();
       addModelsToSubscriptionModal.shouldBeOpen();
@@ -306,13 +310,19 @@ describe('A admin can create a MaaS policy and acess maas model endpoint', () =>
         authPoliciesPage.visit();
         cy.get('@policiesName').then((policyName) => {
           policiesName = String(policyName);
-          authPoliciesPage.findKeywordFilterInput().clear().type(policiesName);
+          authPoliciesPage.findKeywordFilterInput().type(policiesName);
           authPoliciesPage.findRows().should('have.length', 1);
           const policyRow = authPoliciesPage.getRow(policiesName);
           policyRow.findActionsToggle().click();
           policyRow.findEditActionButton().click();
+          // remove the selected group
           policyPage.selectGroup(testData.policiesGroups[0]);
           policyPage.findSubmitButton().click();
+        });
+        cy.then(() => {
+          checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, {
+            groups: [testData.policiesGroups[1]],
+          });
         });
 
         cy.step('Verify the model is not accessible to the user');
