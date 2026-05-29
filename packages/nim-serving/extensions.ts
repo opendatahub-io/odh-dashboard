@@ -8,15 +8,25 @@ import type {
   ModelServingPlatformWatchDeploymentsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
 import type {
+  AssembleModelResourceExtension,
   DeploymentWizardFieldOverrideExtension,
+  ModelServingDeploy,
+  WizardFieldApplyExtension,
   WizardFieldExtension,
+  WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
-import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
-import type { NIMPVCFieldType } from './src/pages/deploymentWizard/fields/NIMPVCField';
+import type {
+  NIMImageFieldType,
+  NIMImageFieldValue,
+} from './src/pages/deploymentWizard/fields/NIMImageField';
+import type {
+  NIMPVCFieldType,
+  NIMPVCFieldValue,
+} from './src/pages/deploymentWizard/fields/NIMPVCField';
 
 export const NIM_ID = 'nvidia-nim';
 
@@ -52,9 +62,15 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
+  | ModelServingDeploy<NIMDeployment>
+  | AssembleModelResourceExtension<NIMDeployment>
   | DeploymentWizardFieldOverrideExtension
   | WizardFieldExtension<NIMImageFieldType>
   | WizardFieldExtension<NIMPVCFieldType>
+  | WizardFieldApplyExtension<NIMImageFieldValue, NIMDeployment>
+  | WizardFieldApplyExtension<NIMPVCFieldValue, NIMDeployment>
+  | WizardFieldExtractorExtension<NIMImageFieldValue, NIMDeployment>
+  | WizardFieldExtractorExtension<NIMPVCFieldValue, NIMDeployment>
 )[] = [
   {
     type: 'app.area',
@@ -119,6 +135,87 @@ const extensions: (
   },
   nimImageFieldExtension,
   nimPVCFieldExtension,
+  {
+    type: 'model-serving.deployment/deploy',
+    properties: {
+      platform: NIM_ID,
+      isActive: () => import('./src/api/deployments/deploy').then((m) => m.isNIMDeployActive),
+      priority: 100,
+      supportsOverwrite: true,
+      deploy: () => import('./src/api/deployments/deploy').then((m) => m.deployNIMDeployment),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/assemble-model-resource',
+    properties: {
+      platform: NIM_ID,
+      isActive: () => import('./src/api/deployments/deploy').then((m) => m.isNIMDeployActive),
+      priority: 100,
+      assemble: () => import('./src/api/deployments/deploy').then((m) => m.assembleNIMDeployment),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'nim-serving/nimImage',
+      platform: NIM_ID,
+      apply: () =>
+        import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
+          (m) => m.applyNIMImageFieldData,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'nim-serving/nimImage',
+      platform: NIM_ID,
+      extract: () =>
+        import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
+          (m) => m.extractNIMImageFieldData,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-apply',
+    properties: {
+      fieldId: 'nim-serving/pvcStorage',
+      platform: NIM_ID,
+      apply: () =>
+        import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
+          (m) => m.applyNIMPVCFieldData,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'nim-serving/pvcStorage',
+      platform: NIM_ID,
+      extract: () =>
+        import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
+          (m) => m.extractNIMPVCFieldData,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
 ];
 
 export default extensions;

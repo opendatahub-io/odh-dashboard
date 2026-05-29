@@ -24,11 +24,24 @@ export type NIMServiceKind = K8sResourceCommon & {
     };
   };
   spec: {
+    inferencePlatform?: string;
     image: {
       repository: string;
       tag?: string;
       pullPolicy?: string;
       pullSecrets?: string[];
+    };
+    model?: {
+      engine?: string;
+      quantization?: string;
+      profiles?: string[];
+      lora?: {
+        enabled?: boolean;
+        models?: Array<{
+          name?: string;
+          source?: string;
+        }>;
+      };
     };
     authSecret?: string;
     replicas?: number;
@@ -55,9 +68,42 @@ export type NIMServiceKind = K8sResourceCommon & {
     }>;
     expose?: {
       service?: {
+        type?: string;
         port?: number;
         openaiPort?: number;
       };
+    };
+    scale?: {
+      enabled?: boolean;
+      minReplicas?: number;
+      maxReplicas?: number;
+      metrics?: Array<{
+        type?: string;
+        resource?: {
+          name?: string;
+          target?: {
+            type?: string;
+            averageUtilization?: number;
+            averageValue?: string;
+          };
+        };
+      }>;
+    };
+    metrics?: {
+      enabled?: boolean;
+      port?: number;
+    };
+    livenessProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
+    };
+    readinessProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
+    };
+    startupProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
     };
     annotations?: Record<string, string>;
     labels?: Record<string, string>;
@@ -68,6 +114,8 @@ export type NIMServiceKind = K8sResourceCommon & {
       effect?: string;
     }>;
     nodeSelector?: Record<string, string>;
+    userID?: number;
+    groupID?: number;
   };
   status?: {
     state?: string;
