@@ -90,7 +90,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     loaded && !showTableLoading
       ? formatApiKeysCountLabel(apiKeys.length, page, perPage, hasMore)
       : '';
-  const titleText = countLabel ? `Api keys ${countLabel}` : 'Api keys';
+  const titleText = countLabel ? `API keys ${countLabel}` : 'API keys';
 
   return (
     <>
