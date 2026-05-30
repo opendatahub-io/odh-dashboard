@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
@@ -17,10 +18,11 @@ type Repositories struct {
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
 type RepositoriesConfig struct {
-	K8sService       *corek8s.K8sService
-	PipelinesService *corepipelines.PipelinesService
-	PipelinesCfg     PipelinesRepositoryConfig
-	S3Service        *cores3.S3Service
+	K8sService          *corek8s.K8sService
+	PipelinesService    *corepipelines.PipelinesService
+	PipelinesCfg        PipelinesRepositoryConfig
+	S3Service           *cores3.S3Service
+	ModelRegistryClient modelregistry.ModelRegistryClientInterface
 }
 
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
@@ -29,6 +31,6 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		Secret:        NewSecretRepository(),
 		Pipelines:     NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
 		S3:            NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
-		ModelRegistry: NewModelRegistryRepository(cfg.K8sService, cfg.PipelinesService),
+		ModelRegistry: NewModelRegistryRepository(cfg.ModelRegistryClient, cfg.K8sService, cfg.PipelinesService),
 	}
 }

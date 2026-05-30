@@ -43,10 +43,6 @@ const (
 	ModelRegistryModelsPath = ModelRegistriesPath + "/:registryId/models"
 )
 
-// modelRegistryHTTPClientFactory builds a client for Model Registry register calls.
-// If nil, modelregistry.NewHTTPClient is used. Set by tests only.
-type modelRegistryHTTPClientFactory func(*slog.Logger, string, http.Header, bool, *x509.CertPool) (modelregistry.HTTPClientInterface, error)
-
 type App struct {
 	config       config.EnvConfig
 	logger       *slog.Logger
@@ -61,8 +57,6 @@ type App struct {
 	s3PostMaxCollisionAttempts int
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
-	// modelRegistryHTTPClientFactory is nil in production; tests may set it to inject mock clients.
-	modelRegistryHTTPClientFactory modelRegistryHTTPClientFactory
 	// portForwardManager manages on-demand port-forwards for local dev (nil in production)
 	portForwardManager *k8s.PortForwardManager
 }
@@ -187,6 +181,16 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 	s3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, s3Client)
 
+	// Initialize Model Registry client (single shared stateless instance).
+	mrClientCfg := modelregistry.ModelRegistryClientConfig{
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		RootCAs:            rootCAs,
+	}
+	if cfg.AuthMethod == config.AuthMethodUser {
+		mrClientCfg.WrapTransport = corek8s.NewBearerTokenRoundTripper
+	}
+	mrClient := modelregistry.NewDefaultModelRegistryClient(mrClientCfg)
+
 	app := &App{
 		config: cfg,
 		logger: logger,
@@ -197,7 +201,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 				TimeSeriesPipelineName: cfg.AutoMLTimeSeriesPipelineNamePrefix,
 				TabularPipelineName:    cfg.AutoMLTabularPipelineNamePrefix,
 			},
-			S3Service: s3Service,
+			S3Service:           s3Service,
+			ModelRegistryClient: mrClient,
 		}),
 		k8sService:         k8sService,
 		rootCAs:            rootCAs,

@@ -131,13 +131,22 @@ type modelRegistryCR struct {
 
 // ModelRegistryRepository handles Model Registry API operations and cluster discovery.
 type ModelRegistryRepository struct {
+	client           modelregistry.ModelRegistryClientInterface
 	k8sService       *corek8s.K8sService
 	pipelinesService *corepipelines.PipelinesService
 }
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
-func NewModelRegistryRepository(k8sService *corek8s.K8sService, pipelinesService *corepipelines.PipelinesService) *ModelRegistryRepository {
-	return &ModelRegistryRepository{k8sService: k8sService, pipelinesService: pipelinesService}
+func NewModelRegistryRepository(
+	client modelregistry.ModelRegistryClientInterface,
+	k8sService *corek8s.K8sService,
+	pipelinesService *corepipelines.PipelinesService,
+) *ModelRegistryRepository {
+	return &ModelRegistryRepository{
+		client:           client,
+		k8sService:       k8sService,
+		pipelinesService: pipelinesService,
+	}
 }
 
 // buildModelRegistryURI constructs the S3 URI format expected by the Model Registry UI:
@@ -164,12 +173,30 @@ func buildModelRegistryURI(bucket, key, endpoint, region string) string {
 // fails, resources created in prior steps remain in the registry. The Model Registry API
 // would need DELETE support to implement cleanup; consider manual cleanup of orphaned
 // RegisteredModels if failures occur.
+// RegisterModel resolves the target registry, discovers DSPA storage, and creates
+// a RegisteredModel + ModelVersion + ModelArtifact in sequence. It is the single
+// repo call for the register model handler.
 func (r *ModelRegistryRepository) RegisterModel(
 	ctx context.Context,
-	client modelregistry.HTTPClientInterface,
+	registryUID string,
 	req models.RegisterModelRequest,
 	namespace string,
 ) (string, *openapi.ModelArtifact, error) {
+	// Resolve registry and get its URL.
+	reg, err := r.ResolveModelRegistryByUID(ctx, registryUID, nil)
+	if err != nil {
+		return "", nil, err
+	}
+	baseURL := strings.TrimSpace(reg.ExternalURL)
+	if baseURL == "" {
+		baseURL = strings.TrimSpace(reg.ServerURL)
+	}
+	if baseURL == "" {
+		return "", nil, fmt.Errorf("model registry %q has no usable URL", reg.Name)
+	}
+	if err := validateModelRegistryURL(baseURL); err != nil {
+		return "", nil, err
+	}
 	// Discover DSPA object storage for artifact URI construction.
 	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
@@ -203,7 +230,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return "", nil, fmt.Errorf("error marshaling registered model: %w", err)
 	}
 
-	regModelResp, err := client.POST(ctx, registeredModelsPath, bytes.NewBuffer(regModelJSON))
+	regModelResp, err := r.client.POST(ctx, baseURL, registeredModelsPath, bytes.NewBuffer(regModelJSON))
 	if err != nil {
 		return "", nil, fmt.Errorf("error creating registered model: %w", err)
 	}
@@ -237,7 +264,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return "", nil, fmt.Errorf("error marshaling model version: %w", err)
 	}
 
-	versionResp, err := client.POST(ctx, versionsURL, bytes.NewBuffer(versionJSON))
+	versionResp, err := r.client.POST(ctx, baseURL, versionsURL, bytes.NewBuffer(versionJSON))
 	if err != nil {
 		return "", nil, fmt.Errorf("error creating model version: %w", err)
 	}
@@ -299,7 +326,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 		return "", nil, fmt.Errorf("error marshaling model artifact: %w", err)
 	}
 
-	artifactResp, err := client.POST(ctx, artifactsURL, bytes.NewBuffer(artifactJSON))
+	artifactResp, err := r.client.POST(ctx, baseURL, artifactsURL, bytes.NewBuffer(artifactJSON))
 	if err != nil {
 		return "", nil, fmt.Errorf("error creating model artifact: %w", err)
 	}
@@ -457,4 +484,21 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	}
 
 	return serverURL, externalURL
+}
+
+// validateModelRegistryURL ensures the registry URL is safe to use.
+// Always requires HTTPS (except localhost) — registry URLs are always constructed
+// with https:// by buildRegistryURLs, and HTTP is unsafe in all auth modes.
+func validateModelRegistryURL(serverURL string) error {
+	u, err := neturl.Parse(serverURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return fmt.Errorf("invalid model registry URL: %q", serverURL)
+	}
+	if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
+		return fmt.Errorf("model registry URL must use HTTPS (got %q)", serverURL)
+	}
+	if !strings.Contains(u.Path, "/api/model_registry/") {
+		return fmt.Errorf("model registry URL path must contain /api/model_registry/: %q", serverURL)
+	}
+	return nil
 }
