@@ -438,12 +438,14 @@ describe('useFeatureStoreSearch', () => {
     await act(async () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       rejectFirst!(abortError);
+      await Promise.resolve();
     });
 
     // Second search results remain intact — the stale AbortError was ignored
     expect(result.current.convertedSearchData).toHaveLength(1);
     expect(result.current.convertedSearchData[0].title).toBe('second-result');
     expect(result.current.isSearching).toBe(false);
+    expect(result.current.searchErrors).toEqual([]);
   });
 
   it('should abort in-flight request on unmount when search is active', async () => {
