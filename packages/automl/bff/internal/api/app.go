@@ -186,8 +186,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		InsecureSkipVerify: cfg.InsecureSkipVerify,
 		RootCAs:            rootCAs,
 	}
-	if cfg.AuthMethod == config.AuthMethodUser {
+	switch cfg.AuthMethod {
+	case config.AuthMethodUser:
 		mrClientCfg.WrapTransport = corek8s.NewBearerTokenRoundTripper
+	case config.AuthMethodInternal:
+		saWrapper, err := corek8s.NewSATokenTransportWrapper()
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize SA token transport for model registry: %w", err)
+		}
+		mrClientCfg.WrapTransport = saWrapper
 	}
 	mrClient := modelregistry.NewDefaultModelRegistryClient(mrClientCfg)
 

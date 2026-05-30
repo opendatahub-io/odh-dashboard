@@ -2,7 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -241,6 +244,57 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 
 // Compile-time interface check.
 var _ K8sClientInterface = (*K8sInternalClient)(nil)
+
+// NewSATokenTransportWrapper returns a WrapTransport function that injects the pod's
+// service account token into every outbound request. Intended for internal auth mode,
+// where there is no per-request user token — the BFF authenticates to downstream
+// services (e.g. kube-rbac-proxy in front of model registry) using its own SA credentials.
+//
+// Token rotation is handled automatically: when running in-cluster the token file is
+// re-read on each request so that short-lived projected tokens stay current.
+// In local development (kubeconfig), the static token from the kubeconfig is used.
+//
+// Returns an error at startup if the Kubernetes config cannot be loaded, so misconfiguration
+// is caught before serving any requests.
+func NewSATokenTransportWrapper() (func(http.RoundTripper) http.RoundTripper, error) {
+	cfg, err := getKubernetesConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load kubernetes config for SA token transport: %w", err)
+	}
+	rt := &saTokenRoundTripper{
+		token:     cfg.BearerToken,
+		tokenFile: cfg.BearerTokenFile,
+	}
+	return func(base http.RoundTripper) http.RoundTripper {
+		rt.base = base
+		return rt
+	}, nil
+}
+
+// saTokenRoundTripper injects the pod's service account token into outbound requests.
+// It re-reads the token file on each request to handle short-lived projected token rotation.
+type saTokenRoundTripper struct {
+	base      http.RoundTripper
+	token     string // static token (local dev / kubeconfig)
+	tokenFile string // projected token file path (in-cluster, rotated by kubelet)
+}
+
+func (t *saTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	token := t.token
+	if t.tokenFile != "" {
+		if data, err := os.ReadFile(t.tokenFile); err == nil {
+			if s := strings.TrimSpace(string(data)); s != "" {
+				token = s
+			}
+		}
+	}
+	if token == "" {
+		return nil, errors.New("service account token is empty")
+	}
+	req2 := req.Clone(req.Context())
+	req2.Header.Set("Authorization", "Bearer "+token)
+	return t.base.RoundTrip(req2)
+}
 
 // ============================================================================
 // Private Helper Methods
