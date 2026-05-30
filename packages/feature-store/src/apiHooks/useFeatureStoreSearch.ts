@@ -115,10 +115,14 @@ export const useFeatureStoreSearch = (): {
         setTotalCount(results.pagination.totalCount);
         setSearchErrors(results.errors);
         abortControllerRef.current = null;
+        setIsSearching(false);
       } catch (error) {
-        // Don't update state if the request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
+          if (abortControllerRef.current !== abortController) {
+            return;
+          }
           abortControllerRef.current = null;
+          setIsSearching(false);
           return;
         }
         setAllResults([]);
@@ -126,7 +130,6 @@ export const useFeatureStoreSearch = (): {
         setTotalCount(0);
         setSearchErrors([]);
         abortControllerRef.current = null;
-      } finally {
         setIsSearching(false);
       }
     },
