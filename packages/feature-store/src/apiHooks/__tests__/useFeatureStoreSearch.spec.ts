@@ -405,6 +405,47 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.isSearching).toBe(false);
   });
 
+  it('should ignore stale AbortError when a newer search has replaced the controller', async () => {
+    const abortError = new Error('AbortError');
+    abortError.name = 'AbortError';
+
+    let rejectFirst: (reason: unknown) => void;
+    const firstPromise = new Promise((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+
+    const secondResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'second-result' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 1 }),
+      errors: [],
+    });
+
+    mockSearch.mockReturnValueOnce(firstPromise).mockResolvedValueOnce(secondResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    // Start first search (hangs on pending promise)
+    act(() => {
+      result.current.handleSearchChange('first');
+    });
+
+    // Start second search — replaces the abort controller ref
+    await act(async () => {
+      await result.current.handleSearchChange('second');
+    });
+
+    // Now reject the first search with AbortError; the controller has already been replaced
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      rejectFirst!(abortError);
+    });
+
+    // Second search results remain intact — the stale AbortError was ignored
+    expect(result.current.convertedSearchData).toHaveLength(1);
+    expect(result.current.convertedSearchData[0].title).toBe('second-result');
+    expect(result.current.isSearching).toBe(false);
+  });
+
   it('should abort in-flight request on unmount when search is active', async () => {
     let resolveSearch: (value: unknown) => void;
     const searchPromise = new Promise((resolve) => {
