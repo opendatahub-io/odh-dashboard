@@ -115,6 +115,9 @@ export const useSearchHandlers = (
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && (state.isSearchOpen || state.searchValue.trim() !== '')) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);
@@ -144,6 +147,9 @@ export const useSearchHandlers = (
         !searchInputRef.current.contains(target) &&
         !searchMenuRef.current.contains(target)
       ) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         setSearchValue('');
         setIsSearchOpen(false);
         setIsSearching(false);

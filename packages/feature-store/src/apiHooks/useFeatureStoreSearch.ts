@@ -169,6 +169,9 @@ export const useFeatureStoreSearch = (): {
       setAllResults((prevResults) => [...prevResults, ...results.results]);
       setCurrentPage(nextPage);
       setHasMorePages(results.pagination.hasNext);
+      if (results.errors.length > 0) {
+        setSearchErrors((prev) => [...prev, ...results.errors]);
+      }
     } catch (error) {
       // Don't log error if the request was aborted
       if (!(error instanceof Error && error.name === 'AbortError')) {
