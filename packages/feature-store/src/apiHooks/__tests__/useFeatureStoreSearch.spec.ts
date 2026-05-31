@@ -502,6 +502,102 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.isLoadingMore).toBe(false);
   });
 
+  it('should cancel in-flight loadMore when clearSearch is called', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: [],
+    });
+
+    let resolveLoadMore: (value: unknown) => void;
+    const loadMorePromise = new Promise((resolve) => {
+      resolveLoadMore = resolve;
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockReturnValueOnce(loadMorePromise);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.hasMorePages).toBe(true);
+
+    // Start loadMore (don't await — it will hang on the pending promise)
+    act(() => {
+      result.current.loadMoreResults();
+    });
+
+    // loadMore should have received a signal
+    const loadMoreCallArg = mockSearch.mock.calls[1]?.[0];
+    expect(loadMoreCallArg?.signal).toBeDefined();
+    expect(loadMoreCallArg.signal.aborted).toBe(false);
+
+    // clearSearch should abort the loadMore controller
+    act(() => {
+      result.current.clearSearch();
+    });
+
+    expect(loadMoreCallArg.signal.aborted).toBe(true);
+    expect(result.current.isLoadingMore).toBe(false);
+    expect(result.current.convertedSearchData).toEqual([]);
+
+    // Clean up the pending promise
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      resolveLoadMore!(
+        mockGlobalSearchResponse({
+          results: [],
+          pagination: mockGlobalSearchPagination(),
+          errors: [],
+        }),
+      );
+      await Promise.resolve();
+    });
+  });
+
+  it('should handle completely malformed search response', async () => {
+    mockSearch.mockResolvedValue({});
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+
+    expect(result.current.convertedSearchData).toEqual([]);
+    expect(result.current.hasMorePages).toBe(false);
+    expect(result.current.totalCount).toBe(0);
+    expect(result.current.searchErrors).toEqual([]);
+    expect(result.current.isSearching).toBe(false);
+  });
+
+  it('should handle malformed loadMore response with missing results and pagination', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: [],
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce({});
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.hasMorePages).toBe(true);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+
+    // First result should still be there, no crash from malformed response
+    expect(result.current.convertedSearchData).toHaveLength(1);
+    expect(result.current.hasMorePages).toBe(false);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
   it('should abort in-flight request on unmount when search is active', async () => {
     let resolveSearch: (value: unknown) => void;
     const searchPromise = new Promise((resolve) => {

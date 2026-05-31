@@ -110,11 +110,21 @@ export const useFeatureStoreSearch = (): {
           signal: abortController.signal,
         });
 
-        setAllResults(results.results);
-        setHasMorePages(results.pagination.hasNext);
-        setTotalCount(results.pagination.totalCount);
-        setSearchErrors(Array.isArray(results.errors) ? results.errors : []);
-        abortControllerRef.current = null;
+        const safeResults = Array.isArray(results?.results) ? results.results : [];
+        const safeHasNext = Boolean(results?.pagination?.hasNext);
+        const safeTotalCount =
+          typeof results?.pagination?.totalCount === 'number'
+            ? results.pagination.totalCount
+            : 0;
+        const safeErrors = Array.isArray(results?.errors) ? results.errors : [];
+
+        setAllResults(safeResults);
+        setHasMorePages(safeHasNext);
+        setTotalCount(safeTotalCount);
+        setSearchErrors(safeErrors);
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null;
+        }
         setIsSearching(false);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
@@ -148,6 +158,9 @@ export const useFeatureStoreSearch = (): {
       return;
     }
 
+    const loadMoreController = new AbortController();
+    abortControllerRef.current = loadMoreController;
+
     setIsLoadingMore(true);
     try {
       if (!hasAvailableProjects) {
@@ -163,22 +176,26 @@ export const useFeatureStoreSearch = (): {
         query: currentSearchQuery,
         page: nextPage,
         limit: 50,
-        signal: abortControllerRef.current?.signal,
+        signal: loadMoreController.signal,
       });
 
-      setAllResults((prevResults) => [...prevResults, ...results.results]);
+      const safeNextResults = Array.isArray(results?.results) ? results.results : [];
+      const safeHasNext = Boolean(results?.pagination?.hasNext);
+      setAllResults((prevResults) => [...prevResults, ...safeNextResults]);
       setCurrentPage(nextPage);
-      setHasMorePages(results.pagination.hasNext);
-      const nextErrors = Array.isArray(results.errors) ? results.errors : [];
+      setHasMorePages(safeHasNext);
+      const nextErrors = Array.isArray(results?.errors) ? results.errors : [];
       if (nextErrors.length > 0) {
         setSearchErrors((prev) => [...prev, ...nextErrors]);
       }
     } catch (error) {
-      // Don't log error if the request was aborted
       if (!(error instanceof Error && error.name === 'AbortError')) {
         console.error('Load more search results failed:', error);
       }
     } finally {
+      if (abortControllerRef.current === loadMoreController) {
+        abortControllerRef.current = null;
+      }
       setIsLoadingMore(false);
     }
   }, [
