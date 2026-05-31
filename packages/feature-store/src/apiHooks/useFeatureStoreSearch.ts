@@ -113,7 +113,7 @@ export const useFeatureStoreSearch = (): {
         setAllResults(results.results);
         setHasMorePages(results.pagination.hasNext);
         setTotalCount(results.pagination.totalCount);
-        setSearchErrors(results.errors);
+        setSearchErrors(Array.isArray(results.errors) ? results.errors : []);
         abortControllerRef.current = null;
         setIsSearching(false);
       } catch (error) {
@@ -169,8 +169,9 @@ export const useFeatureStoreSearch = (): {
       setAllResults((prevResults) => [...prevResults, ...results.results]);
       setCurrentPage(nextPage);
       setHasMorePages(results.pagination.hasNext);
-      if (results.errors.length > 0) {
-        setSearchErrors((prev) => [...prev, ...results.errors]);
+      const nextErrors = Array.isArray(results.errors) ? results.errors : [];
+      if (nextErrors.length > 0) {
+        setSearchErrors((prev) => [...prev, ...nextErrors]);
       }
     } catch (error) {
       // Don't log error if the request was aborted

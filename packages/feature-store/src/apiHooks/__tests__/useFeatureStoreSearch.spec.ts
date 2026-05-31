@@ -448,6 +448,60 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.searchErrors).toEqual([]);
   });
 
+  it('should handle malformed response with missing errors in handleSearchChange', async () => {
+    const searchResponse = {
+      ...mockGlobalSearchResponse({
+        results: [mockGlobalSearchResult({ name: 'result-1' })],
+        pagination: mockGlobalSearchPagination({ totalCount: 1 }),
+      }),
+      errors: undefined,
+    };
+
+    mockSearch.mockResolvedValue(searchResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+
+    expect(result.current.searchErrors).toEqual([]);
+    expect(result.current.convertedSearchData).toHaveLength(1);
+  });
+
+  it('should handle malformed response with missing errors in loadMoreResults', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: [],
+    });
+
+    const secondResponse = {
+      ...mockGlobalSearchResponse({
+        results: [mockGlobalSearchResult({ name: 'result-2' })],
+        pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
+      }),
+      errors: undefined,
+    };
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.hasMorePages).toBe(true);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+
+    expect(result.current.convertedSearchData).toHaveLength(2);
+    expect(result.current.searchErrors).toEqual([]);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
   it('should abort in-flight request on unmount when search is active', async () => {
     let resolveSearch: (value: unknown) => void;
     const searchPromise = new Promise((resolve) => {
