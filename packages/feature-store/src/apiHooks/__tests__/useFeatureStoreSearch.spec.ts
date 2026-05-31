@@ -448,14 +448,12 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.searchErrors).toEqual([]);
   });
 
-  it('should handle malformed response with missing errors in handleSearchChange', async () => {
-    const searchResponse = {
-      ...mockGlobalSearchResponse({
-        results: [mockGlobalSearchResult({ name: 'result-1' })],
-        pagination: mockGlobalSearchPagination({ totalCount: 1 }),
-      }),
-      errors: undefined,
-    };
+  it('should handle response with empty errors in handleSearchChange', async () => {
+    const searchResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 1 }),
+      errors: [],
+    });
 
     mockSearch.mockResolvedValue(searchResponse);
 
@@ -469,20 +467,18 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.convertedSearchData).toHaveLength(1);
   });
 
-  it('should handle malformed response with missing errors in loadMoreResults', async () => {
+  it('should handle response with empty errors in loadMoreResults', async () => {
     const firstResponse = mockGlobalSearchResponse({
       results: [mockGlobalSearchResult({ name: 'result-1' })],
       pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
       errors: [],
     });
 
-    const secondResponse = {
-      ...mockGlobalSearchResponse({
-        results: [mockGlobalSearchResult({ name: 'result-2' })],
-        pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
-      }),
-      errors: undefined,
-    };
+    const secondResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-2' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
+      errors: [],
+    });
 
     mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
 
@@ -556,8 +552,14 @@ describe('useFeatureStoreSearch', () => {
     });
   });
 
-  it('should handle completely malformed search response', async () => {
-    mockSearch.mockResolvedValue({});
+  it('should handle empty search response', async () => {
+    mockSearch.mockResolvedValue(
+      mockGlobalSearchResponse({
+        results: [],
+        pagination: mockGlobalSearchPagination({ totalCount: 0, hasNext: false }),
+        errors: [],
+      }),
+    );
 
     const { result } = renderHook(() => useFeatureStoreSearch());
 
@@ -572,14 +574,20 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.isSearching).toBe(false);
   });
 
-  it('should handle malformed loadMore response with missing results and pagination', async () => {
+  it('should handle loadMore response with empty results and no more pages', async () => {
     const firstResponse = mockGlobalSearchResponse({
       results: [mockGlobalSearchResult({ name: 'result-1' })],
       pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
       errors: [],
     });
 
-    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce({});
+    const secondResponse = mockGlobalSearchResponse({
+      results: [],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
+      errors: [],
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
 
     const { result } = renderHook(() => useFeatureStoreSearch());
 
@@ -592,7 +600,7 @@ describe('useFeatureStoreSearch', () => {
       await result.current.loadMoreResults();
     });
 
-    // First result should still be there, no crash from malformed response
+    // First result should still be there, second page had no results
     expect(result.current.convertedSearchData).toHaveLength(1);
     expect(result.current.hasMorePages).toBe(false);
     expect(result.current.isLoadingMore).toBe(false);

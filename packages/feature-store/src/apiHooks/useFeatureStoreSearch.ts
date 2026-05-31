@@ -110,13 +110,10 @@ export const useFeatureStoreSearch = (): {
           signal: abortController.signal,
         });
 
-        const safeResults = Array.isArray(results?.results) ? results.results : [];
-        const safeHasNext = Boolean(results?.pagination?.hasNext);
-        const safeTotalCount =
-          typeof results?.pagination?.totalCount === 'number'
-            ? results.pagination.totalCount
-            : 0;
-        const safeErrors = Array.isArray(results?.errors) ? results.errors : [];
+        const safeResults = results.results;
+        const safeHasNext = results.pagination.hasNext;
+        const safeTotalCount = results.pagination.totalCount;
+        const safeErrors = results.errors;
 
         setAllResults(safeResults);
         setHasMorePages(safeHasNext);
@@ -179,12 +176,12 @@ export const useFeatureStoreSearch = (): {
         signal: loadMoreController.signal,
       });
 
-      const safeNextResults = Array.isArray(results?.results) ? results.results : [];
-      const safeHasNext = Boolean(results?.pagination?.hasNext);
+      const safeNextResults = results.results;
+      const safeHasNext = results.pagination.hasNext;
       setAllResults((prevResults) => [...prevResults, ...safeNextResults]);
       setCurrentPage(nextPage);
       setHasMorePages(safeHasNext);
-      const nextErrors = Array.isArray(results?.errors) ? results.errors : [];
+      const nextErrors = results.errors;
       if (nextErrors.length > 0) {
         setSearchErrors((prev) => [...prev, ...nextErrors]);
       }
