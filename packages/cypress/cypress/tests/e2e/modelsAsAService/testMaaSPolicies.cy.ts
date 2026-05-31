@@ -176,8 +176,8 @@ describe('An admin can manage MaaS authorization policies and control model acce
       viewAuthPolicyPage.findDeleteActionButton().should('be.visible');
       viewAuthPolicyPage.findEditActionButton().click();
 
-      policyPage.findDisplayNameInput().type(`${policiesName}-edited`);
-      policyPage.findDescriptionInput().type(`${policiesDescription}-edited`);
+      policyPage.findDisplayNameInput().clear().type(`${policiesName}-edited`);
+      policyPage.findDescriptionInput().clear().type(`${policiesDescription}-edited`);
       policyPage.selectGroup(testData.policiesGroups[1]);
       policiesGroupsCount = 2;
       policyPage.findAddModelsButton().click();
@@ -270,6 +270,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
         viewAuthPolicyPage.findDetailsSection().should('contain.text', policiesName);
         viewAuthPolicyPage.findDetailsSection().should('contain.text', policiesDescription);
         viewAuthPolicyPage.findGroupsSection().should('contain.text', testData.policiesGroups[0]);
+        viewAuthPolicyPage.findGroupsSection().should('contain.text', testData.policiesGroups[1]);
         viewAuthPolicyPage.findModelsSection().should('contain.text', modelName);
 
         cy.step('Verify the authorization policy exists on the cluster');
