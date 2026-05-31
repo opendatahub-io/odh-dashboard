@@ -113,7 +113,7 @@ EOF`;
 export const createMaaSModelRef = (
   projectName: string,
   modelName: string,
-  fixturePath = 'resources/modelsAsService/maasModelRef.yaml',
+  fixturePath = 'resources/modelsAsService/MaaSModelRef.yaml',
 ): Cypress.Chainable<CommandLineResult> => {
   cy.log(`Creating MaaSModelRef "${modelName}" in namespace "${projectName}"`);
 
