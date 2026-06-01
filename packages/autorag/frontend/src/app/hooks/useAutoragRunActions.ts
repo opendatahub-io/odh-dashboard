@@ -67,12 +67,14 @@ export const useAutoragRunActions = (
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      // Check if the error is because the run is already in a terminal state
+      // Check if the error is because the run is already in a terminal state (case-insensitive)
+      const normalized = errorMessage.toUpperCase();
       const isAlreadyTerminated =
-        errorMessage.includes('FAILED') ||
-        errorMessage.includes('SUCCEEDED') ||
-        errorMessage.includes('CANCELED') ||
-        errorMessage.includes('cannot be terminated');
+        normalized.includes('FAILED') ||
+        normalized.includes('SUCCEEDED') ||
+        normalized.includes('CANCELED') ||
+        normalized.includes('CANCELLED') ||
+        normalized.includes('CANNOT BE TERMINATED');
 
       if (isAlreadyTerminated) {
         notification.warning(

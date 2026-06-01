@@ -86,11 +86,7 @@ describe('useAutoragRunActions', () => {
       });
 
       await act(async () => {
-        try {
-          await result.current.handleConfirmStop();
-        } catch {
-          // Expected to throw
-        }
+        await expect(result.current.handleConfirmStop()).rejects.toThrow();
       });
 
       expect(mockNotification.warning).toHaveBeenCalledWith(
@@ -113,11 +109,7 @@ describe('useAutoragRunActions', () => {
       });
 
       await act(async () => {
-        try {
-          await result.current.handleConfirmStop();
-        } catch {
-          // Expected to throw
-        }
+        await expect(result.current.handleConfirmStop()).rejects.toThrow();
       });
 
       expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
@@ -154,11 +146,7 @@ describe('useAutoragRunActions', () => {
       });
 
       await act(async () => {
-        try {
-          await result.current.handleRetry();
-        } catch {
-          // Expected to throw
-        }
+        await expect(result.current.handleRetry()).rejects.toThrow();
       });
 
       expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
