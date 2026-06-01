@@ -91,6 +91,7 @@ Cypress.testsExecuted = false;
 
 // Get global tests timeout from --env argument
 const timeoutSeconds = Cypress.env('CY_TEST_TIMEOUT_SECONDS');
+let testTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Configure global settings
 chai.use(chaiSubset);
@@ -322,9 +323,14 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
     return;
   }
 
+  if (testTimeoutTimer) {
+    clearTimeout(testTimeoutTimer);
+    testTimeoutTimer = null;
+  }
   if (timeoutSeconds) {
-    this._testTimeoutTimer = setTimeout(() => {
-      throw new Error(`Test exceeded ${timeoutSeconds}s`);
+    cy.task('log', `Starting ${timeoutSeconds}s timeout for: ${this.currentTest.title}`);
+    testTimeoutTimer = setTimeout(() => {
+      throw new Error(`Test exceeded ${timeoutSeconds}s timeout`);
     }, Number(timeoutSeconds) * 1000);
   }
 
@@ -426,6 +432,11 @@ beforeEach(function beforeEachHook(this: Mocha.Context) {
 
 // Handle skipped suites in afterEach hook
 afterEach(function afterEachHook(this: Mocha.Context) {
+  if (testTimeoutTimer) {
+    clearTimeout(testTimeoutTimer);
+    testTimeoutTimer = null;
+  }
+
   if (!this.currentTest) {
     return;
   }
