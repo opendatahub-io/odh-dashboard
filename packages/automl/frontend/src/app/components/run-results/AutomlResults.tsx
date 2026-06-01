@@ -14,7 +14,7 @@ import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
 import { TreeTopology, useTreeViewData } from '~/app/topology/tree-view';
-import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
+import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob } from '~/app/utilities/utils';
@@ -42,7 +42,7 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+  const nodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
 
   // Transform models data for tree view visualization
   const treeViewData = useTreeViewData(models, pipelineRun?.state);

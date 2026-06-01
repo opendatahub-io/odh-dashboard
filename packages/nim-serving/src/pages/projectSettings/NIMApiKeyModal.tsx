@@ -20,7 +20,7 @@ import {
 } from '@patternfly/react-icons';
 import ContentModal from '@odh-dashboard/internal/components/modals/ContentModal';
 import { NIMAccountStatus } from '../../api/accounts/hooks';
-import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/utils';
+import { createNIMResources, createOrReplaceSecret } from '../../api/accounts/api';
 
 type NIMApiKeyModalProps = {
   onClose: () => void;
