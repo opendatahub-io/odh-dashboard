@@ -15,9 +15,27 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon',
 };
 
+const serveIndexFallback = (res) => {
+  fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (err, fallback) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.writeHead(404);
+        res.end('Not found');
+      } else {
+        res.writeHead(500);
+        res.end('Internal Server Error');
+      }
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(fallback);
+  });
+};
+
 const server = http.createServer((req, res) => {
   // BFF stub: /api/status
-  if (req.url === '/api/status') {
+  const reqPath = new URL(req.url || '/', 'http://localhost').pathname;
+  if (reqPath === '/api/status') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(
       JSON.stringify({
@@ -31,42 +49,62 @@ const server = http.createServer((req, res) => {
   }
 
   // Static file serving (production mode)
-  const requestPath = new URL(req.url || '/', 'http://localhost').pathname;
-  const safePath = path.posix.normalize(requestPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  const safePath = path.posix.normalize(reqPath).replace(/^(\.\.(\/|\\|$))+/, '');
   const relativePath = safePath.replace(/^[/\\]+/, '');
   const filePath = path.resolve(PUBLIC_DIR, relativePath || 'index.html');
-  if (!filePath.startsWith(PUBLIC_DIR)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      const isNavigationRequest =
-        req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
-
-      if (err.code === 'ENOENT' && isNavigationRequest) {
-        fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (_err, fallback) => {
-          if (_err) {
+  fs.realpath(PUBLIC_DIR, (dirErr, canonicalDir) => {
+    if (dirErr) {
+      res.writeHead(500);
+      res.end('Internal Server Error');
+      return;
+    }
+    fs.realpath(filePath, (fileErr, canonicalFile) => {
+      if (fileErr) {
+        if (fileErr.code === 'ENOENT') {
+          const isNavigation =
+            req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
+          if (isNavigation) {
+            serveIndexFallback(res);
+          } else {
             res.writeHead(404);
             res.end('Not found');
-            return;
           }
-          res.writeHead(200, { 'Content-Type': 'text/html' });
-          res.end(fallback);
-        });
+        } else {
+          res.writeHead(500);
+          res.end('Internal Server Error');
+        }
+        return;
+      }
+      if (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep)) {
+        res.writeHead(403);
+        res.end('Forbidden');
         return;
       }
 
-      res.writeHead(err.code === 'ENOENT' ? 404 : 500);
-      res.end(err.code === 'ENOENT' ? 'Not found' : 'Internal server error');
-      return;
-    }
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
+      fs.readFile(canonicalFile, (err, content) => {
+        if (err) {
+          if (err.code !== 'ENOENT') {
+            res.writeHead(500);
+            res.end('Server error');
+            return;
+          }
+          const isNavigation =
+            req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
+          if (isNavigation) {
+            serveIndexFallback(res);
+          } else {
+            res.writeHead(404);
+            res.end('Not found');
+          }
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content);
+      });
+    });
   });
 });
 
