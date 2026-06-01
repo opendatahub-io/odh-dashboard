@@ -86,7 +86,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if statusErr := r.Status().Update(ctx, dashboard); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
 
-		return ctrl.Result{}, statusErr
+		return result, statusErr
 	}
 
 	return result, err
