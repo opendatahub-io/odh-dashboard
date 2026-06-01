@@ -5,7 +5,6 @@ import {
   ExpandableSectionToggle,
   Flex,
   FlexItem,
-  Label,
 } from '@patternfly/react-core';
 import { AngleRightIcon, AngleDownIcon } from '@patternfly/react-icons';
 import { FileSearchCallData, FileSearchResult } from '~/app/types';
@@ -15,74 +14,164 @@ type ChatbotFileSearchResultsProps = {
   fileSearchData: FileSearchCallData;
 };
 
-const MAX_SNIPPET_LENGTH = 400;
-
-const truncateText = (text: string, maxLength: number): string => {
-  if (text.length <= maxLength) {
-    return text;
-  }
-  return `${text.slice(0, maxLength)}…`;
+type FileGroup = {
+  filename: string;
+  chunks: FileSearchResult[];
+  bestScore: number;
 };
 
-const getScoreColor = (score: number): 'green' | 'orange' | 'grey' => {
+const MAX_SNIPPET_LENGTH = 200;
+
+const truncateText = (
+  text: string,
+  maxLength: number,
+): { truncated: string; isTruncated: boolean } => {
+  if (text.length <= maxLength) {
+    return { truncated: text, isTruncated: false };
+  }
+  return { truncated: `${text.slice(0, maxLength)}...`, isTruncated: true };
+};
+
+const getScoreColor = (score: number): string => {
   if (score >= 0.8) {
-    return 'green';
+    return 'var(--pf-t--global--color--status--success--default)';
   }
   if (score >= 0.5) {
-    return 'orange';
+    return 'var(--pf-t--global--color--status--warning--default)';
   }
-  return 'grey';
+  return 'var(--pf-t--global--color--status--danger--default)';
 };
 
 const formatScore = (score: number): string => score.toFixed(2);
 
-type FileSearchResultRowProps = {
-  result: FileSearchResult;
-  index: number;
+const groupResultsByFile = (results: FileSearchResult[]): FileGroup[] => {
+  const groups = new Map<string, FileSearchResult[]>();
+
+  for (const result of results) {
+    const filename = result.filename ?? result.file_id ?? 'Unknown';
+    const existing = groups.get(filename);
+    if (existing) {
+      existing.push(result);
+    } else {
+      groups.set(filename, [result]);
+    }
+  }
+
+  return Array.from(groups.entries()).map(([filename, chunks]) => ({
+    filename,
+    chunks,
+    bestScore: Math.max(...chunks.map((c) => c.score)),
+  }));
 };
 
-const FileSearchResultRow: React.FC<FileSearchResultRowProps> = ({ result, index }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
-  const filename = result.filename ?? result.file_id ?? 'Unknown';
-  const ToggleIcon = isExpanded ? AngleDownIcon : AngleRightIcon;
+type ChunkRowProps = {
+  chunk: FileSearchResult;
+  index: number;
+  groupIndex: number;
+};
+
+const ChunkRow: React.FC<ChunkRowProps> = ({ chunk, index, groupIndex }) => {
+  const [isShowingMore, setIsShowingMore] = React.useState(false);
+  const { truncated, isTruncated } = truncateText(chunk.text || '', MAX_SNIPPET_LENGTH);
 
   return (
-    <div className="chatbot-file-search__row" data-testid={`file-search-result-${index}`}>
+    <div
+      className="chatbot-file-search__chunk"
+      data-testid={`file-search-group-${groupIndex}-chunk-${index}`}
+    >
       <Flex
         justifyContent={{ default: 'justifyContentSpaceBetween' }}
         alignItems={{ default: 'alignItemsCenter' }}
       >
         <FlexItem>
-          <button
-            type="button"
-            className="chatbot-file-search__row-toggle"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            aria-expanded={isExpanded}
-            data-testid={`file-search-result-${index}-toggle`}
-          >
-            <ToggleIcon className="chatbot-file-search__row-toggle-icon" />
-            <span className="chatbot-file-search__filename">{filename}</span>
-          </button>
+          <Content component="small" className="chatbot-file-search__chunk-label">
+            Chunk {index + 1}
+          </Content>
         </FlexItem>
         <FlexItem>
-          <Label
-            variant="outline"
-            isCompact
-            color={getScoreColor(result.score)}
-            data-testid={`file-search-result-${index}-score`}
+          <span
+            className="chatbot-file-search__score"
+            style={{ color: getScoreColor(chunk.score) }}
+            data-testid={`file-search-group-${groupIndex}-chunk-${index}-score`}
           >
-            {formatScore(result.score)}
-          </Label>
+            {formatScore(chunk.score)}
+          </span>
         </FlexItem>
       </Flex>
-      {isExpanded && result.text && (
+      {chunk.text && (
         <Content
           component="p"
           className="chatbot-file-search__snippet"
-          data-testid={`file-search-result-${index}-text`}
+          data-testid={`file-search-group-${groupIndex}-chunk-${index}-text`}
         >
-          {truncateText(result.text, MAX_SNIPPET_LENGTH)}
+          &ldquo;{isShowingMore ? chunk.text : truncated}&rdquo;
+          {isTruncated && (
+            <>
+              {' '}
+              <button
+                type="button"
+                className="chatbot-file-search__show-more"
+                onClick={() => setIsShowingMore((prev) => !prev)}
+              >
+                {isShowingMore ? 'Show less' : 'Show more'}
+              </button>
+            </>
+          )}
         </Content>
+      )}
+    </div>
+  );
+};
+
+type FileGroupRowProps = {
+  group: FileGroup;
+  index: number;
+};
+
+const FileGroupRow: React.FC<FileGroupRowProps> = ({ group, index }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const ToggleIcon = isExpanded ? AngleDownIcon : AngleRightIcon;
+  const chunkCount = group.chunks.length;
+
+  return (
+    <div className="chatbot-file-search__file-group" data-testid={`file-search-group-${index}`}>
+      <button
+        type="button"
+        className="chatbot-file-search__row-toggle"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        aria-expanded={isExpanded}
+        data-testid={`file-search-group-${index}-toggle`}
+      >
+        <Flex
+          justifyContent={{ default: 'justifyContentSpaceBetween' }}
+          alignItems={{ default: 'alignItemsCenter' }}
+        >
+          <FlexItem>
+            <ToggleIcon className="chatbot-file-search__row-toggle-icon" />
+            <span className="chatbot-file-search__filename">{group.filename}</span>
+          </FlexItem>
+          <FlexItem>
+            <span
+              className="chatbot-file-search__chunk-count"
+              style={{ color: getScoreColor(group.bestScore) }}
+              data-testid={`file-search-group-${index}-chunk-count`}
+            >
+              {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
+            </span>
+          </FlexItem>
+        </Flex>
+      </button>
+      {isExpanded && (
+        <div className="chatbot-file-search__chunks">
+          {group.chunks.map((chunk, chunkIndex) => (
+            <ChunkRow
+              key={chunk.file_id ?? chunkIndex}
+              chunk={chunk}
+              index={chunkIndex}
+              groupIndex={index}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -94,56 +183,46 @@ const ChatbotFileSearchResults: React.FC<ChatbotFileSearchResultsProps> = ({ fil
   const contentId = React.useId();
 
   const { queries, results } = fileSearchData;
-  const resultCount = results.length;
+
+  const fileGroups = React.useMemo(() => groupResultsByFile(results), [results]);
+
+  const totalSources = fileGroups.length;
+  const totalChunks = results.length;
 
   return (
     <div className="chatbot-file-search" data-testid="file-search-results">
-      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-        <FlexItem>
-          <ExpandableSectionToggle
-            isExpanded={isExpanded}
-            onToggle={() => setIsExpanded((prev) => !prev)}
-            contentId={contentId}
-            toggleId={toggleId}
-            data-testid="file-search-results-toggle"
-          >
-            {resultCount} source{resultCount !== 1 ? 's' : ''} retrieved
-          </ExpandableSectionToggle>
-        </FlexItem>
-        {queries.length > 0 && (
-          <FlexItem>
-            <Label variant="outline" isCompact data-testid="file-search-query">
-              Query: {queries[0]}
-            </Label>
-          </FlexItem>
-        )}
-      </Flex>
+      <ExpandableSectionToggle
+        isExpanded={isExpanded}
+        onToggle={() => setIsExpanded((prev) => !prev)}
+        contentId={contentId}
+        toggleId={toggleId}
+        data-testid="file-search-results-toggle"
+      >
+        {totalSources} source{totalSources !== 1 ? 's' : ''}, {totalChunks} chunk
+        {totalChunks !== 1 ? 's' : ''} retrieved
+      </ExpandableSectionToggle>
       <ExpandableSection
         isExpanded={isExpanded}
         isDetached
         contentId={contentId}
         toggleId={toggleId}
       >
-        <div className="chatbot-file-search__table">
-          <Flex
-            className="chatbot-file-search__header"
-            justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <FlexItem>
-              <Content component="small">DOCUMENT</Content>
-            </FlexItem>
-            <FlexItem>
-              <Content component="small">RELEVANCE</Content>
-            </FlexItem>
-          </Flex>
-          {results.map((result, index) => (
-            <FileSearchResultRow
-              key={result.file_id ?? result.filename ?? index}
-              result={result}
-              index={index}
-            />
-          ))}
+        <div className="chatbot-file-search__content">
+          {queries.length > 0 && (
+            <Content
+              component="small"
+              className="chatbot-file-search__query"
+              data-testid="file-search-query"
+            >
+              <span className="chatbot-file-search__query-label">Embedding query:</span> &ldquo;
+              {queries[0]}&rdquo;
+            </Content>
+          )}
+          <div className="chatbot-file-search__table">
+            {fileGroups.map((group, index) => (
+              <FileGroupRow key={group.filename} group={group} index={index} />
+            ))}
+          </div>
         </div>
       </ExpandableSection>
     </div>
