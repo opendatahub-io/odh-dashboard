@@ -1,9 +1,7 @@
 package repositories
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,16 +18,6 @@ import (
 	metameta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-)
-
-const (
-	registeredModelsPath = "/registered_models"
-	versionsPath         = "versions"
-	modelVersionsPath    = "/model_versions"
-	artifactsPath        = "artifacts"
-
-	// Default artifact type for Model Registry model-artifact resources.
-	defaultModelArtifactType = "model-artifact"
 )
 
 // ErrModelRegistryForbidden is returned when the caller lacks permission to list
@@ -194,9 +182,7 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if baseURL == "" {
 		return "", nil, fmt.Errorf("model registry %q has no usable URL", reg.Name)
 	}
-	if err := validateModelRegistryURL(baseURL); err != nil {
-		return "", nil, err
-	}
+
 	// Discover DSPA object storage for artifact URI construction.
 	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
@@ -218,39 +204,20 @@ func (r *ModelRegistryRepository) RegisterModel(
 	req.ModelFormatVersion = strings.TrimSpace(req.ModelFormatVersion)
 
 	// 1. Create RegisteredModel
-	regModelCreate := openapi.RegisteredModelCreate{
-		Name: req.ModelName,
-	}
+	regModelCreate := openapi.RegisteredModelCreate{Name: req.ModelName}
 	if req.ModelDescription != "" {
 		regModelCreate.Description = &req.ModelDescription
 	}
-
-	regModelJSON, err := json.Marshal(regModelCreate)
+	regModel, err := r.client.CreateRegisteredModel(ctx, baseURL, regModelCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling registered model: %w", err)
+		return "", nil, err
 	}
-
-	regModelResp, err := r.client.POST(ctx, baseURL, registeredModelsPath, bytes.NewBuffer(regModelJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating registered model: %w", err)
-	}
-
-	var regModel openapi.RegisteredModel
-	if err := json.Unmarshal(regModelResp, &regModel); err != nil {
-		return "", nil, fmt.Errorf("error decoding registered model response: %w", err)
-	}
-
 	regModelID := regModel.GetId()
 	if regModelID == "" {
 		return "", nil, fmt.Errorf("registered model created but ID is empty")
 	}
 
 	// 2. Create ModelVersion under the RegisteredModel
-	versionsURL, err := neturl.JoinPath(registeredModelsPath, regModelID, versionsPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("error building versions path: %w", err)
-	}
-
 	versionCreate := openapi.ModelVersionCreate{
 		Name:              req.VersionName,
 		RegisteredModelId: regModelID,
@@ -258,40 +225,16 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if req.VersionDescription != "" {
 		versionCreate.Description = &req.VersionDescription
 	}
-
-	versionJSON, err := json.Marshal(versionCreate)
+	modelVersion, err := r.client.CreateModelVersion(ctx, baseURL, regModelID, versionCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling model version: %w", err)
+		return "", nil, err
 	}
-
-	versionResp, err := r.client.POST(ctx, baseURL, versionsURL, bytes.NewBuffer(versionJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating model version: %w", err)
-	}
-
-	var modelVersion openapi.ModelVersion
-	if err := json.Unmarshal(versionResp, &modelVersion); err != nil {
-		return "", nil, fmt.Errorf("error decoding model version response: %w", err)
-	}
-
 	versionID := modelVersion.GetId()
 	if versionID == "" {
 		return "", nil, fmt.Errorf("model version created but ID is empty")
 	}
 
 	// 3. Create ModelArtifact pointing to the S3 URI
-	artifactsURL, err := neturl.JoinPath(modelVersionsPath, versionID, artifactsPath)
-	if err != nil {
-		return "", nil, fmt.Errorf("error building artifacts path: %w", err)
-	}
-
-	artifactName := req.ArtifactName
-	if artifactName == "" {
-		artifactName = req.VersionName
-	}
-
-	// Build the full S3 URI in the format the Model Registry UI expects:
-	// s3://{bucket}/{key}?endpoint={endpoint}&defaultRegion={region}
 	objectStorage := dspa.ObjectStorage
 	if objectStorage.Bucket == "" {
 		return "", nil, fmt.Errorf("DSPA %q object storage is missing bucket name — contact your administrator", dspa.Name)
@@ -305,11 +248,13 @@ func (r *ModelRegistryRepository) RegisterModel(
 	}
 	artifactURI := buildModelRegistryURI(objectStorage.Bucket, req.S3Path, objectStorage.EndpointURL, objectStorage.Region)
 
-	artifactType := defaultModelArtifactType
+	artifactName := req.ArtifactName
+	if artifactName == "" {
+		artifactName = req.VersionName
+	}
 	artifactCreate := openapi.ModelArtifactCreate{
-		Name:         &artifactName,
-		Uri:          &artifactURI,
-		ArtifactType: &artifactType,
+		Name: &artifactName,
+		Uri:  &artifactURI,
 	}
 	if req.ArtifactDescription != "" {
 		artifactCreate.Description = &req.ArtifactDescription
@@ -320,23 +265,12 @@ func (r *ModelRegistryRepository) RegisterModel(
 	if req.ModelFormatVersion != "" {
 		artifactCreate.ModelFormatVersion = &req.ModelFormatVersion
 	}
-
-	artifactJSON, err := json.Marshal(artifactCreate)
+	modelArtifact, err := r.client.CreateModelArtifact(ctx, baseURL, versionID, artifactCreate)
 	if err != nil {
-		return "", nil, fmt.Errorf("error marshaling model artifact: %w", err)
+		return "", nil, err
 	}
 
-	artifactResp, err := r.client.POST(ctx, baseURL, artifactsURL, bytes.NewBuffer(artifactJSON))
-	if err != nil {
-		return "", nil, fmt.Errorf("error creating model artifact: %w", err)
-	}
-
-	var modelArtifact openapi.ModelArtifact
-	if err := json.Unmarshal(artifactResp, &modelArtifact); err != nil {
-		return "", nil, fmt.Errorf("error decoding model artifact response: %w", err)
-	}
-
-	return regModelID, &modelArtifact, nil
+	return regModelID, modelArtifact, nil
 }
 
 // ResolveModelRegistryByUID lists ModelRegistry CRs visible to the caller and returns the one
@@ -484,21 +418,4 @@ func buildRegistryURLs(name string, hosts []string, logger *slog.Logger) (server
 	}
 
 	return serverURL, externalURL
-}
-
-// validateModelRegistryURL ensures the registry URL is safe to use.
-// Always requires HTTPS (except localhost) — registry URLs are always constructed
-// with https:// by buildRegistryURLs, and HTTP is unsafe in all auth modes.
-func validateModelRegistryURL(serverURL string) error {
-	u, err := neturl.Parse(serverURL)
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("invalid model registry URL: %q", serverURL)
-	}
-	if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
-		return fmt.Errorf("model registry URL must use HTTPS (got %q)", serverURL)
-	}
-	if !strings.Contains(u.Path, "/api/model_registry/") {
-		return fmt.Errorf("model registry URL path must contain /api/model_registry/: %q", serverURL)
-	}
-	return nil
 }
