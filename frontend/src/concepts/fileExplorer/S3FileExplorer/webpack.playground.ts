@@ -1,6 +1,19 @@
+/**
+ * S3FileExplorer/webpack.playground.ts
+ * To allow easier manual testing and debugging of the S3FileExplorer component,
+ * this minimal webpack configuration allows a lightweight playground (ie: storybook-like) UI to render.
+ * The component can be rendered by itself without having to run all of odh-dashboard &
+ * any top-level feature that makes use of S3FileExplorer.
+ *
+ * Running this playground is done through webpack as a serve command:
+ * ```
+ * webpack serve --config ./frontend/src/concepts/fileExplorer/S3FileExplorer/webpack.playground.ts
+ * ```
+ */
+
 /* eslint-disable no-console */
 
-// TODO [ Gustavo ] Identify the best way to run this to not pollute the frontend/package.json with runners
+// Modules -------------------------------------------------------------------->
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,6 +24,8 @@ import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import webpack from 'webpack'; // eslint-disable-line import/no-named-as-default
 import type { Configuration } from 'webpack';
 import type { Configuration as DevServerConfiguration } from 'webpack-dev-server';
+
+// Globals -------------------------------------------------------------------->
 
 const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
@@ -96,6 +111,8 @@ ENV_STUB_FALSE.forEach((key) => {
 });
 const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
 
+// Config --------------------------------------------------------------------->
+
 const config: Configuration & { devServer?: DevServerConfiguration } = {
   mode: 'development',
   entry: path.resolve(currentDir, 'S3FileExplorer.playground.tsx'),
@@ -154,5 +171,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
     ],
   },
 };
+
+// Public --------------------------------------------------------------------->
 
 export default config;

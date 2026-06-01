@@ -24,7 +24,11 @@ describe('getFiles', () => {
       json: () => Promise.resolve({ data: validResponse }),
     });
 
-    const result = await getFiles('', {}, { namespace: 'ns', secretName: 'secret' });
+    const result = await getFiles(
+      '',
+      {},
+      { apiPath: '/autorag/api/v1/s3', namespace: 'ns', secretName: 'secret' },
+    );
 
     expect(result).toEqual(validResponse);
     expect(mockFetch).toHaveBeenCalledTimes(1);
@@ -43,7 +47,7 @@ describe('getFiles', () => {
       json: () => Promise.resolve(validResponse),
     });
 
-    const result = await getFiles('', {}, { namespace: 'ns' });
+    const result = await getFiles('', {}, { apiPath: '/autorag/api/v1/s3', namespace: 'ns' });
 
     expect(result).toEqual(validResponse);
   });
@@ -58,6 +62,7 @@ describe('getFiles', () => {
       '',
       {},
       {
+        apiPath: '/autorag/api/v1/s3',
         namespace: 'ns',
         secretName: 'secret',
         bucket: 'my-bucket',
@@ -85,7 +90,11 @@ describe('getFiles', () => {
       json: () => Promise.resolve({ data: validResponse }),
     });
 
-    await getFiles('', { signal: controller.signal }, { namespace: 'ns' });
+    await getFiles(
+      '',
+      { signal: controller.signal },
+      { apiPath: '/autorag/api/v1/s3', namespace: 'ns' },
+    );
 
     const [, init] = mockFetch.mock.calls[0];
     expect(init.signal).toBe(controller.signal);
@@ -99,7 +108,9 @@ describe('getFiles', () => {
       text: () => Promise.resolve('something broke'),
     });
 
-    await expect(getFiles('', {}, { namespace: 'ns' })).rejects.toThrow('Request failed (500)');
+    await expect(
+      getFiles('', {}, { apiPath: '/autorag/api/v1/s3', namespace: 'ns' }),
+    ).rejects.toThrow('Request failed (500)');
   });
 
   it('should throw on invalid response shape', async () => {
@@ -108,8 +119,8 @@ describe('getFiles', () => {
       json: () => Promise.resolve({ data: { not: 'valid' } }),
     });
 
-    await expect(getFiles('', {}, { namespace: 'ns' })).rejects.toThrow(
-      'Invalid S3ListObjectsResponse',
-    );
+    await expect(
+      getFiles('', {}, { apiPath: '/autorag/api/v1/s3', namespace: 'ns' }),
+    ).rejects.toThrow('Invalid S3ListObjectsResponse');
   });
 });
