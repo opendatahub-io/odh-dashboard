@@ -110,6 +110,21 @@ describe('Roles tab feature flag gating', () => {
       projectRoles.findSubmitButton().should('be.enabled');
     });
 
+    it('should disable submit when duplicate label keys exist', () => {
+      projectRoles.visitCreateRole(NAMESPACE);
+      projectRoles.findRoleNameInput().type('my-test-role');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(0).type('team');
+      projectRoles.findLabelValueInput(0).type('platform');
+      projectRoles.findSubmitButton().should('be.enabled');
+
+      projectRoles.findAddLabelButton().click();
+      projectRoles.findLabelKeyInput(1).type('team');
+      projectRoles.findLabelValueInput(1).type('other');
+      projectRoles.findSubmitButton().should('be.disabled');
+    });
+
     it('should add and remove label rows', () => {
       projectRoles.visitCreateRole(NAMESPACE);
       projectRoles.findLabelKeyInput(0).should('not.exist');

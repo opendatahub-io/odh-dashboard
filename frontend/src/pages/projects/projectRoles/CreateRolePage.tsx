@@ -55,9 +55,12 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     setLabels(newLabels);
   }, []);
 
-  const hasInvalidLabels = labels.some(
-    (label) => !label.key || !label.value || !isValidK8sLabelKeyValue(label.key, label.value),
-  );
+  const hasDuplicateLabelKeys = new Set(labels.map((l) => l.key)).size !== labels.length;
+
+  const hasInvalidLabels =
+    labels.some(
+      (label) => !label.key || !label.value || !isValidK8sLabelKeyValue(label.key, label.value),
+    ) || hasDuplicateLabelKeys;
 
   const isSubmitDisabled =
     !k8sNameDescriptionData.data.k8sName.value ||
