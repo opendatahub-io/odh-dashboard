@@ -20,3 +20,7 @@ replacements:
         options:
           delimiter: /
           index: 0
+      - select:
+          kind: ValidatingWebhookConfiguration
+        fieldPaths:
+          - webhooks.0.clientConfig.service.namespace

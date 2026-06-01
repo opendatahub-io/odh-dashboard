@@ -32,7 +32,7 @@ test: fmt vet ## Run tests.
 ##@ Build
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "unknown")
-SAFE_VERSION := $(shell printf '%s' '$(VERSION)' | tr -cd '[:alnum:]_.-')
+SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
 
 .PHONY: build
 build: fmt vet ## Build manager binary.
