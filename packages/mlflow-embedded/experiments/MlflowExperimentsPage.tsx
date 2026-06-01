@@ -6,7 +6,7 @@
  * Adapted from the old MLFlowExperimentsPage.tsx (iframe version).
  */
 import React, { useMemo } from 'react';
-import { Bullseye, Flex, FlexItem, Spinner } from '@patternfly/react-core';
+import { Bullseye, Flex, FlexItem, PageSection, Spinner } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -57,7 +57,11 @@ const MlflowExperimentsPage: React.FC = () => {
     <ApplicationsPage
       loaded={mlflowLoaded}
       empty={mlflowLoaded && !mlflowAvailable}
-      emptyStatePage={mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+      emptyStatePage={
+        <PageSection hasBodyWrapper={false} isFilled>
+          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+        </PageSection>
+      }
       noHeader={!isTopLevel}
       title={
         isTopLevel ? (

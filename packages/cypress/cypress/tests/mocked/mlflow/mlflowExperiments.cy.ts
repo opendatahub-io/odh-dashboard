@@ -6,18 +6,34 @@ import {
 import { mockDscStatus } from '@odh-dashboard/internal/__mocks__/mockDscStatus';
 import { DataScienceStackComponent } from '@odh-dashboard/internal/concepts/areas/types';
 import { ProjectModel } from '../../../utils/models';
-import { asProductAdminUser } from '../../../utils/mockUsers';
-import { interceptMlflowStatus, MLFLOW_BFF_STATUS_URL } from '../../../utils/mlflowUtils';
+import { asProductAdminUser, asProjectEditUser } from '../../../utils/mockUsers';
+import {
+  interceptMlflowEmbeddedRemoteFailure,
+  interceptMlflowStatus,
+  interceptMlflowStatusError,
+} from '../../../utils/mlflowUtils';
 import { mlflowExperiments } from '../../../pages/mlflowExperiments';
 import { appChrome } from '../../../pages/appChrome';
 
 const PROJECT_A = 'test-project-a';
 const PROJECT_B = 'test-project-b';
 
-const initIntercepts = ({ mlflowConfigured = true }: { mlflowConfigured?: boolean } = {}) => {
-  asProductAdminUser();
+const initIntercepts = ({
+  mlflowConfigured = true,
+  mlflowStatusError = false,
+  userSetup = asProductAdminUser,
+}: {
+  mlflowConfigured?: boolean;
+  mlflowStatusError?: boolean;
+  userSetup?: () => void;
+} = {}) => {
+  userSetup();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-  interceptMlflowStatus(mlflowConfigured);
+  if (mlflowStatusError) {
+    interceptMlflowStatusError();
+  } else {
+    interceptMlflowStatus(mlflowConfigured);
+  }
 
   const projectA = mockProjectK8sResource({ k8sName: PROJECT_A, displayName: PROJECT_A });
   const projectB = mockProjectK8sResource({ k8sName: PROJECT_B, displayName: PROJECT_B });
@@ -90,17 +106,26 @@ describe('MLflow Experiments page wrapper', () => {
         .should('contain', invalidWorkspace);
     });
 
-    it('should show not-configured empty state when MLflow BFF reports unconfigured', () => {
+    it('should show admin not-configured empty state when MLflow BFF reports unconfigured', () => {
       initIntercepts({ mlflowConfigured: false });
+      mlflowExperiments.visit(PROJECT_A);
+      mlflowExperiments.findNotConfiguredAdminEmptyState().should('be.visible');
+      mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
+      mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
+      mlflowExperiments.findMlflowUnavailableState().should('not.exist');
+    });
+
+    it('should show non-admin not-configured empty state when MLflow BFF reports unconfigured', () => {
+      initIntercepts({ mlflowConfigured: false, userSetup: asProjectEditUser });
       mlflowExperiments.visit(PROJECT_A);
       mlflowExperiments.findNotConfiguredEmptyState().should('be.visible');
       mlflowExperiments.findNotConfiguredAdminLink().should('be.visible');
+      mlflowExperiments.findNotConfiguredAdminEmptyState().should('not.exist');
       mlflowExperiments.findMlflowUnavailableState().should('not.exist');
     });
 
     it('should show unavailable empty state when MLflow BFF status check fails', () => {
-      initIntercepts();
-      cy.intercept('GET', MLFLOW_BFF_STATUS_URL, { statusCode: 500 }).as('mlflowStatusError');
+      initIntercepts({ mlflowStatusError: true });
       mlflowExperiments.visit(PROJECT_A);
       cy.wait('@mlflowStatusError');
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
@@ -109,11 +134,10 @@ describe('MLflow Experiments page wrapper', () => {
     });
 
     it('should show service-unavailable empty state when MLflow remote fails to load', () => {
-      // mlflowConfigured: true passes the "not configured" gate, but the
-      // Module Federation remote is not running in the mocked environment,
-      // so loadRemote rejects and the page falls back to MLflowUnavailable.
       initIntercepts({ mlflowConfigured: true });
+      interceptMlflowEmbeddedRemoteFailure();
       mlflowExperiments.visit(PROJECT_A);
+      cy.wait('@mlflowEmbeddedRemoteEntry');
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
       mlflowExperiments.findNotConfiguredEmptyState().should('not.exist');
       mlflowExperiments.findNotConfiguredAdminLink().should('not.exist');
