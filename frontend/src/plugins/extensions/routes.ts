@@ -384,7 +384,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     flags: {
-      required: [ADMIN_USER],
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {
       path: '/settings/model-resources-operations/model-registry/*',
@@ -394,7 +394,7 @@ const extensions: RouteExtension[] = [
   {
     type: 'app.route',
     flags: {
-      required: [ADMIN_USER],
+      required: [SupportedArea.MODEL_REGISTRY, ADMIN_USER],
     },
     properties: {
       path: '/modelRegistrySettings/*',
