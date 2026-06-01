@@ -23,6 +23,12 @@ retryableBefore(() => {
       return cleanupTemplates(metadataSingleDisplayName);
     });
 });
+after(() => {
+  if (metadataSingleDisplayName) {
+    cleanupTemplates(metadataSingleDisplayName);
+  }
+});
+
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
@@ -61,10 +67,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
         .should('be.enabled')
         .click()
         .then(() => {
-          // Wait for URL to change, indicating page transition
-          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
-            timeout: 30000,
-          });
+          cy.url().should('match', /\/serving-runtimes$/, { timeout: 30000 });
         });
 
       // Edit the created model serving platform and delete
