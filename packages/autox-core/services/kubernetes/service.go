@@ -9,18 +9,18 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// K8sClient defines the contract for Kubernetes operations.
+// Client defines the contract for Kubernetes operations.
 //
 // Security: Identity is REQUIRED for all operations and must be stored in the context
 // via ContextWithIdentity before calling any method. Missing identity is rejected to
 // prevent privilege escalation and ensure RBAC enforcement.
 //
 // Identity behavior by implementation:
-//   - k8sInternalClient: Creates impersonated clients scoped to user's RBAC permissions.
-//   - k8sTokenClient: Uses token from identity for bearer authentication.
+//   - internalClient: Creates impersonated clients scoped to user's RBAC permissions.
+//   - tokenClient: Uses token from identity for bearer authentication.
 //
 // Always inject identity into context via middleware (InjectRequestIdentity).
-type K8sClient interface {
+type Client interface {
 	// Generic resource operations
 	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
@@ -43,18 +43,18 @@ type K8sClient interface {
 	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
-// K8sService provides business logic for Kubernetes operations
-type K8sService struct {
-	Client K8sClient
+// Service provides business logic for Kubernetes operations
+type Service struct {
+	Client Client
 	Logger *slog.Logger
 }
 
-type K8sServiceConfig struct {
+type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
-func NewK8sService(cfg K8sServiceConfig, client K8sClient) *K8sService {
-	return &K8sService{
+func NewService(cfg ServiceConfig, client Client) *Service {
+	return &Service{
 		Client: client,
 		Logger: cfg.Logger,
 	}
@@ -62,7 +62,7 @@ func NewK8sService(cfg K8sServiceConfig, client K8sClient) *K8sService {
 
 // --- Namespaces ---
 
-func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (s *Service) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespaces")
 
@@ -77,7 +77,7 @@ func (s *K8sService) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) 
 
 // GetNamespaceInfos retrieves namespaces with display names.
 // Does NOT perform permission filtering — use GetAccessibleNamespaceInfos for that.
-func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
+func (s *Service) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespace infos")
 
@@ -91,7 +91,7 @@ func (s *K8sService) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, er
 }
 
 // GetAccessibleNamespaces returns namespaces the user can access.
-func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (s *Service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching accessible namespaces")
 
@@ -131,7 +131,7 @@ func (s *K8sService) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespac
 }
 
 // GetAccessibleNamespaceInfos returns namespaces the user can access with display names.
-func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
+func (s *Service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching accessible namespace infos")
 
@@ -177,7 +177,7 @@ func (s *K8sService) GetAccessibleNamespaceInfos(ctx context.Context) ([]Namespa
 
 // --- Pods ---
 
-func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+func (s *Service) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching pods", "namespace", namespace)
 
@@ -197,7 +197,7 @@ func (s *K8sService) GetPods(ctx context.Context, namespace string) (*v1.PodList
 
 // --- Secrets ---
 
-func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+func (s *Service) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secrets", "namespace", namespace)
 
@@ -217,7 +217,7 @@ func (s *K8sService) GetSecrets(ctx context.Context, namespace string) ([]v1.Sec
 
 // GetSecretInfos retrieves all secrets from a namespace with raw key data.
 // Filtering and redaction are the responsibility of the caller.
-func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
+func (s *Service) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secret infos", "namespace", namespace)
 
@@ -252,7 +252,7 @@ func (s *K8sService) GetSecretInfos(ctx context.Context, namespace string) ([]Se
 	return secretInfos, nil
 }
 
-func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+func (s *Service) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secret", "namespace", namespace, "secretName", secretName)
 
@@ -276,7 +276,7 @@ func (s *K8sService) GetSecret(ctx context.Context, namespace, secretName string
 
 // --- User & Auth ---
 
-func (s *K8sService) GetUser(ctx context.Context) (string, error) {
+func (s *Service) GetUser(ctx context.Context) (string, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting user identity")
 
@@ -289,7 +289,7 @@ func (s *K8sService) GetUser(ctx context.Context) (string, error) {
 	return user, nil
 }
 
-func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
+func (s *Service) IsClusterAdmin(ctx context.Context) (bool, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("checking cluster admin status")
 
@@ -304,7 +304,7 @@ func (s *K8sService) IsClusterAdmin(ctx context.Context) (bool, error) {
 
 // GetUserInfo retrieves user identity and admin status in a single call.
 // For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format).
-func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
+func (s *Service) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting user info")
 
@@ -326,7 +326,7 @@ func (s *K8sService) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	}, nil
 }
 
-func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+func (s *Service) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
 
@@ -348,7 +348,7 @@ func (s *K8sService) CanAccessResource(ctx context.Context, namespace, verb, gro
 
 // --- Generic Resources ---
 
-func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (s *Service) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing resources", "gvr", gvr, "namespace", namespace)
 
@@ -368,7 +368,7 @@ func (s *K8sService) ListResources(ctx context.Context, gvr schema.GroupVersionR
 	return resources, nil
 }
 
-func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (s *Service) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
 
@@ -390,7 +390,7 @@ func (s *K8sService) GetResource(ctx context.Context, gvr schema.GroupVersionRes
 	return resource, nil
 }
 
-func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (s *Service) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
 
@@ -416,7 +416,7 @@ func (s *K8sService) CreateResource(ctx context.Context, gvr schema.GroupVersion
 
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
-func (s *K8sService) DiscoverResourceGVR(
+func (s *Service) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
 	knownVersions []string,
@@ -467,7 +467,7 @@ func (s *K8sService) DiscoverResourceGVR(
 
 // --- Internal ---
 
-func (s *K8sService) loggerWithIdentity(ctx context.Context) *slog.Logger {
+func (s *Service) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	return LoggerWithIdentity(ctx, s.Logger)
 }
 

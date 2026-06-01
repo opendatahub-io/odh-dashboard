@@ -31,13 +31,13 @@ type HTTPClient interface {
 }
 
 
-// pipelinesClient implements PipelinesClient using HTTP
-type pipelinesClient struct {
+// client implements Client using HTTP
+type client struct {
 	HTTPClient HTTPClient
 }
 
-// PipelinesClientConfig configures the pipelines client.
-type PipelinesClientConfig struct {
+// ClientConfig configures the pipelines client.
+type ClientConfig struct {
 	InsecureSkipVerify bool
 	RootCAs            *x509.CertPool
 	// WrapTransport optionally wraps the HTTP transport chain.
@@ -47,21 +47,21 @@ type PipelinesClientConfig struct {
 }
 
 // Compile-time interface checks.
-var _ PipelinesClient = (*pipelinesClient)(nil)
+var _ Client = (*client)(nil)
 var _ HTTPClient = (*http.Client)(nil)
 
 
-// NewPipelinesClient creates a client with an injectable HTTP client (for testing).
-func NewPipelinesClient(c HTTPClient) PipelinesClient {
-	return &pipelinesClient{
+// NewClient creates a client with an injectable HTTP client (for testing).
+func NewClient(c HTTPClient) Client {
+	return &client{
 		HTTPClient: c,
 	}
 }
 
-// NewDefaultPipelinesClient creates a client with a real HTTP client configured for
+// NewDefaultClient creates a client with a real HTTP client configured for
 // token-based authentication. The token is extracted per-request from the context
 // via IdentityFromContext and injected via a RoundTripper.
-func NewDefaultPipelinesClient(cfg PipelinesClientConfig) PipelinesClient {
+func NewDefaultClient(cfg ClientConfig) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConns = 100
 	transport.MaxIdleConnsPerHost = 100
@@ -87,13 +87,13 @@ func NewDefaultPipelinesClient(cfg PipelinesClientConfig) PipelinesClient {
 		Transport: k8s.NewBearerTokenRoundTripper(base),
 	}
 
-	return &pipelinesClient{
+	return &client{
 		HTTPClient: hc,
 	}
 }
 
 // CreatePipelineRun creates a new pipeline run
-func (c *pipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+func (c *client) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
@@ -128,7 +128,7 @@ func (c *pipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID
-func (c *pipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+func (c *client) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -161,7 +161,7 @@ func (c *pipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 }
 
 // ListPipelineRuns queries the Kubeflow Pipelines API for runs
-func (c *pipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
+func (c *client) ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -208,7 +208,7 @@ func (c *pipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 }
 
 // TerminateRun terminates a running pipeline
-func (c *pipelinesClient) TerminateRun(ctx context.Context, baseURL string, runID string) error {
+func (c *client) TerminateRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -236,7 +236,7 @@ func (c *pipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 }
 
 // RetryRun retries a failed pipeline run
-func (c *pipelinesClient) RetryRun(ctx context.Context, baseURL string, runID string) error {
+func (c *client) RetryRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -264,7 +264,7 @@ func (c *pipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 }
 
 // DeleteRun deletes a pipeline run
-func (c *pipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID string) error {
+func (c *client) DeleteRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -293,7 +293,7 @@ func (c *pipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 
 // ListPipelines retrieves all pipelines, paging through results.
 // Capped at maxPaginationPages to prevent unbounded iteration from a malicious server.
-func (c *pipelinesClient) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+func (c *client) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -350,7 +350,7 @@ func (c *pipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 }
 
 // GetPipelineVersion retrieves a pipeline version
-func (c *pipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
+func (c *client) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -384,7 +384,7 @@ func (c *pipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 }
 
 // ListPipelineVersions retrieves all versions for a pipeline
-func (c *pipelinesClient) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+func (c *client) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -417,7 +417,7 @@ func (c *pipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 }
 
 // CreatePipeline creates a new pipeline
-func (c *pipelinesClient) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+func (c *client) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
@@ -457,7 +457,7 @@ func (c *pipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 }
 
 // UploadPipelineVersion uploads a new pipeline version from file content
-func (c *pipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
+func (c *client) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 

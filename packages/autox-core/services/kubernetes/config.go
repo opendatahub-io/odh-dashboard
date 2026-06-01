@@ -15,7 +15,7 @@ import (
 //     - ~/.kube/config
 //     - Merge logic if multiple files specified
 //
-// This function is used by both K8sInternalClient and K8sTokenClient to eliminate
+// This function is used by both internalClient and tokenClient to eliminate
 // the need for BFF-specific config bridging.
 func getKubernetesConfig() (*rest.Config, error) {
 	// Try in-cluster config first (running as pod with service account)

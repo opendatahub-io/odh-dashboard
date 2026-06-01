@@ -19,27 +19,27 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// k8sTokenClient implements Kubernetes operations using user tokens.
-type k8sTokenClient struct {
+// tokenClient implements Kubernetes operations using user tokens.
+type tokenClient struct {
 	Clientset     Clientset
 	DynamicClient DynamicClient
 }
 
 
-// NewK8sTokenClient creates a token client with injectable Clientset and DynamicClient (for testing).
-func NewK8sTokenClient(cs Clientset, dc DynamicClient) K8sClient {
-	return &k8sTokenClient{
+// NewTokenClient creates a token client with injectable Clientset and DynamicClient (for testing).
+func NewTokenClient(cs Clientset, dc DynamicClient) Client {
+	return &tokenClient{
 		Clientset:     cs,
 		DynamicClient: dc,
 	}
 }
 
-// NewDefaultK8sTokenClient creates a token client with real Kubernetes Clientset and dynamic client.
+// NewDefaultTokenClient creates a token client with real Kubernetes Clientset and dynamic client.
 // Automatically detects in-cluster (pod service account) vs out-of-cluster (kubeconfig) environments.
 // Wraps all requests with user token authentication via RoundTripper.
 // The user token is extracted from the request context via IdentityFromContext.
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sTokenClient() (K8sClient, error) {
+func NewDefaultTokenClient() (Client, error) {
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
@@ -60,13 +60,13 @@ func NewDefaultK8sTokenClient() (K8sClient, error) {
 		return nil, err
 	}
 
-	return &k8sTokenClient{
+	return &tokenClient{
 		Clientset:     cs,
 		DynamicClient: dc,
 	}, nil
 }
 
-func (c *k8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (c *tokenClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -80,21 +80,21 @@ func (c *k8sTokenClient) ListResources(ctx context.Context, gvr schema.GroupVers
 	return resourceClient.List(timeoutCtx, metav1.ListOptions{})
 }
 
-func (c *k8sTokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (c *tokenClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(timeoutCtx, name, metav1.GetOptions{})
 }
 
-func (c *k8sTokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (c *tokenClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(timeoutCtx, obj, metav1.CreateOptions{})
 }
 
-func (c *k8sTokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (c *tokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -110,14 +110,14 @@ func (c *k8sTokenClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, err
 	return c.getNamespacesViaProjectsAPI(timeoutCtx)
 }
 
-func (c *k8sTokenClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+func (c *tokenClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	return c.Clientset.CoreV1().Pods(namespace).List(timeoutCtx, metav1.ListOptions{})
 }
 
-func (c *k8sTokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+func (c *tokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -128,14 +128,14 @@ func (c *k8sTokenClient) GetSecrets(ctx context.Context, namespace string) ([]v1
 	return secretList.Items, nil
 }
 
-func (c *k8sTokenClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+func (c *tokenClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	return c.Clientset.CoreV1().Secrets(namespace).Get(timeoutCtx, secretName, metav1.GetOptions{})
 }
 
-func (c *k8sTokenClient) GetUser(ctx context.Context) (string, error) {
+func (c *tokenClient) GetUser(ctx context.Context) (string, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -153,7 +153,7 @@ func (c *k8sTokenClient) GetUser(ctx context.Context) (string, error) {
 	return username, nil
 }
 
-func (c *k8sTokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
+func (c *tokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -174,7 +174,7 @@ func (c *k8sTokenClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	return resp.Status.Allowed, nil
 }
 
-func (c *k8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+func (c *tokenClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -198,7 +198,7 @@ func (c *k8sTokenClient) CanAccessResource(ctx context.Context, namespace, verb,
 	return resp.Status.Allowed, nil
 }
 
-func (c *k8sTokenClient) DiscoverResourceGVR(
+func (c *tokenClient) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
 	knownVersions []string,
@@ -234,7 +234,7 @@ func (c *k8sTokenClient) DiscoverResourceGVR(
 // getNamespacesViaProjectsAPI lists namespaces via the OpenShift Projects API when
 // cluster-wide namespace listing is forbidden. Uses the existing DynamicClient so no
 // additional config or client construction is needed.
-func (c *k8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
+func (c *tokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	projectGVR := schema.GroupVersionResource{
 		Group:    "project.openshift.io",
 		Version:  "v1",
@@ -272,7 +272,7 @@ func (c *k8sTokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.
 }
 
 // Compile-time interface check.
-var _ K8sClient = (*k8sTokenClient)(nil)
+var _ Client = (*tokenClient)(nil)
 
 // NewBearerTokenRoundTripper wraps base with a RoundTripper that injects the user's
 // bearer token from the RequestIdentity stored in each request's context.

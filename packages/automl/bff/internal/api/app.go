@@ -48,7 +48,7 @@ type App struct {
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	// k8sService provides business logic for Kubernetes operations using autox-core
-	k8sService *corek8s.K8sService
+	k8sService *corek8s.Service
 	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
 	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
@@ -125,36 +125,36 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Create autox-core Kubernetes client and service.
-	var k8sClient corek8s.K8sClient
+	var k8sClient corek8s.Client
 	if cfg.MockK8Client {
-		k8sClient = &corek8smocks.MockK8sClient{}
+		k8sClient = &corek8smocks.MockClient{}
 	} else {
 		if cfg.AuthMethod == config.AuthMethodUser {
-			k8sClient, err = corek8s.NewDefaultK8sTokenClient()
+			k8sClient, err = corek8s.NewDefaultTokenClient()
 		} else {
-			k8sClient, err = corek8s.NewDefaultK8sInternalClient()
+			k8sClient, err = corek8s.NewDefaultInternalClient()
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
 		}
 	}
-	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, k8sClient)
+	k8sService := corek8s.NewService(corek8s.ServiceConfig{Logger: logger}, k8sClient)
 
 	// Create autox-core Pipelines client and service.
-	var pipelinesClient corepipelines.PipelinesClient
+	var pipelinesClient corepipelines.Client
 	if cfg.MockPipelineServerClient {
-		pipelinesClient = &corepipelinesmocks.MockPipelinesClient{}
+		pipelinesClient = &corepipelinesmocks.MockClient{}
 	} else {
-		pipelinesCfg := corepipelines.PipelinesClientConfig{
+		pipelinesCfg := corepipelines.ClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
 			RootCAs:            rootCAs,
 		}
 		if pfManager != nil {
 			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 		}
-		pipelinesClient = corepipelines.NewDefaultPipelinesClient(pipelinesCfg)
+		pipelinesClient = corepipelines.NewDefaultClient(pipelinesCfg)
 	}
-	pipelinesService := corepipelines.NewPipelinesService(corepipelines.PipelinesServiceConfig{
+	pipelinesService := corepipelines.NewService(corepipelines.ServiceConfig{
 		Logger: logger,
 	}, pipelinesClient, k8sService)
 

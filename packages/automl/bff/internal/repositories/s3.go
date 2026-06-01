@@ -38,14 +38,14 @@ type S3RequestContext struct {
 // delegates S3 operations to the autox-core S3 service.
 type S3Repository struct {
 	s3Service        *cores3.Service
-	k8sService       *corek8s.K8sService
-	pipelinesService *corepipelines.PipelinesService
+	k8sService       *corek8s.Service
+	pipelinesService *corepipelines.Service
 }
 
 func NewS3Repository(
 	s3Service *cores3.Service,
-	k8sService *corek8s.K8sService,
-	pipelinesService *corepipelines.PipelinesService,
+	k8sService *corek8s.Service,
+	pipelinesService *corepipelines.Service,
 ) *S3Repository {
 	return &S3Repository{
 		s3Service:        s3Service,

@@ -39,7 +39,7 @@ func NewValidationError(message string) error {
 // delegating generic work to autox-core's PipelinesService and keeping
 // automl-specific logic (validation, ownership, state machines, definitions) local.
 type PipelinesRepository struct {
-	core   *corepipelines.PipelinesService
+	core   *corepipelines.Service
 	config PipelinesRepositoryConfig
 }
 
@@ -49,7 +49,7 @@ type PipelinesRepositoryConfig struct {
 	DefaultPipelineVersion string
 }
 
-func NewPipelinesRepository(core *corepipelines.PipelinesService, cfg PipelinesRepositoryConfig) *PipelinesRepository {
+func NewPipelinesRepository(core *corepipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
 	if cfg.DefaultPipelineVersion == "" {
 		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
 	}

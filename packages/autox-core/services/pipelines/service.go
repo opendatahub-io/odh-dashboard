@@ -12,8 +12,8 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// PipelinesClient defines the contract for Pipelines API operations.
-type PipelinesClient interface {
+// Client defines the contract for Pipelines API operations.
+type Client interface {
 	// Pipeline Run operations
 	CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
 	GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
@@ -30,11 +30,11 @@ type PipelinesClient interface {
 	UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error)
 }
 
-// PipelinesService provides business logic for Pipelines operations.
+// Service provides business logic for Pipelines operations.
 // All public methods accept a namespace and resolve the DSPA base URL internally.
-type PipelinesService struct {
-	Client        PipelinesClient
-	K8sService    *k8s.K8sService
+type Service struct {
+	Client        Client
+	K8sService    *k8s.Service
 	Logger        *slog.Logger
 	pipelineCache *pipelineCache
 	dspaCache     *dspaCache
@@ -42,12 +42,12 @@ type PipelinesService struct {
 	inFlightMu    sync.Mutex
 }
 
-type PipelinesServiceConfig struct {
+type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
-func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClient, k8sService *k8s.K8sService) *PipelinesService {
-	return &PipelinesService{
+func NewService(cfg ServiceConfig, client Client, k8sService *k8s.Service) *Service {
+	return &Service{
 		Client:        client,
 		K8sService:    k8sService,
 		Logger:        cfg.Logger,
@@ -59,7 +59,7 @@ func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClient, k8s
 
 // --- Pipeline Run CRUD ---
 
-func (s *PipelinesService) CreatePipelineRun(ctx context.Context, namespace string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+func (s *Service) CreatePipelineRun(ctx context.Context, namespace string, input *CreatePipelineRunInput) (*PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating pipeline run", "namespace", namespace, "display_name", input.DisplayName)
 
@@ -77,7 +77,7 @@ func (s *PipelinesService) CreatePipelineRun(ctx context.Context, namespace stri
 	return run, nil
 }
 
-func (s *PipelinesService) GetPipelineRun(ctx context.Context, namespace, runID string) (*PipelineRun, error) {
+func (s *Service) GetPipelineRun(ctx context.Context, namespace, runID string) (*PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline run", "namespace", namespace, "run_id", runID)
 
@@ -95,7 +95,7 @@ func (s *PipelinesService) GetPipelineRun(ctx context.Context, namespace, runID 
 	return run, nil
 }
 
-func (s *PipelinesService) ListPipelineRuns(ctx context.Context, namespace string, params *ListRunsParams) (*PipelineRunResponse, error) {
+func (s *Service) ListPipelineRuns(ctx context.Context, namespace string, params *ListRunsParams) (*PipelineRunResponse, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipeline runs", "namespace", namespace)
 
@@ -113,7 +113,7 @@ func (s *PipelinesService) ListPipelineRuns(ctx context.Context, namespace strin
 	return response, nil
 }
 
-func (s *PipelinesService) TerminateRun(ctx context.Context, namespace, runID string) error {
+func (s *Service) TerminateRun(ctx context.Context, namespace, runID string) error {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("terminating pipeline run", "namespace", namespace, "run_id", runID)
 
@@ -143,7 +143,7 @@ func (s *PipelinesService) TerminateRun(ctx context.Context, namespace, runID st
 	return nil
 }
 
-func (s *PipelinesService) RetryRun(ctx context.Context, namespace, runID string) error {
+func (s *Service) RetryRun(ctx context.Context, namespace, runID string) error {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("retrying pipeline run", "namespace", namespace, "run_id", runID)
 
@@ -173,7 +173,7 @@ func (s *PipelinesService) RetryRun(ctx context.Context, namespace, runID string
 	return nil
 }
 
-func (s *PipelinesService) DeleteRun(ctx context.Context, namespace, runID string) error {
+func (s *Service) DeleteRun(ctx context.Context, namespace, runID string) error {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("deleting pipeline run", "namespace", namespace, "run_id", runID)
 
@@ -205,7 +205,7 @@ func (s *PipelinesService) DeleteRun(ctx context.Context, namespace, runID strin
 
 // --- Pipeline CRUD ---
 
-func (s *PipelinesService) ListPipelines(ctx context.Context, namespace, filter string) (*PipelinesResponse, error) {
+func (s *Service) ListPipelines(ctx context.Context, namespace, filter string) (*PipelinesResponse, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipelines", "namespace", namespace)
 
@@ -223,7 +223,7 @@ func (s *PipelinesService) ListPipelines(ctx context.Context, namespace, filter 
 	return response, nil
 }
 
-func (s *PipelinesService) GetPipelineVersion(ctx context.Context, namespace, pipelineID, versionID string) (*PipelineVersion, error) {
+func (s *Service) GetPipelineVersion(ctx context.Context, namespace, pipelineID, versionID string) (*PipelineVersion, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline version", "namespace", namespace, "pipeline_id", pipelineID, "version_id", versionID)
 
@@ -241,7 +241,7 @@ func (s *PipelinesService) GetPipelineVersion(ctx context.Context, namespace, pi
 	return version, nil
 }
 
-func (s *PipelinesService) ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error) {
+func (s *Service) ListPipelineVersions(ctx context.Context, namespace, pipelineID string) (*PipelineVersionsResponse, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing pipeline versions", "namespace", namespace, "pipeline_id", pipelineID)
 
@@ -259,7 +259,7 @@ func (s *PipelinesService) ListPipelineVersions(ctx context.Context, namespace, 
 	return response, nil
 }
 
-func (s *PipelinesService) CreatePipeline(ctx context.Context, namespace, name string) (*Pipeline, error) {
+func (s *Service) CreatePipeline(ctx context.Context, namespace, name string) (*Pipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating pipeline", "namespace", namespace, "name", name)
 
@@ -277,7 +277,7 @@ func (s *PipelinesService) CreatePipeline(ctx context.Context, namespace, name s
 	return pipeline, nil
 }
 
-func (s *PipelinesService) UploadPipelineVersion(ctx context.Context, namespace, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
+func (s *Service) UploadPipelineVersion(ctx context.Context, namespace, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("uploading pipeline version", "namespace", namespace, "pipeline_id", pipelineID, "version_name", versionName)
 
@@ -304,7 +304,7 @@ func (s *PipelinesService) UploadPipelineVersion(ctx context.Context, namespace,
 //   - (*DiscoveredPipeline, nil): pipeline and version found
 //   - (nil, nil): no matching pipeline or version (soft miss)
 //   - (nil, err): API failure (hard error)
-func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, namespace, pipelineName, versionName string) (*DiscoveredPipeline, error) {
+func (s *Service) DiscoverPipelineByName(ctx context.Context, namespace, pipelineName, versionName string) (*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("discovering pipeline by name", "namespace", namespace, "name", pipelineName)
 
@@ -387,7 +387,7 @@ func (s *PipelinesService) DiscoverPipelineByName(ctx context.Context, namespace
 // For each definition, tries the exact default version first, then falls back to any available
 // version so runs from older pipeline versions remain discoverable.
 // Results are cached per namespace with a 5-minute TTL.
-func (s *PipelinesService) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error) {
+func (s *Service) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("discovering named pipelines", "namespace", namespace, "count", len(definitions))
 
@@ -433,7 +433,7 @@ func (s *PipelinesService) DiscoverNamedPipelines(ctx context.Context, namespace
 // Unlike DiscoverNamedPipelines, this requires the exact version — if missing it creates
 // the version rather than falling back to an older one.
 // Concurrent callers for the same pipeline are serialized to prevent duplicate creation.
-func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string, def PipelineDefinition) (*DiscoveredPipeline, error) {
+func (s *Service) EnsurePipeline(ctx context.Context, namespace string, def PipelineDefinition) (*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 
 	pipelineName := def.Name
@@ -502,7 +502,7 @@ func (s *PipelinesService) EnsurePipeline(ctx context.Context, namespace string,
 	return s.ensurePipelineAndVersion(ctx, baseURL, namespace, pipelineName, versionName, def)
 }
 
-func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL, namespace, pipelineName, versionName string, def PipelineDefinition) (*DiscoveredPipeline, error) {
+func (s *Service) ensurePipelineAndVersion(ctx context.Context, baseURL, namespace, pipelineName, versionName string, def PipelineDefinition) (*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
 
 	pipelineID, err := s.findOrCreatePipeline(ctx, baseURL, pipelineName)
@@ -546,7 +546,7 @@ func (s *PipelinesService) ensurePipelineAndVersion(ctx context.Context, baseURL
 
 // findOrCreatePipeline returns the pipeline ID for a name, creating the shell if needed.
 // Retries on 409 Conflict to handle concurrent creation by another BFF instance.
-func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pipelineName string) (string, error) {
+func (s *Service) findOrCreatePipeline(ctx context.Context, baseURL, pipelineName string) (string, error) {
 	const maxRetries = 3
 	for range maxRetries {
 		nameFilter := buildPipelineNameFilter(pipelineName)
@@ -582,7 +582,7 @@ func (s *PipelinesService) findOrCreatePipeline(ctx context.Context, baseURL, pi
 
 // collectVersionIDs returns all pipeline version IDs for a given pipeline.
 // Checks the discovery cache first, then falls back to the API.
-func (s *PipelinesService) collectVersionIDs(ctx context.Context, namespace, pipelineID string) ([]string, error) {
+func (s *Service) collectVersionIDs(ctx context.Context, namespace, pipelineID string) ([]string, error) {
 	if pipelineID == "" {
 		return nil, nil
 	}
@@ -625,7 +625,7 @@ const maxRunsPerPipeline = 10000
 
 // GetAllPipelineRuns fetches all pages of runs for a pipeline, across all its versions.
 // Auto-paginates through KFP results, capped at maxRunsPerPipeline for safety.
-func (s *PipelinesService) GetAllPipelineRuns(ctx context.Context, namespace, pipelineID string) ([]PipelineRun, error) {
+func (s *Service) GetAllPipelineRuns(ctx context.Context, namespace, pipelineID string) ([]PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching all pipeline runs", "namespace", namespace, "pipelineID", pipelineID)
 
@@ -690,7 +690,7 @@ func (s *PipelinesService) GetAllPipelineRuns(ctx context.Context, namespace, pi
 
 // GetPipelineRunWithSpec retrieves a pipeline run enriched with pipeline_spec from its version.
 // If the version fetch fails, the run is returned without the spec (best-effort enrichment).
-func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, namespace, runID string) (*PipelineRun, error) {
+func (s *Service) GetPipelineRunWithSpec(ctx context.Context, namespace, runID string) (*PipelineRun, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting pipeline run with spec", "namespace", namespace, "run_id", runID)
 
@@ -732,7 +732,7 @@ func (s *PipelinesService) GetPipelineRunWithSpec(ctx context.Context, namespace
 // discoverDSPAURL is a convenience wrapper for internal service methods that only
 // need the pipeline API server URL. External callers should use DiscoverReadyDSPA
 // to also access object storage configuration.
-func (s *PipelinesService) discoverDSPAURL(ctx context.Context, namespace string) (string, error) {
+func (s *Service) discoverDSPAURL(ctx context.Context, namespace string) (string, error) {
 	dspa, err := s.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
 		return "", err
@@ -740,6 +740,6 @@ func (s *PipelinesService) discoverDSPAURL(ctx context.Context, namespace string
 	return dspa.APIServerURL, nil
 }
 
-func (s *PipelinesService) loggerWithIdentity(ctx context.Context) *slog.Logger {
+func (s *Service) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	return k8s.LoggerWithIdentity(ctx, s.Logger)
 }

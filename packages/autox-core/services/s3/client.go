@@ -59,23 +59,23 @@ type ClientProvider interface {
 // client implements Client using the Provider pattern.
 // Each method creates fresh AWS SDK objects from the provider — no shared mutable state.
 type client struct {
-	provider ClientProvider
+	Provider ClientProvider
 }
 
 // NewClient creates a client with an injectable provider (for testing).
 func NewClient(provider ClientProvider) Client {
-	return &client{provider: provider}
+	return &client{Provider: provider}
 }
 
 // NewDefaultClient creates a client with the real AWS SDK provider.
 func NewDefaultClient(cfg ClientConfig) Client {
 	return &client{
-		provider: &awsClientProvider{cfg: cfg.withDefaults()},
+		Provider: &awsClientProvider{cfg: cfg.withDefaults()},
 	}
 }
 
 func (c *client) GetObject(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
-	apiClient, err := c.provider.CreateAPIClient(opts)
+	apiClient, err := c.Provider.CreateAPIClient(opts)
 	if err != nil {
 		return nil, "", err
 	}
@@ -105,7 +105,7 @@ func (c *client) GetObject(ctx context.Context, opts ConnectionOptions, input Ge
 }
 
 func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
-	transferClient, err := c.provider.CreateTransferClient(opts)
+	transferClient, err := c.Provider.CreateTransferClient(opts)
 	if err != nil {
 		return nil, "", err
 	}
@@ -135,7 +135,7 @@ func (c *client) DownloadObject(ctx context.Context, opts ConnectionOptions, inp
 }
 
 func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
-	transferClient, err := c.provider.CreateTransferClient(opts)
+	transferClient, err := c.Provider.CreateTransferClient(opts)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (c *client) UploadObject(ctx context.Context, opts ConnectionOptions, input
 }
 
 func (c *client) ListObjects(ctx context.Context, opts ConnectionOptions, input ListObjectsInput) (*ListObjectsResponse, error) {
-	apiClient, err := c.provider.CreateAPIClient(opts)
+	apiClient, err := c.Provider.CreateAPIClient(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +187,7 @@ func (c *client) ListObjects(ctx context.Context, opts ConnectionOptions, input 
 }
 
 func (c *client) ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
-	apiClient, err := c.provider.CreateAPIClient(opts)
+	apiClient, err := c.Provider.CreateAPIClient(opts)
 	if err != nil {
 		return false, err
 	}

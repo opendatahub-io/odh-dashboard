@@ -11,9 +11,9 @@ import (
 	k8ssvc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// MockK8sClient implements k8ssvc.K8sClient with configurable function fields.
+// MockClient implements k8ssvc.Client with configurable function fields.
 // Each field is optional — if nil, the method returns a zero value and nil error.
-type MockK8sClient struct {
+type MockClient struct {
 	ListResourcesFunc       func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
 	GetResourceFunc         func(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
 	CreateResourceFunc      func(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
@@ -27,77 +27,77 @@ type MockK8sClient struct {
 	DiscoverResourceGVRFunc func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
-func (m *MockK8sClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (m *MockClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	if m.ListResourcesFunc != nil {
 		return m.ListResourcesFunc(ctx, gvr, namespace)
 	}
 	return &unstructured.UnstructuredList{}, nil
 }
 
-func (m *MockK8sClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (m *MockClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	if m.GetResourceFunc != nil {
 		return m.GetResourceFunc(ctx, gvr, namespace, name)
 	}
 	return &unstructured.Unstructured{}, nil
 }
 
-func (m *MockK8sClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (m *MockClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	if m.CreateResourceFunc != nil {
 		return m.CreateResourceFunc(ctx, gvr, namespace, obj)
 	}
 	return obj, nil
 }
 
-func (m *MockK8sClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (m *MockClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	if m.GetNamespacesFunc != nil {
 		return m.GetNamespacesFunc(ctx)
 	}
 	return []v1.Namespace{}, nil
 }
 
-func (m *MockK8sClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+func (m *MockClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	if m.GetPodsFunc != nil {
 		return m.GetPodsFunc(ctx, namespace)
 	}
 	return &v1.PodList{}, nil
 }
 
-func (m *MockK8sClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+func (m *MockClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	if m.GetSecretsFunc != nil {
 		return m.GetSecretsFunc(ctx, namespace)
 	}
 	return []v1.Secret{}, nil
 }
 
-func (m *MockK8sClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+func (m *MockClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	if m.GetSecretFunc != nil {
 		return m.GetSecretFunc(ctx, namespace, secretName)
 	}
 	return &v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: namespace}}, nil
 }
 
-func (m *MockK8sClient) GetUser(ctx context.Context) (string, error) {
+func (m *MockClient) GetUser(ctx context.Context) (string, error) {
 	if m.GetUserFunc != nil {
 		return m.GetUserFunc(ctx)
 	}
 	return "mock-user", nil
 }
 
-func (m *MockK8sClient) IsClusterAdmin(ctx context.Context) (bool, error) {
+func (m *MockClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	if m.IsClusterAdminFunc != nil {
 		return m.IsClusterAdminFunc(ctx)
 	}
 	return false, nil
 }
 
-func (m *MockK8sClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+func (m *MockClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	if m.CanAccessResourceFunc != nil {
 		return m.CanAccessResourceFunc(ctx, namespace, verb, group, resource, name)
 	}
 	return true, nil
 }
 
-func (m *MockK8sClient) DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+func (m *MockClient) DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
 	if m.DiscoverResourceGVRFunc != nil {
 		return m.DiscoverResourceGVRFunc(ctx, group, resource, namespace, knownVersions)
 	}
@@ -108,4 +108,4 @@ func (m *MockK8sClient) DiscoverResourceGVR(ctx context.Context, group, resource
 }
 
 // Compile-time check.
-var _ k8ssvc.K8sClient = (*MockK8sClient)(nil)
+var _ k8ssvc.Client = (*MockClient)(nil)
