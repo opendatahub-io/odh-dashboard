@@ -51,7 +51,7 @@ async function hasAccessToProject(
     if (statusCode < 200 || statusCode >= 300) {
       throw new Error(`Registry returned ${statusCode}`);
     }
-    const projectName = crd.spec?.feastProject || crd.metadata.name;
+    const projectName = crd.spec?.feastProject ?? crd.metadata.name;
     const projects = data.projects || [];
     return projects.some((p) => (p.spec?.name || p.name) === projectName);
   } catch (error) {
@@ -99,7 +99,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
             const configResults = await Promise.all(
               availableFeatureStores.map(async (crd) => {
-                const projectName = crd.spec?.feastProject || crd.metadata.name;
+                const projectName = crd.spec?.feastProject ?? crd.metadata.name;
                 const hasAccess = await hasAccessToProject(fastify, crd, token);
                 return {
                   configName: crd.metadata.name,

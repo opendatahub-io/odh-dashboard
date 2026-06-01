@@ -181,7 +181,8 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       const { namespace, name, '*': wildcardPath } = req.params;
-      const path = wildcardPath || 'api/v1/projects';
+      const path =
+        wildcardPath && wildcardPath.startsWith('api/v1/') ? wildcardPath : 'api/v1/projects';
 
       const DNS1123_REGEX = /^[a-z0-9]([a-z0-9-]{0,251}[a-z0-9])?$/;
       if (!DNS1123_REGEX.test(namespace) || !DNS1123_REGEX.test(name)) {
