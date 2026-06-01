@@ -88,7 +88,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
 
     removeOgxAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
-    deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
+    deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
 
     // Restore operator to previous state if we changed it
     if (selfProvisioned && !operatorWasManaged) {
@@ -98,7 +98,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit a full AutoRAG optimization run',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization'] },
+    { tags: ['@Smoke', '@SmokeSet4', '@AutoRAG', '@AutoRAGCI'] },
     () => {
       autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
 
