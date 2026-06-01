@@ -17,9 +17,9 @@ import (
 	s3svc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
-// MockS3Client implements s3svc.S3ClientInterface with hardcoded data for development
+// MockClient implements s3svc.Client with hardcoded data for development
 // and testing without a real S3 backend.
-type MockS3Client struct{}
+type MockClient struct{}
 
 // mockStaticListingKeys are the pre-existing keys used by ListObjects and ObjectExists.
 // UploadObject fails with ErrObjectAlreadyExists for these keys (conditional create simulation).
@@ -32,7 +32,7 @@ var mockStaticListingKeys = []string{
 	"configs/pipeline.yaml",
 }
 
-func (m *MockS3Client) GetObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.GetObjectInput) (io.ReadCloser, string, error) {
+func (m *MockClient) GetObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.GetObjectInput) (io.ReadCloser, string, error) {
 	if strings.Contains(input.Key, "non-existent") {
 		return nil, "", &awss3types.NoSuchKey{}
 	}
@@ -44,12 +44,12 @@ func (m *MockS3Client) GetObject(_ context.Context, _ s3svc.S3ConnectionOptions,
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
 }
 
-func (m *MockS3Client) DownloadObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.DownloadObjectInput) (io.ReadCloser, string, error) {
+func (m *MockClient) DownloadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.DownloadObjectInput) (io.ReadCloser, string, error) {
 	content := []byte(fmt.Sprintf("[mock download] s3 object at key: %s", input.Key))
 	return io.NopCloser(bytes.NewReader(content)), "application/octet-stream", nil
 }
 
-func (m *MockS3Client) UploadObject(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.UploadObjectInput) error {
+func (m *MockClient) UploadObject(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.UploadObjectInput) error {
 	if slices.Contains(mockStaticListingKeys, input.Key) {
 		return s3svc.ErrObjectAlreadyExists
 	}
@@ -58,9 +58,9 @@ func (m *MockS3Client) UploadObject(_ context.Context, _ s3svc.S3ConnectionOptio
 	return err
 }
 
-func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.ListObjectsInput) (*s3svc.S3ListObjectsResponse, error) {
+func (m *MockClient) ListObjects(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.ListObjectsInput) (*s3svc.ListObjectsResponse, error) {
 	bucket, prefix, limit := input.Bucket, input.Prefix, input.Limit
-	allObjects := []s3svc.S3ObjectInfo{
+	allObjects := []s3svc.ObjectInfo{
 		{Key: "datasets/train.csv", Size: 204800, ETag: "abc1", StorageClass: "STANDARD", LastModified: "2024-01-15T10:00:00Z"},
 		{Key: "datasets/test.csv", Size: 51200, ETag: "abc2", StorageClass: "STANDARD", LastModified: "2024-01-15T10:01:00Z"},
 		{Key: "datasets/validation.csv", Size: 25600, ETag: "abc3", StorageClass: "STANDARD", LastModified: "2024-01-15T10:02:00Z"},
@@ -69,7 +69,7 @@ func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOption
 		{Key: "configs/pipeline.yaml", Size: 2048, ETag: "ghi1", StorageClass: "STANDARD", LastModified: "2024-01-14T09:00:00Z"},
 	}
 
-	var filtered []s3svc.S3ObjectInfo
+	var filtered []s3svc.ObjectInfo
 	for _, obj := range allObjects {
 		if strings.HasPrefix(obj.Key, prefix) {
 			filtered = append(filtered, obj)
@@ -83,73 +83,73 @@ func (m *MockS3Client) ListObjects(_ context.Context, _ s3svc.S3ConnectionOption
 		filtered = filtered[:limit]
 	}
 	if filtered == nil {
-		filtered = []s3svc.S3ObjectInfo{}
+		filtered = []s3svc.ObjectInfo{}
 	}
 
-	return &s3svc.S3ListObjectsResponse{
+	return &s3svc.ListObjectsResponse{
 		IsTruncated:    false,
 		KeyCount:       int32(len(filtered)),
 		MaxKeys:        limit,
 		Name:           bucket,
 		Prefix:         prefix,
 		Delimiter:      "/",
-		CommonPrefixes: []s3svc.S3CommonPrefix{},
+		CommonPrefixes: []s3svc.CommonPrefix{},
 		Contents:       filtered,
 	}, nil
 }
 
-func (m *MockS3Client) ObjectExists(_ context.Context, _ s3svc.S3ConnectionOptions, input s3svc.ObjectExistsInput) (bool, error) {
+func (m *MockClient) ObjectExists(_ context.Context, _ s3svc.ConnectionOptions, input s3svc.ObjectExistsInput) (bool, error) {
 	return slices.Contains(mockStaticListingKeys, input.Key), nil
 }
 
 // Compile-time check.
-var _ s3svc.S3ClientInterface = (*MockS3Client)(nil)
+var _ s3svc.Client = (*MockClient)(nil)
 
-// --- MockS3Provider ---
+// --- MockClientProvider ---
 
-// MockS3Provider implements s3svc.S3ClientProviderInterface for testing the client layer
-// without real AWS SDK calls. It returns MockSDKClient and MockTransferManager instances.
-type MockS3Provider struct {
-	// SDKClientFunc optionally overrides CreateClient. If nil, returns MockSDKClient.
-	SDKClientFunc func(opts s3svc.S3ConnectionOptions) (s3svc.S3SDKClientInterface, error)
-	// TransferManagerFunc optionally overrides CreateTransferManager. If nil, returns MockTransferManager.
-	TransferManagerFunc func(opts s3svc.S3ConnectionOptions) (s3svc.S3TransferManagerInterface, error)
+// MockClientProvider provides a mock SDK provider for testing the client layer
+// without real AWS SDK calls. It returns MockAPIClient and MockTransferClient instances.
+type MockClientProvider struct {
+	// APIClientFunc optionally overrides CreateAPIClient. If nil, returns MockAPIClient.
+	APIClientFunc func(opts s3svc.ConnectionOptions) (s3svc.APIClient, error)
+	// TransferClientFunc optionally overrides CreateTransferClient. If nil, returns MockTransferClient.
+	TransferClientFunc func(opts s3svc.ConnectionOptions) (s3svc.TransferClient, error)
 }
 
-func (p *MockS3Provider) CreateClient(opts s3svc.S3ConnectionOptions) (s3svc.S3SDKClientInterface, error) {
-	if p.SDKClientFunc != nil {
-		return p.SDKClientFunc(opts)
+func (p *MockClientProvider) CreateAPIClient(opts s3svc.ConnectionOptions) (s3svc.APIClient, error) {
+	if p.APIClientFunc != nil {
+		return p.APIClientFunc(opts)
 	}
-	return &MockSDKClient{}, nil
+	return &MockAPIClient{}, nil
 }
 
-func (p *MockS3Provider) CreateTransferManager(opts s3svc.S3ConnectionOptions) (s3svc.S3TransferManagerInterface, error) {
-	if p.TransferManagerFunc != nil {
-		return p.TransferManagerFunc(opts)
+func (p *MockClientProvider) CreateTransferClient(opts s3svc.ConnectionOptions) (s3svc.TransferClient, error) {
+	if p.TransferClientFunc != nil {
+		return p.TransferClientFunc(opts)
 	}
-	return &MockTransferManager{}, nil
+	return &MockTransferClient{}, nil
 }
 
 // Compile-time check.
-var _ s3svc.S3ClientProviderInterface = (*MockS3Provider)(nil)
+var _ s3svc.ClientProvider = (*MockClientProvider)(nil)
 
-// --- MockSDKClient ---
+// --- MockAPIClient ---
 
-// MockSDKClient implements s3svc.S3SDKClientInterface for testing.
-type MockSDKClient struct {
+// MockAPIClient implements s3svc.APIClient for testing.
+type MockAPIClient struct {
 	HeadObjectFunc    func(ctx context.Context, params *awss3.HeadObjectInput, optFns ...func(*awss3.Options)) (*awss3.HeadObjectOutput, error)
 	ListObjectsV2Func func(ctx context.Context, params *awss3.ListObjectsV2Input, optFns ...func(*awss3.Options)) (*awss3.ListObjectsV2Output, error)
 	GetObjectFunc     func(ctx context.Context, params *awss3.GetObjectInput, optFns ...func(*awss3.Options)) (*awss3.GetObjectOutput, error)
 }
 
-func (m *MockSDKClient) HeadObject(ctx context.Context, params *awss3.HeadObjectInput, optFns ...func(*awss3.Options)) (*awss3.HeadObjectOutput, error) {
+func (m *MockAPIClient) HeadObject(ctx context.Context, params *awss3.HeadObjectInput, optFns ...func(*awss3.Options)) (*awss3.HeadObjectOutput, error) {
 	if m.HeadObjectFunc != nil {
 		return m.HeadObjectFunc(ctx, params, optFns...)
 	}
 	return &awss3.HeadObjectOutput{}, nil
 }
 
-func (m *MockSDKClient) ListObjectsV2(ctx context.Context, params *awss3.ListObjectsV2Input, optFns ...func(*awss3.Options)) (*awss3.ListObjectsV2Output, error) {
+func (m *MockAPIClient) ListObjectsV2(ctx context.Context, params *awss3.ListObjectsV2Input, optFns ...func(*awss3.Options)) (*awss3.ListObjectsV2Output, error) {
 	if m.ListObjectsV2Func != nil {
 		return m.ListObjectsV2Func(ctx, params, optFns...)
 	}
@@ -165,7 +165,7 @@ func (m *MockSDKClient) ListObjectsV2(ctx context.Context, params *awss3.ListObj
 	}, nil
 }
 
-func (m *MockSDKClient) GetObject(ctx context.Context, params *awss3.GetObjectInput, optFns ...func(*awss3.Options)) (*awss3.GetObjectOutput, error) {
+func (m *MockAPIClient) GetObject(ctx context.Context, params *awss3.GetObjectInput, optFns ...func(*awss3.Options)) (*awss3.GetObjectOutput, error) {
 	if m.GetObjectFunc != nil {
 		return m.GetObjectFunc(ctx, params, optFns...)
 	}
@@ -180,17 +180,17 @@ func (m *MockSDKClient) GetObject(ctx context.Context, params *awss3.GetObjectIn
 }
 
 // Compile-time check.
-var _ s3svc.S3SDKClientInterface = (*MockSDKClient)(nil)
+var _ s3svc.APIClient = (*MockAPIClient)(nil)
 
-// --- MockTransferManager ---
+// --- MockTransferClient ---
 
-// MockTransferManager implements s3svc.S3TransferManagerInterface for testing.
-type MockTransferManager struct {
+// MockTransferClient implements s3svc.TransferClient for testing.
+type MockTransferClient struct {
 	UploadObjectFunc func(ctx context.Context, params *transfermanager.UploadObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error)
 	GetObjectFunc    func(ctx context.Context, params *transfermanager.GetObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error)
 }
 
-func (m *MockTransferManager) UploadObject(ctx context.Context, params *transfermanager.UploadObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
+func (m *MockTransferClient) UploadObject(ctx context.Context, params *transfermanager.UploadObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
 	if m.UploadObjectFunc != nil {
 		return m.UploadObjectFunc(ctx, params, optFns...)
 	}
@@ -199,7 +199,7 @@ func (m *MockTransferManager) UploadObject(ctx context.Context, params *transfer
 	return &transfermanager.UploadObjectOutput{}, nil
 }
 
-func (m *MockTransferManager) GetObject(ctx context.Context, params *transfermanager.GetObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error) {
+func (m *MockTransferClient) GetObject(ctx context.Context, params *transfermanager.GetObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error) {
 	if m.GetObjectFunc != nil {
 		return m.GetObjectFunc(ctx, params, optFns...)
 	}
@@ -212,4 +212,4 @@ func (m *MockTransferManager) GetObject(ctx context.Context, params *transferman
 }
 
 // Compile-time check.
-var _ s3svc.S3TransferManagerInterface = (*MockTransferManager)(nil)
+var _ s3svc.TransferClient = (*MockTransferClient)(nil)

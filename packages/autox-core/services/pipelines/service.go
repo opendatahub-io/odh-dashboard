@@ -12,10 +12,28 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
+// PipelinesClient defines the contract for Pipelines API operations.
+type PipelinesClient interface {
+	// Pipeline Run operations
+	CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
+	GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
+	ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error)
+	TerminateRun(ctx context.Context, baseURL string, runID string) error
+	RetryRun(ctx context.Context, baseURL string, runID string) error
+	DeleteRun(ctx context.Context, baseURL string, runID string) error
+
+	// Pipeline operations
+	ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error)
+	GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error)
+	ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error)
+	CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error)
+	UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error)
+}
+
 // PipelinesService provides business logic for Pipelines operations.
 // All public methods accept a namespace and resolve the DSPA base URL internally.
 type PipelinesService struct {
-	Client        PipelinesClientInterface
+	Client        PipelinesClient
 	K8sService    *k8s.K8sService
 	Logger        *slog.Logger
 	pipelineCache *pipelineCache
@@ -28,7 +46,7 @@ type PipelinesServiceConfig struct {
 	Logger *slog.Logger
 }
 
-func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClientInterface, k8sService *k8s.K8sService) *PipelinesService {
+func NewPipelinesService(cfg PipelinesServiceConfig, client PipelinesClient, k8sService *k8s.K8sService) *PipelinesService {
 	return &PipelinesService{
 		Client:        client,
 		K8sService:    k8sService,

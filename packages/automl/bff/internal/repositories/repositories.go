@@ -21,7 +21,7 @@ type RepositoriesConfig struct {
 	K8sService          *corek8s.K8sService
 	PipelinesService    *corepipelines.PipelinesService
 	PipelinesCfg        PipelinesRepositoryConfig
-	S3Service           *cores3.S3Service
+	S3Service           *cores3.Service
 	ModelRegistryClient modelregistry.ModelRegistryClientInterface
 }
 

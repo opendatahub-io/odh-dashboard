@@ -20,7 +20,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// K8sInternalClient implements Kubernetes operations using in-cluster service account
+// k8sInternalClient implements Kubernetes operations using in-cluster service account
 // with user impersonation for RBAC enforcement.
 //
 // Impersonation is handled via a custom RoundTripper that reads RequestIdentity from
@@ -29,16 +29,17 @@ import (
 //
 // Security: Identity is mandatory - operations without identity are rejected to prevent
 // privilege escalation via service account permissions.
-type K8sInternalClient struct {
-	Clientset     ClientsetInterface
-	DynamicClient DynamicClientInterface
+type k8sInternalClient struct {
+	Clientset     Clientset
+	DynamicClient DynamicClient
 }
 
-// NewK8sInternalClient creates an internal client with injectable clientset and dynamic client (for testing).
-func NewK8sInternalClient(clientset ClientsetInterface, dynamicClient DynamicClientInterface) *K8sInternalClient {
-	return &K8sInternalClient{
-		Clientset:     clientset,
-		DynamicClient: dynamicClient,
+
+// NewK8sInternalClient creates an internal client with injectable Clientset and DynamicClient (for testing).
+func NewK8sInternalClient(cs Clientset, dc DynamicClient) K8sClient {
+	return &k8sInternalClient{
+		Clientset:     cs,
+		DynamicClient: dc,
 	}
 }
 
@@ -52,7 +53,7 @@ func NewK8sInternalClient(clientset ClientsetInterface, dynamicClient DynamicCli
 //   - Needs only "impersonate" permission for the service account (minimal privilege)
 //
 // Returns an error if Kubernetes configuration cannot be loaded or clients cannot be created.
-func NewDefaultK8sInternalClient() (*K8sInternalClient, error) {
+func NewDefaultK8sInternalClient() (K8sClient, error) {
 	baseConfig, err := getKubernetesConfig()
 	if err != nil {
 		return nil, err
@@ -63,23 +64,23 @@ func NewDefaultK8sInternalClient() (*K8sInternalClient, error) {
 		return &impersonationRoundTripper{base: rt}
 	}
 
-	clientset, err := kubernetes.NewForConfig(clientCfg)
+	cs, err := kubernetes.NewForConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(clientCfg)
+	dc, err := dynamic.NewForConfig(clientCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &K8sInternalClient{
-		Clientset:     clientset,
-		DynamicClient: dynamicClient,
+	return &k8sInternalClient{
+		Clientset:     cs,
+		DynamicClient: dc,
 	}, nil
 }
 
-func (c *K8sInternalClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (c *k8sInternalClient) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -93,21 +94,21 @@ func (c *K8sInternalClient) ListResources(ctx context.Context, gvr schema.GroupV
 	return resourceClient.List(timeoutCtx, metav1.ListOptions{})
 }
 
-func (c *K8sInternalClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (c *k8sInternalClient) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Get(timeoutCtx, name, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (c *k8sInternalClient) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	return c.DynamicClient.Resource(gvr).Namespace(namespace).Create(timeoutCtx, obj, metav1.CreateOptions{})
 }
 
-func (c *K8sInternalClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (c *k8sInternalClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -123,14 +124,14 @@ func (c *K8sInternalClient) GetNamespaces(ctx context.Context) ([]v1.Namespace, 
 	return nsList.Items, nil
 }
 
-func (c *K8sInternalClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+func (c *k8sInternalClient) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	return c.Clientset.CoreV1().Pods(namespace).List(timeoutCtx, metav1.ListOptions{})
 }
 
-func (c *K8sInternalClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+func (c *k8sInternalClient) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -141,14 +142,14 @@ func (c *K8sInternalClient) GetSecrets(ctx context.Context, namespace string) ([
 	return secretList.Items, nil
 }
 
-func (c *K8sInternalClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+func (c *k8sInternalClient) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	return c.Clientset.CoreV1().Secrets(namespace).Get(timeoutCtx, secretName, metav1.GetOptions{})
 }
 
-func (c *K8sInternalClient) GetUser(ctx context.Context) (string, error) {
+func (c *k8sInternalClient) GetUser(ctx context.Context) (string, error) {
 	identity, err := IdentityFromContext(ctx)
 	if err != nil {
 		return "", err
@@ -157,7 +158,7 @@ func (c *K8sInternalClient) GetUser(ctx context.Context) (string, error) {
 	return identity.UserID, nil
 }
 
-func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context) (bool, error) {
+func (c *k8sInternalClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -179,7 +180,7 @@ func (c *K8sInternalClient) IsClusterAdmin(ctx context.Context) (bool, error) {
 	return resp.Status.Allowed, nil
 }
 
-func (c *K8sInternalClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+func (c *k8sInternalClient) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -206,7 +207,7 @@ func (c *K8sInternalClient) CanAccessResource(ctx context.Context, namespace, ve
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
 // Returns the first working GroupVersionResource or an error if none are available.
-func (c *K8sInternalClient) DiscoverResourceGVR(
+func (c *k8sInternalClient) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
 	knownVersions []string,
@@ -243,7 +244,7 @@ func (c *K8sInternalClient) DiscoverResourceGVR(
 }
 
 // Compile-time interface check.
-var _ K8sClientInterface = (*K8sInternalClient)(nil)
+var _ K8sClient = (*k8sInternalClient)(nil)
 
 // NewSATokenTransportWrapper returns a WrapTransport function that injects the pod's
 // service account token into every outbound request. Intended for internal auth mode,
@@ -303,7 +304,7 @@ func (t *saTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 // getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
 // namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
 // This method expects the caller to have already set an appropriate timeout on the context.
-func (c *K8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
+func (c *k8sInternalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
 	projectGVR := schema.GroupVersionResource{
 		Group:    "project.openshift.io",
 		Version:  "v1",

@@ -11,7 +11,7 @@ import (
 	k8ssvc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-// MockK8sClient implements k8ssvc.K8sClientInterface with configurable function fields.
+// MockK8sClient implements k8ssvc.K8sClient with configurable function fields.
 // Each field is optional — if nil, the method returns a zero value and nil error.
 type MockK8sClient struct {
 	ListResourcesFunc       func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
@@ -108,4 +108,4 @@ func (m *MockK8sClient) DiscoverResourceGVR(ctx context.Context, group, resource
 }
 
 // Compile-time check.
-var _ k8ssvc.K8sClientInterface = (*MockK8sClient)(nil)
+var _ k8ssvc.K8sClient = (*MockK8sClient)(nil)

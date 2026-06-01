@@ -6,7 +6,7 @@ import (
 	plsvc "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
-// MockPipelinesClient implements plsvc.PipelinesClientInterface with configurable function fields.
+// MockPipelinesClient implements plsvc.PipelinesClient with configurable function fields.
 // Each field is optional — if nil, the method returns a zero value and nil error.
 type MockPipelinesClient struct {
 	CreatePipelineRunFunc    func(ctx context.Context, baseURL string, input *plsvc.CreatePipelineRunInput) (*plsvc.PipelineRun, error)
@@ -100,4 +100,4 @@ func (m *MockPipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL
 }
 
 // Compile-time check.
-var _ plsvc.PipelinesClientInterface = (*MockPipelinesClient)(nil)
+var _ plsvc.PipelinesClient = (*MockPipelinesClient)(nil)

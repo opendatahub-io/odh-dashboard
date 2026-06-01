@@ -379,7 +379,7 @@ func sanitizeUploadContentType(v string) string {
 }
 
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.
-type S3FilesEnvelope Envelope[cores3.S3ListObjectsResponse, None]
+type S3FilesEnvelope Envelope[cores3.ListObjectsResponse, None]
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
 func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

@@ -2,8 +2,8 @@ package s3
 
 import "io"
 
-// S3ObjectInfo represents a single S3 object in the listing response.
-type S3ObjectInfo struct {
+// ObjectInfo represents a single S3 object in the listing response.
+type ObjectInfo struct {
 	Key          string `json:"key"`
 	LastModified string `json:"last_modified,omitempty"`
 	ETag         string `json:"etag,omitempty"`
@@ -11,16 +11,16 @@ type S3ObjectInfo struct {
 	StorageClass string `json:"storage_class,omitempty"`
 }
 
-// S3CommonPrefix represents a common prefix (virtual folder) in the listing response.
-type S3CommonPrefix struct {
+// CommonPrefix represents a common prefix (virtual folder) in the listing response.
+type CommonPrefix struct {
 	Prefix string `json:"prefix"`
 }
 
-// S3ListObjectsResponse is the service's response type for S3 list operations,
+// ListObjectsResponse is the service's response type for S3 list operations,
 // decoupled from the AWS SDK's ListObjectsV2Output.
-type S3ListObjectsResponse struct {
-	CommonPrefixes        []S3CommonPrefix `json:"common_prefixes"`
-	Contents              []S3ObjectInfo   `json:"contents"`
+type ListObjectsResponse struct {
+	CommonPrefixes        []CommonPrefix `json:"common_prefixes"`
+	Contents              []ObjectInfo   `json:"contents"`
 	ContinuationToken     string           `json:"continuation_token,omitempty"`
 	Delimiter             string           `json:"delimiter,omitempty"`
 	IsTruncated           bool             `json:"is_truncated"`
@@ -74,8 +74,8 @@ type ObjectExistsInput struct {
 }
 
 // ListObjectsQuery holds the service-level parameters for a ListObjects operation.
-// Path and Search are business-level browsing concepts; S3Service translates them
-// into a raw S3 Prefix before calling S3Client.
+// Path and Search are business-level browsing concepts; Service translates them
+// into a raw S3 Prefix before calling Client.
 type ListObjectsQuery struct {
 	Bucket string
 	Path   string // virtual prefix / "folder" to list within
@@ -85,7 +85,7 @@ type ListObjectsQuery struct {
 }
 
 // ListObjectsInput holds the raw S3 protocol parameters for a ListObjects operation.
-// Used by S3ClientInterface; callers of S3Service should use ListObjectsQuery instead.
+// Used by Client; callers of Service should use ListObjectsQuery instead.
 type ListObjectsInput struct {
 	Bucket            string
 	Prefix            string

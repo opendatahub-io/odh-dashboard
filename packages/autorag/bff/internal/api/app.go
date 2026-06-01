@@ -126,7 +126,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Create autox-core Kubernetes client and service.
-	var k8sClient corek8s.K8sClientInterface
+	var k8sClient corek8s.K8sClient
 	if cfg.MockK8Client {
 		k8sClient = &corek8smocks.MockK8sClient{}
 	} else {
@@ -142,7 +142,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	k8sService := corek8s.NewK8sService(corek8s.K8sServiceConfig{Logger: logger}, k8sClient)
 
 	// Create autox-core Pipelines client and service.
-	var pipelinesClient corepipelines.PipelinesClientInterface
+	var pipelinesClient corepipelines.PipelinesClient
 	if cfg.MockPipelineServerClient {
 		pipelinesClient = &corepipelinesmocks.MockPipelinesClient{}
 	} else {
@@ -166,7 +166,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
 		os.Exit(1)
 	}
-	s3ClientCfg := cores3.S3ClientConfig{
+	s3ClientCfg := cores3.ClientConfig{
 		RootCAs:                 rootCAs,
 		InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
 		AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
@@ -174,13 +174,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if pfManager != nil {
 		s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 	}
-	var s3Client cores3.S3ClientInterface
+	var s3Client cores3.Client
 	if cfg.MockS3Client {
-		s3Client = cores3.NewS3Client(&cores3mocks.MockS3Provider{})
+		s3Client = cores3.NewClient(&cores3mocks.MockClientProvider{})
 	} else {
-		s3Client = cores3.NewDefaultS3Client(s3ClientCfg)
+		s3Client = cores3.NewDefaultClient(s3ClientCfg)
 	}
-	s3Service := cores3.NewS3Service(cores3.S3ServiceConfig{Logger: logger}, s3Client)
+	s3Service := cores3.NewService(cores3.ServiceConfig{Logger: logger}, s3Client)
 
 	// Initialize Open GenAI Stack client (single shared instance).
 	var ogxClient ogx.OGXClientInterface

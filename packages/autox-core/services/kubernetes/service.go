@@ -9,9 +9,43 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+// K8sClient defines the contract for Kubernetes operations.
+//
+// Security: Identity is REQUIRED for all operations and must be stored in the context
+// via ContextWithIdentity before calling any method. Missing identity is rejected to
+// prevent privilege escalation and ensure RBAC enforcement.
+//
+// Identity behavior by implementation:
+//   - k8sInternalClient: Creates impersonated clients scoped to user's RBAC permissions.
+//   - k8sTokenClient: Uses token from identity for bearer authentication.
+//
+// Always inject identity into context via middleware (InjectRequestIdentity).
+type K8sClient interface {
+	// Generic resource operations
+	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+
+	// Common resource operations
+	GetNamespaces(ctx context.Context) ([]v1.Namespace, error)
+	GetPods(ctx context.Context, namespace string) (*v1.PodList, error)
+	GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error)
+	GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error)
+
+	// User identity and permissions
+	GetUser(ctx context.Context) (string, error)
+	IsClusterAdmin(ctx context.Context) (bool, error)
+	CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error)
+
+	// DiscoverResourceGVR discovers the preferred API version for a custom resource
+	// by trying known versions in preference order (newer to older).
+	// Returns the first working GroupVersionResource or an error if none are available.
+	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
+}
+
 // K8sService provides business logic for Kubernetes operations
 type K8sService struct {
-	Client K8sClientInterface
+	Client K8sClient
 	Logger *slog.Logger
 }
 
@@ -19,7 +53,7 @@ type K8sServiceConfig struct {
 	Logger *slog.Logger
 }
 
-func NewK8sService(cfg K8sServiceConfig, client K8sClientInterface) *K8sService {
+func NewK8sService(cfg K8sServiceConfig, client K8sClient) *K8sService {
 	return &K8sService{
 		Client: client,
 		Logger: cfg.Logger,

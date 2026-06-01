@@ -13,7 +13,7 @@ import (
 // endpoints (*.svc.cluster.local) since traffic stays within the cluster network.
 // RFC-1918 private IPs are permitted (MinIO commonly runs on cluster service IPs).
 // Loopback, link-local, and reserved ranges are always blocked.
-func (p *S3ClientProvider) validateAndNormalizeEndpoint(endpoint string) (string, error) {
+func (p *awsClientProvider) validateAndNormalizeEndpoint(endpoint string) (string, error) {
 	if endpoint == "" {
 		return "", fmt.Errorf("endpoint URL cannot be empty")
 	}

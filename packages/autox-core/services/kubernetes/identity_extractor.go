@@ -11,23 +11,23 @@ type IdentityExtractor interface {
 	Extract(headers http.Header) (*RequestIdentity, error)
 }
 
-// MockIdentityExtractor returns a fixed identity for disabled auth (testing/development)
-type MockIdentityExtractor struct{}
+// mockIdentityExtractor returns a fixed identity for disabled auth (testing/development)
+type mockIdentityExtractor struct{}
 
-func (e *MockIdentityExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
+func (e *mockIdentityExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
 	return &RequestIdentity{
 		UserID: "user@example.com",
 		Groups: []string{"system:masters"},
 	}, nil
 }
 
-// KubeflowHeaderExtractor extracts identity from Kubeflow headers (internal auth)
-type KubeflowHeaderExtractor struct {
+// kubeflowHeaderExtractor extracts identity from Kubeflow headers (internal auth)
+type kubeflowHeaderExtractor struct {
 	UserIDHeader     string
 	UserGroupsHeader string
 }
 
-func (e *KubeflowHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
+func (e *kubeflowHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
 	userID := headers.Get(e.UserIDHeader)
 	if userID == "" {
 		return nil, fmt.Errorf("missing required header: %s", e.UserIDHeader)
@@ -48,13 +48,13 @@ func (e *KubeflowHeaderExtractor) Extract(headers http.Header) (*RequestIdentity
 	}, nil
 }
 
-// TokenHeaderExtractor extracts bearer token from Authorization header (user_token auth)
-type TokenHeaderExtractor struct {
+// tokenHeaderExtractor extracts bearer token from Authorization header (user_token auth)
+type tokenHeaderExtractor struct {
 	Header string
 	Prefix string
 }
 
-func (e *TokenHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
+func (e *tokenHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
 	raw := headers.Get(e.Header)
 	if raw == "" {
 		return nil, fmt.Errorf("missing required header: %s", e.Header)
@@ -77,14 +77,14 @@ func (e *TokenHeaderExtractor) Extract(headers http.Header) (*RequestIdentity, e
 func NewIdentityExtractor(authMethod, tokenHeader, tokenPrefix, userIDHeader, userGroupsHeader string) (IdentityExtractor, error) {
 	switch authMethod {
 	case "disabled":
-		return &MockIdentityExtractor{}, nil
+		return &mockIdentityExtractor{}, nil
 	case "internal":
-		return &KubeflowHeaderExtractor{
+		return &kubeflowHeaderExtractor{
 			UserIDHeader:     userIDHeader,
 			UserGroupsHeader: userGroupsHeader,
 		}, nil
 	case "user_token":
-		return &TokenHeaderExtractor{
+		return &tokenHeaderExtractor{
 			Header: tokenHeader,
 			Prefix: tokenPrefix,
 		}, nil

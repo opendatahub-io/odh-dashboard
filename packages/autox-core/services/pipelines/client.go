@@ -25,32 +25,15 @@ const maxSuccessBodySize = 10 << 20 // 10 MB
 // maxPaginationPages caps auto-paginating client methods to prevent unbounded iteration.
 const maxPaginationPages = 100
 
-// httpClientInterface wraps http.Client for testing
-type httpClientInterface interface {
+// HTTPClient wraps http.Client for testing.
+type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// PipelinesClientInterface defines the contract for Pipelines API operations
-type PipelinesClientInterface interface {
-	// Pipeline Run operations
-	CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
-	GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
-	ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error)
-	TerminateRun(ctx context.Context, baseURL string, runID string) error
-	RetryRun(ctx context.Context, baseURL string, runID string) error
-	DeleteRun(ctx context.Context, baseURL string, runID string) error
 
-	// Pipeline operations
-	ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error)
-	GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error)
-	ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error)
-	CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error)
-	UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error)
-}
-
-// PipelinesClient implements Pipelines API operations using HTTP
-type PipelinesClient struct {
-	HttpClient httpClientInterface
+// pipelinesClient implements PipelinesClient using HTTP
+type pipelinesClient struct {
+	HTTPClient HTTPClient
 }
 
 // PipelinesClientConfig configures the pipelines client.
@@ -64,20 +47,21 @@ type PipelinesClientConfig struct {
 }
 
 // Compile-time interface checks.
-var _ PipelinesClientInterface = (*PipelinesClient)(nil)
-var _ httpClientInterface = (*http.Client)(nil)
+var _ PipelinesClient = (*pipelinesClient)(nil)
+var _ HTTPClient = (*http.Client)(nil)
+
 
 // NewPipelinesClient creates a client with an injectable HTTP client (for testing).
-func NewPipelinesClient(httpClient httpClientInterface) *PipelinesClient {
-	return &PipelinesClient{
-		HttpClient: httpClient,
+func NewPipelinesClient(c HTTPClient) PipelinesClient {
+	return &pipelinesClient{
+		HTTPClient: c,
 	}
 }
 
 // NewDefaultPipelinesClient creates a client with a real HTTP client configured for
 // token-based authentication. The token is extracted per-request from the context
 // via IdentityFromContext and injected via a RoundTripper.
-func NewDefaultPipelinesClient(cfg PipelinesClientConfig) *PipelinesClient {
+func NewDefaultPipelinesClient(cfg PipelinesClientConfig) PipelinesClient {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.MaxIdleConns = 100
 	transport.MaxIdleConnsPerHost = 100
@@ -99,17 +83,17 @@ func NewDefaultPipelinesClient(cfg PipelinesClientConfig) *PipelinesClient {
 		base = cfg.WrapTransport(base)
 	}
 
-	httpClient := &http.Client{
+	hc := &http.Client{
 		Transport: k8s.NewBearerTokenRoundTripper(base),
 	}
 
-	return &PipelinesClient{
-		HttpClient: httpClient,
+	return &pipelinesClient{
+		HTTPClient: hc,
 	}
 }
 
 // CreatePipelineRun creates a new pipeline run
-func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+func (c *pipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
@@ -125,7 +109,7 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -144,7 +128,7 @@ func (c *PipelinesClient) CreatePipelineRun(ctx context.Context, baseURL string,
 }
 
 // GetPipelineRun retrieves a single pipeline run by ID
-func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+func (c *pipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -158,7 +142,7 @@ func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -177,7 +161,7 @@ func (c *PipelinesClient) GetPipelineRun(ctx context.Context, baseURL string, ru
 }
 
 // ListPipelineRuns queries the Kubeflow Pipelines API for runs
-func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
+func (c *pipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -205,7 +189,7 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -224,7 +208,7 @@ func (c *PipelinesClient) ListPipelineRuns(ctx context.Context, baseURL string, 
 }
 
 // TerminateRun terminates a running pipeline
-func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runID string) error {
+func (c *pipelinesClient) TerminateRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -238,7 +222,7 @@ func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -252,7 +236,7 @@ func (c *PipelinesClient) TerminateRun(ctx context.Context, baseURL string, runI
 }
 
 // RetryRun retries a failed pipeline run
-func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID string) error {
+func (c *pipelinesClient) RetryRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -266,7 +250,7 @@ func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -280,7 +264,7 @@ func (c *PipelinesClient) RetryRun(ctx context.Context, baseURL string, runID st
 }
 
 // DeleteRun deletes a pipeline run
-func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID string) error {
+func (c *pipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID string) error {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -294,7 +278,7 @@ func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -309,7 +293,7 @@ func (c *PipelinesClient) DeleteRun(ctx context.Context, baseURL string, runID s
 
 // ListPipelines retrieves all pipelines, paging through results.
 // Capped at maxPaginationPages to prevent unbounded iteration from a malicious server.
-func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+func (c *pipelinesClient) ListPipelines(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -332,7 +316,7 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
 
-		resp, err := c.HttpClient.Do(req)
+		resp, err := c.HTTPClient.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute request: %w", err)
 		}
@@ -366,7 +350,7 @@ func (c *PipelinesClient) ListPipelines(ctx context.Context, baseURL string, fil
 }
 
 // GetPipelineVersion retrieves a pipeline version
-func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
+func (c *pipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -381,7 +365,7 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -400,7 +384,7 @@ func (c *PipelinesClient) GetPipelineVersion(ctx context.Context, baseURL string
 }
 
 // ListPipelineVersions retrieves all versions for a pipeline
-func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+func (c *pipelinesClient) ListPipelineVersions(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -414,7 +398,7 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -433,7 +417,7 @@ func (c *PipelinesClient) ListPipelineVersions(ctx context.Context, baseURL stri
 }
 
 // CreatePipeline creates a new pipeline
-func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+func (c *pipelinesClient) CreatePipeline(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
@@ -454,7 +438,7 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -473,7 +457,7 @@ func (c *PipelinesClient) CreatePipeline(ctx context.Context, baseURL string, na
 }
 
 // UploadPipelineVersion uploads a new pipeline version from file content
-func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
+func (c *pipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -508,7 +492,7 @@ func (c *PipelinesClient) UploadPipelineVersion(ctx context.Context, baseURL str
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := c.HttpClient.Do(req)
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}

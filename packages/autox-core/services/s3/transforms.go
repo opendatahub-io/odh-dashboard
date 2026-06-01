@@ -11,8 +11,8 @@ import (
 
 // --- Unexported transforms (AWS SDK → domain models, used by client.go) ---
 
-func mapListObjectsOutput(output *awss3.ListObjectsV2Output) *S3ListObjectsResponse {
-	result := &S3ListObjectsResponse{
+func mapListObjectsOutput(output *awss3.ListObjectsV2Output) *ListObjectsResponse {
+	result := &ListObjectsResponse{
 		IsTruncated:           aws.ToBool(output.IsTruncated),
 		KeyCount:              aws.ToInt32(output.KeyCount),
 		MaxKeys:               aws.ToInt32(output.MaxKeys),
@@ -21,8 +21,8 @@ func mapListObjectsOutput(output *awss3.ListObjectsV2Output) *S3ListObjectsRespo
 		Delimiter:             aws.ToString(output.Delimiter),
 		ContinuationToken:     aws.ToString(output.ContinuationToken),
 		NextContinuationToken: aws.ToString(output.NextContinuationToken),
-		CommonPrefixes:        make([]S3CommonPrefix, 0, len(output.CommonPrefixes)),
-		Contents:              make([]S3ObjectInfo, 0, len(output.Contents)),
+		CommonPrefixes:        make([]CommonPrefix, 0, len(output.CommonPrefixes)),
+		Contents:              make([]ObjectInfo, 0, len(output.Contents)),
 	}
 
 	for _, cp := range output.CommonPrefixes {
@@ -41,8 +41,8 @@ func mapListObjectsOutput(output *awss3.ListObjectsV2Output) *S3ListObjectsRespo
 	return result
 }
 
-func mapObjectInfo(obj awss3types.Object) S3ObjectInfo {
-	info := S3ObjectInfo{
+func mapObjectInfo(obj awss3types.Object) ObjectInfo {
+	info := ObjectInfo{
 		Key:          aws.ToString(obj.Key),
 		Size:         aws.ToInt64(obj.Size),
 		ETag:         aws.ToString(obj.ETag),
@@ -54,6 +54,6 @@ func mapObjectInfo(obj awss3types.Object) S3ObjectInfo {
 	return info
 }
 
-func mapCommonPrefix(cp awss3types.CommonPrefix) S3CommonPrefix {
-	return S3CommonPrefix{Prefix: aws.ToString(cp.Prefix)}
+func mapCommonPrefix(cp awss3types.CommonPrefix) CommonPrefix {
+	return CommonPrefix{Prefix: aws.ToString(cp.Prefix)}
 }

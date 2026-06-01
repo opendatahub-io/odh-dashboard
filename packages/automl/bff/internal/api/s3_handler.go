@@ -382,7 +382,7 @@ func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
 }
 
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.
-type S3FilesEnvelope Envelope[cores3.S3ListObjectsResponse, None]
+type S3FilesEnvelope Envelope[cores3.ListObjectsResponse, None]
 
 // GetS3FilesHandler lists objects in an S3 bucket.
 // Query parameters:

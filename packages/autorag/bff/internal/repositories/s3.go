@@ -33,13 +33,13 @@ const s3KeyResolutionTimeout = 15 * time.Second
 // S3Repository handles S3 credential resolution (from K8s secrets or DSPA) and
 // delegates S3 operations to the autox-core S3 service.
 type S3Repository struct {
-	s3Service        *cores3.S3Service
+	s3Service        *cores3.Service
 	k8sService       *corek8s.K8sService
 	pipelinesService *corepipelines.PipelinesService
 }
 
 func NewS3Repository(
-	s3Service *cores3.S3Service,
+	s3Service *cores3.Service,
 	k8sService *corek8s.K8sService,
 	pipelinesService *corepipelines.PipelinesService,
 ) *S3Repository {
@@ -50,22 +50,22 @@ func NewS3Repository(
 	}
 }
 
-func (r *S3Repository) resolveCredsAndBucket(ctx context.Context, req S3RequestContext) (cores3.S3ConnectionOptions, string, error) {
+func (r *S3Repository) resolveCredsAndBucket(ctx context.Context, req S3RequestContext) (cores3.ConnectionOptions, string, error) {
 	if req.SecretName != "" {
 		return r.resolveFromSecret(ctx, req)
 	}
 	return r.resolveFromDSPA(ctx, req.Namespace)
 }
 
-func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestContext) (cores3.S3ConnectionOptions, string, error) {
+func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestContext) (cores3.ConnectionOptions, string, error) {
 	secret, err := r.k8sService.GetSecret(ctx, req.Namespace, req.SecretName)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("error fetching secret %q from namespace %s: %w", req.SecretName, req.Namespace, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("error fetching secret %q from namespace %s: %w", req.SecretName, req.Namespace, err)
 	}
 
 	opts, defaultBucket, err := extractAWSS3ConnectionOptions(secret.Data)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("secret %q: %w", req.SecretName, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("secret %q: %w", req.SecretName, err)
 	}
 
 	bucket := strings.TrimSpace(req.Bucket)
@@ -73,51 +73,51 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 		bucket = defaultBucket
 	}
 	if bucket == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("bucket is required: supply ?bucket= or set AWS_S3_BUCKET in secret %q", req.SecretName)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("bucket is required: supply ?bucket= or set AWS_S3_BUCKET in secret %q", req.SecretName)
 	}
 
 	return opts, bucket, nil
 }
 
-func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (cores3.S3ConnectionOptions, string, error) {
+func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (cores3.ConnectionOptions, string, error) {
 	dspa, err := r.pipelinesService.DiscoverReadyDSPA(ctx, namespace)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("failed to discover DSPA in namespace %s: %w", namespace, err)
 	}
 
 	spec := dspa.ObjectStorage
 	if spec == nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
 	}
 	if spec.SecretName == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a secret name", dspa.Name)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a secret name", dspa.Name)
 	}
 	if spec.EndpointURL == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing an endpoint URL", dspa.Name)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing an endpoint URL", dspa.Name)
 	}
 	if spec.Bucket == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a bucket — contact your administrator", dspa.Name)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a bucket — contact your administrator", dspa.Name)
 	}
 
 	secret, err := r.k8sService.GetSecret(ctx, namespace, spec.SecretName)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("error fetching DSPA secret %q from namespace %s: %w", spec.SecretName, namespace, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("error fetching DSPA secret %q from namespace %s: %w", spec.SecretName, namespace, err)
 	}
 
 	accessKeyID, err := corek8s.LookupSecretValue(secret.Data, spec.AccessKeyField)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if accessKeyID == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.AccessKeyField)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.AccessKeyField)
 	}
 
 	secretAccessKey, err := corek8s.LookupSecretValue(secret.Data, spec.SecretKeyField)
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if secretAccessKey == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.SecretKeyField)
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.SecretKeyField)
 	}
 
 	region := spec.Region
@@ -141,7 +141,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (c
 		bucket = secretBucket
 	}
 
-	return cores3.S3ConnectionOptions{
+	return cores3.ConnectionOptions{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
@@ -188,7 +188,7 @@ func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key
 }
 
 // ListObjects resolves credentials from req and lists objects using options.
-func (r *S3Repository) ListObjects(ctx context.Context, req S3RequestContext, options cores3.ListObjectsOptions) (*cores3.S3ListObjectsResponse, error) {
+func (r *S3Repository) ListObjects(ctx context.Context, req S3RequestContext, options cores3.ListObjectsOptions) (*cores3.ListObjectsResponse, error) {
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
 	if err != nil {
 		return nil, err
@@ -213,7 +213,7 @@ func (r *S3Repository) ObjectExists(ctx context.Context, req S3RequestContext, k
 
 // extractAWSS3ConnectionOptions extracts S3 connection options from a Kubernetes secret's
 // raw data using the AWS_* key convention used by RHOAI/ODH data connection secrets.
-func extractAWSS3ConnectionOptions(data map[string][]byte) (cores3.S3ConnectionOptions, string, error) {
+func extractAWSS3ConnectionOptions(data map[string][]byte) (cores3.ConnectionOptions, string, error) {
 	get := func(key string) (string, error) {
 		v, err := corek8s.LookupSecretValue(data, key)
 		if err != nil {
@@ -224,39 +224,39 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (cores3.S3ConnectionO
 
 	accessKeyID, err := get("AWS_ACCESS_KEY_ID")
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", err
+		return cores3.ConnectionOptions{}, "", err
 	}
 	secretAccessKey, err := get("AWS_SECRET_ACCESS_KEY")
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", err
+		return cores3.ConnectionOptions{}, "", err
 	}
 	region, err := get("AWS_DEFAULT_REGION")
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", err
+		return cores3.ConnectionOptions{}, "", err
 	}
 	endpoint, err := get("AWS_S3_ENDPOINT")
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", err
+		return cores3.ConnectionOptions{}, "", err
 	}
 	bucket, err := get("AWS_S3_BUCKET")
 	if err != nil {
-		return cores3.S3ConnectionOptions{}, "", err
+		return cores3.ConnectionOptions{}, "", err
 	}
 
 	if accessKeyID == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_ACCESS_KEY_ID")
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_ACCESS_KEY_ID")
 	}
 	if secretAccessKey == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_SECRET_ACCESS_KEY")
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_SECRET_ACCESS_KEY")
 	}
 	if region == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_DEFAULT_REGION")
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_DEFAULT_REGION")
 	}
 	if endpoint == "" {
-		return cores3.S3ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_S3_ENDPOINT")
+		return cores3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_S3_ENDPOINT")
 	}
 
-	return cores3.S3ConnectionOptions{
+	return cores3.ConnectionOptions{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
