@@ -57,16 +57,13 @@ const server = http.createServer((req, res) => {
 
   fs.realpath(PUBLIC_DIR, (dirErr, canonicalDir) => {
     if (dirErr) {
-      res.writeHead(403);
-      res.end('Forbidden');
+      res.writeHead(500);
+      res.end('Internal Server Error');
       return;
     }
     fs.realpath(filePath, (fileErr, canonicalFile) => {
-      if (
-        fileErr ||
-        (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep))
-      ) {
-        if (fileErr && fileErr.code === 'ENOENT') {
+      if (fileErr) {
+        if (fileErr.code === 'ENOENT') {
           const isNavigation =
             req.method === 'GET' && !ext && (req.headers.accept || '').includes('text/html');
           if (isNavigation) {
@@ -75,8 +72,13 @@ const server = http.createServer((req, res) => {
             res.writeHead(404);
             res.end('Not found');
           }
-          return;
+        } else {
+          res.writeHead(500);
+          res.end('Internal Server Error');
         }
+        return;
+      }
+      if (canonicalFile !== canonicalDir && !canonicalFile.startsWith(canonicalDir + path.sep)) {
         res.writeHead(403);
         res.end('Forbidden');
         return;
