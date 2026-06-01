@@ -76,6 +76,7 @@ const useMergedWatchResults = <T extends TrainJobKind | RayJobKind>(
   React.useMemo(() => {
     const entries = Object.values(resultsMap);
     const allData = entries.flatMap(([data]) => data);
+    // React 18 batches both setState calls in handleUnmount so entries is never stale between them
     const allLoaded = entries.length >= projectCount && entries.every(([, loaded]) => loaded);
     const firstError = entries.find(([, , error]) => error)?.[2];
     return [allData, allLoaded, firstError];
@@ -167,6 +168,7 @@ export const ModelTrainingContextProvider: React.FC<ModelTrainingContextProvider
   return (
     <ModelTrainingContext.Provider value={contextValue}>
       {!isSingleProject &&
+        (isModelTrainingAvailable || isRayJobsAvailable) &&
         projects.map((p) => (
           <ProjectWatcher
             key={p.metadata.name}
