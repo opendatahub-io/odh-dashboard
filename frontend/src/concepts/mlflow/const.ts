@@ -11,4 +11,5 @@ export const EXPERIMENTS_NAV_ID = 'experiments-mlflow';
 export enum MlflowTrackingEvents {
   EMBEDDED_VIEW_OPENED = 'MLflow Embedded View Opened',
   LAUNCH_CLICKED = 'Launch MLflow clicked',
+  PROJECT_SWITCHED = 'MLflow Project Switched',
 }

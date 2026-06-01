@@ -48,12 +48,6 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
   skipSuiteIfBYOIDC('PVC loader pod creation not supported on BYOIDC clusters');
 
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     return loadDSPFixture('e2e/dataScienceProjects/testModelPvcDeployment.yaml').then(
       (fixtureData: DataScienceProjectData) => {
         testData = fixtureData;

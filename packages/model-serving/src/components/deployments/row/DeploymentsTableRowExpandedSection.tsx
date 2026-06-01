@@ -21,14 +21,12 @@ import { MODEL_SERVING_VISIBILITY } from '@odh-dashboard/internal/concepts/hardw
 import HardwareProfileNameValue from './HardwareProfileNameValue';
 import { isDeploymentAuthEnabled, useDeploymentAuthTokens } from '../../../concepts/auth';
 import { useResolvedDeploymentExtension } from '../../../concepts/extensionUtils';
-import {
-  isModelServingDeploymentFormDataExtension,
-  type Deployment,
-} from '../../../../extension-points';
+import { type Deployment } from '../../../../extension-points';
 import {
   ExtractedFieldData,
   useWizardFieldExtractors,
 } from '../../deploymentWizard/useWizardFieldExtractors';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import type { ModelAvailabilityFieldsData } from '../../deploymentWizard/types';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';

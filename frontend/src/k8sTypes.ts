@@ -1326,6 +1326,7 @@ export type DashboardCommonConfig = {
   aiAssetCustomEndpoints?: boolean;
   mlflowPipelines?: boolean;
   mcpCatalog?: boolean;
+  toolCalling?: boolean;
   projectRBAC?: boolean;
   observabilityDashboard?: boolean;
   disableLLMd?: boolean;
@@ -1335,6 +1336,9 @@ export type DashboardCommonConfig = {
   llmGatewayField?: boolean;
   promptManagement?: boolean;
   nimWizard?: boolean;
+  mySubscriptions?: boolean;
+  agentOps?: boolean;
+  roleManagement?: boolean;
 };
 
 // [1] Intentionally disjointed fields from the CRD in this type definition

@@ -14,6 +14,14 @@ import (
 	"github.com/opendatahub-io/maas-library/bff/internal/models"
 )
 
+type AppHandler func(app *App, w http.ResponseWriter, r *http.Request, params httprouter.Params)
+
+func handlerWithApp(app *App, handle AppHandler) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		handle(app, w, r, p)
+	}
+}
+
 // attachSubscriptionHandlers registers the subscription routes.
 func attachSubscriptionHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.SubscriptionListPath, handlerWithApp(app, ListSubscriptionsHandler))

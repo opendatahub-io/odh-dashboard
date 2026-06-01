@@ -3,8 +3,8 @@ import { Radio, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type { ModelTypeField } from './ModelTypeSelectField';
 import type { ModelServerSelectField } from './ModelServerTemplateSelectField';
-import { isDeploymentStrategyField } from '../types';
-import { useWizardFieldFromExtension } from '../dynamicFormUtils';
+import { isDeploymentStrategyFieldOverride } from '../types';
+import { useWizardFieldOverrides } from '../dynamicFormUtils';
 import { useModelServingClusterSettings } from '../../../concepts/useModelServingClusterSettings';
 
 // Schema
@@ -32,14 +32,17 @@ export const useDeploymentStrategyField = (
   modelServer?: ModelServerSelectField,
 ): DeploymentStrategyFieldHook => {
   const { data: modelServingClusterSettings } = useModelServingClusterSettings();
-  const deploymentStrategyField = useWizardFieldFromExtension(isDeploymentStrategyField, {
-    modelType,
-    modelServer,
-  });
+  const deploymentStrategyFieldOverrides = useWizardFieldOverrides(
+    isDeploymentStrategyFieldOverride,
+    {
+      modelType,
+      modelServer,
+    },
+  );
 
   const isVisible = React.useMemo(() => {
-    return deploymentStrategyField?.isVisible ?? true;
-  }, [deploymentStrategyField]);
+    return deploymentStrategyFieldOverrides.some((override) => override.isVisible);
+  }, [deploymentStrategyFieldOverrides]);
 
   const clusterDefault = React.useMemo(() => {
     const strategy = modelServingClusterSettings?.deploymentStrategy;

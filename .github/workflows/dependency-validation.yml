@@ -1,0 +1,182 @@
+name: Dependency Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - "**/package-lock.json"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-dirs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      dirs: ${{ steps.dirs.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed package directories
+        id: dirs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git diff -z --diff-filter=ACMRT "$BASE_SHA"..HEAD -- '**/package-lock.json' > /tmp/changed-locks
+
+          DIRS="[]"
+          while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            DIRS=$(echo "$DIRS" | jq -c --arg d "$dir" '. + [$d]')
+          done < /tmp/changed-locks
+
+          echo "dirs=$(echo "$DIRS" | jq -c '.')" >> "$GITHUB_OUTPUT"
+          echo "Directories to audit: $DIRS"
+
+  audit:
+    needs: detect-dirs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    if: ${{ needs.detect-dirs.outputs.dirs != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: ${{ fromJSON(needs.detect-dirs.outputs.dirs) }}
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Run npm audit on head
+        id: audit
+        timeout-minutes: 5
+        working-directory: ${{ matrix.dir }}
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          set +e
+          npm audit --omit=dev --audit-level=high --package-lock-only --json > audit-head.json 2>audit-head.err
+          set -e
+
+          if [ -s audit-head.err ]; then
+            echo "[info] npm audit stderr:" && cat audit-head.err
+          fi
+
+          if ! jq empty audit-head.json 2>/dev/null; then
+            echo "::error::npm audit produced invalid JSON in ${AUDIT_DIR}"
+            [ -s audit-head.err ] && cat audit-head.err
+            exit 1
+          fi
+
+          jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-head.json | sort > head-ids.txt
+
+          echo "Advisory IDs on head:"
+          cat head-ids.txt
+
+      - name: Checkout base for comparison
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+
+      - name: Run npm audit on base
+        id: audit-base
+        timeout-minutes: 5
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          if [ ! -d "base/${AUDIT_DIR}" ]; then
+            echo "Directory base/${AUDIT_DIR} does not exist on the base branch (new package); treating as zero advisories"
+            mkdir -p "base/${AUDIT_DIR}"
+            touch "base/${AUDIT_DIR}/base-ids.txt"
+          else
+            cd "base/${AUDIT_DIR}"
+            set +e
+            npm audit --omit=dev --audit-level=high --package-lock-only --json > audit-base.json 2>audit-base.err
+            set -e
+
+            if [ -s audit-base.err ]; then
+              echo "[info] npm audit stderr (base):" && cat audit-base.err
+            fi
+
+            if ! jq empty audit-base.json 2>/dev/null; then
+              echo "::warning::npm audit produced invalid JSON on base in ${AUDIT_DIR}; treating as zero advisories"
+              [ -s audit-base.err ] && cat audit-base.err
+              touch base-ids.txt
+            else
+              jq -r '[.vulnerabilities // {} | to_entries[].value.via[]? | select(type == "object") | .url // .source] | unique | .[]' audit-base.json | sort > base-ids.txt
+            fi
+          fi
+
+          echo "Advisory IDs on base:"
+          cat "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt"
+
+      - name: Evaluate new advisories
+        id: evaluate
+        working-directory: ${{ matrix.dir }}
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+        run: |
+          NEW_ADVISORIES=$(comm -23 head-ids.txt "$GITHUB_WORKSPACE/base/${AUDIT_DIR}/base-ids.txt")
+
+          if [ -n "$NEW_ADVISORIES" ]; then
+            COUNT=$(echo "$NEW_ADVISORIES" | wc -l | tr -d ' ')
+            echo "has_new=true" >> "$GITHUB_OUTPUT"
+            echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+            {
+              echo 'advisories<<ADVISORY_EOF'
+              echo "$NEW_ADVISORIES"
+              echo 'ADVISORY_EOF'
+            } >> "$GITHUB_OUTPUT"
+            echo "Found $COUNT new advisory ID(s) in ${AUDIT_DIR}"
+          else
+            echo "has_new=false" >> "$GITHUB_OUTPUT"
+            echo "No new advisories introduced in ${AUDIT_DIR}."
+          fi
+
+      - name: Log bypassed advisories when ok-to-skip-audit is set
+        if: steps.evaluate.outputs.has_new == 'true' && contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+          NEW_COUNT: ${{ steps.evaluate.outputs.count }}
+          NEW_ADVISORIES: ${{ steps.evaluate.outputs.advisories }}
+        run: |
+          echo "::warning::Audit bypassed via ok-to-skip-audit label"
+          echo "${NEW_COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
+          echo "$NEW_ADVISORIES"
+
+          mkdir -p bypass-details
+          {
+            echo "DIR=${AUDIT_DIR}"
+            echo "COUNT=${NEW_COUNT}"
+            echo "${NEW_ADVISORIES}"
+          } > bypass-details/report.txt
+
+      - name: Upload bypass details
+        if: steps.evaluate.outputs.has_new == 'true' && contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: audit-bypass-${{ strategy.job-index }}-${{ github.run_attempt }}
+          path: bypass-details/
+          retention-days: 30
+
+      - name: Fail if new advisories and no bypass label
+        if: steps.evaluate.outputs.has_new == 'true' && !contains(github.event.pull_request.labels.*.name, 'ok-to-skip-audit')
+        env:
+          AUDIT_DIR: ${{ matrix.dir }}
+          NEW_COUNT: ${{ steps.evaluate.outputs.count }}
+          NEW_ADVISORIES: ${{ steps.evaluate.outputs.advisories }}
+        run: |
+          echo "::error::PR introduces ${NEW_COUNT} new advisory ID(s) in ${AUDIT_DIR} not present on the base branch:"
+          echo "$NEW_ADVISORIES"
+          echo ""
+          echo "If this is acceptable (e.g. not reachable, already tracked),"
+          echo "add the 'ok-to-skip-audit' label to bypass this check."
+          exit 1

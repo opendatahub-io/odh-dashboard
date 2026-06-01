@@ -186,6 +186,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               <ModelSourceStepContent
                 wizardState={wizardFormData}
                 validation={validation.modelSource}
+                externalData={externalData}
               />
             </WizardStep>
             <WizardStep

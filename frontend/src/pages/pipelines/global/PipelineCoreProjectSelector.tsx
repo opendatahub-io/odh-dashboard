@@ -11,12 +11,14 @@ type PipelineCoreProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
   queryParamNamespace?: string;
   objectType?: ProjectObjectType;
+  onProjectChange?: (projectName: string) => void;
 };
 
 const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
   getRedirectPath,
   queryParamNamespace,
   objectType,
+  onProjectChange,
 }) => {
   const isMLflowEnabled = useIsAreaAvailable(SupportedArea.MLFLOW).status;
 
@@ -52,6 +54,7 @@ const PipelineCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = 
         <ProjectSelectorNavigator
           getRedirectPath={getRedirectPath}
           queryParamNamespace={queryParamNamespace}
+          onProjectChange={onProjectChange}
           showTitle
         />
       </StackItem>

@@ -89,7 +89,7 @@ const FeatureViewTabsInner: React.FC<FeatureViewTabsProps> = ({ featureView }) =
         <PageSection
           hasBodyWrapper={false}
           isFilled
-          data-testid="lineage-feature-views-tab-content"
+          data-testid="consuming-feature-services-tab-content"
           className="pf-v6-u-mt-xl"
         >
           <FeatureViewConsumingTab featureView={featureView} />

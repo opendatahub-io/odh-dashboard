@@ -11,11 +11,15 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./types": "./src/api/nimservices/types.ts"
   },
   "dependencies": {
     "@odh-dashboard/internal": "*",
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/kserve": "*",
+    "@odh-dashboard/model-serving": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "@openshift/dynamic-plugin-sdk-utils": "*"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*",

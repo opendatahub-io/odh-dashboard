@@ -106,7 +106,7 @@ const FeatureViewTableRow: React.FC<FeatureViewTableRowType> = ({
     switch (column.field) {
       case 'feature_view':
         return (
-          <Td key="feature_view" dataLabel="Feature View">
+          <Td key="feature_view" dataLabel="Name">
             <TableRowTitleDescription
               title={
                 <Link

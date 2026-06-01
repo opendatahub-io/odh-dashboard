@@ -15,6 +15,19 @@ describe('MCP Catalog feature flag', () => {
     navSidebar.findNavItem({ name: 'MCP servers', rootSection: 'AI hub' }).should('exist');
   });
 
+  it('should show MCP Catalog nav item when enabled and Model Registry is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        mcpCatalog: true,
+        disableModelRegistry: true,
+      }),
+    );
+    navSidebar.visit();
+    navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavItem({ name: 'MCP servers', rootSection: 'AI hub' }).should('exist');
+  });
+
   it('should not show MCP Catalog nav item when feature flag is disabled', () => {
     cy.interceptOdh(
       'GET /api/config',

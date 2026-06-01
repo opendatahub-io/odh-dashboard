@@ -14,6 +14,16 @@ jest.mock('../../../routes', () => ({
   featureViewRoute: jest.fn(
     (name, project) => `/develop-train/feature-store/feature-views/${project}/${name}`,
   ),
+  featureStoreRoute: jest.fn(
+    (obj: string, project?: string) =>
+      `/develop-train/feature-store/${obj}${project ? `/${project}` : ''}`,
+  ),
+  featureDataSourceRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/data-sources/${project}/${name}`,
+  ),
+  featureDataSetRoute: jest.fn(
+    (name, project) => `/develop-train/feature-store/datasets/${project}/${name}`,
+  ),
 }));
 
 describe('utils', () => {
@@ -213,14 +223,14 @@ describe('utils', () => {
     it('should return correct route for saved datasets', () => {
       const result = getResourceRoute('saved datasets', mockResourceName, mockProject);
       expect(result).toBe(
-        `/develop-train/feature-store/datasets/${mockResourceName}?project=${mockProject}`,
+        `/develop-train/feature-store/datasets/${mockProject}/${mockResourceName}`,
       );
     });
 
     it('should return correct route for data sources', () => {
       const result = getResourceRoute('data sources', mockResourceName, mockProject);
       expect(result).toBe(
-        `/develop-train/feature-store/data-sources/${mockResourceName}?project=${mockProject}`,
+        `/develop-train/feature-store/data-sources/${mockProject}/${mockResourceName}`,
       );
     });
 
@@ -263,11 +273,11 @@ describe('utils', () => {
         },
         {
           resourceType: 'saved datasets',
-          expectedRoute: `/develop-train/feature-store/datasets/${mockResourceName}?project=${mockProject}`,
+          expectedRoute: `/develop-train/feature-store/datasets/${mockProject}/${mockResourceName}`,
         },
         {
           resourceType: 'data sources',
-          expectedRoute: `/develop-train/feature-store/data-sources/${mockResourceName}?project=${mockProject}`,
+          expectedRoute: `/develop-train/feature-store/data-sources/${mockProject}/${mockResourceName}`,
         },
         {
           resourceType: 'feature services',

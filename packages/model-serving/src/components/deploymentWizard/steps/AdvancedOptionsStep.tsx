@@ -52,7 +52,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
   // TODO: Clean up the stuff below related to KServe. Maybe move to an extension?
   const selectedModelServer = React.useMemo(() => {
     const templates = wizardState.state.modelFormatState.templatesFilteredForModelType;
-    const modelServerData = wizardState.state.modelServer.data;
+    const modelServerData = wizardState.state.modelServer?.data;
     if (!modelServerData || !templates || templates.length === 0) {
       return undefined;
     }
@@ -63,7 +63,7 @@ export const AdvancedSettingsStepContent: React.FC<AdvancedSettingsStepContentPr
     return template?.objects[0];
   }, [
     wizardState.state.modelFormatState.templatesFilteredForModelType,
-    wizardState.state.modelServer.data,
+    wizardState.state.modelServer?.data,
   ]);
 
   const getKServeContainer = (

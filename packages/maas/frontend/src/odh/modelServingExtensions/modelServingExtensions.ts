@@ -1,25 +1,25 @@
-import type {
-  WizardField2Extension,
-  WizardFieldApplyExtension,
-  WizardFieldExtractorExtension,
-  WizardFieldDeploymentFunctionsExtension,
-} from '@odh-dashboard/model-serving/extension-points';
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
 import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
+import {
+  WizardFieldApplyExtension,
+  WizardFieldDeploymentFunctionsExtension,
+  WizardFieldExtension,
+  WizardFieldExtractorExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { MODEL_AS_SERVICE_ID } from '~/odh/odhExtensions/odhExtensions';
 import type { MaaSFieldType, MaaSFieldValue } from './modelDeploymentWizard/MaaSEndpointCheckbox';
 
 const MAAS_ENDPOINT_FIELD_ID = 'maas/save-as-maas-checkbox';
 
 export type ModelServingExtensions =
-  | WizardField2Extension<MaaSFieldType, LLMdDeployment>
+  | WizardFieldExtension<MaaSFieldType, LLMdDeployment>
   | WizardFieldApplyExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldExtractorExtension<MaaSFieldValue, LLMdDeployment>
   | WizardFieldDeploymentFunctionsExtension<MaaSFieldValue, LLMdDeployment>;
 
 const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
-    type: 'model-serving.deployment/wizard-field2',
+    type: 'model-serving.deployment/wizard-field',
     flags: {
       required: [MODEL_AS_SERVICE_ID],
     },

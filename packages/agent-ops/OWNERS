@@ -1,0 +1,10 @@
+# OWNERS
+
+approvers:
+  - agent-ops-approvers
+
+reviewers:
+  - agent-ops-reviewers
+
+labels:
+  - area/agent-ops
