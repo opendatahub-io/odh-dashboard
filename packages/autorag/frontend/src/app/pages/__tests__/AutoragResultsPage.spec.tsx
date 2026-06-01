@@ -764,9 +764,11 @@ describe('AutoragResultsPage', () => {
       });
 
       const { rerender } = render(
-        <QueryClientProvider client={createTestQueryClient()}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       // Open the modal
@@ -781,9 +783,11 @@ describe('AutoragResultsPage', () => {
       });
 
       rerender(
-        <QueryClientProvider client={createTestQueryClient()}>
-          <AutoragResultsPage />
-        </QueryClientProvider>,
+        <MemoryRouter>
+          <QueryClientProvider client={createTestQueryClient()}>
+            <AutoragResultsPage />
+          </QueryClientProvider>
+        </MemoryRouter>,
       );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
