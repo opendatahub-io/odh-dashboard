@@ -213,6 +213,18 @@ describe('getMlflowExperimentId', () => {
     });
     expect(getMlflowExperimentId(run)).toBe('7');
   });
+
+  it('returns experiment_id from plugins_output even when plugin state is FAILED (current behavior)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { experiment_id: { value: 'failed-exp' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowExperimentId(run)).toBe('failed-exp');
+  });
 });
 
 describe('getMlflowRunId', () => {
@@ -250,5 +262,17 @@ describe('getMlflowRunId', () => {
       plugins_input: { mlflow: { root_run_id: 'input-run-id' } },
     });
     expect(getMlflowRunId(run)).toBeUndefined();
+  });
+
+  it('returns root_run_id even when plugin state is FAILED (current behavior)', () => {
+    const run = buildMockRunKF({
+      plugins_output: {
+        mlflow: {
+          entries: { root_run_id: { value: 'partial-id' } },
+          state: PluginStateKF.PLUGIN_FAILED,
+        },
+      },
+    });
+    expect(getMlflowRunId(run)).toBe('partial-id');
   });
 });
