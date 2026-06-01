@@ -389,7 +389,7 @@ func (s *Service) DiscoverPipelineByName(ctx context.Context, namespace, pipelin
 // Results are cached per namespace with a 5-minute TTL.
 func (s *Service) DiscoverNamedPipelines(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*DiscoveredPipeline, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("discovering named pipelines", "namespace", namespace, "count", len(definitions))
+	logger.Debug("discovering named pipelines", "namespace", namespace, "count", len(definitions))
 
 	if namespace == "" {
 		return nil, fmt.Errorf("%w: namespace is required for pipeline discovery", ErrInvalidInput)

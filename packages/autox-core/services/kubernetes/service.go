@@ -2,6 +2,8 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"log/slog"
 
 	v1 "k8s.io/api/core/v1"
@@ -93,7 +95,7 @@ func (s *Service) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error
 // GetAccessibleNamespaces returns namespaces the user can access.
 func (s *Service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("fetching accessible namespaces")
+	logger.Debug("fetching accessible namespaces")
 
 	// Skip per-namespace SSAR checks for cluster admins — they can access everything.
 	// This avoids N+1 API calls (one SSAR per namespace).
@@ -133,7 +135,7 @@ func (s *Service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, 
 // GetAccessibleNamespaceInfos returns namespaces the user can access with display names.
 func (s *Service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("fetching accessible namespace infos")
+	logger.Debug("fetching accessible namespace infos")
 
 	isAdmin, err := s.Client.IsClusterAdmin(ctx)
 	if err == nil && isAdmin {
@@ -254,7 +256,7 @@ func (s *Service) GetSecretInfos(ctx context.Context, namespace string) ([]Secre
 
 func (s *Service) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("fetching secret", "namespace", namespace, "secretName", secretName)
+	logger.Debug("fetching secret", "namespace", namespace, "secretName", secretName)
 
 	if err := ValidateNamespaceName(namespace); err != nil {
 		s.Logger.Error("invalid namespace name", "error", err)
@@ -328,7 +330,7 @@ func (s *Service) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 
 func (s *Service) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
+	logger.Debug("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
 
 	if namespace != "" {
 		if err := ValidateNamespaceName(namespace); err != nil {
@@ -471,13 +473,22 @@ func (s *Service) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	return LoggerWithIdentity(ctx, s.Logger)
 }
 
-// LoggerWithIdentity returns logger enriched with the user ID from context.
-// Falls back to the base logger if identity is missing.
+// LoggerWithIdentity returns logger enriched with the user from context.
+// In user_token auth mode, UserID is empty so a short token hash is used as
+// a correlation ID instead (deterministic, non-reversible, safe to log).
+// Falls back to the base logger silently if identity is not in context
+// (expected on paths that skip identity injection, e.g. healthcheck).
 func LoggerWithIdentity(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	identity, err := IdentityFromContext(ctx)
 	if err != nil {
-		logger.Error("missing identity in context", "error", err)
 		return logger
 	}
-	return logger.With("user", identity.UserID)
+	if identity.UserID != "" {
+		return logger.With("user", identity.UserID)
+	}
+	if identity.Token != "" {
+		sum := sha256.Sum256([]byte(identity.Token))
+		return logger.With("user", fmt.Sprintf("token:%x", sum[:4]))
+	}
+	return logger
 }

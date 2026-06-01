@@ -19,7 +19,7 @@ import (
 //   - Managed MinIO: spec.objectStorage.minio.deploy=true with conventional naming
 func (s *Service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error) {
 	logger := s.loggerWithIdentity(ctx)
-	logger.Info("discovering ready DSPA", "namespace", namespace)
+	logger.Debug("discovering ready DSPA", "namespace", namespace)
 
 	if cached, ok := s.dspaCache.get(namespace); ok {
 		logger.Debug("using cached DSPA", "namespace", namespace, "url", cached.APIServerURL)
