@@ -8,6 +8,7 @@ export const ProjectSectionTitles: ProjectSectionTitlesType = {
   [ProjectSectionID.MODEL_SERVER]: 'Deployments',
   [ProjectSectionID.PIPELINES]: 'Pipelines',
   [ProjectSectionID.PERMISSIONS]: 'Permissions',
+  [ProjectSectionID.ROLES]: 'Roles',
   [ProjectSectionID.SETTINGS]: 'Settings',
   [ProjectSectionID.FEATURE_STORE]: 'Feature Store',
 };

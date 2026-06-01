@@ -24,6 +24,7 @@ const MlflowBreadcrumbs: React.FC<{
         <BreadcrumbItem
           key={b.path}
           isActive={isLast}
+          {...(isLast ? { 'data-testid': 'mlflow-breadcrumb-active' } : {})}
           render={() =>
             isLast ? (
               b.label
