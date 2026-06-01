@@ -74,7 +74,11 @@ body,
   &.pf-m-drilldown:not(.pf-m-scrollable) {
     overflow: hidden;
   }
-  // Make tables inside menus transparent for consistent background
+}
+
+// Tables inside SearchSelector menus (e.g. run group selector) have their own background
+// which clashes with the menu in dark mode.
+.odh-search-selector__menu {
   .pf-v6-c-table {
     --pf-v6-c-table--BackgroundColor: transparent;
   }

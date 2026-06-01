@@ -120,6 +120,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
       }
       menu={
         <Menu
+          className="odh-search-selector__menu"
           data-testid={`${dataTestId}-menu`}
           ref={menuRef}
           isScrollable
