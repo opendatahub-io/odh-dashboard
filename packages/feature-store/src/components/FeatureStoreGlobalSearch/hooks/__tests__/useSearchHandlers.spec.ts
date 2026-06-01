@@ -308,6 +308,22 @@ describe('useSearchHandlers', () => {
       expect(mockState.setIsSearching).not.toHaveBeenCalled();
     });
 
+    it('should cancel pending debounced search on Escape', () => {
+      mockState.isSearchOpen = true;
+      mockState.searchValue = 'test';
+
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+
+      const mockEvent = {} as React.FormEvent<HTMLInputElement>;
+      result.current.handleSearchChange(mockEvent, 'pending query');
+
+      const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+      document.dispatchEvent(escapeEvent);
+
+      jest.advanceTimersByTime(300);
+      expect(mockOptions.onSearchChange).not.toHaveBeenCalled();
+    });
+
     it('should not react to other keys', () => {
       mockState.isSearchOpen = true;
 
@@ -363,6 +379,25 @@ describe('useSearchHandlers', () => {
       expect(mockState.setSearchValue).not.toHaveBeenCalled();
       expect(mockState.setIsSearchOpen).not.toHaveBeenCalled();
       expect(mockState.setIsSearching).not.toHaveBeenCalled();
+    });
+
+    it('should cancel pending debounced search when clicking outside', () => {
+      const outsideElement = document.createElement('div');
+      document.body.appendChild(outsideElement);
+
+      const { result } = renderHook(() => useSearchHandlers(mockState, mockOptions));
+
+      const mockEvent = {} as React.FormEvent<HTMLInputElement>;
+      result.current.handleSearchChange(mockEvent, 'pending query');
+
+      const mouseEvent = new MouseEvent('mousedown', { bubbles: true });
+      Object.defineProperty(mouseEvent, 'target', { value: outsideElement });
+      document.dispatchEvent(mouseEvent);
+
+      jest.advanceTimersByTime(300);
+      expect(mockOptions.onSearchChange).not.toHaveBeenCalled();
+
+      document.body.removeChild(outsideElement);
     });
 
     it('should handle null refs gracefully', () => {

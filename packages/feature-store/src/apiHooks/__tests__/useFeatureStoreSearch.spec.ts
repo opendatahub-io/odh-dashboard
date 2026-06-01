@@ -467,6 +467,37 @@ describe('useFeatureStoreSearch', () => {
     expect(result.current.convertedSearchData).toHaveLength(1);
   });
 
+  it('should accumulate errors from loadMoreResults', async () => {
+    const firstResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-1' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: true }),
+      errors: ['warning from page 1'],
+    });
+
+    const secondResponse = mockGlobalSearchResponse({
+      results: [mockGlobalSearchResult({ name: 'result-2' })],
+      pagination: mockGlobalSearchPagination({ totalCount: 2, hasNext: false }),
+      errors: ['warning from page 2'],
+    });
+
+    mockSearch.mockResolvedValueOnce(firstResponse).mockResolvedValueOnce(secondResponse);
+
+    const { result } = renderHook(() => useFeatureStoreSearch());
+
+    await act(async () => {
+      await result.current.handleSearchChange('test');
+    });
+    expect(result.current.searchErrors).toEqual(['warning from page 1']);
+
+    await act(async () => {
+      await result.current.loadMoreResults();
+    });
+
+    expect(result.current.searchErrors).toEqual(['warning from page 1', 'warning from page 2']);
+    expect(result.current.convertedSearchData).toHaveLength(2);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
   it('should handle response with empty errors in loadMoreResults', async () => {
     const firstResponse = mockGlobalSearchResponse({
       results: [mockGlobalSearchResult({ name: 'result-1' })],
