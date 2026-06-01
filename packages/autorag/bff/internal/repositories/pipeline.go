@@ -442,6 +442,12 @@ func (r *PipelineRepository) ensurePipelineAndVersion(
 		return nil, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", def.PipelineDir, err)
 	}
 
+	if override := os.Getenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE"); override != "" {
+		yamlBytes = pipelines.ReplaceImageRef(yamlBytes, pipelines.AutoRAGImagePattern, override)
+		logger.Info("Replaced pipeline image with RELATED_IMAGE_ODH_AUTORAG_IMAGE",
+			"pipelineDir", def.PipelineDir, "overrideImage", override)
+	}
+
 	// Step 1: Find or create the pipeline shell
 	pipelineID, err := r.findOrCreatePipeline(client, ctx, namespace, pipelineName)
 	if err != nil {
