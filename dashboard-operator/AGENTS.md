@@ -139,7 +139,7 @@ The controller detects three platforms via `cluster.DetectPlatform()`:
 | Platform | Manifest Overlay | Section Title |
 |---|---|---|
 | `OpenDataHub` | `/odh` | OpenShift Open Data Hub |
-| `SelfManagedRhoai` | `/rhoai` | OpenShift Self-Managed Services |
+| `SelfManagedRhoai` | `/rhoai` | OpenShift Self Managed Services |
 | `ManagedRhoai` | `/not-supported` | OpenShift Managed Services |
 
 Platform is determined at startup and injected into the reconciler.
@@ -158,6 +158,7 @@ Container images are resolved from environment variables following the `RELATED_
 | `eval-hub-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_EVAL_HUB_IMAGE` |
 | `automl-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_AUTOML_IMAGE` |
 | `autorag-ui-image` | `RELATED_IMAGE_ODH_MOD_ARCH_AUTORAG_IMAGE` |
+| `images-jobs-async-upload` | `RELATED_IMAGE_ODH_MODEL_REGISTRY_JOB_ASYNC_UPLOAD_IMAGE` |
 | `kube-rbac-proxy` | `RELATED_IMAGE_ODH_KUBE_RBAC_PROXY_IMAGE` |
 
 ## CLI Flags
