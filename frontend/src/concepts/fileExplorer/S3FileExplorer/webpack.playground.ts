@@ -7,7 +7,7 @@
  *
  * Running this playground is done through webpack as a serve command:
  * ```
- * webpack serve --config ./frontend/src/concepts/fileExplorer/S3FileExplorer/webpack.playground.ts
+ * TS_NODE_PROJECT=./frontend/src/concepts/fileExplorer/S3FileExplorer/tsconfig.playground.json webpack serve --config ./frontend/src/concepts/fileExplorer/S3FileExplorer/webpack.playground.ts
  * ```
  */
 
@@ -30,7 +30,7 @@ import type { Configuration as DevServerConfiguration } from 'webpack-dev-server
 const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
 
-const PROJECT_ROOT = path.resolve(currentDir, '../../../../../');
+const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
 const ODH_ROOT = path.resolve(PROJECT_ROOT, '../../../');
 
 const getProxyHeaders = () => {

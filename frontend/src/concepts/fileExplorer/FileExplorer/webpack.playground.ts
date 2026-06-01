@@ -5,16 +5,15 @@
  * The component can be rendered by itself without having to run all of odh-dashboard &
  * any top-level feature that makes use of FileExplorer.
  *
- * Running this playground is done through webpack as a serve command:
+ * Running this playground is done through webpack as a serve command.
  * ```
- * webpack serve --config ./frontend/src/concepts/fileExplorer/FileExplorer/webpack.playground.ts
+ * TS_NODE_PROJECT=./frontend/src/concepts/fileExplorer/FileExplorer/tsconfig.playground.json webpack serve --config ./frontend/src/concepts/fileExplorer/FileExplorer/webpack.playground.ts
  * ```
  */
 
 // Modules -------------------------------------------------------------------->
 
 import path from 'path';
-import { fileURLToPath } from 'url';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import type { Configuration } from 'webpack';
@@ -22,10 +21,9 @@ import type { Configuration as DevServerConfiguration } from 'webpack-dev-server
 
 // Globals -------------------------------------------------------------------->
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = path.dirname(currentFile);
+const currentDir = __dirname;
 
-const PROJECT_ROOT = path.resolve(currentDir, '../../../../../');
+const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
 const NODE_MODULES = path.resolve(PROJECT_ROOT, 'node_modules');
 
 // Config --------------------------------------------------------------------->
