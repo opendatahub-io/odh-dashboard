@@ -19,6 +19,7 @@ import {
   DropdownList,
   EmptyState,
   EmptyStateBody,
+  Flex,
   FormHelperText,
   Gallery,
   Grid,
@@ -1007,21 +1008,21 @@ function AutomlConfigure({
                             control={form.control}
                             name="preset"
                             render={({ field }) => (
-                              <Stack>
+                              <Flex>
                                 {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
                                   <Radio
                                     key={preset}
                                     id={`preset-${preset}`}
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
-                                    description={PRESET_AUTOGLUON_VALUES[preset][taskType]}
+                                    description={`${PRESET_AUTOGLUON_VALUES[preset][taskType]} · ${preset === PRESET_FASTER ? '4 vCPU / 16 GiB · good default for most datasets' : '8 vCPU / 32 GiB · stronger accuracy, longer training'}`}
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
                                     onChange={() => field.onChange(preset)}
                                     data-testid={`preset-radio-${preset}`}
                                   />
                                 ))}
-                              </Stack>
+                              </Flex>
                             )}
                           />
                         </ConfigureFormGroup>
