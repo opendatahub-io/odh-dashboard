@@ -11,16 +11,6 @@ type IdentityExtractor interface {
 	Extract(headers http.Header) (*RequestIdentity, error)
 }
 
-// MockIdentityExtractor returns a fixed identity for disabled auth (testing/development).
-type MockIdentityExtractor struct{}
-
-func (e *MockIdentityExtractor) Extract(headers http.Header) (*RequestIdentity, error) {
-	return &RequestIdentity{
-		UserID: "user@example.com",
-		Groups: []string{"system:masters"},
-	}, nil
-}
-
 // KubeflowHeaderExtractor extracts identity from Kubeflow headers (internal auth).
 type KubeflowHeaderExtractor struct {
 	UserIDHeader     string
