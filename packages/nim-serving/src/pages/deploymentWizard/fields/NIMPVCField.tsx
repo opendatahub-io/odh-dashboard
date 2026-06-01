@@ -5,6 +5,7 @@ import {
   FormSection,
   HelperText,
   HelperTextItem,
+  Skeleton,
   TextInput,
 } from '@patternfly/react-core';
 import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
@@ -16,8 +17,13 @@ import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
 import { PVCModel } from '@odh-dashboard/internal/api/models';
-import type { PersistentVolumeClaimKind, StorageClassKind } from '@odh-dashboard/internal/k8sTypes';
-import { MetadataAnnotation } from '@odh-dashboard/internal/k8sTypes';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import useFetch, {
+  FetchStateCallbackPromise,
+  NotReadyError,
+} from '@odh-dashboard/internal/utilities/useFetch';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import { useDefaultStorageClass } from '@odh-dashboard/internal/pages/projects/screens/spawner/storage/useDefaultStorageClass';
 
 export enum NIMPVCStorageMode {
   NEW = 'new',
@@ -72,9 +78,6 @@ type NIMPVCExternalData = {
   existingPVCs: string[];
 };
 
-const isDefaultStorageClass = (sc: StorageClassKind): boolean =>
-  sc.metadata.annotations?.[MetadataAnnotation.StorageClassIsDefault] === 'true';
-
 const isNIMPVC = (pvcName: string): boolean => pvcName.startsWith('nim-pvc');
 
 const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
@@ -93,6 +96,13 @@ const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
   return [...nimPVCs, ...otherPVCs];
 };
 
+type FetchedStorageData = {
+  storageClasses: StorageClassOption[];
+  existingPVCs: string[];
+};
+
+const DEFAULT_FETCHED_DATA: FetchedStorageData = { storageClasses: [], existingPVCs: [] };
+
 const useNIMPVCExternalData = (dependencies?: {
   project?: { projectName?: string };
 }): {
@@ -102,68 +112,51 @@ const useNIMPVCExternalData = (dependencies?: {
 } => {
   const projectName = dependencies?.project?.projectName;
 
-  const [storageClasses, setStorageClasses] = React.useState<StorageClassOption[]>([]);
-  const [defaultStorageClassName, setDefaultStorageClassName] = React.useState('');
-  const [existingPVCs, setExistingPVCs] = React.useState<string[]>([]);
-  const [loaded, setLoaded] = React.useState(false);
-  const [loadError, setLoadError] = React.useState<Error>();
+  const [defaultStorageClass, defaultSCLoaded, defaultSCError] = useDefaultStorageClass();
 
-  React.useEffect(() => {
+  const fetchCallback = React.useCallback<
+    FetchStateCallbackPromise<FetchedStorageData>
+  >(async () => {
     if (!projectName) {
-      setLoaded(false);
-      return;
+      return Promise.reject(new NotReadyError('No project selected'));
     }
+    const [scList, pvcList] = await Promise.all([
+      getStorageClasses(),
+      k8sListResourceItems<PersistentVolumeClaimKind>({
+        model: PVCModel,
+        queryOptions: { ns: projectName },
+      }),
+    ]);
 
-    let cancelled = false;
-
-    const fetchData = async () => {
-      try {
-        const [scList, pvcList] = await Promise.all([
-          getStorageClasses(),
-          k8sListResourceItems<PersistentVolumeClaimKind>({
-            model: PVCModel,
-            queryOptions: { ns: projectName },
-          }),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        const scOptions = scList.map((sc) => ({
-          name: sc.metadata.name,
-          displayName: sc.metadata.annotations?.['openshift.io/display-name'] || sc.metadata.name,
-        }));
-
-        const defaultSc = scList.find(isDefaultStorageClass);
-
-        setStorageClasses(scOptions);
-        setDefaultStorageClassName(defaultSc?.metadata.name ?? '');
-        setExistingPVCs(sortPVCsNIMFirst(pvcList));
-        setLoadError(undefined);
-        setLoaded(true);
-      } catch (e) {
-        if (!cancelled) {
-          setLoadError(e instanceof Error ? e : new Error('Failed to load storage data'));
-          setLoaded(true);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      cancelled = true;
+    return {
+      storageClasses: scList.map((sc) => ({
+        name: sc.metadata.name,
+        displayName: sc.metadata.annotations?.['openshift.io/display-name'] || sc.metadata.name,
+      })),
+      existingPVCs: sortPVCsNIMFirst(pvcList),
     };
   }, [projectName]);
 
+  const {
+    data: fetchedData,
+    loaded: fetchLoaded,
+    error: fetchError,
+  } = useFetch(fetchCallback, DEFAULT_FETCHED_DATA);
+
+  const loaded = fetchLoaded && defaultSCLoaded;
+  const loadError = fetchError ?? defaultSCError;
+
   return React.useMemo(
     () => ({
-      data: { storageClasses, defaultStorageClassName, existingPVCs },
+      data: {
+        storageClasses: fetchedData.storageClasses,
+        defaultStorageClassName: defaultStorageClass?.metadata.name ?? '',
+        existingPVCs: fetchedData.existingPVCs,
+      },
       loaded,
       loadError,
     }),
-    [storageClasses, defaultStorageClassName, existingPVCs, loaded, loadError],
+    [fetchedData, defaultStorageClass, loaded, loadError],
   );
 };
 
@@ -254,28 +247,29 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   const storageClasses = externalData?.data.storageClasses ?? [];
   const defaultStorageClassName = externalData?.data.defaultStorageClassName ?? '';
   const existingPVCs = externalData?.data.existingPVCs ?? [];
+  const hasExistingPVCs = existingPVCs.length > 0;
 
-  React.useEffect(() => {
-    if (
-      fieldValue.storageMode === NIMPVCStorageMode.NEW &&
-      !fieldValue.storageClassName &&
-      defaultStorageClassName
-    ) {
-      updateField({ storageClassName: defaultStorageClassName });
-    }
-    // Only re-run when these specific values change, not on every fieldValue object reference change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultStorageClassName, fieldValue.storageMode, fieldValue.storageClassName]);
+  if (!externalData || !externalData.loaded) {
+    return (
+      <FormGroup label="Storage and deployment option" fieldId="nim-storage-mode" isRequired>
+        <Skeleton shape="square" width="100%" height="36px" />
+      </FormGroup>
+    );
+  }
 
   const storageModeOptions: SimpleSelectOption[] = [
     {
       key: NIMPVCStorageMode.NEW,
       label: 'Deploy the NIM image from a new cluster storage',
     },
-    {
-      key: NIMPVCStorageMode.EXISTING,
-      label: 'Deploy the NIM image from an existing cluster storage',
-    },
+    ...(hasExistingPVCs
+      ? [
+          {
+            key: NIMPVCStorageMode.EXISTING,
+            label: 'Deploy the NIM image from an existing cluster storage',
+          },
+        ]
+      : []),
   ];
 
   const storageClassOptions: SimpleSelectOption[] = storageClasses.map((sc) => ({
@@ -289,7 +283,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   }));
 
   return (
-    <FormSection title="Storage and deployment option">
+    <FormSection>
       <FormGroup label="Storage and deployment option" fieldId="nim-storage-mode" isRequired>
         <SimpleSelect
           dataTestId="nim-storage-mode-select"
@@ -312,6 +306,13 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
           isDisabled={isDisabled}
           isFullWidth
         />
+        {externalData.loadError && (
+          <HelperText>
+            <HelperTextItem variant="error">
+              There was a problem loading storage data. Please try again later.
+            </HelperTextItem>
+          </HelperText>
+        )}
       </FormGroup>
 
       {fieldValue.storageMode === NIMPVCStorageMode.NEW ? (
@@ -340,7 +341,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             isDisabled={isDisabled}
           />
 
-          <FormGroup label="Storage class" fieldId="nim-storage-class">
+          <FormGroup label="Storage class" fieldId="nim-storage-class" isRequired>
             <SimpleSelect
               dataTestId="nim-storage-class-select"
               options={storageClassOptions}
