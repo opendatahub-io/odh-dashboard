@@ -224,7 +224,10 @@ func TestReconcile_RouteNotReady(t *testing.T) {
 	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
 	assert.Equal(t, int64(2), updated.Status.ObservedGeneration)
+	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
+	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
 	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+	assert.Empty(t, updated.Status.URL)
 }
 
 func TestReconcile_ObservedGenerationSetEarly(t *testing.T) {

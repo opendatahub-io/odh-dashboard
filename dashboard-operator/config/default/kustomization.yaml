@@ -7,3 +7,16 @@ resources:
   - ../rbac
   - ../manager
   - ../webhook
+replacements:
+  - source:
+      kind: Certificate
+      name: dashboard-operator-webhook-cert
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: ValidatingWebhookConfiguration
+        fieldPaths:
+          - metadata.annotations.[cert-manager.io/inject-ca-from]
+        options:
+          delimiter: /
+          index: 0

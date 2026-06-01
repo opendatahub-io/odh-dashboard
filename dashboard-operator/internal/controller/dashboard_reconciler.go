@@ -145,13 +145,8 @@ func (r *DashboardReconciler) reconcile(
 	}
 
 	cm.MarkTrue(string(common.ConditionTypeProvisioningSucceeded),
-		conditions.WithReason("ReconcileSuccess"),
+		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
-
-	cm.MarkFalse(string(common.ConditionTypeDegraded),
-		conditions.WithReason("NoDegradation"),
-		conditions.WithMessage("All sub-modules healthy"),
-		conditions.WithSeverity(common.ConditionSeverityInfo))
 
 	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
 
@@ -159,13 +154,33 @@ func (r *DashboardReconciler) reconcile(
 
 	switch {
 	case errors.Is(err, ErrDashboardRouteNotReady):
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("RouteNotReady"),
+			conditions.WithMessage("Dashboard route is not yet admitted"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("RouteNotReady"),
+			conditions.WithMessage("Dashboard route is not yet admitted"))
+		dashboard.Status.URL = ""
 		logger.Info("Dashboard route not yet available, requeuing")
 		requeueAfter = 10 * time.Second
 	case err != nil:
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("URLExtractionFailed"),
+			conditions.WithError(err),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
+		cm.MarkFalse(string(common.ConditionTypeReady),
+			conditions.WithReason("URLExtractionFailed"),
+			conditions.WithError(err))
+		dashboard.Status.URL = ""
 		logger.Error(err, "Failed to extract dashboard URL")
 
 		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
 	default:
+		cm.MarkFalse(string(common.ConditionTypeDegraded),
+			conditions.WithReason("NoDegradation"),
+			conditions.WithMessage("All sub-modules healthy"),
+			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
 	}
 

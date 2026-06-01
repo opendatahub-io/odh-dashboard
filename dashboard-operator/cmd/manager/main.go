@@ -95,7 +95,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetClient()))
+	mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
 	setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
