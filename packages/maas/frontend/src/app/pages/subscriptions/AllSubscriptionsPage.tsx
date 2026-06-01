@@ -49,8 +49,9 @@ const AllSubscriptionsPage: React.FC = () => {
       description="Create subscriptions to manage group access to MaaS endpoints, and to set token limits for each model."
       empty={loaded && !error && subscriptions.length === 0}
       emptyStatePage={<EmptySubscriptionsPage />}
-      loaded={loaded}
+      loaded={loaded || !!error}
       loadError={error}
+      errorMessage="Error loading subscriptions"
     >
       {loaded && (
         <PageSection isFilled>
