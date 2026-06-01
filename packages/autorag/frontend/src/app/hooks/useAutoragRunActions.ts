@@ -67,14 +67,9 @@ export const useAutoragRunActions = (
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-      // Check if the error is because the run is already in a terminal state (case-insensitive)
-      const normalized = errorMessage.toUpperCase();
-      const isAlreadyTerminated =
-        normalized.includes('FAILED') ||
-        normalized.includes('SUCCEEDED') ||
-        normalized.includes('CANCELED') ||
-        normalized.includes('CANCELLED') ||
-        normalized.includes('CANNOT BE TERMINATED');
+      // Check if the error is because the run is already in a terminal state (case-insensitive, whole words only)
+      const terminalStatePattern = /\b(FAILED|SUCCEEDED|CANCELL?ED)\b|cannot be terminated/i;
+      const isAlreadyTerminated = terminalStatePattern.test(errorMessage);
 
       if (isAlreadyTerminated) {
         notification.warning(
@@ -84,10 +79,14 @@ export const useAutoragRunActions = (
       } else {
         notification.error('Failed to stop run', errorMessage);
       }
-      // Refresh the state to update the UI
-      await queryClient.invalidateQueries({
-        queryKey: ['autorag', 'pipelineRun', runId, namespace],
-      });
+      // Refresh the state to update the UI (don't let refresh failure mask the original error)
+      try {
+        await queryClient.invalidateQueries({
+          queryKey: ['autorag', 'pipelineRun', runId, namespace],
+        });
+      } catch {
+        // Ignore refresh failure
+      }
       throw error;
     }
     try {
