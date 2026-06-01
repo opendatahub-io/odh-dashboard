@@ -129,9 +129,11 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if cfg.MockK8Client {
 		k8sClient = &corek8smocks.MockK8sClient{}
 	} else {
-		k8sClient, err = corek8s.NewDefaultK8sClient(corek8s.DefaultK8sClientConfig{
-			AuthMethod: cfg.AuthMethod,
-		})
+		if cfg.AuthMethod == config.AuthMethodUser {
+			k8sClient, err = corek8s.NewDefaultK8sTokenClient()
+		} else {
+			k8sClient, err = corek8s.NewDefaultK8sInternalClient()
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
 		}
