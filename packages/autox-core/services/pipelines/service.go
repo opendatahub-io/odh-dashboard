@@ -30,6 +30,10 @@ type Client interface {
 	UploadPipelineVersion(ctx context.Context, baseURL string, pipelineID string, versionName string, fileContent []byte) (*PipelineVersion, error)
 }
 
+type ServiceConfig struct {
+	Logger *slog.Logger
+}
+
 // Service provides business logic for Pipelines operations.
 // All public methods accept a namespace and resolve the DSPA base URL internally.
 type Service struct {
@@ -40,10 +44,6 @@ type Service struct {
 	dspaCache     *dspaCache
 	inFlight      map[string]chan struct{}
 	inFlightMu    sync.Mutex
-}
-
-type ServiceConfig struct {
-	Logger *slog.Logger
 }
 
 func NewService(cfg ServiceConfig, client Client, k8sService *k8s.Service) *Service {

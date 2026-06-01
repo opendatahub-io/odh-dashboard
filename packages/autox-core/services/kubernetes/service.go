@@ -43,13 +43,13 @@ type Client interface {
 	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
-// Service provides business logic for Kubernetes operations
-type Service struct {
-	Client Client
+type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
-type ServiceConfig struct {
+// Service provides business logic for Kubernetes operations
+type Service struct {
+	Client Client
 	Logger *slog.Logger
 }
 

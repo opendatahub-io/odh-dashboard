@@ -30,12 +30,6 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-
-// client implements Client using HTTP
-type client struct {
-	HTTPClient HTTPClient
-}
-
 // ClientConfig configures the pipelines client.
 type ClientConfig struct {
 	InsecureSkipVerify bool
@@ -45,11 +39,6 @@ type ClientConfig struct {
 	// or other transport-level concerns without leaking them into the service layer.
 	WrapTransport func(http.RoundTripper) http.RoundTripper
 }
-
-// Compile-time interface checks.
-var _ Client = (*client)(nil)
-var _ HTTPClient = (*http.Client)(nil)
-
 
 // NewClient creates a client with an injectable HTTP client (for testing).
 func NewClient(c HTTPClient) Client {
@@ -90,6 +79,11 @@ func NewDefaultClient(cfg ClientConfig) Client {
 	return &client{
 		HTTPClient: hc,
 	}
+}
+
+// client implements Client using HTTP
+type client struct {
+	HTTPClient HTTPClient
 }
 
 // CreatePipelineRun creates a new pipeline run
@@ -510,6 +504,18 @@ func (c *client) UploadPipelineVersion(ctx context.Context, baseURL string, pipe
 	return &version, nil
 }
 
+// httpError represents an unhandled HTTP error response from the pipeline server.
+// Known status codes (404, 409) are translated to domain errors by readhttpError;
+// this type is returned only for codes without a domain mapping.
+type httpError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
+}
+
 // readhttpError reads an HTTP error response and translates known status codes
 // into domain errors so the service layer never needs to inspect HTTP codes.
 func readhttpError(resp *http.Response) error {
@@ -537,14 +543,6 @@ func readhttpError(resp *http.Response) error {
 	}
 }
 
-// httpError represents an unhandled HTTP error response from the pipeline server.
-// Known status codes (404, 409) are translated to domain errors by readhttpError;
-// this type is returned only for codes without a domain mapping.
-type httpError struct {
-	StatusCode int
-	Message    string
-}
-
-func (e *httpError) Error() string {
-	return fmt.Sprintf("pipeline server returned %d: %s", e.StatusCode, e.Message)
-}
+// Compile-time interface checks.
+var _ Client = (*client)(nil)
+var _ HTTPClient = (*http.Client)(nil)

@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var trailingNumberSuffixPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
+
 // Client defines the contract for S3 operations.
 // Signatures: ctx, ConnectionOptions, then an operation-specific Input struct.
 type Client interface {
@@ -25,16 +27,16 @@ type Client interface {
 	ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error)
 }
 
+// ServiceConfig holds configuration for creating a Service.
+type ServiceConfig struct {
+	Logger *slog.Logger
+}
+
 // Service provides business logic for S3 operations.
 // It is intentionally thin — no K8s coupling, no DSPA coupling, no credential extraction.
 // Orchestration (K8s secret lookup → ConnectionOptions → S3 operation) is the caller's responsibility.
 type Service struct {
 	Client Client
-	Logger *slog.Logger
-}
-
-// ServiceConfig holds configuration for creating a Service.
-type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
@@ -153,8 +155,6 @@ func (s *Service) ResolveNonCollidingKey(ctx context.Context, opts ConnectionOpt
 
 	return "", ErrMaxCollisionsExceeded
 }
-
-var trailingNumberSuffixPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
 func splitS3ObjectPath(key string) (dir, name string) {
 	i := strings.LastIndex(key, "/")

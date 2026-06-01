@@ -18,6 +18,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
+const s3ConnectTimeout = 10 * time.Second
+
+const (
+	defaultTransferConcurrency      = 3
+	defaultTransferPartSizeBytes    = 8 * 1024 * 1024 // 8 MB
+	defaultTransferGetObjectBufSize = 256 * 1024      // 256 KB
+	defaultTransferPartMaxRetries   = 3
+)
+
 // ConnectionOptions is the pure S3 connection configuration passed per-call.
 // Bucket is not included — it is always an explicit operation parameter.
 type ConnectionOptions struct {
@@ -27,7 +36,38 @@ type ConnectionOptions struct {
 	BaseEndpoint    string
 }
 
-const s3ConnectTimeout = 10 * time.Second
+// ClientConfig holds knobs for the default S3 client provider.
+// No DevMode concept — callers decide what each knob means for their security posture.
+type ClientConfig struct {
+	Concurrency        int
+	PartSizeBytes      int64
+	GetObjectBufSize   int64
+	PartBodyMaxRetries int
+
+	// RootCAs overrides the system CA pool. Use for operator-mounted cluster CA bundles.
+	RootCAs *x509.CertPool
+
+	// InsecureSkipVerify disables TLS certificate verification.
+	// Caller's responsibility to apply only in appropriate contexts.
+	InsecureSkipVerify bool
+
+	// AllowUnresolvedEndpoint skips DNS resolution checks in SSRF validation.
+	// Caller's responsibility to guard this (e.g. only when a specific env var is set).
+	AllowUnresolvedEndpoint bool
+
+	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
+	// Use for port-forwarding, request tracing, or other transport-level concerns.
+	WrapTransport func(http.RoundTripper) http.RoundTripper
+}
+
+// --- Provider interface ---
+
+// ClientProvider creates AWS SDK objects from ConnectionOptions, enabling
+// full mock substitution in tests without touching network or credentials.
+type ClientProvider interface {
+	CreateAPIClient(opts ConnectionOptions) (APIClient, error)
+	CreateTransferClient(opts ConnectionOptions) (TransferClient, error)
+}
 
 // --- Low-level SDK interfaces (for provider-level testing) ---
 
@@ -45,23 +85,6 @@ type TransferClient interface {
 	GetObject(ctx context.Context, params *transfermanager.GetObjectInput, optFns ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error)
 }
 
-// --- Provider interface ---
-
-// ClientProvider creates AWS SDK objects from ConnectionOptions, enabling
-// full mock substitution in tests without touching network or credentials.
-type ClientProvider interface {
-	CreateAPIClient(opts ConnectionOptions) (APIClient, error)
-	CreateTransferClient(opts ConnectionOptions) (TransferClient, error)
-}
-
-// --- client ---
-
-// client implements Client using the Provider pattern.
-// Each method creates fresh AWS SDK objects from the provider — no shared mutable state.
-type client struct {
-	Provider ClientProvider
-}
-
 // NewClient creates a client with an injectable provider (for testing).
 func NewClient(provider ClientProvider) Client {
 	return &client{Provider: provider}
@@ -72,6 +95,14 @@ func NewDefaultClient(cfg ClientConfig) Client {
 	return &client{
 		Provider: &awsClientProvider{cfg: cfg.withDefaults()},
 	}
+}
+
+// --- client ---
+
+// client implements Client using the Provider pattern.
+// Each method creates fresh AWS SDK objects from the provider — no shared mutable state.
+type client struct {
+	Provider ClientProvider
 }
 
 func (c *client) GetObject(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
@@ -210,61 +241,6 @@ func (c *client) ObjectExists(ctx context.Context, opts ConnectionOptions, input
 	return false, fmt.Errorf("error checking object existence in S3: %w", err)
 }
 
-// Compile-time interface checks.
-var _ Client = (*client)(nil)
-var _ APIClient = (*awss3.Client)(nil)
-var _ TransferClient = (*transfermanager.Client)(nil)
-var _ ClientProvider = (*awsClientProvider)(nil)
-
-// --- ClientConfig ---
-
-// ClientConfig holds knobs for the default S3 client provider.
-// No DevMode concept — callers decide what each knob means for their security posture.
-type ClientConfig struct {
-	Concurrency        int
-	PartSizeBytes      int64
-	GetObjectBufSize   int64
-	PartBodyMaxRetries int
-
-	// RootCAs overrides the system CA pool. Use for operator-mounted cluster CA bundles.
-	RootCAs *x509.CertPool
-
-	// InsecureSkipVerify disables TLS certificate verification.
-	// Caller's responsibility to apply only in appropriate contexts.
-	InsecureSkipVerify bool
-
-	// AllowUnresolvedEndpoint skips DNS resolution checks in SSRF validation.
-	// Caller's responsibility to guard this (e.g. only when a specific env var is set).
-	AllowUnresolvedEndpoint bool
-
-	// WrapTransport optionally wraps the HTTP transport chain after TLS is configured.
-	// Use for port-forwarding, request tracing, or other transport-level concerns.
-	WrapTransport func(http.RoundTripper) http.RoundTripper
-}
-
-const (
-	defaultTransferConcurrency      = 3
-	defaultTransferPartSizeBytes    = 8 * 1024 * 1024 // 8 MB
-	defaultTransferGetObjectBufSize = 256 * 1024      // 256 KB
-	defaultTransferPartMaxRetries   = 3
-)
-
-func (c ClientConfig) withDefaults() ClientConfig {
-	if c.Concurrency == 0 {
-		c.Concurrency = defaultTransferConcurrency
-	}
-	if c.PartSizeBytes == 0 {
-		c.PartSizeBytes = defaultTransferPartSizeBytes
-	}
-	if c.GetObjectBufSize == 0 {
-		c.GetObjectBufSize = defaultTransferGetObjectBufSize
-	}
-	if c.PartBodyMaxRetries == 0 {
-		c.PartBodyMaxRetries = defaultTransferPartMaxRetries
-	}
-	return c
-}
-
 // --- awsClientProvider ---
 
 // awsClientProvider is the real implementation of ClientProvider.
@@ -344,6 +320,22 @@ func (p *awsClientProvider) buildHTTPClient() *http.Client {
 	return &http.Client{Transport: rt}
 }
 
+func (c ClientConfig) withDefaults() ClientConfig {
+	if c.Concurrency == 0 {
+		c.Concurrency = defaultTransferConcurrency
+	}
+	if c.PartSizeBytes == 0 {
+		c.PartSizeBytes = defaultTransferPartSizeBytes
+	}
+	if c.GetObjectBufSize == 0 {
+		c.GetObjectBufSize = defaultTransferGetObjectBufSize
+	}
+	if c.PartBodyMaxRetries == 0 {
+		c.PartBodyMaxRetries = defaultTransferPartMaxRetries
+	}
+	return c
+}
+
 // translateS3Error maps AWS SDK typed errors to domain sentinel errors.
 // Returns nil if the error has no domain translation (caller should wrap and return as-is).
 func translateS3Error(err error) error {
@@ -383,3 +375,9 @@ func isS3ConditionalCreateConflict(err error) bool {
 	}
 	return false
 }
+
+// Compile-time interface checks.
+var _ Client = (*client)(nil)
+var _ APIClient = (*awss3.Client)(nil)
+var _ TransferClient = (*transfermanager.Client)(nil)
+var _ ClientProvider = (*awsClientProvider)(nil)

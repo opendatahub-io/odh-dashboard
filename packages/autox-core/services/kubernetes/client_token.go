@@ -25,7 +25,6 @@ type tokenClient struct {
 	DynamicClient DynamicClient
 }
 
-
 // NewTokenClient creates a token client with injectable Clientset and DynamicClient (for testing).
 func NewTokenClient(cs Clientset, dc DynamicClient) Client {
 	return &tokenClient{
@@ -271,9 +270,6 @@ func (c *tokenClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Nam
 	return namespaces, nil
 }
 
-// Compile-time interface check.
-var _ Client = (*tokenClient)(nil)
-
 // NewBearerTokenRoundTripper wraps base with a RoundTripper that injects the user's
 // bearer token from the RequestIdentity stored in each request's context.
 func NewBearerTokenRoundTripper(base http.RoundTripper) http.RoundTripper {
@@ -300,3 +296,6 @@ func (t *tokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 	req2.Header.Set("Authorization", "Bearer "+identity.Token)
 	return t.base.RoundTrip(req2)
 }
+
+// Compile-time interface check.
+var _ Client = (*tokenClient)(nil)

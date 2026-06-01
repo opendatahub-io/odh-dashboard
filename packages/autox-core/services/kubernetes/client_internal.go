@@ -34,7 +34,6 @@ type internalClient struct {
 	DynamicClient DynamicClient
 }
 
-
 // NewInternalClient creates an internal client with injectable Clientset and DynamicClient (for testing).
 func NewInternalClient(cs Clientset, dc DynamicClient) Client {
 	return &internalClient{
@@ -243,8 +242,49 @@ func (c *internalClient) DiscoverResourceGVR(
 	}
 }
 
-// Compile-time interface check.
-var _ Client = (*internalClient)(nil)
+// ============================================================================
+// Private Helper Methods
+// ============================================================================
+
+// getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
+// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
+// This method expects the caller to have already set an appropriate timeout on the context.
+func (c *internalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
+	projectGVR := schema.GroupVersionResource{
+		Group:    "project.openshift.io",
+		Version:  "v1",
+		Resource: "projects",
+	}
+
+	projectList, err := c.DynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	namespaces := make([]v1.Namespace, 0, len(projectList.Items))
+	for _, project := range projectList.Items {
+		projectName := project.GetName()
+
+		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
+		if err != nil {
+			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
+				namespaces = append(namespaces, v1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        projectName,
+						Annotations: project.GetAnnotations(),
+						Labels:      project.GetLabels(),
+					},
+				})
+			} else {
+				return nil, err
+			}
+		} else {
+			namespaces = append(namespaces, *ns)
+		}
+	}
+
+	return namespaces, nil
+}
 
 // NewSATokenTransportWrapper returns a WrapTransport function that injects the pod's
 // service account token into every outbound request. Intended for internal auth mode,
@@ -297,50 +337,6 @@ func (t *saTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	return t.base.RoundTrip(req2)
 }
 
-// ============================================================================
-// Private Helper Methods
-// ============================================================================
-
-// getNamespacesViaProjectsAPI lists namespaces via OpenShift Projects API when cluster-wide
-// namespace listing is forbidden. Falls back to project metadata if namespace details are unavailable.
-// This method expects the caller to have already set an appropriate timeout on the context.
-func (c *internalClient) getNamespacesViaProjectsAPI(ctx context.Context) ([]v1.Namespace, error) {
-	projectGVR := schema.GroupVersionResource{
-		Group:    "project.openshift.io",
-		Version:  "v1",
-		Resource: "projects",
-	}
-
-	projectList, err := c.DynamicClient.Resource(projectGVR).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	namespaces := make([]v1.Namespace, 0, len(projectList.Items))
-	for _, project := range projectList.Items {
-		projectName := project.GetName()
-
-		ns, err := c.Clientset.CoreV1().Namespaces().Get(ctx, projectName, metav1.GetOptions{})
-		if err != nil {
-			if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
-				namespaces = append(namespaces, v1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        projectName,
-						Annotations: project.GetAnnotations(),
-						Labels:      project.GetLabels(),
-					},
-				})
-			} else {
-				return nil, err
-			}
-		} else {
-			namespaces = append(namespaces, *ns)
-		}
-	}
-
-	return namespaces, nil
-}
-
 // impersonationRoundTripper injects impersonation headers from the RequestIdentity in context.
 // This allows a single client to handle requests for multiple users efficiently.
 type impersonationRoundTripper struct {
@@ -378,3 +374,6 @@ func (t *impersonationRoundTripper) RoundTrip(req *http.Request) (*http.Response
 
 	return t.base.RoundTrip(req2)
 }
+
+// Compile-time interface check.
+var _ Client = (*internalClient)(nil)
