@@ -1,4 +1,5 @@
 import React from 'react';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { Tab, Tabs, TabTitleText, TabContent, PageSection, Flex } from '@patternfly/react-core';
 import {
@@ -98,17 +99,7 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             aria-label="Metrics tab"
             data-testid="metrics-tab"
             tabContentId={`tabContent-${FeatureStoreTabs.METRICS}`}
-          >
-            <TabContent
-              id={`tabContent-${FeatureStoreTabs.METRICS}`}
-              eventKey={FeatureStoreTabs.METRICS}
-              activeKey={activeTabKey}
-              hidden={FeatureStoreTabs.METRICS !== activeTabKey}
-              style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
-            >
-              <Metrics />
-            </TabContent>
-          </Tab>
+          />
           <Tab
             eventKey={FeatureStoreTabs.LINEAGE}
             title={<TabTitleText>Lineage</TabTitleText>}
@@ -117,6 +108,15 @@ const FeatureStoreInner: React.FC<FeatureStoreProps> = ({ ...pageProps }) => {
             tabContentId={`tabContent-${FeatureStoreTabs.LINEAGE}`}
           />
         </Tabs>
+        <TabContent
+          id={`tabContent-${FeatureStoreTabs.METRICS}`}
+          eventKey={FeatureStoreTabs.METRICS}
+          activeKey={activeTabKey}
+          hidden={FeatureStoreTabs.METRICS !== activeTabKey}
+          style={{ height: '100%', marginTop: 'var(--pf-t--global--spacer--md)' }}
+        >
+          <Metrics />
+        </TabContent>
         <TabContent
           ref={lineageTabRef}
           id={`tabContent-${FeatureStoreTabs.LINEAGE}`}

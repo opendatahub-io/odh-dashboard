@@ -28,6 +28,9 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
     [deploymentsContextLoaded, deploymentsContextExtensions],
   );
 
+  // Default to "loaded with no deployments" when no extension provides a real provider (standalone mode).
+  const defaultValue = React.useMemo(() => ({ loaded: true, deployments: [] }), []);
+
   if (deploymentsContextLoaded && DeploymentsProviderComponent) {
     return (
       <DeploymentsProviderComponent labelSelectors={labelSelectors} mrName={mrName}>
@@ -40,5 +43,9 @@ export const MRDeploymentsContextProvider: React.FC<MRDeploymentsContextProvider
     );
   }
 
-  return children;
+  return (
+    <DeploymentsStateContext.Provider value={defaultValue}>
+      {children}
+    </DeploymentsStateContext.Provider>
+  );
 };

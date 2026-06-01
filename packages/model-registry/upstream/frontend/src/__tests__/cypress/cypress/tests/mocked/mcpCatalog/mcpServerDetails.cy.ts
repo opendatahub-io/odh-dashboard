@@ -7,7 +7,6 @@ import {
   initServerDetailIntercept,
   initServerToolsIntercept,
   initServerToolsErrorIntercept,
-  initMcpServerAvailabilityIntercept,
   mockMcpToolWithServer,
   mockMcpToolList,
 } from './mcpCatalogTestUtils';
@@ -191,74 +190,6 @@ describe('MCP Server Details Page', () => {
       cy.url().should('include', mcpCatalogUrl());
       cy.go('back');
       cy.url().should('eq', `${Cypress.config().baseUrl}${mcpCatalogUrl()}`);
-    });
-  });
-
-  describe('Deploy button', () => {
-    it('should show enabled deploy button when MCP server CRD is available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.be.disabled');
-      mcpServerDetails.findDeployButton().should('contain.text', 'Deploy MCP server');
-    });
-
-    it('should show disabled deploy button when MCP server CRD is not available', () => {
-      initServerDetailIntercept(kubernetesServer);
-      initMcpServerAvailabilityIntercept(false);
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().should('have.attr', 'aria-disabled', 'true');
-    });
-
-    it('should not show deploy button when server is not found', () => {
-      cy.intercept(
-        { method: 'GET', url: '**/mcp_servers/invalid-server*' },
-        {
-          statusCode: 404,
-          body: {
-            error: { code: '404', message: 'the requested resource could not be found' },
-          },
-        },
-      );
-      cy.visit('/mcp-catalog/invalid-server');
-      mcpServerDetails.findMcpNotFound().should('be.visible');
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when server has no artifacts', () => {
-      const serverWithoutArtifacts = mockMcpServer({
-        id: 'no-artifacts',
-        name: 'No Artifacts Server',
-        artifacts: [],
-      });
-      initServerDetailIntercept(serverWithoutArtifacts);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithoutArtifacts.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should not show deploy button when artifacts contain only empty URIs', () => {
-      const serverWithEmptyUri = mockMcpServer({
-        id: 'empty-uri',
-        name: 'Empty URI Server',
-        artifacts: [{ uri: '' }],
-      });
-      initServerDetailIntercept(serverWithEmptyUri);
-      initMcpServerAvailabilityIntercept(true);
-      mcpServerDetails.visit(serverWithEmptyUri.id);
-      mcpServerDetails.findDeployButton().should('not.exist');
-    });
-
-    it('should show loading spinner on deploy button while availability is being checked', () => {
-      initServerDetailIntercept(kubernetesServer);
-      cy.intercept({ method: 'GET', pathname: '**/mcp_server_available' }, (req) => {
-        req.reply({ delay: 2000, body: mockModArchResponse({ available: true }) });
-      });
-      mcpServerDetails.visit(kubernetesServer.id);
-      mcpServerDetails.findDeployButton().should('be.visible');
-      mcpServerDetails.findDeployButton().find('.pf-v6-c-spinner').should('exist');
     });
   });
 

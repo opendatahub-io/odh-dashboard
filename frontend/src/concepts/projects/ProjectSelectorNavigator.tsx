@@ -6,11 +6,13 @@ import ProjectSelector from './ProjectSelector';
 type ProjectSelectorProps = {
   getRedirectPath: (namespace: string) => string;
   queryParamNamespace?: string;
+  onProjectChange?: (projectName: string) => void;
 } & Omit<React.ComponentProps<typeof ProjectSelector>, 'onSelection' | 'namespace'>;
 
 const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
   getRedirectPath,
   queryParamNamespace,
+  onProjectChange,
   ...projectSelectorProps
 }) => {
   const { namespace: pathNamespace } = useParams();
@@ -26,6 +28,9 @@ const ProjectSelectorNavigator: React.FC<ProjectSelectorProps> = ({
       onSelection={(projectName) => {
         const match = projectName ? projects.find(byName(projectName)) ?? null : null;
         updatePreferredProject(match);
+        if (projectName && projectName !== namespace) {
+          onProjectChange?.(projectName);
+        }
       }}
       namespace={namespace}
     />

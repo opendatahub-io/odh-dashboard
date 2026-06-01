@@ -10,17 +10,6 @@ let modelServingSingleName: string;
 let metadataSingleDisplayName: string;
 
 retryableBefore(() => {
-  // TODO: Investigate and resolve 'window is not defined' error during page transition seen in ODH related to application performance
-  // Temporary workaround: Catching and ignoring this specific error to prevent test failure
-  Cypress.on('uncaught:exception', (err) => {
-    // Check if the error is about 'window is not defined'
-    if (err.message.includes('window is not defined')) {
-      // Prevent the error from failing the test
-      return false;
-    }
-    // For other errors, let them fail the test
-    return true;
-  });
   cy.wrap(null)
     .then(() => getSingleModelServingRuntimeInfo())
     .then((info) => {

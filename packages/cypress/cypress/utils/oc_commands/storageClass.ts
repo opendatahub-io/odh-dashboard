@@ -34,11 +34,11 @@ export const createStorageClass = (
 export const deleteStorageClass = (scName: string): Cypress.Chainable<CommandLineResult> => {
   const ocCommand = `oc delete storageclass ${scName} --ignore-not-found=true`;
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR deleting ${scName} Storage Class
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -54,11 +54,11 @@ export const getStorageClassConfig = (scName: string): Cypress.Chainable<Command
   const ocCommand = `oc get storageclass ${scName} -o jsonpath='{.metadata.annotations.opendatahub\\.io/sc-config}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR Getting ${scName} Storage Class Config
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -73,11 +73,11 @@ export const getOpenshiftDefaultStorageClass = (): Cypress.Chainable<CommandLine
   const ocCommand = `oc get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\\.kubernetes\\.io/is-default-class=="true")].metadata.name}'`;
   cy.log(ocCommand);
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-    if (result.code !== 0) {
+    if (result.exitCode !== 0) {
       cy.log(`ERROR Getting OpenShift Default Storage Class
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-      throw new Error(`Command failed with code ${result.code}`);
+      throw new Error(`Command failed with code ${result.exitCode}`);
     }
     return result;
   });
@@ -95,11 +95,11 @@ export const getStorageClassNames = (): Cypress.Chainable<string[]> => {
       failOnNonZeroExit: false,
     })
     .then((result: CommandLineResult) => {
-      if (result.code !== 0) {
+      if (result.exitCode !== 0) {
         cy.log(`ERROR Getting Storage Class Names
                 stdout: ${result.stdout}
                 stderr: ${result.stderr}`);
-        throw new Error(`Command failed with code ${result.code}`);
+        throw new Error(`Command failed with code ${result.exitCode}`);
       }
       return result.stdout.split(' ');
     });
@@ -122,11 +122,11 @@ export const getDefaultEnabledStorageClass = (): Cypress.Chainable<string> =>
       return cy
         .exec(command, { failOnNonZeroExit: false })
         .then((result: Cypress.Exec) => {
-          if (result.code !== 0) {
+          if (result.exitCode !== 0) {
             cy.log(`ERROR Getting ${scNames[index]} Storage Class Config
                     stdout: ${result.stdout}
                     stderr: ${result.stderr}`);
-            throw new Error(`Command failed with code ${result.code}`);
+            throw new Error(`Command failed with code ${result.exitCode}`);
           }
           return result.stdout;
         })

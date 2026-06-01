@@ -84,7 +84,7 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
 
   return (
     <Tr>
-      {renderTableCell('Entities', <EntityName entity={entity} currentProject={currentProject} />)}
+      {renderTableCell('Name', <EntityName entity={entity} currentProject={currentProject} />)}
       {renderTableCell('Project', entity.project, 'project-name')}
       {renderTableCell(
         'Tags',
@@ -94,10 +94,10 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
           onTagClick={onTagClick}
         />,
       )}
-      {renderTableCell('Join key', entity.spec.joinKey ?? '-', 'join-key')}
+      {renderTableCell('Join key', entity.spec.joinKey?.trim() || '--', 'join-key')}
       {renderTableCell(
         'Value type',
-        entity.spec.valueType ?? '-',
+        entity.spec.valueType?.trim() || '--',
         `value-type-${entity.spec.name}`,
       )}
       {renderTableCell(
@@ -118,7 +118,7 @@ const FeatureStoreEntitiesTableRow: React.FC<FeatureStoreEntitiesTableRowType> =
         <FeatureStoreTimestamp date={entity.meta.lastUpdatedTimestamp} />,
         'updated',
       )}
-      {renderTableCell('Owner', entity.spec.owner ?? '-', 'owner')}
+      {renderTableCell('Owner', entity.spec.owner?.trim() || '--', 'owner')}
     </Tr>
   );
 };

@@ -27,8 +27,12 @@ const FeatureViewConsumingTab: React.FC<FeatureViewConsumingTabProps> = ({ featu
   } = useFeatureServices(currentProject, featureView.spec.name);
   if (!consumingFeatureServicesLoaded) {
     return (
-      <Bullseye>
-        <Spinner size="xl" data-testid="loading-spinner" />
+      <Bullseye aria-live="polite" aria-busy>
+        <Spinner
+          size="xl"
+          aria-label="Loading consuming feature services"
+          data-testid="loading-spinner"
+        />
       </Bullseye>
     );
   }

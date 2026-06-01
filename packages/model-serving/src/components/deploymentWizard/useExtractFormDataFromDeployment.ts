@@ -4,11 +4,8 @@ import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/p
 import { type InitialWizardFormData } from './types';
 import { getExternalRouteFromDeployment, getTokenAuthenticationFromDeployment } from './utils';
 import { useWizardFieldExtractors } from './useWizardFieldExtractors';
-import {
-  type Deployment,
-  type ExtractionResult,
-  isModelServingDeploymentFormDataExtension,
-} from '../../../extension-points';
+import { type Deployment, type ExtractionResult } from '../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../extension-points/deployment-wizard';
 import { useResolvedDeploymentExtension } from '../../concepts/extensionUtils';
 import { useDeploymentAuthTokens } from '../../concepts/auth';
 

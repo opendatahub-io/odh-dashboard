@@ -16,13 +16,12 @@ import React from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import './AutoragExperimentSettingsModelSelection.scss';
 import { useParams } from 'react-router';
-import { useLlamaStackModelsQuery } from '~/app/hooks/queries';
-import { useNotification } from '~/app/hooks/useNotification';
+import { useOgxModelsQuery } from '~/app/hooks/queries';
 import { ConfigureSchema } from '~/app/schemas/configure.schema';
-import { LlamaStackModelType } from '~/app/types';
+import { OgxModelType } from '~/app/types';
 
 type ModelTab = {
-  modelType: LlamaStackModelType;
+  modelType: OgxModelType;
   label: string;
   popoverHeader: string;
   description: string;
@@ -49,7 +48,7 @@ const MODEL_TABS: ModelTab[] = [
 const DEFAULT_PER_PAGE = 5;
 
 const AutoragExperimentSettingsModelSelection: React.FC = () => {
-  const [activeModelType, setActiveModelType] = React.useState<LlamaStackModelType>('llm');
+  const [activeModelType, setActiveModelType] = React.useState<OgxModelType>('llm');
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
@@ -57,35 +56,23 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const form = useFormContext<ConfigureSchema>();
 
-  const llamaStackSecretName = useWatch({
+  const ogxSecretName = useWatch({
     control: form.control,
-    name: 'llama_stack_secret_name',
+    name: 'ogx_secret_name',
   });
 
-  const {
-    data: llmModelsData,
-    isLoading: isLlmLoading,
-    isError: isLlmError,
-  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'llm');
-  const {
-    data: embeddingModelsData,
-    isLoading: isEmbeddingLoading,
-    isError: isEmbeddingError,
-  } = useLlamaStackModelsQuery(namespace, llamaStackSecretName, 'embedding');
+  const { data: llmModelsData, isLoading: isLlmLoading } = useOgxModelsQuery(
+    namespace,
+    ogxSecretName,
+    'llm',
+  );
+  const { data: embeddingModelsData, isLoading: isEmbeddingLoading } = useOgxModelsQuery(
+    namespace,
+    ogxSecretName,
+    'embedding',
+  );
 
   const isLoading = isLlmLoading || isEmbeddingLoading;
-  const isError = isLlmError || isEmbeddingError;
-
-  const notification = useNotification();
-
-  React.useEffect(() => {
-    if (isError) {
-      notification.error(
-        'Failed to load models',
-        'Check that the LlamaStack secret is valid and try again.',
-      );
-    }
-  }, [isError, notification]);
 
   const { field: generationModelField } = useController({
     control: form.control,
@@ -94,7 +81,7 @@ const AutoragExperimentSettingsModelSelection: React.FC = () => {
 
   const { field: embeddingModelField } = useController({
     control: form.control,
-    name: 'embeddings_models',
+    name: 'embedding_models',
   });
 
   const tabData = {

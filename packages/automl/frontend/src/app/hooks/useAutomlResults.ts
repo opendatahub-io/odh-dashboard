@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import {
   useS3ListFilesQuery,
@@ -11,11 +11,42 @@ import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
 import { isTabularRun } from '~/app/utilities/utils';
 
+/* eslint-disable camelcase */
+const METRIC_ALIASES: Record<string, string> = {
+  MAE: 'mean_absolute_error',
+  MSE: 'mean_squared_error',
+  RMSE: 'root_mean_squared_error',
+  RMSLE: 'root_mean_squared_logarithmic_error',
+  MAPE: 'mean_absolute_percentage_error',
+  SMAPE: 'symmetric_mean_absolute_percentage_error',
+  MASE: 'mean_absolute_scaled_error',
+  RMSSE: 'root_mean_squared_scaled_error',
+  WAPE: 'weighted_absolute_percentage_error',
+  WQL: 'weighted_quantile_loss',
+  SQL: 'scaled_quantile_loss',
+};
+/* eslint-enable camelcase */
+
+// Timeseries runs return acronym metric keys (e.g. "MAE") while tabular runs
+// return snake_case keys (e.g. "mean_absolute_error"). normalizeMetricsToSnakeCase
+// is used to normalize keys so downstream code only handles one form. See RHOAIENG-59989.
+function normalizeMetricsToSnakeCase(testData: Record<string, number>): Record<string, number> {
+  const result: Record<string, number> = {};
+  for (const [key, value] of Object.entries(testData)) {
+    const normalized = METRIC_ALIASES[key.toUpperCase()] ?? key;
+    result[normalized] = value;
+  }
+  return result;
+}
+
 type UseAutomlResultsReturn = {
   models: Record<string, AutomlModel>;
+  failedModels: string[];
   isLoading: boolean;
   isError: boolean;
   error: Error | undefined;
+  modelsBasePath?: string;
+  refetch: () => void;
 };
 
 /**
@@ -71,15 +102,23 @@ export function useAutomlResults(
   const modelGenerationDir = isTabular
     ? 'autogluon-models-training'
     : 'autogluon-timeseries-models-full-refit';
-  const generatedModelsPath = shouldFetchS3Files
+  const candidateModelsPrefix = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
 
   const {
     data: s3Files,
     isLoading: isS3Loading,
+    isFetching: isS3Fetching,
     isError: isS3Error,
-  } = useS3ListFilesQuery(namespace, generatedModelsPath);
+    refetch: refetchS3Files,
+  } = useS3ListFilesQuery(namespace, candidateModelsPrefix);
+
+  // Only expose modelsBasePath when S3 listing succeeded and returned results
+  const modelsBasePath =
+    isS3Loading || isS3Error || !s3Files?.common_prefixes?.length // eslint-disable-line @typescript-eslint/no-unnecessary-condition -- s3Files can be undefined when query is disabled
+      ? undefined
+      : candidateModelsPrefix;
 
   // Step 2: Fetch model artifact directories from each common prefix
   const modelArtifactsDirectory = isTabular ? 'models_artifact' : 'model_artifact';
@@ -89,7 +128,7 @@ export function useAutomlResults(
       .map((prefixObj) => {
         const path = `${prefixObj.prefix}${modelArtifactsDirectory}`;
         return {
-          queryKey: ['s3Files', namespace, path],
+          queryKey: ['automl', 's3Files', namespace, path],
           queryFn: async ({ signal }) => {
             if (!namespace) {
               throw new Error('namespace is required');
@@ -167,7 +206,7 @@ export function useAutomlResults(
     queries: modelDirectories.map(({ name, directory, artifactDirectory }) => {
       const modelJsonPath = `${directory}model.json`;
       return {
-        queryKey: ['s3File', namespace, name, modelJsonPath],
+        queryKey: ['automl', 's3File', namespace, name, modelJsonPath],
         queryFn: async ({ signal }) => {
           if (!namespace) {
             throw new Error('namespace is required');
@@ -199,7 +238,10 @@ export function useAutomlResults(
               notebook,
               ...(locationMetrics != null && { metrics: locationMetrics }),
             },
-            metrics: validated.metrics,
+            metrics: {
+              // eslint-disable-next-line camelcase
+              test_data: normalizeMetricsToSnakeCase(validated.metrics.test_data),
+            },
           };
 
           return { name, model };
@@ -235,7 +277,7 @@ export function useAutomlResults(
         );
       }
       return {
-        data: results.filter((r) => !r.isError).map((r) => r.data),
+        data: results.filter((r) => !r.isError && r.data != null).map((r) => r.data!),
         isPending: results.some((r) => r.isPending),
         isError: results.length > 0 && results.every((r) => r.isError),
         failedModels: results
@@ -255,13 +297,12 @@ export function useAutomlResults(
     const results: Record<string, AutomlModel> = Object.create(null);
 
     modelQueries.data.forEach((entry) => {
-      // Skip entries that failed to load or are missing
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- entry can be undefined at runtime from failed queries
-      if (!entry || !entry.name || !entry.model) {
-        if (entry?.name) {
-          // eslint-disable-next-line no-console
-          console.warn(`Skipping model ${entry.name}: failed to load model.json`);
-        }
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- defensive: queryFn guarantees these but runtime data may diverge
+      if (!entry.name || !entry.model) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `Skipping model with incomplete data: ${JSON.stringify({ name: entry.name, hasModel: !!entry.model })}`,
+        );
         return;
       }
 
@@ -291,10 +332,24 @@ export function useAutomlResults(
       (modelQueries.isError ? new Error('Failed to fetch model data') : undefined)
     : undefined;
 
+  const queryClient = useQueryClient();
+  const refetch = React.useCallback(() => {
+    refetchS3Files();
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3Files', namespace] });
+    queryClient.invalidateQueries({ queryKey: ['automl', 's3File', namespace] });
+  }, [refetchS3Files, queryClient, namespace]);
+
   return {
     models,
-    isLoading: isS3Loading || modelArtifactQueries.isPending || modelQueries.isPending,
+    failedModels: modelQueries.failedModels,
+    isLoading:
+      isS3Loading ||
+      (!s3Files && isS3Fetching) ||
+      modelArtifactQueries.isPending ||
+      modelQueries.isPending,
     isError: hasError,
     error,
+    modelsBasePath,
+    refetch,
   };
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/models"
 )
 
-type LlamaStackDistributionDeleteEnvelope Envelope[*models.LlamaStackDistributionDeleteResponse, None]
+type OGXServerDeleteEnvelope Envelope[*models.OGXServerDeleteResponse, None]
 
 func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
@@ -34,7 +34,7 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	var deleteRequest models.LlamaStackDistributionDeleteRequest
+	var deleteRequest models.OGXServerDeleteRequest
 	if r.Body == nil {
 		app.badRequestResponse(w, r, fmt.Errorf("request body is required"))
 		return
@@ -44,20 +44,20 @@ func (app *App) LlamaStackDistributionDeleteHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// Validate that the lsd name which is to be deleted is not empty
+	// Validate that the OGX server name which is to be deleted is not empty
 	if len(deleteRequest.Name) == 0 {
-		app.badRequestResponse(w, r, fmt.Errorf("lsd name cannot be empty"))
+		app.badRequestResponse(w, r, fmt.Errorf("ogx server name cannot be empty"))
 		return
 	}
 
-	response, err := app.repositories.LlamaStackDistribution.DeleteLlamaStackDistribution(client, ctx, identity, namespace, deleteRequest.Name)
+	response, err := app.repositories.OGXServer.DeleteOGXServer(client, ctx, identity, namespace, deleteRequest.Name)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
 	// Send success response
-	envelope := LlamaStackDistributionDeleteEnvelope{
+	envelope := OGXServerDeleteEnvelope{
 		Data: response,
 	}
 

@@ -5,7 +5,7 @@ import (
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
 	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
-	lsdapi "github.com/llamastack/llama-stack-k8s-operator/api/v1alpha1"
+	ogxapi "github.com/ogx-ai/ogx-k8s-operator/api/v1beta1"
 	gorchv1alpha1 "github.com/trustyai-explainability/trustyai-service-operator/api/gorch/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -27,8 +27,8 @@ func BuildScheme() (*runtime.Scheme, error) {
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {
 		return nil, fmt.Errorf("failed to add Kubernetes types to scheme: %w", err)
 	}
-	if err := lsdapi.AddToScheme(scheme); err != nil {
-		return nil, fmt.Errorf("failed to add LlamaStackDistribution types to scheme: %w", err)
+	if err := ogxapi.AddToScheme(scheme); err != nil {
+		return nil, fmt.Errorf("failed to add OGXServer types to scheme: %w", err)
 	}
 	if err := kservev1alpha1.AddToScheme(scheme); err != nil {
 		return nil, fmt.Errorf("failed to add KServe v1alpha1 types to scheme: %w", err)

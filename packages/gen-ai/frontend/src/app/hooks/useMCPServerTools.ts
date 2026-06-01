@@ -32,6 +32,7 @@ export const useMCPServerTools = (
     }
 
     setIsLoading(true);
+    setToolsLoaded(false);
     setToolsLoadError(null);
 
     try {

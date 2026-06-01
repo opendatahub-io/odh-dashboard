@@ -5,27 +5,27 @@ import (
 	"fmt"
 )
 
-// LlamaStackDistributionModel represents a Llama Stack Distribution
-type LlamaStackDistributionModel struct {
+// OGXServerModel is the BFF model for OGXServer CR status exposed to the UI (JSON shape unchanged).
+type OGXServerModel struct {
 	Name               string                 `json:"name"`
 	Phase              string                 `json:"phase"`
 	Version            string                 `json:"version"`
 	DistributionConfig map[string]interface{} `json:"distributionConfig"`
 }
 
-// LlamaStackDistributionResponse represents the response envelope for LSD status
-type LlamaStackDistributionResponse struct {
-	Data  *LlamaStackDistributionModel `json:"data,omitempty"`
-	Error *ErrorResponse               `json:"error,omitempty"`
+// OGXServerResponse represents the response envelope for OGX server status.
+type OGXServerResponse struct {
+	Data  *OGXServerModel `json:"data,omitempty"`
+	Error *ErrorResponse  `json:"error,omitempty"`
 }
 
-// LlamaStackDistributionInstallRequest represents the request body for installing models
-type LlamaStackDistributionInstallRequest struct {
+// OGXServerInstallRequest represents the request body for installing models.
+type OGXServerInstallRequest struct {
 	Models       []InstallModel       `json:"models"`
 	VectorStores []InstallVectorStore `json:"vector_stores,omitempty"` // Optional vector stores to configure; embedding models must be included in Models
 }
 
-// InstallVectorStore identifies a vector store to include in the LSD install.
+// InstallVectorStore identifies a vector store to include in the OGX server install.
 // The store must exist in the gen-ai-aa-vector-stores ConfigMap.
 type InstallVectorStore struct {
 	VectorStoreID string `json:"vector_store_id"`
@@ -137,14 +137,14 @@ type InstallModel struct {
 	IsClusterLocal     bool                `json:"is_cluster_local,omitempty"`    // True for in-cluster *.svc.cluster.local endpoints
 }
 
-type LlamaStackDistributionInstallModel struct {
+type OGXServerInstallModel struct {
 	Name       string `json:"name"`
 	HTTPStatus string `json:"httpStatus"`
 }
 
-type LlamaStackDistributionInstallResponse struct {
-	Data  *LlamaStackDistributionInstallModel `json:"data,omitempty"`
-	Error *ErrorResponse                      `json:"error,omitempty"`
+type OGXServerInstallResponse struct {
+	Data  *OGXServerInstallModel `json:"data,omitempty"`
+	Error *ErrorResponse         `json:"error,omitempty"`
 }
 
 // ErrorResponse represents an error response
@@ -153,11 +153,11 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
-type LlamaStackDistributionDeleteRequest struct {
+type OGXServerDeleteRequest struct {
 	Name string `json:"name"`
 }
 
-type LlamaStackDistributionDeleteResponse struct {
+type OGXServerDeleteResponse struct {
 	Data string `json:"data"`
 }
 

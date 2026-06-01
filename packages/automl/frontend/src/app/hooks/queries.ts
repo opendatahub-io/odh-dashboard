@@ -9,6 +9,7 @@ import type {
   S3ListObjectsResponse,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -34,9 +35,12 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
   values?: (string | number)[];
 };
 
@@ -46,7 +50,9 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -159,7 +165,7 @@ export function useS3GetFileSchemaQuery(
       const columns = result?.data?.columns;
 
       if (!Array.isArray(columns)) {
-        return [];
+        throw new Error('Unexpected API response: column data is missing or invalid');
       }
 
       try {
@@ -185,7 +191,7 @@ export function useS3ListFilesQuery(
   path?: string,
 ): UseQueryResult<S3ListObjectsResponse, Error> {
   return useQuery({
-    queryKey: ['s3Files', namespace, path],
+    queryKey: ['automl', 's3Files', namespace, path],
     queryFn: async ({ signal }) => {
       if (!namespace || !path) {
         throw new Error('namespace and path are required');
@@ -204,10 +210,9 @@ export function useS3ListFilesQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
-
-export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRY_ATTEMPTS = 5;
 
 export function usePipelineRunQuery(
   runId?: string,
@@ -218,9 +223,26 @@ export function usePipelineRunQuery(
     queryFn: ({ signal }) => getPipelineRunFromBFF('', runId!, namespace!, { signal }),
     enabled: !!runId && !!namespace,
     placeholderData: (previousData) => previousData,
+    retry: (failureCount, error) => {
+      const status = parseErrorStatus(error);
+      if (status && status >= 400 && status < 500) {
+        return false;
+      }
+      return failureCount < MAX_RETRY_ATTEMPTS;
+    },
+    // Exponential backoff (5s, 10s, 20s, 40s, 80s) with random jitter to avoid thundering herd
+    retryDelay: (attempt) => {
+      const exp = RETRY_DELAY_MS * Math.pow(2, attempt);
+      const jitter = Math.floor(Math.random() * RETRY_DELAY_MS);
+      return exp + jitter;
+    },
     refetchInterval: (query) => {
+      // Let the retry backoff handle re-fetching during errors
+      if (query.state.status === 'error') {
+        return false;
+      }
       const state = query.state.data?.state;
-      if (!state || isTerminalState(state)) {
+      if (!state || isRunInTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;

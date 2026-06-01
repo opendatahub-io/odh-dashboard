@@ -88,7 +88,7 @@ describe('MCP Deployments', () => {
     initIntercepts();
     visitDeployments();
     mcpDeploymentsPage.findTable().should('be.visible');
-    mcpDeploymentsPage.findTableRows().should('have.length', 3);
+    mcpDeploymentsPage.findTableRows().should('have.length', 6);
 
     const runningRow = mcpDeploymentsPage.getRow('kubernetes-mcp');
     runningRow.findServer().should('contain.text', 'Kubernetes');
@@ -106,6 +106,21 @@ describe('MCP Deployments', () => {
     failedRow.findStatusLabel().should('contain.text', 'Unavailable');
     failedRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
     failedRow.findServiceViewButton().should('not.exist');
+
+    const initRow = mcpDeploymentsPage.getRow('init-mcp');
+    initRow.findStatusLabel().should('contain.text', 'Initializing');
+    initRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    initRow.findServiceViewButton().should('not.exist');
+
+    const invalidRow = mcpDeploymentsPage.getRow('invalid-mcp');
+    invalidRow.findStatusLabel().should('contain.text', 'Configuration invalid');
+    invalidRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    invalidRow.findServiceViewButton().should('not.exist');
+
+    const scaledRow = mcpDeploymentsPage.getRow('scaled-mcp');
+    scaledRow.findStatusLabel().should('contain.text', 'Scaled to zero');
+    scaledRow.findServiceUnavailable().should('exist').and('have.text', '\u2013');
+    scaledRow.findServiceViewButton().should('not.exist');
   });
 
   it('should default-sort rows by Created with newest first', () => {
@@ -426,6 +441,30 @@ describe('MCP Deploy from Catalog', () => {
 
       mcpServerDetailsPage.findDeployButton().should('be.visible');
       mcpServerDetailsPage.findDeployButtonSpinner().should('exist');
+    });
+
+    it('should not show deploy button when server is not found', () => {
+      initDeployIntercepts();
+      cy.intercept('GET', `${BFF_PREFIX}/mcp_catalog/mcp_servers/invalid-server*`, {
+        statusCode: 404,
+        body: {
+          error: { code: '404', message: 'the requested resource could not be found' },
+        },
+      });
+
+      cy.visitWithLogin('/ai-hub/mcp-servers/catalog/invalid-server');
+
+      cy.contains('MCP server not found').should('be.visible');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
+    });
+
+    it('should not show deploy button when artifacts contain only empty URIs', () => {
+      initDeployIntercepts({ artifacts: [{ uri: '' }] });
+
+      cy.visitWithLogin(`/ai-hub/mcp-servers/catalog/${TEST_SERVER_ID}`);
+
+      mcpServerDetailsPage.findBreadcrumbServerName().should('contain.text', 'Kubernetes MCP');
+      mcpServerDetailsPage.findDeployButton().should('not.exist');
     });
   });
 

@@ -6,6 +6,7 @@ import {
   useK8sWatchResource,
 } from '@openshift/dynamic-plugin-sdk-utils';
 import React from 'react';
+import { K8sStatusError, isK8sStatus } from '#~/api/errorUtils';
 import { CustomWatchK8sResult } from '#~/types';
 
 const useK8sWatchResourceList = <T extends K8sResourceCommon[]>(
@@ -27,6 +28,10 @@ const useK8sWatchResourceList = <T extends K8sResourceCommon[]>(
 
     if (!error) {
       return undefined;
+    }
+
+    if (isK8sStatus(error)) {
+      return new K8sStatusError(error);
     }
 
     return new Error('Unknown error occured');

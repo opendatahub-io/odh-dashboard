@@ -9,6 +9,7 @@ import {
 import { Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TruncatedText } from 'mod-arch-shared';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -32,6 +33,7 @@ interface VectorStoreTableRowProps {
   allCollections: ExternalVectorStoreSummary[];
   collectionsLoaded: boolean;
   existingCollections: VectorStore[];
+  showPlaygroundColumn?: boolean;
 }
 
 const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
@@ -42,6 +44,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
   allCollections,
   collectionsLoaded,
   existingCollections,
+  showPlaygroundColumn = false,
 }) => {
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
@@ -100,7 +103,16 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
             )}
             {isDisabled && (
               <Tooltip content="Add this embedding model as an AI asset endpoint to use this vector store.">
-                <Icon status="warning">
+                <Icon
+                  status="warning"
+                  data-testid="missing-model-tooltip-trigger"
+                  onMouseEnter={() =>
+                    fireMiscTrackingEvent('Available Endpoints Missing Model Alert Viewed', {
+                      collectionName: store.vector_store_name,
+                      missingModelId: store.embedding_model,
+                    })
+                  }
+                >
                   <OutlinedQuestionCircleIcon />
                 </Icon>
               </Tooltip>
@@ -110,29 +122,41 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
         <Td dataLabel="Dimensions" style={dimStyle}>
           {store.embedding_dimension}
         </Td>
-        <Td dataLabel="Playground" style={dimStyle}>
-          {isInPlayground ? (
-            <Button
-              variant={ButtonVariant.secondary}
-              onClick={() =>
-                navigate(genAiChatPlaygroundRoute(namespace?.name), {
-                  state: { vectorStoreId: store.vector_store_id },
-                })
-              }
-            >
-              Try in playground
-            </Button>
-          ) : (
-            <Button
-              variant={ButtonVariant.link}
-              icon={<PlusCircleIcon />}
-              isDisabled={isDisabled}
-              onClick={() => setIsConfigurationModalOpen(true)}
-            >
-              Add to playground
-            </Button>
-          )}
-        </Td>
+        {showPlaygroundColumn && (
+          <Td dataLabel="Playground" style={dimStyle}>
+            {isInPlayground ? (
+              <Button
+                variant={ButtonVariant.secondary}
+                onClick={() => {
+                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                    assetType: 'vector_store',
+                    assetId: store.vector_store_id,
+                  });
+                  navigate(genAiChatPlaygroundRoute(namespace?.name), {
+                    state: { vectorStoreId: store.vector_store_id },
+                  });
+                }}
+              >
+                Try in playground
+              </Button>
+            ) : (
+              <Button
+                variant={ButtonVariant.link}
+                icon={<PlusCircleIcon />}
+                isDisabled={isDisabled}
+                onClick={() => {
+                  setIsConfigurationModalOpen(true);
+                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                    assetType: 'vector_store',
+                    assetId: store.vector_store_id,
+                  });
+                }}
+              >
+                Add to playground
+              </Button>
+            )}
+          </Td>
+        )}
       </Tr>
       {isConfigurationModalOpen && (
         <ChatbotConfigurationModal

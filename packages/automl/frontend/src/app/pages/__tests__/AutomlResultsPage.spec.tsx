@@ -17,8 +17,14 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
-  Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
-    <a href={to}>{children}</a>
+  Link: ({
+    to,
+    children,
+    ...rest
+  }: { to: string; children: React.ReactNode } & Record<string, unknown>) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
   ),
 }));
 
@@ -107,7 +113,7 @@ jest.mock('~/app/components/run-results/StopRunModal', () => ({
     ) : null,
 }));
 
-const mockNotification = { success: jest.fn(), error: jest.fn() };
+const mockNotification = { success: jest.fn(), error: jest.fn(), warning: jest.fn() };
 jest.mock('~/app/hooks/useNotification', () => ({
   useNotification: () => mockNotification,
 }));
@@ -117,6 +123,7 @@ jest.mock('mod-arch-shared', () => ({
     children,
     empty,
     loaded,
+    loadError,
     emptyStatePage,
     breadcrumb,
     headerAction,
@@ -124,6 +131,7 @@ jest.mock('mod-arch-shared', () => ({
     children: React.ReactNode;
     empty: boolean;
     loaded: boolean;
+    loadError?: Error;
     emptyStatePage: React.ReactNode;
     breadcrumb?: React.ReactNode;
     headerAction?: React.ReactNode;
@@ -132,6 +140,7 @@ jest.mock('mod-arch-shared', () => ({
     <div data-testid="applications-page">
       {breadcrumb}
       {headerAction}
+      {loadError ? <div data-testid="load-error">{loadError.message}</div> : null}
       {empty ? emptyStatePage : null}
       {loaded && !empty ? children : null}
     </div>
@@ -231,8 +240,12 @@ describe('AutomlResultsPage', () => {
 
     mockUseAutomlResults.mockReturnValue({
       models: {},
+      failedModels: [],
       isLoading: false,
       isError: false,
+      modelsBasePath: undefined,
+      error: undefined,
+      refetch: jest.fn(),
     });
   });
 
@@ -289,8 +302,10 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: mockModels,
+        failedModels: [],
         isLoading: false,
         isError: false,
+        modelsBasePath: 's3://bucket/models',
       });
 
       renderPage();
@@ -301,6 +316,7 @@ describe('AutomlResultsPage', () => {
         models: mockModels,
         pipelineRunLoading: false,
         modelsLoading: false,
+        modelsBasePath: 's3://bucket/models',
         parameters: {
           task_type: 'binary',
           train_data_secret_name: 'my-secret',
@@ -359,8 +375,10 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: {},
+        failedModels: [],
         isLoading: true,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       renderPage();
@@ -437,8 +455,10 @@ describe('AutomlResultsPage', () => {
 
       mockUseAutomlResults.mockReturnValue({
         models: {},
+        failedModels: [],
         isLoading: false,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       renderPage();
@@ -667,7 +687,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -801,6 +821,8 @@ describe('AutomlResultsPage', () => {
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to stop run', 'Network error');
       });
+
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
     });
 
     it('should close StopRunModal after stop completes', async () => {
@@ -827,15 +849,35 @@ describe('AutomlResultsPage', () => {
     it('should disable modal buttons while termination is pending', async () => {
       setupWithRunState('RUNNING');
       const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      // Start with isPending: false so the Stop button is clickable
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: false,
+      });
+
+      const { rerender } = render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      // Open the modal
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      // Now set isPending: true to simulate in-progress termination
       useTerminatePipelineRunMutation.mockReturnValue({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
         isPending: true,
       });
 
-      renderPage();
-
-      await userEvent.click(screen.getByTestId('stop-run-button'));
+      rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
       expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();
@@ -891,6 +933,239 @@ describe('AutomlResultsPage', () => {
       await waitFor(() => {
         expect(mockNotification.error).toHaveBeenCalledWith('Failed to retry run', 'Retry failed');
       });
+    });
+  });
+
+  describe('error handling', () => {
+    it('should not show loadError when pipeline run query fails but has previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(screen.queryByTestId('load-error')).not.toBeInTheDocument();
+      expect(screen.getByTestId('automl-results')).toBeInTheDocument();
+    });
+
+    it('should show loadError when pipeline run query fails on initial load', () => {
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Server unavailable'),
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('load-error')).toBeInTheDocument();
+      expect(screen.getByTestId('load-error')).toHaveTextContent('Server unavailable');
+    });
+
+    it('should trigger warning notification when polling error occurs with previous data', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: true,
+        error: new Error('Network timeout'),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        'Pipeline run status update failed',
+        'The status update has failed consistently for multiple attempts. The displayed results may not reflect the current state of the pipeline run.',
+      );
+    });
+
+    it('should trigger warning notification when some models fail to load', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutomlResults.mockReturnValue({
+        models: mockModels,
+        failedModels: ['BrokenModel_L1', 'BrokenModel_L2'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      renderPage();
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+      expect(mockNotification.warning).toHaveBeenCalledWith(
+        '2 of 4 models could not be loaded',
+        'The following models failed to load: BrokenModel_L1, BrokenModel_L2',
+      );
+    });
+
+    it('should only trigger failed models notification once across re-renders', () => {
+      const mockPipelineRun = createMockPipelineRun();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      const failedModels = ['BrokenModel_L1'];
+      mockUseAutomlResults.mockReturnValueOnce({
+        models: mockModels,
+        failedModels,
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      mockUseAutomlResults.mockReturnValueOnce({
+        models: { ...mockModels },
+        failedModels: ['BrokenModel_L1'],
+        isLoading: false,
+        isError: false,
+        error: undefined,
+        refetch: jest.fn(),
+      });
+
+      const testQueryClient = createTestQueryClient();
+
+      const { rerender } = render(
+        <QueryClientProvider client={testQueryClient}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+
+      rerender(
+        <QueryClientProvider client={testQueryClient}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      expect(mockNotification.warning).toHaveBeenCalledTimes(1);
+    });
+
+    it('should pass modelsError, modelsLoadError, and onRetryModels through context', () => {
+      const mockPipelineRun = createMockPipelineRun();
+      const mockRefetch = jest.fn();
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      mockUseAutomlResults.mockReturnValue({
+        models: {},
+        failedModels: [],
+        isLoading: false,
+        isError: true,
+        error: new Error('Failed to list model directories'),
+        refetch: mockRefetch,
+      });
+
+      renderPage();
+
+      expect(capturedContext).toMatchObject({
+        modelsError: true,
+        modelsLoadError: expect.objectContaining({
+          message: 'Failed to list model directories',
+        }),
+        onRetryModels: mockRefetch,
+      });
+    });
+  });
+
+  describe('reconfigure action', () => {
+    it('should always show Reconfigure button when pipeline run is loaded', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should link to the reconfigure route with namespace and runId', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'SUCCEEDED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      const reconfigureButton = screen.getByTestId('reconfigure-run-button');
+      const link = reconfigureButton.closest('a');
+      expect(link).toHaveAttribute('href', '/develop-train/automl/reconfigure/test-ns/run-123');
+    });
+
+    it('should show Reconfigure button alongside Stop button for active runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'RUNNING' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('stop-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
+    });
+
+    it('should show Reconfigure button alongside Retry button for failed runs', () => {
+      const mockPipelineRun = createMockPipelineRun({ state: 'FAILED' });
+
+      mockUsePipelineRunQuery.mockReturnValue({
+        data: mockPipelineRun,
+        isPending: false,
+        isFetching: false,
+        isError: false,
+        error: null,
+      });
+
+      renderPage();
+
+      expect(screen.getByTestId('retry-run-button')).toBeInTheDocument();
+      expect(screen.getByTestId('reconfigure-run-button')).toBeInTheDocument();
     });
   });
 });

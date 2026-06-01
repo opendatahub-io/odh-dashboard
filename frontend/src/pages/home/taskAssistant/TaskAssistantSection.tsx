@@ -86,10 +86,8 @@ const TaskAssistantSection: React.FC = () => {
               />
             </FlexItem>
             <FlexItem>
-              <Content>
-                <Content id={titleId} component={ContentVariants.h2}>
-                  Task assistant
-                </Content>
+              <Content id={titleId} component={ContentVariants.h2}>
+                Task shortcuts
               </Content>
             </FlexItem>
             {!isOpen ? (
@@ -110,22 +108,20 @@ const TaskAssistantSection: React.FC = () => {
             </FlexItem>
           </Flex>
           {isOpen ? (
-            <>
-              <Content className="pf-v6-u-mt-sm pf-v6-u-mb-md" component="p">
-                Task Assistant provides personalized entry points based on your workflow. Select a
-                task to get started.
-              </Content>
-              <Gallery hasGutter minWidths={{ default: '100%', md: '300px' }}>
-                {groups.map((group) => (
-                  <GalleryItem key={group.properties.id} id={`task-group-${group.properties.id}`}>
-                    <TaskGroupCard
-                      group={group.properties}
-                      tasks={(groupedTasks[group.properties.id] ?? []).map((t) => t.properties)}
-                    />
-                  </GalleryItem>
-                ))}
-              </Gallery>
-            </>
+            <Gallery
+              hasGutter
+              minWidths={{ default: '100%', md: '300px' }}
+              className="pf-v6-u-mt-md"
+            >
+              {groups.map((group) => (
+                <GalleryItem key={group.properties.id} id={`task-group-${group.properties.id}`}>
+                  <TaskGroupCard
+                    group={group.properties}
+                    tasks={(groupedTasks[group.properties.id] ?? []).map((t) => t.properties)}
+                  />
+                </GalleryItem>
+              ))}
+            </Gallery>
           ) : null}
         </CardBody>
       </Card>

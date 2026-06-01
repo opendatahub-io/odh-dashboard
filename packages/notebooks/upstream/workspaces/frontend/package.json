@@ -14,7 +14,8 @@
     "istanbul-lib-processinfo": {
       "rimraf": "^3.0.2"
     },
-    "axios": "^1.15.0"
+    "axios": "^1.15.0",
+    "shell-quote": ">=1.8.4"
   },
   "engines": {
     "npm": "^11.10.0",

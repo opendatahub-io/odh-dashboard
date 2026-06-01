@@ -13,6 +13,7 @@ import {
   mockCreatePolicyResponse,
   mockPolicyInfo,
   mockSubscriptionFormData,
+  mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
 
 const setupAuthPoliciesCommon = () => {
@@ -29,7 +30,7 @@ const setupAuthPoliciesCommon = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
@@ -264,6 +265,21 @@ describe('View Auth Policy Page', () => {
 
     viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
     cy.url().should('include', '/maas/auth-policies');
+  });
+
+  it("should list models from the policy when model ref doesn't exist", () => {
+    const orphanPolicyName = 'missing-model-summary-policy';
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: orphanPolicyName } },
+      { data: mockPolicyInfoMissingModelSummaries() },
+    );
+    viewAuthPolicyPage.visit(orphanPolicyName);
+    viewAuthPolicyPage.findModelsSection().should('exist');
+    viewAuthPolicyPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models');
   });
 
   it('should show error state when the view-policy API fails', () => {

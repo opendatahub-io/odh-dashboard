@@ -8,8 +8,8 @@ import {
   ModelAvailabilityFieldsData,
   type InitialWizardFormData,
 } from '@odh-dashboard/model-serving/types/form-data';
-import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points';
-import { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
+import type { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import { setUpTokenAuth } from './deployUtils';
@@ -208,7 +208,7 @@ export const assembleLLMdDeployment = (
     {
       deploymentName: k8sName,
       deploymentNamespace: wizardData.state.project.projectName ?? '',
-      template: isLLMInferenceServiceConfig(wizardData.state.modelServer.data?.selection?.template)
+      template: isLLMInferenceServiceConfig(wizardData.state.modelServer?.data?.selection?.template)
         ? wizardData.state.modelServer.data.selection.template
         : undefined,
     },

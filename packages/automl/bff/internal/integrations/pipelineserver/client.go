@@ -53,6 +53,10 @@ const maxPipelineErrorBodySize = 64 * 1024 // 64 KB
 // Pipeline server success responses are capped at 10 MB.
 const maxSuccessBodySize = 10 << 20 // 10 MB
 
+// maxPaginationPages limits the number of pages fetched during paginated listing
+// to prevent unbounded loops from causing memory exhaustion.
+const maxPaginationPages = 100
+
 // ListRunsParams contains parameters for listing pipeline runs
 type ListRunsParams struct {
 	PageSize  int32
@@ -256,7 +260,11 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 	var totalSize int32
 	pageToken := ""
 
-	for {
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
+		}
+
 		queryParams := url.Values{}
 		if filter != "" {
 			queryParams.Set("filter", filter)
@@ -304,7 +312,7 @@ func (c *RealPipelineServerClient) ListPipelines(ctx context.Context, filter str
 		}
 
 		allPipelines = append(allPipelines, page.Pipelines...)
-		totalSize = page.TotalSize // KFP reports the total across all pages on every page
+		totalSize = page.TotalSize
 
 		if page.NextPageToken == "" {
 			break
@@ -336,46 +344,72 @@ func (c *RealPipelineServerClient) ListPipelineVersions(ctx context.Context, pip
 		return nil, fmt.Errorf("pipelineID is required")
 	}
 
-	queryParams := url.Values{}
-	queryParams.Set("sort_by", "created_at desc")
-	apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", c.baseURL, url.PathEscape(pipelineID), queryParams.Encode())
+	var allVersions []models.KFPipelineVersion
+	var totalSize int32
+	pageToken := ""
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	if c.authToken != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
-		body, _ := io.ReadAll(limitedReader)
-		_, _ = io.Copy(io.Discard, resp.Body)
-
-		errorMsg := string(body)
-		if len(body) == maxPipelineErrorBodySize {
-			errorMsg += " (truncated)"
+	for pagesFetched := 0; ; pagesFetched++ {
+		if pagesFetched >= maxPaginationPages {
+			return nil, fmt.Errorf("pagination limit reached: fetched %d pages", maxPaginationPages)
 		}
-		return nil, &HTTPError{
-			StatusCode: resp.StatusCode,
-			Message:    errorMsg,
+
+		queryParams := url.Values{}
+		queryParams.Set("sort_by", "created_at desc")
+		if pageToken != "" {
+			queryParams.Set("page_token", pageToken)
 		}
+		apiURL := fmt.Sprintf("%s/apis/v2beta1/pipelines/%s/versions?%s", c.baseURL, url.PathEscape(pipelineID), queryParams.Encode())
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		if c.authToken != "" {
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.authToken))
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
+			body, _ := io.ReadAll(limitedReader)
+			_, _ = io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+
+			errorMsg := string(body)
+			if len(body) == maxPipelineErrorBodySize {
+				errorMsg += " (truncated)"
+			}
+			return nil, &HTTPError{
+				StatusCode: resp.StatusCode,
+				Message:    errorMsg,
+			}
+		}
+
+		var page models.KFPipelineVersionsResponse
+		err = json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&page)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+
+		allVersions = append(allVersions, page.PipelineVersions...)
+		totalSize = page.TotalSize
+
+		if page.NextPageToken == "" {
+			break
+		}
+		pageToken = page.NextPageToken
 	}
 
-	var response models.KFPipelineVersionsResponse
-	if err := json.NewDecoder(io.LimitReader(resp.Body, maxSuccessBodySize)).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return &response, nil
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: allVersions,
+		TotalSize:        totalSize,
+	}, nil
 }
 
 // CreateRun creates a new pipeline run via the KFP v2beta1 API.

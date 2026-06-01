@@ -60,20 +60,22 @@ const createDefaultHookProps = (overrides?: {
   configId?: string;
   modelId?: string;
   systemInstruction?: string;
-  isRawUploaded?: boolean;
+  isRagEnabled?: boolean;
   isStreamingEnabled?: boolean;
   temperature?: number;
   currentVectorStoreId?: string | null;
+  knowledgeMode?: 'inline' | 'external';
   selectedServerIds?: string[];
 }) => ({
   ...defaultMcpProps,
   configId: 'default',
   modelId: mockModelId,
   systemInstruction: '',
-  isRawUploaded: true,
+  isRagEnabled: true,
   isStreamingEnabled: false,
   temperature: 0.7,
   currentVectorStoreId: 'test-vector-db',
+  knowledgeMode: 'inline' as const,
   selectedServerIds: [],
   ...overrides,
 });
@@ -101,7 +103,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Tell me about the document');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.content).toBe('Here is information from the document.');
     expect(botMessage.sources).toBeDefined();
@@ -125,7 +127,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Get info');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.sources?.sources[0].onClick).toBeDefined();
     expect(typeof botMessage.sources?.sources[0].onClick).toBe('function');
@@ -140,7 +142,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Hello');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.sources).toBeUndefined();
   });
@@ -169,7 +171,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Stream with sources');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.content).toBe('Streamed content with source.');
     expect(botMessage.sources).toBeDefined();
@@ -196,7 +198,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Multiple sources query');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.sources?.sources).toHaveLength(3);
     const titles = botMessage.sources?.sources.map((s) => s.title);
@@ -214,7 +216,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('This will fail');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     expect(botMessage.content).toBe('API Error');
     expect(botMessage.sources).toBeUndefined();
@@ -235,7 +237,7 @@ describe('useChatbotMessages - sources handling', () => {
       await result.current.handleMessageSend('Query');
     });
 
-    const botMessage = result.current.messages[2];
+    const botMessage = result.current.messages[1];
 
     // Empty sources array should not create sources prop
     expect(botMessage.sources).toBeUndefined();

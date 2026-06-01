@@ -46,8 +46,6 @@ func setupApiTest[T any](method, url string, body interface{}, k8Factory kuberne
 	envConfig := config.EnvConfig{
 		AllowedOrigins:            []string{"*"},
 		AuthMethod:                config.AuthMethodInternal,
-		TiersConfigMapNamespace:   "maas-api",
-		TiersConfigMapName:        "tier-to-group-mapping",
 		GatewayNamespace:          "openshift-ingress",
 		GatewayName:               "maas-default-gateway",
 		MockHTTPClient:            true,
