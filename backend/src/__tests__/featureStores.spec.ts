@@ -40,7 +40,7 @@ describe('featureStores routes', () => {
     } as unknown as FastifyReply);
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     routeHandlers = {};
 
     fastify = {
@@ -66,9 +66,8 @@ describe('featureStores routes', () => {
     });
     mockGetAccessToken.mockReturnValue('test-token');
     mockGetDirectCallOptions.mockResolvedValue({} as any);
-    mockHandleError.mockImplementation((_f, error, context) => {
-      const msg = error instanceof Error ? error.message : String(error);
-      return `${context}: ${msg}`;
+    mockHandleError.mockImplementation((_f, error) => {
+      return error instanceof Error ? error.message : String(error);
     });
 
     await registerRoutes(fastify);
@@ -297,6 +296,22 @@ describe('featureStores routes', () => {
       });
     });
 
+    it('should throw 400 for traversal after valid prefix', async () => {
+      const req = {
+        params: {
+          namespace: 'ns1',
+          projectName: 'test-project',
+          '*': 'api/v1/../../../etc/passwd',
+        },
+        url: '/api/featurestores/ns1/test-project/api/v1/../../../etc/passwd',
+      } as unknown as OauthFastifyRequest;
+      const reply = mockReply();
+
+      await expect(routeHandlers['/:namespace/:projectName/*'](req, reply)).rejects.toMatchObject({
+        statusCode: 400,
+      });
+    });
+
     it('should throw 400 for deep multi-encoded traversal that does not stabilize', async () => {
       const req = {
         params: {
@@ -431,7 +446,7 @@ describe('featureStores routes', () => {
       });
       mockConstructRegistryProxyUrl.mockReturnValue('https://feast-test:443/api/v1/features');
       mockMakeAuthenticatedHttpRequest.mockRejectedValue(new Error('connection refused'));
-      mockHandleError.mockReturnValue('Direct request error: connection refused');
+      mockHandleError.mockReturnValue('connection refused');
 
       const req = {
         params: { namespace: 'ns1', projectName: 'test-project', '*': 'api/v1/features' },

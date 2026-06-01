@@ -52,9 +52,8 @@ describe('fsworkbenchIntegration routes', () => {
     });
     mockGetAccessToken.mockReturnValue('test-token');
     mockGetDirectCallOptions.mockResolvedValue({} as any);
-    mockHandleError.mockImplementation((_f, error, context) => {
-      const msg = error instanceof Error ? error.message : String(error);
-      return `${context}: ${msg}`;
+    mockHandleError.mockImplementation((_f, error) => {
+      return error instanceof Error ? error.message : String(error);
     });
 
     await registerRoutes(fastify);
@@ -187,7 +186,7 @@ describe('fsworkbenchIntegration routes', () => {
 
     it('should return 500 on unexpected errors', async () => {
       mockFetchConfigMap.mockRejectedValue(new Error('k8s API error'));
-      mockHandleError.mockReturnValue('workbench-integration: k8s API error');
+      mockHandleError.mockReturnValue('k8s API error');
 
       const req = {} as OauthFastifyRequest;
       const reply = mockReply();
@@ -203,7 +202,7 @@ describe('fsworkbenchIntegration routes', () => {
       expect(reply.send).toHaveBeenCalledWith(
         expect.objectContaining({
           error: 'Failed to fetch workbench feature store configs',
-          message: 'workbench-integration: k8s API error',
+          message: 'k8s API error',
           status_code: 500,
         }),
       );

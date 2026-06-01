@@ -156,10 +156,7 @@ async function handleFeatureStoreProxy(
     throw createCustomError('Invalid proxy path', 'Path is not allowed', 400);
   }
 
-  if (
-    canonicalPath.includes('..') ||
-    !/^api\/v[0-9]+\/[A-Za-z0-9\-._~/?=&]*$/.test(canonicalPath)
-  ) {
+  if (canonicalPath.includes('..') || !/^api\/v[0-9]+\/[A-Za-z0-9\-._~/]*$/.test(canonicalPath)) {
     throw createCustomError('Invalid proxy path', 'Path is not allowed', 400);
   }
   const path = canonicalPath;
