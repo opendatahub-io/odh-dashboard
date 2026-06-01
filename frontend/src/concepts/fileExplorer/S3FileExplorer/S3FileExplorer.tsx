@@ -147,6 +147,9 @@ interface S3FileExplorerProps {
   /** Optional unique identifier for the S3FileExplorer. */
   id?: string;
 
+  /** The path of the S3 BFF API that should be called. Example: `/autorag/api/v1/s3` or `/automl/api/v1/s3` */
+  apiPath: string;
+
   /** Flag indicating whether the S3FileExplorer is open. */
   isOpen: boolean;
 
@@ -176,6 +179,7 @@ interface S3FileExplorerProps {
 }
 const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
   id,
+  apiPath,
   isOpen,
   onClose,
   onSelectFiles,
@@ -263,6 +267,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       // Strip leading slash and ensure trailing slash so S3 treats it as a prefix
       const parsedPath = path === '/' ? undefined : path.replace(/^\//, '').replace(/\/?$/, '/');
       const getFilesOptions: GetFilesOptions = {
+        apiPath,
         namespace,
         secretName,
         bucket,
@@ -311,7 +316,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
           setLoadingToRender(false);
         });
     },
-    [namespace, secretName, bucket],
+    [apiPath, namespace, secretName, bucket],
   );
 
   const navigateTo = useCallback(

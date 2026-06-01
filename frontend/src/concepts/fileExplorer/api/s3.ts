@@ -5,12 +5,6 @@ import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
 
 // Globals -------------------------------------------------------------------->
 
-// TODO [ Gustavo ] Make this configurable based on who's calling?
-const URL_PREFIX_RAG = '/autorag';
-const URL_PREFIX_ML = '/automl'; // eslint-disable-line @typescript-eslint/no-unused-vars
-const URL_PREFIX = URL_PREFIX_RAG;
-const BFF_API_VERSION = 'v1';
-
 /* eslint-disable camelcase */
 const S3ListObjectsResponseSchema = z.object({
   common_prefixes: z.array(
@@ -45,6 +39,7 @@ export type RequestOptions = {
 };
 
 export type GetFilesOptions = {
+  apiPath: string; // Example: `/autorag/api/v1/s3` or `/automl/api/v1/s3`
   namespace: string;
   secretName?: string;
   bucket?: string;
@@ -89,10 +84,7 @@ export async function getFiles(
     query.set('next', options.next);
   }
 
-  const url = new URL(
-    `${host}${URL_PREFIX}/api/${BFF_API_VERSION}/s3/files`,
-    window.location.origin,
-  );
+  const url = new URL(`${host}${options.apiPath}/files`, window.location.origin);
   url.search = query.toString();
 
   const response = await fetch(url, {

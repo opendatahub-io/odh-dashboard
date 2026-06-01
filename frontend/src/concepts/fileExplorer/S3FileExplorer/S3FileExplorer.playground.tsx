@@ -227,6 +227,7 @@ const App: React.FC = () => {
 
       <S3FileExplorer
         id="playground-s3-file-explorer"
+        apiPath="/autorag/api/v1/s3"
         namespace={activeNamespace}
         s3Secret={activeSecret}
         isOpen={isOpen}
