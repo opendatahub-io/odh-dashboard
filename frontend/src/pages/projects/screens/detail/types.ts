@@ -6,6 +6,7 @@ export enum ProjectSectionID {
   MODEL_SERVER = 'model-server',
   PIPELINES = 'pipelines-projects',
   PERMISSIONS = 'permissions',
+  ROLES = 'roles',
   SETTINGS = 'settings',
   FEATURE_STORE = 'feature-store-integration',
 }

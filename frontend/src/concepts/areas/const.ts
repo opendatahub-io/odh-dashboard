@@ -10,6 +10,7 @@ export const techPreviewFlags = {
   maasAuthPolicies: true,
   aiAssetCustomEndpoints: false,
   mcpCatalog: false,
+  toolCalling: false,
   projectRBAC: true,
   observabilityDashboard: false,
   deploymentWizardYAMLViewer: false,
@@ -26,6 +27,7 @@ export const devTemporaryFeatureFlags = {
   mlflowPipelines: false,
   nimWizard: false,
   agentOps: false,
+  roleManagement: false,
 } satisfies Partial<DashboardCommonConfig>;
 
 // Group 1: Core Dashboard Features
@@ -233,6 +235,9 @@ export const SupportedAreasStateMap: SupportedAreasState = {
   },
   [SupportedArea.PROJECT_RBAC_SETTINGS]: {
     featureFlags: ['projectRBAC'],
+  },
+  [SupportedArea.ROLE_MANAGEMENT]: {
+    featureFlags: ['roleManagement'],
   },
   [SupportedArea.YAML_VIEWER]: {
     featureFlags: ['deploymentWizardYAMLViewer'],

@@ -17,6 +17,7 @@ import { aiModelColumns } from '~/app/AIAssets/data/columns';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import useFetchAAEVectorStores from '~/app/hooks/useFetchAAEVectorStores';
 import useFetchVectorStores from '~/app/hooks/useFetchVectorStores';
+import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 import {
   AssetsFilterColors,
   AssetsFilterOptions,
@@ -119,17 +120,27 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
 }) => {
   const { filterData, onFilterUpdate, onClearFilters, filteredModels } = useAIModelsFilter(models);
   const { data: allCollections, loaded: collectionsLoaded } = useFetchAAEVectorStores();
+  const isChatPlaygroundEnabled = useChatPlaygroundEnabled();
   const [existingCollections] = useFetchVectorStores();
 
   // Check if any models are custom endpoints to determine if we need the action column
   const hasCustomEndpoints = models.some((model) => model.model_source_type === 'custom_endpoint');
+
+  // Filter columns based on playground availability
+  const visibleColumns = React.useMemo(
+    () =>
+      isChatPlaygroundEnabled
+        ? aiModelColumns
+        : aiModelColumns.filter((col) => col.field !== 'playground'),
+    [isChatPlaygroundEnabled],
+  );
 
   return (
     <Table
       variant="compact"
       data-testid="ai-models-table"
       data={filteredModels}
-      columns={aiModelColumns}
+      columns={visibleColumns}
       disableRowRenderSupport
       enablePagination
       emptyTableView={<DashboardEmptyTableView onClearFilters={onClearFilters} />}
@@ -155,6 +166,7 @@ const AIModelsTable: React.FC<AIModelsTableProps> = ({
           playgroundModels={playgroundModels}
           onDelete={onDelete}
           showActionColumn={hasCustomEndpoints && !!onDelete}
+          showPlaygroundColumn={isChatPlaygroundEnabled}
           allCollections={allCollections}
           collectionsLoaded={collectionsLoaded}
           existingCollections={existingCollections}
