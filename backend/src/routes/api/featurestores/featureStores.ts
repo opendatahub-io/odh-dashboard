@@ -160,8 +160,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       if (createError.isHttpError(error)) {
         throw error;
       }
-      const errorMessage = handleError(fastify, error, 'Failed to fetch feature stores');
-      throw createCustomError('Failed to fetch feature stores', errorMessage, 500);
+      handleError(fastify, error, 'Failed to fetch feature stores');
+      throw createCustomError(
+        'Failed to fetch feature stores',
+        'Unable to fetch feature stores at this time',
+        500,
+      );
     }
   });
 
@@ -223,8 +227,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
 
         reply.code(statusCode).type('application/json').send(data);
       } catch (directError) {
-        const errorMessage = handleError(fastify, directError, 'Direct request error');
-        throw createCustomError('Registry request failed', errorMessage, 500);
+        handleError(fastify, directError, 'Direct request error');
+        throw createCustomError(
+          'Registry request failed',
+          'Unable to contact the feature store registry',
+          500,
+        );
       }
     },
   );
