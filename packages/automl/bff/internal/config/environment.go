@@ -80,6 +80,7 @@ type EnvConfig struct {
 	MockHTTPClient           bool
 	MockS3Client             bool
 	MockPipelineServerClient bool
+	MockModelRegistryClient  bool
 	DevMode                  bool
 	DeploymentMode           DeploymentMode
 	DevModeClientPort        int

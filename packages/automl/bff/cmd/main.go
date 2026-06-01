@@ -28,6 +28,7 @@ func main() {
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
+	flag.BoolVar(&cfg.MockModelRegistryClient, "mock-model-registry-client", getEnvAsBool("MOCK_MODEL_REGISTRY_CLIENT", false), "Use mock Model Registry client")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "autogluon-timeseries-training-pipeline"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: autogluon-timeseries-training-pipeline)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "autogluon-tabular-training-pipeline"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: autogluon-tabular-training-pipeline)")
 	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
@@ -62,7 +63,7 @@ func main() {
 
 	// Auto-detect mock mode: if mock clients are enabled and auth method is still default,
 	// automatically switch to disabled auth for testing convenience
-	if (cfg.MockK8Client || cfg.MockS3Client || cfg.MockPipelineServerClient) && cfg.AuthMethod == "user_token" {
+	if (cfg.MockK8Client || cfg.MockS3Client || cfg.MockPipelineServerClient || cfg.MockModelRegistryClient) && cfg.AuthMethod == "user_token" {
 		cfg.AuthMethod = config.AuthMethodDisabled
 	}
 

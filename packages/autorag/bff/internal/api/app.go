@@ -11,19 +11,16 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	kubernetesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
-	pipelinesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines/mocks"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
-	s3mocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3/mocks"
 	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
+	"github.com/opendatahub-io/autorag-library/bff/internal/fake"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 
 	"github.com/julienschmidt/httprouter"
@@ -128,7 +125,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Create autox-core Kubernetes client and service.
 	var k8sClient kubernetes.Client
 	if cfg.MockK8Client {
-		k8sClient = &kubernetesmocks.MockClient{}
+		k8sClient = &fake.K8sClient{}
 	} else {
 		if cfg.AuthMethod == config.AuthMethodUser {
 			k8sClient, err = kubernetes.NewDefaultTokenClient()
@@ -136,7 +133,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 			k8sClient, err = kubernetes.NewDefaultInternalClient()
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
+			return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 		}
 	}
 	k8sService := kubernetes.NewService(kubernetes.ServiceConfig{Logger: logger}, k8sClient)
@@ -144,7 +141,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Create autox-core Pipelines client and service.
 	var pipelinesClient pipelines.Client
 	if cfg.MockPipelineServerClient {
-		pipelinesClient = &pipelinesmocks.MockClient{}
+		pipelinesClient = &fake.PipelinesClient{}
 	} else {
 		pipelinesCfg := pipelines.ClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
@@ -166,18 +163,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
 		os.Exit(1)
 	}
-	s3ClientCfg := s3.ClientConfig{
-		RootCAs:                 rootCAs,
-		InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
-		AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
-	}
-	if pfManager != nil {
-		s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
-	}
 	var s3Client s3.Client
 	if cfg.MockS3Client {
-		s3Client = s3.NewClient(&s3mocks.MockClientProvider{})
+		s3Client = &fake.S3Client{}
 	} else {
+		s3ClientCfg := s3.ClientConfig{
+			RootCAs:                 rootCAs,
+			InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
+			AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
+		}
+		if pfManager != nil {
+			s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
+		}
 		s3Client = s3.NewDefaultClient(s3ClientCfg)
 	}
 	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
@@ -185,7 +182,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	// Initialize Open GenAI Stack client (single shared instance).
 	var ogxClient ogx.OGXClientInterface
 	if cfg.MockOGXClient {
-		ogxClient = ogxmocks.NewMockOGXClient()
+		ogxClient = &fake.OGXClient{}
 	} else {
 		ogxCfg := ogx.OGXClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
@@ -294,7 +291,7 @@ func (app *App) Routes() http.Handler {
 	var identityExtractor kubernetes.IdentityExtractor
 	switch app.config.AuthMethod {
 	case config.AuthMethodDisabled:
-		identityExtractor = &kubernetes.MockIdentityExtractor{}
+		identityExtractor = &fake.IdentityExtractor{}
 	case config.AuthMethodInternal:
 		identityExtractor = &kubernetes.KubeflowHeaderExtractor{
 			UserIDHeader:     constants.KubeflowUserIDHeader,
