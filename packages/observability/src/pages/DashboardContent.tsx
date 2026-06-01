@@ -8,8 +8,9 @@ import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import NamespaceUrlSync from './NamespaceUrlSync';
-import PersesWrapper from '../perses/PersesWrapper';
-import PersesBoard from '../perses/PersesBoard';
+import PersesProvider from '../perses/embeddable/PersesProvider';
+import PersesDashboard from '../perses/embeddable/PersesDashboard';
+import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
@@ -104,7 +105,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
 
   return (
     <div ref={setRelativeLinkHandlerRef}>
-      <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
+      <PersesProvider key={activeDashboardName} dashboardResource={activeDashboard} syncToUrl>
         {needsClusterDetails && <ClusterDetailsVariablesProvider />}
         <NamespaceUrlSync />
         <ApplicationsPage
@@ -130,13 +131,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
                 href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
-                  <PersesBoard />
+                  <PersesVariables />
+                  <PersesDashboard />
                 </PageSection>
               </Tab>
             ))}
           </Tabs>
         </ApplicationsPage>
-      </PersesWrapper>
+      </PersesProvider>
     </div>
   );
 };
