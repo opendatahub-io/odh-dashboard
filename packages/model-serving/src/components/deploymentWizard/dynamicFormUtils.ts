@@ -15,10 +15,10 @@ export const useWizardFieldOverrides = <T extends DeploymentWizardFieldOverride>
 
   return React.useMemo(() => {
     const active = extensions
+      .filter((ext) => ext.properties.field.isActive(formData))
       .toSorted((a, b) => a.uid.localeCompare(b.uid))
       .map((ext) => ext.properties.field)
-      .filter(predicate)
-      .filter((field) => field.isActive(formData));
+      .filter(predicate);
 
     const forced = active.filter((field) => 'forced' in field && field.forced);
     if (forced.length > 1) {
