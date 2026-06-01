@@ -351,13 +351,13 @@ describe('Model Catalog Page', () => {
     });
   });
 
-  it('should not display validated configuration filter when feature flag is off', () => {
+  it('should not display validated arguments filter when feature flag is off', () => {
     initIntercepts({});
     modelCatalog.visit();
-    modelCatalog.findFilter('Validated configuration').should('not.exist');
+    modelCatalog.findFilter('Validated arguments').should('not.exist');
   });
 
-  describe('Validated Configuration Filter (feature flag on)', () => {
+  describe('Validated arguments Filter (feature flag on)', () => {
     beforeEach(() => {
       window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
     });
@@ -375,7 +375,7 @@ describe('Model Catalog Page', () => {
 
       modelCatalog.visit();
       modelCatalog
-        .findFilterCheckbox('Validated configuration', 'tool-calling')
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
         .scrollIntoView()
         .click();
 
@@ -393,7 +393,7 @@ describe('Model Catalog Page', () => {
 
       modelCatalog.visit();
       modelCatalog
-        .findFilterCheckbox('Validated configuration', 'tool-calling')
+        .findFilterCheckbox('Validated arguments', 'tool-calling')
         .scrollIntoView()
         .click();
       cy.wait('@getFilteredModels');
@@ -405,16 +405,6 @@ describe('Model Catalog Page', () => {
         expect(url).to.include('validatedTasks%3D%27tool-calling%27');
         expect(url).to.include('provider%3D%27Google%27');
       });
-    });
-
-    it('should not show helper text when only one option exists', () => {
-      initIntercepts({});
-      modelCatalog.visit();
-      modelCatalog
-        .findFilterCheckbox('Validated configuration', 'tool-calling')
-        .scrollIntoView()
-        .click();
-      cy.contains('Showing models with all selected configurations').should('not.exist');
     });
 
     describe('with multiple options', () => {
@@ -440,16 +430,6 @@ describe('Model Catalog Page', () => {
         );
       };
 
-      it('should show helper text when an option is selected', () => {
-        initMultiOptionIntercepts({});
-        modelCatalog.visit();
-        modelCatalog
-          .findFilterCheckbox('Validated configuration', 'tool-calling')
-          .scrollIntoView()
-          .click();
-        cy.contains('Showing models with all selected configurations').should('be.visible');
-      });
-
       it('should send AND conditions instead of IN for multiple selections', () => {
         initMultiOptionIntercepts({ includeAllModelsIntercept: true });
         setupFilteredModelsIntercept({
@@ -459,12 +439,12 @@ describe('Model Catalog Page', () => {
 
         modelCatalog.visit();
         modelCatalog
-          .findFilterCheckbox('Validated configuration', 'tool-calling')
+          .findFilterCheckbox('Validated arguments', 'tool-calling')
           .scrollIntoView()
           .click();
         cy.wait('@getFilteredModels');
 
-        modelCatalog.findFilterCheckbox('Validated configuration', 'text-generation').click();
+        modelCatalog.findFilterCheckbox('Validated arguments', 'text-generation').click();
 
         cy.wait('@getFilteredModels').then((interception) => {
           const { url } = interception.request;
@@ -757,5 +737,25 @@ describe('Single Category Behavior', () => {
 
     modelCatalog.togglePerformanceView();
     modelCatalog.findModelCatalogCards().should('have.length.at.least', 1);
+  });
+});
+
+describe('Clear All Filters Button Behavior', () => {
+  it('should not show clear all filters button when performance view is activated with filters applied', () => {
+    initIntercepts({
+      sources: mockDefaultSources(),
+    });
+    setupFilteredModelsIntercept({ returnModelsForFilters: true, modelsToReturn: [] });
+
+    modelCatalog.visit();
+
+    modelCatalog.findFilterShowMoreButton('Task').click();
+    modelCatalog.findFilterCheckbox('Task', 'audio-to-text').click();
+
+    cy.wait('@getFilteredModels');
+
+    modelCatalog.togglePerformanceView();
+
+    cy.findByRole('button', { name: /Clear all filters/i }).should('not.exist');
   });
 });

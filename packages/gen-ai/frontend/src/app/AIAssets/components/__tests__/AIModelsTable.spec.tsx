@@ -8,14 +8,17 @@ import type { AIModel, LlamaModel } from '~/app/types';
 import AIModelsTable from '~/app/AIAssets/components/AIModelsTable';
 import useAIModelsFilter from '~/app/AIAssets/hooks/useAIModelsFilter';
 import { mockGenAiContextValue } from '~/__mocks__/mockGenAiContext';
+import useChatPlaygroundEnabled from '~/app/hooks/useChatPlaygroundEnabled';
 
 jest.mock('~/app/AIAssets/hooks/useAIModelsFilter');
 jest.mock('~/app/hooks/useAiAssetVectorStoresEnabled', () => ({
   __esModule: true,
   default: () => false,
 }));
+jest.mock('~/app/hooks/useChatPlaygroundEnabled');
 
 const mockUseAIModelsFilter = jest.mocked(useAIModelsFilter);
+const mockUseChatPlaygroundEnabled = jest.mocked(useChatPlaygroundEnabled);
 
 const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <MemoryRouter>
@@ -52,6 +55,7 @@ describe('AIModelsTable', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseChatPlaygroundEnabled.mockReturnValue(true);
     mockUseAIModelsFilter.mockReturnValue({
       filterData: {},
       onFilterUpdate: jest.fn(),
@@ -116,5 +120,47 @@ describe('AIModelsTable', () => {
 
     expect(screen.getByText('Model 1')).toBeInTheDocument();
     expect(screen.queryByText('Model 2')).not.toBeInTheDocument();
+  });
+
+  describe('Playground column visibility', () => {
+    it('should include Playground column when useChatPlaygroundEnabled returns true', () => {
+      mockUseChatPlaygroundEnabled.mockReturnValue(true);
+      const models = [createMockAIModel({ model_id: 'model-1', display_name: 'Model 1' })];
+
+      mockUseAIModelsFilter.mockReturnValue({
+        filterData: {},
+        onFilterUpdate: jest.fn(),
+        onClearFilters: jest.fn(),
+        filteredModels: models,
+      });
+
+      render(
+        <TestWrapper>
+          <AIModelsTable {...defaultProps} models={models} />
+        </TestWrapper>,
+      );
+
+      expect(screen.getByText('Playground')).toBeInTheDocument();
+    });
+
+    it('should exclude Playground column when useChatPlaygroundEnabled returns false', () => {
+      mockUseChatPlaygroundEnabled.mockReturnValue(false);
+      const models = [createMockAIModel({ model_id: 'model-1', display_name: 'Model 1' })];
+
+      mockUseAIModelsFilter.mockReturnValue({
+        filterData: {},
+        onFilterUpdate: jest.fn(),
+        onClearFilters: jest.fn(),
+        filteredModels: models,
+      });
+
+      render(
+        <TestWrapper>
+          <AIModelsTable {...defaultProps} models={models} />
+        </TestWrapper>,
+      );
+
+      expect(screen.queryByText('Playground')).not.toBeInTheDocument();
+    });
   });
 });

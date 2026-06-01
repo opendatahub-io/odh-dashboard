@@ -36,6 +36,7 @@ function AutoragResultsPage(): React.JSX.Element {
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   const handleDrawerClose = React.useCallback(() => setIsDrawerOpen(false), []);
   const [isStopModalOpen, setIsStopModalOpen] = React.useState(false);
+  const [stopInitiated, setStopInitiated] = React.useState(false);
   const { handleRetry, handleConfirmStop, isRetrying, isTerminating } = useAutoragRunActions(
     namespace ?? '',
     runId ?? '',
@@ -104,9 +105,20 @@ function AutoragResultsPage(): React.JSX.Element {
   const runTerminatable = isRunTerminatable(pipelineRun?.state);
   const runRetryable = isRunRetryable(pipelineRun?.state);
 
+  // Track previous terminatable state to detect transitions
+  const prevRunTerminatable = React.useRef(runTerminatable);
+  React.useEffect(() => {
+    // Reset stopInitiated only when transitioning from non-terminatable to terminatable (e.g., after retry)
+    if (runTerminatable && !prevRunTerminatable.current) {
+      setStopInitiated(false);
+    }
+    prevRunTerminatable.current = runTerminatable;
+  }, [runTerminatable]);
+
   const handleStop = React.useCallback(async () => {
     try {
       await handleConfirmStop();
+      setStopInitiated(true);
       setIsStopModalOpen(false);
     } catch {
       // Keep modal open on failure; error notification is shown by the hook.
@@ -180,11 +192,14 @@ function AutoragResultsPage(): React.JSX.Element {
               headerAction={
                 <Split hasGutter>
                   <SplitItem>
-                    {runTerminatable && (
+                    {runTerminatable && !stopInitiated && (
                       <Button
                         variant="secondary"
                         icon={<StopCircleIcon />}
                         onClick={() => setIsStopModalOpen(true)}
+                        isDisabled={isTerminating || isStopModalOpen}
+                        isLoading={isTerminating || isStopModalOpen}
+                        spinnerAriaValueText="Stopping run"
                         data-testid="stop-run-button"
                       >
                         Stop
