@@ -307,13 +307,15 @@ const MetricCell: React.FC<{ value: number | string }> = ({ value }) => {
 type AutoragLeaderboardProps = {
   onViewDetails?: (patternName: string) => void;
   onSaveNotebook?: (patternName: string, notebookType: 'indexing' | 'inference') => void;
-  onTryInPlayground?: (patternName: string) => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
 };
 
 function AutoragLeaderboard({
   onViewDetails,
   onSaveNotebook,
-  onTryInPlayground,
+  onTryPattern,
+  onViewCode,
 }: AutoragLeaderboardProps): React.JSX.Element | null {
   const { namespace, runId } = useParams<{ namespace: string; runId: string }>();
   const {
@@ -1014,12 +1016,11 @@ function AutoragLeaderboard({
                   <ActionsColumn
                     items={[
                       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      ...(patterns[entry.patternKey].settings?.responses_template &&
-                      onTryInPlayground
+                      ...(patterns[entry.patternKey].settings?.responses_template && onTryPattern
                         ? [
                             {
-                              title: 'Try in Playground',
-                              onClick: () => onTryInPlayground(entry.patternKey),
+                              title: 'Try this pattern',
+                              onClick: () => onTryPattern(entry.patternKey),
                             },
                           ]
                         : []),
@@ -1027,6 +1028,15 @@ function AutoragLeaderboard({
                         title: 'View details',
                         onClick: () => handleViewDetails(entry.pattern),
                       },
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      ...(patterns[entry.patternKey].settings?.responses_template && onViewCode
+                        ? [
+                            {
+                              title: 'View code',
+                              onClick: () => onViewCode(entry.patternKey),
+                            },
+                          ]
+                        : []),
                       {
                         title: 'Save as indexing notebook',
                         onClick: () => onSaveNotebook?.(entry.pattern, 'indexing'),

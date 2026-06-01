@@ -36,6 +36,7 @@ import {
   isRunRetryable,
   parseErrorStatus,
 } from '~/app/utilities/utils';
+import ViewCodeModal from '~/app/components/run-results/ViewCodeModal';
 import type { ResponsesTemplate } from '~/app/types/autoragPattern';
 
 type DrawerContentType =
@@ -188,7 +189,7 @@ function AutoragResultsPage(): React.JSX.Element {
   );
 
   /* eslint-disable @typescript-eslint/no-unnecessary-condition */
-  const handleTryInPlayground = React.useCallback(
+  const handleTryPattern = React.useCallback(
     (patternName: string) => {
       const pattern = patterns?.[patternName];
       if (!pattern) {
@@ -223,6 +224,22 @@ function AutoragResultsPage(): React.JSX.Element {
   );
   /* eslint-enable @typescript-eslint/no-unnecessary-condition */
 
+  const [viewCodePattern, setViewCodePattern] = React.useState<{
+    patternName: string;
+    responsesTemplate: ResponsesTemplate;
+  } | null>(null);
+
+  const handleViewCode = React.useCallback(
+    (patternName: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const responsesTemplate = patterns?.[patternName]?.settings?.responses_template;
+      if (responsesTemplate) {
+        setViewCodePattern({ patternName, responsesTemplate });
+      }
+    },
+    [patterns],
+  );
+
   return (
     <AutoragResultsContext.Provider value={contextValue}>
       <Drawer isExpanded={isDrawerOpen} position="end">
@@ -242,7 +259,8 @@ function AutoragResultsPage(): React.JSX.Element {
                 patternInfo={drawerContent.patternInfo}
                 patterns={patterns}
                 onClose={handleDrawerClose}
-                onSelectPattern={handleTryInPlayground}
+                onSelectPattern={handleTryPattern}
+                onViewCode={handleViewCode}
               />
             ) : undefined
           }
@@ -343,7 +361,7 @@ function AutoragResultsPage(): React.JSX.Element {
               }
               loaded={namespacesLoaded && !pipelineRunPending}
             >
-              <AutoragResults onTryInPlayground={handleTryInPlayground} />
+              <AutoragResults onTryPattern={handleTryPattern} onViewCode={handleViewCode} />
             </ApplicationsPage>
           </DrawerContentBody>
         </DrawerContent>
@@ -355,6 +373,14 @@ function AutoragResultsPage(): React.JSX.Element {
         isTerminating={isTerminating}
         runName={pipelineRun?.display_name}
       />
+      {viewCodePattern && (
+        <ViewCodeModal
+          isOpen
+          onClose={() => setViewCodePattern(null)}
+          patternName={viewCodePattern.patternName}
+          responsesTemplate={viewCodePattern.responsesTemplate}
+        />
+      )}
     </AutoragResultsContext.Provider>
   );
 }

@@ -18,6 +18,7 @@ const mockUseParams = jest.fn();
 jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useParams: () => mockUseParams(),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
   Link: ({
     to,
     children,

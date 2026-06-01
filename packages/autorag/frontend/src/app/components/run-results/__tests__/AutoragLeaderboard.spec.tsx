@@ -199,7 +199,8 @@ interface RenderWithContextOptions {
   patternsError?: boolean;
   patternsLoadError?: Error;
   onRetryPatterns?: () => void;
-  onTryInPlayground?: (patternName: string) => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
   optimizationMetric?: 'faithfulness' | 'answer_correctness' | 'context_correctness';
   namespace?: string;
 }
@@ -212,7 +213,8 @@ const renderWithContext = ({
   patternsError,
   patternsLoadError,
   onRetryPatterns,
-  onTryInPlayground,
+  onTryPattern,
+  onViewCode,
   optimizationMetric,
   namespace = 'test-namespace',
 }: RenderWithContextOptions = {}) => {
@@ -244,7 +246,7 @@ const renderWithContext = ({
           path="/autorag/:namespace/results/:runId"
           element={
             <AutoragResultsContext.Provider value={contextValue}>
-              <AutoragLeaderboard onTryInPlayground={onTryInPlayground} />
+              <AutoragLeaderboard onTryPattern={onTryPattern} onViewCode={onViewCode} />
             </AutoragResultsContext.Provider>
           }
         />
@@ -1001,10 +1003,10 @@ describe('AutoragLeaderboard component', () => {
   });
 
   // ========================================================================
-  // Try in Playground Action
+  // Try this pattern Action
   // ========================================================================
 
-  describe('Try in Playground action', () => {
+  describe('Try this pattern action', () => {
     const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
       'pattern-1': {
         ...createMockPattern('Pattern With Template', {
@@ -1052,12 +1054,12 @@ describe('AutoragLeaderboard component', () => {
       }),
     };
 
-    it('should show "Try in Playground" action when pattern has responses_template', () => {
-      const onTryInPlayground = jest.fn();
+    it('should show "Try this pattern" action when pattern has responses_template', () => {
+      const onTryPattern = jest.fn();
       renderWithContext({
         patterns: mockPatternsWithTemplate,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryInPlayground,
+        onTryPattern,
       });
 
       // Pattern with template should have the action (rank 2 since it has lower score)
@@ -1068,16 +1070,16 @@ describe('AutoragLeaderboard component', () => {
       const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
       fireEvent.click(actionsButton);
 
-      const playgroundAction = screen.getByText('Try in Playground');
+      const playgroundAction = screen.getByText('Try this pattern');
       expect(playgroundAction).toBeInTheDocument();
     });
 
-    it('should call onTryInPlayground when "Try in Playground" is clicked', () => {
-      const onTryInPlayground = jest.fn();
+    it('should call onTryPattern when "Try this pattern" is clicked', () => {
+      const onTryPattern = jest.fn();
       renderWithContext({
         patterns: mockPatternsWithTemplate,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryInPlayground,
+        onTryPattern,
       });
 
       const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
@@ -1086,18 +1088,18 @@ describe('AutoragLeaderboard component', () => {
       const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
       fireEvent.click(actionsButton);
 
-      const playgroundAction = screen.getByText('Try in Playground');
+      const playgroundAction = screen.getByText('Try this pattern');
       fireEvent.click(playgroundAction);
 
-      expect(onTryInPlayground).toHaveBeenCalledWith('pattern-1');
+      expect(onTryPattern).toHaveBeenCalledWith('pattern-1');
     });
 
-    it('should not show "Try in Playground" when pattern lacks responses_template', () => {
-      const onTryInPlayground = jest.fn();
+    it('should not show "Try this pattern" when pattern lacks responses_template', () => {
+      const onTryPattern = jest.fn();
       renderWithContext({
         patterns: mockPatternsWithTemplate,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
-        onTryInPlayground,
+        onTryPattern,
       });
 
       const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
@@ -1106,10 +1108,10 @@ describe('AutoragLeaderboard component', () => {
       const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
       fireEvent.click(actionsButton);
 
-      expect(screen.queryByText('Try in Playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
     });
 
-    it('should not show "Try in Playground" when onTryInPlayground is not provided', () => {
+    it('should not show "Try this pattern" when onTryPattern is not provided', () => {
       renderWithContext({
         patterns: mockPatternsWithTemplate,
         pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
@@ -1120,7 +1122,124 @@ describe('AutoragLeaderboard component', () => {
       const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
       fireEvent.click(actionsButton);
 
-      expect(screen.queryByText('Try in Playground')).not.toBeInTheDocument();
+      expect(screen.queryByText('Try this pattern')).not.toBeInTheDocument();
+    });
+  });
+
+  // ========================================================================
+  // View Code Action
+  // ========================================================================
+
+  describe('View code action', () => {
+    const mockPatternsWithTemplate: Record<string, AutoragPattern> = {
+      'pattern-1': {
+        ...createMockPattern('Pattern With Template', {
+          faithfulness: 0.85,
+          answer_correctness: 0.82,
+          context_correctness: 0.88,
+        }),
+        settings: {
+          ...createMockPattern('Pattern With Template', {}).settings,
+          responses_template: {
+            model: 'vllm/llama-3',
+            stream: false,
+            store: true,
+            input: [
+              {
+                type: 'message' as const,
+                role: 'user' as const,
+                content: [{ type: 'input_text' as const, text: '<user_query_placeholder>' }],
+              },
+            ],
+            metadata: { autorag_run_id: '123', rag_pattern_name: 'Pattern With Template' },
+            instructions: 'Answer from file_search results.',
+            tools: [
+              {
+                type: 'file_search' as const,
+                vector_store_ids: ['vs-1'],
+                max_num_results: 5,
+                ranking_options: {
+                  search_mode: 'hybrid',
+                  ranker_strategy: 'rrf',
+                  ranker_k: 60,
+                  ranker_alpha: 0.5,
+                },
+              },
+            ],
+            tool_choice: { type: 'file_search' },
+            include: ['file_search_call.results'],
+          },
+        },
+      },
+      'pattern-2': createMockPattern('Pattern Without Template', {
+        faithfulness: 0.92,
+        answer_correctness: 0.89,
+        context_correctness: 0.94,
+      }),
+    };
+
+    it('should show "View code" action when pattern has responses_template', () => {
+      const onViewCode = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onViewCode,
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      expect(screen.getByText('View code')).toBeInTheDocument();
+    });
+
+    it('should call onViewCode when "View code" is clicked', () => {
+      const onViewCode = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onViewCode,
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      fireEvent.click(screen.getByText('View code'));
+
+      expect(onViewCode).toHaveBeenCalledWith('pattern-1');
+    });
+
+    it('should not show "View code" when pattern lacks responses_template', () => {
+      const onViewCode = jest.fn();
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+        onViewCode,
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const row1 = rows[0];
+      const actionsButton = within(row1).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
+    });
+
+    it('should not show "View code" when onViewCode is not provided', () => {
+      renderWithContext({
+        patterns: mockPatternsWithTemplate,
+        pipelineRun: createMockPipelineRun(RuntimeStateKF.SUCCEEDED, 'faithfulness'),
+      });
+
+      const rows = screen.getAllByTestId(/^leaderboard-row-\d+$/);
+      const row2 = rows[1];
+      const actionsButton = within(row2).getByRole('button', { name: /kebab toggle/i });
+      fireEvent.click(actionsButton);
+
+      expect(screen.queryByText('View code')).not.toBeInTheDocument();
     });
   });
 

@@ -74,6 +74,7 @@ const defaultProps = {
   patterns: mockPatterns,
   onClose: jest.fn(),
   onSelectPattern: jest.fn(),
+  onViewCode: jest.fn(),
 };
 
 const renderInDrawer = (props = defaultProps) =>
@@ -103,12 +104,11 @@ describe('PlaygroundDrawerPanel', () => {
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('should open View Code modal when button is clicked', () => {
+  it('should call onViewCode when View Code button is clicked', () => {
     renderInDrawer();
 
     fireEvent.click(screen.getByTestId('playground-view-code-button'));
-    expect(screen.getByTestId('playground-view-code-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('view-code-tabs')).toBeInTheDocument();
+    expect(defaultProps.onViewCode).toHaveBeenCalledWith('pattern_a');
   });
 
   it('should render the read-only label', () => {

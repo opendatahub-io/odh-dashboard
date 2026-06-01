@@ -28,10 +28,11 @@ import './AutoragResults.scss';
 const PatternDetailsModal = React.lazy(() => import('./PatternDetailsModal/PatternDetailsModal'));
 
 type AutoragResultsProps = {
-  onTryInPlayground?: (patternName: string) => void;
+  onTryPattern?: (patternName: string) => void;
+  onViewCode?: (patternName: string) => void;
 };
 
-function AutoragResults({ onTryInPlayground }: AutoragResultsProps): React.JSX.Element {
+function AutoragResults({ onTryPattern, onViewCode }: AutoragResultsProps): React.JSX.Element {
   const { namespace } = useParams<{ namespace: string }>();
   const { pipelineRun, patterns, ragPatternsBasePath } = useAutoragResultsContext();
   const [selectedIds, setSelectedIds] = React.useState<string[] | undefined>();
@@ -161,7 +162,8 @@ function AutoragResults({ onTryInPlayground }: AutoragResultsProps): React.JSX.E
           <AutoragLeaderboard
             onViewDetails={handleViewDetails}
             onSaveNotebook={handleSaveNotebook}
-            onTryInPlayground={onTryInPlayground}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </StackItem>
       </Stack>
@@ -178,6 +180,8 @@ function AutoragResults({ onTryInPlayground }: AutoragResultsProps): React.JSX.E
             namespace={namespace}
             ragPatternsBasePath={ragPatternsBasePath}
             onSaveNotebook={handleSaveNotebook}
+            onTryPattern={onTryPattern}
+            onViewCode={onViewCode}
           />
         </React.Suspense>
       )}
