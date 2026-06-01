@@ -990,8 +990,76 @@ class ViewAuthPolicyPage {
   }
 }
 
+class SubscriptionsTab {
+  findToolbar(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-toolbar');
+  }
+
+  findSearchInput(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-search-input');
+  }
+
+  clearSearch(): void {
+    this.findSearchInput().find('button[aria-label="Reset"]').click();
+  }
+
+  findSourceFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-source-filter-toggle');
+  }
+
+  selectSourceFilter(source: string): void {
+    this.findSourceFilterToggle().click();
+    cy.findByRole('menuitem', { name: source }).click();
+  }
+
+  findSortBySubscriptionButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('sort-by-subscription');
+  }
+
+  findSortByModelButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('sort-by-model');
+  }
+
+  findSubscriptionsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscriptions-table');
+  }
+
+  findModelsTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('models-table');
+  }
+
+  findSubscriptionRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscriptionsTable().find('[data-testid="subscription-row"]');
+  }
+
+  expandSubscriptionRow(index: number): void {
+    this.findSubscriptionRows()
+      .eq(index)
+      .findByTestId('expand-subscription')
+      .find('button')
+      .click();
+  }
+
+  findModelGroupRows(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findModelsTable().find('[data-testid="model-group-row"]');
+  }
+
+  expandModelGroupRow(index: number): void {
+    this.findModelGroupRows().eq(index).findByTestId('expand-model-group').find('button').click();
+  }
+
+  findEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-subscriptions');
+  }
+
+  findFilterEmptyState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('empty-subscriptions-filter');
+  }
+}
+
 export const maasWizardField = new MaaSWizardField();
 export const apiKeysPage = new APIKeysPage();
+export const subscriptionsTab = new SubscriptionsTab();
 export const bulkRevokeAPIKeyModal = new BulkRevokeAPIKeyModal();
 export const adminBulkRevokeAPIKeyModal = new AdminBulkRevokeAPIKeyModal();
 export const revokeAPIKeyModal = new RevokeAPIKeyModal();
