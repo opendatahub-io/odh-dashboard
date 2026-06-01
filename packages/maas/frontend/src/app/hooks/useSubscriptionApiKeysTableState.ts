@@ -24,7 +24,7 @@ export const useSubscriptionApiKeysTableState = (
 
   const searchRequest: APIKeySearchRequest = React.useMemo(
     () => ({
-      filters: { subscription: subscriptionId },
+      filters: { subscription: subscriptionId, status: ['active', 'expired'] },
       pagination: { limit: perPage, offset: (page - 1) * perPage },
     }),
     [subscriptionId, page, perPage],
