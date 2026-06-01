@@ -291,15 +291,20 @@ func (app *App) Routes() http.Handler {
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
 	// Create identity extractor based on auth method
-	identityExtractor, err := corek8s.NewIdentityExtractor(
-		app.config.AuthMethod,
-		app.config.AuthTokenHeader,
-		app.config.AuthTokenPrefix,
-		constants.KubeflowUserIDHeader,
-		constants.KubeflowUserGroupsIdHeader,
-	)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create identity extractor: %v", err))
+	var identityExtractor corek8s.IdentityExtractor
+	switch app.config.AuthMethod {
+	case config.AuthMethodDisabled:
+		identityExtractor = &corek8s.MockIdentityExtractor{}
+	case config.AuthMethodInternal:
+		identityExtractor = &corek8s.KubeflowHeaderExtractor{
+			UserIDHeader:     constants.KubeflowUserIDHeader,
+			UserGroupsHeader: constants.KubeflowUserGroupsIdHeader,
+		}
+	case config.AuthMethodUser:
+		identityExtractor = &corek8s.TokenHeaderExtractor{
+			Header: app.config.AuthTokenHeader,
+			Prefix: app.config.AuthTokenPrefix,
+		}
 	}
 
 	// Create identity middleware using autox-core
