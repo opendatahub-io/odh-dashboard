@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -783,20 +784,45 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	g, gCtx := errgroup.WithContext(ctx)
 	var aaModelsFromInfSvc, aaModelsFromLLMInfSvc, aaModelsFromExternal []models.AAModel
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in getAAModelsFromInferenceService",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				err = fmt.Errorf("panic in getAAModelsFromInferenceService: %v", r)
+			}
+		}()
 		aaModelsFromInfSvc, err = kc.getAAModelsFromInferenceService(gCtx, namespace, labelSelector)
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in getAAModelsFromLLMInferenceService",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				err = fmt.Errorf("panic in getAAModelsFromLLMInferenceService: %v", r)
+			}
+		}()
 		aaModelsFromLLMInfSvc, err = kc.getAAModelsFromLLMInferenceService(gCtx, namespace, labelSelector)
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in GetAAModelsFromExternalModels",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				// For external models, we don't fail the whole request - just log and continue
+				aaModelsFromExternal = []models.AAModel{}
+			}
+		}()
 		aaModelsFromExternal, err = kc.GetAAModelsFromExternalModels(gCtx, identity, namespace)
 		if err != nil {
 			kc.Logger.Warn("failed to get external models, continuing with namespace models only",
