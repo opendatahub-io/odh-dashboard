@@ -20,20 +20,14 @@ const PROJECT_B = 'test-project-b';
 
 const initIntercepts = ({
   mlflowConfigured = true,
-  mlflowStatusError = false,
   userSetup = asProductAdminUser,
 }: {
   mlflowConfigured?: boolean;
-  mlflowStatusError?: boolean;
   userSetup?: () => void;
 } = {}) => {
   userSetup();
   cy.interceptOdh('GET /api/config', mockDashboardConfig({}));
-  if (mlflowStatusError) {
-    interceptMlflowStatusError();
-  } else {
-    interceptMlflowStatus(mlflowConfigured);
-  }
+  interceptMlflowStatus(mlflowConfigured);
 
   const projectA = mockProjectK8sResource({ k8sName: PROJECT_A, displayName: PROJECT_A });
   const projectB = mockProjectK8sResource({ k8sName: PROJECT_B, displayName: PROJECT_B });
@@ -125,7 +119,7 @@ describe('MLflow Experiments page wrapper', () => {
     });
 
     it('should show unavailable empty state when MLflow BFF status check fails', () => {
-      initIntercepts({ mlflowStatusError: true });
+      interceptMlflowStatusError();
       mlflowExperiments.visit(PROJECT_A);
       cy.wait('@mlflowStatusError');
       mlflowExperiments.findMlflowUnavailableState().should('be.visible');
