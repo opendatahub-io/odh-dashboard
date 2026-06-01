@@ -59,7 +59,11 @@ describe('usePersesDashboard', () => {
         error: undefined,
       }),
     );
-    expect(fetchPersesDashboardMock).toHaveBeenCalledWith('test-project', 'test-dashboard');
+    expect(fetchPersesDashboardMock).toHaveBeenCalledWith(
+      'test-project',
+      'test-dashboard',
+      expect.any(AbortSignal),
+    );
   });
 
   it('should return an error on failure', async () => {

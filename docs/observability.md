@@ -311,7 +311,7 @@ import {
 const FullDashboardPage: React.FC<{ dashboard: DashboardResource }> = ({ dashboard }) => (
   <PersesProvider dashboardResource={dashboard} syncToUrl>
     <PersesTimeControls showRefreshInterval />
-    <PersesVariables isSticky />
+    <PersesVariables initialVariableIsSticky />
     <PersesDashboard />
   </PersesProvider>
 );
@@ -321,7 +321,7 @@ const FullDashboardPage: React.FC<{ dashboard: DashboardResource }> = ({ dashboa
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `isSticky` | `boolean` | `false` | Whether the toolbar sticks to the top on scroll |
+| `initialVariableIsSticky` | `boolean` | `false` | Whether the toolbar sticks to the top on scroll |
 
 `PersesTimeControls` props:
 

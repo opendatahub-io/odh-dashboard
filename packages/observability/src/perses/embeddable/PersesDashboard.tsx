@@ -1,14 +1,12 @@
 import * as React from 'react';
-import { Dashboard, DashboardProps } from '@perses-dev/dashboards';
+import { Dashboard, type DashboardProps } from '@perses-dev/dashboards';
 
 const DEFAULT_EMPTY_DASHBOARD_PROPS = {
   title: 'Empty Dashboard',
   description: 'To get started add something to your dashboard',
 };
 
-export type PersesDashboardProps = Omit<DashboardProps, 'emptyDashboardProps'> & {
-  emptyDashboardProps?: DashboardProps['emptyDashboardProps'];
-};
+export type PersesDashboardProps = DashboardProps;
 
 /**
  * Renders the Perses dashboard panel grid.

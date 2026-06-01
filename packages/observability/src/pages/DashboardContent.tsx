@@ -78,12 +78,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     return index >= 0 ? index : 0;
   }, [transformedDashboards, dashboardNameFromUrl]);
 
-  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
-  const activeDashboardName = activeDashboard.metadata.name;
-
-  // Check if the active dashboard needs cluster details variables
-  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
-
   // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, eventKey: string | number) => {
@@ -98,10 +92,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     [navigate, searchParams],
   );
 
-  // Guard against empty dashboards array
   if (transformedDashboards.length === 0) {
     return null;
   }
+
+  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
+  const activeDashboardName = activeDashboard.metadata.name;
+  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
 
   return (
     <div ref={setRelativeLinkHandlerRef}>

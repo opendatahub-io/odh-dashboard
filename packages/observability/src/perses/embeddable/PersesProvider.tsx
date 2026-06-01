@@ -25,14 +25,15 @@ import { usePatternFlyTheme } from '../theme';
 const DEFAULT_DURATION: DurationString = '30m';
 const DEFAULT_REFRESH_INTERVAL: DurationString = '60s';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 0,
+const createQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        retry: 0,
+      },
     },
-  },
-});
+  });
 
 export type PersesProviderProps = {
   dashboardResource: DashboardResource;
@@ -111,12 +112,16 @@ const PersesProviderInner: React.FC<PersesProviderInnerProps> = ({
   );
 };
 
-const PersesProvider: React.FC<PersesProviderProps> = ({ syncToUrl = false, ...props }) => (
-  <QueryClientProvider client={queryClient}>
-    <QueryParamProvider adapter={ReactRouter6Adapter}>
-      <PersesProviderInner syncToUrl={syncToUrl} {...props} />
-    </QueryParamProvider>
-  </QueryClientProvider>
-);
+const PersesProvider: React.FC<PersesProviderProps> = ({ syncToUrl = false, ...props }) => {
+  const [queryClient] = React.useState(createQueryClient);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <QueryParamProvider adapter={ReactRouter6Adapter}>
+        <PersesProviderInner syncToUrl={syncToUrl} {...props} />
+      </QueryParamProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default PersesProvider;

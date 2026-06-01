@@ -18,7 +18,7 @@ export const usePersesDashboard = (
   dashboardName: string,
 ): UsePersesDashboardResult => {
   const fetchDashboard = React.useCallback(
-    () => fetchPersesDashboard(project, dashboardName),
+    (opts: { signal?: AbortSignal }) => fetchPersesDashboard(project, dashboardName, opts.signal),
     [project, dashboardName],
   );
 
