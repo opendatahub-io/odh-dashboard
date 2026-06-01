@@ -72,7 +72,7 @@ dev-frontend-kubeflow:
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
-	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
 # Note: BFF runs on port 4001 to avoid conflict with ODH backend (port 4000)
@@ -88,7 +88,7 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=4001 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ########### Dev Federated Mock ###########
 # Same as dev-start-federated but with mock pipeline server client enabled.
@@ -114,7 +114,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

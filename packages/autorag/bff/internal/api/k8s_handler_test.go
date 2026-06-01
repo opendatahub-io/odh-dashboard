@@ -307,11 +307,11 @@ func TestGetSecretHandler(t *testing.T) {
 		wantBodySubstr string
 	}{
 		{
-			name:       "success",
-			namespace:  "test-ns",
-			secretName: "my-secret",
-			repoData:   map[string]string{"key1": "val1", "key2": "val2"},
-			repoErr:    nil,
+			name:           "success",
+			namespace:      "test-ns",
+			secretName:     "my-secret",
+			repoData:       map[string]string{"key1": "val1", "key2": "val2"},
+			repoErr:        nil,
 			wantStatusCode: http.StatusOK,
 			wantBodySubstr: `"key1": "val1"`,
 		},

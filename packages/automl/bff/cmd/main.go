@@ -25,7 +25,6 @@ func main() {
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
 	flag.BoolVar(&cfg.MockK8sClient, "mock-k8s-client", getEnvAsBool("MOCK_K8S_CLIENT", false), "Use mock Kubernetes client")
-	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
 	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockModelRegistryClient, "mock-model-registry-client", getEnvAsBool("MOCK_MODEL_REGISTRY_CLIENT", false), "Use mock Model Registry client")

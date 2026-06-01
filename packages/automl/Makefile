@@ -72,7 +72,7 @@ dev-frontend-kubeflow:
 
 .PHONY: dev-bff-kubeflow
 dev-bff-kubeflow:
-	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=kubeflow DEV_MODE_CLIENT_PORT=8085
 
 ########### Dev Federated ###########
 # Note: BFF runs on port 4003 to avoid conflict with autorag (4001) and eval-hub (4002)
@@ -88,7 +88,7 @@ dev-frontend-federated:
 
 .PHONY: dev-bff-federated
 dev-bff-federated:
-	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=4003 MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=x-forwarded-access-token AUTH_TOKEN_PREFIX="" INSECURE_SKIP_VERIFY=true
 
 ############ E2E Test Targets ############
 # These targets are used by the GitHub Actions e2e workflow to start BFFs
@@ -102,7 +102,7 @@ dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
-	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
 
 ############ Build ############
 

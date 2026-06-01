@@ -26,7 +26,7 @@
   "e2eCiTags": ["@AutoRAGCI"],
   "scripts": {
     "install:module": "npm install --prefix frontend",
-    "test:contract": "BFF_MOCK_FLAGS='--dev-mode --mock-k8s-client --mock-ogx-client --mock-http-client --mock-pipeline-server-client --mock-s3-client --deployment-mode=standalone --auth-method=internal' odh-ct-bff-consumer --bff-dir bff || true",
+    "test:contract": "BFF_MOCK_FLAGS='--dev-mode --mock-k8s-client --mock-ogx-client --mock-pipeline-server-client --mock-s3-client --deployment-mode=standalone --auth-method=internal' odh-ct-bff-consumer --bff-dir bff || true",
     "cypress:server:build": "cd frontend && DIST_DIR=./public-cypress DEPLOYMENT_MODE=federated npm run build",
     "cypress:server:build:coverage": "COVERAGE=true npm run cypress:server:build",
     "cypress:server": "cd frontend && serve ./public-cypress -p 9107 -s -L",

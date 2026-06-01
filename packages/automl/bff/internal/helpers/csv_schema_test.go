@@ -596,8 +596,8 @@ func TestLooksLikeTimestamp(t *testing.T) {
 		"01/15/2024",
 		"15/01/2024",
 		"2024/01/15",
-		"1705305600",     // Unix seconds
-		"1705305600000",  // Unix milliseconds
+		"1705305600",    // Unix seconds
+		"1705305600000", // Unix milliseconds
 	}
 	for _, v := range valid {
 		if !looksLikeTimestamp(v) {
@@ -608,7 +608,7 @@ func TestLooksLikeTimestamp(t *testing.T) {
 	invalid := []string{
 		"abc",
 		"",
-		"12345",  // too small for unix timestamp
+		"12345", // too small for unix timestamp
 		"true",
 		"3.14",
 	}
@@ -739,13 +739,25 @@ func TestInferTaskType(t *testing.T) {
 			wantType: "multiclass",
 		},
 		{
-			name:     "regression many unique numerical",
-			values:   func() []string { s := make([]string, maxMulticlassUniqueValues+1); for i := range s { s[i] = fmt.Sprintf("%d", i+100) }; return s }(),
+			name: "regression many unique numerical",
+			values: func() []string {
+				s := make([]string, maxMulticlassUniqueValues+1)
+				for i := range s {
+					s[i] = fmt.Sprintf("%d", i+100)
+				}
+				return s
+			}(),
 			wantType: "regression",
 		},
 		{
-			name:     "multiclass many unique non-numerical",
-			values:   func() []string { s := make([]string, maxMulticlassUniqueValues+1); for i := range s { s[i] = fmt.Sprintf("cat_%d", i) }; return s }(),
+			name: "multiclass many unique non-numerical",
+			values: func() []string {
+				s := make([]string, maxMulticlassUniqueValues+1)
+				for i := range s {
+					s[i] = fmt.Sprintf("cat_%d", i)
+				}
+				return s
+			}(),
 			wantType: "multiclass",
 		},
 	}

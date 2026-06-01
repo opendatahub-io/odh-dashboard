@@ -1,7 +1,6 @@
 PORT ?= 4003
 MOCK_K8S_CLIENT ?= false
 MOCK_S3_CLIENT ?= false
-MOCK_HTTP_CLIENT ?= false
 MOCK_PIPELINE_SERVER_CLIENT ?= false
 MOCK_MODEL_REGISTRY_CLIENT ?= false
 DEV_MODE ?= false
@@ -78,7 +77,6 @@ run: fmt vet envtest ## Runs the project.
 		--static-assets-dir="$(STATIC_ASSETS_DIR)" \
 		--mock-k8s-client="$(MOCK_K8S_CLIENT)" \
 		--mock-s3-client="$(MOCK_S3_CLIENT)" \
-		--mock-http-client="$(MOCK_HTTP_CLIENT)" \
 		--mock-pipeline-server-client="$(MOCK_PIPELINE_SERVER_CLIENT)" \
 		--mock-model-registry-client="$(MOCK_MODEL_REGISTRY_CLIENT)" \
 		--dev-mode="$(DEV_MODE)" \
