@@ -74,4 +74,8 @@ body,
   &.pf-m-drilldown:not(.pf-m-scrollable) {
     overflow: hidden;
   }
+  // Make tables inside menus transparent for consistent background
+  .pf-v6-c-table {
+    --pf-v6-c-table--BackgroundColor: transparent;
+  }
 }
