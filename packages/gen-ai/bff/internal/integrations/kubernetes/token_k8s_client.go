@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -755,20 +756,45 @@ func (kc *TokenKubernetesClient) GetAAModels(ctx context.Context, identity *inte
 	g, gCtx := errgroup.WithContext(ctx)
 	var aaModelsFromInfSvc, aaModelsFromLLMInfSvc, aaModelsFromExternal []models.AAModel
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in getAAModelsFromInferenceService",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				err = fmt.Errorf("panic in getAAModelsFromInferenceService: %v", r)
+			}
+		}()
 		aaModelsFromInfSvc, err = kc.getAAModelsFromInferenceService(gCtx, namespace, labelSelector)
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in getAAModelsFromLLMInferenceService",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				err = fmt.Errorf("panic in getAAModelsFromLLMInferenceService: %v", r)
+			}
+		}()
 		aaModelsFromLLMInfSvc, err = kc.getAAModelsFromLLMInferenceService(gCtx, namespace, labelSelector)
 		return err
 	})
 
-	g.Go(func() error {
-		var err error
+	g.Go(func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				kc.Logger.Error("panic in GetAAModelsFromExternalModels",
+					"panic", r,
+					"namespace", namespace,
+					"stack", string(debug.Stack()))
+				// For external models, we don't fail the whole request - just log and continue
+				aaModelsFromExternal = []models.AAModel{}
+			}
+		}()
 		aaModelsFromExternal, err = kc.GetAAModelsFromExternalModels(gCtx, identity, namespace)
 		if err != nil {
 			kc.Logger.Warn("failed to get external models, continuing with namespace models only",
@@ -817,9 +843,18 @@ func (kc *TokenKubernetesClient) getAAModelsFromLLMInferenceService(ctx context.
 
 	var aaModels []models.AAModel
 	for _, llmSvc := range llmInferenceServiceList.Items {
+		// metadata.name is the correct fallback for modelID when spec.model.name is nil/empty.
+		// Per the kserve LLMModelSpec godoc for the Name field:
+		//   "Name is the name of the model as it will be set in the 'model' parameter
+		//    for an incoming request. If omitted, it will default to metadata.name."
+		// This means vLLM will serve the model under metadata.name, so our config must match.
+		modelID := llmSvc.Name
+		if llmSvc.Spec.Model.Name != nil && strings.TrimSpace(*llmSvc.Spec.Model.Name) != "" {
+			modelID = *llmSvc.Spec.Model.Name
+		}
 		aaModel := models.AAModel{
 			ModelName:       llmSvc.Name,
-			ModelID:         *llmSvc.Spec.Model.Name,
+			ModelID:         modelID,
 			Description:     kc.extractDescriptionFromLLMInferenceService(&llmSvc),
 			ServingRuntime:  "Distributed inference with llm-d",
 			APIProtocol:     "REST",
@@ -2163,8 +2198,15 @@ func (kc *TokenKubernetesClient) getModelDetailsFromServingRuntime(ctx context.C
 			}
 		}
 
-		// Use the actual model name from LLMInferenceService spec instead of service name
-		actualModelName := *targetLLMSVC.Spec.Model.Name
+		// modelID (the metadata.name used to find this resource) is the correct fallback.
+		// Per the kserve LLMModelSpec godoc for the Name field:
+		//   "Name is the name of the model as it will be set in the 'model' parameter
+		//    for an incoming request. If omitted, it will default to metadata.name."
+		// This means vLLM will serve the model under metadata.name, so our config must match.
+		actualModelName := modelID
+		if targetLLMSVC.Spec.Model.Name != nil && strings.TrimSpace(*targetLLMSVC.Spec.Model.Name) != "" {
+			actualModelName = *targetLLMSVC.Spec.Model.Name
+		}
 		kc.Logger.Debug("using LLMInferenceService for model", "serviceName", modelID, "actualModelName", actualModelName, "endpoint", endpointURL)
 		return modelDetailsResult{
 			modelID:     actualModelName,
