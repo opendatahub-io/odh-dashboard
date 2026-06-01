@@ -13,7 +13,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -75,7 +75,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 		}
 
 		// Validate namespace against DNS-1123 label rules
-		if err := corek8s.ValidateNamespaceName(namespace); err != nil {
+		if err := kubernetes.ValidateNamespaceName(namespace); err != nil {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: %w", err))
 			return
 		}

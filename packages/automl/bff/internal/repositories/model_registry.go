@@ -12,8 +12,8 @@ import (
 	"github.com/kubeflow/model-registry/pkg/openapi"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metameta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,15 +120,15 @@ type modelRegistryCR struct {
 // ModelRegistryRepository handles Model Registry API operations and cluster discovery.
 type ModelRegistryRepository struct {
 	client           modelregistry.ModelRegistryClientInterface
-	k8sService       *corek8s.Service
-	pipelinesService *corepipelines.Service
+	k8sService       *kubernetes.Service
+	pipelinesService *pipelines.Service
 }
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
 func NewModelRegistryRepository(
 	client modelregistry.ModelRegistryClientInterface,
-	k8sService *corek8s.Service,
-	pipelinesService *corepipelines.Service,
+	k8sService *kubernetes.Service,
+	pipelinesService *pipelines.Service,
 ) *ModelRegistryRepository {
 	return &ModelRegistryRepository{
 		client:           client,

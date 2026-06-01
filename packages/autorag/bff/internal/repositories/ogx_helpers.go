@@ -6,7 +6,7 @@ import (
 	"net"
 	"net/url"
 
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // resolveOGXCredentials fetches the named secret from Kubernetes and extracts the OGX
@@ -14,7 +14,7 @@ import (
 // Returns (baseURL, apiKey, error). When the factory is in mock mode the caller can
 // pass empty strings back to CreateClient — so this function always does a real secret
 // lookup; mock switching is handled at the factory level.
-func resolveOGXCredentials(ctx context.Context, k8sService *corek8s.Service, namespace, secretName string) (string, string, error) {
+func resolveOGXCredentials(ctx context.Context, k8sService *kubernetes.Service, namespace, secretName string) (string, string, error) {
 	secret, err := k8sService.GetSecret(ctx, namespace, secretName)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get secret %q: %w", secretName, err)
@@ -23,7 +23,7 @@ func resolveOGXCredentials(ctx context.Context, k8sService *corek8s.Service, nam
 		return "", "", fmt.Errorf("secret %q not found in namespace %q", secretName, namespace)
 	}
 
-	baseURL, err := corek8s.LookupSecretValue(secret.Data, "ogx_client_base_url")
+	baseURL, err := kubernetes.LookupSecretValue(secret.Data, "ogx_client_base_url")
 	if err != nil {
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}
@@ -31,7 +31,7 @@ func resolveOGXCredentials(ctx context.Context, k8sService *corek8s.Service, nam
 		return "", "", fmt.Errorf("secret %q is missing or has empty value for required key: ogx_client_base_url", secretName)
 	}
 
-	apiKey, err := corek8s.LookupSecretValue(secret.Data, "ogx_client_api_key")
+	apiKey, err := kubernetes.LookupSecretValue(secret.Data, "ogx_client_api_key")
 	if err != nil {
 		return "", "", fmt.Errorf("invalid secret %q: %w", secretName, err)
 	}

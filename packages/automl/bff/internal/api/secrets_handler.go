@@ -9,7 +9,7 @@ import (
 
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
@@ -33,13 +33,13 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	secrets, err := app.repositories.Secret.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
 	if err != nil {
 		switch {
-		case errors.Is(err, corek8s.ErrNotFound):
+		case errors.Is(err, kubernetes.ErrNotFound):
 			app.notFoundResponseWithMessage(w, r, fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace))
-		case errors.Is(err, corek8s.ErrForbidden):
+		case errors.Is(err, kubernetes.ErrForbidden):
 			app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
-		case errors.Is(err, corek8s.ErrUnauthorized):
+		case errors.Is(err, kubernetes.ErrUnauthorized):
 			app.unauthorizedResponse(w, r, "access unauthorized")
-		case errors.Is(err, corek8s.ErrInvalid), errors.Is(err, corek8s.ErrBadRequest):
+		case errors.Is(err, kubernetes.ErrInvalid), errors.Is(err, kubernetes.ErrBadRequest):
 			app.badRequestResponse(w, r, fmt.Errorf("invalid request for namespace '%s'", namespace))
 		default:
 			app.serverErrorResponse(w, r, err)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 // handleOGXOrK8sError handles errors that may originate from either the OGX client
@@ -16,19 +16,19 @@ import (
 // ValidationError), then falls back to OGX-specific error handling.
 func (app *App) handleOGXOrK8sError(w http.ResponseWriter, r *http.Request, err error) {
 	// Handle autox-core Kubernetes errors produced by k8sService.GetSecret
-	if errors.Is(err, corek8s.ErrNotFound) {
+	if errors.Is(err, kubernetes.ErrNotFound) {
 		app.notFoundResponseWithMessage(w, r, err.Error())
 		return
 	}
-	if errors.Is(err, corek8s.ErrForbidden) {
+	if errors.Is(err, kubernetes.ErrForbidden) {
 		app.forbiddenResponse(w, r, err.Error())
 		return
 	}
-	if errors.Is(err, corek8s.ErrUnauthorized) {
+	if errors.Is(err, kubernetes.ErrUnauthorized) {
 		app.unauthorizedResponse(w, r, err.Error())
 		return
 	}
-	if errors.Is(err, corek8s.ErrInvalid) || errors.Is(err, corek8s.ErrBadRequest) {
+	if errors.Is(err, kubernetes.ErrInvalid) || errors.Is(err, kubernetes.ErrBadRequest) {
 		app.badRequestResponse(w, r, err)
 		return
 	}

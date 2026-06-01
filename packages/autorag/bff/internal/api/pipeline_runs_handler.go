@@ -12,7 +12,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
-	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 const maxRequestBodyBytes = 10 << 20
@@ -157,7 +157,7 @@ func (app *App) mapPipelineError(w http.ResponseWriter, r *http.Request, err err
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if errors.Is(err, corepipelines.ErrInvalidInput) || errors.Is(err, corepipelines.ErrInvalidRunState) {
+	if errors.Is(err, pipelines.ErrInvalidInput) || errors.Is(err, pipelines.ErrInvalidRunState) {
 		app.badRequestResponse(w, r, err)
 		return
 	}

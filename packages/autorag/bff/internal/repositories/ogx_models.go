@@ -7,15 +7,15 @@ import (
 
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 type OGXModelsRepository struct {
 	ogxClient  ogx.OGXClientInterface
-	k8sService *corek8s.Service
+	k8sService *kubernetes.Service
 }
 
-func NewOGXModelsRepository(ogxClient ogx.OGXClientInterface, k8sService *corek8s.Service) *OGXModelsRepository {
+func NewOGXModelsRepository(ogxClient ogx.OGXClientInterface, k8sService *kubernetes.Service) *OGXModelsRepository {
 	return &OGXModelsRepository{ogxClient: ogxClient, k8sService: k8sService}
 }
 

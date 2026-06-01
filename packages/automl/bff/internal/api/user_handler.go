@@ -7,7 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 type UserEnvelope Envelope[*models.User, None]
@@ -18,10 +18,10 @@ func (app *App) UserHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 	if err != nil {
 		// Check for specific domain errors from autox-core
 		switch {
-		case errors.Is(err, corek8s.ErrUnauthorized):
+		case errors.Is(err, kubernetes.ErrUnauthorized):
 			app.unauthorizedResponse(w, r, "access unauthorized")
 			return
-		case errors.Is(err, corek8s.ErrForbidden):
+		case errors.Is(err, kubernetes.ErrForbidden):
 			app.forbiddenResponse(w, r, "insufficient permissions to retrieve user information")
 			return
 		default:

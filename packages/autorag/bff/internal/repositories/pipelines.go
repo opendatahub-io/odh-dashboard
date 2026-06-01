@@ -10,7 +10,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
 	embeddedpipelines "github.com/opendatahub-io/autorag-library/bff/internal/pipelines"
-	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 )
 
 var (
@@ -38,7 +38,7 @@ func NewValidationError(message string) error {
 // delegating generic work to autox-core's PipelinesService and keeping
 // autorag-specific logic (validation, ownership, definitions) local.
 type PipelinesRepository struct {
-	core   *corepipelines.Service
+	core   *pipelines.Service
 	config PipelinesRepositoryConfig
 }
 
@@ -47,7 +47,7 @@ type PipelinesRepositoryConfig struct {
 	DefaultPipelineVersion string
 }
 
-func NewPipelinesRepository(core *corepipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
+func NewPipelinesRepository(core *pipelines.Service, cfg PipelinesRepositoryConfig) *PipelinesRepository {
 	if cfg.DefaultPipelineVersion == "" {
 		cfg.DefaultPipelineVersion = constants.DefaultPipelineVersionSuffix
 	}
@@ -56,14 +56,14 @@ func NewPipelinesRepository(core *corepipelines.Service, cfg PipelinesRepository
 
 // --- Pipeline Discovery & Ensure ---
 
-func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*corepipelines.DiscoveredPipeline, error) {
+func (r *PipelinesRepository) DiscoverNamedPipelines(ctx context.Context, namespace string) (map[string]*pipelines.DiscoveredPipeline, error) {
 	definitions := map[string]string{
 		constants.PipelineTypeAutoRAG: r.config.AutoRAGPipelineName,
 	}
 	return r.core.DiscoverNamedPipelines(ctx, namespace, r.config.DefaultPipelineVersion, definitions)
 }
 
-func (r *PipelinesRepository) EnsurePipeline(ctx context.Context, namespace string) (*corepipelines.DiscoveredPipeline, error) {
+func (r *PipelinesRepository) EnsurePipeline(ctx context.Context, namespace string) (*pipelines.DiscoveredPipeline, error) {
 	def, err := r.pipelineDefinition()
 	if err != nil {
 		return nil, err
@@ -71,13 +71,13 @@ func (r *PipelinesRepository) EnsurePipeline(ctx context.Context, namespace stri
 	return r.core.EnsurePipeline(ctx, namespace, def)
 }
 
-func (r *PipelinesRepository) pipelineDefinition() (corepipelines.PipelineDefinition, error) {
+func (r *PipelinesRepository) pipelineDefinition() (pipelines.PipelineDefinition, error) {
 	yamlBytes, err := embeddedpipelines.GetPipelineYAML(constants.PipelineDirAutoRAG)
 	if err != nil {
-		return corepipelines.PipelineDefinition{}, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", constants.PipelineDirAutoRAG, err)
+		return pipelines.PipelineDefinition{}, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", constants.PipelineDirAutoRAG, err)
 	}
 
-	return corepipelines.PipelineDefinition{
+	return pipelines.PipelineDefinition{
 		Name:        r.config.AutoRAGPipelineName,
 		Version:     r.config.DefaultPipelineVersion,
 		FileContent: yamlBytes,
@@ -106,7 +106,7 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 
 	// Apply page/pageSize pagination
 	page := int64(1)
-	paged := corepipelines.SortAndPaginateRuns(runs, page, pageSize)
+	paged := pipelines.SortAndPaginateRuns(runs, page, pageSize)
 
 	taggedRuns := make([]models.PipelineRun, 0, len(paged.Runs))
 	for _, run := range paged.Runs {
@@ -124,7 +124,7 @@ func (r *PipelinesRepository) GetCombinedRuns(ctx context.Context, namespace str
 func (r *PipelinesRepository) GetManagedRun(ctx context.Context, namespace, runID string) (*models.PipelineRun, error) {
 	coreRun, err := r.core.GetPipelineRunWithSpec(ctx, namespace, runID)
 	if err != nil {
-		if errors.Is(err, corepipelines.ErrPipelineRunNotFound) {
+		if errors.Is(err, pipelines.ErrPipelineRunNotFound) {
 			return nil, ErrPipelineRunNotFound
 		}
 		return nil, err
@@ -157,14 +157,14 @@ func (r *PipelinesRepository) CreateRun(ctx context.Context, namespace string, r
 
 	kfpReq := BuildKFPRunRequest(req, discovered.PipelineID, discovered.PipelineVersionID)
 
-	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, &corepipelines.CreatePipelineRunInput{
+	coreRun, err := r.core.CreatePipelineRun(ctx, namespace, &pipelines.CreatePipelineRunInput{
 		DisplayName: kfpReq.DisplayName,
 		Description: kfpReq.Description,
-		PipelineVersionReference: &corepipelines.PipelineVersionReference{
+		PipelineVersionReference: &pipelines.PipelineVersionReference{
 			PipelineID:        kfpReq.PipelineVersionReference.PipelineID,
 			PipelineVersionID: kfpReq.PipelineVersionReference.PipelineVersionID,
 		},
-		RuntimeConfig: &corepipelines.RuntimeConfig{
+		RuntimeConfig: &pipelines.RuntimeConfig{
 			Parameters: kfpReq.RuntimeConfig.Parameters,
 		},
 	})
@@ -203,7 +203,7 @@ func (r *PipelinesRepository) DeleteRun(ctx context.Context, namespace, runID st
 
 // --- Helpers ---
 
-func (r *PipelinesRepository) isManaged(run corepipelines.PipelineRun, discovered map[string]*corepipelines.DiscoveredPipeline) bool {
+func (r *PipelinesRepository) isManaged(run pipelines.PipelineRun, discovered map[string]*pipelines.DiscoveredPipeline) bool {
 	if run.PipelineVersionReference == nil {
 		return false
 	}
@@ -215,7 +215,7 @@ func (r *PipelinesRepository) isManaged(run corepipelines.PipelineRun, discovere
 	return false
 }
 
-func toAutoRAGRun(run *corepipelines.PipelineRun) models.PipelineRun {
+func toAutoRAGRun(run *pipelines.PipelineRun) models.PipelineRun {
 	result := models.PipelineRun{
 		RunID:          run.RunID,
 		DisplayName:    run.DisplayName,

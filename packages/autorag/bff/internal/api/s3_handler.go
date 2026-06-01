@@ -14,8 +14,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -52,15 +52,15 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		return
 	}
 	// S3 domain errors
-	if errors.Is(err, cores3.ErrObjectNotFound) {
+	if errors.Is(err, s3.ErrObjectNotFound) {
 		app.notFoundResponseWithMessage(w, r, fmt.Sprintf("object %q not found in S3 storage", key))
 		return
 	}
-	if errors.Is(err, cores3.ErrBucketNotFound) {
+	if errors.Is(err, s3.ErrBucketNotFound) {
 		app.notFoundResponseWithMessage(w, r, "S3 bucket not found")
 		return
 	}
-	if errors.Is(err, cores3.ErrAccessDenied) {
+	if errors.Is(err, s3.ErrAccessDenied) {
 		if key != "" {
 			app.forbiddenResponse(w, r, fmt.Sprintf("access denied to S3 object %q", key))
 		} else {
@@ -69,7 +69,7 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		return
 	}
 	// Credential/validation errors
-	if errors.Is(err, corek8s.ErrAmbiguousSecretKey) || errors.Is(err, cores3.ErrEndpointValidation) {
+	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, s3.ErrEndpointValidation) {
 		app.badRequestResponse(w, r, err)
 		return
 	}
@@ -86,7 +86,7 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		app.notFoundResponseWithMessage(w, r, errMsg)
 		return
 	}
-	if cores3.IsConnectivityError(err) {
+	if s3.IsConnectivityError(err) {
 		app.serviceUnavailableResponseWithMessage(w, r, err,
 			"Unable to connect to the S3 storage endpoint. Verify the endpoint URL in your data connection secret points to a reachable storage service.")
 		return
@@ -107,7 +107,7 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 
 	secretName := queryParams.Get("secretName")
 	if secretName != "" {
-		if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+		if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
 			app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
 			return
 		}
@@ -235,7 +235,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		app.badRequestResponse(w, r, errors.New("query parameter 'secretName' is required and cannot be empty"))
 		return
 	}
-	if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: %w", err))
 		return
 	}
@@ -275,7 +275,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 			app.payloadTooLargeResponse(w, r, s3FilePartTooLargeMsg)
 			return
 		}
-		if errors.Is(err, cores3.ErrMaxCollisionsExceeded) {
+		if errors.Is(err, s3.ErrMaxCollisionsExceeded) {
 			app.conflictResponse(w, r,
 				fmt.Sprintf("unable to find unique filename after %d attempts; try a different base name",
 					app.effectivePostS3CollisionAttempts()))
@@ -379,7 +379,7 @@ func sanitizeUploadContentType(v string) string {
 }
 
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.
-type S3FilesEnvelope Envelope[cores3.ListObjectsResponse, None]
+type S3FilesEnvelope Envelope[s3.ListObjectsResponse, None]
 
 // GetS3FilesHandler retrieves files from S3 storage using credentials from a Kubernetes secret.
 func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -395,7 +395,7 @@ func (app *App) GetS3FilesHandler(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	result, err := app.repositories.S3.ListObjects(r.Context(), req, cores3.ListObjectsOptions{
+	result, err := app.repositories.S3.ListObjects(r.Context(), req, s3.ListObjectsOptions{
 		Path:   parameters.Path,
 		Search: parameters.Search,
 		Next:   parameters.Next,
@@ -436,7 +436,7 @@ func validateGetS3FilesHandlerParameters(r *http.Request) (*s3FilesParams, error
 	// secretName is optional — when absent the handler falls back to DSPA object storage context.
 	secretName := queryParams.Get("secretName")
 	if secretName != "" {
-		if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+		if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
 			return nil, fmt.Errorf("invalid secretName: %w", err)
 		}
 	}

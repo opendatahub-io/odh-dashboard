@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 var storageTypeRequiredKeys = map[string][]string{
@@ -39,7 +39,7 @@ func NewSecretRepository() *SecretRepository {
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
-	k8sService *corek8s.Service,
+	k8sService *kubernetes.Service,
 	ctx context.Context,
 	namespace string,
 	secretType string,
@@ -49,14 +49,14 @@ func (r *SecretRepository) GetFilteredSecrets(
 		return nil, fmt.Errorf("error fetching secrets from namespace %s: %w", namespace, err)
 	}
 
-	var filtered []corek8s.SecretInfo
+	var filtered []kubernetes.SecretInfo
 	switch secretType {
 	case "":
 		filtered = secretInfos
 	case "storage":
-		filtered = corek8s.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
+		filtered = kubernetes.FilterSecretInfos(secretInfos, storageTypeRequiredKeys)
 	case "ogx":
-		filtered = corek8s.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
+		filtered = kubernetes.FilterSecretInfos(secretInfos, ogxTypeRequiredKeys)
 	default:
 		return nil, fmt.Errorf("invalid secret type: %s", secretType)
 	}
@@ -64,7 +64,7 @@ func (r *SecretRepository) GetFilteredSecrets(
 	result := make([]models.SecretListItem, 0, len(filtered))
 	for _, secret := range filtered {
 		responseType := detectType(secret, secretType)
-		redactedData := corek8s.RedactSecretData(secret.Data, allowedSecretKeys)
+		redactedData := kubernetes.RedactSecretData(secret.Data, allowedSecretKeys)
 
 		result = append(result, models.NewSecretListItem(
 			secret.UUID,
@@ -81,7 +81,7 @@ func (r *SecretRepository) GetFilteredSecrets(
 
 // detectType determines the type for a secret, checking annotation first,
 // then falling back to key-based detection with LLS prioritized over storage.
-func detectType(secret corek8s.SecretInfo, secretType string) string {
+func detectType(secret kubernetes.SecretInfo, secretType string) string {
 	if secret.Type != "" {
 		return secret.Type
 	}
@@ -89,11 +89,11 @@ func detectType(secret corek8s.SecretInfo, secretType string) string {
 	case "ogx":
 		return "ogx"
 	case "storage":
-		return corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
+		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	default:
-		if corek8s.SecretInfoHasAllKeys(secret, ogxTypeRequiredKeys["ogx"]) {
+		if kubernetes.SecretInfoHasAllKeys(secret, ogxTypeRequiredKeys["ogx"]) {
 			return "ogx"
 		}
-		return corek8s.DetectSecretType(secret, storageTypeRequiredKeys)
+		return kubernetes.DetectSecretType(secret, storageTypeRequiredKeys)
 	}
 }

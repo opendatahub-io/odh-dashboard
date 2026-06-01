@@ -7,7 +7,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 type OGXVectorStoresEnvelope Envelope[*models.OGXVectorStoreProvidersData, None]
@@ -25,7 +25,7 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 		app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: secretName"))
 		return
 	}
-	if err := corek8s.ValidateResourceName("secretName", secretName); err != nil {
+	if err := kubernetes.ValidateResourceName("secretName", secretName); err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("invalid secretName: must be a valid DNS-1123 subdomain (lowercase alphanumeric, '-', or '.', start/end with alphanumeric, max 253 chars)"))
 		return
 	}

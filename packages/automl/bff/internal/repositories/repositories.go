@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
-	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
 // Repositories is a single convenient container for all repository instances.
@@ -18,10 +18,10 @@ type Repositories struct {
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
 type RepositoriesConfig struct {
-	K8sService          *corek8s.Service
-	PipelinesService    *corepipelines.Service
+	K8sService          *kubernetes.Service
+	PipelinesService    *pipelines.Service
 	PipelinesCfg        PipelinesRepositoryConfig
-	S3Service           *cores3.Service
+	S3Service           *s3.Service
 	ModelRegistryClient modelregistry.ModelRegistryClientInterface
 }
 

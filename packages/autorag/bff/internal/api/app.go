@@ -12,13 +12,13 @@ import (
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
-	corek8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
-	corek8smocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
-	corepipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
-	corepipelinesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines/mocks"
-	cores3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
-	cores3mocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3/mocks"
-	"k8s.io/client-go/kubernetes"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
+	kubernetesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes/mocks"
+	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
+	pipelinesmocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines/mocks"
+	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
+	s3mocks "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3/mocks"
+	k8sclient "k8s.io/client-go/kubernetes"
 
 	helper "github.com/opendatahub-io/autorag-library/bff/internal/helpers"
 
@@ -49,7 +49,7 @@ type App struct {
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	// k8sService provides business logic for Kubernetes operations using autox-core
-	k8sService *corek8s.Service
+	k8sService *kubernetes.Service
 	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
 	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).
@@ -115,7 +115,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		if pfErr != nil {
 			logger.Warn("could not initialize dynamic port-forwarding", "error", pfErr)
 		} else {
-			clientset, csErr := kubernetes.NewForConfig(restCfg)
+			clientset, csErr := k8sclient.NewForConfig(restCfg)
 			if csErr != nil {
 				logger.Warn("could not initialize dynamic port-forwarding", "error", csErr)
 			} else {
@@ -126,36 +126,36 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	// Create autox-core Kubernetes client and service.
-	var k8sClient corek8s.Client
+	var k8sClient kubernetes.Client
 	if cfg.MockK8Client {
-		k8sClient = &corek8smocks.MockClient{}
+		k8sClient = &kubernetesmocks.MockClient{}
 	} else {
 		if cfg.AuthMethod == config.AuthMethodUser {
-			k8sClient, err = corek8s.NewDefaultTokenClient()
+			k8sClient, err = kubernetes.NewDefaultTokenClient()
 		} else {
-			k8sClient, err = corek8s.NewDefaultInternalClient()
+			k8sClient, err = kubernetes.NewDefaultInternalClient()
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to create autox-core Kubernetes client: %w", err)
 		}
 	}
-	k8sService := corek8s.NewService(corek8s.ServiceConfig{Logger: logger}, k8sClient)
+	k8sService := kubernetes.NewService(kubernetes.ServiceConfig{Logger: logger}, k8sClient)
 
 	// Create autox-core Pipelines client and service.
-	var pipelinesClient corepipelines.Client
+	var pipelinesClient pipelines.Client
 	if cfg.MockPipelineServerClient {
-		pipelinesClient = &corepipelinesmocks.MockClient{}
+		pipelinesClient = &pipelinesmocks.MockClient{}
 	} else {
-		pipelinesCfg := corepipelines.ClientConfig{
+		pipelinesCfg := pipelines.ClientConfig{
 			InsecureSkipVerify: cfg.InsecureSkipVerify,
 			RootCAs:            rootCAs,
 		}
 		if pfManager != nil {
 			pipelinesCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 		}
-		pipelinesClient = corepipelines.NewDefaultClient(pipelinesCfg)
+		pipelinesClient = pipelines.NewDefaultClient(pipelinesCfg)
 	}
-	pipelinesService := corepipelines.NewService(corepipelines.ServiceConfig{
+	pipelinesService := pipelines.NewService(pipelines.ServiceConfig{
 		Logger: logger,
 	}, pipelinesClient, k8sService)
 
@@ -166,7 +166,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		logger.Error("ALLOW_UNRESOLVED_S3_ENDPOINTS is set but DevMode is false — this weakens SSRF protection and must not be used in production")
 		os.Exit(1)
 	}
-	s3ClientCfg := cores3.ClientConfig{
+	s3ClientCfg := s3.ClientConfig{
 		RootCAs:                 rootCAs,
 		InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
 		AllowUnresolvedEndpoint: cfg.DevMode && allowUnresolvedS3,
@@ -174,13 +174,13 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	if pfManager != nil {
 		s3ClientCfg.WrapTransport = k8s.PortForwardWrapTransport(pfManager, logger)
 	}
-	var s3Client cores3.Client
+	var s3Client s3.Client
 	if cfg.MockS3Client {
-		s3Client = cores3.NewClient(&cores3mocks.MockClientProvider{})
+		s3Client = s3.NewClient(&s3mocks.MockClientProvider{})
 	} else {
-		s3Client = cores3.NewDefaultClient(s3ClientCfg)
+		s3Client = s3.NewDefaultClient(s3ClientCfg)
 	}
-	s3Service := cores3.NewService(cores3.ServiceConfig{Logger: logger}, s3Client)
+	s3Service := s3.NewService(s3.ServiceConfig{Logger: logger}, s3Client)
 
 	// Initialize Open GenAI Stack client (single shared instance).
 	var ogxClient ogx.OGXClientInterface
@@ -291,24 +291,24 @@ func (app *App) Routes() http.Handler {
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
 
 	// Create identity extractor based on auth method
-	var identityExtractor corek8s.IdentityExtractor
+	var identityExtractor kubernetes.IdentityExtractor
 	switch app.config.AuthMethod {
 	case config.AuthMethodDisabled:
-		identityExtractor = &corek8s.MockIdentityExtractor{}
+		identityExtractor = &kubernetes.MockIdentityExtractor{}
 	case config.AuthMethodInternal:
-		identityExtractor = &corek8s.KubeflowHeaderExtractor{
+		identityExtractor = &kubernetes.KubeflowHeaderExtractor{
 			UserIDHeader:     constants.KubeflowUserIDHeader,
 			UserGroupsHeader: constants.KubeflowUserGroupsIdHeader,
 		}
 	case config.AuthMethodUser:
-		identityExtractor = &corek8s.TokenHeaderExtractor{
+		identityExtractor = &kubernetes.TokenHeaderExtractor{
 			Header: app.config.AuthTokenHeader,
 			Prefix: app.config.AuthTokenPrefix,
 		}
 	}
 
 	// Create identity middleware using autox-core
-	injectRequestIdentity := corek8s.InjectRequestIdentity(corek8s.InjectRequestIdentityConfig{
+	injectRequestIdentity := kubernetes.InjectRequestIdentity(kubernetes.InjectRequestIdentityConfig{
 		Extractor:  identityExtractor,
 		OnError:    app.badRequestResponse,
 		ContextKey: constants.RequestIdentityKey,
