@@ -33,6 +33,6 @@ export function substituteTemplateVariables(
   }
 
   return template.replace(TEMPLATE_VARIABLE_REGEX, (_match, name: string) =>
-    name in values ? values[name] : '',
+    Object.hasOwn(values, name) ? values[name] : '',
   );
 }
