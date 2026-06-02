@@ -16,6 +16,7 @@ import {
 import type { AIAssetsTabExtension } from '~/odh/extension-points';
 
 export const PLUGIN_GEN_AI = 'plugin-gen-ai';
+export const CHAT_PLAYGROUND = 'chatPlayground';
 export const GEN_AI_STUDIO = 'genAiStudio';
 export const MODEL_AS_SERVICE = 'model-as-service';
 export const MODEL_AS_SERVICE_CAMEL = 'modelAsService';
@@ -38,6 +39,14 @@ const extensions: (
     properties: {
       id: PLUGIN_GEN_AI,
       featureFlags: [GEN_AI_STUDIO],
+    },
+  },
+  {
+    type: 'app.area',
+    properties: {
+      id: CHAT_PLAYGROUND,
+      reliantAreas: [PLUGIN_GEN_AI],
+      featureFlags: [],
       customCondition: ({ dscStatus }) =>
         ['Managed', 'Unmanaged'].includes(
           dscStatus?.components?.[DataScienceStackComponent.OGX_OPERATOR]?.managementState ?? '',
@@ -104,7 +113,7 @@ const extensions: (
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_GEN_AI],
+      required: [CHAT_PLAYGROUND],
     },
     properties: {
       id: 'chat-playground',
@@ -191,7 +200,7 @@ const extensions: (
   {
     type: 'app.task/item',
     flags: {
-      required: [PLUGIN_GEN_AI],
+      required: [CHAT_PLAYGROUND],
     },
     properties: {
       id: 'genai-playground',

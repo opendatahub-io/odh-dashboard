@@ -310,10 +310,33 @@ it('Model registry settings should not be available for non product admins', () 
 
 it('Model registry settings should be available for product admins with capabilities', () => {
   setupMocksForMRSettingAccess({});
-  // check page is accessible
   modelRegistrySettings.visit(true);
-  // check nav item exists
   modelRegistrySettings.findNavItem().should('exist');
+});
+
+it('Model registry settings should not be available when model registry is disabled', () => {
+  asProductAdminUser();
+  cy.interceptOdh(
+    'GET /api/config',
+    mockDashboardConfig({
+      disableModelRegistry: true,
+    }),
+  );
+  cy.interceptOdh(
+    'GET /api/dsc/status',
+    mockDscStatus({
+      components: {
+        [DataScienceStackComponent.MODEL_REGISTRY]: {
+          managementState: 'Managed',
+          registriesNamespace: MODEL_REGISTRIES_NAMESPACE,
+        },
+      },
+    }),
+  );
+  cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({}));
+  modelRegistrySettings.visit(false);
+  pageNotfound.findPage().should('exist');
+  modelRegistrySettings.findNavItem().should('not.exist');
 });
 
 it('Shows empty state when there are no registries', () => {

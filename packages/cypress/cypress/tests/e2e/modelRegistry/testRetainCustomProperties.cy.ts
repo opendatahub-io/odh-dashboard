@@ -77,6 +77,9 @@ describe('Verify custom properties and labels are retained during Model Registry
   retryableBeforeEach(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+    if (modelName && databaseName) {
+      cleanupRegisteredModelsFromDatabase([modelName], databaseName);
+    }
   });
 
   it(

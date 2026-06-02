@@ -43,12 +43,6 @@ const hardwareProfileUuid = generateTestUUID();
 
 describe('ModelServing - tolerations tests', () => {
   retryableBefore(() => {
-    Cypress.on('uncaught:exception', (err) => {
-      if (err.message.includes('Error: secrets "ds-pipeline-config" already exists')) {
-        return false;
-      }
-      return true;
-    });
     // Setup: Load test data and ensure clean state
     return loadModelTolerationsFixture('e2e/hardwareProfiles/testModelServingTolerations.yaml')
       .then((fixtureData: ModelTolerationsTestData) => {

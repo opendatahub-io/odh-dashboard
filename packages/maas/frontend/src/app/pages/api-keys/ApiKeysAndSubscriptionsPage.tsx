@@ -1,7 +1,10 @@
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
+import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeysTab from './ApiKeysTab';
 import SubscriptionsTab from './SubscriptionsTab';
@@ -13,8 +16,11 @@ const VALID_TABS = [API_KEYS_TAB, SUBSCRIPTIONS_TAB];
 const ApiKeysAndSubscriptionsPage: React.FC = () => {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
+  const apiKeysPageState = useApiKeysPageLoad();
+  const { loadError: apiKeysLoadError } = apiKeysPageState;
 
   const activeTab = tab && VALID_TABS.includes(tab) ? tab : API_KEYS_TAB;
+  const showApiKeysLoadError = activeTab === API_KEYS_TAB && !!apiKeysLoadError;
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
@@ -25,10 +31,14 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      title="API keys and subscriptions"
-      description="Manage your API keys and view your subscription access"
-      loaded
+      title={
+        <TitleWithIcon title="API keys and subscriptions" objectType={ProjectObjectType.apiKeys} />
+      }
+      description="Manage your API keys and view your subscription access."
+      loaded={activeTab === SUBSCRIPTIONS_TAB || apiKeysPageState.loaded || !!apiKeysLoadError}
       empty={false}
+      loadError={showApiKeysLoadError ? apiKeysLoadError : undefined}
+      errorMessage="Error loading API keys"
     >
       <Tabs
         activeKey={activeTab}
@@ -43,7 +53,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           data-testid="api-keys-tab"
         >
           <PageSection isFilled>
-            <ApiKeysTab />
+            {!showApiKeysLoadError && <ApiKeysTab pageState={apiKeysPageState} />}
           </PageSection>
         </Tab>
         <Tab

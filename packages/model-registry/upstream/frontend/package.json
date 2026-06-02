@@ -154,5 +154,8 @@
     "npm-run-all": "^4.1.5",
     "serve": "^14.2.6",
     "ts-jest": "^29.4.0"
+  },
+  "overrides": {
+    "shell-quote": ">=1.8.4"
   }
 }

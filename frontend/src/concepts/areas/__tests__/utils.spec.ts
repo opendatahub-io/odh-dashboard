@@ -346,4 +346,42 @@ describe('isAreaAvailable', () => {
       });
     });
   });
+
+  describe('ROLE_MANAGEMENT area', () => {
+    it('should be available when roleManagement flag is true', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: true }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(true);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'on' });
+    });
+
+    it('should not be available when roleManagement flag is false', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({ roleManagement: false }).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+    });
+
+    it('should not be available by default (flag defaults to false)', () => {
+      const isAvailable = isAreaAvailable(
+        SupportedArea.ROLE_MANAGEMENT,
+        mockDashboardConfig({}).spec,
+        null,
+        null,
+      );
+
+      expect(isAvailable.status).toBe(false);
+      expect(isAvailable.featureFlags).toEqual({ roleManagement: 'off' });
+    });
+  });
 });
