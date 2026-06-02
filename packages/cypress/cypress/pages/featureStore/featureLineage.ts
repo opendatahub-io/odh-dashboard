@@ -59,13 +59,17 @@ class FeatureLineage extends Contextual<HTMLElement> {
   }
 
   selectFilterType(filterLabel: string) {
-    this.findLineageFilterDropdown().click();
-    cy.findByRole('menuitem', { name: filterLabel }).should('be.visible').click();
+    this.findLineageFilterDropdown().then(($toggle) => {
+      if ($toggle.text().trim() !== filterLabel) {
+        cy.wrap($toggle).click({ force: true });
+        cy.findByRole('menuitem', { name: filterLabel }).click();
+      }
+    });
     return this;
   }
 
   selectMultiSelectionOption(ariaLabel: string, optionName: string) {
-    cy.findByLabelText(ariaLabel).click();
+    cy.findByLabelText(ariaLabel).should('be.enabled').click();
     cy.findByTestId(`select-multi-typeahead-${optionName.replace(/ /g, '-')}`).click();
     return this;
   }
