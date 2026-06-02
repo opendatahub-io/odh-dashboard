@@ -1,8 +1,8 @@
 import * as React from 'react';
 import ProjectSelector from '@odh-dashboard/internal/concepts/projects/ProjectSelector';
-import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { useNavigate } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 
 type PipelineCoreProjectSelectorProps = {
   namespace?: string;
@@ -23,7 +23,7 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
       {...projectSelectorProps}
       onSelection={(projectName) => {
         const match = projectName
-          ? (namespaces.find((n) => n.name === projectName) ?? undefined)
+          ? namespaces.find((n) => n.name === projectName) ?? undefined
           : undefined;
         fireMiscTrackingEvent('GenAI Project Dropdown Option Selected', {
           selectedProject: projectName,
