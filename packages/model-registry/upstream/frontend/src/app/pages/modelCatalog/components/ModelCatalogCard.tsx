@@ -23,6 +23,7 @@ import {
   getModelName,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { MODEL_CATALOG_POPOVER_MESSAGES } from '~/concepts/modelCatalog/const';
+import { useTempDevFeatureAvailable, TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
 import ModelCatalogLabels from './ModelCatalogLabels';
 import ModelCatalogCardBody from './ModelCatalogCardBody';
 
@@ -35,6 +36,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
   const allLabels = model.customProperties ? getLabels(model.customProperties) : [];
   const isValidated = isModelValidated(model);
   const isRedHat = isRedHatModel(model);
+  const isToolCallingEnabled = useTempDevFeatureAvailable(TempDevFeature.ToolCallingConfiguration);
 
   return (
     <Card isFullHeight data-testid="model-catalog-card" key={`${model.name}/${model.source_id}`}>
@@ -98,7 +100,7 @@ const ModelCatalogCard: React.FC<ModelCatalogCardProps> = ({ model, source }) =>
       <CardFooter>
         <ModelCatalogLabels
           tasks={model.tasks ?? []}
-          validatedTasks={model.validatedTasks}
+          validatedTasks={isToolCallingEnabled ? model.validatedTasks : undefined}
           provider={model.provider}
           labels={allLabels.filter((label) => label !== 'validated')}
           numLabels={isValidated ? 2 : 3}
