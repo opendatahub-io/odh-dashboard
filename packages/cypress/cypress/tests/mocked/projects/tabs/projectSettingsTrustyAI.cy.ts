@@ -72,7 +72,7 @@ describe('TrustyAI Settings Card RBAC', () => {
       projectDetailsSettingsTab.visitSettings('test-project');
       projectDetailsSettingsTab.trustyai
         .findInstallButton()
-        .should('have.attr', 'aria-disabled', 'false');
+        .should('not.have.attr', 'aria-disabled', 'true');
     });
 
     it('Uninstall button should be clickable when user has permissions', () => {
@@ -80,7 +80,7 @@ describe('TrustyAI Settings Card RBAC', () => {
       projectDetailsSettingsTab.visitSettings('test-project');
       projectDetailsSettingsTab.trustyai
         .findUninstallButton()
-        .should('have.attr', 'aria-disabled', 'false');
+        .should('not.have.attr', 'aria-disabled', 'true');
     });
   });
 

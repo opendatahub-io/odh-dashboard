@@ -379,7 +379,9 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   }
 
   visitSettings(project: string) {
-    super.visitSection(project, 'settings');
+    cy.visitWithLogin(`/projects/${project}?section=settings`);
+    this.findTab('Settings').should('have.attr', 'aria-selected', 'true');
+    cy.testA11y();
   }
 
   findNIMEnableButton() {

@@ -48,6 +48,7 @@ const initIntercepts = ({
     mockDashboardConfig({
       disableKServe: false,
       disableNIMModelServing: false,
+      nimWizard: true,
     }),
   );
 
@@ -97,16 +98,20 @@ describe('NIM Settings Card RBAC', () => {
     it('NIM enable button should be clickable when user has permissions', () => {
       initIntercepts({ nimAccountExists: false });
       projectDetailsSettingsTab.visitSettings('test-project');
-      projectDetailsSettingsTab.findNIMEnableButton().should('have.attr', 'aria-disabled', 'false');
+      projectDetailsSettingsTab
+        .findNIMEnableButton()
+        .should('not.have.attr', 'aria-disabled', 'true');
     });
 
     it('NIM management buttons should be clickable when user has permissions', () => {
       initIntercepts({ nimAccountExists: true });
       projectDetailsSettingsTab.visitSettings('test-project');
-      projectDetailsSettingsTab.findNIMRemoveButton().should('have.attr', 'aria-disabled', 'false');
+      projectDetailsSettingsTab
+        .findNIMRemoveButton()
+        .should('not.have.attr', 'aria-disabled', 'true');
       projectDetailsSettingsTab
         .findNIMReplaceKeyButton()
-        .should('have.attr', 'aria-disabled', 'false');
+        .should('not.have.attr', 'aria-disabled', 'true');
     });
   });
 
