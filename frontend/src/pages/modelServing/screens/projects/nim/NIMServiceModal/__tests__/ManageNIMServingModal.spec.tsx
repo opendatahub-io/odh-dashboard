@@ -21,8 +21,13 @@ jest.mock('#~/pages/modelServing/screens/projects/utils', () => ({
   getSubmitServingRuntimeResourcesFn: jest.fn(() => jest.fn()),
   useCreateInferenceServiceObject: jest.fn(),
   useCreateServingRuntimeObject: jest.fn(),
-  translateModelServingError: jest.fn((msg: string) => msg),
   validateEnvVarName: jest.fn(() => true),
+}));
+
+jest.mock('#~/api/errorUtils', () => ({
+  createModelServingError: jest.fn(
+    (e: unknown) => new Error(e instanceof Error ? e.message : String(e)),
+  ),
 }));
 
 jest.mock('#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled', () => ({
@@ -274,6 +279,8 @@ describe('ManageNIMServingModal', () => {
     project: 'test-project',
     k8sName: 'test-model',
     format: { name: 'test-model-format' },
+    minReplicas: 1,
+    maxReplicas: 1,
   };
 
   const defaultMockServingRuntimeData = {
@@ -476,7 +483,7 @@ describe('ManageNIMServingModal', () => {
 
     it('enables submit button when form is valid', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
+      expect(screen.getByTestId('modal-submit-button')).not.toBeDisabled();
     });
   });
 
@@ -488,9 +495,10 @@ describe('ManageNIMServingModal', () => {
       expect(mockOnClose).toHaveBeenCalledWith(false);
     });
 
-    it('renders submit button', () => {
+    it('calls onClose when cancel button is clicked', () => {
       render(<ManageNIMServingModal onClose={mockOnClose} projectContext={mockProjectContext} />);
-      expect(screen.getByTestId('modal-submit-button')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('modal-cancel-button'));
+      expect(mockOnClose).toHaveBeenCalledWith(false);
     });
   });
 

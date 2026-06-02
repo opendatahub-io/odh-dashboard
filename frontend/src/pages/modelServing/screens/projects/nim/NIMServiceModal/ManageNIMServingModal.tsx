@@ -18,11 +18,11 @@ import {
   createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
-  translateModelServingError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { createModelServingError } from '#~/api/errorUtils';
 import { InferenceServiceKind, ServingRuntimeKind } from '#~/k8sTypes';
 import { EMPTY_AWS_SECRET_DATA } from '#~/pages/projects/dataConnections/const';
 import useCustomServingRuntimesEnabled from '#~/pages/modelServing/customServingRuntimes/useCustomServingRuntimesEnabled';
@@ -264,8 +264,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const setErrorModal = (e: unknown) => {
-    const msg = e instanceof Error ? e.message : String(e || 'Unknown error');
-    setError(new Error(translateModelServingError(msg)));
+    setError(createModelServingError(e));
     setActionInProgress(false);
   };
 
