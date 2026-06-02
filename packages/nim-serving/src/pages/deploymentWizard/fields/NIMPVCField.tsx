@@ -8,7 +8,6 @@ import {
   Skeleton,
   TextInput,
 } from '@patternfly/react-core';
-import { k8sListResourceItems } from '@openshift/dynamic-plugin-sdk-utils';
 import SimpleSelect from '@odh-dashboard/internal/components/SimpleSelect';
 import NumberInputWrapper from '@odh-dashboard/internal/components/NumberInputWrapper';
 import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
@@ -16,7 +15,7 @@ import type { ProjectSectionType } from '@odh-dashboard/model-serving/components
 import type { WizardField } from '@odh-dashboard/model-serving/types/form-data';
 import { NIMModelLocationKey } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/modelLocationFields/NIMModelLocation';
 import { getStorageClasses } from '@odh-dashboard/internal/api/k8s/storageClasses';
-import { PVCModel } from '@odh-dashboard/internal/api/models';
+import { getDashboardPvcs } from '@odh-dashboard/internal/api/k8s/pvcs';
 import type { PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -78,18 +77,20 @@ type NIMPVCExternalData = {
   existingPVCs: string[];
 };
 
-const isNIMPVC = (pvcName: string): boolean => pvcName.startsWith('nim-pvc');
+export const NIM_PVC_ANNOTATION = 'dashboard.opendatahub.io/nim-pvc';
+
+const isNIMPVC = (pvc: PersistentVolumeClaimKind): boolean =>
+  pvc.metadata.annotations?.[NIM_PVC_ANNOTATION] === 'true';
 
 const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
   const nimPVCs: string[] = [];
   const otherPVCs: string[] = [];
 
   for (const pvc of pvcs) {
-    const { name } = pvc.metadata;
-    if (isNIMPVC(name)) {
-      nimPVCs.push(name);
+    if (isNIMPVC(pvc)) {
+      nimPVCs.push(pvc.metadata.name);
     } else {
-      otherPVCs.push(name);
+      otherPVCs.push(pvc.metadata.name);
     }
   }
 
@@ -122,10 +123,7 @@ const useNIMPVCExternalData = (dependencies?: {
     }
     const [scList, pvcList] = await Promise.all([
       getStorageClasses(),
-      k8sListResourceItems<PersistentVolumeClaimKind>({
-        model: PVCModel,
-        queryOptions: { ns: projectName },
-      }),
+      getDashboardPvcs(projectName),
     ]);
 
     return {
