@@ -258,6 +258,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 	topN := 3
 	labelColumn := "target"
 	taskType := "binary"
+	preset := "medium_quality"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:         "test-run",
 		TrainDataSecretName: "minio-secret",
@@ -265,6 +266,7 @@ func newValidTabularRequest() models.CreateAutoMLRunRequest {
 		TrainDataFileKey:    "data/train.csv",
 		LabelColumn:         &labelColumn,
 		TaskType:            &taskType,
+		Preset:              &preset,
 		TopN:                &topN,
 	}
 }
@@ -278,6 +280,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 	timestampColumn := "date"
 	predictionLength := 7
 	covariates := []string{"temperature", "is_holiday"}
+	preset := "fast_training"
 	return models.CreateAutoMLRunRequest{
 		DisplayName:          "test-run",
 		TrainDataSecretName:  "minio-secret",
@@ -289,6 +292,7 @@ func newValidTimeSeriesRequest() models.CreateAutoMLRunRequest {
 		TimestampColumn:      &timestampColumn,
 		PredictionLength:     &predictionLength,
 		KnownCovariatesNames: &covariates,
+		Preset:               &preset,
 		TopN:                 &topN,
 	}
 }
@@ -346,6 +350,21 @@ func TestBuildKFPRunRequest(t *testing.T) {
 		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
 
 		assert.Equal(t, 5, result.RuntimeConfig.Parameters["top_n"])
+	})
+
+	t.Run("should include preset when provided", func(t *testing.T) {
+		req := newValidTabularRequest()
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.Equal(t, "medium_quality", result.RuntimeConfig.Parameters["preset"])
+	})
+
+	t.Run("should omit preset when nil", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		result := BuildKFPRunRequest(req, "test-pipeline-id", "test-version-id", constants.PipelineTypeTabular)
+
+		assert.NotContains(t, result.RuntimeConfig.Parameters, "preset")
 	})
 
 	t.Run("should pass description to KFP request", func(t *testing.T) {
