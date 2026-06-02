@@ -66,7 +66,7 @@ func InjectRequestIdentity(cfg InjectRequestIdentityConfig) func(http.Handler) h
 
 			// BACKWARD COMPATIBILITY: Also store using legacy context key if provided
 			// This allows old code that expects identity at a specific string key to keep working
-			if cfg.ContextKey != "" {
+			if cfg.ContextKey != nil {
 				ctx = context.WithValue(ctx, cfg.ContextKey, identity)
 			}
 
