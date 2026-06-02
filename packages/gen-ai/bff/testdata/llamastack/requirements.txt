@@ -6,3 +6,11 @@ pymilvus==2.6.9
 chardet==7.1.0
 ollama==0.6.1
 pypdf==6.9.0
+
+# Override old dependencies from llama-stack 0.7.0 that fail to build on Python 3.12
+# tiktoken 0.13.0 depends on regex 2019.12.9 which doesn't build on Python 3.12
+# crc32c 2.0 (from oci package) doesn't build on Python 3.12
+# Use newer versions that are compatible
+tiktoken>=0.8.0
+regex>=2024.0.0
+crc32c>=2.7.0
