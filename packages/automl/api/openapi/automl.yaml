@@ -1242,6 +1242,7 @@ components:
           example: "data/train.csv"
         preset:
           type: string
+          enum: [medium_quality, good_quality, fast_training]
           description: AutoGluon preset controlling the trade-off between training speed and model quality. The value depends on the pipeline type (e.g. medium_quality or good_quality for tabular; fast_training or medium_quality for timeseries). When omitted, the pipeline uses its built-in default.
           example: "medium_quality"
         top_n:

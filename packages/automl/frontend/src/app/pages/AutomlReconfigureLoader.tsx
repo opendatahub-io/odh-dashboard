@@ -195,7 +195,7 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     target_column: targetColumn,
     ...(parsed.preset != null &&
       taskType != null && {
-        preset: resolvePresetFromBackend(String(parsed.preset), taskType),
+        preset: resolvePresetFromBackend(parsed.preset, taskType),
       }),
   };
   /* eslint-enable camelcase */

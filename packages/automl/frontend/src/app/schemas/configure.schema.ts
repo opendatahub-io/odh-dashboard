@@ -3,6 +3,7 @@ import * as z from 'zod';
 import {
   PRESET_AUTOGLUON_VALUES,
   PRESET_FASTER,
+  PRESETS,
   TASK_TYPE_BINARY,
   TASK_TYPE_MULTICLASS,
   TASK_TYPE_REGRESSION,
@@ -163,8 +164,9 @@ function createConfigureSchema() {
       },
       // Map UI preset to backend AutoGluon preset string
       (data) => {
-        if (data.preset) {
-          data.preset = PRESET_AUTOGLUON_VALUES[data.preset][data.task_type];
+        const uiPreset = PRESETS.find((p) => p === data.preset);
+        if (uiPreset) {
+          data.preset = PRESET_AUTOGLUON_VALUES[uiPreset][data.task_type];
         }
         return data;
       },

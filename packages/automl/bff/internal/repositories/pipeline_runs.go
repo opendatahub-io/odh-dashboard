@@ -441,7 +441,11 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
-	// Validate optional field ranges
+	// Validate optional field values
+	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
+		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of medium_quality, good_quality, fast_training", *req.Preset))
+	}
+
 	if req.TopN != nil {
 		if *req.TopN < constants.MinTopN {
 			return NewValidationError(fmt.Sprintf("invalid top_n: must be at least %d", constants.MinTopN))

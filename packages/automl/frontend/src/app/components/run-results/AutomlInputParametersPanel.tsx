@@ -24,7 +24,11 @@ import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { PRESET_LABELS, TASK_TYPE_LABELS, TASK_TYPE_TIMESERIES } from '~/app/utilities/const';
-import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
+import {
+  isRunCompleted,
+  isRunInTerminalState,
+  resolvePresetFromBackend,
+} from '~/app/utilities/utils';
 
 import './AutomlInputParametersPanel.scss';
 
@@ -93,7 +97,7 @@ const formatValue = (key: string, value: unknown): React.ReactNode => {
     return TASK_TYPE_LABELS[value] ?? value;
   }
   if (key === 'preset' && typeof value === 'string') {
-    return PRESET_LABELS[value] ?? value;
+    return value;
   }
   if (Array.isArray(value)) {
     return value.join(', ');
@@ -137,6 +141,15 @@ const AutomlInputParametersPanel: React.FC<AutomlInputParametersPanelProps> = ({
     // Determine which keys to hide based on the current task type
     const isTimeseries = parameters.task_type === TASK_TYPE_TIMESERIES;
     const hiddenKeys = isTimeseries ? TABULAR_ONLY_KEYS : TIMESERIES_ONLY_KEYS;
+
+    // Resolve preset from backend AutoGluon value to user-friendly label
+    if (parameters.task_type && valueByKey.has('preset')) {
+      const backendPreset = valueByKey.get('preset');
+      if (typeof backendPreset === 'string') {
+        const uiPreset = resolvePresetFromBackend(backendPreset, parameters.task_type);
+        valueByKey.set('preset', PRESET_LABELS[uiPreset] ?? backendPreset);
+      }
+    }
 
     // Build entries in the display order defined by PANEL_PARAMETERS, skipping empty values
     // and keys that don't apply to the current task type
