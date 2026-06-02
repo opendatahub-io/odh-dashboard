@@ -105,7 +105,6 @@ func SetupLlamaStack(logger *slog.Logger) (state *LlamaStackState, err error) {
 
 	cmd := exec.CommandContext(ctx, uvBin,
 		"run",
-		"--python", "3.11",
 		"--default-index", "https://pypi.org/simple/",
 		"--index", "https://test.pypi.org/simple/",
 		"--index-strategy", "unsafe-first-match",
