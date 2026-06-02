@@ -138,6 +138,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
       selectedSubscription?.model_refs.map((ref) => ({
         name: ref.name,
         namespace: ref.namespace ?? '',
+        displayName: ref.display_name,
         description: ref.description,
         modelRef: { kind: 'MaaSModelRef', name: ref.name },
       })) ?? [],
