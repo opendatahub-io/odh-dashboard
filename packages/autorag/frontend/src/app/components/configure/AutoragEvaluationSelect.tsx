@@ -4,8 +4,8 @@ import type { FileRejection } from 'react-dropzone';
 import React, { useCallback, useState } from 'react';
 import { useController, useFormContext, useWatch } from 'react-hook-form';
 import { useParams } from 'react-router';
+import S3FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
 import FileSelector from '~/app/components/common/FileSelector';
-import S3FileExplorer from '~/app/components/common/S3FileExplorer/S3FileExplorer';
 import { useUploadToStorageMutation } from '~/app/hooks/mutations';
 import { useSecretsQuery } from '~/app/hooks/queries';
 import { useNotification } from '~/app/hooks/useNotification';
@@ -122,6 +122,7 @@ function AutoragEvaluationSelect(): React.JSX.Element {
         fileUploadHelperText="Supply a JSON file with test questions and answers to evaluate the quality of Q&A responses."
       />
       <S3FileExplorer
+        apiPath="/autorag/api/v1/s3"
         namespace={namespace ?? ''}
         s3Secret={secrets?.find((secret) => secret.name === testDataSecretName)}
         isOpen={fileExplorerOpen}
