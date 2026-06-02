@@ -23,7 +23,7 @@ export const mergeRelationships = <R>(
   return merged;
 };
 
-/** Fetches all pages from a paginated /all endpoint using `pagination.has_next`. */
+/** Fetches all pages from a paginated /all endpoint. */
 export const fetchAllPages = async <T extends PaginatedResponse, TItem>(
   hostPath: string,
   endpoint: string,
@@ -46,7 +46,15 @@ export const fetchAllPages = async <T extends PaginatedResponse, TItem>(
     const items = getItems(response);
     allItems.push(...items);
     allResponses.push(response);
-    hasNext = response.pagination.has_next ?? false;
+
+    const pag: Record<string, unknown> = response.pagination;
+    const hasNextField = pag.hasNext ?? pag.has_next;
+    if (typeof hasNextField === 'boolean') {
+      hasNext = hasNextField;
+    } else {
+      const totalPages = Number(pag.totalPages ?? pag.total_pages ?? 0);
+      hasNext = totalPages > 0 ? page < totalPages : items.length >= FEATURE_STORE_PAGE_SIZE;
+    }
     page++;
   } while (hasNext && page <= MAX_PAGES);
 
