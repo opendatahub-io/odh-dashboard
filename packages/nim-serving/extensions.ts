@@ -56,6 +56,67 @@ const nimPVCFieldExtension: WizardFieldExtension<NIMPVCFieldType> = {
   },
 };
 
+const nimImageApplyExtension: WizardFieldApplyExtension<NIMImageFieldValue, NIMDeployment> = {
+  type: 'model-serving.deployment/wizard-field-apply',
+  properties: {
+    fieldId: 'nim-serving/nimImage',
+    platform: NIM_ID,
+    apply: () =>
+      import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
+        (m) => m.applyNIMImageFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
+const nimImageExtractorExtension: WizardFieldExtractorExtension<NIMImageFieldValue, NIMDeployment> =
+  {
+    type: 'model-serving.deployment/wizard-field-extractor',
+    properties: {
+      fieldId: 'nim-serving/nimImage',
+      platform: NIM_ID,
+      extract: () =>
+        import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
+          (m) => m.extractNIMImageFieldData,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  };
+
+const nimPVCApplyExtension: WizardFieldApplyExtension<NIMPVCFieldValue, NIMDeployment> = {
+  type: 'model-serving.deployment/wizard-field-apply',
+  properties: {
+    fieldId: 'nim-serving/pvcStorage',
+    platform: NIM_ID,
+    apply: () =>
+      import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
+        (m) => m.applyNIMPVCFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
+const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, NIMDeployment> = {
+  type: 'model-serving.deployment/wizard-field-extractor',
+  properties: {
+    fieldId: 'nim-serving/pvcStorage',
+    platform: NIM_ID,
+    extract: () =>
+      import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
+        (m) => m.extractNIMPVCFieldData,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ProjectDetailsSettingsCardExtension
@@ -160,62 +221,10 @@ const extensions: (
       required: [SupportedArea.NIM_WIZARD],
     },
   },
-  {
-    type: 'model-serving.deployment/wizard-field-apply',
-    properties: {
-      fieldId: 'nim-serving/nimImage',
-      platform: NIM_ID,
-      apply: () =>
-        import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
-          (m) => m.applyNIMImageFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-extractor',
-    properties: {
-      fieldId: 'nim-serving/nimImage',
-      platform: NIM_ID,
-      extract: () =>
-        import('./src/pages/deploymentWizard/fields/nimImageApplyExtract').then(
-          (m) => m.extractNIMImageFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-apply',
-    properties: {
-      fieldId: 'nim-serving/pvcStorage',
-      platform: NIM_ID,
-      apply: () =>
-        import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
-          (m) => m.applyNIMPVCFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
-  {
-    type: 'model-serving.deployment/wizard-field-extractor',
-    properties: {
-      fieldId: 'nim-serving/pvcStorage',
-      platform: NIM_ID,
-      extract: () =>
-        import('./src/pages/deploymentWizard/fields/nimPVCApplyExtract').then(
-          (m) => m.extractNIMPVCFieldData,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
+  nimImageApplyExtension,
+  nimImageExtractorExtension,
+  nimPVCApplyExtension,
+  nimPVCExtractorExtension,
 ];
 
 export default extensions;

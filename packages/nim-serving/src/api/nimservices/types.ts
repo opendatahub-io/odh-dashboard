@@ -56,6 +56,8 @@ export type NIMServiceKind = K8sResourceCommon & {
         size?: string;
         storageClassName?: string;
         subPath?: string;
+        volumeAccessMode?: string;
+        annotations?: Record<string, string>;
       };
       nimCache?: {
         name?: string;
