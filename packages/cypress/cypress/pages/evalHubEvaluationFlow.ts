@@ -15,7 +15,7 @@ class EvalHubEvaluationFlow {
 
   /** Switches the filter toolbar to "Name" and types the search term to narrow the gallery. */
   searchBenchmarkByName(name: string) {
-    cy.findByTestId('filter-toolbar-dropdown').click();
+    cy.findByTestId('filter-toolbar-dropdown', { timeout: 30000 }).should('be.visible').click();
     cy.findByTestId('filter-toolbar-option-Name').click();
     cy.findByTestId('benchmarks-name-filter').clear();
     cy.findByTestId('benchmarks-name-filter').type(name);
