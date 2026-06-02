@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Navigate, Outlet, useParams } from 'react-router-dom';
-import { useNamespaceSelector } from 'mod-arch-core';
+import { useNamespaceSelectorWithPersistence } from '~/app/hooks/useNamespaceSelectorWithPersistence';
 import { ApplicationsPage } from 'mod-arch-shared';
 import GenAiCoreNoProjects from './GenAiCoreNoProjects';
 import GenAiCoreInvalidProject from './GenAiCoreInvalidProject';
@@ -29,7 +29,8 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
   ...applicationPageProps
 }) => {
   const { namespace } = useParams<{ namespace: string }>();
-  const { namespaces, namespacesLoaded, preferredNamespace } = useNamespaceSelector();
+  const { namespaces, namespacesLoaded, preferredNamespace } =
+    useNamespaceSelectorWithPersistence();
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (namespaces.length === 0) {
