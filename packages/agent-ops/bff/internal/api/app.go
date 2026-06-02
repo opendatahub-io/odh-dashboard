@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
@@ -26,12 +27,15 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mod-arch"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath      = ApiPathPrefix + "/user"
-	NamespacePath = ApiPathPrefix + "/namespaces"
+	Version                = "1.0.0"
+	PathPrefix             = "/mod-arch"
+	ApiPathPrefix          = "/api/v1"
+	HealthCheckPath        = "/healthcheck"
+	UserPath               = ApiPathPrefix + "/user"
+	NamespacePath          = ApiPathPrefix + "/namespaces"
+	AgentRuntimesPath      = ApiPathPrefix + "/agents/runtimes"
+	AgentRuntimeDetailPath = ApiPathPrefix + "/agents/runtimes/:ns/:name"
+	AgentCardPath          = ApiPathPrefix + "/agents/cards/:ns/:name"
 )
 
 type App struct {
@@ -136,11 +140,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
+	logger.Info("Using mock agent data client")
+	agentSourceFactory := &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+
 	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sFactory,
-		repositories:            repositories.NewRepositories(),
+		repositories:            repositories.NewRepositories(agentSourceFactory),
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
@@ -168,6 +175,9 @@ func (app *App) Routes() http.Handler {
 	// Minimal Kubernetes-backed starter endpoints
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
+	apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
+	apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

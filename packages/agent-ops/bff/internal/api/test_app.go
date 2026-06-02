@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/config"
+	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/repositories"
 )
@@ -27,7 +28,7 @@ func NewTestApp( //nolint:unused
 	repos *repositories.Repositories,
 ) *App {
 	if repos == nil {
-		repos = repositories.NewRepositories()
+		repos = repositories.NewRepositories(&agentsmock.Factory{Client: agentsmock.NewClient()})
 	}
 	return &App{
 		config:                  cfg,

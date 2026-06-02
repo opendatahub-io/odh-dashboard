@@ -30,7 +30,7 @@ func main() {
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
-	flag.Var(&cfg.DeploymentMode, "deployment-mode", "Deployment mode (federated or standalone)")
+	flag.Var(&cfg.DeploymentMode, "deployment-mode", "Deployment mode (federated, standalone, or kubeflow alias for standalone)")
 
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
 	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")), "Sets server log level, possible values: error, warn, info, debug")
