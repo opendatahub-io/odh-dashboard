@@ -7,6 +7,7 @@ const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const SRC_DIR = path.resolve(RELATIVE_DIRNAME, 'src');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PLUGIN_CORE_DIR = path.resolve(RELATIVE_DIRNAME, '../../packages/plugin-core/src');
+// Allows the base shell to compile shared types/components from the main frontend source tree
 const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../frontend/src');
 
 module.exports = () => ({
