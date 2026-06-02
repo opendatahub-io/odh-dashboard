@@ -10,6 +10,11 @@ import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/types/form-data';
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
+import {
+  KSERVE_AUTH_ANNOTATION,
+  KSERVE_DEPLOYMENT_MODE_ANNOTATION,
+  KSERVE_VISIBILITY_LABEL,
+} from '@odh-dashboard/kserve/deployUtils';
 import { NIMServiceModel, type NIMServiceKind } from './types';
 import { NIM_SERVICE_HARDWARE_PROFILE_PATHS } from './utils';
 
@@ -156,17 +161,17 @@ export const assembleNIMService = (
   if (externalRoute) {
     nimService.spec.labels = {
       ...nimService.spec.labels,
-      'networking.kserve.io/visibility': 'exposed',
+      [KSERVE_VISIBILITY_LABEL]: 'exposed',
     };
   } else if (nimService.spec.labels) {
-    delete nimService.spec.labels['networking.kserve.io/visibility'];
+    delete nimService.spec.labels[KSERVE_VISIBILITY_LABEL];
   }
 
   if (!nimService.spec.annotations) {
     nimService.spec.annotations = {};
   }
-  nimService.spec.annotations['serving.kserve.io/deploymentMode'] = 'Standard';
-  nimService.spec.annotations['security.opendatahub.io/enable-auth'] = tokenAuth ? 'true' : 'false';
+  nimService.spec.annotations[KSERVE_DEPLOYMENT_MODE_ANNOTATION] = 'Standard';
+  nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
 
   if (environmentVariables?.enabled) {
     nimService.spec.env = environmentVariables.variables.map((v) => ({

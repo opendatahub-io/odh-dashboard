@@ -53,6 +53,10 @@ import {
 import type { CreatingInferenceServiceObject } from './deployModel';
 import type { KServeDeployment } from './deployments';
 
+export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
+export const KSERVE_VISIBILITY_LABEL = 'networking.kserve.io/visibility';
+export const KSERVE_DEPLOYMENT_MODE_ANNOTATION = 'serving.kserve.io/deploymentMode';
+
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
 };
@@ -195,16 +199,16 @@ export const applyAuth = (
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,
-    'security.opendatahub.io/enable-auth': tokenAuth ? 'true' : 'false',
+    [KSERVE_AUTH_ANNOTATION]: tokenAuth ? 'true' : 'false',
   };
 
   result.metadata.labels = {
     ...result.metadata.labels,
-    ...(externalRoute && { 'networking.kserve.io/visibility': 'exposed' }),
+    ...(externalRoute && { [KSERVE_VISIBILITY_LABEL]: 'exposed' }),
   };
 
   if (!externalRoute) {
-    delete result.metadata.labels['networking.kserve.io/visibility'];
+    delete result.metadata.labels[KSERVE_VISIBILITY_LABEL];
   }
 
   return result;
