@@ -36,6 +36,7 @@ Central index of key documentation in the ODH Dashboard monorepo.
 | [Code Examples](docs/code_examples.md) | Code examples and patterns |
 | [Multi-Agent Workflows](docs/multi-agent-workflows.md) | Running parallel agents locally and remotely |
 | [Large Tasks with Claude Code Goals](docs/ai-agent-large-tasks.md) | Using `/goal` for autonomous, multi-step development tasks |
+| [Upstream Sync](docs/upstream-sync.md) | How to sync upstream changes into monorepo packages |
 
 ---
 
