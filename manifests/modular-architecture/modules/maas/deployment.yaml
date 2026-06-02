@@ -130,6 +130,7 @@ spec:
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
           args:
+            - '--deployment-mode=federated'
             - '--auth-method=user_token'
             - '--auth-token-header=x-forwarded-access-token'
             - '--auth-token-prefix='

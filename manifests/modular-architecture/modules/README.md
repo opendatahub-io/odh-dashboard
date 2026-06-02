@@ -14,6 +14,6 @@ Filled-in [templates](../templates/) for each federated BFF module. These resour
 
 **Naming:** Deployment, NetworkPolicy, and pod/template labels use the short slug (e.g. `model-registry`). Only the Service `metadata.name` uses `odh-dashboard-<slug>-ui`. Service selectors remain `deployment: <slug>`.
 
-**Source:** Container `args`, `env`, ports, and images match the JSON6902 sidecar entries in [`deployment.yaml`](../deployment.yaml) and image vars in [`params.env`](../params.env). gen-ai uses `BFF_MAAS_SERVICE_NAME: "maas"` for inter-BFF calls to the standalone MaaS Service (sidecar still uses `"odh-dashboard"` until split).
+**Source:** Container `args`, `env`, ports, and images match the JSON6902 sidecar entries in [`deployment.yaml`](../deployment.yaml) and image vars in [`params.env`](../params.env). Modules whose BFF supports `-deployment-mode` use `--deployment-mode=federated` (model-registry, mlflow, eval-hub, maas, automl, autorag). gen-ai has no BFF deployment-mode flag; federated UI is baked into the container image. gen-ai uses `BFF_MAAS_SERVICE_NAME: "maas"` for inter-BFF calls to the standalone MaaS Service (sidecar still uses `"odh-dashboard"` until split).
 
 **Duplicate workloads:** The parent overlay still patches BFF containers onto the shared `odh-dashboard` Deployment. Until those sidecars are removed, applying this overlay can run **two** copies of each BFF (sidecar + module Deployment).
