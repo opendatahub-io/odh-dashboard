@@ -38,13 +38,8 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
         <Checkbox
           id={id}
           data-testid={id}
-          label={
-            <>
-              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
-              Publishing as MaaS makes the model deployment endpoint accessible to others as a
-              service through a gateway API.
-            </>
-          }
+          label="Publish as MaaS"
+          description="Publishing as MaaS makes the model deployment endpoint accessible to others as a service through a gateway API."
           isChecked={value?.isChecked}
           isDisabled={isDisabled}
           onChange={handleCheckboxChange}
