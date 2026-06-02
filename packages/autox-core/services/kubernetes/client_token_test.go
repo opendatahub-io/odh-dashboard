@@ -28,11 +28,10 @@ var testListKinds = map[schema.GroupVersionResource]string{
 	{Group: "", Version: "v1", Resource: "nodes"}:               "NodeList",
 }
 
-func newTokenClientWithFakes(objects ...runtime.Object) (Client, *fake.Clientset, *dynamicfake.FakeDynamicClient) {
+func newTokenClientWithFakes(objects ...runtime.Object) (*tokenClient, *fake.Clientset, *dynamicfake.FakeDynamicClient) {
 	cs := fake.NewSimpleClientset(objects...)
 	dc := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), testListKinds)
-	client := NewTokenClient(cs, dc)
-	return client, cs, dc
+	return &tokenClient{Clientset: cs, DynamicClient: dc}, cs, dc
 }
 
 // --- tokenRoundTripper tests ---

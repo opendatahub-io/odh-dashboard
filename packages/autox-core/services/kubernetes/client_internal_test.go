@@ -20,11 +20,10 @@ import (
 	k8stesting "k8s.io/client-go/testing"
 )
 
-func newInternalClientWithFakes(objects ...runtime.Object) (Client, *fake.Clientset, *dynamicfake.FakeDynamicClient) {
+func newInternalClientWithFakes(objects ...runtime.Object) (*internalClient, *fake.Clientset, *dynamicfake.FakeDynamicClient) {
 	cs := fake.NewSimpleClientset(objects...)
 	dc := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), testListKinds)
-	client := NewInternalClient(cs, dc)
-	return client, cs, dc
+	return &internalClient{Clientset: cs, DynamicClient: dc}, cs, dc
 }
 
 // --- impersonationRoundTripper tests ---

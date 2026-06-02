@@ -59,9 +59,14 @@ func (m *mockPipelineClient) UploadPipelineVersion(ctx context.Context, baseURL 
 	return m.uploadPipelineVersionFn(ctx, baseURL, pipelineID, versionName, fileContent)
 }
 
-func newTestServiceWithMock(client *mockPipelineClient) *Service {
-	svc := NewService(ServiceConfig{Logger: slog.Default()}, client, nil)
-	// Pre-populate DSPA cache to bypass K8s discovery in service tests
+func newTestServiceWithMock(client *mockPipelineClient) *service {
+	svc := &service{
+		Client:        client,
+		Logger:        slog.Default(),
+		pipelineCache: newPipelineCache(),
+		dspaCache:     newDSPACache(),
+		inFlight:      make(map[string]chan struct{}),
+	}
 	svc.dspaCache.set("test-ns", &DiscoveredDSPA{
 		Name:         "dspa1",
 		Namespace:    "test-ns",

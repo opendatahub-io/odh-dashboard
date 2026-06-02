@@ -284,9 +284,15 @@ func (m *mockK8sClient) DiscoverResourceGVR(ctx context.Context, group, resource
 	return m.discoverResourceGVRFn(ctx, group, resource, namespace, knownVersions)
 }
 
-func newTestPipelineServiceForDiscovery(k8sClient *mockK8sClient) *Service {
+func newTestPipelineServiceForDiscovery(k8sClient *mockK8sClient) *service {
 	k8sSvc := k8s.NewService(k8s.ServiceConfig{Logger: slog.Default()}, k8sClient)
-	return NewService(ServiceConfig{Logger: slog.Default()}, nil, k8sSvc)
+	return &service{
+		K8sService:    k8sSvc,
+		Logger:        slog.Default(),
+		pipelineCache: newPipelineCache(),
+		dspaCache:     newDSPACache(),
+		inFlight:      make(map[string]chan struct{}),
+	}
 }
 
 func TestDiscoverReadyDSPA(t *testing.T) {

@@ -35,8 +35,8 @@ func (m *mockS3Client) ObjectExists(ctx context.Context, opts ConnectionOptions,
 	return m.objectExistsFn(ctx, opts, input)
 }
 
-func newTestS3Service(client *mockS3Client) *Service {
-	return NewService(ServiceConfig{Logger: slog.Default()}, client)
+func newTestS3Service(client *mockS3Client) *service {
+	return &service{Client: client, Logger: slog.Default()}
 }
 
 // --- buildListPrefix ---

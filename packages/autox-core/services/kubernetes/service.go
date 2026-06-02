@@ -45,18 +45,41 @@ type Client interface {
 	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
 }
 
+// Service defines the public contract for the Kubernetes service layer.
+// Consumers should depend on this interface to enable mock substitution in tests.
+type Service interface {
+	GetNamespaces(ctx context.Context) ([]v1.Namespace, error)
+	GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error)
+	GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error)
+	GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error)
+	GetPods(ctx context.Context, namespace string) (*v1.PodList, error)
+	GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error)
+	GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error)
+	GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error)
+	GetUser(ctx context.Context) (string, error)
+	IsClusterAdmin(ctx context.Context) (bool, error)
+	GetUserInfo(ctx context.Context) (*UserInfo, error)
+	CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error)
+	ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error)
+	GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error)
+	CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error)
+	DiscoverResourceGVR(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error)
+}
+
 type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
-// Service provides business logic for Kubernetes operations
-type Service struct {
+type service struct {
 	Client Client
 	Logger *slog.Logger
 }
 
-func NewService(cfg ServiceConfig, client Client) *Service {
-	return &Service{
+// Compile-time interface check.
+var _ Service = (*service)(nil)
+
+func NewService(cfg ServiceConfig, client Client) Service {
+	return &service{
 		Client: client,
 		Logger: cfg.Logger,
 	}
@@ -64,7 +87,7 @@ func NewService(cfg ServiceConfig, client Client) *Service {
 
 // --- Namespaces ---
 
-func (s *Service) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (s *service) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespaces")
 
@@ -79,7 +102,7 @@ func (s *Service) GetNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 
 // GetNamespaceInfos retrieves namespaces with display names.
 // Does NOT perform permission filtering — use GetAccessibleNamespaceInfos for that.
-func (s *Service) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
+func (s *service) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching namespace infos")
 
@@ -93,7 +116,7 @@ func (s *Service) GetNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error
 }
 
 // GetAccessibleNamespaces returns namespaces the user can access.
-func (s *Service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
+func (s *service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Debug("fetching accessible namespaces")
 
@@ -133,7 +156,7 @@ func (s *Service) GetAccessibleNamespaces(ctx context.Context) ([]v1.Namespace, 
 }
 
 // GetAccessibleNamespaceInfos returns namespaces the user can access with display names.
-func (s *Service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
+func (s *service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Debug("fetching accessible namespace infos")
 
@@ -179,7 +202,7 @@ func (s *Service) GetAccessibleNamespaceInfos(ctx context.Context) ([]NamespaceI
 
 // --- Pods ---
 
-func (s *Service) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
+func (s *service) GetPods(ctx context.Context, namespace string) (*v1.PodList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching pods", "namespace", namespace)
 
@@ -199,7 +222,7 @@ func (s *Service) GetPods(ctx context.Context, namespace string) (*v1.PodList, e
 
 // --- Secrets ---
 
-func (s *Service) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
+func (s *service) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secrets", "namespace", namespace)
 
@@ -219,7 +242,7 @@ func (s *Service) GetSecrets(ctx context.Context, namespace string) ([]v1.Secret
 
 // GetSecretInfos retrieves all secrets from a namespace with raw key data.
 // Filtering and redaction are the responsibility of the caller.
-func (s *Service) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
+func (s *service) GetSecretInfos(ctx context.Context, namespace string) ([]SecretInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("fetching secret infos", "namespace", namespace)
 
@@ -254,7 +277,7 @@ func (s *Service) GetSecretInfos(ctx context.Context, namespace string) ([]Secre
 	return secretInfos, nil
 }
 
-func (s *Service) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+func (s *service) GetSecret(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Debug("fetching secret", "namespace", namespace, "secretName", secretName)
 
@@ -278,7 +301,7 @@ func (s *Service) GetSecret(ctx context.Context, namespace, secretName string) (
 
 // --- User & Auth ---
 
-func (s *Service) GetUser(ctx context.Context) (string, error) {
+func (s *service) GetUser(ctx context.Context) (string, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting user identity")
 
@@ -291,7 +314,7 @@ func (s *Service) GetUser(ctx context.Context) (string, error) {
 	return user, nil
 }
 
-func (s *Service) IsClusterAdmin(ctx context.Context) (bool, error) {
+func (s *service) IsClusterAdmin(ctx context.Context) (bool, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("checking cluster admin status")
 
@@ -306,7 +329,7 @@ func (s *Service) IsClusterAdmin(ctx context.Context) (bool, error) {
 
 // GetUserInfo retrieves user identity and admin status in a single call.
 // For service accounts, returns just the SA name (not the full system:serviceaccount:namespace:name format).
-func (s *Service) GetUserInfo(ctx context.Context) (*UserInfo, error) {
+func (s *service) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting user info")
 
@@ -328,7 +351,7 @@ func (s *Service) GetUserInfo(ctx context.Context) (*UserInfo, error) {
 	}, nil
 }
 
-func (s *Service) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+func (s *service) CanAccessResource(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Debug("checking resource access", "namespace", namespace, "verb", verb, "resource", resource)
 
@@ -350,7 +373,7 @@ func (s *Service) CanAccessResource(ctx context.Context, namespace, verb, group,
 
 // --- Generic Resources ---
 
-func (s *Service) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+func (s *service) ListResources(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("listing resources", "gvr", gvr, "namespace", namespace)
 
@@ -370,7 +393,7 @@ func (s *Service) ListResources(ctx context.Context, gvr schema.GroupVersionReso
 	return resources, nil
 }
 
-func (s *Service) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+func (s *service) GetResource(ctx context.Context, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("getting resource", "gvr", gvr, "namespace", namespace, "name", name)
 
@@ -392,7 +415,7 @@ func (s *Service) GetResource(ctx context.Context, gvr schema.GroupVersionResour
 	return resource, nil
 }
 
-func (s *Service) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (s *service) CreateResource(ctx context.Context, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Info("creating resource", "gvr", gvr, "namespace", namespace, "name", obj.GetName())
 
@@ -418,7 +441,7 @@ func (s *Service) CreateResource(ctx context.Context, gvr schema.GroupVersionRes
 
 // DiscoverResourceGVR discovers the preferred API version for a custom resource
 // by trying known versions in preference order (newer to older).
-func (s *Service) DiscoverResourceGVR(
+func (s *service) DiscoverResourceGVR(
 	ctx context.Context,
 	group, resource, namespace string,
 	knownVersions []string,
@@ -469,7 +492,7 @@ func (s *Service) DiscoverResourceGVR(
 
 // --- Internal ---
 
-func (s *Service) loggerWithIdentity(ctx context.Context) *slog.Logger {
+func (s *service) loggerWithIdentity(ctx context.Context) *slog.Logger {
 	return LoggerWithIdentity(ctx, s.Logger)
 }
 

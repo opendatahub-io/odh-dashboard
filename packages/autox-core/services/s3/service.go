@@ -13,6 +13,17 @@ import (
 
 var trailingNumberSuffixPattern = regexp.MustCompile(`^(.*)-(\d+)$`)
 
+// Service defines the public contract for the S3 service layer.
+// Consumers should depend on this interface to enable mock substitution in tests.
+type Service interface {
+	GetObject(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error)
+	DownloadObject(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error)
+	UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error
+	ListObjects(ctx context.Context, opts ConnectionOptions, query ListObjectsQuery) (*ListObjectsResponse, error)
+	ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error)
+	ResolveNonCollidingKey(ctx context.Context, opts ConnectionOptions, input ResolveNonCollidingKeyInput) (string, error)
+}
+
 // Client defines the contract for S3 operations.
 // Signatures: ctx, ConnectionOptions, then an operation-specific Input struct.
 type Client interface {
@@ -32,17 +43,16 @@ type ServiceConfig struct {
 	Logger *slog.Logger
 }
 
-// Service provides business logic for S3 operations.
-// It is intentionally thin — no K8s coupling, no DSPA coupling, no credential extraction.
-// Orchestration (K8s secret lookup → ConnectionOptions → S3 operation) is the caller's responsibility.
-type Service struct {
+type service struct {
 	Client Client
 	Logger *slog.Logger
 }
 
-// NewService creates a Service with the given client and config.
-func NewService(cfg ServiceConfig, client Client) *Service {
-	return &Service{
+// Compile-time interface check.
+var _ Service = (*service)(nil)
+
+func NewService(cfg ServiceConfig, client Client) Service {
+	return &service{
 		Client: client,
 		Logger: cfg.Logger,
 	}
@@ -51,7 +61,7 @@ func NewService(cfg ServiceConfig, client Client) *Service {
 // GetObject uses the raw S3 SDK client. Supports the optional Range field in
 // GetObjectInput for efficient partial reads (e.g. CSV schema inspection).
 // The caller is responsible for closing the returned body.
-func (s *Service) GetObject(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
+func (s *service) GetObject(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
 	s.Logger.Info("getting S3 object", "bucket", input.Bucket, "key", input.Key)
 
 	body, contentType, err := s.Client.GetObject(ctx, opts, input)
@@ -66,7 +76,7 @@ func (s *Service) GetObject(ctx context.Context, opts ConnectionOptions, input G
 // DownloadObject uses the transfer manager for concurrent multipart download.
 // Preferred for large file downloads where parallelism improves throughput.
 // The caller is responsible for closing the returned body.
-func (s *Service) DownloadObject(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
+func (s *service) DownloadObject(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
 	s.Logger.Info("downloading S3 object", "bucket", input.Bucket, "key", input.Key)
 
 	body, contentType, err := s.Client.DownloadObject(ctx, opts, input)
@@ -80,7 +90,7 @@ func (s *Service) DownloadObject(ctx context.Context, opts ConnectionOptions, in
 
 // UploadObject uploads body to the given bucket and key with the specified content type.
 // Returns ErrObjectAlreadyExists if the key already exists (conditional create enforcement).
-func (s *Service) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
+func (s *service) UploadObject(ctx context.Context, opts ConnectionOptions, input UploadObjectInput) error {
 	s.Logger.Info("uploading S3 object", "bucket", input.Bucket, "key", input.Key)
 
 	if err := s.Client.UploadObject(ctx, opts, input); err != nil {
@@ -93,7 +103,7 @@ func (s *Service) UploadObject(ctx context.Context, opts ConnectionOptions, inpu
 
 // ListObjects lists objects using the given query. Path and Search are translated into
 // a raw S3 Prefix before calling the client.
-func (s *Service) ListObjects(ctx context.Context, opts ConnectionOptions, query ListObjectsQuery) (*ListObjectsResponse, error) {
+func (s *service) ListObjects(ctx context.Context, opts ConnectionOptions, query ListObjectsQuery) (*ListObjectsResponse, error) {
 	s.Logger.Info("listing S3 objects", "bucket", query.Bucket, "path", query.Path, "search", query.Search)
 
 	result, err := s.Client.ListObjects(ctx, opts, ListObjectsInput{
@@ -112,7 +122,7 @@ func (s *Service) ListObjects(ctx context.Context, opts ConnectionOptions, query
 }
 
 // ObjectExists checks whether an object key already exists in the given bucket.
-func (s *Service) ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
+func (s *service) ObjectExists(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
 	s.Logger.Info("checking S3 object existence", "bucket", input.Bucket, "key", input.Key)
 
 	exists, err := s.Client.ObjectExists(ctx, opts, input)
@@ -127,7 +137,7 @@ func (s *Service) ObjectExists(ctx context.Context, opts ConnectionOptions, inpu
 // ResolveNonCollidingKey finds an available object key, starting with input.Key and
 // appending -1, -2, … up to input.MaxAttempts when the key already exists.
 // Returns ErrMaxCollisionsExceeded if all attempts find an occupied key.
-func (s *Service) ResolveNonCollidingKey(ctx context.Context, opts ConnectionOptions, input ResolveNonCollidingKeyInput) (string, error) {
+func (s *service) ResolveNonCollidingKey(ctx context.Context, opts ConnectionOptions, input ResolveNonCollidingKeyInput) (string, error) {
 	exists, err := s.Client.ObjectExists(ctx, opts, ObjectExistsInput{Bucket: input.Bucket, Key: input.Key})
 	if err != nil {
 		return "", err

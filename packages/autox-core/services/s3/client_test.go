@@ -78,7 +78,7 @@ func TestClient_GetObject(t *testing.T) {
 				}, nil
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		body, ct, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
 		if err != nil {
@@ -103,7 +103,7 @@ func TestClient_GetObject(t *testing.T) {
 				return &awss3.GetObjectOutput{Body: io.NopCloser(strings.NewReader(""))}, nil
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		_, _, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k", Range: "bytes=0-1023"})
 		if err != nil {
@@ -120,7 +120,7 @@ func TestClient_GetObject(t *testing.T) {
 				return nil, &types.NoSuchKey{}
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		_, _, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "missing"})
 		if !errors.Is(err, ErrObjectNotFound) {
@@ -134,7 +134,7 @@ func TestClient_GetObject(t *testing.T) {
 				return &awss3.GetObjectOutput{Body: io.NopCloser(strings.NewReader(""))}, nil
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		_, ct, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
 		if err != nil {
@@ -146,7 +146,7 @@ func TestClient_GetObject(t *testing.T) {
 	})
 
 	t.Run("provider error", func(t *testing.T) {
-		c := NewClient(&mockProvider{apiErr: fmt.Errorf("provider failed")})
+		c := &client{Provider: &mockProvider{apiErr: fmt.Errorf("provider failed")}}
 		_, _, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
 		if err == nil {
 			t.Error("expected error")
@@ -166,7 +166,7 @@ func TestClient_DownloadObject(t *testing.T) {
 				}, nil
 			},
 		}
-		c := NewClient(&mockProvider{transferClient: tc})
+		c := &client{Provider: &mockProvider{transferClient: tc}}
 
 		body, ct, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
 		if err != nil {
@@ -185,7 +185,7 @@ func TestClient_DownloadObject(t *testing.T) {
 				return nil, &types.NoSuchKey{}
 			},
 		}
-		c := NewClient(&mockProvider{transferClient: tc})
+		c := &client{Provider: &mockProvider{transferClient: tc}}
 
 		_, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "missing"})
 		if !errors.Is(err, ErrObjectNotFound) {
@@ -206,7 +206,7 @@ func TestClient_UploadObject(t *testing.T) {
 				return &transfermanager.UploadObjectOutput{}, nil
 			},
 		}
-		c := NewClient(&mockProvider{transferClient: tc})
+		c := &client{Provider: &mockProvider{transferClient: tc}}
 
 		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{
 			Bucket: "b", Key: "k", Body: bytes.NewReader([]byte("data")), ContentType: "text/plain",
@@ -222,7 +222,7 @@ func TestClient_UploadObject(t *testing.T) {
 				return nil, &s3CodedError{code: "PreconditionFailed"}
 			},
 		}
-		c := NewClient(&mockProvider{transferClient: tc})
+		c := &client{Provider: &mockProvider{transferClient: tc}}
 
 		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
 		if !errors.Is(err, ErrObjectAlreadyExists) {
@@ -236,7 +236,7 @@ func TestClient_UploadObject(t *testing.T) {
 				return nil, &s3CodedError{code: "ConditionalRequestConflict"}
 			},
 		}
-		c := NewClient(&mockProvider{transferClient: tc})
+		c := &client{Provider: &mockProvider{transferClient: tc}}
 
 		err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
 		if !errors.Is(err, ErrObjectAlreadyExists) {
@@ -264,7 +264,7 @@ func TestClient_ListObjects(t *testing.T) {
 			}, nil
 		},
 	}
-	c := NewClient(&mockProvider{apiClient: api})
+	c := &client{Provider: &mockProvider{apiClient: api}}
 
 	resp, err := c.ListObjects(context.Background(), testOpts(), ListObjectsInput{
 		Bucket: "b", Prefix: "data/", Delimiter: "/", Limit: 100,
@@ -286,7 +286,7 @@ func TestClient_ObjectExists(t *testing.T) {
 				return &awss3.HeadObjectOutput{}, nil
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		exists, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
 		if err != nil {
@@ -303,7 +303,7 @@ func TestClient_ObjectExists(t *testing.T) {
 				return nil, &types.NotFound{}
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		exists, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "missing"})
 		if err != nil {
@@ -320,7 +320,7 @@ func TestClient_ObjectExists(t *testing.T) {
 				return nil, &s3CodedError{code: "AccessDenied"}
 			},
 		}
-		c := NewClient(&mockProvider{apiClient: api})
+		c := &client{Provider: &mockProvider{apiClient: api}}
 
 		_, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
 		if !errors.Is(err, ErrAccessDenied) {
@@ -380,7 +380,7 @@ func TestClient_GetObject_UntranslatedError(t *testing.T) {
 			return nil, fmt.Errorf("generic AWS error")
 		},
 	}
-	c := NewClient(&mockProvider{apiClient: api})
+	c := &client{Provider: &mockProvider{apiClient: api}}
 
 	_, _, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
 	if err == nil {
@@ -397,7 +397,7 @@ func TestClient_DownloadObject_UntranslatedError(t *testing.T) {
 			return nil, fmt.Errorf("generic download error")
 		},
 	}
-	c := NewClient(&mockProvider{transferClient: tc})
+	c := &client{Provider: &mockProvider{transferClient: tc}}
 
 	_, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
 	if err == nil {
@@ -414,7 +414,7 @@ func TestClient_DownloadObject_NonReadCloserBody(t *testing.T) {
 			}, nil
 		},
 	}
-	c := NewClient(&mockProvider{transferClient: tc})
+	c := &client{Provider: &mockProvider{transferClient: tc}}
 
 	body, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
 	if err != nil {
@@ -433,7 +433,7 @@ func TestClient_UploadObject_UntranslatedError(t *testing.T) {
 			return nil, fmt.Errorf("generic upload error")
 		},
 	}
-	c := NewClient(&mockProvider{transferClient: tc})
+	c := &client{Provider: &mockProvider{transferClient: tc}}
 
 	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
 	if err == nil {
@@ -450,7 +450,7 @@ func TestClient_ListObjects_UntranslatedError(t *testing.T) {
 			return nil, fmt.Errorf("generic list error")
 		},
 	}
-	c := NewClient(&mockProvider{apiClient: api})
+	c := &client{Provider: &mockProvider{apiClient: api}}
 
 	_, err := c.ListObjects(context.Background(), testOpts(), ListObjectsInput{Bucket: "b", Prefix: "/", Delimiter: "/"})
 	if err == nil {
@@ -464,7 +464,7 @@ func TestClient_ObjectExists_UntranslatedError(t *testing.T) {
 			return nil, fmt.Errorf("generic head error")
 		},
 	}
-	c := NewClient(&mockProvider{apiClient: api})
+	c := &client{Provider: &mockProvider{apiClient: api}}
 
 	_, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
 	if err == nil {
@@ -473,7 +473,7 @@ func TestClient_ObjectExists_UntranslatedError(t *testing.T) {
 }
 
 func TestClient_UploadObject_ProviderError(t *testing.T) {
-	c := NewClient(&mockProvider{transferErr: fmt.Errorf("provider failed")})
+	c := &client{Provider: &mockProvider{transferErr: fmt.Errorf("provider failed")}}
 	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
 	if err == nil {
 		t.Error("expected error")
@@ -481,7 +481,7 @@ func TestClient_UploadObject_ProviderError(t *testing.T) {
 }
 
 func TestClient_DownloadObject_ProviderError(t *testing.T) {
-	c := NewClient(&mockProvider{transferErr: fmt.Errorf("provider failed")})
+	c := &client{Provider: &mockProvider{transferErr: fmt.Errorf("provider failed")}}
 	_, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
 	if err == nil {
 		t.Error("expected error")
@@ -489,7 +489,7 @@ func TestClient_DownloadObject_ProviderError(t *testing.T) {
 }
 
 func TestClient_ListObjects_ProviderError(t *testing.T) {
-	c := NewClient(&mockProvider{apiErr: fmt.Errorf("provider failed")})
+	c := &client{Provider: &mockProvider{apiErr: fmt.Errorf("provider failed")}}
 	_, err := c.ListObjects(context.Background(), testOpts(), ListObjectsInput{Bucket: "b"})
 	if err == nil {
 		t.Error("expected error")
@@ -497,7 +497,7 @@ func TestClient_ListObjects_ProviderError(t *testing.T) {
 }
 
 func TestClient_ObjectExists_ProviderError(t *testing.T) {
-	c := NewClient(&mockProvider{apiErr: fmt.Errorf("provider failed")})
+	c := &client{Provider: &mockProvider{apiErr: fmt.Errorf("provider failed")}}
 	_, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
 	if err == nil {
 		t.Error("expected error")

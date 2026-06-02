@@ -14,10 +14,9 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
-func newTestServer(handler http.HandlerFunc) (*httptest.Server, Client) {
+func newTestServer(handler http.HandlerFunc) (*httptest.Server, *client) {
 	ts := httptest.NewServer(handler)
-	c := NewClient(ts.Client())
-	return ts, c
+	return ts, &client{HTTPClient: ts.Client()}
 }
 
 func jsonResponse(w http.ResponseWriter, v any) {

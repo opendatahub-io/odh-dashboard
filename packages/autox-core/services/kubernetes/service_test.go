@@ -62,8 +62,8 @@ func (m *mockClient) DiscoverResourceGVR(ctx context.Context, group, resource, n
 	return m.discoverResourceGVRFn(ctx, group, resource, namespace, knownVersions)
 }
 
-func newTestService(client *mockClient) *Service {
-	return NewService(ServiceConfig{Logger: slog.Default()}, client)
+func newTestService(client *mockClient) *service {
+	return &service{Client: client, Logger: slog.Default()}
 }
 
 func ctxWithUser(userID string) context.Context {

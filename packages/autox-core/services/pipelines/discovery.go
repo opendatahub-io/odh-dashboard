@@ -17,7 +17,7 @@ import (
 // Object storage extraction handles two cases:
 //   - External storage: spec.objectStorage.externalStorage with S3-compatible credentials
 //   - Managed MinIO: spec.objectStorage.minio.deploy=true with conventional naming
-func (s *Service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error) {
+func (s *service) DiscoverReadyDSPA(ctx context.Context, namespace string) (*DiscoveredDSPA, error) {
 	logger := s.loggerWithIdentity(ctx)
 	logger.Debug("discovering ready DSPA", "namespace", namespace)
 
