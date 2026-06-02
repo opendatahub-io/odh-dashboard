@@ -230,6 +230,7 @@ var commonFields = []fieldCheck{
 	{"train_data_bucket_name", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataBucketName != "" }, true},
 	{"train_data_file_key", func(r models.CreateAutoMLRunRequest) bool { return r.TrainDataFileKey != "" }, true},
 	// Common optional fields
+	{"preset", func(r models.CreateAutoMLRunRequest) bool { return r.Preset != nil }, false},
 	{"top_n", func(r models.CreateAutoMLRunRequest) bool { return r.TopN != nil }, false},
 	{"description", func(r models.CreateAutoMLRunRequest) bool { return r.Description != "" }, false},
 }
@@ -512,7 +513,11 @@ func BuildKFPRunRequest(req models.CreateAutoMLRunRequest, pipelineID, pipelineV
 		}
 	}
 
-	// Add optional common parameter
+	// Add optional common parameters
+	if req.Preset != nil {
+		params["preset"] = *req.Preset
+	}
+
 	topN := constants.DefaultTopN
 	if req.TopN != nil {
 		topN = *req.TopN

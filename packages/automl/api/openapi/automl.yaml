@@ -622,6 +622,7 @@ paths:
                   train_data_file_key: "credit/train.csv"
                   label_column: "default"
                   task_type: "binary"
+                  preset: "medium_quality"
                   top_n: 5
               tabular-multiclass:
                 summary: Tabular multiclass classification pipeline request
@@ -633,6 +634,7 @@ paths:
                   train_data_file_key: "customers/train.csv"
                   label_column: "segment"
                   task_type: "multiclass"
+                  preset: "good_quality"
                   top_n: 5
               tabular-regression:
                 summary: Tabular regression pipeline request
@@ -644,6 +646,7 @@ paths:
                   train_data_file_key: "housing/train.csv"
                   label_column: "price"
                   task_type: "regression"
+                  preset: "medium_quality"
                   top_n: 3
               timeseries:
                 summary: Timeseries forecasting pipeline request
@@ -659,6 +662,7 @@ paths:
                   timestamp_column: "date"
                   prediction_length: 7
                   known_covariates_names: ["temperature", "is_holiday"]
+                  preset: "fast_training"
                   top_n: 3
       responses:
         "200":
@@ -1236,6 +1240,10 @@ components:
           minLength: 1
           description: S3 object key for the training data file
           example: "data/train.csv"
+        preset:
+          type: string
+          description: AutoGluon preset controlling the trade-off between training speed and model quality. The value depends on the pipeline type (e.g. medium_quality or good_quality for tabular; fast_training or medium_quality for timeseries). When omitted, the pipeline uses its built-in default.
+          example: "medium_quality"
         top_n:
           type: integer
           minimum: 1
