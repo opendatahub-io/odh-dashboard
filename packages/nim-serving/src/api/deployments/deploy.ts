@@ -20,6 +20,11 @@ export const assembleNIMDeployment = (
   existingDeployment?: NIMDeployment,
   applyFieldData?: DeploymentAssemblyFn<NIMDeployment>,
 ): NIMDeployment => {
+  const tokenAuth =
+    (wizardData.state.tokenAuthentication.data &&
+      wizardData.state.tokenAuthentication.data.length > 0) ??
+    false;
+
   const nimService = assembleNIMService(
     {
       projectName: wizardData.state.project.projectName ?? '',
@@ -28,6 +33,7 @@ export const assembleNIMDeployment = (
       description: wizardData.state.k8sNameDesc.data.description,
       replicas: wizardData.state.numReplicas.data,
       externalRoute: wizardData.state.externalRoute.data,
+      tokenAuth,
       environmentVariables: wizardData.state.environmentVariables.data,
       hardwareProfile: wizardData.state.hardwareProfileConfig.formData,
     },

@@ -91,9 +91,6 @@ const baseNIMService = (
         port: 8000,
       },
     },
-    annotations: {
-      'serving.kserve.io/deploymentMode': 'Standard',
-    },
   },
 });
 
@@ -104,6 +101,7 @@ type AssembleNIMServiceParams = {
   description?: string;
   replicas?: number;
   externalRoute?: boolean;
+  tokenAuth?: boolean;
   environmentVariables?: EnvironmentVariablesFieldData;
   hardwareProfile: HardwareProfileConfig;
   authSecret?: string;
@@ -121,6 +119,7 @@ export const assembleNIMService = (
     description,
     replicas = 1,
     externalRoute,
+    tokenAuth,
     environmentVariables,
     hardwareProfile,
     authSecret,
@@ -162,6 +161,12 @@ export const assembleNIMService = (
   } else if (nimService.spec.labels) {
     delete nimService.spec.labels['networking.kserve.io/visibility'];
   }
+
+  if (!nimService.spec.annotations) {
+    nimService.spec.annotations = {};
+  }
+  nimService.spec.annotations['serving.kserve.io/deploymentMode'] = 'Standard';
+  nimService.spec.annotations['security.opendatahub.io/enable-auth'] = tokenAuth ? 'true' : 'false';
 
   if (environmentVariables?.enabled) {
     nimService.spec.env = environmentVariables.variables.map((v) => ({

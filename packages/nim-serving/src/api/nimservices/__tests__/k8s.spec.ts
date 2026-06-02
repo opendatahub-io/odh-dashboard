@@ -129,8 +129,31 @@ describe('assembleNIMService', () => {
     expect(result.spec.expose?.service?.type).toBe('ClusterIP');
     expect(result.spec.expose?.service?.port).toBe(8000);
     expect(result.spec.annotations?.['serving.kserve.io/deploymentMode']).toBe('Standard');
+    expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
     expect(result.spec.replicas).toBe(1);
     expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe('true');
+  });
+
+  it('should set auth annotation to true when tokenAuth is true', () => {
+    const result = assembleNIMService({
+      projectName: 'ns',
+      k8sName: 'test',
+      tokenAuth: true,
+      hardwareProfile: emptyHardwareProfile,
+    });
+
+    expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+  });
+
+  it('should set auth annotation to false when tokenAuth is false', () => {
+    const result = assembleNIMService({
+      projectName: 'ns',
+      k8sName: 'test',
+      tokenAuth: false,
+      hardwareProfile: emptyHardwareProfile,
+    });
+
+    expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
   });
 
   it('should set display name and description in annotations', () => {
