@@ -14,6 +14,7 @@ import {
   KSERVE_AUTH_ANNOTATION,
   KSERVE_DEPLOYMENT_MODE_ANNOTATION,
   KSERVE_VISIBILITY_LABEL,
+  KServeVisibility,
 } from '@odh-dashboard/kserve/deployUtils';
 import { NIMServiceModel, type NIMServiceKind } from './types';
 import { NIM_SERVICE_HARDWARE_PROFILE_PATHS } from './utils';
@@ -161,7 +162,7 @@ export const assembleNIMService = (
   if (externalRoute) {
     nimService.spec.labels = {
       ...nimService.spec.labels,
-      [KSERVE_VISIBILITY_LABEL]: 'exposed',
+      [KSERVE_VISIBILITY_LABEL]: KServeVisibility.Exposed,
     };
   } else if (nimService.spec.labels) {
     delete nimService.spec.labels[KSERVE_VISIBILITY_LABEL];

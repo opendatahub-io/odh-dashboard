@@ -57,6 +57,11 @@ export const KSERVE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
 export const KSERVE_VISIBILITY_LABEL = 'networking.kserve.io/visibility';
 export const KSERVE_DEPLOYMENT_MODE_ANNOTATION = 'serving.kserve.io/deploymentMode';
 
+export enum KServeVisibility {
+  Exposed = 'exposed',
+  ClusterLocal = 'cluster-local',
+}
+
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
 };
@@ -204,7 +209,7 @@ export const applyAuth = (
 
   result.metadata.labels = {
     ...result.metadata.labels,
-    ...(externalRoute && { [KSERVE_VISIBILITY_LABEL]: 'exposed' }),
+    ...(externalRoute && { [KSERVE_VISIBILITY_LABEL]: KServeVisibility.Exposed }),
   };
 
   if (!externalRoute) {
