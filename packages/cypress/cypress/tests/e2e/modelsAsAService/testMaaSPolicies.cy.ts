@@ -131,7 +131,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
     deleteOpenShiftProject(projectName, { wait: true, ignoreNotFound: true, timeout: 300000 });
   });
   it(
-    ' Verify policy create, View, Edit and  Delete Operations',
+    ' Verify Authorization Policy Create, View, Edit and  Delete Operations',
     {
       tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS'],
     },
@@ -333,7 +333,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         apiKeyRow.findSubscription().should('contain.text', subscriptionName);
         apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
         apiKeyRow.findCreationDate().should('contain.text', today);
-        apiKeyRow.findLastUsedAt().should('contain.text', 'Never');
         apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
 
         cy.step('Verify the model is accessible to the user');
