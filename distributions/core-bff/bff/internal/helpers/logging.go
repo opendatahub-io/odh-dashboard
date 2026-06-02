@@ -69,6 +69,10 @@ type RequestLogValuer struct {
 }
 
 func (r RequestLogValuer) LogValue() slog.Value {
+	if r.Request == nil {
+		return slog.GroupValue(slog.String("method", ""), slog.String("url", ""), slog.String("body", ""), slog.Any("headers", HeaderLogValuer{}))
+	}
+
 	body := ""
 	if r.Request.Body != nil &&
 		(r.Request.ContentLength != 0 || len(r.Request.TransferEncoding) > 0) {
@@ -88,6 +92,10 @@ type ResponseLogValuer struct {
 }
 
 func (r ResponseLogValuer) LogValue() slog.Value {
+	if r.Response == nil {
+		return slog.GroupValue(slog.Any("status_code", 0), slog.String("status", ""), slog.Any("headers", HeaderLogValuer{}))
+	}
+
 	return slog.GroupValue(
 		slog.Any("status_code", r.Response.StatusCode),
 		slog.String("status", r.Response.Status),

@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,6 +18,29 @@ func TestGetKubeconfig_FallbackError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no kubeconfig found")
 	assert.Contains(t, err.Error(), "not running in-cluster")
+}
+
+func TestGetKubeconfig_MalformedConfigDoesNotFallback(t *testing.T) {
+	dir := t.TempDir()
+	badKubeconfig := dir + "/kubeconfig"
+	// Valid YAML but invalid kubeconfig: current-context references a context not in the list
+	content := `apiVersion: v1
+kind: Config
+current-context: does-not-exist
+contexts: []
+clusters: []
+users: []
+`
+	require.NoError(t, os.WriteFile(badKubeconfig, []byte(content), 0600))
+	t.Setenv("KUBECONFIG", badKubeconfig)
+
+	fakeInCluster := func() (*clientRest.Config, error) {
+		return &clientRest.Config{Host: "https://10.0.0.1:6443"}, nil
+	}
+
+	_, err := getKubeconfig(fakeInCluster)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "kubeconfig found but invalid")
 }
 
 func TestGetKubeconfig_InClusterFallback(t *testing.T) {

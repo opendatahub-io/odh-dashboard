@@ -78,6 +78,25 @@ func TestRoutes_BareApiReturns404(t *testing.T) {
 	assert.Equal(t, "NOT_FOUND", errObj["code"])
 }
 
+func TestRoutes_PrefixedBareApiReturns404(t *testing.T) {
+	ts := newTestServer(t)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + PathPrefix + APIPathPrefix)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+
+	var body map[string]any
+	err = json.NewDecoder(resp.Body).Decode(&body)
+	require.NoError(t, err)
+
+	errObj, ok := body["error"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "NOT_FOUND", errObj["code"])
+}
+
 func TestRoutes_UnknownApiRouteReturns404(t *testing.T) {
 	ts := newTestServer(t)
 	defer ts.Close()

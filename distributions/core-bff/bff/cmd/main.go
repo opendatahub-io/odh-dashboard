@@ -93,7 +93,7 @@ func main() {
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 0, // disabled for long-lived WebSocket connections; stale cleanup handles lifecycle
+		WriteTimeout: 60 * time.Second,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 

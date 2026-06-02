@@ -88,9 +88,12 @@ func closeCodeFromError(err error) int {
 	return sanitizeCloseCode(websocket.CloseInternalServerErr)
 }
 
+const writeControlTimeout = 5 * time.Second
+
 func sendCloseMessage(conn *websocket.Conn, err error) {
-	_ = conn.WriteMessage(websocket.CloseMessage,
-		websocket.FormatCloseMessage(closeCodeFromError(err), ""))
+	_ = conn.WriteControl(websocket.CloseMessage,
+		websocket.FormatCloseMessage(closeCodeFromError(err), ""),
+		time.Now().Add(writeControlTimeout))
 }
 
 func forwardTargetToClient(tracker *ConnectionTracker, connID string, target, client *websocket.Conn, cleanup func()) {
@@ -126,13 +129,18 @@ func forwardClientToTarget(tracker *ConnectionTracker, connID string, client, ta
 	}
 }
 
-func runHeartbeat(tracker *ConnectionTracker, connID string, target *websocket.Conn, heartbeat *time.Ticker, cleanup func()) {
-	for range heartbeat.C {
-		if err := target.WriteMessage(websocket.PingMessage, nil); err != nil {
-			cleanup()
+func runHeartbeat(tracker *ConnectionTracker, connID string, target *websocket.Conn, heartbeat *time.Ticker, done <-chan struct{}, cleanup func()) {
+	for {
+		select {
+		case <-done:
 			return
+		case <-heartbeat.C:
+			if err := target.WriteControl(websocket.PingMessage, nil, time.Now().Add(writeControlTimeout)); err != nil {
+				cleanup()
+				return
+			}
+			tracker.updatePingSuccess(connID)
 		}
-		tracker.updatePingSuccess(connID)
 	}
 }
 
@@ -178,9 +186,11 @@ func negotiatedSubprotocolHeader(targetConn *websocket.Conn, clientSubprotocols 
 func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *websocket.Conn) {
 	connID := tracker.Track(clientConn, targetConn)
 	heartbeat := time.NewTicker(wsHeartbeatInterval)
+	done := make(chan struct{})
 	var closeOnce sync.Once
 	cleanup := func() {
 		closeOnce.Do(func() {
+			close(done)
 			heartbeat.Stop()
 			tracker.Untrack(connID)
 			clientConn.Close()
@@ -190,7 +200,7 @@ func bridgeConnections(tracker *ConnectionTracker, clientConn, targetConn *webso
 
 	go forwardTargetToClient(tracker, connID, targetConn, clientConn, cleanup)
 	go forwardClientToTarget(tracker, connID, clientConn, targetConn, cleanup)
-	go runHeartbeat(tracker, connID, targetConn, heartbeat, cleanup)
+	go runHeartbeat(tracker, connID, targetConn, heartbeat, done, cleanup)
 }
 
 func sanitizeCloseCode(code int) int {

@@ -63,36 +63,39 @@ func (app *App) ensureRootCAs() {
 	}
 }
 
-func (app *App) appendCACerts(pem []byte, source string) {
+func (app *App) appendCACerts(pem []byte, source string) error {
 	if len(pem) == 0 {
-		return
+		return nil
 	}
 	app.ensureRootCAs()
 	if !app.rootCAs.AppendCertsFromPEM(pem) {
-		app.logger.Warn("No certs appended", slog.String("source", source))
-		return
+		return fmt.Errorf("failed to append CA certs from %s: PEM data contains no valid certificates", source)
 	}
 	app.logger.Debug("Loaded CA certs", slog.String("source", source))
+	return nil
 }
 
-func (app *App) appendCAFromTLSConfig(tlsCfg rest.TLSClientConfig, source string) {
+func (app *App) appendCAFromTLSConfig(tlsCfg rest.TLSClientConfig, source string) error {
 	if len(tlsCfg.CAData) > 0 {
-		app.appendCACerts(tlsCfg.CAData, source+" inline CA")
-		return
+		return app.appendCACerts(tlsCfg.CAData, source+" inline CA")
 	}
 	if tlsCfg.CAFile != "" {
 		pemBytes, err := os.ReadFile(tlsCfg.CAFile)
 		if err != nil {
-			app.logger.Debug("CA file not readable, skipping",
-				slog.String("path", tlsCfg.CAFile), slog.Any("error", err))
-			return
+			return fmt.Errorf("failed to read %s CA file %s: %w", source, tlsCfg.CAFile, err)
 		}
-		app.appendCACerts(pemBytes, source+" CA file")
+		return app.appendCACerts(pemBytes, source+" CA file")
 	}
+	return nil
 }
 
 func (app *App) loadClientCert(tlsCfg rest.TLSClientConfig, source string) ([]tls.Certificate, error) {
-	if len(tlsCfg.CertData) > 0 && len(tlsCfg.KeyData) > 0 {
+	hasCertData := len(tlsCfg.CertData) > 0
+	hasKeyData := len(tlsCfg.KeyData) > 0
+	hasCertFile := tlsCfg.CertFile != ""
+	hasKeyFile := tlsCfg.KeyFile != ""
+
+	if hasCertData && hasKeyData {
 		cert, err := tls.X509KeyPair(tlsCfg.CertData, tlsCfg.KeyData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load %s inline client certificate: %w", source, err)
@@ -100,8 +103,11 @@ func (app *App) loadClientCert(tlsCfg rest.TLSClientConfig, source string) ([]tl
 		app.logger.Debug("Loaded inline client certificate for proxy mTLS", slog.String("source", source))
 		return []tls.Certificate{cert}, nil
 	}
+	if hasCertData != hasKeyData {
+		return nil, fmt.Errorf("incomplete %s inline client certificate: both CertData and KeyData are required", source)
+	}
 
-	if tlsCfg.CertFile != "" && tlsCfg.KeyFile != "" {
+	if hasCertFile && hasKeyFile {
 		cert, err := tls.LoadX509KeyPair(tlsCfg.CertFile, tlsCfg.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load %s client certificate files: %w", source, err)
@@ -110,13 +116,18 @@ func (app *App) loadClientCert(tlsCfg rest.TLSClientConfig, source string) ([]tl
 			slog.String("source", source), slog.String("cert", tlsCfg.CertFile), slog.String("key", tlsCfg.KeyFile))
 		return []tls.Certificate{cert}, nil
 	}
+	if hasCertFile != hasKeyFile {
+		return nil, fmt.Errorf("incomplete %s client certificate files: both CertFile and KeyFile are required", source)
+	}
 
 	return nil, nil
 }
 
 func (app *App) loadEnvtestTLS(testEnv *envtest.Environment) ([]tls.Certificate, error) {
 	tlsCfg := testEnv.Config.TLSClientConfig
-	app.appendCACerts(tlsCfg.CAData, "envtest")
+	if err := app.appendCACerts(tlsCfg.CAData, "envtest"); err != nil {
+		return nil, err
+	}
 	return app.loadClientCert(tlsCfg, "envtest")
 }
 
@@ -125,6 +136,8 @@ func (app *App) loadKubeconfigTLS() ([]tls.Certificate, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get kubeconfig for TLS: %w", err)
 	}
-	app.appendCAFromTLSConfig(kubeconfig.TLSClientConfig, "kubeconfig")
+	if err := app.appendCAFromTLSConfig(kubeconfig.TLSClientConfig, "kubeconfig"); err != nil {
+		return nil, err
+	}
 	return app.loadClientCert(kubeconfig.TLSClientConfig, "kubeconfig")
 }

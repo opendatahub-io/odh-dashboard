@@ -25,6 +25,9 @@ func getKubeconfig(inClusterFn func() (*clientRest.Config, error)) (*clientRest.
 	if err == nil {
 		return cfg, nil
 	}
+	if !clientcmd.IsEmptyConfig(err) {
+		return nil, fmt.Errorf("kubeconfig found but invalid: %w", err)
+	}
 	inCluster, inErr := inClusterFn()
 	if inErr != nil {
 		return nil, fmt.Errorf("no kubeconfig found (%v) and not running in-cluster (%v)", err, inErr)

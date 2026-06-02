@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/rest"
 )
 
 func writeSelfSignedCert(t *testing.T, dir, name string) string {
@@ -88,4 +89,86 @@ func TestEnsureRootCAs_PreservesExistingPool(t *testing.T) {
 
 	app.ensureRootCAs()
 	assert.Same(t, existing, app.rootCAs, "should not replace existing pool")
+}
+
+func TestAppendCACerts_InvalidPEM_ReturnsError(t *testing.T) {
+	app := &App{logger: testLogger()}
+	err := app.appendCACerts([]byte("not valid PEM"), "test-source")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no valid certificates")
+}
+
+func TestAppendCAFromTLSConfig_UnreadableCAFile_ReturnsError(t *testing.T) {
+	app := &App{logger: testLogger()}
+	err := app.appendCAFromTLSConfig(rest.TLSClientConfig{
+		CAFile: "/nonexistent/ca.pem",
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read")
+}
+
+func TestAppendCAFromTLSConfig_InvalidInlineCA_ReturnsError(t *testing.T) {
+	app := &App{logger: testLogger()}
+	err := app.appendCAFromTLSConfig(rest.TLSClientConfig{
+		CAData: []byte("not valid PEM"),
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no valid certificates")
+}
+
+func TestAppendCAFromTLSConfig_ValidInlineCA_Succeeds(t *testing.T) {
+	dir := t.TempDir()
+	certPath := writeSelfSignedCert(t, dir, "test-ca")
+	pemBytes, err := os.ReadFile(certPath)
+	require.NoError(t, err)
+
+	app := &App{logger: testLogger()}
+	err = app.appendCAFromTLSConfig(rest.TLSClientConfig{
+		CAData: pemBytes,
+	}, "test")
+	require.NoError(t, err)
+	assert.NotNil(t, app.rootCAs)
+}
+
+func TestLoadClientCert_PartialInline_CertWithoutKey(t *testing.T) {
+	app := &App{logger: testLogger()}
+	_, err := app.loadClientCert(rest.TLSClientConfig{
+		CertData: []byte("cert-data"),
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incomplete")
+}
+
+func TestLoadClientCert_PartialInline_KeyWithoutCert(t *testing.T) {
+	app := &App{logger: testLogger()}
+	_, err := app.loadClientCert(rest.TLSClientConfig{
+		KeyData: []byte("key-data"),
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incomplete")
+}
+
+func TestLoadClientCert_PartialFile_CertWithoutKey(t *testing.T) {
+	app := &App{logger: testLogger()}
+	_, err := app.loadClientCert(rest.TLSClientConfig{
+		CertFile: "/path/to/cert.pem",
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incomplete")
+}
+
+func TestLoadClientCert_PartialFile_KeyWithoutCert(t *testing.T) {
+	app := &App{logger: testLogger()}
+	_, err := app.loadClientCert(rest.TLSClientConfig{
+		KeyFile: "/path/to/key.pem",
+	}, "test")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incomplete")
+}
+
+func TestLoadClientCert_NoPairs_ReturnsNil(t *testing.T) {
+	app := &App{logger: testLogger()}
+	certs, err := app.loadClientCert(rest.TLSClientConfig{}, "test")
+	require.NoError(t, err)
+	assert.Nil(t, certs)
 }

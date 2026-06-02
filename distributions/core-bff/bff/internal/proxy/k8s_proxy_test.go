@@ -252,6 +252,27 @@ func TestNewK8sProxyHandler_InvalidURL(t *testing.T) {
 	}
 }
 
+func TestNewK8sProxyHandler_RejectsInvalidK8sHost(t *testing.T) {
+	tests := []struct {
+		name string
+		host string
+	}{
+		{"empty string", ""},
+		{"relative path", "/relative/path"},
+		{"no scheme", "just-a-hostname"},
+		{"ftp scheme", "ftp://host:21"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewK8sProxyHandler(testK8sProxyConfig(tt.host))
+			if err == nil {
+				t.Errorf("expected error for K8sHost=%q, got nil", tt.host)
+			}
+		})
+	}
+}
+
 func TestK8sProxy_ResponsePassthrough(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

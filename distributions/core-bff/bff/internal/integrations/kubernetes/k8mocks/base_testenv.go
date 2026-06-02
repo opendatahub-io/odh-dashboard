@@ -82,7 +82,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 		return nil, nil, fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	if err := setupMock(input.Ctx, clientset); err != nil {
+	if err := setupMock(input.Ctx, clientset, input.Users); err != nil {
 		_ = testEnv.Stop()
 		return nil, nil, fmt.Errorf("failed to setup mock data: %w", err)
 	}
@@ -90,7 +90,10 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 	return testEnv, clientset, nil
 }
 
-func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface) error {
+func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface, users []TestUser) error {
+	if len(users) == 0 {
+		users = DefaultTestUsers
+	}
 
 	err := createNamespace(ctx, mockK8sClient, "opendatahub")
 	if err != nil {
@@ -133,29 +136,39 @@ func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface) error {
 		return err
 	}
 
-	err = createClusterAdminRBAC(ctx, mockK8sClient, DefaultTestUsers[0].UserName)
-	if err != nil {
-		return fmt.Errorf("failed to create cluster admin RBAC: %w", err)
+	if len(users) > 0 {
+		err = createClusterAdminRBAC(ctx, mockK8sClient, users[0].UserName)
+		if err != nil {
+			return fmt.Errorf("failed to create cluster admin RBAC: %w", err)
+		}
 	}
 
-	err = createNamespaceRestrictedRBAC(ctx, mockK8sClient, DefaultTestUsers[1].UserName, "test-ns-a")
-	if err != nil {
-		return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
+	if len(users) > 1 {
+		err = createNamespaceRestrictedRBAC(ctx, mockK8sClient, users[1].UserName, "test-ns-a")
+		if err != nil {
+			return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
+		}
 	}
 
-	err = createNamespaceRestrictedRBAC(ctx, mockK8sClient, DefaultTestUsers[2].UserName, "test-ns-b")
-	if err != nil {
-		return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
+	if len(users) > 2 {
+		err = createNamespaceRestrictedRBAC(ctx, mockK8sClient, users[2].UserName, "test-ns-b")
+		if err != nil {
+			return fmt.Errorf("failed to create namespace-restricted RBAC: %w", err)
+		}
 	}
 
-	err = createGroupAccessRBAC(ctx, mockK8sClient, DefaultTestUsers[1].Groups[1], "test-ns-a", "dashboard-ns-a")
-	if err != nil {
-		return fmt.Errorf("failed to create group-based RBAC: %w", err)
+	if len(users) > 1 && len(users[1].Groups) > 1 {
+		err = createGroupAccessRBAC(ctx, mockK8sClient, users[1].Groups[1], "test-ns-a", "dashboard-ns-a")
+		if err != nil {
+			return fmt.Errorf("failed to create group-based RBAC: %w", err)
+		}
 	}
 
-	err = createGroupNamespaceAccessRBAC(ctx, mockK8sClient, DefaultTestUsers[1].Groups[0], "test-ns-a")
-	if err != nil {
-		return fmt.Errorf("failed to set up group access to namespace: %w", err)
+	if len(users) > 1 && len(users[1].Groups) > 0 {
+		err = createGroupNamespaceAccessRBAC(ctx, mockK8sClient, users[1].Groups[0], "test-ns-a")
+		if err != nil {
+			return fmt.Errorf("failed to set up group access to namespace: %w", err)
+		}
 	}
 
 	return nil

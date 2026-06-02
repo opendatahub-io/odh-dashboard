@@ -230,6 +230,52 @@ func TestHTTPBFFClient_Call_NoResponsePointer(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestHTTPBFFClient_Call_CustomHeaderCannotOverrideAuth(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenValues := r.Header.Values("x-forwarded-access-token")
+		assert.Len(t, tokenValues, 1, "auth header must appear exactly once")
+		assert.Equal(t, "real-token", tokenValues[0], "auth header must not be overwritten by custom headers")
+		assert.Empty(t, r.Header.Values("Authorization"), "Authorization custom header must be skipped")
+		assert.Equal(t, "allowed-value", r.Header.Get("x-custom"), "non-conflicting custom headers should pass through")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newHTTPBFFClient(clientConfig{
+		BaseURL:   server.URL,
+		Target:    BFFTargetMaaS,
+		AuthToken: "real-token",
+		CustomHeaders: map[string]string{
+			"x-forwarded-access-token": "evil-override",
+			"Authorization":            "evil-override",
+			"x-custom":                 "allowed-value",
+		},
+	})
+	err := client.Call(context.Background(), http.MethodGet, "/test", nil, nil)
+	require.NoError(t, err)
+}
+
+func TestHTTPBFFClient_Call_CustomHeaderCannotOverrideAuthEvenWithoutToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Empty(t, r.Header.Values("x-forwarded-access-token"), "auth header name must be blocked even when no token is set")
+		assert.Empty(t, r.Header.Values("Authorization"), "Authorization custom header must be skipped")
+		assert.Equal(t, "allowed-value", r.Header.Get("x-custom"), "non-conflicting custom headers should pass through")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newHTTPBFFClient(clientConfig{
+		BaseURL: server.URL,
+		Target:  BFFTargetMaaS,
+		CustomHeaders: map[string]string{
+			"x-forwarded-access-token": "injected-via-custom",
+			"x-custom":                 "allowed-value",
+		},
+	})
+	err := client.Call(context.Background(), http.MethodGet, "/test", nil, nil)
+	require.NoError(t, err)
+}
+
 func TestHTTPBFFClient_Call_EmptyErrorBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)

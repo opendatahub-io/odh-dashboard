@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -154,15 +155,18 @@ func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, b
 	}
 	req.Header.Set("Accept", "application/json")
 
+	authHeader := c.authTokenHeader
+	if authHeader == "" {
+		authHeader = "x-forwarded-access-token"
+	}
 	if c.authToken != "" {
-		header := c.authTokenHeader
-		if header == "" {
-			header = "x-forwarded-access-token"
-		}
-		req.Header.Set(header, c.authTokenPrefix+c.authToken)
+		req.Header.Set(authHeader, c.authTokenPrefix+c.authToken)
 	}
 
 	for key, value := range c.customHeaders {
+		if strings.EqualFold(key, authHeader) || strings.EqualFold(key, "Authorization") {
+			continue
+		}
 		req.Header.Set(key, value)
 	}
 

@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/ssrf"
 )
@@ -121,8 +123,18 @@ func NewReverseProxy(cfg ProxyConfig) (*httputil.ReverseProxy, error) {
 		tlsConfig.Certificates = cfg.ClientCerts
 	}
 
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
 	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
+		TLSClientConfig:       tlsConfig,
+		DialContext:           dialer.DialContext,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConnsPerHost:   25,
 	}
 	if cfg.SSRFValidateTarget {
 		transport.DialContext = ssrf.SafeDialContext(cfg.Logger, cfg.SSRFAllowedHosts...)

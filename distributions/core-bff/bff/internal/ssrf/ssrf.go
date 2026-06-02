@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // ErrSSRFBlocked is returned when a request is blocked by SSRF validation.
@@ -33,9 +34,9 @@ var privateRanges = func() []*net.IPNet {
 	return nets
 }()
 
-// IsPrivateIP reports whether ip falls within a loopback, link-local, or private range.
+// IsPrivateIP reports whether ip falls within a loopback, link-local, unspecified, multicast, or private range.
 func IsPrivateIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() || ip.IsMulticast() || ip.IsLinkLocalMulticast() {
 		return true
 	}
 	for _, n := range privateRanges {
@@ -48,8 +49,8 @@ func IsPrivateIP(ip net.IP) bool {
 
 // ValidateHostname resolves a hostname and checks that none of the resolved IPs
 // are private addresses. This prevents DNS rebinding attacks.
-func ValidateHostname(hostname string, logger *slog.Logger) error {
-	ips, err := net.LookupIP(hostname)
+func ValidateHostname(ctx context.Context, hostname string, logger *slog.Logger) error {
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip", hostname)
 	if err != nil {
 		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
 	}
@@ -88,7 +89,7 @@ func NewRedirectValidator(logger *slog.Logger) func(*http.Response) error {
 		if hostname == "" {
 			return nil
 		}
-		return ValidateHostname(hostname, logger)
+		return ValidateHostname(resp.Request.Context(), hostname, logger)
 	}
 }
 
@@ -144,7 +145,7 @@ func SafeDialContext(logger *slog.Logger, allowedHosts ...string) func(ctx conte
 
 		logger.Debug("SSRF dial validation passed", slog.String("host", host), slog.Int("resolved_ips", len(ips)))
 
-		dialer := &net.Dialer{}
+		dialer := &net.Dialer{Timeout: 30 * time.Second}
 		return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
 	}
 }

@@ -53,7 +53,10 @@ func (e *HTTPError) Error() string {
 func NewHTTPClient(logger *slog.Logger, requestID string, baseURL string, headers http.Header, insecureSkipVerify bool) (HTTPClientInterface, error) {
 	return &HTTPClient{
 		client: &http.Client{Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec // G402: controlled by CLI flag, dev-only
+			TLSClientConfig: &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // G402: controlled by CLI flag, dev-only
+			},
 		}},
 		baseURL:   baseURL,
 		RequestID: requestID,

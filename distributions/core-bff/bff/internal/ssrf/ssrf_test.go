@@ -34,6 +34,10 @@ func TestIsPrivateIP(t *testing.T) {
 		{"192.167.x not private", "192.167.1.1", false},
 		{"unique-local IPv6 fc00::", "fc00::1", true},
 		{"unique-local IPv6 fd00::", "fd00::1", true},
+		{"unspecified IPv4", "0.0.0.0", true},
+		{"unspecified IPv6", "::", true},
+		{"multicast IPv4", "224.0.0.1", true},
+		{"multicast IPv6", "ff02::1", true},
 		{"public IPv4", "8.8.8.8", false},
 		{"public IPv4 alt", "1.1.1.1", false},
 		{"public IPv6", "2001:4860:4860::8888", false},
@@ -67,7 +71,7 @@ func TestValidateHostname(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := testLogger()
-			err := ValidateHostname(tt.hostname, logger)
+			err := ValidateHostname(context.Background(), tt.hostname, logger)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateHostname(%q) error = %v, wantErr %v", tt.hostname, err, tt.wantErr)
 			}
@@ -98,9 +102,11 @@ func TestNewRedirectValidator(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://example.com", nil)
 			resp := &http.Response{
 				StatusCode: tt.status,
 				Header:     http.Header{},
+				Request:    req,
 			}
 			if tt.location != "" {
 				resp.Header.Set("Location", tt.location)

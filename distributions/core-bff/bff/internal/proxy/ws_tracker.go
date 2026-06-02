@@ -161,9 +161,9 @@ func (ct *ConnectionTracker) cleanupLoop() {
 
 func (ct *ConnectionTracker) cleanupStale() {
 	ct.mu.Lock()
-	defer ct.mu.Unlock()
 
 	now := time.Now()
+	var stale []*trackedConnection
 	for id, tc := range ct.connections {
 		lastActivity := tc.metrics.LastMessageReceived
 		if tc.metrics.LastMessageSent.After(lastActivity) {
@@ -176,16 +176,23 @@ func (ct *ConnectionTracker) cleanupStale() {
 			ct.logger.Info("Closing stale WebSocket connection",
 				slog.String("id", id),
 				slog.Duration("idle", now.Sub(lastActivity)))
-			closeMsg := websocket.FormatCloseMessage(websocket.CloseGoingAway, "stale connection")
-			if tc.client != nil {
-				_ = tc.client.WriteMessage(websocket.CloseMessage, closeMsg)
-				tc.client.Close()
-			}
-			if tc.target != nil {
-				_ = tc.target.WriteMessage(websocket.CloseMessage, closeMsg)
-				tc.target.Close()
-			}
+			stale = append(stale, tc)
 			delete(ct.connections, id)
+		}
+	}
+
+	ct.mu.Unlock()
+
+	closeMsg := websocket.FormatCloseMessage(websocket.CloseGoingAway, "stale connection")
+	deadline := time.Now().Add(5 * time.Second)
+	for _, tc := range stale {
+		if tc.client != nil {
+			_ = tc.client.WriteControl(websocket.CloseMessage, closeMsg, deadline)
+			tc.client.Close()
+		}
+		if tc.target != nil {
+			_ = tc.target.WriteControl(websocket.CloseMessage, closeMsg, deadline)
+			tc.target.Close()
 		}
 	}
 }

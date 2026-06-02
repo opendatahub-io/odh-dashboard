@@ -54,6 +54,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 	}
 
 	allowHTTP := cfg.DevMode || cfg.MockK8Client
+	insecureSkipVerify := cfg.InsecureSkipVerify && (cfg.DevMode || cfg.MockK8Client)
 
 	var outboundHeadersFn func(*http.Request, http.Header)
 	if cfg.MockK8Client {
@@ -64,7 +65,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		K8sHost:              k8sHost,
 		RootCAs:              app.rootCAs,
 		ClientCerts:          clientCerts,
-		InsecureSkipVerify:   cfg.InsecureSkipVerify,
+		InsecureSkipVerify:   insecureSkipVerify,
 		AllowHTTP:            allowHTTP,
 		AuthTokenHeader:      cfg.AuthTokenHeader,
 		SetOutboundHeadersFn: outboundHeadersFn,
@@ -82,7 +83,7 @@ func (app *App) initK8sProxy(cfg config.EnvConfig, k8sResult k8sSetupResult) err
 		K8sHost:            k8sHost,
 		RootCAs:            app.rootCAs,
 		ClientCerts:        clientCerts,
-		InsecureSkipVerify: cfg.InsecureSkipVerify,
+		InsecureSkipVerify: insecureSkipVerify,
 		AllowHTTP:          allowHTTP,
 		AllowedOrigins:     cfg.AllowedOrigins,
 		SSRFValidateTarget: true,

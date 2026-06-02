@@ -67,9 +67,15 @@ type K8sProxyConfig struct {
 
 // NewK8sProxyHandler creates an HTTP handler that proxies requests to the Kubernetes API server.
 func NewK8sProxyHandler(cfg K8sProxyConfig) (http.Handler, error) {
+	if cfg.K8sHost == "" {
+		return nil, fmt.Errorf("K8sHost must be a non-empty absolute http/https URL")
+	}
 	targetURL, err := url.Parse(cfg.K8sHost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse K8s API server URL %q: %w", cfg.K8sHost, err)
+	}
+	if (targetURL.Scheme != "http" && targetURL.Scheme != "https") || targetURL.Host == "" {
+		return nil, fmt.Errorf("K8sHost must be an absolute http/https URL, got %q", cfg.K8sHost)
 	}
 
 	proxy, err := NewReverseProxy(ProxyConfig{

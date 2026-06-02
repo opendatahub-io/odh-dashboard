@@ -132,12 +132,17 @@ func TestWsProxy_BadOriginRejectedBeforeDial(t *testing.T) {
 }
 
 func TestWsProxy_BearerAuth(t *testing.T) {
-	var gotAuth string
-	var gotSubprotocols []string
+	type dialObservation struct {
+		auth         string
+		subprotocols []string
+	}
+	obsCh := make(chan dialObservation, 1)
 
 	k8sWS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gotAuth = r.Header.Get("Authorization")
-		gotSubprotocols = websocket.Subprotocols(r)
+		obsCh <- dialObservation{
+			auth:         r.Header.Get("Authorization"),
+			subprotocols: websocket.Subprotocols(r),
+		}
 		upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -175,14 +180,14 @@ func TestWsProxy_BearerAuth(t *testing.T) {
 	}
 	defer conn.Close()
 
-	time.Sleep(50 * time.Millisecond)
+	obs := <-obsCh
 
-	if gotAuth != "Bearer my-k8s-token" {
-		t.Errorf("Authorization = %q, want %q", gotAuth, "Bearer my-k8s-token")
+	if obs.auth != "Bearer my-k8s-token" {
+		t.Errorf("Authorization = %q, want %q", obs.auth, "Bearer my-k8s-token")
 	}
 
 	var bearerSP string
-	for _, sp := range gotSubprotocols {
+	for _, sp := range obs.subprotocols {
 		if strings.HasPrefix(sp, "base64url.bearer.authorization.k8s.io.") {
 			bearerSP = sp
 			break

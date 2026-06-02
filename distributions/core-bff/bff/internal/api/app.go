@@ -114,6 +114,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	if err := app.initK8sProxy(cfg, k8sResult); err != nil {
+		_ = app.Shutdown()
 		return nil, fmt.Errorf("failed to initialize K8s proxy: %w", err)
 	}
 
@@ -210,6 +211,9 @@ func (app *App) Routes() http.Handler {
 	appMux.Handle(APIPathPrefix+"/", apiRouter)
 	appMux.Handle(PathPrefix+APIPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
 	appMux.HandleFunc(APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+		app.notFoundResponse(w, r)
+	})
+	appMux.HandleFunc(PathPrefix+APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
 		app.notFoundResponse(w, r)
 	})
 
