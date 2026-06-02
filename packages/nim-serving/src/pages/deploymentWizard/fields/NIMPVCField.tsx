@@ -68,26 +68,37 @@ type StorageClassOption = {
   displayName: string;
 };
 
+type ExistingPVCOption = {
+  name: string;
+  subPath?: string;
+};
+
 type NIMPVCExternalData = {
   storageClasses: StorageClassOption[];
   defaultStorageClassName: string;
-  existingPVCs: string[];
+  existingPVCs: ExistingPVCOption[];
 };
 
 export const NIM_PVC_ANNOTATION = 'dashboard.opendatahub.io/nim-pvc';
+export const NIM_PVC_SUBPATH_ANNOTATION = 'dashboard.opendatahub.io/nim-subpath';
 
 const isNIMPVC = (pvc: PersistentVolumeClaimKind): boolean =>
   pvc.metadata.annotations?.[NIM_PVC_ANNOTATION] === 'true';
 
-const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
-  const nimPVCs: string[] = [];
-  const otherPVCs: string[] = [];
+const toPVCOption = (pvc: PersistentVolumeClaimKind): ExistingPVCOption => ({
+  name: pvc.metadata.name,
+  subPath: pvc.metadata.annotations?.[NIM_PVC_SUBPATH_ANNOTATION],
+});
+
+const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): ExistingPVCOption[] => {
+  const nimPVCs: ExistingPVCOption[] = [];
+  const otherPVCs: ExistingPVCOption[] = [];
 
   for (const pvc of pvcs) {
     if (isNIMPVC(pvc)) {
-      nimPVCs.push(pvc.metadata.name);
+      nimPVCs.push(toPVCOption(pvc));
     } else {
-      otherPVCs.push(pvc.metadata.name);
+      otherPVCs.push(toPVCOption(pvc));
     }
   }
 
@@ -96,7 +107,7 @@ const sortPVCsNIMFirst = (pvcs: PersistentVolumeClaimKind[]): string[] => {
 
 type FetchedStorageData = {
   storageClasses: StorageClassOption[];
-  existingPVCs: string[];
+  existingPVCs: ExistingPVCOption[];
 };
 
 const DEFAULT_FETCHED_DATA: FetchedStorageData = { storageClasses: [], existingPVCs: [] };
@@ -218,8 +229,16 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
 
   const storageClasses = externalData?.data.storageClasses ?? [];
   const defaultStorageClassName = externalData?.data.defaultStorageClassName ?? '';
-  const existingPVCs = externalData?.data.existingPVCs ?? [];
+  const existingPVCs = React.useMemo(
+    () => externalData?.data.existingPVCs ?? [],
+    [externalData?.data.existingPVCs],
+  );
   const hasExistingPVCs = existingPVCs.length > 0;
+
+  const existingPVCMap = React.useMemo(
+    () => new Map(existingPVCs.map((pvc) => [pvc.name, pvc])),
+    [existingPVCs],
+  );
 
   if (!externalData || !externalData.loaded) {
     return (
@@ -250,8 +269,8 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
   }));
 
   const existingPVCOptions: SimpleSelectOption[] = existingPVCs.map((pvc) => ({
-    key: pvc,
-    label: pvc,
+    key: pvc.name,
+    label: pvc.name,
   }));
 
   return (
@@ -269,6 +288,7 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             updateField({
               storageMode: mode,
               pvcName: '',
+              subPath: DEFAULT_SUBPATH,
               storageClassName:
                 mode === NIMPVCStorageMode.NEW
                   ? defaultStorageClassName || storageClasses[0]?.name || ''
@@ -352,7 +372,13 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
               dataTestId="nim-existing-pvc-select"
               options={existingPVCOptions}
               value={fieldValue.pvcName}
-              onChange={(val) => updateField({ pvcName: val })}
+              onChange={(val) => {
+                const selectedPVC = existingPVCMap.get(val);
+                updateField({
+                  pvcName: val,
+                  subPath: selectedPVC?.subPath ?? DEFAULT_SUBPATH,
+                });
+              }}
               isDisabled={isDisabled}
               isFullWidth
               placeholder="Select..."

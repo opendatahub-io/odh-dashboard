@@ -1,6 +1,11 @@
 import type { WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
 import { createPvc } from '@odh-dashboard/internal/api';
-import { NIM_PVC_ANNOTATION, NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
+import {
+  NIM_PVC_ANNOTATION,
+  NIM_PVC_SUBPATH_ANNOTATION,
+  NIMPVCStorageMode,
+  type NIMPVCFieldValue,
+} from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 
 export const nimPVCPreDeploy = async (
@@ -27,7 +32,11 @@ export const nimPVCPreDeploy = async (
     projectName,
     undefined,
     false,
-    { [NIM_PVC_ANNOTATION]: 'true' },
+    {
+      [NIM_PVC_ANNOTATION]: 'true',
+      ...(fieldData.subPath &&
+        fieldData.subPath !== '/' && { [NIM_PVC_SUBPATH_ANNOTATION]: fieldData.subPath }),
+    },
     { 'opendatahub.io/managed': 'true' },
   );
 
