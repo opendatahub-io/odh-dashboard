@@ -159,12 +159,12 @@ type JobModel = {
   auth?: ModelAuth;
 };
 
-type JobPrimaryScore = {
+export type JobPrimaryScore = {
   metric: string;
   lower_is_better: boolean;
 };
 
-type JobPassCriteria = {
+export type JobPassCriteria = {
   threshold: number;
 };
 

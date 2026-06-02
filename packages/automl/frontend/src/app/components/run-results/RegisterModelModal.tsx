@@ -43,7 +43,13 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
     data: registriesData,
     isLoading: registriesLoading,
     isError: registriesError,
+    error: registriesQueryError,
   } = useModelRegistriesQuery();
+
+  const registriesErrorMessage =
+    registriesQueryError instanceof Error
+      ? registriesQueryError.message
+      : 'Failed to load model registries';
 
   const registries = registriesData?.model_registries ?? [];
   const readyRegistries = registries.filter((r) => r.is_ready);
@@ -185,7 +191,9 @@ const RegisterModelModal: React.FC<RegisterModelModalProps> = ({ onClose, modelN
             ) : registriesError ? (
               <FormHelperText>
                 <HelperText>
-                  <HelperTextItem variant="error">Failed to load model registries</HelperTextItem>
+                  <HelperTextItem variant="error" data-testid="registries-error">
+                    {registriesErrorMessage}
+                  </HelperTextItem>
                 </HelperText>
               </FormHelperText>
             ) : readyRegistries.length === 0 ? (

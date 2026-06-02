@@ -2,16 +2,20 @@ import type {
   AreaExtension,
   ProjectDetailsSettingsCardExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
-// Allow this import as it consists of types and enums only.
-// eslint-disable-next-line no-restricted-syntax
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type {
-  DeploymentWizardFieldExtension,
   DeployedModelServingDetails,
   ModelServingExcludeDeploymentExtension,
   ModelServingPlatformWatchDeploymentsExtension,
 } from '@odh-dashboard/model-serving/extension-points';
+import type {
+  DeploymentWizardFieldOverrideExtension,
+  WizardFieldExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
+// Allow this import as it consists of types and enums only.
+// eslint-disable-next-line no-restricted-syntax
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
+import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
 
 export const NIM_ID = 'nvidia-nim';
 
@@ -21,7 +25,8 @@ const extensions: (
   | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
   | DeployedModelServingDetails<NIMDeployment>
   | ModelServingExcludeDeploymentExtension
-  | DeploymentWizardFieldExtension
+  | DeploymentWizardFieldOverrideExtension
+  | WizardFieldExtension<NIMImageFieldType>
 )[] = [
   {
     type: 'app.area',
@@ -75,13 +80,25 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.deployment/wizard-field',
+    type: 'model-serving.deployment/wizard-field-override',
     properties: {
       platform: 'nim-wizard',
       field: () =>
         import('./src/wizardFields/overrides/NIMModelTypeOverride').then(
           (m) => m.NIMModelTypeOverride,
         ),
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field',
+    properties: {
+      field: () =>
+        import('./src/pages/deploymentWizard/fields/NIMImageField').then(
+          (m) => m.NIMImageFieldWizardField,
+        ),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
     },
   },
 ];

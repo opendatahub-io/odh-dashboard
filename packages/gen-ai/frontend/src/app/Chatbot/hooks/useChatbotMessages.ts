@@ -71,7 +71,8 @@ interface UseChatbotMessagesProps {
   configId: string;
   modelId: string;
   systemInstruction: string;
-  isRawUploaded: boolean;
+  isRagEnabled: boolean;
+  knowledgeMode: 'inline' | 'external';
   username?: string;
   isStreamingEnabled: boolean;
   temperature: number;
@@ -99,7 +100,8 @@ const useChatbotMessages = ({
   configId,
   modelId,
   systemInstruction,
-  isRawUploaded,
+  isRagEnabled,
+  knowledgeMode,
   username,
   isStreamingEnabled,
   temperature,
@@ -257,7 +259,7 @@ const useChatbotMessages = ({
       // Track stop button click
       fireMiscTrackingEvent('Playground Query Stopped', {
         isStreaming: isStreamingEnabled,
-        isRag: isRawUploaded,
+        isRag: isRagEnabled,
       });
 
       // Clear any pending streaming updates to prevent them from overwriting the stop message
@@ -268,7 +270,7 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, [isStreamingEnabled, isRawUploaded]);
+  }, [isStreamingEnabled, isRagEnabled]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -354,7 +356,7 @@ const useChatbotMessages = ({
       const responsesPayload: CreateResponseRequest = {
         input: message,
         model: modelId,
-        ...(isRawUploaded &&
+        ...(isRagEnabled &&
           currentVectorStoreId && {
             vector_store_ids: [currentVectorStoreId],
           }),
@@ -382,12 +384,14 @@ const useChatbotMessages = ({
         compareID: compareID || '',
         modelName: modelDisplayName,
         guardrailOn: isGuardrailEnabled ?? false,
-        isRag: isRawUploaded,
+        isRag: isRagEnabled,
         countofMCP: selectedMcpServers.length,
         isStreaming: isStreamingEnabled,
         promptSource: useChatbotConfigStore.getState().getPromptSourceType(configId),
         promptVersion: promptVersion ?? 0,
         promptName: promptName ?? '',
+        ragSource: isRagEnabled ? (knowledgeMode === 'inline' ? 'upload' : 'vectorstore') : '',
+        selectedCollectionId: isRagEnabled ? (currentVectorStoreId ?? '') : '',
       });
 
       if (!apiAvailable) {

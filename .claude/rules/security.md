@@ -2,6 +2,11 @@
 description: Security review guidelines for auth, secrets, input validation, and K8s API interactions
 globs: "backend/**,**/api/**,**/routes/**,**/middleware/**"
 alwaysApply: false
+paths:
+  - "backend/**"
+  - "**/api/**"
+  - "**/routes/**"
+  - "**/middleware/**"
 ---
 
 # ODH Dashboard Security Review Guidelines

@@ -21,7 +21,7 @@ const CreateAuthPolicyPage: React.FC = () => {
           <BreadcrumbItem isActive>Create authorization policy</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       empty={false}
       loadError={loadError}
     >

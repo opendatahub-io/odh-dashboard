@@ -2,6 +2,8 @@
 description: Contract test guidelines for ODH Dashboard modules with BFF API validation
 globs: "**/contract-tests/**"
 alwaysApply: false
+paths:
+  - "**/contract-tests/**"
 ---
 
 # Contract Test Rules

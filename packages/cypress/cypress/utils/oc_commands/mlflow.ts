@@ -1,10 +1,8 @@
 import { pollUntilSuccess } from './baseCommands';
-import { enableGenAiBackend, disableGenAiFeatures } from './genAi';
 import { appChrome } from '../../pages/appChrome';
 import type { CommandLineResult, MlflowExperimentRunData } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
-const DSC_RESOURCE = 'datasciencecluster default-dsc';
 const K8S_NAMESPACE_RE = /^[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?$/;
 
 const UI_POLL_CONFIG = {
@@ -28,37 +26,6 @@ const getApplicationsNamespace = (): string => {
 };
 
 /**
- * Check if the MLflow operator is currently set to Managed in the DSC.
- */
-export const isMlflowOperatorManaged = (): Cypress.Chainable<boolean> =>
-  cy
-    .exec(
-      `oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.mlflowoperator.managementState}"`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`Failed to read mlflowoperator state: ${maskSensitiveInfo(result.stderr)}`);
-      }
-      return result.stdout.replace(/"/g, '').trim() === 'Managed';
-    });
-
-/**
- * Check if Gen AI (OGX operator) is currently set to Managed in the DSC.
- */
-export const isGenAiEnabled = (): Cypress.Chainable<boolean> =>
-  cy
-    .exec(`oc get ${DSC_RESOURCE} -o jsonpath="{.spec.components.ogx.managementState}"`, {
-      failOnNonZeroExit: false,
-    })
-    .then((result) => {
-      if (result.exitCode !== 0) {
-        throw new Error(`Failed to read ogx state: ${maskSensitiveInfo(result.stderr)}`);
-      }
-      return result.stdout.replace(/"/g, '').trim() === 'Managed';
-    });
-
-/**
  * Check if an MLflow CR exists in the applications namespace.
  */
 export const doesMlflowCRExist = (): Cypress.Chainable<boolean> =>
@@ -73,41 +40,6 @@ export const doesMlflowCRExist = (): Cypress.Chainable<boolean> =>
       }
       return result.stdout.trim().length > 0;
     });
-
-const buildPatchCommand = (resource: string, patchJson: object, namespace?: string): string => {
-  const safeNamespace = namespace ? assertNamespace(namespace) : undefined;
-  const namespaceFlag = safeNamespace ? ` -n ${safeNamespace}` : '';
-  return `oc patch ${resource}${namespaceFlag} --type=merge -p '${JSON.stringify(patchJson)}'`;
-};
-
-/**
- * Set the MLflow operator management state in DataScienceCluster.
- *
- * @param state - The management state ('Managed' or 'Removed').
- * @returns A Cypress.Chainable that resolves when the patch is applied.
- */
-export const setMlflowOperatorState = (
-  state: 'Managed' | 'Removed',
-): Cypress.Chainable<CommandLineResult> => {
-  const patchSpec = { spec: { components: { mlflowoperator: { managementState: state } } } };
-  return cy.exec(buildPatchCommand(DSC_RESOURCE, patchSpec)).then((result) => {
-    if (result.exitCode !== 0) {
-      const maskedStderr = maskSensitiveInfo(result.stderr);
-      throw new Error(`Failed to set MLflow operator state to ${state}: ${maskedStderr}`);
-    }
-    return result;
-  });
-};
-
-/**
- * Poll until the MLflow operator pod is ready.
- */
-const waitForMlflowOperatorReady = (): Cypress.Chainable<Cypress.Exec> =>
-  pollUntilSuccess(
-    `oc get pods -A -l app.kubernetes.io/name=mlflow-operator --no-headers | grep Running`,
-    'MLflow operator pod to be Running',
-    { maxAttempts: 60, pollIntervalMs: 5000 },
-  );
 
 /**
  * Create an MLflow CR in the given namespace so the MLflow service is deployed.
@@ -140,6 +72,25 @@ const ensureMlflowCR = (namespace: string): Cypress.Chainable<CommandLineResult>
       });
   });
 };
+
+/**
+ * Poll until the MLflow operator pod is running AND the MLflow CRD is
+ * Established. The pod reaching Running phase does not guarantee the CRD
+ * is processed and discoverable by the API server, so we must also wait
+ * for the CRD condition before attempting to create an MLflow CR.
+ */
+const waitForMlflowOperatorReady = (): Cypress.Chainable<Cypress.Exec> =>
+  pollUntilSuccess(
+    `oc get pods -A -l app.kubernetes.io/name=mlflow-operator --no-headers | grep Running`,
+    'MLflow operator pod to be Running',
+    { maxAttempts: 24, pollIntervalMs: 5000 },
+  ).then(() =>
+    pollUntilSuccess(
+      `oc wait crd/mlflows.mlflow.opendatahub.io --for=condition=Established --timeout=10s`,
+      'MLflow CRD to be Established',
+      { maxAttempts: 30, pollIntervalMs: 5000 },
+    ),
+  );
 
 /**
  * Delete the MLflow CR in the given namespace.
@@ -264,7 +215,7 @@ const findNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =>
       }),
   );
 
-const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> => {
+const waitForNavItemInSidebar = (navLabel: string, url = '/'): Cypress.Chainable<boolean> => {
   const { maxAttempts, pollIntervalMs } = UI_POLL_CONFIG;
   const startTime = Date.now();
 
@@ -272,7 +223,7 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
     cy.step(`Attempt ${attemptNumber}/${maxAttempts} - Checking for ${navLabel} in sidebar...`);
 
     if (attemptNumber === 1) {
-      cy.visitWithLogin('/');
+      cy.visitWithLogin(url);
     } else {
       cy.reload();
     }
@@ -313,22 +264,6 @@ const waitForNavItemInSidebar = (navLabel: string): Cypress.Chainable<boolean> =
   const totalTimeout = (maxAttempts * pollIntervalMs) / 1000;
   cy.log(`Polling for ${navLabel} in sidebar (max ${totalTimeout}s)`);
   return check();
-};
-
-/**
- * Poll until the DSC status reports given components as Managed.
- * The dashboard frontend reads DSC status to evaluate area flags, so these
- * must be reflected in the cluster status before the nav items will appear.
- */
-const waitForDSCComponentsManaged = (components: string[]): Cypress.Chainable<Cypress.Exec> => {
-  const jqChecks = components
-    .map((c) => `.components.${c}.managementState == "Managed"`)
-    .join(' and ');
-  const command = `oc get datasciencecluster default-dsc -o json | jq -e '.status | ${jqChecks}'`;
-  return pollUntilSuccess(command, `DSC components [${components.join(', ')}] to be Managed`, {
-    maxAttempts: 60,
-    pollIntervalMs: 5000,
-  });
 };
 
 /**
@@ -456,20 +391,19 @@ const waitForMlflowRemoteEntry = (): Cypress.Chainable<boolean> => {
 
 /**
  * Enable MLflow backend resources without waiting for sidebar visibility.
- * Sets MLflow operator to Managed, waits for it, creates MLflow CR,
- * waits for CR readiness and tracking server pod availability.
+ * Waits for the operator pod to be running (the CRD is only installed
+ * during the operator's deploy), then creates the MLflow CR (if absent),
+ * waits for CR readiness, and waits for the tracking server pod.
+ *
+ * The MLflow operator is expected to already be Managed in the DSC.
  *
  * Useful for composition when a caller will perform its own sidebar check.
  */
 const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
   const namespace = getApplicationsNamespace();
 
-  cy.step('Set MLflow operator to Managed');
-  return setMlflowOperatorState('Managed')
-    .then(() => {
-      cy.step('Wait for MLflow operator to be ready');
-      return waitForMlflowOperatorReady();
-    })
+  cy.step('Wait for MLflow operator to be ready');
+  return waitForMlflowOperatorReady()
     .then(() => {
       cy.step('Create MLflow CR');
       return ensureMlflowCR(namespace);
@@ -485,19 +419,17 @@ const enableMlflowBackend = (): Cypress.Chainable<Cypress.Exec> => {
 };
 
 /**
- * Enable MLflow operator and tracking server (no Gen AI):
- * 1. Set mlflowoperator to Managed and wait for it
+ * Enable MLflow tracking server (no Gen AI):
+ * 1. Wait for MLflow operator pod to be running
  * 2. Create an MLflow CR and wait for it to be ready
- * 3. Verify DSC status reflects mlflowoperator as Managed
- * 4. Establish browser session and verify federated remote is loadable
+ * 3. Establish browser session and verify federated remote is loadable
+ * 4. Verify dashboard backend reflects mlflowoperator as Managed
  * 5. Wait for Experiments nav item in the sidebar
+ *
+ * The MLflow operator is expected to already be Managed in the DSC.
  */
 export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
   return enableMlflowBackend()
-    .then(() => {
-      cy.step('Verify DSC status reflects mlflowoperator as Managed');
-      return waitForDSCComponentsManaged(['mlflowoperator']);
-    })
     .then(() => {
       cy.step('Establish browser session for remote entry check');
       cy.visitWithLogin('/');
@@ -508,7 +440,7 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
       return waitForMlflowRemoteEntry();
     })
     .then(() => {
-      cy.step('Wait for dashboard backend to reflect mlflowoperator as Managed');
+      cy.step('Verify dashboard backend reflects mlflowoperator as Managed');
       return waitForDashboardDSCStatus({ mlflowoperator: 'Managed' });
     })
     .then(() => {
@@ -520,54 +452,34 @@ export const enableMlflowFeatures = (): Cypress.Chainable<boolean> => {
 /**
  * Restore MLflow to its pre-test state.
  *
- * @param operatorWasManaged - If true, the operator was already Managed before the test; skip setting it to Removed.
  * @param crExisted - If true, the MLflow CR already existed before the test; skip deleting it.
  */
-export const disableMlflowFeatures = (
-  operatorWasManaged = true,
-  crExisted = true,
-): Cypress.Chainable<undefined> => {
-  const namespace = getApplicationsNamespace();
-
-  return cy
-    .then(() => {
-      if (!crExisted) {
-        cy.step('Delete MLflow CR (was not present before test)');
-        deleteMlflowCR(namespace);
-      }
-    })
-    .then(() => {
-      if (!operatorWasManaged) {
-        cy.step('Set MLflow operator to Removed (was not Managed before test)');
-        setMlflowOperatorState('Removed');
-      }
-    });
+export const disableMlflowFeatures = (crExisted = true): void => {
+  if (!crExisted) {
+    const namespace = getApplicationsNamespace();
+    cy.step('Delete MLflow CR (was not present before test)');
+    deleteMlflowCR(namespace);
+  }
 };
 
 /**
  * Enable all features required for Prompt Management:
- * 1. Enable Gen AI backend (OGX operator, genAiStudio flag)
- * 2. Enable MLflow backend (operator, CR, tracking pod readiness)
- * 3. Verify DSC status reflects both operators as Managed
- * 4. Single sidebar poll for "Prompts" nav item (confirms frontend picked up the state)
+ * 1. Enable MLflow backend (operator readiness, CR, tracking pod)
+ * 2. Establish browser session and verify federated remote is loadable
+ * 3. Verify dashboard backend reflects both operators as Managed
+ * 4. Wait for "Prompts" nav item in the sidebar
  *
- * Polls backend resources first so the sidebar check is a quick confirmation,
- * not a long discovery loop.
+ * The MLflow operator and OGX/genAiStudio are expected to already be
+ * configured by Jenkins before the test suite runs.
  */
 export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => {
-  cy.step('Enable Gen AI backend (required for Prompts nav)');
-  return enableGenAiBackend()
-    .then(() => {
-      cy.step('Enable MLflow backend (required for Prompts nav)');
-      return enableMlflowBackend();
-    })
-    .then(() => {
-      cy.step('Verify DSC status reflects both operators as Managed');
-      return waitForDSCComponentsManaged(['ogx', 'mlflowoperator']);
-    })
+  const devFlagsUrl = '/?devFeatureFlags=genAiStudio=true';
+
+  cy.step('Enable MLflow backend (required for Prompts nav)');
+  return enableMlflowBackend()
     .then(() => {
       cy.step('Establish browser session for remote entry check');
-      cy.visitWithLogin('/');
+      cy.visitWithLogin(devFlagsUrl);
       return cy.get('#page-sidebar', { timeout: 15000 });
     })
     .then(() => {
@@ -575,7 +487,7 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
       return waitForMlflowRemoteEntry();
     })
     .then(() => {
-      cy.step('Wait for dashboard backend to reflect both operators as Managed');
+      cy.step('Verify dashboard backend reflects both operators as Managed');
       return waitForDashboardDSCStatus({
         ogx: 'Managed',
         mlflowoperator: 'Managed',
@@ -583,28 +495,17 @@ export const enablePromptManagementFeatures = (): Cypress.Chainable<boolean> => 
     })
     .then(() => {
       cy.step('Wait for Prompts nav item in sidebar');
-      return waitForNavItemInSidebar('Prompts');
+      return waitForNavItemInSidebar('Prompts', devFlagsUrl);
     });
 };
 
 /**
- * Restore MLflow and Gen AI features to their pre-test state.
+ * Restore MLflow features to their pre-test state.
  *
- * @param operatorWasManaged - If true, the operator was already Managed before the test.
  * @param crExisted - If true, the MLflow CR already existed before the test.
- * @param genAiWasEnabled - If true, Gen AI features were already enabled before the test.
  */
-export const disablePromptManagementFeatures = (
-  operatorWasManaged = true,
-  crExisted = true,
-  genAiWasEnabled = true,
-): Cypress.Chainable<undefined> =>
-  disableMlflowFeatures(operatorWasManaged, crExisted).then(() => {
-    if (!genAiWasEnabled) {
-      cy.step('Disable Gen AI features (were not enabled before test)');
-      disableGenAiFeatures();
-    }
-  });
+export const disablePromptManagementFeatures = (crExisted = true): void =>
+  disableMlflowFeatures(crExisted);
 
 /**
  * Get the MLflow tracking server URL from the MLflow CR status.
