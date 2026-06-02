@@ -16,7 +16,6 @@ import {
   DrawerPanelContent,
   Flex,
   FlexItem,
-  Label,
   MenuToggle,
   Select,
   SelectList,
@@ -117,7 +116,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               >
                 View Code
               </Button>
-              <Label color="blue">Read-only</Label>
             </Flex>
           </FlexItem>
         </Flex>
@@ -156,10 +154,6 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
                   </DescriptionListDescription>
                 </DescriptionListGroup>
               </DescriptionList>
-              <Content component={ContentVariants.small} className="pf-v6-u-mt-md">
-                This is a read-only evaluation. Ask questions to test this pattern&apos;s responses
-                and see which documents it retrieves.
-              </Content>
             </CardBody>
           </Card>
         </div>
@@ -178,10 +172,16 @@ const PlaygroundDrawerPanel: React.FC<PlaygroundDrawerPanelProps> = ({
               responsesTemplate={responsesTemplate}
               patternName={patternInfo.patternName}
               bffBasePath="/gen-ai/api/v1"
-              placeholderBotContent={`Ask a question about your documents to see how ${formatPatternName(
-                patternInfo.patternName,
-              )} responds.`}
-              welcomeContent={<></>}
+              placeholderBotContent=""
+              welcomeContent={
+                <Content
+                  component={ContentVariants.p}
+                  className="pf-v6-u-color-200 pf-v6-u-text-align-center"
+                >
+                  Ask a question about your documents to see how{' '}
+                  {formatPatternName(patternInfo.patternName)} responds.
+                </Content>
+              }
             />
           </React.Suspense>
         </div>
