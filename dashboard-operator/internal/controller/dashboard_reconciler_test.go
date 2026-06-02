@@ -164,8 +164,11 @@ func TestReconcile(t *testing.T) {
 			manifestsBase: func(t *testing.T) string {
 				return createMinimalManifests(t)
 			},
-			wantRequeue:    10 * time.Second,
-			wantGeneration: 42,
+			wantRequeue:     10 * time.Second,
+			wantPhase:       common.PhaseNotReady,
+			wantReady:       boolPtr(false),
+			wantProvisioned: boolPtr(true),
+			wantGeneration:  42,
 		},
 	}
 

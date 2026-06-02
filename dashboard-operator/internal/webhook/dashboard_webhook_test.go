@@ -67,7 +67,10 @@ func TestSingletonHandler_WithExistingInstance(t *testing.T) {
 
 			handler := dashwebhook.NewSingletonHandler(cli)
 			resp := handler.Handle(context.Background(), admission.Request{
-				AdmissionRequest: admissionv1.AdmissionRequest{Operation: tt.operation},
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: tt.operation,
+					Resource:  metav1.GroupVersionResource{Group: "dashboard.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
+				},
 			})
 
 			assert.Equal(t, tt.wantAllow, resp.Allowed)
