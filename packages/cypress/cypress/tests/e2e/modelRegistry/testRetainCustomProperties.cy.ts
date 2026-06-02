@@ -75,9 +75,11 @@ describe('Verify custom properties and labels are retained during Model Registry
   });
 
   retryableBeforeEach(() => {
-    // TODO: RHOAIENG-65075 - 'Cannot read properties of null (reading postMessage)' error is suppressed globally in e2e.ts
     cy.clearCookies();
     cy.clearLocalStorage();
+    if (modelName && databaseName) {
+      cleanupRegisteredModelsFromDatabase([modelName], databaseName);
+    }
   });
 
   it(
