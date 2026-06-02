@@ -25,3 +25,20 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
   }
   return undefined;
 };
+
+const K8S_SERVING_RESOURCE_PATTERN = /(?:servingruntimes|inferenceservices)\.serving\.kserve\.io/i;
+
+export const translateModelServingError = (error: unknown): string => {
+  if (error instanceof K8sStatusError && error.statusObject.code === 409) {
+    const name = error.statusObject.details?.name;
+    return name
+      ? `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`
+      : 'A model deployment with this name already exists. Please choose a different Model deployment name.';
+  }
+
+  const message = error instanceof Error ? error.message : String(error || 'Unknown error');
+  return message.replace(K8S_SERVING_RESOURCE_PATTERN, 'model deployment');
+};
+
+export const createModelServingError = (error: unknown): Error =>
+  new Error(translateModelServingError(error));
