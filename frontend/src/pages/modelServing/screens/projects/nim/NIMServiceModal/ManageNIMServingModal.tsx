@@ -6,11 +6,11 @@ import {
   createNIMSecret,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
-  translateModelServingError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { createModelServingError } from '#~/api/errorUtils';
 import {
   AccessReviewResourceAttributes,
   InferenceServiceKind,
@@ -265,8 +265,7 @@ const ManageNIMServingModal: React.FC<ManageNIMServingModalProps> = ({
   };
 
   const setErrorModal = (e: unknown) => {
-    const msg = e instanceof Error ? e.message : String(e || 'Unknown error');
-    setError(new Error(translateModelServingError(msg)));
+    setError(createModelServingError(e));
     setActionInProgress(false);
   };
 

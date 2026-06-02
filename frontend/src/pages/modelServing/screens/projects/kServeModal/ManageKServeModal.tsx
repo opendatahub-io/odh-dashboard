@@ -5,11 +5,11 @@ import {
   getCreateInferenceServiceLabels,
   getSubmitInferenceServiceResourceFn,
   getSubmitServingRuntimeResourcesFn,
-  translateModelServingError,
   useCreateInferenceServiceObject,
   useCreateServingRuntimeObject,
   validateEnvVarName,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { createModelServingError } from '#~/api/errorUtils';
 import {
   TemplateKind,
   ProjectKind,
@@ -255,8 +255,7 @@ const ManageKServeModal: React.FC<ManageKServeModalProps> = ({
   };
 
   const setErrorModal = (e: unknown) => {
-    const msg = e instanceof Error ? e.message : String(e || 'Unknown error');
-    setError(new Error(translateModelServingError(msg)));
+    setError(createModelServingError(e));
     setActionInProgress(false);
   };
 

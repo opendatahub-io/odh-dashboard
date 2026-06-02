@@ -12,8 +12,8 @@ import {
   isValueFromEnvVar,
   isPVCUri,
   getPVCNameFromURI,
-  translateModelServingError,
 } from '#~/pages/modelServing/screens/projects/utils';
+import { K8sStatusError, translateModelServingError } from '#~/api/errorUtils';
 import { ServingPlatformStatuses } from '#~/pages/modelServing/screens/types';
 import { ServingRuntimePlatform } from '#~/types';
 import { mockInferenceServiceK8sResource } from '#~/__mocks__/mockInferenceServiceK8sResource';
@@ -616,53 +616,71 @@ describe('getPVCNameFromURI', () => {
 });
 
 describe('translateModelServingError', () => {
-  it('should return a friendly message when a duplicate name error includes a quoted name', () => {
-    const k8sError = 'servingruntimes.serving.kserve.io "test-model" already exists';
-    expect(translateModelServingError(k8sError)).toBe(
-      'A model deployment with the name "test-model" already exists. Please choose a different Model deployment name.',
-    );
-  });
+  it.each([
+    {
+      resource: 'servingruntimes',
+      name: 'test-model',
+    },
+    {
+      resource: 'inferenceservices',
+      name: 'my-deployment',
+    },
+  ])(
+    'should return a friendly message for $resource 409 duplicate name errors',
+    ({ resource, name }) => {
+      const error = new K8sStatusError({
+        kind: 'Status',
+        apiVersion: 'v1',
+        status: 'Failure',
+        message: `${resource}.serving.kserve.io "${name}" already exists`,
+        reason: 'AlreadyExists',
+        code: 409,
+      });
+      error.statusObject.details = { name, kind: resource };
+      expect(translateModelServingError(error)).toBe(
+        `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`,
+      );
+    },
+  );
 
-  it('should return a friendly message for inferenceservices duplicate name errors', () => {
-    const k8sError = 'inferenceservices.serving.kserve.io "my-deployment" already exists';
-    expect(translateModelServingError(k8sError)).toBe(
-      'A model deployment with the name "my-deployment" already exists. Please choose a different Model deployment name.',
-    );
-  });
-
-  it('should return the original message for non-KServe already exists errors', () => {
-    const k8sError = 'the resource already exists';
-    expect(translateModelServingError(k8sError)).toBe(k8sError);
-  });
-
-  it('should return a friendly message for KServe already exists without quoted name', () => {
-    const k8sError = 'servingruntimes.serving.kserve.io already exists';
-    expect(translateModelServingError(k8sError)).toBe(
+  it('should return a friendly message for 409 without details name', () => {
+    const error = new K8sStatusError({
+      kind: 'Status',
+      apiVersion: 'v1',
+      status: 'Failure',
+      message: 'resource already exists',
+      reason: 'AlreadyExists',
+      code: 409,
+    });
+    expect(translateModelServingError(error)).toBe(
       'A model deployment with this name already exists. Please choose a different Model deployment name.',
     );
   });
 
-  it('should not rewrite already exists errors for non-serving resources', () => {
-    const k8sError = 'secrets "my-secret" already exists';
-    expect(translateModelServingError(k8sError)).toBe(k8sError);
-  });
-
   it('should replace K8s resource group references in non-duplicate errors', () => {
-    const k8sError = 'servingruntimes.serving.kserve.io is forbidden: User cannot create';
+    const k8sError = new Error(
+      'servingruntimes.serving.kserve.io is forbidden: User cannot create',
+    );
     expect(translateModelServingError(k8sError)).toBe(
       'model deployment is forbidden: User cannot create',
     );
   });
 
   it('should replace inferenceservices resource group references in non-duplicate errors', () => {
-    const k8sError = 'inferenceservices.serving.kserve.io is forbidden: User cannot update';
+    const k8sError = new Error(
+      'inferenceservices.serving.kserve.io is forbidden: User cannot update',
+    );
     expect(translateModelServingError(k8sError)).toBe(
       'model deployment is forbidden: User cannot update',
     );
   });
 
   it('should pass through unrelated error messages unchanged', () => {
-    const genericError = 'Network error: connection refused';
-    expect(translateModelServingError(genericError)).toBe(genericError);
+    const genericError = new Error('Network error: connection refused');
+    expect(translateModelServingError(genericError)).toBe('Network error: connection refused');
+  });
+
+  it('should handle string errors as fallback', () => {
+    expect(translateModelServingError('something went wrong')).toBe('something went wrong');
   });
 });
