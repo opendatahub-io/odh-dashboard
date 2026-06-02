@@ -105,7 +105,9 @@ describe('deployNIMDeployment', () => {
   });
 
   it('should update an existing NIMService deployment', async () => {
-    mockGetNIMAccount.mockResolvedValue(undefined);
+    mockGetNIMAccount.mockResolvedValue(
+      mockNimAccount({ namespace: 'test-ns', apiKeySecretName: 'nvidia-nim-secrets' }),
+    );
     mockUpdate.mockResolvedValue(mockNIMServiceResource);
 
     const existingDeployment = {
@@ -120,7 +122,9 @@ describe('deployNIMDeployment', () => {
   });
 
   it('should patch when overwrite is true and existing deployment exists', async () => {
-    mockGetNIMAccount.mockResolvedValue(undefined);
+    mockGetNIMAccount.mockResolvedValue(
+      mockNimAccount({ namespace: 'test-ns', apiKeySecretName: 'nvidia-nim-secrets' }),
+    );
     mockPatch.mockResolvedValue(mockNIMServiceResource);
 
     const existingDeployment = {
@@ -145,24 +149,21 @@ describe('deployNIMDeployment', () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it('should fall back to NIM_SECRET_NAME when no NIM account exists', async () => {
+  it('should throw when no NIM account exists in the project', async () => {
     mockGetNIMAccount.mockResolvedValue(undefined);
-    mockCreate.mockResolvedValue(mockNIMServiceResource);
 
-    await deployNIMDeployment(wizardState, 'test-ns', undefined, mockNIMServiceResource);
-
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        spec: expect.objectContaining({
-          authSecret: 'nvidia-nim-secrets',
-        }),
-      }),
-      expect.any(Object),
-    );
+    await expect(
+      deployNIMDeployment(wizardState, 'test-ns', undefined, mockNIMServiceResource),
+    ).rejects.toThrow('NIM Account not found');
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('should pass dryRun option', async () => {
-    mockGetNIMAccount.mockResolvedValue(undefined);
+    const account = mockNimAccount({
+      namespace: 'test-ns',
+      apiKeySecretName: 'nvidia-nim-secrets',
+    });
+    mockGetNIMAccount.mockResolvedValue(account);
     mockCreate.mockResolvedValue(mockNIMServiceResource);
 
     await deployNIMDeployment(

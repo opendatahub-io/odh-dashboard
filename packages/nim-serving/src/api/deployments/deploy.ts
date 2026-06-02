@@ -9,7 +9,6 @@ import {
   patchNIMService,
 } from '../nimservices/k8s';
 import { getNIMAccount } from '../accounts/k8s';
-import { NIM_SECRET_NAME } from '../accounts/constants';
 import { NIM_ID } from '../../../extensions';
 
 export const isNIMDeployActive = (wizardData: WizardFormData['state']): boolean =>
@@ -80,13 +79,14 @@ export const deployNIMDeployment = async (
   const nimServiceWithSecrets = structuredClone(modelResource);
 
   const nimAccount = await getNIMAccount(projectName);
-  if (nimAccount) {
-    nimServiceWithSecrets.spec.authSecret = nimAccount.spec.apiKeySecret.name;
-    if (nimAccount.status?.nimPullSecret?.name) {
-      nimServiceWithSecrets.spec.image.pullSecrets = [nimAccount.status.nimPullSecret.name];
-    }
-  } else {
-    nimServiceWithSecrets.spec.authSecret = NIM_SECRET_NAME;
+  if (!nimAccount) {
+    throw new Error(
+      'NIM Account not found in this project. Configure NVIDIA NIM in the project settings first.',
+    );
+  }
+  nimServiceWithSecrets.spec.authSecret = nimAccount.spec.apiKeySecret.name;
+  if (nimAccount.status?.nimPullSecret?.name) {
+    nimServiceWithSecrets.spec.image.pullSecrets = [nimAccount.status.nimPullSecret.name];
   }
 
   const nimService = await deployNIMServiceResource(
