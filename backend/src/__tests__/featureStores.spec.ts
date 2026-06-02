@@ -189,7 +189,7 @@ describe('featureStores routes', () => {
         headers: {},
       };
 
-      await expect(proxyHandler(req, mockReply)).rejects.toThrow();
+      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 400 });
       expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
     });
 
@@ -212,7 +212,7 @@ describe('featureStores routes', () => {
         headers: {},
       };
 
-      await expect(proxyHandler(req, mockReply)).rejects.toThrow();
+      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 404 });
     });
 
     it('should proxy request and forward status code, content type, and data', async () => {
@@ -272,7 +272,7 @@ describe('featureStores routes', () => {
         headers: {},
       };
 
-      await expect(proxyHandler(req, mockReply)).rejects.toThrow();
+      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 500 });
       expect(mockHandleError).toHaveBeenCalledWith(
         mockFastify,
         expect.any(Error),
