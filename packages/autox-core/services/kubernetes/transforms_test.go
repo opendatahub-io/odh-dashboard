@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -182,6 +183,48 @@ func TestLookupSecretValue(t *testing.T) {
 		}
 		if val != "" {
 			t.Errorf("got %q, want empty string", val)
+		}
+	})
+
+	t.Run("exact match preferred over case-variants", func(t *testing.T) {
+		d := map[string][]byte{
+			"AWS_ACCESS_KEY_ID": []byte("exact"),
+			"aws_access_key_id": []byte("lower"),
+		}
+		val, err := LookupSecretValue(d, "AWS_ACCESS_KEY_ID")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if val != "exact" {
+			t.Errorf("got %q, want exact match", val)
+		}
+	})
+
+	t.Run("ambiguous error includes variant names", func(t *testing.T) {
+		d := map[string][]byte{
+			"aws_s3_endpoint": []byte("v1"),
+			"AWS_s3_endpoint": []byte("v2"),
+		}
+		_, err := LookupSecretValue(d, "AWS_S3_ENDPOINT")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+		msg := err.Error()
+		if !strings.Contains(msg, "aws_s3_endpoint") || !strings.Contains(msg, "AWS_s3_endpoint") {
+			t.Errorf("error should list variant names, got: %s", msg)
+		}
+	})
+
+	t.Run("single case-variant fallback", func(t *testing.T) {
+		d := map[string][]byte{
+			"aws_access_key_id": []byte("lower-value"),
+		}
+		val, err := LookupSecretValue(d, "AWS_ACCESS_KEY_ID")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if val != "lower-value" {
+			t.Errorf("got %q, want case-insensitive fallback", val)
 		}
 	})
 }

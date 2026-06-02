@@ -420,6 +420,144 @@ func TestDiscoverReadyDSPA(t *testing.T) {
 		}
 	})
 
+	t.Run("finds Ready among multiple conditions", func(t *testing.T) {
+		k8sClient := &mockK8sClient{
+			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+				return dspaGVR, nil
+			},
+			listResourcesFn: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{
+					Items: []unstructured.Unstructured{
+						{Object: map[string]any{
+							"metadata": map[string]any{"name": "multi-cond"},
+							"status": map[string]any{
+								"conditions": []any{
+									map[string]any{"type": "DatabaseReady", "status": "True"},
+									map[string]any{"type": "APIServerReady", "status": "True"},
+									map[string]any{"type": "Ready", "status": "True"},
+								},
+								"components": map[string]any{"apiServer": map[string]any{"url": "https://ds-pipeline.svc:8443"}},
+							},
+						}},
+					},
+				}, nil
+			},
+		}
+
+		svc := newTestPipelineServiceForDiscovery(k8sClient)
+		ctx := k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
+
+		dspa, err := svc.DiscoverReadyDSPA(ctx, "my-ns")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dspa.Name != "multi-cond" {
+			t.Errorf("Name = %q", dspa.Name)
+		}
+	})
+
+	t.Run("skips DSPA with no conditions", func(t *testing.T) {
+		k8sClient := &mockK8sClient{
+			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+				return dspaGVR, nil
+			},
+			listResourcesFn: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{
+					Items: []unstructured.Unstructured{
+						{Object: map[string]any{
+							"metadata": map[string]any{"name": "no-conditions"},
+							"status":   map[string]any{},
+						}},
+					},
+				}, nil
+			},
+		}
+
+		svc := newTestPipelineServiceForDiscovery(k8sClient)
+		ctx := k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
+
+		_, err := svc.DiscoverReadyDSPA(ctx, "my-ns")
+		if err == nil {
+			t.Error("expected error when DSPA has no conditions")
+		}
+	})
+
+	t.Run("skips DSPA with no components", func(t *testing.T) {
+		k8sClient := &mockK8sClient{
+			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+				return dspaGVR, nil
+			},
+			listResourcesFn: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{
+					Items: []unstructured.Unstructured{
+						{Object: map[string]any{
+							"metadata": map[string]any{"name": "no-components"},
+							"status": map[string]any{
+								"conditions": []any{map[string]any{"type": "Ready", "status": "True"}},
+							},
+						}},
+					},
+				}, nil
+			},
+		}
+
+		svc := newTestPipelineServiceForDiscovery(k8sClient)
+		ctx := k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
+
+		_, err := svc.DiscoverReadyDSPA(ctx, "my-ns")
+		if err == nil {
+			t.Error("expected error when DSPA has no components")
+		}
+	})
+
+	t.Run("skips DSPA with empty API server URL", func(t *testing.T) {
+		k8sClient := &mockK8sClient{
+			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+				return dspaGVR, nil
+			},
+			listResourcesFn: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{
+					Items: []unstructured.Unstructured{
+						{Object: map[string]any{
+							"metadata": map[string]any{"name": "empty-url"},
+							"status": map[string]any{
+								"conditions": []any{map[string]any{"type": "Ready", "status": "True"}},
+								"components": map[string]any{"apiServer": map[string]any{"url": ""}},
+							},
+						}},
+					},
+				}, nil
+			},
+		}
+
+		svc := newTestPipelineServiceForDiscovery(k8sClient)
+		ctx := k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
+
+		_, err := svc.DiscoverReadyDSPA(ctx, "my-ns")
+		if err == nil {
+			t.Error("expected error when API server URL is empty")
+		}
+	})
+
+	t.Run("empty DSPA list", func(t *testing.T) {
+		k8sClient := &mockK8sClient{
+			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+				return dspaGVR, nil
+			},
+			listResourcesFn: func(ctx context.Context, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+				return &unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}, nil
+			},
+		}
+
+		svc := newTestPipelineServiceForDiscovery(k8sClient)
+		ctx := k8s.ContextWithIdentity(context.Background(), &k8s.RequestIdentity{Token: "tok"})
+
+		_, err := svc.DiscoverReadyDSPA(ctx, "my-ns")
+		if err == nil {
+			t.Error("expected error for empty DSPA list")
+		}
+	})
+
 	t.Run("skips non-ready DSPA", func(t *testing.T) {
 		k8sClient := &mockK8sClient{
 			discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {

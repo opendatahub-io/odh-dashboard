@@ -227,6 +227,30 @@ func TestClient_ListPipelines(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+
+	t.Run("caps at maxPaginationPages", func(t *testing.T) {
+		var pageHits int32
+		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
+			pageHits++
+			jsonResponse(w, PipelinesResponse{
+				Pipelines:     []Pipeline{{PipelineID: fmt.Sprintf("p%d", pageHits)}},
+				TotalSize:     9999,
+				NextPageToken: "always-more",
+			})
+		})
+		defer ts.Close()
+
+		resp, err := c.ListPipelines(context.Background(), ts.URL, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pageHits != int32(maxPaginationPages) {
+			t.Errorf("expected %d page requests (cap), got %d", maxPaginationPages, pageHits)
+		}
+		if len(resp.Pipelines) != int(maxPaginationPages) {
+			t.Errorf("expected %d pipelines, got %d", maxPaginationPages, len(resp.Pipelines))
+		}
+	})
 }
 
 // --- GetPipelineVersion ---

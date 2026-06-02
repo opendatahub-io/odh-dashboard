@@ -480,6 +480,58 @@ func TestService_GetAllPipelineRuns(t *testing.T) {
 			t.Error("should have used cached version IDs")
 		}
 	})
+
+	t.Run("empty pipelineID returns nil", func(t *testing.T) {
+		svc := newTestServiceWithMock(&mockPipelineClient{})
+		runs, err := svc.GetAllPipelineRuns(testCtx(), "test-ns", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if runs != nil {
+			t.Errorf("expected nil for empty pipelineID, got %d runs", len(runs))
+		}
+	})
+
+	t.Run("filters empty version IDs from API response", func(t *testing.T) {
+		client := &mockPipelineClient{
+			listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+				return &PipelineVersionsResponse{
+					PipelineVersions: []PipelineVersion{
+						{PipelineVersionID: "v1"},
+						{PipelineVersionID: ""},
+						{PipelineVersionID: "  "},
+						{PipelineVersionID: "v2"},
+					},
+				}, nil
+			},
+			listPipelineRunsFn: func(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
+				return &PipelineRunResponse{Runs: []PipelineRun{{RunID: "r1"}}}, nil
+			},
+		}
+		svc := newTestServiceWithMock(client)
+
+		runs, err := svc.GetAllPipelineRuns(testCtx(), "test-ns", "p1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(runs) != 1 {
+			t.Errorf("expected 1 run, got %d", len(runs))
+		}
+	})
+
+	t.Run("version list error propagated", func(t *testing.T) {
+		client := &mockPipelineClient{
+			listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+				return nil, fmt.Errorf("connection refused")
+			},
+		}
+		svc := newTestServiceWithMock(client)
+
+		_, err := svc.GetAllPipelineRuns(testCtx(), "test-ns", "p1")
+		if err == nil {
+			t.Error("expected error")
+		}
+	})
 }
 
 // --- EnsurePipeline ---
