@@ -23,28 +23,29 @@ spec:
     spec:
       automountServiceAccountToken: false
       serviceAccountName: <MODULE_SERVICE_ACCOUNT_NAME>
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               podAffinityTerm:
                 labelSelector:
-                  matchExpressions:
-                    - key: app.kubernetes.io/part-of
-                      operator: In
-                      values:
-                        - <PART_OF_LABEL>
+                  matchLabels:
+                    deployment: <MODULE_NAME>
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: modules-sa-token
           projected:
             defaultMode: 420
             sources:
-              - secret:
-                  name: <MODULES_SA_TOKEN_SECRET_NAME>
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
                   items:
-                    - key: token
-                      path: token
                     - key: ca.crt
                       path: ca.crt
               - downwardAPI:
@@ -66,14 +67,12 @@ spec:
             items:
               - key: ca-bundle.crt
                 path: odh-trusted-ca-bundle.crt
-            optional: true
         - name: odh-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
             items:
               - key: odh-ca-bundle.crt
                 path: odh-ca-bundle.crt
-            optional: true
       containers:
         - name: <MODULE_CONTAINER_NAME>
           image: <MODULE_IMAGE>

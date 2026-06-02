@@ -17,7 +17,6 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-        - podSelector: {}
   egress:
     - to:
         - namespaceSelector:

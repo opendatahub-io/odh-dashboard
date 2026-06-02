@@ -14,7 +14,11 @@ Filled-in [templates](../templates/) for each federated BFF module. For local st
 
 **Naming:** Deployment, NetworkPolicy, and pod/template labels use the short slug (e.g. `model-registry`). Only the Service `metadata.name` uses `odh-dashboard-<slug>-ui`. Service selectors remain `deployment: <slug>`.
 
-**Source:** Container `args`, `env`, ports, and images match the JSON6902 sidecar entries in [`deployment.yaml`](../deployment.yaml) and image vars in [`params.env`](../params.env). Modules whose BFF supports `-deployment-mode` use `--deployment-mode=federated` (model-registry, mlflow, eval-hub, maas, automl, autorag). gen-ai has no BFF deployment-mode flag; federated UI is baked into the container image. gen-ai uses `BFF_MAAS_SERVICE_NAME: "maas"` for inter-BFF calls to the standalone MaaS Service (sidecar still uses `"odh-dashboard"` until split).
+**Source:** Container `args`, `env`, ports, and images match the JSON6902 sidecar entries in [`deployment.yaml`](../deployment.yaml) and image vars in [`params.env`](../params.env). Modules whose BFF supports `-deployment-mode` use `--deployment-mode=federated` (model-registry, mlflow, eval-hub, maas, automl, autorag). gen-ai has no BFF deployment-mode flag; federated UI is baked into the container image. gen-ai uses `BFF_MAAS_SERVICE_NAME: "odh-dashboard-maas-ui"` for inter-BFF calls to the standalone MaaS Service (sidecar still uses `"odh-dashboard"` until split).
+
+**TLS:** Each module uses a dedicated serving-cert Secret (`<slug>-proxy-tls`) on both the Service annotation and Deployment `proxy-tls` volume.
+
+**NetworkPolicy:** Ingress is limited to the OpenShift ingress controller unless a module accepts in-cluster callers (MaaS allows `deployment: gen-ai`). Egress includes DNS, K8s API (6443), and external HTTPS (80/443) plus module-specific peers (gen-ai → MaaS on 8243).
 
 **params.env:** [`params.env`](params.env) mirrors [`../params.env`](../params.env) for kustomize load restrictions when building this overlay; keep both files in sync when changing module images.
 

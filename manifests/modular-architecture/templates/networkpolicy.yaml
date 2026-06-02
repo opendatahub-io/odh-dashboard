@@ -18,7 +18,6 @@ spec:
         - namespaceSelector:
             matchLabels:
               network.openshift.io/policy-group: ingress
-        - podSelector: {}
   egress:
     - to:
         - namespaceSelector:
@@ -30,17 +29,3 @@ spec:
         - port: 5353
           protocol: TCP
     # <MODULE_EXTRA_EGRESS> — add module-specific in-cluster egress rules here when required
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-      ports:
-        - port: 6443
-          protocol: TCP
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-      ports:
-        - port: 443
-          protocol: TCP
-        - port: 80
-          protocol: TCP

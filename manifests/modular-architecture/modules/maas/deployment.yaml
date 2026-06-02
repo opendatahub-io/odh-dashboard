@@ -21,28 +21,29 @@ spec:
     spec:
       automountServiceAccountToken: false
       serviceAccountName: odh-dashboard-modules
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
             - weight: 100
               podAffinityTerm:
                 labelSelector:
-                  matchExpressions:
-                    - key: app.kubernetes.io/part-of
-                      operator: In
-                      values:
-                        - odh-dashboard
+                  matchLabels:
+                    deployment: maas
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: modules-sa-token
           projected:
             defaultMode: 420
             sources:
-              - secret:
-                  name: odh-dashboard-modules-token
+              - serviceAccountToken:
+                  expirationSeconds: 3607
+                  path: token
+              - configMap:
+                  name: kube-root-ca.crt
                   items:
-                    - key: token
-                      path: token
                     - key: ca.crt
                       path: ca.crt
               - downwardAPI:
@@ -57,21 +58,19 @@ spec:
                       path: service-ca.crt
         - name: proxy-tls
           secret:
-            secretName: dashboard-proxy-tls
+            secretName: maas-proxy-tls
         - name: odh-trusted-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
             items:
               - key: ca-bundle.crt
                 path: odh-trusted-ca-bundle.crt
-            optional: true
         - name: odh-ca-cert
           configMap:
             name: odh-trusted-ca-bundle
             items:
               - key: odh-ca-bundle.crt
                 path: odh-ca-bundle.crt
-            optional: true
       containers:
         - name: maas-ui
           image: $(maas-ui-image)

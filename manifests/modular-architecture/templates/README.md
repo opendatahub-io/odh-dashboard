@@ -7,8 +7,8 @@ Files in this directory are **templates**. They are not valid Kubernetes objects
 | File | Kind | Purpose |
 |------|------|---------|
 | [deployment.yaml](deployment.yaml) | Deployment | Module BFF workload |
-| [service.yaml](service.yaml) | ClusterIP Service with serving cert |
-| [networkpolicy.yaml](networkpolicy.yaml) | NetworkPolicy for module port ingress and standard egress |
+| [service.yaml](service.yaml) | Service | ClusterIP Service with serving cert |
+| [networkpolicy.yaml](networkpolicy.yaml) | NetworkPolicy | Module port ingress and standard egress |
 
 Optional `serviceaccount.yaml` is **not** part of the default template. Modules use the shared `odh-dashboard-modules` ServiceAccount unless a module profile requests a dedicated account.
 
@@ -28,18 +28,19 @@ Replace every `<PLACEHOLDER>` (angle brackets) with concrete values. The control
 | `<MODULE_IMAGE>` | Container image reference |
 | `<REPLICA_COUNT>` | Deployment `spec.replicas` (typically `2`) |
 | `<MODULE_SERVICE_ACCOUNT_NAME>` | Pod `serviceAccountName` (default `odh-dashboard-modules`) |
-| `<MODULES_SA_TOKEN_SECRET_NAME>` | Projected SA token secret (default `odh-dashboard-modules-token`) |
-| `<TLS_SECRET_NAME>` | TLS secret for `proxy-tls` volume and Service serving-cert annotation (default `dashboard-proxy-tls`) |
-| `<PART_OF_LABEL>` | Value for `app.kubernetes.io/part-of` (e.g. `odh-dashboard`); also used for pod anti-affinity |
+| `<TLS_SECRET_NAME>` | Per-module TLS secret for `proxy-tls` volume and Service serving-cert annotation (default `<MODULE_NAME>-proxy-tls`, e.g. `model-registry-proxy-tls`) |
+| `<PART_OF_LABEL>` | Value for `app.kubernetes.io/part-of` (e.g. `odh-dashboard`) |
 | `<MODULE_EXTRA_ARGS>` | Optional: additional container `args` after the standard auth/TLS entries |
 | `<MODULE_EXTRA_ENV>` | Optional: `env` list for module-specific variables |
-| `<MODULE_EXTRA_EGRESS>` | Optional: additional NetworkPolicy egress rules for in-cluster dependencies |
+| `<MODULE_EXTRA_INGRESS>` | Optional: additional NetworkPolicy ingress peers for in-cluster callers (e.g. MaaS accepts gen-ai) |
+| `<MODULE_EXTRA_EGRESS>` | Optional: additional NetworkPolicy egress rules for in-cluster dependencies and API/external access |
 
 Shared namespace resources (not in the template) are defined alongside other dashboard manifests:
 
 - `modules-service-account.yaml` — ServiceAccount
-- `modules-sa-token-secret.yaml` — token for projected volume
 - `modules-cluster-role.yaml` / `modules-cluster-role-binding.yaml` — RBAC
+
+The sidecar deployment still references `modules-sa-token-secret.yaml` for legacy compatibility; standalone module Deployments use a projected `serviceAccountToken` volume instead.
 
 ---
 
@@ -48,14 +49,14 @@ Shared namespace resources (not in the template) are defined alongside other das
 The Deployment template encodes the BFF container contract:
 
 - **Identity:** labels `app.kubernetes.io/name`, `app.kubernetes.io/part-of`, `components.platform.opendatahub.io/managed-by`, and pod/template label `deployment: <MODULE_NAME>`.
-- **Service account:** `automountServiceAccountToken: false`, shared modules ServiceAccount, projected `modules-sa-token` volume.
-- **TLS:** `proxy-tls` volume and mounts under `/etc/tls/private`; OpenShift serving cert is issued via the Service annotation (see Service template).
-- **Trust bundles:** `odh-trusted-ca-cert` and `odh-ca-cert` volumes from ConfigMap `odh-trusted-ca-bundle`.
+- **Service account:** `automountServiceAccountToken: false`, shared modules ServiceAccount, projected `modules-sa-token` volume with bounded `serviceAccountToken` (not a legacy SA-token Secret).
+- **TLS:** per-module `proxy-tls` volume (`<MODULE_NAME>-proxy-tls`) and mounts under `/etc/tls/private`; OpenShift serving cert is issued via the Service annotation (see Service template).
+- **Trust bundles:** required `odh-trusted-ca-cert` and `odh-ca-cert` volumes from ConfigMap `odh-trusted-ca-bundle` (not optional — `subPath` mounts fail if the ConfigMap is absent).
 - **Auth args:** `--auth-method=user_token`, `--auth-token-header=x-forwarded-access-token`, `--auth-token-prefix=`.
 - **Health checks:** HTTPS GET `/healthcheck` on `<MODULE_PORT>` with the same timing as existing BFF containers.
 - **Resources:** requests and limits for `cpu: 300m`, `memory: 512Mi`, `ephemeral-storage: 10Mi`.
-- **Security:** `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`. Do not set `runAsUser`; OpenShift assigns a UID from the namespace range.
-- **Scheduling:** preferred pod anti-affinity vs pods with `app.kubernetes.io/part-of: <PART_OF_LABEL>` in the same zone.
+- **Security:** pod `seccompProfile: RuntimeDefault`; container `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`. Do not set `runAsUser`; OpenShift assigns a UID from the namespace range.
+- **Scheduling:** preferred pod anti-affinity vs other pods with `deployment: <MODULE_NAME>` in the same zone.
 
 Add module-specific `args` and `env` only when the module profile requires them (see example below).
 
@@ -75,8 +76,8 @@ Add module-specific `args` and `env` only when the module profile requires them 
 
 - Name `<MODULE_NAME>-allow-ports`
 - Selector `deployment: <MODULE_NAME>`
-- **Ingress:** TCP `<MODULE_PORT>` from OpenShift ingress (`network.openshift.io/policy-group: ingress`) and from all pods in the namespace (`podSelector: {}`)
-- **Egress:** DNS to `openshift-dns` (TCP/UDP 5353); API server TCP 6443; external TCP 80 and 443. Add `<MODULE_EXTRA_EGRESS>` rules for module-specific in-cluster peers (e.g. gen-ai → MaaS on 8243).
+- **Ingress:** TCP `<MODULE_PORT>` from OpenShift ingress (`network.openshift.io/policy-group: ingress`) only. Add `<MODULE_EXTRA_INGRESS>` peers when a module accepts in-cluster callers (e.g. MaaS allows `deployment: gen-ai`).
+- **Egress:** DNS to `openshift-dns` (TCP/UDP 5353). Rendered module manifests must add explicit API/external egress (6443, 80, 443) and any `<MODULE_EXTRA_EGRESS>` rules for in-cluster peers (e.g. gen-ai → MaaS on 8243).
 
 ---
 
@@ -107,6 +108,7 @@ When the controller (or install tooling) materializes a module, use one director
 | `<MODULE_PORT>` | `8043` |
 | `<MODULE_PORT_NAME>` | `mr-ui` |
 | `<MODULE_IMAGE>` | `$(model-registry-ui-image)` |
+| `<TLS_SECRET_NAME>` | `model-registry-proxy-tls` |
 | `<MODULE_EXTRA_ARGS>` | `--deployment-mode=federated` |
 | `<MODULE_EXTRA_ENV>` | `GATEWAY_DOMAIN` (empty string, replaced at install time) |
 

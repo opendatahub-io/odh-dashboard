@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: odh-dashboard-eval-hub-ui
   annotations:
-    service.beta.openshift.io/serving-cert-secret-name: dashboard-proxy-tls
+    service.beta.openshift.io/serving-cert-secret-name: eval-hub-proxy-tls
     service.beta.kubernetes.io/backend-protocol: HTTPS
 spec:
   selector:
