@@ -12,6 +12,7 @@ import type {
   DeploymentWizardFieldOverrideExtension,
   ModelServingDeploy,
   WizardFieldApplyExtension,
+  WizardFieldDeploymentFunctionsExtension,
   WizardFieldExtension,
   WizardFieldExtractorExtension,
 } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
@@ -117,6 +118,28 @@ const nimPVCExtractorExtension: WizardFieldExtractorExtension<NIMPVCFieldValue, 
   },
 };
 
+const nimPVCDeployFunctionsExtension: WizardFieldDeploymentFunctionsExtension<
+  NIMPVCFieldValue,
+  NIMDeployment
+> = {
+  type: 'model-serving.deployment/wizard-field-deployment-functions',
+  properties: {
+    fieldId: 'nim-serving/pvcStorage',
+    platform: NIM_ID,
+    preDeploy: () =>
+      import('./src/pages/deploymentWizard/fields/nimPVCDeployFunctions').then(
+        (m) => m.nimPVCPreDeploy,
+      ),
+    postDeploy: () =>
+      import('./src/pages/deploymentWizard/fields/nimPVCDeployFunctions').then(
+        (m) => m.nimPVCPostDeploy,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
 const extensions: (
   | AreaExtension
   | ProjectDetailsSettingsCardExtension
@@ -126,6 +149,7 @@ const extensions: (
   | ModelServingDeploy<NIMDeployment>
   | AssembleModelResourceExtension<NIMDeployment>
   | DeploymentWizardFieldOverrideExtension
+  | WizardFieldDeploymentFunctionsExtension<NIMPVCFieldValue, NIMDeployment>
   | WizardFieldExtension<NIMImageFieldType>
   | WizardFieldExtension<NIMPVCFieldType>
   | WizardFieldApplyExtension<NIMImageFieldValue, NIMDeployment>
@@ -225,6 +249,7 @@ const extensions: (
   nimImageExtractorExtension,
   nimPVCApplyExtension,
   nimPVCExtractorExtension,
+  nimPVCDeployFunctionsExtension,
 ];
 
 export default extensions;

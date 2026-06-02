@@ -1,4 +1,4 @@
-import { NIM_PVC_ANNOTATION, NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
+import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 
 export const applyNIMPVCFieldData = (
@@ -14,14 +14,6 @@ export const applyNIMPVCFieldData = (
         pvc: {
           name: fieldData.pvcName,
           subPath: fieldData.subPath || undefined,
-          ...(fieldData.storageMode === NIMPVCStorageMode.NEW && {
-            create: true,
-            size: `${fieldData.storageSizeGi}Gi`,
-            storageClassName: fieldData.storageClassName || undefined,
-            annotations: {
-              [NIM_PVC_ANNOTATION]: 'true',
-            },
-          }),
         },
       },
     },
@@ -34,7 +26,7 @@ export const extractNIMPVCFieldData = (deployment: NIMDeployment): NIMPVCFieldVa
     return undefined;
   }
   return {
-    storageMode: pvc.create ? NIMPVCStorageMode.NEW : NIMPVCStorageMode.EXISTING,
+    storageMode: NIMPVCStorageMode.EXISTING,
     pvcName: pvc.name,
     modelPath: '/model-store',
     subPath: pvc.subPath ?? '/',
