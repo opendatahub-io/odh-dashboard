@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -23,7 +24,7 @@ import (
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/metadata/labels"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
-	"github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
+	ctrlpkg "github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
 )
 
 const testNamespace = "test-ns"
@@ -65,13 +66,31 @@ data:
 	return base
 }
 
+func admittedRoute(namespace string) *routev1.Route {
+	return &routev1.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dashboard",
+			Namespace: namespace,
+			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
+		},
+		Status: routev1.RouteStatus{
+			Ingress: []routev1.RouteIngress{
+				{
+					Host: "dashboard.apps.example.com",
+					Conditions: []routev1.RouteIngressCondition{
+						{Type: routev1.RouteAdmitted, Status: "True"},
+					},
+				},
+			},
+		},
+	}
+}
+
 func TestReconcile_NotFound(t *testing.T) {
 	s := testScheme(t)
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		Build()
+	cli := fake.NewClientBuilder().WithScheme(s).Build()
 
-	r := &controller.DashboardReconciler{
+	r := &ctrlpkg.DashboardReconciler{
 		Client:            cli,
 		Scheme:            s,
 		ManifestsBasePath: t.TempDir(),
@@ -87,182 +106,144 @@ func TestReconcile_NotFound(t *testing.T) {
 	assert.Equal(t, ctrl.Result{}, result)
 }
 
-func TestReconcile_Success(t *testing.T) {
-	s := testScheme(t)
-	manifestsBase := createMinimalManifests(t)
-
-	dashboard := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       v1alpha1.DashboardInstanceName,
-			Generation: 3,
-		},
-	}
-
-	route := &routev1.Route{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "dashboard",
-			Namespace: testNamespace,
-			Labels:    map[string]string{labels.PlatformPartOf: "dashboard"},
-		},
-		Status: routev1.RouteStatus{
-			Ingress: []routev1.RouteIngress{
-				{
-					Host: "dashboard.apps.example.com",
-					Conditions: []routev1.RouteIngressCondition{
-						{Type: routev1.RouteAdmitted, Status: "True"},
-					},
-				},
+func TestReconcile(t *testing.T) {
+	tests := []struct {
+		name            string
+		generation      int64
+		manifestsBase   func(t *testing.T) string
+		extraObjects    func(t *testing.T) []client.Object
+		wantErr         bool
+		wantRequeue     time.Duration
+		wantPhase       common.Phase
+		wantReady       *bool
+		wantProvisioned *bool
+		wantURL         string
+		wantGeneration  int64
+	}{
+		{
+			name:       "success with admitted route",
+			generation: 3,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
 			},
+			extraObjects: func(t *testing.T) []client.Object {
+				return []client.Object{admittedRoute(testNamespace)}
+			},
+			wantPhase:       common.PhaseReady,
+			wantReady:       boolPtr(true),
+			wantProvisioned: boolPtr(true),
+			wantURL:         "https://dashboard.apps.example.com",
+			wantGeneration:  3,
+		},
+		{
+			name:       "kustomize failure",
+			generation: 1,
+			manifestsBase: func(t *testing.T) string {
+				return "/nonexistent/path"
+			},
+			wantErr:         true,
+			wantPhase:       common.PhaseNotReady,
+			wantProvisioned: boolPtr(false),
+			wantGeneration:  1,
+		},
+		{
+			name:       "route not ready requeues",
+			generation: 2,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			wantRequeue:     10 * time.Second,
+			wantPhase:       common.PhaseNotReady,
+			wantReady:       boolPtr(false),
+			wantProvisioned: boolPtr(true),
+			wantGeneration:  2,
+		},
+		{
+			name:       "observed generation matches CR",
+			generation: 42,
+			manifestsBase: func(t *testing.T) string {
+				return createMinimalManifests(t)
+			},
+			wantRequeue:    10 * time.Second,
+			wantGeneration: 42,
 		},
 	}
 
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(dashboard, route).
-		WithStatusSubresource(dashboard).
-		Build()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := testScheme(t)
 
-	r := &controller.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: manifestsBase,
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
+			dashboard := &v1alpha1.Dashboard{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       v1alpha1.DashboardInstanceName,
+					Generation: tt.generation,
+				},
+			}
+
+			builder := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(dashboard).
+				WithStatusSubresource(dashboard)
+
+			if tt.extraObjects != nil {
+				builder = builder.WithObjects(tt.extraObjects(t)...)
+			}
+
+			cli := builder.Build()
+
+			r := &ctrlpkg.DashboardReconciler{
+				Client:            cli,
+				Scheme:            s,
+				ManifestsBasePath: tt.manifestsBase(t),
+				Platform:          cluster.OpenDataHub,
+				Namespace:         testNamespace,
+			}
+
+			result, err := r.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
+			})
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantRequeue, result.RequeueAfter)
+
+			updated := &v1alpha1.Dashboard{}
+			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
+
+			assert.Equal(t, tt.wantGeneration, updated.Status.ObservedGeneration)
+
+			if tt.wantPhase != "" {
+				assert.Equal(t, tt.wantPhase, updated.Status.Phase)
+			}
+			if tt.wantReady != nil {
+				if *tt.wantReady {
+					assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
+				} else {
+					assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
+				}
+			}
+			if tt.wantProvisioned != nil {
+				if *tt.wantProvisioned {
+					assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				} else {
+					assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeProvisioningSucceeded)))
+				}
+			}
+			if tt.wantURL != "" {
+				assert.Equal(t, tt.wantURL, updated.Status.URL)
+			} else {
+				assert.Empty(t, updated.Status.URL)
+			}
+
+			require.NotEmpty(t, updated.GetReleaseStatus().Releases)
+			assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
+		})
 	}
-
-	result, err := r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
-	})
-
-	require.NoError(t, err)
-	assert.Equal(t, time.Duration(0), result.RequeueAfter)
-
-	updated := &v1alpha1.Dashboard{}
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
-
-	assert.Equal(t, int64(3), updated.Status.ObservedGeneration)
-	assert.Equal(t, common.PhaseReady, updated.Status.Phase)
-	assert.Equal(t, "https://dashboard.apps.example.com", updated.Status.URL)
-
-	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)))
-	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
-
-	require.NotEmpty(t, updated.GetReleaseStatus().Releases)
-	assert.Equal(t, v1alpha1.DashboardComponentName, updated.GetReleaseStatus().Releases[0].Name)
 }
 
-func TestReconcile_KustomizeFailure(t *testing.T) {
-	s := testScheme(t)
-
-	dashboard := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       v1alpha1.DashboardInstanceName,
-			Generation: 1,
-		},
-	}
-
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(dashboard).
-		WithStatusSubresource(dashboard).
-		Build()
-
-	r := &controller.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: "/nonexistent/path",
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
-	}
-
-	_, err := r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
-	})
-
-	assert.Error(t, err)
-
-	updated := &v1alpha1.Dashboard{}
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
-
-	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
-	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeProvisioningSucceeded)))
-}
-
-func TestReconcile_RouteNotReady(t *testing.T) {
-	s := testScheme(t)
-	manifestsBase := createMinimalManifests(t)
-
-	dashboard := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       v1alpha1.DashboardInstanceName,
-			Generation: 2,
-		},
-	}
-
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(dashboard).
-		WithStatusSubresource(dashboard).
-		Build()
-
-	r := &controller.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: manifestsBase,
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
-	}
-
-	result, err := r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
-	})
-
-	require.NoError(t, err)
-	assert.Equal(t, 10*time.Second, result.RequeueAfter)
-
-	updated := &v1alpha1.Dashboard{}
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
-
-	assert.Equal(t, int64(2), updated.Status.ObservedGeneration)
-	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
-	assert.True(t, conditions.IsStatusConditionFalse(updated, string(common.ConditionTypeReady)))
-	assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeProvisioningSucceeded)))
-	assert.Empty(t, updated.Status.URL)
-}
-
-func TestReconcile_ObservedGenerationSetEarly(t *testing.T) {
-	s := testScheme(t)
-	manifestsBase := createMinimalManifests(t)
-
-	dashboard := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:       v1alpha1.DashboardInstanceName,
-			Generation: 42,
-		},
-	}
-
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(dashboard).
-		WithStatusSubresource(dashboard).
-		Build()
-
-	r := &controller.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: manifestsBase,
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
-	}
-
-	_, err := r.Reconcile(context.Background(), ctrl.Request{
-		NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName},
-	})
-	require.NoError(t, err)
-
-	updated := &v1alpha1.Dashboard{}
-	require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
-
-	assert.Equal(t, int64(42), updated.Status.ObservedGeneration,
-		"ObservedGeneration must match the CR's metadata.generation")
+func boolPtr(b bool) *bool {
+	return &b
 }

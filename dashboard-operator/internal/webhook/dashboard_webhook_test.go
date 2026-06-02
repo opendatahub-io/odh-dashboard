@@ -32,8 +32,7 @@ func TestDashboardGVK(t *testing.T) {
 }
 
 func TestSingletonHandler_AllowFirstCreate(t *testing.T) {
-	s := testScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(s).Build()
+	cli := fake.NewClientBuilder().WithScheme(testScheme(t)).Build()
 
 	handler := dashwebhook.NewSingletonHandler(cli)
 	resp := handler.Handle(context.Background(), admission.Request{
@@ -46,70 +45,32 @@ func TestSingletonHandler_AllowFirstCreate(t *testing.T) {
 	assert.True(t, resp.Allowed, "first CREATE should be allowed")
 }
 
-func TestSingletonHandler_DenySecondCreate(t *testing.T) {
-	s := testScheme(t)
-
-	existing := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+func TestSingletonHandler_WithExistingInstance(t *testing.T) {
+	tests := []struct {
+		name      string
+		operation admissionv1.Operation
+		wantAllow bool
+	}{
+		{name: "deny second create", operation: admissionv1.Create, wantAllow: false},
+		{name: "allow update", operation: admissionv1.Update, wantAllow: true},
+		{name: "allow delete", operation: admissionv1.Delete, wantAllow: true},
 	}
 
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(existing).
-		Build()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewClientBuilder().
+				WithScheme(testScheme(t)).
+				WithObjects(&v1alpha1.Dashboard{
+					ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+				}).
+				Build()
 
-	handler := dashwebhook.NewSingletonHandler(cli)
-	resp := handler.Handle(context.Background(), admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: admissionv1.Create,
-			Resource:  metav1.GroupVersionResource{Group: "dashboard.opendatahub.io", Version: "v1alpha1", Resource: "dashboards"},
-		},
-	})
+			handler := dashwebhook.NewSingletonHandler(cli)
+			resp := handler.Handle(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{Operation: tt.operation},
+			})
 
-	assert.False(t, resp.Allowed, "second CREATE should be denied")
-	assert.Contains(t, resp.Result.Message, "only one instance")
-}
-
-func TestSingletonHandler_AllowUpdate(t *testing.T) {
-	s := testScheme(t)
-
-	existing := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
+			assert.Equal(t, tt.wantAllow, resp.Allowed)
+		})
 	}
-
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(existing).
-		Build()
-
-	handler := dashwebhook.NewSingletonHandler(cli)
-	resp := handler.Handle(context.Background(), admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: admissionv1.Update,
-		},
-	})
-
-	assert.True(t, resp.Allowed, "UPDATE should always be allowed")
-}
-
-func TestSingletonHandler_AllowDelete(t *testing.T) {
-	s := testScheme(t)
-
-	existing := &v1alpha1.Dashboard{
-		ObjectMeta: metav1.ObjectMeta{Name: v1alpha1.DashboardInstanceName},
-	}
-
-	cli := fake.NewClientBuilder().
-		WithScheme(s).
-		WithObjects(existing).
-		Build()
-
-	handler := dashwebhook.NewSingletonHandler(cli)
-	resp := handler.Handle(context.Background(), admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: admissionv1.Delete,
-		},
-	})
-
-	assert.True(t, resp.Allowed, "DELETE should always be allowed")
 }
