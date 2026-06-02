@@ -17,7 +17,7 @@ jest.mock('~/app/Chatbot/ChatbotMessagesList', () => ({
 }));
 
 let mockMessages: unknown[] = [];
-const mockUseChatbotMessages = jest.fn(() => ({
+const mockUseChatbotMessages = jest.fn<Record<string, unknown>, [Record<string, unknown>]>(() => ({
   get messages() {
     return mockMessages;
   },
@@ -31,7 +31,7 @@ const mockUseChatbotMessages = jest.fn(() => ({
 
 jest.mock('~/app/Chatbot/hooks/useChatbotMessages', () => ({
   __esModule: true,
-  default: (...args: unknown[]) => mockUseChatbotMessages(...args),
+  default: (props: Record<string, unknown>) => mockUseChatbotMessages(props),
 }));
 
 const defaultProps = {
