@@ -657,6 +657,20 @@ describe('translateModelServingError', () => {
     );
   });
 
+  it('should pass through 409 Conflict (optimistic locking) errors unchanged', () => {
+    const error = new K8sStatusError({
+      kind: 'Status',
+      apiVersion: 'v1',
+      status: 'Failure',
+      message: 'the object has been modified; please apply your changes to the latest version',
+      reason: 'Conflict',
+      code: 409,
+    });
+    expect(translateModelServingError(error)).toBe(
+      'the object has been modified; please apply your changes to the latest version',
+    );
+  });
+
   it('should replace K8s resource group references in non-duplicate errors', () => {
     const k8sError = new Error(
       'servingruntimes.serving.kserve.io is forbidden: User cannot create',
