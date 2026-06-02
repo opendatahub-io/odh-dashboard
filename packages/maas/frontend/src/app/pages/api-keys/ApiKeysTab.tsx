@@ -1,27 +1,29 @@
 import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
-import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
-import { useIsMaasAdmin } from '~/app/hooks/useIsMaasAdmin';
-import { useApiKeysTableState } from '~/app/hooks/useApiKeysTableState';
-import { APIKey, APIKeySearchRequest } from '~/app/types/api-key';
+import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
+import { APIKey } from '~/app/types/api-key';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
 import RevokeApiKeyModal from './RevokeApiKeyModal';
 import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
-const EXISTENCE_CHECK_REQUEST: APIKeySearchRequest = { pagination: { limit: 1, offset: 0 } };
+type ApiKeysTabProps = {
+  pageState: UseApiKeysPageLoadReturn;
+};
 
-const ApiKeysTab: React.FC = () => {
+const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  const [isMaasAdmin, isMaasAdminLoaded] = useIsMaasAdmin();
-
   const {
+    isMaasAdmin,
+    isMaasAdminLoaded,
     response,
+    hasAnyApiKeys,
+    existenceLoaded,
     loaded,
-    refresh,
+    refreshAll,
     filterData,
     localUsername,
     setLocalUsername,
@@ -37,16 +39,7 @@ const ApiKeysTab: React.FC = () => {
     onSetPage,
     onPerPageSelect,
     onClearFilters,
-  } = useApiKeysTableState();
-
-  const [existenceResponse, existenceLoaded, , refreshExistence] =
-    useFetchApiKeys(EXISTENCE_CHECK_REQUEST);
-  const hasAnyApiKeys = response.data.length > 0 || existenceResponse.data.length > 0;
-
-  const refreshAll = React.useCallback(() => {
-    refresh();
-    refreshExistence();
-  }, [refresh, refreshExistence]);
+  } = pageState;
 
   const apiKeys = response.data;
   const hasMore = response.has_more;

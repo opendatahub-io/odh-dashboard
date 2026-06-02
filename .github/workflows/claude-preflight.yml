@@ -12,7 +12,7 @@ name: ODH Dashboard Agent
 # Required Secrets:
 #   CLAUDE_APP_ID, CLAUDE_APP_PRIVATE_KEY, GCP_CREDENTIALS_JSON,
 #   GCP_PROJECT_ID, MLFLOW_TRACKING_URI, MLFLOW_TRACKING_TOKEN,
-#   MLFLOW_EXPERIMENT_NAME, MLFLOW_WORKSPACE
+#   MLFLOW_EXPERIMENT_NAME
 
 on:
   issue_comment:
@@ -168,8 +168,6 @@ jobs:
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
       MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
       MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-      MLFLOW_WORKSPACE: ${{ secrets.MLFLOW_WORKSPACE }}
-      MLFLOW_ENABLE_WORKSPACES: "true"
       MLFLOW_CLAUDE_TRACING_ENABLED: "true"
 
     steps:
@@ -231,18 +229,19 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install MLflow
-        run: pip install "mlflow[genai]>=3.5"
+        run: pip install "mlflow==3.12.0"
 
       - name: Verify MLflow connection
         continue-on-error: true
         run: |
+          # Uses ajax-api because /api/2.0/ requires workspace headers that
+          # mlflow 3.12.0 doesn't support. ajax-api bypasses workspace auth.
           CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             -X POST \
             -H "Authorization: Bearer $MLFLOW_TRACKING_TOKEN" \
             -H "Content-Type: application/json" \
-            -H "X-Mlflow-Workspace: $MLFLOW_WORKSPACE" \
             -d '{"max_results": 1}' \
-            "$MLFLOW_TRACKING_URI/api/2.0/mlflow/experiments/search")
+            "$MLFLOW_TRACKING_URI/ajax-api/2.0/mlflow/experiments/search")
           echo "MLflow API: HTTP $CODE"
           if [ "$CODE" != "200" ]; then
             echo "::warning::MLflow returned $CODE — tracing may not work"

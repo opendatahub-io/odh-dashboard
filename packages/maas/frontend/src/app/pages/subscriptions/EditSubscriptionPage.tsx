@@ -42,7 +42,7 @@ const EditSubscriptionPage: React.FC = () => {
           <BreadcrumbItem isActive>Edit subscription</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={loaded}
+      loaded={loaded || !!error}
       empty={false}
       loadError={error}
       errorMessage="Unable to load subscription details."

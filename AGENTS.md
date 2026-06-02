@@ -15,6 +15,11 @@ odh-dashboard/
 │       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__)
 ├── backend/                     # Main dashboard backend (Node.js/Express)
 │   └── src/
+├── dashboard-operator/          # Dashboard Module Controller (Go, controller-runtime)
+│   ├── api/v1alpha1/           # CRD types (Dashboard kind)
+│   ├── cmd/manager/            # Controller entry point
+│   ├── internal/controller/    # Reconciler, actions, support utilities
+│   └── config/                 # Generated CRD, RBAC, manager manifests
 ├── packages/                    # Feature packages
 │   ├── cypress/                # Cypress test framework and shared tests
 │   ├── gen-ai/                 # Gen AI / LLM features (has BFF)
@@ -31,7 +36,7 @@ odh-dashboard/
 
 - **Node.js**: >= 22.0.0
 - **npm**: >= 10.0.0
-- **Go**: >= 1.24 (for packages with BFF)
+- **Go**: >= 1.24 (for packages with BFF), >= 1.25 (for dashboard-operator)
 
 ## Key Technologies
 
@@ -98,6 +103,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
 | **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
 | **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **Operator Controller**     | `operator-controller.md`      | When working on Go operator/controller-runtime code in `dashboard-operator/`   |
 | **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
