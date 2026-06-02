@@ -12,10 +12,10 @@ import (
 
 type OGXModelsRepository struct {
 	ogxClient  ogx.OGXClientInterface
-	k8sService *kubernetes.Service
+	k8sService kubernetes.Service
 }
 
-func NewOGXModelsRepository(ogxClient ogx.OGXClientInterface, k8sService *kubernetes.Service) *OGXModelsRepository {
+func NewOGXModelsRepository(ogxClient ogx.OGXClientInterface, k8sService kubernetes.Service) *OGXModelsRepository {
 	return &OGXModelsRepository{ogxClient: ogxClient, k8sService: k8sService}
 }
 

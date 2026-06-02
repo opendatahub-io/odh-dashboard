@@ -46,7 +46,7 @@ type App struct {
 	logger       *slog.Logger
 	repositories *repositories.Repositories
 	// k8sService provides business logic for Kubernetes operations using autox-core
-	k8sService *kubernetes.Service
+	k8sService kubernetes.Service
 	// s3PostMaxFilePartBytes is for package api tests only (see PostS3FileHandler).
 	s3PostMaxFilePartBytes int64
 	// s3PostMaxRequestBodyBytes caps total POST body in tests (0 = file max + multipart envelope).

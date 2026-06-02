@@ -33,15 +33,15 @@ const s3KeyResolutionTimeout = 15 * time.Second
 // S3Repository handles S3 credential resolution (from K8s secrets or DSPA) and
 // delegates S3 operations to the autox-core S3 service.
 type S3Repository struct {
-	s3Service        *s3.Service
-	k8sService       *kubernetes.Service
-	pipelinesService *pipelines.Service
+	s3Service        s3.Service
+	k8sService       kubernetes.Service
+	pipelinesService pipelines.Service
 }
 
 func NewS3Repository(
-	s3Service *s3.Service,
-	k8sService *kubernetes.Service,
-	pipelinesService *pipelines.Service,
+	s3Service s3.Service,
+	k8sService kubernetes.Service,
+	pipelinesService pipelines.Service,
 ) *S3Repository {
 	return &S3Repository{
 		s3Service:        s3Service,

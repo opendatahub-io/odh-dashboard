@@ -14,7 +14,7 @@ import (
 // Returns (baseURL, apiKey, error). When the factory is in mock mode the caller can
 // pass empty strings back to CreateClient — so this function always does a real secret
 // lookup; mock switching is handled at the factory level.
-func resolveOGXCredentials(ctx context.Context, k8sService *kubernetes.Service, namespace, secretName string) (string, string, error) {
+func resolveOGXCredentials(ctx context.Context, k8sService kubernetes.Service, namespace, secretName string) (string, string, error) {
 	secret, err := k8sService.GetSecret(ctx, namespace, secretName)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get secret %q: %w", secretName, err)

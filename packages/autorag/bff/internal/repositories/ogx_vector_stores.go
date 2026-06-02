@@ -13,10 +13,10 @@ const vectorIOAPI = "vector_io"
 
 type OGXVectorStoresRepository struct {
 	ogxClient  ogx.OGXClientInterface
-	k8sService *kubernetes.Service
+	k8sService kubernetes.Service
 }
 
-func NewOGXVectorStoresRepository(ogxClient ogx.OGXClientInterface, k8sService *kubernetes.Service) *OGXVectorStoresRepository {
+func NewOGXVectorStoresRepository(ogxClient ogx.OGXClientInterface, k8sService kubernetes.Service) *OGXVectorStoresRepository {
 	return &OGXVectorStoresRepository{ogxClient: ogxClient, k8sService: k8sService}
 }
 

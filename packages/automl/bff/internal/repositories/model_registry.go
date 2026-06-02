@@ -119,15 +119,15 @@ type modelRegistryCR struct {
 // ModelRegistryRepository handles Model Registry API operations and cluster discovery.
 type ModelRegistryRepository struct {
 	client           modelregistry.ModelRegistryClientInterface
-	k8sService       *kubernetes.Service
-	pipelinesService *pipelines.Service
+	k8sService       kubernetes.Service
+	pipelinesService pipelines.Service
 }
 
 // NewModelRegistryRepository creates a new ModelRegistryRepository.
 func NewModelRegistryRepository(
 	client modelregistry.ModelRegistryClientInterface,
-	k8sService *kubernetes.Service,
-	pipelinesService *pipelines.Service,
+	k8sService kubernetes.Service,
+	pipelinesService pipelines.Service,
 ) *ModelRegistryRepository {
 	return &ModelRegistryRepository{
 		client:           client,

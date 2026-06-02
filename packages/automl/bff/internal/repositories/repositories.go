@@ -18,10 +18,10 @@ type Repositories struct {
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
 type RepositoriesConfig struct {
-	K8sService          *kubernetes.Service
-	PipelinesService    *pipelines.Service
+	K8sService          kubernetes.Service
+	PipelinesService    pipelines.Service
 	PipelinesCfg        PipelinesRepositoryConfig
-	S3Service           *s3.Service
+	S3Service           s3.Service
 	ModelRegistryClient modelregistry.ModelRegistryClientInterface
 }
 

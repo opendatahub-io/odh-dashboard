@@ -39,7 +39,7 @@ func NewSecretRepository() *SecretRepository {
 //   - "storage": filter for secrets matching storage type requirements (e.g., S3)
 //   - "ogx": filter for secrets matching OGX (Open GenAI Stack) requirements
 func (r *SecretRepository) GetFilteredSecrets(
-	k8sService *kubernetes.Service,
+	k8sService kubernetes.Service,
 	ctx context.Context,
 	namespace string,
 	secretType string,

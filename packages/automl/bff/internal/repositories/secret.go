@@ -28,7 +28,7 @@ func NewSecretRepository() *SecretRepository {
 // GetFilteredSecrets retrieves secrets from a namespace, filters by type, and redacts sensitive data.
 // Returns domain-level SecretInfo — the handler maps to the response DTO.
 func (r *SecretRepository) GetFilteredSecrets(
-	k8sService *kubernetes.Service,
+	k8sService kubernetes.Service,
 	ctx context.Context,
 	namespace string,
 	secretType string,
