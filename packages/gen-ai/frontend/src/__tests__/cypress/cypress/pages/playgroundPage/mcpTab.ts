@@ -84,7 +84,10 @@ class MCPTab {
   }
 
   findModalCloseButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return cy.findByRole('button', { name: /close/i, timeout: 10000 });
+    // Scope to success modal to avoid clicking drawer close button
+    return cy
+      .findByTestId('mcp-server-success-modal')
+      .findByRole('button', { name: /^close$/i, timeout: 10000 });
   }
 
   verifySuccessModalVisible(): void {
