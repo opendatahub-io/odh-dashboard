@@ -1,58 +1,12 @@
 import { Content, ContentVariants, Flex, FlexItem, Label } from '@patternfly/react-core';
 import { KeyIcon } from '@patternfly/react-icons';
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
-import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { getSourceLabelColor } from './utils';
 import { ModelGroupEntry, ModelInfoPopover, formatTokenLimit } from './SubscriptionsViewTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
-
-const getModelTokenLimits = (modelGroup: ModelGroupEntry) =>
-  modelGroup.subscriptions[0]?.tokenRateLimits;
-
-const ModelCompactRow: React.FC<{
-  modelGroup: ModelGroupEntry;
-}> = ({ modelGroup }) => (
-  <Tbody data-testid="model-compact-row">
-    <Tr>
-      <Td dataLabel="Model">
-        <TableRowTitleDescription
-          title={
-            <Flex gap={{ default: 'gapSm' }} alignItems={{ default: 'alignItemsCenter' }}>
-              <FlexItem>
-                <strong>{modelGroup.displayName ?? modelGroup.name}</strong>
-              </FlexItem>
-              <FlexItem>
-                <ModelInfoPopover
-                  displayName={modelGroup.displayName || modelGroup.name}
-                  modelId={modelGroup.name}
-                  description={modelGroup.description}
-                />
-              </FlexItem>
-              {modelGroup.source && (
-                <FlexItem>
-                  <Label isCompact color={getSourceLabelColor(modelGroup.source)}>
-                    {modelGroup.source}
-                  </Label>
-                </FlexItem>
-              )}
-            </Flex>
-          }
-          subtitle={
-            modelGroup.displayName && modelGroup.name !== modelGroup.displayName ? (
-              <code>{modelGroup.name}</code>
-            ) : undefined
-          }
-          description={modelGroup.description}
-          truncateDescriptionLines={2}
-        />
-      </Td>
-      <Td dataLabel="Token limits">{formatTokenLimit(getModelTokenLimits(modelGroup))}</Td>
-    </Tr>
-  </Tbody>
-);
 
 const ModelGroupRow: React.FC<{
   modelGroup: ModelGroupEntry;
@@ -153,7 +107,6 @@ type ModelsViewTableProps = {
   filteredModelGroups: ModelGroupEntry[];
   modelSortDirection: 'asc' | 'desc' | undefined;
   onModelSortDirectionChange: (direction: 'asc' | 'desc') => void;
-  isCompactVersion?: boolean;
 };
 
 const ModelsViewTable: React.FC<ModelsViewTableProps> = ({
@@ -161,33 +114,29 @@ const ModelsViewTable: React.FC<ModelsViewTableProps> = ({
   filteredModelGroups,
   modelSortDirection,
   onModelSortDirectionChange,
-  isCompactVersion = false,
 }) => {
   if (modelGroups.length === 0) {
     return <EmptySubscriptionsTabState hasData={false} variant="model" />;
   }
-
-  const modelColumnIndex = isCompactVersion ? 0 : 1;
 
   return (
     <Table aria-label="Models table" data-testid="models-table">
       {filteredModelGroups.length > 0 && (
         <Thead>
           <Tr>
-            {!isCompactVersion && <Th screenReaderText="Expand" />}
+            <Th screenReaderText="Expand" />
             <Th
               sort={{
                 sortBy: {
-                  index: modelSortDirection ? modelColumnIndex : undefined,
+                  index: modelSortDirection ? 1 : undefined,
                   direction: modelSortDirection,
                 },
                 onSort: (_event, _index, direction) => onModelSortDirectionChange(direction),
-                columnIndex: modelColumnIndex,
+                columnIndex: 1,
               }}
             >
               Model
             </Th>
-            {isCompactVersion && <Th width={50}>Token limits</Th>}
           </Tr>
         </Thead>
       )}
@@ -200,13 +149,9 @@ const ModelsViewTable: React.FC<ModelsViewTableProps> = ({
           </Tr>
         </Tbody>
       ) : (
-        filteredModelGroups.map((group, index) =>
-          isCompactVersion ? (
-            <ModelCompactRow key={group.name} modelGroup={group} />
-          ) : (
-            <ModelGroupRow key={group.name} modelGroup={group} rowIndex={index} />
-          ),
-        )
+        filteredModelGroups.map((group, index) => (
+          <ModelGroupRow key={group.name} modelGroup={group} rowIndex={index} />
+        ))
       )}
     </Table>
   );

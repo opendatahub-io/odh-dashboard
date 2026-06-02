@@ -18,8 +18,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { URL_PREFIX } from '~/app/utilities/const';
-import ModelsViewTable from '~/app/pages/api-keys/ModelsViewTable';
-import { deriveModelGroups, sortModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
+import SubscriptionModelsTable from '~/app/pages/api-keys/SubscriptionModelsTable';
 import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import MySubscriptionDetails from './mySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
@@ -27,21 +26,11 @@ import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
-  const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(
-    undefined,
-  );
   const [subscriptions, loaded, loadError] = useUserSubscriptions();
   const subscription = subscriptions.find((sub) => sub.subscription_id_header === subscriptionName);
   const displaySubscriptionName = subscription?.display_name?.trim() || subscriptionName;
-  const modelGroups = React.useMemo(
-    () => (subscription ? deriveModelGroups([subscription]) : []),
-    [subscription],
-  );
-  const sortedModelGroups = React.useMemo(
-    () => sortModelGroups(modelGroups, modelSortDirection),
-    [modelGroups, modelSortDirection],
-  );
-  const modelRefsCount = modelGroups.length;
+  const modelRefs = React.useMemo(() => subscription?.model_refs ?? [], [subscription?.model_refs]);
+  const modelRefsCount = modelRefs.length;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -110,13 +99,7 @@ const ViewSubscriptionPage: React.FC = () => {
                           </Flex>
                         </StackItem>
                         <StackItem>
-                          <ModelsViewTable
-                            modelGroups={modelGroups}
-                            filteredModelGroups={sortedModelGroups}
-                            modelSortDirection={modelSortDirection}
-                            onModelSortDirectionChange={setModelSortDirection}
-                            isCompactVersion
-                          />
+                          <SubscriptionModelsTable models={modelRefs} />
                         </StackItem>
                       </Stack>
                     </CardBody>

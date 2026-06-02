@@ -1,5 +1,5 @@
 import { formatApiKeyError, getSourceLabelColor } from '~/app/pages/api-keys/utils';
-import { deriveModelGroups, sortModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
+import { deriveModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
 
 describe('formatApiKeyError', () => {
   describe('max expiration errors', () => {
@@ -136,33 +136,5 @@ describe('deriveModelGroups', () => {
 
   it('should return an empty array when given no subscriptions', () => {
     expect(deriveModelGroups([])).toEqual([]);
-  });
-});
-
-describe('sortModelGroups', () => {
-  const groups = [
-    { name: 'granite-3-8b', displayName: 'Granite 3 8B', subscriptions: [] },
-    { name: 'flan-t5-small', displayName: 'Flan T5 Small', subscriptions: [] },
-    { name: 'llama-3', subscriptions: [] },
-  ];
-
-  it('should return groups unchanged when direction is undefined', () => {
-    expect(sortModelGroups(groups, undefined)).toEqual(groups);
-  });
-
-  it('should sort by display name ascending', () => {
-    expect(sortModelGroups(groups, 'asc').map((g) => g.name)).toEqual([
-      'flan-t5-small',
-      'granite-3-8b',
-      'llama-3',
-    ]);
-  });
-
-  it('should sort by display name descending', () => {
-    expect(sortModelGroups(groups, 'desc').map((g) => g.name)).toEqual([
-      'llama-3',
-      'granite-3-8b',
-      'flan-t5-small',
-    ]);
   });
 });
