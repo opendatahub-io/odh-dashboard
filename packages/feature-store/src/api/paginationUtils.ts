@@ -16,7 +16,7 @@ export const mergeRelationships = <R>(
   for (const { relationships } of allResponses) {
     if (relationships) {
       for (const [key, value] of Object.entries(relationships)) {
-        merged[key] = key in merged ? [...merged[key], ...value] : value;
+        merged[key] = key in merged ? [...merged[key], ...value] : [...value];
       }
     }
   }
@@ -46,7 +46,7 @@ export const fetchAllPages = async <T extends PaginatedResponse, TItem>(
     const items = getItems(response);
     allItems.push(...items);
     allResponses.push(response);
-    hasNext = response.pagination.has_next ?? items.length >= FEATURE_STORE_PAGE_SIZE;
+    hasNext = response.pagination.has_next ?? false;
     page++;
   } while (hasNext && page <= MAX_PAGES);
 
