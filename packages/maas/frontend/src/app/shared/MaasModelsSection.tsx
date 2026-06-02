@@ -107,7 +107,8 @@ const MaasModelsSection: React.FC<MaasModelsSectionProps> = ({
               <Td key="name" dataLabel="Name">
                 <TableRowTitleDescription
                   title={<strong>{modelRef.displayName ?? modelRef.name}</strong>}
-                  subtitle={modelRef.description}
+                  subtitle={<code>{modelRef.name}</code>}
+                  description={modelRef.description}
                   truncateDescriptionLines={2}
                 />
               </Td>
