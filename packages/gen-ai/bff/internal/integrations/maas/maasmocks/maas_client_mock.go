@@ -50,8 +50,8 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 			Description: "Meta Llama 2 7B model fine-tuned for conversational AI and chat applications",
 			Usecase:     "Chat, Question answering",
 			Subscriptions: []models.SubscriptionInfo{
-				{Name: "basic-subscription", DisplayName: "Basic Tier"},
-				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+				{Name: "basic-subscription", DisplayName: "Basic Subscription"},
+				{Name: "premium-subscription", DisplayName: "Premium Subscription", Description: "Premium subscription with higher rate limits"},
 			},
 		},
 		{
@@ -65,7 +65,7 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 			Description: "Meta Llama 2 13B model with enhanced reasoning capabilities for complex conversations",
 			Usecase:     "Chat, Reasoning, Question answering",
 			Subscriptions: []models.SubscriptionInfo{
-				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+				{Name: "premium-subscription", DisplayName: "Premium Subscription", Description: "Premium subscription with higher rate limits"},
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 			Description: "Mistral AI 7B model optimized for instruction following and task completion",
 			Usecase:     "Text generation, Instruction following",
 			Subscriptions: []models.SubscriptionInfo{
-				{Name: "premium-subscription", DisplayName: "Premium Tier", Description: "Premium subscription with higher rate limits"},
+				{Name: "premium-subscription", DisplayName: "Premium Subscription", Description: "Premium subscription with higher rate limits"},
 			},
 		},
 		{
@@ -93,7 +93,7 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 			Description: "IBM Granite 7B model optimized for enterprise lab experiments and testing",
 			Usecase:     "Code generation, Text completion",
 			Subscriptions: []models.SubscriptionInfo{
-				{Name: "basic-subscription", DisplayName: "Basic Tier"},
+				{Name: "basic-subscription", DisplayName: "Basic Subscription"},
 			},
 		},
 		{
@@ -107,7 +107,7 @@ func (m *MockMaaSClient) ListModels(ctx context.Context, authToken string) ([]mo
 			Description: "High-performance text embedding model for semantic search and retrieval",
 			Usecase:     "Embedding, Semantic search",
 			Subscriptions: []models.SubscriptionInfo{
-				{Name: "basic-subscription", DisplayName: "Basic Tier"},
+				{Name: "basic-subscription", DisplayName: "Basic Subscription"},
 			},
 		},
 	}, nil

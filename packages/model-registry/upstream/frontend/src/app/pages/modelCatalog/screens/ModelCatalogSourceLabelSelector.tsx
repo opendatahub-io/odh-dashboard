@@ -20,7 +20,10 @@ import ModelCatalogActiveFilters from '~/app/pages/modelCatalog/components/Model
 import HardwareConfigurationFilterToolbar from '~/app/pages/modelCatalog/components/HardwareConfigurationFilterToolbar';
 import ThemeAwareSearchInput from '~/app/pages/modelRegistry/screens/components/ThemeAwareSearchInput';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import {
+  hasFiltersApplied,
+  getActiveSourceLabels,
+} from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
 import ModelCatalogSourceLabelBlocks from './ModelCatalogSourceLabelBlocks';
 
@@ -40,12 +43,19 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
   const [inputValue, setInputValue] = React.useState(searchTerm || '');
   const { isMUITheme } = useThemeContext();
   const {
+    catalogSources,
+    catalogLabels,
     filterData,
     performanceViewEnabled,
     performanceFiltersChangedOnDetailsPage,
     setPerformanceFiltersChangedOnDetailsPage,
     lastViewedModelName,
   } = React.useContext(ModelCatalogContext);
+
+  const hasMultipleCategories = React.useMemo(
+    () => getActiveSourceLabels(catalogSources, catalogLabels).length > 1,
+    [catalogSources, catalogLabels],
+  );
 
   // Only show basic filters in the main chip bar - performance filters have their own section
   const filtersToShow = BASIC_FILTER_KEYS;
@@ -120,6 +130,7 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
     <Stack hasGutter>
       <StackItem>
         <Toolbar
+          className="pf-v6-u-pb-0"
           // Use PatternFly's native clearAllFilters - it automatically shows/hides based on ToolbarFilter labels
           // When performance view is OFF, show reset button for basic filters
           // When performance view is ON, the HardwareConfigurationFilterToolbar handles resetting
@@ -168,9 +179,13 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
                 </ToolbarGroup>
               </ToolbarToggleGroup>
               {/* When toggle is OFF, show basic filter chips in the main toolbar */}
-              {/* When toggle is ON, all chips are shown in HardwareConfigurationFilterToolbar below */}
-              {!performanceViewEnabled && onResetAllFilters && hasBasicFiltersApplied && (
-                <ModelCatalogActiveFilters filtersToShow={filtersToShow} />
+              {/* When toggle is ON, keep ToolbarFilters mounted with empty labels to work around */}
+              {/* PF ToolbarFilter not cleaning up filter count on unmount (PF#12247) */}
+              {onResetAllFilters && (
+                <ModelCatalogActiveFilters
+                  filtersToShow={filtersToShow}
+                  forceHideLabels={performanceViewEnabled}
+                />
               )}
             </Flex>
           </ToolbarContent>
@@ -192,15 +207,17 @@ const ModelCatalogSourceLabelSelector: React.FC<ModelCatalogSourceLabelSelectorP
           </StackItem>
         </>
       )}
-      <StackItem>
-        <Flex
-          justifyContent={{ default: 'justifyContentSpaceBetween' }}
-          alignItems={{ default: 'alignItemsCenter' }}
-        >
-          <ModelCatalogSourceLabelBlocks />
-          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
-        </Flex>
-      </StackItem>
+      {hasMultipleCategories && (
+        <StackItem>
+          <Flex
+            justifyContent={{ default: 'justifyContentSpaceBetween' }}
+            alignItems={{ default: 'alignItemsCenter' }}
+          >
+            <ModelCatalogSourceLabelBlocks />
+            <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+          </Flex>
+        </StackItem>
+      )}
       {shouldShowAlert && (
         <StackItem>
           <Alert

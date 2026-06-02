@@ -12,7 +12,6 @@ import { useEnableTeamSection } from './useEnableTeamSection';
 
 const Home: React.FC = () => {
   const { status: projectsAvailable } = useIsAreaAvailable(SupportedArea.DS_PROJECTS_VIEW);
-  const { status: taskAssistantAvailable } = useIsAreaAvailable('task-assistant');
   const resourcesSection = useResourcesSection();
   const enableTeamSection = useEnableTeamSection();
 
@@ -36,7 +35,7 @@ const Home: React.FC = () => {
       ) : (
         <>
           <ProjectsSection />
-          {taskAssistantAvailable ? <TaskAssistantSection /> : null}
+          <TaskAssistantSection />
           {resourcesSection}
           {enableTeamSection}
         </>

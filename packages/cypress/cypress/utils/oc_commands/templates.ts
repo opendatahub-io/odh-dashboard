@@ -12,7 +12,7 @@ const applicationNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
  *          the original command execution result if no matching template is found.
  */
 export const cleanupTemplates = (displayName: string): Cypress.Chainable<CommandLineResult> => {
-  const ocCommand = `oc get templates -ojson -n ${applicationNamespace} | jq '.items[] | select(.objects[].metadata.annotations."openshift.io/display-name" | contains("${displayName}")) | .metadata.name' | tr -d '"'`;
+  const ocCommand = `oc get templates -ojson -n ${applicationNamespace} | jq '.items[] | select(.objects[]?.metadata?.annotations?."openshift.io/display-name"? // "" | contains("${displayName}")) | .metadata.name' | tr -d '"'`;
   cy.log(`Executing command: ${ocCommand}`);
 
   return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {

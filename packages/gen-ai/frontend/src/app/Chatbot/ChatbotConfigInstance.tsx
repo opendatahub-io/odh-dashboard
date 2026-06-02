@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { MessageBox, ChatbotWelcomePrompt } from '@patternfly/chatbot';
+import { MessageBox, ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
+import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useChatbotMessages, { UseChatbotMessagesReturn } from './hooks/useChatbotMessages';
@@ -21,7 +22,7 @@ import {
   selectActivePrompt,
 } from './store';
 import { ChatbotMessages } from './ChatbotMessagesList';
-import { sampleWelcomePrompts } from './const';
+import { sampleWelcomePrompts, PLACEHOLDER_BOT_CONTENT } from './const';
 
 interface ChatbotConfigInstanceProps {
   configId: string;
@@ -33,6 +34,7 @@ interface ChatbotConfigInstanceProps {
   namespace?: string;
   showWelcomePrompt?: boolean;
   welcomeDescription?: string;
+  onWelcomePromptClick?: (message: string) => void;
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
@@ -48,6 +50,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   namespace,
   showWelcomePrompt = false,
   welcomeDescription = 'Welcome to the playground',
+  onWelcomePromptClick,
   onMessagesHookReady,
   configIndex,
   isCompareMode,
@@ -115,11 +118,12 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     configId,
     modelId: selectedModel,
     systemInstruction,
-    isRawUploaded: isRagEnabled,
+    isRagEnabled,
     username,
     isStreamingEnabled,
     temperature,
     currentVectorStoreId: selectedVectorStoreId,
+    knowledgeMode,
     selectedServerIds: selectedMcpServerIds,
     mcpServers,
     mcpServerStatuses,
@@ -142,18 +146,32 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
     }
   }, [messagesHook, onMessagesHookReady]);
 
+  const clickablePrompts: WelcomePrompt[] = React.useMemo(
+    () =>
+      onWelcomePromptClick
+        ? sampleWelcomePrompts.map((prompt) => ({
+            ...prompt,
+            onClick: () => {
+              if (prompt.message) {
+                onWelcomePromptClick(prompt.message);
+                fireMiscTrackingEvent('Playground Welcome Prompt Selected', {
+                  promptTitle: prompt.title,
+                });
+              }
+            },
+          }))
+        : sampleWelcomePrompts,
+    [onWelcomePromptClick],
+  );
+
   return (
     <MessageBox position="top">
-      {showWelcomePrompt && (
+      {showWelcomePrompt && messagesHook.messages.length === 0 && (
         <ChatbotWelcomePrompt
           title={username ? `Hello, ${username}` : 'Hello'}
           description={welcomeDescription}
           data-testid="chatbot-welcome-prompt"
-          style={{
-            cursor: 'default',
-            pointerEvents: 'none',
-          }}
-          prompts={sampleWelcomePrompts}
+          prompts={clickablePrompts}
         />
       )}
       <ChatbotMessages
@@ -162,6 +180,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         isLoading={messagesHook.isLoading}
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
+        placeholderContent={PLACEHOLDER_BOT_CONTENT}
       />
     </MessageBox>
   );

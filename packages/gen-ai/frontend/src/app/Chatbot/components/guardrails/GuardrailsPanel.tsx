@@ -65,6 +65,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
   const handleUserInputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
     updateUserInputEnabled(configId, checked);
     fireMiscTrackingEvent('Guardrails Enabled', {
+      isEnabled: checked || modelOutputEnabled,
       inputEnabled: checked,
       outputEnabled: modelOutputEnabled,
     });
@@ -73,6 +74,7 @@ const GuardrailsPanel: React.FC<GuardrailsPanelProps> = ({ configId }) => {
   const handleModelOutputToggle = (_event: React.FormEvent<HTMLInputElement>, checked: boolean) => {
     updateModelOutputEnabled(configId, checked);
     fireMiscTrackingEvent('Guardrails Enabled', {
+      isEnabled: userInputEnabled || checked,
       inputEnabled: userInputEnabled,
       outputEnabled: checked,
     });

@@ -1,23 +1,26 @@
 name: Module caches
-description: Restores and saves root, per-module node_modules, and Cypress binary caches. Runs npm install when cache is not an exact hit.
+description: Restores and saves root and per-module node_modules caches, including the shared Cypress binary cache. Runs npm install when cache is not an exact hit.
 inputs:
   node-version:
+    description: Node.js version used for cache key generation.
     required: true
-  include-cypress:
-    required: false
-    default: 'false'
   include-modules:
+    description: Whether to restore and install per-module dependency caches.
     required: false
     default: 'false'
   force-install:
+    description: Whether to run installs even when caches are exact hits.
     required: false
     default: 'false'
 runs:
   using: composite
   steps:
+    - name: Set Cypress cache to workspace-local path
+      shell: bash
+      run: echo "CYPRESS_CACHE_FOLDER=${{ github.workspace }}/.cache/Cypress" >> "$GITHUB_ENV"
     - name: Root node_modules cache
       id: root-cache
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: |
           node_modules
@@ -25,32 +28,23 @@ runs:
           frontend/node_modules
           frontend/src/node_modules
           packages/*/node_modules
-        key: ${{ runner.os }}-${{ inputs.node-version }}-modules-root-${{ hashFiles('package-lock.json') }}
+          .cache/Cypress
+        key: ${{ runner.os }}-${{ inputs.node-version }}-root-modules-${{ hashFiles('package-lock.json') }}
         restore-keys: |
-          ${{ runner.os }}-${{ inputs.node-version }}-modules-root-
+          ${{ runner.os }}-${{ inputs.node-version }}-root-modules-
     - name: Install root dependencies
       if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm install
-
-    - name: Cypress binary cache
-      id: cypress-cache
-      if: inputs.include-cypress == 'true'
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/Cypress
-        key: ${{ runner.os }}-cypress-bin-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-cypress-bin-
-    - name: Install Cypress binaries
-      if: inputs.include-cypress == 'true' && (inputs.force-install == 'true' || steps.cypress-cache.outputs.cache-hit != 'true')
+    - name: Ensure Cypress binary is installed
+      if: inputs.force-install == 'true' || steps.root-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npx cypress install
+      run: npx --no-install cypress install
 
     - name: automl node_modules cache
       id: automl-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/automl/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-automl-${{ hashFiles('packages/automl/frontend/package-lock.json') }}
@@ -63,7 +57,7 @@ runs:
     - name: autorag node_modules cache
       id: autorag-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/autorag/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-autorag-${{ hashFiles('packages/autorag/frontend/package-lock.json') }}
@@ -76,7 +70,7 @@ runs:
     - name: eval-hub node_modules cache
       id: eval-hub-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/eval-hub/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-eval-hub-${{ hashFiles('packages/eval-hub/frontend/package-lock.json') }}
@@ -89,7 +83,7 @@ runs:
     - name: gen-ai node_modules cache
       id: gen-ai-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/gen-ai/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-gen-ai-${{ hashFiles('packages/gen-ai/frontend/package-lock.json') }}
@@ -102,7 +96,7 @@ runs:
     - name: maas node_modules cache
       id: maas-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/maas/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-maas-${{ hashFiles('packages/maas/frontend/package-lock.json') }}
@@ -115,7 +109,7 @@ runs:
     - name: mlflow node_modules cache
       id: mlflow-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/mlflow/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-mlflow-${{ hashFiles('packages/mlflow/frontend/package-lock.json') }}
@@ -128,7 +122,7 @@ runs:
     - name: model-registry node_modules cache
       id: model-registry-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/model-registry/upstream/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-model-registry-${{ hashFiles('packages/model-registry/upstream/frontend/package-lock.json') }}
@@ -141,7 +135,7 @@ runs:
     - name: notebooks node_modules cache
       id: notebooks-cache
       if: inputs.include-modules == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: packages/notebooks/upstream/workspaces/frontend/node_modules
         key: ${{ runner.os }}-${{ inputs.node-version }}-modules-notebooks-${{ hashFiles('packages/notebooks/upstream/workspaces/frontend/package-lock.json') }}

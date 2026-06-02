@@ -12,6 +12,11 @@ import {
   promptManagementPath,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 // eslint-disable-next-line no-restricted-syntax
+import {
+  EXPERIMENTS_NAV_ID,
+  MlflowTrackingEvents,
+} from '@odh-dashboard/internal/concepts/mlflow/const';
+// eslint-disable-next-line no-restricted-syntax
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from './shared/const';
 
 /**
@@ -30,11 +35,15 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension | TaskI
       required: [SupportedArea.MLFLOW],
     },
     properties: {
-      id: 'experiments-mlflow',
+      id: EXPERIMENTS_NAV_ID,
       title: 'Experiments',
       href: '/develop-train/mlflow/experiments',
       section: 'develop-and-train',
       path: '/develop-train/mlflow/experiments/*',
+      trackingEvent: {
+        name: MlflowTrackingEvents.EMBEDDED_VIEW_OPENED,
+        section: 'sidebar-nav',
+      },
     },
   },
   {

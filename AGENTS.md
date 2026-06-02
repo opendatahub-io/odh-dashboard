@@ -15,6 +15,11 @@ odh-dashboard/
 │       └── __mocks__/          # Shared mock data (@odh-dashboard/internal/__mocks__)
 ├── backend/                     # Main dashboard backend (Node.js/Express)
 │   └── src/
+├── dashboard-operator/          # Dashboard Module Controller (Go, controller-runtime)
+│   ├── api/v1alpha1/           # CRD types (Dashboard kind)
+│   ├── cmd/manager/            # Controller entry point
+│   ├── internal/controller/    # Reconciler, actions, support utilities
+│   └── config/                 # Generated CRD, RBAC, manager manifests
 ├── packages/                    # Feature packages
 │   ├── cypress/                # Cypress test framework and shared tests
 │   ├── gen-ai/                 # Gen AI / LLM features (has BFF)
@@ -31,7 +36,7 @@ odh-dashboard/
 
 - **Node.js**: >= 22.0.0
 - **npm**: >= 10.0.0
-- **Go**: >= 1.24 (for packages with BFF)
+- **Go**: >= 1.24 (for packages with BFF), >= 1.25 (for dashboard-operator)
 
 ## Key Technologies
 
@@ -98,6 +103,7 @@ Rules live in `.claude/rules/`. Read the relevant rule file before starting the 
 | **Modular Architecture**    | `modular-architecture.md`     | When working on the plugin/extension system or package integration              |
 | **Module Federation**       | `module-federation.md`        | When configuring Module Federation, webpack remotes, or shared dependencies    |
 | **Module Onboarding**       | `module-onboarding.md`        | When creating a new package/module in the monorepo                             |
+| **Operator Controller**     | `operator-controller.md`      | When working on Go operator/controller-runtime code in `dashboard-operator/`   |
 | **Pull Requests**           | `pull-requests.md`            | When creating a pull request — must follow `.github/pull_request_template.md`  |
 | **React**                   | `react.md`                    | When writing React components, hooks, or pages                                 |
 | **Security**                | `security.md`                 | When working on auth, secrets, input validation, or K8s API interactions        |
@@ -117,7 +123,8 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Docs Update**                    | `skills/docs-update/`                  | Updating existing docs after code changes                                      |
 | **Upstream Sync Status**           | `skills/upstream-sync-status/`         | Checking whether a package's upstream copy is up to date (pass package name or be prompted) |
 | **Upstream Sync**                  | `skills/upstream-sync/`                | Syncing upstream changes for a package and opening a PR (pass package name or be prompted)  |
-| **Style Review**                  | `skills/style-review/`                 | Reviewing code for PF priority-order compliance, wrapper component usage, and class naming conventions per `css-patternfly.md` |
+| **Style Review**                   | `skills/style-review/`                 | Reviewing code for PF priority-order compliance, wrapper component usage, and class naming conventions per `css-patternfly.md` |
+| **RBAC Review**                    | `skills/rbac-review/`                  | Reviewing code for proper RBAC enforcement — catches missing SSAR gates, assumed access from `isAdmin`, and pages that break for limited-access users |
 | **Jira Triage**                   | `skills/jira-triage/`                  | Fetching Jira issues by filter criteria, running full triage on New issues (orchestrates all analysis skills), defining triage operations, and bulk-applying them |
 | **Jira Validate Priority/Severity** | `skills/jira-validate-priority-severity/` | Analyzing bugs for missing or incorrect severity and priority fields         |
 | **Jira Validate Description**     | `skills/jira-validate-description/`    | Validating issue descriptions for completeness per type, requesting missing information from reporters |
@@ -125,5 +132,6 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Validate Issue Type**      | `skills/jira-validate-issue-type/`     | Validating or correcting issue types (Bug, Story, Task) and labeling feature requests |
 | **Jira Validate Area Label**      | `skills/jira-validate-area-label/`     | Validating or assigning `dashboard-area-*` labels based on multi-signal content analysis |
 | **Jira Assign Scrum Team**        | `skills/jira-assign-scrum-team/`       | Assigning a scrum team label based on area-to-scrum mapping during triage |
+| **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
 
 **Important**: Always read the relevant rule or skill file before starting the task to ensure you follow the project's conventions and patterns.

@@ -8,6 +8,8 @@ import {
   LimitNameResourceType,
 } from '@odh-dashboard/internal/concepts/k8s/K8sNameDescriptionField/utils';
 import { useAccessReview } from '@odh-dashboard/internal/api/index';
+import useIsAreaAvailable from '@odh-dashboard/internal/concepts/areas/useIsAreaAvailable';
+import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { accessReviewResource } from './steps/AdvancedOptionsStep';
 import { useModelFormatField } from './fields/ModelFormatField';
 import { useModelTypeField } from './fields/ModelTypeSelectField';
@@ -18,7 +20,6 @@ import { useNumReplicasField } from './fields/NumReplicasField';
 import { useRuntimeArgsField } from './fields/RuntimeArgsField';
 import { useEnvironmentVariablesField } from './fields/EnvironmentVariablesField';
 import { useModelAvailabilityFields } from './fields/ModelAvailabilityFields';
-import { useModelServerSelectField } from './fields/ModelServerTemplateSelectField';
 import { type InitialWizardFormData, type WizardField, type WizardFormData } from './types';
 import { useCreateConnectionData } from './fields/CreateConnectionInputFields';
 import { useProjectSection } from './fields/ProjectSection';
@@ -52,6 +53,8 @@ export const useModelDeploymentWizard = (
   initialProjectName?: string | undefined,
   externalDataMap: ExternalDataMap = {},
 ): UseModelDeploymentWizardState => {
+  const vLLMDeploymentOnMaaSEnabled = useIsAreaAvailable(SupportedArea.VLLM_ON_MAAS).status;
+
   // Declare reducer state first so field hooks can access it
   // `fieldValues` are user-provided, `initialValues` are calculated by the reducer
   const [formReducerState, formReducerDispatch] = React.useReducer(wizardFormReducer, {
@@ -62,12 +65,12 @@ export const useModelDeploymentWizard = (
     () => ({
       ...formReducerState.initialValues,
       ...formReducerState.fieldValues,
+      ...{ devFeatureFlags: { vLLMDeploymentOnMaaS: vLLMDeploymentOnMaaSEnabled } },
     }),
-    [formReducerState.initialValues, formReducerState.fieldValues],
+    [formReducerState.initialValues, formReducerState.fieldValues, vLLMDeploymentOnMaaSEnabled],
   );
 
   // Step 1: Model Source
-  const modelType = useModelTypeField(initialData?.modelTypeField);
   const project = useProjectSection(initialProjectName);
 
   const [canCreateRoleBindings] = useAccessReview({
@@ -83,6 +86,11 @@ export const useModelDeploymentWizard = (
     project.projectName,
     initialData?.createConnectionData,
     modelLocationData.data,
+  );
+  const modelType = useModelTypeField(
+    initialData?.modelTypeField,
+    modelLocationData.data,
+    vLLMDeploymentOnMaaSEnabled,
   );
 
   // loaded state
@@ -105,17 +113,6 @@ export const useModelDeploymentWizard = (
     project.projectName,
   );
 
-  const modelServer = useModelServerSelectField(
-    initialData?.modelServer,
-    modelFormatState.templatesFilteredForModelType,
-    modelFormatState.modelFormat,
-    modelType.data,
-    hardwareProfileConfig.formData.selectedProfile,
-  );
-  const actualModelServer = React.useMemo(() => {
-    return formState.modelServer?.data ? formState.modelServer : modelServer;
-  }, [formState.modelServer, modelServer]);
-
   const numReplicas = useNumReplicasField(initialData?.numReplicas ?? undefined);
 
   // loaded state
@@ -132,13 +129,13 @@ export const useModelDeploymentWizard = (
   const externalRoute = useExternalRouteField(
     initialData?.externalRoute ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
   );
 
   const tokenAuthentication = useTokenAuthenticationField(
     initialData?.tokenAuthentication ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
     canCreateRoleBindings,
   );
 
@@ -149,7 +146,7 @@ export const useModelDeploymentWizard = (
   const deploymentStrategy = useDeploymentStrategyField(
     initialData?.deploymentStrategy ?? undefined,
     modelType,
-    actualModelServer,
+    formState.modelServer,
   );
 
   // Step 4: Summary
@@ -172,7 +169,6 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
       ...formState,
@@ -191,7 +187,6 @@ export const useModelDeploymentWizard = (
       runtimeArgs,
       environmentVariables,
       modelAvailability,
-      modelServer,
       deploymentStrategy,
       canCreateRoleBindings,
       formState,

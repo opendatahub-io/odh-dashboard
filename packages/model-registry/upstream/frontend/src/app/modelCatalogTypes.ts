@@ -12,6 +12,11 @@ import {
   ModelCatalogFilterKey,
   ModelCatalogTensorType,
 } from '../concepts/modelCatalog/const';
+// eslint-disable-next-line no-relative-import-paths/no-relative-import-paths
+import type {
+  CatalogFilterStringOption,
+  CatalogFilterNumberOption,
+} from './shared/components/catalog';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
@@ -36,6 +41,14 @@ export type CatalogSource = {
 
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
 
+export type ToolCallingConfig = {
+  args?: string;
+};
+
+export type ServingConfig = {
+  toolCalling?: ToolCallingConfig;
+};
+
 export type CatalogModel = {
   source_id?: string;
   name: string;
@@ -45,6 +58,7 @@ export type CatalogModel = {
   language?: string[];
   logo?: string;
   tasks?: string[];
+  validatedTasks?: string[];
   libraryName?: string;
   license?: string;
   licenseLink?: string;
@@ -52,6 +66,7 @@ export type CatalogModel = {
   createTimeSinceEpoch?: string;
   lastUpdateTimeSinceEpoch?: string;
   customProperties?: ModelRegistryCustomProperties;
+  servingConfig?: ServingConfig;
 };
 
 export type PaginationParams = {
@@ -169,18 +184,7 @@ export type CatalogPerformanceArtifactList = PaginationParams & {
   items: CatalogPerformanceMetricsArtifact[];
 };
 
-export type CatalogFilterNumberOption = {
-  type: 'number';
-  range?: {
-    max?: number;
-    min?: number;
-  };
-};
-
-export type CatalogFilterStringOption<T extends string> = {
-  type: 'string';
-  values?: T[];
-};
+export type { CatalogFilterStringOption, CatalogFilterNumberOption };
 
 export type GetCatalogModelsBySource = (
   opts: APIOptions,
@@ -286,6 +290,7 @@ export type ModelCatalogStringFilterValueType = {
   [ModelCatalogStringFilterKey.LICENSE]: string;
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode;
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType;
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string;
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string;
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue;
@@ -352,6 +357,7 @@ export type ModelCatalogFilterStates = {
   [ModelCatalogStringFilterKey.LICENSE]: string[];
   [ModelCatalogStringFilterKey.LANGUAGE]: AllLanguageCode[];
   [ModelCatalogStringFilterKey.TENSOR_TYPE]: ModelCatalogTensorType[];
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_TYPE]: string[];
   [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: string[];
   [ModelCatalogStringFilterKey.USE_CASE]: UseCaseOptionValue[];

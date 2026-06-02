@@ -16,6 +16,7 @@ aliases:
     - ederign
     - dpanshug
     - claudialphonse78
+    - andyatmiami
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -110,11 +111,19 @@ aliases:
     - antowaddle
     - FedeAlonso
     - sridarna
+    - ConorOM1
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
   quality-e2e-testing-reviewers:
     - ConorOM1
     - antowaddle
     - FedeAlonso
     - sridarna
+    - nikhils-2
+    - jefho-rh
+    - tamdavid-git
+    - zahra-j6
 
   # Workbenches (formerly Notebooks)
   workbenches-approvers:
@@ -191,6 +200,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   autorag-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -208,6 +218,7 @@ aliases:
     - chrjones-rh
     - GAUNSD
     - NickGagan
+    - tamdavid-git
   automl-reviewers:
     - nickmazzi
     - chrjones-rh
@@ -230,6 +241,22 @@ aliases:
     - pnaik1
     - ederign
 
+  # Agent Ops
+  agent-ops-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  agent-ops-reviewers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+
+  # Distributions
+  distributions-approvers:
+    - andyatmiami
+    - paulovmr
+  distributions-reviewers:
+    - caponetto
+    - jenny-s51
+
   # MLflow
   mlflow-approvers:
     - caponetto
@@ -241,3 +268,13 @@ aliases:
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+
+  # Core BFF
+  core-bff-approvers:
+    - caponetto
+    - andyatmiami
+    - lucferbux
+  core-bff-reviewers:
+    - caponetto
+    - andyatmiami
+    - lucferbux

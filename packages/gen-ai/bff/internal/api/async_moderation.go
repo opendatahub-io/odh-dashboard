@@ -452,6 +452,14 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 				return
 			}
 
+			// Process citation markers in the completed response.
+			// NOTE: Async moderation chunks accumulated before this point contain
+			// raw citation markers (<|uuid|>). This is low-risk because markers are
+			// structured tokens that guardrail models won't misinterpret as harmful.
+			if streamingEvent.Type == "response.completed" && streamingEvent.Response != nil {
+				processResponseCitations(streamingEvent.Response)
+			}
+
 			// Now send the completion event
 			if eventData, err := json.Marshal(streamingEvent); err == nil {
 				_ = sendEvent(eventData) // Best effort - client may have disconnected

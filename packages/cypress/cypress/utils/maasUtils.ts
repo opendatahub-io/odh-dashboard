@@ -227,12 +227,18 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     model_refs: [
       {
         name: 'granite-3-8b-instruct',
+        // eslint-disable-next-line camelcase
+        display_name: 'Granite 3 8B Instruct',
+        source: 'Internal',
         namespace: 'maas-models',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 100000, window: '24h' }],
       },
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 200000, window: '24h' }],
@@ -251,6 +257,9 @@ export const mockSubscriptionListItems = (): UserSubscription[] => [
     model_refs: [
       {
         name: 'flan-t5-small',
+        // eslint-disable-next-line camelcase
+        display_name: 'Flan T5 Small',
+        source: 'External',
         namespace: 'maas-models',
         // eslint-disable-next-line camelcase
         token_rate_limits: [{ limit: 10000, window: '24h' }],
@@ -472,5 +481,28 @@ export const mockPolicyInfo = (name = 'premium-team-policy'): PolicyInfoResponse
       phase: 'Ready' as const,
       endpoint: `https://${ref.name}.example.com`,
     })),
+  };
+};
+
+export const mockPolicyInfoMissingModelSummaries = (): PolicyInfoResponse => {
+  const policy: MaaSAuthPolicy = {
+    name: 'missing-model-summary-policy',
+    displayName: "Policy with model refs that don't exist",
+    namespace: 'maas-system',
+    phase: 'Active',
+    statusMessage: 'successfully reconciled',
+    modelRefs: [
+      {
+        name: 'deleted-model-ref',
+        namespace: 'maas-models',
+      },
+    ],
+    subjects: { groups: [{ name: 'premium-users' }] },
+    creationTimestamp: '2025-03-01T10:00:00Z',
+  };
+
+  return {
+    policy,
+    modelRefs: [],
   };
 };

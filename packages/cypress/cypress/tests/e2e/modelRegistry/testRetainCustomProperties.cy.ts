@@ -77,6 +77,9 @@ describe('Verify custom properties and labels are retained during Model Registry
   retryableBeforeEach(() => {
     cy.clearCookies();
     cy.clearLocalStorage();
+    if (modelName && databaseName) {
+      cleanupRegisteredModelsFromDatabase([modelName], databaseName);
+    }
   });
 
   it(
@@ -98,6 +101,7 @@ describe('Verify custom properties and labels are retained during Model Registry
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.modelDescription);
+      registerModelPage.selectModelType();
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.versionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)

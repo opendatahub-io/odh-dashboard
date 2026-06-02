@@ -4,11 +4,13 @@ import { Skeleton } from '@patternfly/react-core';
 import { PipelineRecurringRunKF, PipelineRunKF } from '#~/concepts/pipelines/kfTypes';
 import { usePipelinesAPI } from '#~/concepts/pipelines/context';
 import { mlflowExperimentRoute } from '#~/routes/pipelines/mlflow';
+import { MlflowTrackingEvents } from '#~/concepts/mlflow/const';
 import { NoRunContent } from '#~/concepts/pipelines/content/tables/renderUtils';
 import TruncatedText from '#~/components/TruncatedText';
 import { MlflowExperimentData } from '#~/concepts/mlflow/types';
 import { getMlflowExperimentNameFromRun } from '#~/concepts/pipelines/content/tables/pipelineRun/utils';
 import { isPipelineRun } from '#~/concepts/pipelines/content/utils';
+import { fireLinkTrackingEvent } from '#~/concepts/analyticsTracking/segmentIOUtils';
 
 type PipelineRunTableRowMlflowExperimentProps = {
   run: PipelineRunKF | PipelineRecurringRunKF;
@@ -29,6 +31,13 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
     experimentIdFromOutput ??
     (experimentName ? mlflow.experiments.find((e) => e.name === experimentName)?.id : undefined);
 
+  const handleExperimentClick = React.useCallback(() => {
+    fireLinkTrackingEvent(MlflowTrackingEvents.EMBEDDED_VIEW_OPENED, {
+      from: window.location.pathname,
+      section: 'pipeline-run-table',
+    });
+  }, []);
+
   if (!experimentName) {
     return <NoRunContent />;
   }
@@ -42,6 +51,7 @@ const PipelineRunTableRowMlflowExperiment: React.FC<PipelineRunTableRowMlflowExp
       <Link
         to={mlflowExperimentRoute(experimentId, namespace)}
         data-testid="mlflow-experiment-link"
+        onClick={handleExperimentClick}
       >
         <TruncatedText content={experimentName} maxLines={1} />
       </Link>

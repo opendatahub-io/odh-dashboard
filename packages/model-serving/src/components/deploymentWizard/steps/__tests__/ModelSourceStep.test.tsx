@@ -117,6 +117,20 @@ describe('ModelSourceStep', () => {
                   type: ModelLocationType.NEW,
                   fieldValues: { URI: 'uri://test' },
                   additionalFields: {},
+                  connectionTypeObject: {
+                    apiVersion: 'v1',
+                    kind: 'ConfigMap',
+                    metadata: {
+                      name: 'uri-v1',
+                      labels: {
+                        'opendatahub.io/connection-type': 'true',
+                        'opendatahub.io/dashboard': 'true',
+                      },
+                      annotations: {
+                        'opendatahub.io/connection-type': 'uri - v1',
+                      },
+                    },
+                  },
                 },
               },
             },

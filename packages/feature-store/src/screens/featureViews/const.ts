@@ -18,7 +18,7 @@ export const featureViewTableFilterOptions: Record<string, string> = {
 export const columns: SortableData<FeatureView>[] = [
   {
     field: 'feature_view',
-    label: 'Feature View',
+    label: 'Name',
     width: 25,
     sortable: (a: FeatureView, b: FeatureView): number => a.spec.name.localeCompare(b.spec.name),
   },

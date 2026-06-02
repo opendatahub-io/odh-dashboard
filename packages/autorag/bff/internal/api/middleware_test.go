@@ -15,8 +15,8 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8smocks"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,16 +31,16 @@ type CapturingMockClientFactory struct {
 	CapturedURL string
 }
 
-func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ls.LlamaStackClientInterface {
+func (f *CapturingMockClientFactory) CreateClient(baseURL string, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) ogx.OGXClientInterface {
 	f.CapturedURL = baseURL
-	return lsmocks.NewMockLlamaStackClient()
+	return ogxmocks.NewMockOGXClient()
 }
 
 func TestAttachNamespace(t *testing.T) {
 	t.Run("should return 400 when namespace query parameter is missing", func(t *testing.T) {
 		app := App{}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil) // no ?namespace=
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models", nil) // no ?namespace=
 		rr := httptest.NewRecorder()
 
 		app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -54,7 +54,7 @@ func TestAttachNamespace(t *testing.T) {
 	t.Run("should attach namespace to context and call next when namespace is present", func(t *testing.T) {
 		app := App{}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?namespace=my-namespace", nil)
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models?namespace=my-namespace", nil)
 		rr := httptest.NewRecorder()
 
 		var capturedNamespace string
@@ -68,18 +68,18 @@ func TestAttachNamespace(t *testing.T) {
 	})
 }
 
-func TestAttachLlamaStackClientFromSecret(t *testing.T) {
+func TestAttachOGXClientFromSecret(t *testing.T) {
 	t.Run("should return 400 when secretName query parameter is missing", func(t *testing.T) {
 		app := App{
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
+			ogxClientFactory: ogxmocks.NewMockClientFactory(),
+			repositories:     repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models", nil)
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models", nil)
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
@@ -89,15 +89,15 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 
 	t.Run("should return 400 when secretName is invalid DNS-1123 label", func(t *testing.T) {
 		app := App{
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
+			ogxClientFactory: ogxmocks.NewMockClientFactory(),
+			repositories:     repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=INVALID_NAME", nil)
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models?secretName=INVALID_NAME", nil)
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
@@ -105,19 +105,19 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 		assert.Contains(t, rr.Body.String(), "invalid secretName")
 	})
 
-	t.Run("should attach mock client when MockLSClient is true", func(t *testing.T) {
+	t.Run("should attach mock client when MockOGXClient is true", func(t *testing.T) {
 		app := App{
-			config:                  config.EnvConfig{MockLSClient: true},
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
+			config:           config.EnvConfig{MockOGXClient: true},
+			ogxClientFactory: ogxmocks.NewMockClientFactory(),
+			repositories:     repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models?secretName=my-secret", nil)
 		req = req.WithContext(context.WithValue(req.Context(), constants.NamespaceHeaderParameterKey, testNamespace))
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-			client := r.Context().Value(constants.LlamaStackClientKey)
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+			client := r.Context().Value(constants.OGXClientKey)
 			assert.NotNil(t, client)
 			w.WriteHeader(http.StatusOK)
 		})(rr, req, nil)
@@ -127,14 +127,14 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 
 	t.Run("should return error when namespace is missing from context", func(t *testing.T) {
 		app := App{
-			llamaStackClientFactory: lsmocks.NewMockClientFactory(),
-			repositories:            repositories.NewRepositories(slog.Default()),
+			ogxClientFactory: ogxmocks.NewMockClientFactory(),
+			repositories:     repositories.NewRepositories(slog.Default()),
 		}
 
-		req := httptest.NewRequest("GET", "/api/v1/lsd/models?secretName=my-secret", nil)
+		req := httptest.NewRequest("GET", "/api/v1/ogx/models?secretName=my-secret", nil)
 		rr := httptest.NewRecorder()
 
-		app.AttachLlamaStackClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		app.AttachOGXClientFromSecret(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			t.Fatal("Handler should not be called")
 		})(rr, req, nil)
 
@@ -143,66 +143,66 @@ func TestAttachLlamaStackClientFromSecret(t *testing.T) {
 	})
 }
 
-func TestIsValidLlamaStackURL(t *testing.T) {
+func TestIsValidOGXURL(t *testing.T) {
 	t.Run("should accept valid http URL with DNS hostname", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://llamastack.my-namespace.svc.cluster.local:8321")
+		err := isValidOGXURL("http://ogx.my-namespace.svc.cluster.local:8321")
 		assert.NoError(t, err)
 	})
 
 	t.Run("should accept valid https URL", func(t *testing.T) {
-		err := isValidLlamaStackURL("https://llamastack.example.com:8321")
+		err := isValidOGXURL("https://ogx.example.com:8321")
 		assert.NoError(t, err)
 	})
 
 	t.Run("should accept private IP addresses (cluster-internal)", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://10.0.0.5:8321")
+		err := isValidOGXURL("http://10.0.0.5:8321")
 		assert.NoError(t, err)
 	})
 
 	t.Run("should reject non-http/https schemes", func(t *testing.T) {
-		err := isValidLlamaStackURL("ftp://llamastack:8321")
+		err := isValidOGXURL("ftp://ogx:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid URL scheme")
 	})
 
 	t.Run("should reject loopback IPv4 address", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://127.0.0.1:8321")
+		err := isValidOGXURL("http://127.0.0.1:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "loopback")
 	})
 
 	t.Run("should reject loopback IPv6 address", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://[::1]:8321")
+		err := isValidOGXURL("http://[::1]:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "loopback")
 	})
 
 	t.Run("should reject cloud metadata endpoint (169.254.169.254)", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://169.254.169.254/latest/meta-data/")
+		err := isValidOGXURL("http://169.254.169.254/latest/meta-data/")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "link-local")
 	})
 
 	t.Run("should reject other link-local addresses", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://169.254.0.1:8321")
+		err := isValidOGXURL("http://169.254.0.1:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "link-local")
 	})
 
 	t.Run("should reject unspecified address 0.0.0.0", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://0.0.0.0:8321")
+		err := isValidOGXURL("http://0.0.0.0:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unspecified")
 	})
 
 	t.Run("should reject URL without host", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://")
+		err := isValidOGXURL("http://")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "must contain a host")
 	})
 
 	t.Run("should reject localhost (resolves to loopback)", func(t *testing.T) {
-		err := isValidLlamaStackURL("http://localhost:8321")
+		err := isValidOGXURL("http://localhost:8321")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "loopback")
 	})
@@ -211,7 +211,7 @@ func TestIsValidLlamaStackURL(t *testing.T) {
 		// Hostnames that don't resolve are allowed through — they may only be resolvable
 		// inside a cluster (e.g., svc.cluster.local). The HTTP client will fail later
 		// with a connection error, handled as 502 Bad Gateway.
-		err := isValidLlamaStackURL("http://this-hostname-does-not-exist.invalid:8321")
+		err := isValidOGXURL("http://this-hostname-does-not-exist.invalid:8321")
 		assert.NoError(t, err)
 	})
 
@@ -219,7 +219,7 @@ func TestIsValidLlamaStackURL(t *testing.T) {
 		// In OpenShift/CI environments this hostname doesn't resolve, so it passes
 		// validation (non-resolving hostnames are allowed through).
 		// In GCP environments it would resolve to 169.254.169.254 and be blocked as link-local.
-		err := isValidLlamaStackURL("http://metadata.google.internal")
+		err := isValidOGXURL("http://metadata.google.internal")
 		if err != nil {
 			// If it resolved (e.g., in GCP), it should be blocked as link-local
 			assert.Contains(t, err.Error(), "link-local")
@@ -416,9 +416,9 @@ func TestPreserveRawPath(t *testing.T) {
 		},
 		{
 			name:         "non-s3 path with RawPath is unchanged",
-			path:         "/api/v1/lsd/models",
-			rawPath:      "/api/v1/lsd/models",
-			expectedPath: "/api/v1/lsd/models",
+			path:         "/api/v1/ogx/models",
+			rawPath:      "/api/v1/ogx/models",
+			expectedPath: "/api/v1/ogx/models",
 		},
 		{
 			name:           "prefixed path is matched after StripPrefix removes prefix",

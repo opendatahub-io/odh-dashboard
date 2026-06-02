@@ -2,6 +2,8 @@
 description: Cypress E2E test creation and maintenance guidelines for live cluster testing
 globs: "packages/cypress/cypress/tests/e2e/**"
 alwaysApply: false
+paths:
+  - "packages/cypress/cypress/tests/e2e/**"
 ---
 
 # Cypress E2E Test Rules

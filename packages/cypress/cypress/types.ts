@@ -228,7 +228,7 @@ export type StandaloneNotebookTestData = {
 };
 
 export type CommandLineResult = {
-  code: number;
+  exitCode: number;
   stdout: string;
   stderr: string;
 };
@@ -548,6 +548,10 @@ export type ModelRegistryTestData = {
   versionCustomProperties: Array<{ key: string; value: string }>;
   newVersionPropertyKey: string;
   newVersionPropertyValue: string;
+
+  // Hardware profile configuration
+  hardwareProfileName: string;
+  hardwareProfileYamlPath: string;
 };
 
 export type ManageRegistryPermissionsTestData = {
@@ -605,6 +609,7 @@ export type FeatureStoreTestData = {
 };
 
 export type GenAiTestData = {
+  projectNamePrefix: string;
   projectDescription: string;
   connectionName: string;
   connectionDescription: string;
@@ -684,30 +689,6 @@ export type PipelineTestData = {
   experimentName: string;
   dspaSecretName: string;
   pipelineUrl: string;
-};
-
-export type TiersTestData = {
-  projectName: string;
-  name: string;
-  description: string;
-  level: number;
-  groups: string[];
-  tokenRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  requestRateLimit: {
-    count: string;
-    time: string;
-    unit: string;
-  };
-  editGroup: string;
-  editTokenRateLimitUnit: string;
-  editRequestRateLimitUnit: string;
-  tierDeploymentOption: string;
-  groupsCount: number;
-  limits: string;
 };
 
 export type PromptManagementPromptData = {

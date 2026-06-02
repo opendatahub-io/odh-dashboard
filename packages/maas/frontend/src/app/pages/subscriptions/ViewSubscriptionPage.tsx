@@ -111,7 +111,7 @@ const ViewSubscriptionPage: React.FC = () => {
         subscriptionInfo && <SubscriptionActions subscription={subscriptionInfo.subscription} />
       }
       empty={false}
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       loadError={loadError}
       errorMessage="Unable to load subscription details."
     >
@@ -138,6 +138,7 @@ const ViewSubscriptionPage: React.FC = () => {
               <MaasModelsSection
                 modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
                 modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
+                resourceType="subscription"
               />
             </PageSection>
           </Tab>

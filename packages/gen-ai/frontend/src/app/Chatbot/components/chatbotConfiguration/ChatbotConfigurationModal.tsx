@@ -400,7 +400,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   };
 
   const isNemoGuardrailsConflict = (e: unknown): boolean =>
-    e instanceof Error && 'code' in e && e.code === '409';
+    e instanceof Error && 'code' in e && e.code === 'conflict';
 
   const onSubmit = () => {
     if (submitting) {
@@ -447,7 +447,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         }),
       });
 
-      // If guardrails are enabled, init NemoGuardrails. A 409 (already initialised) is swallowed —
+      // If guardrails are enabled, init NemoGuardrails. A conflict (already initialised) is swallowed —
       // the status poller in ChatbotConfigurationState handles waiting for ready.
       // Any other error (network fault, server error) is rethrown to surface in the wizard.
       const nemoPromise: Promise<void> = guardrailsEnabled
@@ -471,6 +471,13 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
               success: true,
               namespace: namespace?.name,
               countModelsSelected: selectedModels.length,
+              countCollectionsSelected: selectedCollections.length,
+              countEmbeddingModels: selectedModels.filter((model) => {
+                const resolvedType =
+                  modelTypeMap.get(model.model_name) ??
+                  (model.model_type === 'embedding' ? 'Embedding' : 'Inference');
+                return resolvedType === 'Embedding';
+              }).length,
               ...(isUpdate && { countPreviousModelsSelected: existingModels.length }),
             },
           );

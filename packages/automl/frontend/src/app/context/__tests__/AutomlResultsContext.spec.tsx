@@ -61,6 +61,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: true,
         models,
         modelsLoading: false,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -69,6 +70,7 @@ describe('getAutomlContext', () => {
           train_data_bucket_name: '',
           train_data_file_key: '',
           top_n: 3,
+          target_column: '',
           label_column: '',
           target: '',
           id_column: '',
@@ -90,6 +92,7 @@ describe('getAutomlContext', () => {
         pipelineRunLoading: undefined,
         models: mockModels,
         modelsLoading: undefined,
+        modelsBasePath: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -98,6 +101,7 @@ describe('getAutomlContext', () => {
           train_data_bucket_name: '',
           train_data_file_key: '',
           top_n: 3,
+          target_column: '',
           label_column: '',
           target: '',
           id_column: '',
@@ -128,6 +132,27 @@ describe('getAutomlContext', () => {
 
       expect(context.models).toEqual({});
     });
+
+    it('should pass through modelsBasePath when provided', () => {
+      const pipelineRun = createMockPipelineRun({ task_type: 'binary' });
+
+      const context = getAutomlContext({
+        pipelineRun,
+        modelsBasePath: 's3://bucket/path/to/models',
+      });
+
+      expect(context.modelsBasePath).toBe('s3://bucket/path/to/models');
+    });
+
+    it('should default modelsBasePath to undefined when not provided', () => {
+      const pipelineRun = createMockPipelineRun();
+
+      const context = getAutomlContext({
+        pipelineRun,
+      });
+
+      expect(context.modelsBasePath).toBeUndefined();
+    });
   });
 
   describe('parameters extraction', () => {
@@ -152,6 +177,7 @@ describe('getAutomlContext', () => {
         train_data_secret_name: 'my-secret',
         train_data_bucket_name: 'my-bucket',
         train_data_file_key: 'data.csv',
+        target_column: '',
         label_column: 'target',
         top_n: 5,
         target: '',
@@ -184,6 +210,7 @@ describe('getAutomlContext', () => {
         train_data_bucket_name: '',
         train_data_file_key: '',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: 'sales',
         id_column: 'store_id',
@@ -213,6 +240,7 @@ describe('getAutomlContext', () => {
         train_data_bucket_name: '',
         train_data_file_key: '',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: '',
         id_column: '',
@@ -237,6 +265,7 @@ describe('getAutomlContext', () => {
         train_data_bucket_name: '',
         train_data_file_key: '',
         top_n: 3,
+        target_column: '',
         label_column: '',
         target: '',
         id_column: '',

@@ -11,6 +11,10 @@ import { useChatbotConfigStore, ChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/
 
 jest.mock('~/app/hooks/useFetchVectorStores');
 jest.mock('~/app/hooks/useGenAiAPI');
+jest.mock('~/app/hooks/useChatPlaygroundEnabled', () => ({
+  __esModule: true,
+  default: () => true,
+}));
 jest.mock('~/app/Chatbot/store', () => ({
   ...jest.requireActual('~/app/Chatbot/store'),
   useChatbotConfigStore: jest.fn(),

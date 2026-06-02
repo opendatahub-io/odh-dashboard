@@ -8,6 +8,7 @@ import (
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
+	"github.com/opendatahub-io/autorag-library/bff/internal/pipelines"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,6 +27,7 @@ func (m *conflictVersionMockClient) UploadPipelineVersion(_ context.Context, _ s
 
 func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
 	if m.versionName != "" {
+		// After upload attempt, return the version that was uploaded (simulates concurrent creation)
 		return &models.KFPipelineVersionsResponse{
 			PipelineVersions: []models.KFPipelineVersion{
 				{
@@ -38,7 +40,30 @@ func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipe
 			TotalSize: 1,
 		}, nil
 	}
-	return m.MockPipelineServerClient.ListPipelineVersions(context.Background(), pipelineID)
+	// Before upload: return only an old version so discovery misses the current version
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "old-version-id",
+				DisplayName:       "documents-rag-optimization-pipeline-3.4.0",
+				CreatedAt:         "2026-01-01T10:00:00Z",
+			},
+		},
+		TotalSize: 1,
+	}, nil
+}
+
+// capturingMockClient wraps MockPipelineServerClient and captures the YAML bytes passed to UploadPipelineVersion.
+type capturingMockClient struct {
+	*psmocks.MockPipelineServerClient
+	capturedYAML []byte
+}
+
+func (m *capturingMockClient) UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error) {
+	m.capturedYAML = make([]byte, len(fileContent))
+	copy(m.capturedYAML, fileContent)
+	return m.MockPipelineServerClient.UploadPipelineVersion(ctx, pipelineID, versionName, fileContent)
 }
 
 func TestDiscoverNamedPipelines(t *testing.T) {
@@ -431,6 +456,54 @@ func TestDiscoverNamedPipelines_NoVersions(t *testing.T) {
 	})
 }
 
+// mismatchedVersionClient returns a pipeline with versions whose names don't match DefaultPipelineVersion
+type mismatchedVersionClient struct {
+	psmocks.MockPipelineServerClient
+}
+
+func (m *mismatchedVersionClient) ListPipelineVersions(_ context.Context, pipelineID string) (*models.KFPipelineVersionsResponse, error) {
+	return &models.KFPipelineVersionsResponse{
+		PipelineVersions: []models.KFPipelineVersion{
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "version-old-1",
+				DisplayName:       "documents-rag-optimization-pipeline-1.0.0",
+				CreatedAt:         "2026-02-23T10:00:00Z",
+			},
+			{
+				PipelineID:        pipelineID,
+				PipelineVersionID: "version-old-2",
+				DisplayName:       "documents-rag-optimization-pipeline-2.0.0",
+				CreatedAt:         "2026-02-20T10:00:00Z",
+			},
+		},
+		TotalSize:     2,
+		NextPageToken: "",
+	}, nil
+}
+
+func TestDiscoverNamedPipelines_VersionNameMismatch(t *testing.T) {
+	repo := NewPipelineRepository()
+	ctx := context.Background()
+
+	t.Run("should fall back to first version when default version name is not found", func(t *testing.T) {
+		namespace := "test-ns-mismatch"
+		client := &mismatchedVersionClient{}
+
+		pipelineName := "documents-rag-optimization-pipeline"
+		definitions := map[string]string{"autorag": pipelineName}
+		pipelines, err := repo.DiscoverNamedPipelines(client, ctx, namespace, "http://mock-ps-mismatch", definitions)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, pipelines)
+		assert.Contains(t, pipelines, "autorag")
+		assert.Equal(t, "version-old-1", pipelines["autorag"].PipelineVersionID)
+		assert.Len(t, pipelines["autorag"].AllVersionIDs, 2)
+		assert.Contains(t, pipelines["autorag"].AllVersionIDs, "version-old-1")
+		assert.Contains(t, pipelines["autorag"].AllVersionIDs, "version-old-2")
+	})
+}
+
 func TestBuildPipelineNameFilter(t *testing.T) {
 	t.Run("should return empty string when prefix is empty", func(t *testing.T) {
 		result := buildPipelineNameFilter("")
@@ -528,5 +601,53 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.NotNil(t, discovered)
 		assert.True(t, mockClient.uploaded, "UploadPipelineVersion should have been called")
 		assert.Equal(t, "documents-rag-optimization-pipeline", discovered.PipelineName)
+	})
+
+	t.Run("should replace image when RELATED_IMAGE_ODH_AUTORAG_IMAGE is set", func(t *testing.T) {
+		overrideImage := "registry.redhat.io/rhoai/odh-autorag-rhel9@sha256:overridden"
+		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", overrideImage)
+
+		namespace := "test-ns-ensure-image-override"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &capturingMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
+		assert.Contains(t, string(mockClient.capturedYAML), overrideImage)
+		assert.False(t, pipelines.AutoRAGImagePattern.Match(mockClient.capturedYAML), "original image pattern should not remain after override")
+	})
+
+	t.Run("should use default image when RELATED_IMAGE_ODH_AUTORAG_IMAGE is unset", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "")
+
+		namespace := "test-ns-ensure-default-image"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &capturingMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "documents-rag-optimization-pipeline",
+			PipelineDir: "documents_rag_optimization_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
+		assert.True(t, pipelines.AutoRAGImagePattern.Match(mockClient.capturedYAML), "embedded default image should be preserved")
 	})
 }

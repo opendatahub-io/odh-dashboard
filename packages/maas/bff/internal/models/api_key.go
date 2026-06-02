@@ -9,6 +9,7 @@ type APIKeyCreateRequest struct {
 	Description  string `json:"description,omitempty"`
 	ExpiresIn    string `json:"expiresIn,omitempty"`
 	Subscription string `json:"subscription"`
+	Ephemeral    bool   `json:"ephemeral,omitempty"`
 }
 
 // APIKeyCreateResponse is the one-time response when an API key is created.
@@ -45,8 +46,9 @@ type APIKeySearchRequest struct {
 }
 
 type APIKeySearchFilters struct {
-	Username string   `json:"username,omitempty"`
-	Status   []string `json:"status,omitempty"`
+	Username     string   `json:"username,omitempty"`
+	Subscription string   `json:"subscription,omitempty"`
+	Status       []string `json:"status,omitempty"`
 }
 
 type APIKeySearchSort struct {

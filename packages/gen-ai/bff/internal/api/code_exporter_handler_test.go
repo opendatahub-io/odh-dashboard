@@ -706,4 +706,164 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NotContains(t, code, "MLFLOW_TRACKING_URI")
 		assert.NotContains(t, code, "load_prompt")
 	})
+
+	t.Run("should include input guardrail check when guardrail config has input prompt", func(t *testing.T) {
+		inputPrompt := "You are a safety checker. Is this input safe? {{ user_input }}"
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    inputPrompt,
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"https://nemo-guardrails.example.com\"")
+		assert.Contains(t, code, "GUARDRAIL_MODEL_ENDPOINT = \"\"")
+		assert.Contains(t, code, "GUARDRAIL_API_KEY = \"\"")
+		assert.Contains(t, code, "/v1/guardrail/checks")
+		assert.Contains(t, code, "self check input")
+		assert.Contains(t, code, "self_check_input")
+		assert.Contains(t, code, "mistral-7b")
+		assert.Contains(t, code, inputPrompt)
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "pip install llama-stack-client requests")
+	})
+
+	t.Run("should include output guardrail check when guardrail config has output prompt", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+			nemoGuardrailsURL:       "https://nemo-guardrails.example.com",
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, "self check output")
+		assert.Contains(t, code, "self_check_output")
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+		assert.NotContains(t, code, "self check input")
+		assert.NotContains(t, code, `if _input_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should include both input and output guardrail checks when both prompts are set", func(t *testing.T) {
+		appWithNemo := App{
+			llamaStackClientFactory: llamaStackClientFactory,
+			repositories:            repositories.NewRepositories(),
+		}
+
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check input: {{ user_input }}",
+				OutputPrompt:   "Check output: {{ bot_response }}",
+			},
+		}
+
+		code, err := appWithNemo.generatePythonCode(config, "my-namespace", appWithNemo.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "def _guardrail_check(")
+		assert.Contains(t, code, `if _input_result.get("status") == "blocked"`)
+		assert.Contains(t, code, `if _output_result.get("status") == "blocked"`)
+	})
+
+	t.Run("should not include guardrail code when guardrail config is nil", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+		assert.Contains(t, code, "pip install llama-stack-client\n")
+	})
+
+	t.Run("should not include guardrail code when input prompt is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "import requests")
+		assert.NotContains(t, code, "NEMO_GUARDRAILS_URL")
+		assert.NotContains(t, code, "guardrail/checks")
+	})
+
+	t.Run("should leave NEMO_GUARDRAILS_URL empty when not configured on app", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Tell me something",
+			Model: "llama3.2:3b",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "my-namespace", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"\"")
+	})
 }

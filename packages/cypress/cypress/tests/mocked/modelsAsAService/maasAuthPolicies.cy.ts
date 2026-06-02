@@ -13,6 +13,7 @@ import {
   mockCreatePolicyResponse,
   mockPolicyInfo,
   mockSubscriptionFormData,
+  mockPolicyInfoMissingModelSummaries,
 } from '../../../utils/maasUtils';
 
 const setupAuthPoliciesCommon = () => {
@@ -29,7 +30,7 @@ const setupAuthPoliciesCommon = () => {
     'GET /api/dsc/status',
     mockDscStatus({
       components: {
-        [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
       },
       conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
     }),
@@ -87,6 +88,28 @@ describe('MaaS Auth Policies', () => {
     authPoliciesPage.visit();
     authPoliciesPage.findEmptyState().should('exist');
     authPoliciesPage.findCreateAuthPolicyButton().should('exist');
+  });
+
+  it('should display a useful error state when the auth policies search fails', () => {
+    cy.intercept('GET', '/maas/api/v1/all-policies', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+        },
+      },
+    }).as('searchError');
+    authPoliciesPage.visit();
+    cy.wait('@searchError');
+    authPoliciesPage.findErrorState().should('exist');
+    authPoliciesPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/all-policies',
+      );
   });
 
   it('should display the auth policies table with correct page content', () => {
@@ -264,6 +287,21 @@ describe('View Auth Policy Page', () => {
 
     viewAuthPolicyPage.findBreadcrumbPoliciesLink().click();
     cy.url().should('include', '/maas/auth-policies');
+  });
+
+  it("should list models from the policy when model ref doesn't exist", () => {
+    const orphanPolicyName = 'missing-model-summary-policy';
+    cy.interceptOdh(
+      'GET /maas/api/v1/view-policy/:name',
+      { path: { name: orphanPolicyName } },
+      { data: mockPolicyInfoMissingModelSummaries() },
+    );
+    viewAuthPolicyPage.visit(orphanPolicyName);
+    viewAuthPolicyPage.findModelsSection().should('exist');
+    viewAuthPolicyPage
+      .findModelsTable()
+      .should('contain.text', 'deleted-model-ref')
+      .and('contain.text', 'maas-models');
   });
 
   it('should show error state when the view-policy API fails', () => {

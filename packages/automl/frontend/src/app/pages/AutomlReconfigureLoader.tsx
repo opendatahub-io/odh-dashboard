@@ -177,11 +177,17 @@ function AutomlReconfigureLoader(): React.JSX.Element {
     }
   }
 
+  const parsed = parsedParams?.success ? parsedParams.data : {};
+
+  // Prefer the unified key, then legacy timeseries key, then legacy tabular key.
+  const targetColumn = parsed.target_column || parsed.target || parsed.label_column || '';
+
   /* eslint-disable camelcase */
   const initialValues: Partial<ConfigureSchema> = {
-    ...(parsedParams?.success ? parsedParams.data : {}),
+    ...parsed,
     display_name: generateReconfigureName(pipelineRun.display_name),
     ...(taskType != null && { task_type: taskType }),
+    target_column: targetColumn,
   };
   /* eslint-enable camelcase */
 

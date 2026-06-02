@@ -2,6 +2,7 @@ import * as React from 'react';
 import { SVGIconProps } from '@patternfly/react-icons/dist/esm/createIcon';
 import { ProjectObjectType, typedColor } from '#~/concepts/design/utils';
 import {
+  ApiKeysAndSubscriptionsIcon,
   BuildIcon,
   NotebookIcon,
   CreateAndTrainIcon,
@@ -173,6 +174,9 @@ const TypedObjectIcon: React.FC<TypedObjectIconProps> = ({
       break;
     case ProjectObjectType.taskAssistant:
       Icon = ChecklistIcon;
+      break;
+    case ProjectObjectType.apiKeys:
+      Icon = ApiKeysAndSubscriptionsIcon;
       break;
     default:
       return null;

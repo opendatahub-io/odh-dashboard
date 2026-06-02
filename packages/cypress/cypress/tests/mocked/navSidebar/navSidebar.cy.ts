@@ -23,6 +23,22 @@ describe('Nav Sidebar model section', () => {
     navSidebar.findNavSection('AI hub').should('not.exist');
   });
 
+  it('should show the models section when catalog is enabled but registry is disabled', () => {
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        disableModelCatalog: false,
+        disableModelRegistry: true,
+        disableModelServing: true,
+        genAiStudio: false,
+        disableFineTuning: true,
+      }),
+    );
+    navSidebar.visit();
+    navSidebar.findNavSection('AI hub').should('exist');
+    navSidebar.findNavItem({ name: 'Models', rootSection: 'AI hub' }).should('exist');
+  });
+
   it('should show the models section if some of the related feature flags are enabled', () => {
     cy.interceptOdh(
       'GET /api/config',

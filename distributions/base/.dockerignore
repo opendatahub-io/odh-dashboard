@@ -1,0 +1,10 @@
+**/node_modules
+**/public
+**/.git
+**/__tests__
+**/__mocks__
+**/.env.development
+**/.env.test
+**/coverage
+**/dist
+**/README.md

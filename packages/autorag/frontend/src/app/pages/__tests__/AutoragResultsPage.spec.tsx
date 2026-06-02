@@ -284,6 +284,7 @@ describe('AutoragResultsPage', () => {
       failedPatterns: [],
       isLoading: false,
       isError: false,
+      ragPatternsBasePath: undefined,
       error: undefined,
       refetch: jest.fn(),
     });
@@ -331,9 +332,9 @@ describe('AutoragResultsPage', () => {
         test_data_secret_name: 'test-secret',
         test_data_bucket_name: 'test-bucket',
         test_data_key: 'test.csv',
-        llama_stack_secret_name: 'llama-secret',
+        ogx_secret_name: 'ogx-secret',
         generation_models: ['llama-3'],
-        embeddings_models: ['text-embedding-3'],
+        embedding_models: ['text-embedding-3'],
         optimization_metric: 'faithfulness',
         optimization_max_rag_patterns: 10,
       });
@@ -351,6 +352,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
       });
 
       renderPage();
@@ -361,6 +363,7 @@ describe('AutoragResultsPage', () => {
         patterns: mockPatterns,
         pipelineRunLoading: false,
         patternsLoading: false,
+        ragPatternsBasePath: 's3://bucket/rag-patterns',
         parameters: {
           display_name: 'My RAG Run',
           input_data_secret_name: 'my-secret',
@@ -369,9 +372,9 @@ describe('AutoragResultsPage', () => {
           test_data_secret_name: 'test-secret',
           test_data_bucket_name: 'test-bucket',
           test_data_key: 'test.csv',
-          llama_stack_secret_name: 'llama-secret',
+          ogx_secret_name: 'ogx-secret',
           generation_models: ['llama-3'],
-          embeddings_models: ['text-embedding-3'],
+          embedding_models: ['text-embedding-3'],
           optimization_metric: 'faithfulness',
           optimization_max_rag_patterns: 10,
         },
@@ -428,6 +431,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: true,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -453,6 +457,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -478,6 +483,7 @@ describe('AutoragResultsPage', () => {
         failedPatterns: [],
         isLoading: false,
         isError: false,
+        ragPatternsBasePath: undefined,
       });
 
       renderPage();
@@ -586,7 +592,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -746,15 +752,35 @@ describe('AutoragResultsPage', () => {
     it('should disable modal buttons while termination is pending', async () => {
       setupWithRunState('RUNNING');
       const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      // Start with isPending: false so the Stop button is clickable
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: false,
+      });
+
+      const { rerender } = render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
+
+      // Open the modal
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      // Now set isPending: true to simulate in-progress termination
       useTerminatePipelineRunMutation.mockReturnValue({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
         isPending: true,
       });
 
-      renderPage();
-
-      await userEvent.click(screen.getByTestId('stop-run-button'));
+      rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutoragResultsPage />
+        </QueryClientProvider>,
+      );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
       expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();

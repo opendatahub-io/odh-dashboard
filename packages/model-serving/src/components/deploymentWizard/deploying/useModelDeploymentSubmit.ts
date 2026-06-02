@@ -7,7 +7,8 @@ import { useWizardFieldPostDeploy } from './useWizardFieldPostDeploy';
 import { ModelDeploymentWizardValidation } from '../useDeploymentWizardValidation';
 import { useWizardFieldApply } from '../useWizardFieldApply';
 import { deployModel } from '../utils';
-import { Deployment, DeploymentAssemblyResources } from '../../../../extension-points';
+import { Deployment } from '../../../../extension-points';
+import { DeploymentAssemblyResources } from '../../../../extension-points/deployment-wizard';
 import { InitialWizardFormData } from '../types';
 import { WizardFormState } from '../useDeploymentWizardReducer';
 import { ModelDeploymentWizardViewMode } from '../ModelDeploymentWizard';
@@ -78,7 +79,7 @@ export const useModelDeploymentSubmit = (
           );
         }
 
-        const serverResourceTemplateName = formState.modelServer.data?.selection?.name;
+        const serverResourceTemplateName = formState.modelServer?.data?.selection?.name;
         const allModelServerTemplates = formState.modelFormatState.templatesFilteredForModelType;
         const serverResource = serverResourceTemplateName
           ? getServingRuntimeFromTemplate(

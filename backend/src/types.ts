@@ -51,12 +51,14 @@ export type DashboardConfig = K8sResourceCommon & {
       disableFeatureStore: boolean;
       trainingJobs: boolean;
       genAiStudio: boolean;
+      guardrails: boolean;
       automl: boolean;
       autorag: boolean;
       modelAsService: boolean;
       maasAuthPolicies: boolean;
       mlflow: boolean;
       mcpCatalog: boolean;
+      toolCalling: boolean;
       aiAssetCustomEndpoints: boolean;
       disableLLMd: boolean;
       projectRBAC: boolean;
@@ -65,6 +67,7 @@ export type DashboardConfig = K8sResourceCommon & {
       vLLMDeploymentOnMaaS: boolean;
       llmGatewayField: boolean;
       promptManagement: boolean;
+      mySubscriptions: boolean;
     };
     // Intentionally disjointed from the CRD, we should move away from this code-wise now; CRD later
     // groupsConfig?: {
@@ -1011,8 +1014,9 @@ export type DataScienceClusterList = {
 export type DataScienceClusterInitializationKindStatus = {
   conditions: K8sCondition[];
   phase?: string;
-  monitoring?: {
-    namespace?: string;
+  release?: {
+    name?: string;
+    version?: string;
   };
 };
 

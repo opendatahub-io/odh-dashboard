@@ -226,9 +226,9 @@ func TestMaaSModelsHandler_IncludesSubscriptions(t *testing.T) {
 	assert.NotNil(t, firstModel.Subscriptions)
 	assert.Len(t, firstModel.Subscriptions, 2)
 	assert.Equal(t, "basic-subscription", firstModel.Subscriptions[0].Name)
-	assert.Equal(t, "Basic Tier", firstModel.Subscriptions[0].DisplayName)
+	assert.Equal(t, "Basic Subscription", firstModel.Subscriptions[0].DisplayName)
 	assert.Equal(t, "premium-subscription", firstModel.Subscriptions[1].Name)
-	assert.Equal(t, "Premium Tier", firstModel.Subscriptions[1].DisplayName)
+	assert.Equal(t, "Premium Subscription", firstModel.Subscriptions[1].DisplayName)
 	assert.Equal(t, "Premium subscription with higher rate limits", firstModel.Subscriptions[1].Description)
 
 	// Second model (llama-2-13b-chat) should have 1 subscription
