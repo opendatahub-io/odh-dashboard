@@ -663,7 +663,7 @@ export type ModelAsAServiceTestData = {
   policiesName: string;
   policiesDescription: string;
   policiesGroups: string[];
-  tokenRateLimit: { limit: number; window: string; unit: string };
+  tokenRateLimit: { limit: string; window: string; unit: string };
   policiesGroupsCount: number;
   policiesModelsCount: number;
   apiKeyName: string;

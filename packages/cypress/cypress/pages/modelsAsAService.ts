@@ -141,8 +141,16 @@ class APIKeyTableRow extends TableRow {
     return this.findSubscription().findByTestId('subscription-popover-button');
   }
 
+  findOwner(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Owner"]');
+  }
+
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Created"]');
+  }
+
+  findLastUsedAt(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().find('[data-label="Last used"]');
   }
 
   findExpirationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -234,6 +242,10 @@ class CreateApiKeyModal extends Modal {
 
   findCustomDaysInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-custom-days-input');
+  }
+
+  findCustomDaysErrorMessage(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.find().findByTestId('api-key-custom-days-error-message');
   }
 
   findSubmitButton(): Cypress.Chainable<JQuery<HTMLElement>> {

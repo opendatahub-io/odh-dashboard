@@ -224,11 +224,11 @@ export const checkMaaSAuthPolicyState = (
   if (options.expectDeleted === true) {
     cy.log(`Checking MaaSAuthPolicy is absent: ${policyName} in namespace ${namespace}`);
     return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result) => {
-      if (result.code !== 0 && ocGetIndicatesResourceNotFound(result)) {
+      if (result.exitCode !== 0 && ocGetIndicatesResourceNotFound(result)) {
         cy.log(`✅ MaaSAuthPolicy ${policyName} is absent from namespace ${namespace}`);
         return cy.wrap(result);
       }
-      if (result.code === 0) {
+      if (result.exitCode === 0) {
         throw new Error(`MaaSAuthPolicy ${policyName} still exists in namespace ${namespace}`);
       }
       throw new Error(

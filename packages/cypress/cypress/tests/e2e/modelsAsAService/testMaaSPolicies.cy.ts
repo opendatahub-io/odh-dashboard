@@ -13,7 +13,7 @@ import {
   deleteOpenShiftProject,
   verifyOpenShiftProjectExists,
 } from '../../../utils/oc_commands/project';
-import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
+import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { createCleanProject } from '../../../utils/projectChecker';
 import {
@@ -28,6 +28,7 @@ import {
   viewAuthPolicyPage,
   policyPage,
   deleteAuthPolicyModal,
+  adminBulkRevokeAPIKeyModal,
 } from '../../../pages/modelsAsAService';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { ModelAsAServiceTestData, DataConnectionUriReplacements } from '../../../types';
@@ -45,13 +46,21 @@ let modelURI: string;
 let subscriptionName: string;
 let subscriptionDescription: string;
 let subscriptionGroups: string[];
-let tokenRateLimit: { limit: number; window: string; unit: string };
+let tokenRateLimit: { limit: string; window: string; unit: string };
 let policiesName: string;
 let policiesDescription: string;
 let apiKeyName: string;
 let apiKeyExpirationTime: string;
 let policiesModelsCount: number;
 let policiesGroupsCount: number;
+let phase: string;
+let tokenLimit: string;
+const today = new Date().toLocaleDateString('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+let expiryDate: string;
 
 describe('An admin can manage MaaS authorization policies and control model access via group membership', () => {
   retryableBefore(() => {
@@ -69,9 +78,14 @@ describe('An admin can manage MaaS authorization policies and control model acce
         subscriptionName = `${testData.subscriptionName}-${uuid}`;
         subscriptionDescription = `${testData.subscriptionDescription}`;
         subscriptionGroups = testData.subscriptionGroups;
+        phase = testData.phase;
         tokenRateLimit = testData.tokenRateLimit;
+        tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyName = `${subscriptionName}-api-key`;
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
+        expiryDate = new Date(
+          new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
+        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
         cy.log(`Loaded project name: ${projectName}`);
         createCleanProject(projectName);
@@ -287,12 +301,15 @@ describe('An admin can manage MaaS authorization policies and control model acce
       createApiKeyModal
         .findDescriptionInput()
         .type(`Cypress test: API key for ${subscriptionName}`);
-      createApiKeyModal.findSubscriptionToggle().click();
+      createApiKeyModal.findSubscriptionToggle().click().type(subscriptionName);
+      createApiKeyModal.findSubscriptionToggle().should('have.length', 1);
       createApiKeyModal.findSubscriptionOption(subscriptionName).click();
+      createApiKeyModal
+        .findSubscriptionModelRateLimit(modelName)
+        .should('contain.text', tokenLimit);
       createApiKeyModal.findExpirationToggle().click();
       createApiKeyModal.findExpirationOption('custom').click();
-      createApiKeyModal.findCustomDaysInput().should('exist');
-      createApiKeyModal.findCustomDaysInput().type(apiKeyExpirationTime);
+      createApiKeyModal.findCustomDaysInput().clear().type(apiKeyExpirationTime);
       createApiKeyModal.findSubmitButton().should('be.enabled');
       createApiKeyModal.findSubmitButton().click();
 
@@ -304,30 +321,68 @@ describe('An admin can manage MaaS authorization policies and control model acce
         expect(apiKeys).to.have.length.at.least(1);
         copyApiKeyModal.findCloseButton().click();
 
+        cy.step('Verify the API key is created');
+        apiKeysPage.findRows().should('contain.text', apiKeyName);
+        let apiKeyRow = apiKeysPage.getRow(apiKeyName);
+
+        apiKeyRow.findName().should('contain.text', apiKeyName);
+        apiKeyRow
+          .findDescription()
+          .should('contain.text', `Cypress test: API key for ${subscriptionName}`);
+        apiKeyRow.findStatus().should('contain.text', phase);
+        apiKeyRow.findSubscription().should('contain.text', subscriptionName);
+        apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
+        apiKeyRow.findCreationDate().should('contain.text', today);
+        apiKeyRow.findLastUsedAt().should('contain.text', 'Never');
+        apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
+
         cy.step('Verify the model is accessible to the user');
-        verifyMaasModelExistsForUser(modelName, apiKeys[0], true);
-
-        cy.step(' Remove group from the policy');
-        authPoliciesPage.visit();
-        cy.get('@policiesName').then((policyName) => {
-          policiesName = String(policyName);
-          authPoliciesPage.findKeywordFilterInput().type(policiesName);
-          authPoliciesPage.findRows().should('have.length', 1);
-          const policyRow = authPoliciesPage.getRow(policiesName);
-          policyRow.findActionsToggle().click();
-          policyRow.findEditActionButton().click();
-          // remove the selected group
-          policyPage.selectGroup(testData.policiesGroups[0]);
-          policyPage.findSubmitButton().click();
-        });
-        cy.then(() => {
-          checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, {
-            groups: [testData.policiesGroups[1]],
+        verifyMaasModelExistsForUser(modelName, apiKeys[0], true)
+          .then(() => {
+            cy.step(' Remove group from the policy');
+            authPoliciesPage.visit();
+            cy.get('@policiesName').then((policyName) => {
+              policiesName = String(policyName);
+              authPoliciesPage.findKeywordFilterInput().type(policiesName);
+              authPoliciesPage.findRows().should('have.length', 1);
+              const policyRow = authPoliciesPage.getRow(policiesName);
+              policyRow.findActionsToggle().click();
+              policyRow.findEditActionButton().click();
+              // remove the selected group
+              policyPage.selectGroup(testData.policiesGroups[0]);
+              policyPage.findSubmitButton().click();
+            });
+            cy.then(() => {
+              checkMaaSAuthPolicyState(policiesName, modelsAsAServiceNamespace, {
+                groups: [testData.policiesGroups[1]],
+              });
+            });
+          })
+          .then(() => {
+            cy.step('Verify the model is not accessible to the user');
+            return verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
           });
-        });
 
-        cy.step('Verify the model is not accessible to the user');
-        verifyMaasModelExistsForUser(modelName, apiKeys[0], false);
+        cy.step('Revoke the API key');
+        apiKeysPage.visit();
+        apiKeysPage.findActionsToggle().click();
+        apiKeysPage.findRevokeAllAPIKeysActionButton().click();
+        adminBulkRevokeAPIKeyModal.shouldBeOpen();
+        adminBulkRevokeAPIKeyModal.findUsernameInput().type(HTPASSWD_CLUSTER_ADMIN_USER.USERNAME);
+        adminBulkRevokeAPIKeyModal.findSearchButton().click();
+        adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
+        adminBulkRevokeAPIKeyModal.findUsernameInput().clear().type(LDAP_ADMIN_USER.USERNAME);
+        adminBulkRevokeAPIKeyModal.findSearchButton().click();
+        adminBulkRevokeAPIKeyModal.findKeysFoundHeading().should('exist');
+        adminBulkRevokeAPIKeyModal.findRevokeButton().click();
+
+        apiKeysPage.findStatusFilterToggle().click();
+        apiKeysPage.findStatusFilterOptionCheckbox('active').should('be.checked');
+        apiKeysPage.findStatusFilterOptionCheckbox('revoked').click();
+        apiKeyRow = apiKeysPage.getRow(apiKeyName);
+        apiKeyRow.findStatus().should('contain.text', 'Revoked');
+        apiKeyRow.findLastUsedAt().should('contain.text', today);
+        apiKeysPage.findRevokeActionsButton(apiKeyName).should('be.disabled');
       });
     },
   );

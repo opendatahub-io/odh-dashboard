@@ -12,7 +12,7 @@ subscriptionName: 'test-maas-policies-sub'
 subscriptionDescription: 'Test MaaS Authorization policies'
 subscriptionGroups: ['rhods-admins','rhods-users']
 tokenRateLimit : 
-  limit: 1000
+  limit: 1,000
   window: 1000
   unit: hour
 phase: 'Active'
