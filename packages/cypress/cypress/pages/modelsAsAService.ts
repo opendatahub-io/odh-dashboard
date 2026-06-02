@@ -25,6 +25,10 @@ class APIKeysPage {
     cy.testA11y();
   }
 
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('error-empty-state-body');
+  }
+
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return cy.findByTestId('app-page-title');
   }
@@ -377,6 +381,10 @@ class SubscriptionsPage {
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
+  }
+
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('error-empty-state-body');
   }
 
   findTable(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -841,6 +849,10 @@ class AuthPoliciesPage {
   private wait(): void {
     cy.findByTestId('app-page-title').should('exist');
     cy.testA11y();
+  }
+
+  findErrorState(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('error-empty-state-body');
   }
 
   findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {

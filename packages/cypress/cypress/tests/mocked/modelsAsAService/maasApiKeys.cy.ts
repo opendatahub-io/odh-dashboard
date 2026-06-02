@@ -178,6 +178,28 @@ describe('API Keys Page', () => {
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
   });
 
+  it('should display a useful error state when the API keys search fails', () => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+        },
+      },
+    }).as('searchError');
+    apiKeysPage.visit();
+    cy.wait('@searchError');
+    apiKeysPage.findErrorState().should('exist');
+    apiKeysPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+      );
+  });
+
   it('should display all API keys when the status filter is cleared', () => {
     apiKeysPage.findRows().should('have.length', 2);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
