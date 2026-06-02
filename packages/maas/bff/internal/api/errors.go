@@ -2,9 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/opendatahub-io/maas-library/bff/internal/integrations/maas"
 )
 
 type HTTPError struct {
@@ -50,7 +53,27 @@ func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, httpErr *H
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 
-	httpError := &HTTPError{StatusCode: http.StatusInternalServerError, Error: ErrorPayload{Code: strconv.Itoa(http.StatusInternalServerError), Message: "the server encountered a problem and could not process your request"}}
+	statusCode := http.StatusInternalServerError
+	message := err.Error()
+
+	var upstreamErr *maas.MaasUpstreamError
+	if errors.As(err, &upstreamErr) {
+		message = upstreamErr.Error()
+		switch {
+		case upstreamErr.StatusCode == 0, upstreamErr.StatusCode >= http.StatusInternalServerError:
+			statusCode = http.StatusServiceUnavailable
+		default:
+			statusCode = http.StatusBadGateway
+		}
+	}
+
+	httpError := &HTTPError{
+		StatusCode: statusCode,
+		Error: ErrorPayload{
+			Code:    strconv.Itoa(statusCode),
+			Message: message,
+		},
+	}
 	app.errorResponse(w, r, httpError)
 }
 

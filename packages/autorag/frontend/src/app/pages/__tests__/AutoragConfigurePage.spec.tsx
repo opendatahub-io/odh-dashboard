@@ -123,11 +123,11 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 
   const MockVectorStoreSelector = () => {
     const { setValue, watch } = useFormContext();
-    const currentValue = watch('llama_stack_vector_io_provider_id');
+    const currentValue = watch('vector_io_provider_id');
     ReactMock.useEffect(() => {
       // Only set a default when the field is empty (new configure flow).
       if (!currentValue) {
-        setValue('llama_stack_vector_io_provider_id', 'milvus', { shouldValidate: true });
+        setValue('vector_io_provider_id', 'milvus', { shouldValidate: true });
       }
     }, [setValue, currentValue]);
     return ReactMock.createElement(
@@ -140,7 +140,7 @@ jest.mock('~/app/components/configure/AutoragVectorStoreSelector', () => {
 });
 
 jest.mock('~/app/hooks/queries', () => ({
-  useLlamaStackModelsQuery: jest.fn(() => ({
+  useOgxModelsQuery: jest.fn(() => ({
     data: {
       models: [
         { id: 'llama-3-8b', type: 'llm' },
@@ -151,7 +151,7 @@ jest.mock('~/app/hooks/queries', () => ({
     isLoading: false,
     error: null,
   })),
-  useLlamaStackVectorStoreProvidersQuery: jest.fn(() => ({
+  useOgxVectorStoreProvidersQuery: jest.fn(() => ({
     data: {
       vector_store_providers: [
         { provider_id: 'milvus', provider_type: 'remote::milvus' },
@@ -286,10 +286,10 @@ jest.mock('~/app/components/common/SecretSelector', () => ({
         });
       } else {
         onChange({
-          uuid: 'lls-secret-1',
-          name: 'Test LLS Secret',
-          data: { llama_stack_url: 'https://example.com' },
-          type: 'lls',
+          uuid: 'ogx-secret-1',
+          name: 'Test OGX Secret',
+          data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+          type: 'ogx',
           invalid: false,
         });
       }
@@ -343,7 +343,7 @@ describe('AutoragConfigurePage', () => {
       // Check for form fields that are rendered by AutoragCreate
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
       expect(await screen.findByLabelText(/Description/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
     });
 
     it('should NOT render AutoragConfigure component on initial load', async () => {
@@ -381,7 +381,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should disable Next button when llama stack secret is not selected', async () => {
+    it('should disable Next button when Open GenAI Stack secret is not selected', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -393,7 +393,7 @@ describe('AutoragConfigurePage', () => {
       expect(nextButton).toBeDisabled();
     });
 
-    it('should enable Next button when name and llama stack secret are filled', async () => {
+    it('should enable Next button when name and Open GenAI Stack secret are filled', async () => {
       const user = userEvent.setup();
       renderWithProviders(<AutoragConfigurePage />);
 
@@ -401,8 +401,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Find the Next button (it should be enabled after form updates)
@@ -418,8 +418,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button
@@ -452,8 +452,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Click Next button to go to configure step
@@ -509,8 +509,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'My Experiment');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -521,9 +521,9 @@ describe('AutoragConfigurePage', () => {
       const backButton = await screen.findByRole('button', { name: 'Back' });
       await user.click(backButton);
 
-      // Should show create component again (has Name, Description, Llama Stack connection)
+      // Should show create component again (has Name, Description, Open GenAI Stack connection)
       expect(await screen.findByLabelText(/Name/i)).toBeInTheDocument();
-      expect(await screen.findByText(/Llama Stack connection/i)).toBeInTheDocument();
+      expect(await screen.findByText(/Open GenAI Stack connection/i)).toBeInTheDocument();
       // Should NOT show configure component (Documents, Configure Details)
       expect(screen.queryByText('Knowledge setup')).not.toBeInTheDocument();
       expect(screen.queryByText('Configure details')).not.toBeInTheDocument();
@@ -540,8 +540,8 @@ describe('AutoragConfigurePage', () => {
       const descriptionInput = await screen.findByLabelText(/Description/i);
       await user.type(descriptionInput, 'Preserved Description');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure step
@@ -556,6 +556,38 @@ describe('AutoragConfigurePage', () => {
       expect(nameInput).toHaveValue('Preserved Name');
       expect(descriptionInput).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutoragConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file or folder' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      await user.click(selectOgxSecretButton);
+      await user.click(nextButton);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file or folder' }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Browse bucket' })).not.toBeInTheDocument();
+    });
   });
 
   describe('Configure step - Create run', () => {
@@ -569,9 +601,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -622,9 +654,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -667,9 +699,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -713,9 +745,9 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Test Experiment');
 
-      // Select llama stack secret
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      // Select Open GenAI Stack secret
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       // Go to configure step
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -756,8 +788,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'Upload Immediate Test');
 
-      const selectLlsSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
-      await user.click(selectLlsSecretButton);
+      const selectOgxSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
+      await user.click(selectOgxSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
       await user.click(nextButton);
@@ -951,13 +983,13 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={{
             display_name: 'Reconfigured Run',
-            llama_stack_secret_name: 'Test LLS Secret',
+            ogx_secret_name: 'Test OGX Secret',
           }}
-          initialLlamaStackSecret={{
-            uuid: 'lls-secret-1',
-            name: 'Test LLS Secret',
-            data: { llama_stack_url: 'https://example.com' },
-            type: 'lls',
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
             invalid: false,
           }}
           sourceRunId="prev-run-456"
@@ -965,9 +997,9 @@ describe('AutoragConfigurePage', () => {
         />,
       );
 
-      // Verify the prefilled Llama Stack secret is shown
-      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
-        'lls-secret-1',
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
       );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -987,8 +1019,8 @@ describe('AutoragConfigurePage', () => {
       const nameInput = await screen.findByLabelText(/Name/i);
       await user.type(nameInput, 'New Run');
 
-      // Select llama stack secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      // Select Open GenAI Stack secret
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1030,13 +1062,13 @@ describe('AutoragConfigurePage', () => {
         <AutoragConfigurePage
           initialValues={{
             display_name: 'Pre-filled Name',
-            llama_stack_secret_name: 'Test LLS Secret',
+            ogx_secret_name: 'Test OGX Secret',
           }}
-          initialLlamaStackSecret={{
-            uuid: 'lls-secret-1',
-            name: 'Test LLS Secret',
-            data: { llama_stack_url: 'https://example.com' },
-            type: 'lls',
+          initialOgxSecret={{
+            uuid: 'ogx-secret-1',
+            name: 'Test OGX Secret',
+            data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+            type: 'ogx',
             invalid: false,
           }}
           sourceRunId="run-xyz"
@@ -1044,9 +1076,9 @@ describe('AutoragConfigurePage', () => {
         />,
       );
 
-      // Verify the prefilled Llama Stack secret is shown
-      expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
-        'lls-secret-1',
+      // Verify the prefilled Open GenAI Stack secret is shown
+      expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+        'ogx-secret-1',
       );
 
       const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1063,8 +1095,8 @@ describe('AutoragConfigurePage', () => {
       const reconfigureInitialValues = {
         display_name: 'Reconfigured Run',
         description: 'A reconfigured experiment',
-        llama_stack_secret_name: 'Test LLS Secret',
-        llama_stack_vector_io_provider_id: 'chromadb',
+        ogx_secret_name: 'Test OGX Secret',
+        vector_io_provider_id: 'chromadb',
         input_data_secret_name: 'Test AWS Secret',
         input_data_bucket_name: 'test-bucket',
         input_data_key: 'my-data/input.pdf',
@@ -1074,11 +1106,11 @@ describe('AutoragConfigurePage', () => {
         optimization_metric: 'faithfulness' as const,
         optimization_max_rag_patterns: 10,
       };
-      const reconfigureInitialLlamaStackSecret = {
-        uuid: 'lls-secret-1',
-        name: 'Test LLS Secret',
-        data: { llama_stack_url: 'https://example.com' },
-        type: 'lls',
+      const reconfigureInitialOgxSecret = {
+        uuid: 'ogx-secret-1',
+        name: 'Test OGX Secret',
+        data: { OGX_CLIENT_BASE_URL: 'https://example.com', OGX_CLIENT_API_KEY: 'test-key' },
+        type: 'ogx',
         invalid: false,
       };
       const reconfigureInitialSecret = {
@@ -1093,9 +1125,9 @@ describe('AutoragConfigurePage', () => {
       const navigateToConfigure = async () => {
         const user = userEvent.setup();
 
-        // Verify the prefilled Llama Stack secret is shown
-        expect(await screen.findByTestId('lls-secret-selector-value')).toHaveTextContent(
-          'lls-secret-1',
+        // Verify the prefilled Open GenAI Stack secret is shown
+        expect(await screen.findByTestId('ogx-secret-selector-value')).toHaveTextContent(
+          'ogx-secret-1',
         );
 
         const nextButton = await screen.findByRole('button', { name: 'Next' });
@@ -1115,7 +1147,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1130,7 +1162,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1147,7 +1179,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1162,7 +1194,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1177,7 +1209,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1194,7 +1226,7 @@ describe('AutoragConfigurePage', () => {
           <AutoragConfigurePage
             initialValues={reconfigureInitialValues}
             initialInputDataSecret={reconfigureInitialSecret}
-            initialLlamaStackSecret={reconfigureInitialLlamaStackSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
             sourceRunId="run-1"
           />,
         );
@@ -1203,6 +1235,34 @@ describe('AutoragConfigurePage', () => {
 
         const input = screen.getByTestId('max-rag-patterns-input').querySelector('input');
         expect(input).toHaveValue(10);
+      });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutoragConfigurePage
+            initialValues={reconfigureInitialValues}
+            initialInputDataSecret={reconfigureInitialSecret}
+            initialOgxSecret={reconfigureInitialOgxSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Knowledge setup')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('input.pdf')).toBeInTheDocument();
       });
     });
   });
@@ -1220,7 +1280,7 @@ describe('AutoragConfigurePage', () => {
       await user.type(descriptionInput, 'Persistent Description');
 
       // Select secret
-      const selectSecretButton = await screen.findByTestId('lls-secret-selector-select-secret');
+      const selectSecretButton = await screen.findByTestId('ogx-secret-selector-select-secret');
       await user.click(selectSecretButton);
 
       // Go to configure
@@ -1237,7 +1297,7 @@ describe('AutoragConfigurePage', () => {
 
       // Re-select secret (it's reset on component mount as per AutoragCreate.tsx)
       const selectSecretButtonAgain = await screen.findByTestId(
-        'lls-secret-selector-select-secret',
+        'ogx-secret-selector-select-secret',
       );
       await user.click(selectSecretButtonAgain);
 

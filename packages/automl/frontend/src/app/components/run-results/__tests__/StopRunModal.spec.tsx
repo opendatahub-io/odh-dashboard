@@ -78,4 +78,10 @@ describe('StopRunModal', () => {
 
     expect(screen.getByText(/Are you sure you want to stop this run\?/)).toBeInTheDocument();
   });
+
+  it('should indicate the run will be marked as failed', () => {
+    render(<StopRunModal {...defaultProps} />);
+
+    expect(screen.getByText(/the run will be marked as failed/)).toBeInTheDocument();
+  });
 });

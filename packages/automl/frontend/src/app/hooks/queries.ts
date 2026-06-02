@@ -9,7 +9,7 @@ import type {
   S3ListObjectsResponse,
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useExperimentsQuery(): UseQueryResult<never[], Error> {
   return useQuery({
@@ -35,9 +35,12 @@ export function useExperimentQuery(
   });
 }
 
+export type TaskType = 'binary' | 'multiclass' | 'regression';
+
 export type ColumnSchema = {
   name: string;
-  type: 'integer' | 'double' | 'int64' | 'float64' | 'timestamp' | 'bool' | 'string';
+  type: 'integer' | 'double' | 'timestamp' | 'bool' | 'string';
+  task_type: TaskType;
   values?: (string | number)[];
 };
 
@@ -47,7 +50,9 @@ export type ColumnSchema = {
 const ColumnSchemaArraySchema = z.array(
   z.object({
     name: z.string(),
-    type: z.enum(['integer', 'double', 'int64', 'float64', 'timestamp', 'bool', 'string']),
+    type: z.enum(['integer', 'double', 'timestamp', 'bool', 'string']),
+    // eslint-disable-next-line camelcase -- matches API response field name
+    task_type: z.enum(['binary', 'multiclass', 'regression']),
     values: z.array(z.union([z.string(), z.number()])).optional(),
   }),
 );
@@ -160,7 +165,7 @@ export function useS3GetFileSchemaQuery(
       const columns = result?.data?.columns;
 
       if (!Array.isArray(columns)) {
-        return [];
+        throw new Error('Unexpected API response: column data is missing or invalid');
       }
 
       try {
@@ -205,9 +210,6 @@ export function useS3ListFilesQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
-
-export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRY_ATTEMPTS = 5;
@@ -240,7 +242,7 @@ export function usePipelineRunQuery(
         return false;
       }
       const state = query.state.data?.state;
-      if (!state || isTerminalState(state)) {
+      if (!state || isRunInTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;

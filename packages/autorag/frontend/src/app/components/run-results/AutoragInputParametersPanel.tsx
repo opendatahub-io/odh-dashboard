@@ -2,18 +2,20 @@ import React from 'react';
 import {
   Button,
   ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  Divider,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
@@ -22,12 +24,12 @@ import {
 import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
 import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
-import { isTerminalState } from '~/app/hooks/queries';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import './AutoragInputParametersPanel.scss';
+import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 /** Keys that are handled by the special "Model configuration" entry. */
-const MODEL_KEYS = new Set(['generation_models', 'embeddings_models']);
+const MODEL_KEYS = new Set(['generation_models', 'embedding_models']);
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
 const EXCLUDED_KEYS = new Set([
@@ -45,11 +47,11 @@ const EXCLUDED_KEYS = new Set([
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
-  { key: 'llama_stack_secret_name', label: 'Llama Stack connection' },
+  { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },
-  { key: 'llama_stack_vector_io_provider_id', label: 'Vector I/O provider' },
+  { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'optimization_metric', label: 'Optimization metric' },
   { key: 'optimization_max_rag_patterns', label: 'Maximum RAG patterns' },
@@ -174,9 +176,23 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
-  const generationModels = parameters?.generation_models;
-  const embeddingsModels = parameters?.embeddings_models;
-  const hasModelConfig = (generationModels?.length ?? 0) > 0 || (embeddingsModels?.length ?? 0) > 0;
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (patternsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  }
+
+  const generationModels = Array.isArray(parameters?.generation_models)
+    ? parameters.generation_models
+    : [];
+  const embeddingModels = Array.isArray(parameters?.embedding_models)
+    ? parameters.embedding_models
+    : [];
+  const hasModelConfig = generationModels.length > 0 || embeddingModels.length > 0;
 
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
@@ -220,9 +236,22 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
               <DescriptionListGroup data-testid="parameter-output-directory">
                 <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
                 <DescriptionListDescription>
-                  {patternsLoading || !pipelineRun?.state || !isTerminalState(pipelineRun.state) ? (
+                  {pipelineServerOutputDirVariant === 'loading' && (
                     <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
-                  ) : ragPatternsBasePath ? (
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
+                    <Content component={ContentVariants.p} aria-live="polite" role="status">
+                      <span className="pf-v6-u-pr-sm">
+                        The output directory will be available once evaluation is complete.
+                      </span>
+                      <Spinner
+                        isInline
+                        size="sm"
+                        aria-label="Spinner for the parameter output directory"
+                      />
+                    </Content>
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && ragPatternsBasePath && (
                     <ClipboardCopy
                       isReadOnly
                       hoverTip="Copy"
@@ -231,9 +260,8 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                     >
                       {ragPatternsBasePath}
                     </ClipboardCopy>
-                  ) : (
-                    'Not available'
                   )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
                 </DescriptionListDescription>
               </DescriptionListGroup>
             </DescriptionList>
@@ -258,7 +286,7 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                   <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
                     <ModelConfigurationValue
                       generationModels={generationModels}
-                      embeddingsModels={embeddingsModels}
+                      embeddingsModels={embeddingModels}
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>

@@ -123,18 +123,36 @@ describe('RegisterModelModal', () => {
   });
 
   describe('error state', () => {
-    it('should show error when registries fail to load', () => {
+    it('should show fallback error when error is not an Error instance', () => {
       mockUseModelRegistriesQuery.mockReturnValue(
         mockQueryResult({
           data: undefined,
           isLoading: false,
           isError: true,
+          error: undefined,
         }),
       );
 
       renderModal();
 
       expect(screen.getByText('Failed to load model registries')).toBeInTheDocument();
+    });
+
+    it('should show BFF error message when registries fail to load', () => {
+      mockUseModelRegistriesQuery.mockReturnValue(
+        mockQueryResult({
+          data: undefined,
+          isLoading: false,
+          isError: true,
+          error: new Error('insufficient permissions to list model registries'),
+        }),
+      );
+
+      renderModal();
+
+      expect(
+        screen.getByText('insufficient permissions to list model registries'),
+      ).toBeInTheDocument();
     });
   });
 

@@ -11,8 +11,10 @@ import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { mockK8sNameDescriptionFieldData } from '@odh-dashboard/internal/__mocks__/mockK8sNameDescriptionFieldData';
 import { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
+import type { SimpleSelectOption } from '@odh-dashboard/internal/components/SimpleSelect';
 import { ModelServingPlatform } from '../concepts/useProjectServingPlatform';
 import type { UseModelDeploymentWizardState } from '../components/deploymentWizard/useDeploymentWizard';
+import type { WizardField } from '../components/deploymentWizard/types';
 import { deploymentStrategyRolling } from '../components/deploymentWizard/fields/DeploymentStrategyField';
 
 export const mockModelServingPlatform = ({
@@ -138,6 +140,7 @@ export const mockDeploymentWizardState = (
         modelType: {
           data: { type: ServingRuntimeModelType.GENERATIVE, legacyVLLM: false },
           setData: jest.fn(),
+          externalData: { data: { extraOptions: [] as SimpleSelectOption[] } },
         },
         modelLocationData: {
           data: undefined,
@@ -217,15 +220,10 @@ export const mockDeploymentWizardState = (
           },
           setData: jest.fn(),
           isGenAiEnabled: true,
+          showField: false,
         },
         modelServer: {
           data: undefined,
-          setData: jest.fn(),
-          isAutoSelectChecked: undefined,
-          setIsAutoSelectChecked: jest.fn(),
-          suggestion: undefined,
-          options: [],
-          isDirty: false,
         },
         deploymentStrategy: {
           data: deploymentStrategyRolling,
@@ -246,7 +244,7 @@ export const mockDeploymentWizardState = (
         shouldAutoCheckTokens: false,
       },
       dispatch: jest.fn(),
-      fields: [],
-    },
+      fields: [] as WizardField[],
+    } as UseModelDeploymentWizardState,
     overrides,
   );

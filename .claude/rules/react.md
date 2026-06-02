@@ -2,6 +2,9 @@
 description: React component, hook, and page development conventions for ODH Dashboard
 globs: "**/*.tsx,**/*.ts"
 alwaysApply: false
+paths:
+  - "**/*.tsx"
+  - "**/*.ts"
 ---
 
 # React Development — ODH Dashboard

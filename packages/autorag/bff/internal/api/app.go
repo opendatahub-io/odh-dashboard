@@ -12,8 +12,8 @@ import (
 
 	k8s "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/kubernetes/k8mocks"
-	ls "github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack"
-	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/llamastack/lsmocks"
+	ogx "github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx"
+	"github.com/opendatahub-io/autorag-library/bff/internal/integrations/ogx/ogxmocks"
 	ps "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver"
 	psmocks "github.com/opendatahub-io/autorag-library/bff/internal/integrations/pipelineserver/psmocks"
 	s3int "github.com/opendatahub-io/autorag-library/bff/internal/integrations/s3"
@@ -39,8 +39,8 @@ const (
 	SecretsPath         = ApiPathPrefix + "/secrets"
 	S3FilePath          = ApiPathPrefix + "/s3/files/:key"
 	S3FilesPath         = ApiPathPrefix + "/s3/files"
-	LSDModelsPath       = ApiPathPrefix + "/lsd/models"
-	LSDVectorStoresPath = ApiPathPrefix + "/lsd/vector-stores"
+	OGXModelsPath       = ApiPathPrefix + "/ogx/models"
+	OGXVectorStoresPath = ApiPathPrefix + "/ogx/vector-stores"
 	PipelineRunsPath    = ApiPathPrefix + "/pipeline-runs"
 )
 
@@ -48,7 +48,7 @@ type App struct {
 	config                      config.EnvConfig
 	logger                      *slog.Logger
 	kubernetesClientFactory     k8s.KubernetesClientFactory
-	llamaStackClientFactory     ls.LlamaStackClientFactory
+	ogxClientFactory            ogx.OGXClientFactory
 	pipelineServerClientFactory ps.PipelineServerClientFactory
 	s3ClientFactory             s3int.S3ClientFactory
 	repositories                *repositories.Repositories
@@ -156,14 +156,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		}
 	}
 
-	// Initialize LlamaStack client factory
-	var llamaStackClientFactory ls.LlamaStackClientFactory
-	if cfg.MockLSClient {
-		logger.Info("Using mock LlamaStack client factory")
-		llamaStackClientFactory = lsmocks.NewMockClientFactory()
+	// Initialize Open GenAI Stack client factory
+	var ogxClientFactory ogx.OGXClientFactory
+	if cfg.MockOGXClient {
+		logger.Info("Using mock Open GenAI Stack client factory")
+		ogxClientFactory = ogxmocks.NewMockClientFactory()
 	} else {
-		logger.Info("Using real LlamaStack client factory")
-		llamaStackClientFactory = ls.NewRealClientFactory()
+		logger.Info("Using real Open GenAI Stack client factory")
+		ogxClientFactory = ogx.NewRealClientFactory()
 	}
 
 	// Initialize Pipeline Server client factory
@@ -201,7 +201,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		config:                      cfg,
 		logger:                      logger,
 		kubernetesClientFactory:     k8sFactory,
-		llamaStackClientFactory:     llamaStackClientFactory,
+		ogxClientFactory:            ogxClientFactory,
 		pipelineServerClientFactory: pipelineServerClientFactory,
 		s3ClientFactory:             s3ClientFactory,
 		repositories:                repositories.NewRepositories(logger),
@@ -262,9 +262,9 @@ func (app *App) Routes() http.Handler {
 	// there is no DSPA fallback (creation flow uses an explicitly chosen input/target data secret).
 	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
-	// LLamaStack
-	apiRouter.GET(LSDModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackModelsHandler))))
-	apiRouter.GET(LSDVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachLlamaStackClientFromSecret(app.LlamaStackVectorStoresHandler))))
+	// Open GenAI Stack
+	apiRouter.GET(OGXModelsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXModelsHandler))))
+	apiRouter.GET(OGXVectorStoresPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClientFromSecret(app.OGXVectorStoresHandler))))
 
 	// Pipeline Runs API endpoints (pipeline server is auto-discovered)
 	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.AttachPipelineServerClient(app.AttachDiscoveredPipeline(app.PipelineRunHandler)))))

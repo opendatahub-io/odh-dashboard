@@ -16,16 +16,22 @@ describe('getFeatureStoreObjectFromPath', () => {
     expect(result).toBe(FeatureStoreObject.ENTITIES);
   });
 
-  it('should return default (ENTITIES) when pathname has no feature store object', () => {
+  it('should return default (OVERVIEW) when pathname has no feature store object', () => {
     const pathname = '/develop-train/feature-store/';
     const result = getFeatureStoreObjectFromPath(pathname);
-    expect(result).toBe(FeatureStoreObject.ENTITIES);
+    expect(result).toBe(FeatureStoreObject.OVERVIEW);
   });
 
   it('should handle deep nested pathname', () => {
     const pathname = '/develop-train/feature-store/feature-views/project1/view/details/metadata';
     const result = getFeatureStoreObjectFromPath(pathname);
     expect(result).toBe(FeatureStoreObject.FEATURE_VIEWS);
+  });
+
+  it('should return default (OVERVIEW) when pathname has an invalid feature store object', () => {
+    const pathname = '/develop-train/feature-store/invalid/project1';
+    const result = getFeatureStoreObjectFromPath(pathname);
+    expect(result).toBe(FeatureStoreObject.OVERVIEW);
   });
 });
 
@@ -49,7 +55,7 @@ describe('useFeatureStoreObject', () => {
     expect(useLocationMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should return default (ENTITIES) when pathname has no feature store object', () => {
+  it('should return default (OVERVIEW) when pathname has no feature store object', () => {
     useLocationMock.mockReturnValue({
       pathname: '/develop-train/feature-store/',
       search: '',
@@ -60,7 +66,7 @@ describe('useFeatureStoreObject', () => {
 
     const renderResult = testHook(useFeatureStoreObject)();
 
-    expect(renderResult.result.current).toBe(FeatureStoreObject.ENTITIES);
+    expect(renderResult.result.current).toBe(FeatureStoreObject.OVERVIEW);
     expect(useLocationMock).toHaveBeenCalledTimes(1);
   });
 

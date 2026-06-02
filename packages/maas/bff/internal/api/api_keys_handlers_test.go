@@ -66,10 +66,10 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(actual.Data.SubscriptionDetails).NotTo(BeNil())
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("premium-team-sub"))
 			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].DisplayName).To(Equal("Premium Team"))
-			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].Models).To(ConsistOf("granite-3-8b-instruct", "flan-t5-small"))
+			Expect(actual.Data.SubscriptionDetails["premium-team-sub"].Models).To(ConsistOf("Granite 3 8B Instruct", "Flan T5 Small"))
 			Expect(actual.Data.SubscriptionDetails).To(HaveKey("basic-team-sub"))
 			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].DisplayName).To(Equal("Basic Team"))
-			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("flan-t5-small"))
+			Expect(actual.Data.SubscriptionDetails["basic-team-sub"].Models).To(ConsistOf("Flan T5 Small"))
 		})
 		It("returns 400 if the user ID is missing", func() {
 			identity := &kubernetes.RequestIdentity{UserID: ""}
@@ -298,6 +298,9 @@ var _ = Describe("APIKeysHandlers", Ordered, func() {
 			Expect(first.SubscriptionIDHeader).NotTo(BeEmpty())
 			Expect(first.SubscriptionDescription).NotTo(BeEmpty())
 			Expect(first.ModelRefs).NotTo(BeEmpty())
+			Expect(first.ModelRefs[0].DisplayName).To(Equal("Granite 3 8B Instruct"))
+			Expect(first.ModelRefs[0].Description).To(Equal("Granite 3 8B Instruct is a large language model that is used for advanced tasks."))
+			Expect(first.KeyCount).To(BeNumerically(">", 0))
 		})
 
 		It("returns 400 when no identity is provided", func() {

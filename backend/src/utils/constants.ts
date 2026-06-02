@@ -94,6 +94,7 @@ export const blankDashboardCR: DashboardConfig = {
       disableLMEval: true,
       mlflow: true,
       mcpCatalog: false,
+      toolCalling: false,
       trainingJobs: true,
       disableLLMd: false,
       projectRBAC: true,
@@ -102,6 +103,7 @@ export const blankDashboardCR: DashboardConfig = {
       vLLMDeploymentOnMaaS: false,
       llmGatewayField: false,
       promptManagement: false,
+      mySubscriptions: false,
     },
     notebookController: {
       enabled: true,

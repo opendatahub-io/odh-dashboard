@@ -29,19 +29,18 @@ const DEFAULT_POLL_OPTIONS: Required<PollOptions> = {
 };
 
 /**
- * DSC condition names — older clusters use LlamaStackOperatorReady,
- * newer ones will surface OGXOperatorReady once the DSC is updated.
+ * DSC condition name for the OGX operator readiness.
  */
-const DSC_OPERATOR_CONDITIONS = ['LlamaStackOperatorReady', 'OGXOperatorReady'] as const;
+const DSC_OGX_CONDITION = 'OGXReady';
 
 /**
- * Wait for the LlamaStack operator to be ready by polling the DataScienceCluster status.
- * Checks for the LlamaStackOperatorReady condition to be True.
+ * Wait for the OGX operator to be ready by polling the DataScienceCluster status.
+ * Checks for the OGXReady condition to be True.
  *
  * @param options Polling options (maxAttempts, pollIntervalMs).
  * @returns A Cypress chainable that resolves when the operator is ready.
  */
-export const waitForLlamaStackOperatorReady = (
+export const waitForOGXReady = (
   options: PollOptions = {},
 ): Cypress.Chainable<CommandLineResult> => {
   const { maxAttempts, pollIntervalMs } = { ...DEFAULT_POLL_OPTIONS, ...options };
@@ -49,8 +48,7 @@ export const waitForLlamaStackOperatorReady = (
   const totalTimeout = maxAttempts * pollIntervalMs;
 
   const check = (attemptNumber = 1): Cypress.Chainable<CommandLineResult> => {
-    const conditionFilter = DSC_OPERATOR_CONDITIONS.map((c) => `@.type=="${c}"`).join(' || ');
-    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(${conditionFilter})].status}'`;
+    const command = `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="${DSC_OGX_CONDITION}")].status}'`;
 
     return cy.exec(command, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
       const raw = result.stdout.trim();
@@ -58,20 +56,20 @@ export const waitForLlamaStackOperatorReady = (
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
       if (isReady) {
-        cy.log(`✅ LlamaStackOperatorReady condition is True (after ${elapsedTime}s)`);
+        cy.log(`OGXReady condition is True (after ${elapsedTime}s)`);
         return cy.wrap(result);
       }
 
       if (attemptNumber >= maxAttempts) {
         throw new Error(
-          `LlamaStackOperatorReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
+          `OGXReady condition not True after ${maxAttempts} attempts (${elapsedTime}s). Current status: ${
             raw || 'not found'
           }`,
         );
       }
 
       cy.log(
-        `⏳ Waiting for LlamaStackOperatorReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
+        `Waiting for OGXReady (attempt ${attemptNumber}/${maxAttempts}, status: ${
           raw || 'not found'
         }, elapsed: ${elapsedTime}s)`,
       );
@@ -80,7 +78,7 @@ export const waitForLlamaStackOperatorReady = (
     });
   };
 
-  cy.step(`Polling for LlamaStackOperatorReady condition (max ${totalTimeout / 1000}s)`);
+  cy.step(`Polling for OGXReady condition (max ${totalTimeout / 1000}s)`);
   return check();
 };
 

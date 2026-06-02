@@ -411,8 +411,8 @@ providers:
     provider_type: remote::vllm
     config:
       base_url: http://mock-model-predictor.` + namespace + `.svc.cluster.local:8080/v1
-      max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-      api_token: ${env.VLLM_API_TOKEN:=fake}
+      max_tokens: ${env.VLLM_MAX_TOKENS_1:=4096}
+      api_token: ${env.VLLM_API_TOKEN_1:=fake}
       tls_verify: ${env.VLLM_TLS_VERIFY:=true}
   - provider_id: sentence-transformers
     provider_type: inline::sentence-transformers
@@ -543,12 +543,12 @@ server:
 				Replicas:  &replicas,
 				Resources: workloadResources,
 				Overrides: &ogxapi.WorkloadOverrides{
-					Command: []string{"/bin/sh", "-c", "ogx run /etc/llama-stack/config.yaml"},
+					Command: []string{"/bin/sh", "-c", "ogx run /etc/ogx/config.yaml"},
 					Env: []corev1.EnvVar{
 						{Name: "VLLM_TLS_VERIFY", Value: "false"},
 						{Name: "FAISS_STORE_DIR", Value: "~/.llama/faiss"},
 						{Name: "FMS_ORCHESTRATOR_URL", Value: "http://localhost"},
-						{Name: "VLLM_MAX_TOKENS", Value: "4096"},
+						{Name: "VLLM_MAX_TOKENS_1", Value: "4096"},
 						{Name: "OGX_CONFIG_DIR", Value: "/opt/app-root/src/.ogx/distributions/rh/"},
 					},
 				},

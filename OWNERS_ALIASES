@@ -16,6 +16,7 @@ aliases:
     - ederign
     - dpanshug
     - claudialphonse78
+    - andyatmiami
 
   # Backup alias for managers to help with unblocking during PTO
   managers-backup-approvers:
@@ -240,6 +241,22 @@ aliases:
     - pnaik1
     - ederign
 
+  # Agent Ops
+  agent-ops-approvers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+  agent-ops-reviewers:
+    - Gkrumbach07
+    - DaoDaoNoCode
+
+  # Distributions
+  distributions-approvers:
+    - andyatmiami
+    - paulovmr
+  distributions-reviewers:
+    - caponetto
+    - jenny-s51
+
   # MLflow
   mlflow-approvers:
     - caponetto
@@ -251,3 +268,13 @@ aliases:
     - DaoDaoNoCode
     - Gkrumbach07
     - nananosirova
+
+  # Core BFF
+  core-bff-approvers:
+    - caponetto
+    - andyatmiami
+    - lucferbux
+  core-bff-reviewers:
+    - caponetto
+    - andyatmiami
+    - lucferbux
