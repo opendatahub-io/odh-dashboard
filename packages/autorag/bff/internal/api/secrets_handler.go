@@ -19,7 +19,7 @@ type SecretsEnvelope Envelope[[]models.SecretListItem, None]
 // GetSecretsHandler retrieves secrets from a namespace with optional filtering based on type.
 // Query parameters:
 //   - namespace (required): The namespace name to query secrets from
-//   - type (optional): Filter type - "storage" for AWS secrets, "lls" for LLS secrets, or empty for all secrets
+//   - type (optional): Filter type - "storage" for AWS secrets, "ogx" for OGX secrets, or empty for all secrets
 //
 // Note: namespace is provided via the AttachNamespace middleware
 func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -43,8 +43,8 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Parse type (optional, default to empty string which means all secrets)
 	secretType := queryParams.Get("type")
 	// Validate type parameter
-	if secretType != "" && secretType != "storage" && secretType != "lls" {
-		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'lls', or omitted"))
+	if secretType != "" && secretType != "storage" && secretType != "ogx" {
+		app.badRequestResponse(w, r, fmt.Errorf("query parameter 'type' must be 'storage', 'ogx', or omitted"))
 		return
 	}
 

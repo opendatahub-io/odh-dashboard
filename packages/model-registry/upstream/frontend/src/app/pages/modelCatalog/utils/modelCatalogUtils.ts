@@ -1,6 +1,4 @@
-import React from 'react';
 import { capitalize } from '@patternfly/react-core';
-import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import {
   CatalogArtifacts,
   CatalogArtifactType,
@@ -14,7 +12,6 @@ import {
   CatalogSource,
   CatalogSourceList,
   ModelCatalogFilterStates,
-  ModelCatalogStringFilterValueType,
   MetricsType,
   ModelCatalogFilterKey,
   SourceLabel,
@@ -33,6 +30,8 @@ import {
   SortField,
   CatalogModelCustomPropertyKey,
   ModelType,
+  ModelCatalogTask,
+  MATCH_ALL_FILTER_KEYS,
 } from '~/concepts/modelCatalog/const';
 import { isSourceStatusWithModels } from '~/concepts/modelCatalogSettings/const';
 import { ModelRegistryCustomProperties, ModelRegistryMetadataType } from '~/app/types';
@@ -40,6 +39,7 @@ import {
   buildCustomPropertiesWithModelType,
   getModelTypeStoredValueFromCustomProperties,
 } from '~/app/pages/modelRegistry/screens/RegisterModel/registerModelTypeUtils';
+import { eqFilter, inFilter, andFilter } from '~/app/shared/components/catalog';
 
 /**
  * Prefix used by the backend for artifact-specific filter options.
@@ -191,46 +191,9 @@ export const shouldShowValidatedInsights = (
   artifacts: CatalogArtifacts[],
 ): boolean => isModelValidated(model) && hasPerformanceArtifacts(artifacts);
 
-export const useCatalogStringFilterState = <K extends ModelCatalogStringFilterKey>(
-  filterKey: K,
-): {
-  isSelected: (value: ModelCatalogStringFilterValueType[K]) => boolean;
-  setSelected: (value: string, selected: boolean) => void;
-} => {
-  type Value = ModelCatalogStringFilterValueType[K];
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const selections: string[] = filterData[filterKey];
-  const isValidStringState = (state: string[]): state is ModelCatalogFilterStates[K] =>
-    Object.values(ModelCatalogStringFilterKey).includes(filterKey);
-  const isSelected = React.useCallback((value: Value) => selections.includes(value), [selections]);
-  const setSelected = (value: string, selected: boolean) => {
-    const nextState = selected
-      ? [...selections, value]
-      : selections.filter((item) => item !== value);
-    if (isValidStringState(nextState)) {
-      setFilterData(filterKey, nextState);
-    }
-  };
-
-  return { isSelected, setSelected };
-};
-
-export const useCatalogNumberFilterState = (
-  filterKey: ModelCatalogNumberFilterKey,
-): {
-  value: number | undefined;
-  setValue: (value: number | undefined) => void;
-} => {
-  const { filterData, setFilterData } = React.useContext(ModelCatalogContext);
-  const value = filterData[filterKey];
-  const setValue = React.useCallback(
-    (newValue: number | undefined) => {
-      setFilterData(filterKey, newValue);
-    },
-    [filterKey, setFilterData],
-  );
-  return { value, setValue };
-};
+export const hasValidatedToolCalling = (model: CatalogModel): boolean =>
+  model.validatedTasks?.includes(ModelCatalogTask.TOOL_CALLING) === true &&
+  model.servingConfig?.toolCalling != null;
 
 const isArrayOfSelections = (
   filterOption: CatalogFilterOptions[keyof CatalogFilterOptions],
@@ -343,11 +306,8 @@ export const getSortParams = (
   };
 };
 
-const wrapInQuotes = (v: string): string => `'${v.replace(/'/g, "''")}'`;
-
-const eqFilter = (k: string, v: string) => `${k}=${wrapInQuotes(v)}`;
-const inFilter = (k: string, values: string[]) =>
-  `${k} IN (${values.map((v) => wrapInQuotes(v)).join(',')})`;
+const isMatchAllFilter = (filterId: string): boolean =>
+  MATCH_ALL_FILTER_KEYS.some((key) => key === filterId);
 
 /**
  * Check if a filter key has the artifacts.* prefix.
@@ -441,7 +401,7 @@ const serializeFilterEntry = (
       case 1:
         return eqFilter(queryKey, data[0]);
       default:
-        return inFilter(queryKey, data);
+        return isMatchAllFilter(filterId) ? andFilter(queryKey, data) : inFilter(queryKey, data);
     }
   }
 
@@ -805,6 +765,6 @@ export const formatModelTypeDisplay = (modelTypeRaw: string | null): string => {
 export const getCatalogModelTypePropertyForRegistration = (
   customProperties?: ModelRegistryCustomProperties,
 ): ModelRegistryCustomProperties => {
-  const stored = getModelTypeStoredValueFromCustomProperties(customProperties);
+  const stored = getModelTypeStoredValueFromCustomProperties(customProperties) ?? ModelType.UNKNOWN;
   return buildCustomPropertiesWithModelType(undefined, stored);
 };

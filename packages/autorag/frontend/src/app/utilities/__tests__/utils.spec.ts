@@ -1,7 +1,10 @@
 /* eslint-disable camelcase */
 import type { PipelineRun } from '~/app/types';
+import type { AutoragPattern } from '~/app/types/autoragPattern';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import {
+  isRunCompleted,
+  isRunInTerminalState,
   isRunTerminatable,
   isRunInProgress,
   isRunRetryable,
@@ -10,7 +13,66 @@ import {
   getOptimizedMetricForRAG,
   formatMetricValue,
   generateReconfigureName,
+  humanize,
+  formatDisplayValue,
+  computePatternRankMap,
 } from '~/app/utilities/utils';
+
+describe('isRunCompleted', () => {
+  it('should return true for SUCCEEDED', () => {
+    expect(isRunCompleted('SUCCEEDED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunCompleted('succeeded')).toBe(true);
+    expect(isRunCompleted('Succeeded')).toBe(true);
+  });
+
+  it('should return false for other terminal states', () => {
+    expect(isRunCompleted('FAILED')).toBe(false);
+    expect(isRunCompleted('CANCELED')).toBe(false);
+    expect(isRunCompleted('SKIPPED')).toBe(false);
+    expect(isRunCompleted('CACHED')).toBe(false);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunCompleted('RUNNING')).toBe(false);
+    expect(isRunCompleted('PENDING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunCompleted(undefined)).toBe(false);
+    expect(isRunCompleted('')).toBe(false);
+  });
+});
+
+describe('isRunInTerminalState', () => {
+  it('should return true for all terminal states', () => {
+    expect(isRunInTerminalState('SUCCEEDED')).toBe(true);
+    expect(isRunInTerminalState('FAILED')).toBe(true);
+    expect(isRunInTerminalState('CANCELED')).toBe(true);
+    expect(isRunInTerminalState('SKIPPED')).toBe(true);
+    expect(isRunInTerminalState('CACHED')).toBe(true);
+  });
+
+  it('should be case-insensitive', () => {
+    expect(isRunInTerminalState('succeeded')).toBe(true);
+    expect(isRunInTerminalState('Failed')).toBe(true);
+    expect(isRunInTerminalState('canceled')).toBe(true);
+  });
+
+  it('should return false for active states', () => {
+    expect(isRunInTerminalState('RUNNING')).toBe(false);
+    expect(isRunInTerminalState('PENDING')).toBe(false);
+    expect(isRunInTerminalState('PAUSED')).toBe(false);
+    expect(isRunInTerminalState('CANCELING')).toBe(false);
+  });
+
+  it('should return false for undefined or empty state', () => {
+    expect(isRunInTerminalState(undefined)).toBe(false);
+    expect(isRunInTerminalState('')).toBe(false);
+  });
+});
 
 describe('isRunTerminatable', () => {
   it('should return true for active states', () => {
@@ -376,5 +438,152 @@ describe('generateReconfigureName', () => {
     const hugeNum = '1'.repeat(260); // 260-digit number
     const result = generateReconfigureName(`run - ${hugeNum}`);
     expect(Array.from(result).length).toBeLessThanOrEqual(250);
+  });
+});
+
+describe('humanize', () => {
+  it('should convert snake_case to Title Case', () => {
+    expect(humanize('chunk_size')).toBe('Chunk Size');
+    expect(humanize('context_template_text')).toBe('Context Template Text');
+  });
+
+  it('should capitalize a single word', () => {
+    expect(humanize('method')).toBe('Method');
+  });
+
+  it('should return empty string for empty input', () => {
+    expect(humanize('')).toBe('');
+  });
+
+  it('should handle strings with consecutive underscores', () => {
+    expect(humanize('foo__bar')).toBe('Foo  Bar');
+  });
+
+  it('should handle single character words', () => {
+    expect(humanize('a_b_c')).toBe('A B C');
+  });
+
+  it('should handle already capitalized words', () => {
+    expect(humanize('Model_Id')).toBe('Model Id');
+  });
+});
+
+describe('formatDisplayValue', () => {
+  it('should return em-dash for null', () => {
+    expect(formatDisplayValue(null)).toBe('\u2014');
+  });
+
+  it('should return em-dash for undefined', () => {
+    expect(formatDisplayValue(undefined)).toBe('\u2014');
+  });
+
+  it('should convert numbers to strings', () => {
+    expect(formatDisplayValue(42)).toBe('42');
+    expect(formatDisplayValue(0)).toBe('0');
+    expect(formatDisplayValue(3.14)).toBe('3.14');
+  });
+
+  it('should convert booleans to strings', () => {
+    expect(formatDisplayValue(true)).toBe('true');
+    expect(formatDisplayValue(false)).toBe('false');
+  });
+
+  it('should return strings as-is', () => {
+    expect(formatDisplayValue('hello')).toBe('hello');
+    expect(formatDisplayValue('')).toBe('');
+  });
+
+  it('should JSON.stringify objects', () => {
+    expect(formatDisplayValue({ key: 'value' })).toBe('{"key":"value"}');
+  });
+
+  it('should JSON.stringify arrays', () => {
+    expect(formatDisplayValue([1, 2, 3])).toBe('[1,2,3]');
+  });
+});
+
+/** Minimal pattern factory for rank map tests. */
+const makeRankPattern = (name: string, final_score: number): AutoragPattern => ({
+  name,
+  iteration: 0,
+  max_combinations: 1,
+  duration_seconds: 0,
+  final_score,
+  settings: {
+    vector_store: { datasource_type: '', collection_name: '' },
+    chunking: { method: '', chunk_size: 0, chunk_overlap: 0 },
+    embedding: {
+      model_id: '',
+      distance_metric: '',
+      embedding_params: {
+        embedding_dimension: 0,
+        context_length: 0,
+        timeout: null,
+        model_type: null,
+        provider_id: null,
+        provider_resource_id: null,
+      },
+    },
+    retrieval: { method: '', number_of_chunks: 0 },
+    generation: {
+      model_id: '',
+      context_template_text: '',
+      user_message_text: '',
+      system_message_text: '',
+    },
+  },
+  scores: {},
+});
+
+describe('computePatternRankMap', () => {
+  it('should rank patterns by final_score descending', () => {
+    const patterns = [
+      makeRankPattern('low', 0.3),
+      makeRankPattern('high', 0.9),
+      makeRankPattern('mid', 0.6),
+    ];
+    expect(computePatternRankMap(patterns)).toEqual({
+      high: 1,
+      mid: 2,
+      low: 3,
+    });
+  });
+
+  it('should return empty map for empty array', () => {
+    expect(computePatternRankMap([])).toEqual({});
+  });
+
+  it('should handle single pattern', () => {
+    expect(computePatternRankMap([makeRankPattern('solo', 0.5)])).toEqual({ solo: 1 });
+  });
+
+  it('should assign sequential ranks for tied scores', () => {
+    const patterns = [
+      makeRankPattern('a', 0.7),
+      makeRankPattern('b', 0.7),
+      makeRankPattern('c', 0.7),
+    ];
+    const rankMap = computePatternRankMap(patterns);
+    expect(Object.values(rankMap).toSorted()).toEqual([1, 2, 3]);
+  });
+
+  it('should not mutate the original array', () => {
+    const patterns = [makeRankPattern('z', 0.1), makeRankPattern('a', 0.9)];
+    const originalOrder = patterns.map((p) => p.name);
+    computePatternRankMap(patterns);
+    expect(patterns.map((p) => p.name)).toEqual(originalOrder);
+  });
+
+  it('should handle negative and zero scores', () => {
+    const patterns = [
+      makeRankPattern('neg', -0.2),
+      makeRankPattern('zero', 0),
+      makeRankPattern('pos', 0.3),
+    ];
+    expect(computePatternRankMap(patterns)).toEqual({
+      pos: 1,
+      zero: 2,
+      neg: 3,
+    });
   });
 });

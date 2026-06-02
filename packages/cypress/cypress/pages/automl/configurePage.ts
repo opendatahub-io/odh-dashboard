@@ -92,14 +92,9 @@ class AutomlConfigurePage {
     return cy.findByTestId(`task-type-card-${type}`);
   }
 
-  // Tabular fields (binary, multiclass, regression)
-  findLabelColumnSelect() {
-    return cy.findByTestId('label_column-select');
-  }
-
-  // Timeseries fields
+  // Target column (shared across all task types)
   findTargetColumnSelect() {
-    return cy.findByTestId('target-select');
+    return cy.findByTestId('target_column-select');
   }
 
   findTimestampColumnSelect() {

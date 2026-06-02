@@ -20,11 +20,11 @@ import { useDeploymentExtension } from '../../../concepts/extensionUtils';
 import {
   Deployment,
   DeploymentsTableColumn,
-  isModelServingDeploymentFormDataExtension,
   isModelServingMetricsExtension,
   isModelServingStartStopAction,
   type DeployedModelServingDetails,
 } from '../../../../extension-points';
+import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
@@ -96,19 +96,22 @@ export const DeploymentRow: React.FC<{
   const row = (
     <>
       <ResourceTr resource={deployment.model}>
-        {showExpandedToggle && pathsLoaded && (
-          <Td
-            {...{
-              'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
-              expand: {
-                rowIndex,
-                expandId: `${deployment.modelServingPlatformId}-model-row-item`,
-                isExpanded,
-                onToggle: () => setExpanded(!isExpanded),
-              },
-            }}
-          />
-        )}
+        {showExpandedToggle &&
+          (pathsLoaded ? (
+            <Td
+              {...{
+                'data-testid': `${deployment.modelServingPlatformId}-model-row-item`,
+                expand: {
+                  rowIndex,
+                  expandId: `${deployment.modelServingPlatformId}-model-row-item`,
+                  isExpanded,
+                  onToggle: () => setExpanded(!isExpanded),
+                },
+              }}
+            />
+          ) : (
+            <Td />
+          ))}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
             {metricsExtension &&
@@ -164,7 +167,6 @@ export const DeploymentRow: React.FC<{
               currentState={deployment.status.stoppedStates}
               onStart={onStart}
               onStop={onStop}
-              isDisabledWhileStarting={false}
             />
           ) : (
             '-'
@@ -179,9 +181,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   navigateToDeploymentWizard(deployment.model.metadata.namespace);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
               { isSeparator: true },
               {
@@ -189,9 +188,6 @@ export const DeploymentRow: React.FC<{
                 onClick: () => {
                   onDelete(deployment);
                 },
-                isDisabled:
-                  deployment.status?.stoppedStates?.isStarting ||
-                  deployment.status?.stoppedStates?.isStopping,
               },
             ]}
           />

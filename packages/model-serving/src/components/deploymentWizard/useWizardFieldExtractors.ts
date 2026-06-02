@@ -1,7 +1,7 @@
 import React from 'react';
 import { useResolvedExtensions } from '@odh-dashboard/plugin-core';
 import type { Deployment } from '../../../extension-points';
-import { isWizardFieldExtractorExtension } from '../../../extension-points';
+import { isWizardFieldExtractorExtension } from '../../../extension-points/deployment-wizard';
 
 /**
  * Extracted field data from a deployment, keyed by field ID.

@@ -102,6 +102,9 @@ func handleFakeSearchAPIKeys(w http.ResponseWriter, r *http.Request) {
 			if req.Filters.Username != "" && !strings.Contains(strings.ToLower(key.Username), strings.ToLower(req.Filters.Username)) {
 				continue
 			}
+			if req.Filters.Subscription != "" && !strings.Contains(strings.ToLower(key.SubscriptionName), strings.ToLower(req.Filters.Subscription)) {
+				continue
+			}
 			if len(req.Filters.Status) > 0 {
 				matched := false
 				for _, s := range req.Filters.Status {

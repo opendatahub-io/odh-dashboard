@@ -2,6 +2,11 @@
 description: CSS and PatternFly v6 styling conventions for ODH Dashboard
 globs: "**/*.scss,**/*.css,**/*.tsx,**/*.ts"
 alwaysApply: false
+paths:
+  - "**/*.scss"
+  - "**/*.css"
+  - "**/*.tsx"
+  - "**/*.ts"
 ---
 
 # CSS & PatternFly — ODH Dashboard

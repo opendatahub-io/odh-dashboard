@@ -1,4 +1,9 @@
+// Modules -------------------------------------------------------------------->
+
 import type { ComponentType, CSSProperties } from 'react';
+import type { PipelineSpecVariable, RuntimeStateKF } from '~/app/types/pipeline';
+
+// Types ---------------------------------------------------------------------->
 
 export type DisplayNameAnnotations = Partial<{
   'openshift.io/description': string;
@@ -63,8 +68,6 @@ export type PipelineRunError = {
   details?: PipelineRunErrorDetail[];
 };
 
-import type { PipelineSpecVariable } from '~/app/types/pipeline';
-
 export type PipelineSpec = PipelineSpecVariable;
 
 export type PipelineRunTaskDetail = {
@@ -93,7 +96,7 @@ export type PipelineRun = {
   run_id: string;
   display_name: string;
   created_at: string;
-  state: string;
+  state: '' | `${RuntimeStateKF}`;
   experiment_id?: string;
   storage_state?: string;
   description?: string;
@@ -109,32 +112,31 @@ export type PipelineRun = {
   state_history?: PipelineRunStateHistoryEntry[];
 };
 
-export type LlamaStackModelType = 'llm' | 'embedding';
+export type OgxModelType = 'llm' | 'embedding';
 
-export type LlamaStackModel = {
+export type OgxModel = {
   id: string;
-  type: LlamaStackModelType;
+  type: OgxModelType;
   provider: string;
   resource_path: string;
 };
 
-export type LlamaStackModelsResponse = {
-  models: LlamaStackModel[];
+export type OgxModelsResponse = {
+  models: OgxModel[];
 };
 
-export type LlamaStackVectorStoreProvider = {
+export type OgxVectorStoreProvider = {
   provider_id: string;
   provider_type: string;
 };
 
-export type LlamaStackVectorStoreProvidersResponse = {
-  vector_store_providers: LlamaStackVectorStoreProvider[];
+export type OgxVectorStoreProvidersResponse = {
+  vector_store_providers: OgxVectorStoreProvider[];
 };
 
-export type LlamaStackFilteredVectorStoreProvidersResponse =
-  LlamaStackVectorStoreProvidersResponse & {
-    totalProviderCount: number;
-  };
+export type OgxFilteredVectorStoreProvidersResponse = OgxVectorStoreProvidersResponse & {
+  totalProviderCount: number;
+};
 
 export type SecretListItem = {
   uuid: string;

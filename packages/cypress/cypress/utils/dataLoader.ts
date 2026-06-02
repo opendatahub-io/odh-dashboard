@@ -18,7 +18,6 @@ import type {
   ManageRegistryPermissionsTestData,
   ModelRegistryTestData,
   PipelineTestData,
-  TiersTestData,
   ResourcesFiltersTestData,
   WorkloadMetricsTestData,
   KueueWorkbenchTestData,
@@ -167,13 +166,6 @@ export const loadModelRegistryFixture = (
 export const loadPipelineFixture = (fixturePath: string): Cypress.Chainable<PipelineTestData> =>
   cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
     const data = yaml.load(yamlContent) as PipelineTestData;
-
-    return data;
-  });
-
-export const loadTiersFixture = (fixturePath: string): Cypress.Chainable<TiersTestData> =>
-  cy.fixture(fixturePath, 'utf8').then((yamlContent: string) => {
-    const data = yaml.load(yamlContent) as TiersTestData;
 
     return data;
   });

@@ -103,7 +103,7 @@ const ViewAuthPoliciesPage: React.FC = () => {
       breadcrumb={breadcrumb}
       headerAction={policyInfo && <PolicyActions policy={policyInfo.policy} />}
       empty={false}
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       loadError={loadError}
       errorMessage="Unable to load policy details."
     >

@@ -92,9 +92,7 @@ describe('EnsureFeatureStoreAPIAvailability', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.queryByTestId('children')).not.toBeInTheDocument();
 
-    // Check for the EmptyState container with data-id
-    const emptyState = document.querySelector('[data-id="loading-empty-state"]');
-    expect(emptyState).toBeInTheDocument();
+    expect(screen.getByTestId('loading-empty-state')).toBeInTheDocument();
   });
 
   it('should render children when API is not available but CR has error', () => {

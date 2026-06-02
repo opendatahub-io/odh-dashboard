@@ -110,16 +110,3 @@ type CompletionMessage struct {
 	StopReason string        `json:"stop_reason"`
 	ToolCalls  []interface{} `json:"tool_calls"`
 }
-
-// Legacy types for backward compatibility (used in mock)
-type ChatChoice struct {
-	Index        int         `json:"index"`
-	Message      ChatMessage `json:"message"`
-	FinishReason string      `json:"finish_reason"`
-}
-
-type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
-}

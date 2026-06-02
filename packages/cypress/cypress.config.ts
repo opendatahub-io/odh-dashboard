@@ -70,12 +70,15 @@ export default defineConfig({
       exclude: [path.resolve(__dirname, '../../third_party/**')],
     },
     ODH_PRODUCT_NAME: env.ODH_PRODUCT_NAME,
+    BUILD_NUMBER: env.BUILD_NUMBER || '',
+    GITHUB_RUN_ID: env.GITHUB_RUN_ID || '',
     resolution: 'high',
     grepFilterSpecs: true,
     mfConfigs: getModuleFederationConfigs(true),
   },
   defaultCommandTimeout: 10000,
   e2e: {
+    injectDocumentDomain: true,
     baseUrl: BASE_URL,
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
     specPattern: env.CY_MOCK

@@ -17,6 +17,7 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/apis"
@@ -24,10 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	kservev1alpha1 "github.com/kserve/kserve/pkg/apis/serving/v1alpha1"
+	kservev1beta1 "github.com/kserve/kserve/pkg/apis/serving/v1beta1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestCanListLlamaStackDistributions(t *testing.T) {
-	t.Run("should create proper SAR request for LlamaStackDistribution resources", func(t *testing.T) {
+func TestCanListOGXServers(t *testing.T) {
+	t.Run("should create proper SAR request for OGXServer resources", func(t *testing.T) {
 		// Create a mock config
 		config := &rest.Config{
 			Host: "https://test-cluster.example.com",
@@ -49,7 +52,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		// We expect an error because we don't have a real Kubernetes cluster
 		// but the method should be callable and return appropriate error
@@ -72,7 +75,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, nil, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, nil, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -96,7 +99,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -120,7 +123,7 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
 
-		canList, err := client.CanListLlamaStackDistributions(ctx, identity, testutil.TestNamespace)
+		canList, err := client.CanListOGXServers(ctx, identity, testutil.TestNamespace)
 
 		assert.Error(t, err)
 		assert.False(t, canList)
@@ -128,15 +131,15 @@ func TestCanListLlamaStackDistributions(t *testing.T) {
 	})
 }
 
-func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
+func TestCanListOGXServersSARStructure(t *testing.T) {
 	t.Run("should create correct SAR request structure", func(t *testing.T) {
 		// Test that we can create the SAR request with correct parameters
 		sar := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
 					Verb:      "list",
-					Group:     "llamastack.io",
-					Resource:  "llamastackdistributions",
+					Group:     "ogx.io",
+					Resource:  "ogxservers",
 					Namespace: "test-namespace",
 				},
 			},
@@ -144,8 +147,8 @@ func TestCanListLlamaStackDistributionsSARStructure(t *testing.T) {
 
 		// Verify the SAR structure
 		assert.Equal(t, "list", sar.Spec.ResourceAttributes.Verb)
-		assert.Equal(t, "llamastack.io", sar.Spec.ResourceAttributes.Group)
-		assert.Equal(t, "llamastackdistributions", sar.Spec.ResourceAttributes.Resource)
+		assert.Equal(t, "ogx.io", sar.Spec.ResourceAttributes.Group)
+		assert.Equal(t, "ogxservers", sar.Spec.ResourceAttributes.Resource)
 		assert.Equal(t, "test-namespace", sar.Spec.ResourceAttributes.Namespace)
 	})
 }
@@ -1386,4 +1389,245 @@ func TestAnonymousClientConfigStripsServiceAccountCredentials(t *testing.T) {
 			"user config must keep cluster CA for TLS verification")
 		assert.Equal(t, "https://test-cluster.example.com", userConfig.Host)
 	})
+}
+
+func TestGetAAModelsFromLLMInferenceServiceNilName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, kservev1alpha1.AddToScheme(scheme))
+
+	modelName := "explicit-model-name"
+
+	t.Run("nil Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
+	t.Run("empty Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		emptyName := ""
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &emptyName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
+	t.Run("whitespace-only Spec.Model.Name falls back to metadata name", func(t *testing.T) {
+		whitespaceName := "   "
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &whitespaceName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "my-llm-service", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+
+	t.Run("non-nil Spec.Model.Name is used as ModelID", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-llm-service",
+				Namespace: "test-ns",
+			},
+			Spec: kservev1alpha1.LLMInferenceServiceSpec{
+				Model: kservev1alpha1.LLMModelSpec{
+					Name: &modelName,
+				},
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(llmSvc).
+			Build()
+
+		kc := &TokenKubernetesClient{
+			Logger: slog.Default(),
+			Client: fakeClient,
+		}
+
+		result, err := kc.getAAModelsFromLLMInferenceService(
+			context.Background(), "test-ns", labels.Everything(),
+		)
+		require.NoError(t, err)
+		require.Len(t, result, 1)
+		assert.Equal(t, "explicit-model-name", result[0].ModelID)
+		assert.Equal(t, "my-llm-service", result[0].ModelName)
+	})
+}
+
+func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, kservev1alpha1.AddToScheme(scheme))
+	require.NoError(t, kservev1beta1.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	const (
+		namespace   = "test-ns"
+		serviceName = "my-llm-service"
+	)
+	llmUID := types.UID("llm-uid-123")
+
+	// newLLMService creates an LLMInferenceService with an optional Spec.Model.Name.
+	newLLMService := func(modelNamePtr *string) *kservev1alpha1.LLMInferenceService {
+		svc := &kservev1alpha1.LLMInferenceService{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: namespace,
+				UID:       llmUID,
+			},
+		}
+		if modelNamePtr != nil {
+			svc.Spec.Model.Name = modelNamePtr
+		}
+		return svc
+	}
+
+	// workloadService returns a corev1.Service that extractEndpointFromLLMInferenceService
+	// will discover via label selector + owner-reference match.
+	workloadService := func() *corev1.Service {
+		return &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName + "-workload",
+				Namespace: namespace,
+				Labels: map[string]string{
+					LLMInferenceServiceName:      serviceName,
+					LLMInferenceServiceComponent: LLMInferenceServiceWorkloadComponent,
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{UID: llmUID},
+				},
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{Port: 8080},
+				},
+			},
+		}
+	}
+
+	modelName := "explicit-model-name"
+
+	tests := []struct {
+		name            string
+		modelNamePtr    *string
+		expectedModelID string
+	}{
+		{
+			name:            "nil Spec.Model.Name falls back to modelID parameter",
+			modelNamePtr:    nil,
+			expectedModelID: serviceName,
+		},
+		{
+			name:            "empty Spec.Model.Name falls back to modelID parameter",
+			modelNamePtr:    strPtr(""),
+			expectedModelID: serviceName,
+		},
+		{
+			name:            "whitespace-only Spec.Model.Name falls back to modelID parameter",
+			modelNamePtr:    strPtr("   "),
+			expectedModelID: serviceName,
+		},
+		{
+			name:            "non-nil Spec.Model.Name is used as modelID",
+			modelNamePtr:    &modelName,
+			expectedModelID: "explicit-model-name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(newLLMService(tt.modelNamePtr), workloadService()).
+				Build()
+
+			kc := &TokenKubernetesClient{
+				Logger: slog.Default(),
+				Client: fakeClient,
+			}
+
+			// modelID parameter matches the LLMInferenceService name so it is
+			// found during the fallback lookup (InferenceService lookup fails
+			// first because none exist in the fake client).
+			result, err := kc.getModelDetailsFromServingRuntime(
+				context.Background(), namespace, serviceName,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedModelID, result.modelID)
+			assert.Equal(t, "llm", result.modelType)
+		})
+	}
+}
+
+// strPtr is a helper that returns a pointer to the given string.
+func strPtr(s string) *string {
+	return &s
 }

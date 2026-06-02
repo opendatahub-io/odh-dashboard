@@ -17,8 +17,8 @@ jest.mock('~/app/topology/PipelineTopology', () => ({
   ),
 }));
 
-jest.mock('~/app/topology/useAutoMLTaskTopology', () => ({
-  useAutoMLTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
+jest.mock('~/app/topology/useAutomlTaskTopology', () => ({
+  useAutomlTaskTopology: jest.fn().mockReturnValue([{ id: 'task-1' }, { id: 'task-2' }]),
 }));
 
 jest.mock('~/app/utilities/utils', () => ({
@@ -95,7 +95,7 @@ describe('AutomlResults', () => {
     expect(topology).toHaveClass('automl-topology-container');
   });
 
-  it('should pass nodes from useAutoMLTaskTopology to PipelineTopology', () => {
+  it('should pass nodes from useAutomlTaskTopology to PipelineTopology', () => {
     renderWithContext(mockPipelineRun);
     const topology = screen.getByTestId('pipeline-topology');
     expect(topology).toHaveAttribute('data-node-count', '2');

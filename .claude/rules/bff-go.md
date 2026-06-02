@@ -2,6 +2,9 @@
 description: BFF (Backend For Frontend) API patterns and Go conventions for ODH Dashboard packages
 globs: "packages/*/bff/**,packages/*/upstream/bff/**"
 alwaysApply: false
+paths:
+  - "packages/*/bff/**"
+  - "packages/*/upstream/bff/**"
 ---
 
 # BFF API Patterns & Go Conventions
