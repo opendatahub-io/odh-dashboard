@@ -23,7 +23,7 @@ const GenAiCoreProjectSelector: React.FC<PipelineCoreProjectSelectorProps> = ({
       {...projectSelectorProps}
       onSelection={(projectName) => {
         const match = projectName
-          ? namespaces.find((n) => n.name === projectName) ?? undefined
+          ? (namespaces.find((n) => n.name === projectName) ?? undefined)
           : undefined;
         fireMiscTrackingEvent('GenAI Project Dropdown Option Selected', {
           selectedProject: projectName,
