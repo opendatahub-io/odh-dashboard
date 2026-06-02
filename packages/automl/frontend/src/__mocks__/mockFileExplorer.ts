@@ -4,7 +4,7 @@ import type {
   Folder,
   Source,
   Sources,
-} from '~/app/components/common/FileExplorer/FileExplorer';
+} from '@odh-dashboard/internal/concepts/fileExplorer/FileExplorer/FileExplorer';
 
 // Sources -------------------------------------------------------------------->
 
