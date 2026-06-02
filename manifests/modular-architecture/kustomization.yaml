@@ -8,6 +8,27 @@ resources:
   - modules-cluster-role.yaml
   - modules-cluster-role-binding.yaml
   - modules-sa-token-secret.yaml
+  - modules/model-registry/deployment.yaml
+  - modules/model-registry/service.yaml
+  - modules/model-registry/networkpolicy.yaml
+  - modules/gen-ai/deployment.yaml
+  - modules/gen-ai/service.yaml
+  - modules/gen-ai/networkpolicy.yaml
+  - modules/maas/deployment.yaml
+  - modules/maas/service.yaml
+  - modules/maas/networkpolicy.yaml
+  - modules/mlflow/deployment.yaml
+  - modules/mlflow/service.yaml
+  - modules/mlflow/networkpolicy.yaml
+  - modules/eval-hub/deployment.yaml
+  - modules/eval-hub/service.yaml
+  - modules/eval-hub/networkpolicy.yaml
+  - modules/automl/deployment.yaml
+  - modules/automl/service.yaml
+  - modules/automl/networkpolicy.yaml
+  - modules/autorag/deployment.yaml
+  - modules/autorag/service.yaml
+  - modules/autorag/networkpolicy.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env

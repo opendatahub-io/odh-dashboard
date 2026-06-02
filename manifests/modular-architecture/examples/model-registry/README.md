@@ -1,11 +1,5 @@
-# model-registry — example module manifests
+# model-registry — example path
 
-Filled-in copies of [templates/](../../templates/) for the **model-registry** BFF, derived from the `model-registry-ui` container in [`deployment.yaml`](../../deployment.yaml).
+Canonical manifests live under **[modules/model-registry/](../../modules/model-registry/)**, which is wired into [`kustomization.yaml`](../../kustomization.yaml).
 
-| File | Template |
-|------|----------|
-| [deployment.yaml](deployment.yaml) | [templates/deployment.yaml](../../templates/deployment.yaml) |
-| [service.yaml](service.yaml) | [templates/service.yaml](../../templates/service.yaml) |
-| [networkpolicy.yaml](networkpolicy.yaml) | [templates/networkpolicy.yaml](../../templates/networkpolicy.yaml) |
-
-See [templates/README.md](../../templates/README.md) for placeholder definitions and controller authoring guidance.
+See [modules/README.md](../../modules/README.md) and [templates/README.md](../../templates/README.md) for naming and placeholder guidance.

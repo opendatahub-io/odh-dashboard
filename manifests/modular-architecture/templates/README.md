@@ -20,7 +20,8 @@ Replace every `<PLACEHOLDER>` (angle brackets) with concrete values. The control
 
 | Placeholder | Description |
 |-------------|-------------|
-| `<MODULE_NAME>` | Kubernetes resource name for Deployment and Service; also used in labels and `deployment` selector |
+| `<MODULE_NAME>` | Kubernetes resource name for Deployment and NetworkPolicy; labels and Service `selector.deployment` |
+| `<MODULE_SERVICE_NAME>` | Service `metadata.name` (ODH: `odh-dashboard-<slug>-ui`; RHOAI may use `rhods-dashboard-<slug>-ui`) |
 | `<MODULE_CONTAINER_NAME>` | Container name (e.g. `model-registry-ui`) |
 | `<MODULE_PORT>` | HTTPS port for probes, `containerPort`, Service, and NetworkPolicy ingress (integer, no quotes in port fields) |
 | `<MODULE_PORT_NAME>` | Short name for the container port and Service `ports[].name` (e.g. `mr-ui`) |
@@ -62,6 +63,7 @@ Add module-specific `args` and `env` only when the module profile requires them 
 
 ## Service template requirements
 
+- `metadata.name`: `<MODULE_SERVICE_NAME>` (not necessarily equal to `<MODULE_NAME>`)
 - Annotation `service.beta.openshift.io/serving-cert-secret-name: <TLS_SECRET_NAME>`
 - Annotation `service.beta.kubernetes.io/backend-protocol: HTTPS`
 - One port: `port` and `targetPort` equal `<MODULE_PORT>`, name `<MODULE_PORT_NAME>`
@@ -95,11 +97,12 @@ When the controller (or install tooling) materializes a module, use one director
 
 ## Example: model-registry
 
-[examples/model-registry/](../examples/model-registry/) shows a fully substituted template set taken from the `model-registry-ui` container in [`deployment.yaml`](../deployment.yaml) and the 8043 Service port entry in [`service.yaml`](../service.yaml).
+[modules/model-registry/](../modules/model-registry/) shows a fully substituted template set taken from the `model-registry-ui` container in [`deployment.yaml`](../deployment.yaml) and the 8043 Service port entry in [`service.yaml`](../service.yaml).
 
 | Placeholder | model-registry value |
 |-------------|----------------------|
 | `<MODULE_NAME>` | `model-registry` |
+| `<MODULE_SERVICE_NAME>` | `odh-dashboard-model-registry-ui` |
 | `<MODULE_CONTAINER_NAME>` | `model-registry-ui` |
 | `<MODULE_PORT>` | `8043` |
 | `<MODULE_PORT_NAME>` | `mr-ui` |
@@ -107,7 +110,7 @@ When the controller (or install tooling) materializes a module, use one director
 | `<MODULE_EXTRA_ARGS>` | `--deployment-mode=federated` |
 | `<MODULE_EXTRA_ENV>` | `GATEWAY_DOMAIN` (empty string, replaced at install time) |
 
-Compare [examples/model-registry/deployment.yaml](../examples/model-registry/deployment.yaml) field-by-field with the template after substitution.
+Compare [modules/model-registry/deployment.yaml](../modules/model-registry/deployment.yaml) field-by-field with the template after substitution.
 
 ---
 
@@ -124,10 +127,14 @@ Compare [examples/model-registry/deployment.yaml](../examples/model-registry/dep
 
 ## Local validation (optional)
 
-Example manifests are not wired into `manifests/odh` or `manifests/rhoai`. To inspect the model-registry example:
+Module manifests under `modules/` are listed in [`kustomization.yaml`](../kustomization.yaml). To render all seven modules with image vars from `params.env`:
 
 ```bash
-kubectl apply --dry-run=client -f manifests/modular-architecture/examples/model-registry/
+kustomize build manifests/odh
 ```
 
-For kustomize image substitution on the example, build from a small overlay that sets `model-registry-ui-image` via `params.env` at the parent level.
+Dry-run apply for a single module:
+
+```bash
+kubectl apply --dry-run=client -f manifests/modular-architecture/modules/model-registry/
+```
