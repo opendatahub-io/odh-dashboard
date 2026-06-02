@@ -91,7 +91,7 @@ const LineageInner: React.FC<LineageProps> = ({
   });
 
   React.useEffect(() => {
-    if (controller && nodes.length > 0) {
+    if (controller) {
       try {
         controller.fromModel(
           {
