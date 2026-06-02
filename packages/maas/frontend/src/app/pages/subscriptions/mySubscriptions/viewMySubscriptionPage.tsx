@@ -6,28 +6,42 @@ import {
   BreadcrumbItem,
   Card,
   CardBody,
+  Content,
+  Flex,
+  FlexItem,
   PageSection,
   Stack,
   StackItem,
   Tab,
   Tabs,
   TabTitleText,
+  Title,
 } from '@patternfly/react-core';
-import { useGetSubscriptionInfo } from '~/app/hooks/useGetSubscriptionInfo';
 import { URL_PREFIX } from '~/app/utilities/const';
-import MaasModelsSection from '~/app/shared/MaasModelsSection';
-import { buildModelRefSummaries } from '~/app/pages/api-keys/utils';
+import ModelsViewTable from '~/app/pages/api-keys/ModelsViewTable';
+import { deriveModelGroups, sortModelGroups } from '~/app/pages/api-keys/SubscriptionsTab';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import MySubscriptionDetails from './mySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
-  const [subscriptionInfo, subscriptionLoaded, subscriptionLoadError] =
-    useGetSubscriptionInfo(subscriptionName);
-  const displaySubscriptionName =
-    subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
-  const modelRefsCount = subscriptionInfo ? buildModelRefSummaries(subscriptionInfo).length : 0;
+  const [modelSortDirection, setModelSortDirection] = React.useState<'asc' | 'desc' | undefined>(
+    undefined,
+  );
+  const [subscriptions, loaded, loadError] = useUserSubscriptions();
+  const subscription = subscriptions.find((sub) => sub.subscription_id_header === subscriptionName);
+  const displaySubscriptionName = subscription?.display_name?.trim() || subscriptionName;
+  const modelGroups = React.useMemo(
+    () => (subscription ? deriveModelGroups([subscription]) : []),
+    [subscription],
+  );
+  const sortedModelGroups = React.useMemo(
+    () => sortModelGroups(modelGroups, modelSortDirection),
+    [modelGroups, modelSortDirection],
+  );
+  const modelRefsCount = modelGroups.length;
 
   const breadcrumb = (
     <Breadcrumb>
@@ -48,11 +62,11 @@ const ViewSubscriptionPage: React.FC = () => {
       title={displaySubscriptionName}
       breadcrumb={breadcrumb}
       empty={false}
-      loaded={subscriptionLoaded}
-      loadError={subscriptionLoadError}
+      loaded={loaded}
+      loadError={loadError}
       errorMessage="Unable to load subscription details."
     >
-      {subscriptionLoaded && subscriptionInfo && (
+      {loaded && subscription && (
         <Tabs
           activeKey={activeTab}
           onSelect={(_event, key) => setActiveTab(key)}
@@ -70,20 +84,41 @@ const ViewSubscriptionPage: React.FC = () => {
                 <StackItem>
                   <Card>
                     <CardBody>
-                      <MySubscriptionDetails subscription={subscriptionInfo.subscription} />
+                      <MySubscriptionDetails subscription={subscription} />
                     </CardBody>
                   </Card>
                 </StackItem>
                 <StackItem>
                   <Card>
                     <CardBody>
-                      <MaasModelsSection
-                        modelRefSummaries={buildModelRefSummaries(subscriptionInfo)}
-                        modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
-                        resourceType="subscription"
-                        title={`Models ${modelRefsCount > 0 ? `(${modelRefsCount})` : ''}`}
-                        showProjectColumn={false}
-                      />
+                      <Stack hasGutter data-testid="subscription-models-section">
+                        <StackItem>
+                          <Flex
+                            direction={{ default: 'column' }}
+                            spaceItems={{ default: 'spaceItemsSm' }}
+                          >
+                            <FlexItem>
+                              <Title headingLevel="h2" size="xl">
+                                {`Models ${modelRefsCount > 0 ? `(${modelRefsCount})` : ''}`}
+                              </Title>
+                            </FlexItem>
+                            <FlexItem>
+                              <Content component="p">
+                                Models available to members of this subscription.
+                              </Content>
+                            </FlexItem>
+                          </Flex>
+                        </StackItem>
+                        <StackItem>
+                          <ModelsViewTable
+                            modelGroups={modelGroups}
+                            filteredModelGroups={sortedModelGroups}
+                            modelSortDirection={modelSortDirection}
+                            onModelSortDirectionChange={setModelSortDirection}
+                            isCompactVersion
+                          />
+                        </StackItem>
+                      </Stack>
                     </CardBody>
                   </Card>
                 </StackItem>
@@ -91,7 +126,8 @@ const ViewSubscriptionPage: React.FC = () => {
                   <Card>
                     <CardBody>
                       <MySubscriptionsApiKeyTable
-                        subscriptionId={subscriptionInfo.subscription.name}
+                        subscriptionId={subscription.subscription_id_header}
+                        keyCount={subscription.key_count ?? undefined}
                       />
                     </CardBody>
                   </Card>

@@ -127,7 +127,6 @@ class APIKeysPage {
 class MySubscriptionsPage {
   visit(subName: string): void {
     cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
-    cy.wait('@getSubscriptionInfo');
     cy.wait('@initialSearch');
     this.wait();
   }

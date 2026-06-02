@@ -36,6 +36,20 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
   return Array.from(modelMap.values());
 };
 
+export const sortModelGroups = (
+  groups: ModelGroupEntry[],
+  direction: 'asc' | 'desc' | undefined,
+): ModelGroupEntry[] => {
+  if (!direction) {
+    return groups;
+  }
+  return groups.toSorted((a, b) => {
+    const nameA = (a.displayName || a.name).toLowerCase();
+    const nameB = (b.displayName || b.name).toLowerCase();
+    return direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+  });
+};
+
 export type SubscriptionSortField = 'subscription' | 'model';
 
 const SubscriptionsTab: React.FC = () => {
@@ -109,11 +123,7 @@ const SubscriptionsTab: React.FC = () => {
     if (!modelSortDirection) {
       return result;
     }
-    return result.toSorted((a, b) => {
-      const nameA = (a.displayName || a.name).toLowerCase();
-      const nameB = (b.displayName || b.name).toLowerCase();
-      return modelSortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-    });
+    return sortModelGroups(result, modelSortDirection);
   }, [modelGroups, modelSourceFilters, searchValue, modelSortDirection]);
 
   if (!loaded) {

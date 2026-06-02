@@ -8,10 +8,10 @@ import {
   StackItem,
   Title,
 } from '@patternfly/react-core';
-import { MaaSSubscription } from '~/app/types/subscriptions';
+import { UserSubscription } from '~/app/types/subscriptions';
 
 type MySubscriptionDetailsProps = {
-  subscription: MaaSSubscription;
+  subscription: UserSubscription;
 };
 
 const MySubscriptionDetails: React.FC<MySubscriptionDetailsProps> = ({ subscription }) => (
@@ -26,17 +26,21 @@ const MySubscriptionDetails: React.FC<MySubscriptionDetailsProps> = ({ subscript
         <DescriptionListGroup>
           <DescriptionListTerm>Name</DescriptionListTerm>
           <DescriptionListDescription>
-            {subscription.displayName?.trim() || subscription.name}
+            {subscription.display_name?.trim() || subscription.subscription_id_header}
           </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Subscription ID</DescriptionListTerm>
-          <DescriptionListDescription>{subscription.name}</DescriptionListDescription>
+          <DescriptionListDescription>
+            {subscription.subscription_id_header}
+          </DescriptionListDescription>
         </DescriptionListGroup>
-        {subscription.description && (
+        {subscription.subscription_description && (
           <DescriptionListGroup>
             <DescriptionListTerm>Description</DescriptionListTerm>
-            <DescriptionListDescription>{subscription.description}</DescriptionListDescription>
+            <DescriptionListDescription>
+              {subscription.subscription_description}
+            </DescriptionListDescription>
           </DescriptionListGroup>
         )}
       </DescriptionList>

@@ -29,21 +29,9 @@ const subscriptionApiKeyColumns: ApiKeyColumn[] = [
   { field: 'lastUsedAt', label: 'Last used', width: 15, sortable: false },
 ];
 
-const formatApiKeysCountLabel = (
-  apiKeysOnPage: number,
-  page: number,
-  perPage: number,
-  hasMore: boolean,
-): string => {
-  const count = (page - 1) * perPage + apiKeysOnPage;
-  if (count === 0) {
-    return '';
-  }
-  return hasMore ? `(${count}+)` : `(${count})`;
-};
-
 type MySubscriptionsApiKeyTableProps = {
   subscriptionId: string;
+  keyCount: number | undefined;
 };
 
 const SubscriptionApiKeySkeletonRows: React.FC<{ rowCount: number }> = ({ rowCount }) =>
@@ -76,6 +64,7 @@ const SubscriptionApiKeySkeletonRows: React.FC<{ rowCount: number }> = ({ rowCou
 
 const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   subscriptionId,
+  keyCount,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
@@ -86,11 +75,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   const apiKeys = response.data;
   const hasMore = response.has_more;
   const showTableLoading = !loaded || isPageLoading;
-  const countLabel =
-    loaded && !showTableLoading
-      ? formatApiKeysCountLabel(apiKeys.length, page, perPage, hasMore)
-      : '';
-  const titleText = countLabel ? `API keys ${countLabel}` : 'API keys';
+  const titleText = `API keys ${keyCount != null && keyCount > 0 ? `(${keyCount})` : ''}`;
 
   return (
     <>
@@ -190,12 +175,12 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
                     <b>
                       {firstIndex} - {lastIndex}
                     </b>{' '}
-                    of <b>many</b>
+                    of <b>{keyCount}</b>
                   </>
                 )
               : undefined
           }
-          itemCount={hasMore ? undefined : (page - 1) * perPage + apiKeys.length}
+          itemCount={keyCount}
           perPage={perPage}
           page={page}
           onSetPage={(_e, newPage) => onSetPage(newPage)}
