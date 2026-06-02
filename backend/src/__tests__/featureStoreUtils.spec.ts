@@ -1,13 +1,13 @@
 import {
-  parseNamespacesData,
-  extractServiceInfo,
   constructRegistryProxyUrl,
-  findRegistryUrlForFeatureStore,
   createFeatureStoreResponse,
-  filterEnabledCRDs,
   handleError,
-  FeatureStoreCRD,
-  ClientConfigInfo,
+  isRegistryReady,
+  getServiceFromCRD,
+  listFeastNamespaces,
+  listFeastFeatureStoreCRDs,
+  getFeastFeatureStoreCRD,
+  type FeatureStoreCRD,
 } from '../routes/api/featurestores/featureStoreUtils';
 
 const NAMESPACE = {
@@ -15,45 +15,23 @@ const NAMESPACE = {
   DEFAULT: 'default',
   TEST_NS: 'test-ns',
   NAMESPACE_WITH_DASH: 'namespace-with-dash',
-  TEST_FEAST_BANKING: 'test-feast-banking',
 } as const;
 
 const PROJECT = {
   BANKING: 'banking',
   RETAIL: 'retail',
   TEST: 'test',
-  ENABLED_2: 'enabled-2',
-  NO_LABELS: 'no-labels',
-  FRAUD_DETECT: 'fraud_detect',
-  CREDIT_SCORING_LOCAL: 'credit_scoring_local',
-} as const;
-
-const CONFIG_NAME = {
-  BANKING: 'banking-config',
-  RETAIL: 'retail-config',
-  FRAUD_DETECT: 'feast-fraud-detect-client',
-  CREDIT_SCORING_LOCAL: 'feast-sample-git-client',
 } as const;
 
 const SERVICE_NAME = {
   BANKING_REST: 'feast-banking-registry-rest',
   RETAIL_REST: 'feast-retail-registry-rest',
   TEST_REST: 'feast-test-registry-rest',
-  COMPLEX_REST: 'feast-my-complex-name-registry-rest',
-  FRAUD_DETECT_REST: 'feast-fraud-detect-registry-rest',
-  CREDIT_SCORING_REST: 'feast-sample-git-registry-rest',
 } as const;
 
 const REGISTRY_URL = {
   BANKING_HTTPS: 'https://feast-banking-registry.viewer.svc.cluster.local',
-  BANKING_HTTPS_WITH_PORT: 'https://feast-banking-registry.viewer.svc.cluster.local:8080',
-  RETAIL_HTTP: 'http://feast-retail-registry.default.svc.cluster.local',
   RETAIL_HTTPS: 'https://feast-retail-registry.default.svc.cluster.local',
-  TEST_NO_PROTOCOL: 'feast-test-registry.test-ns.svc.cluster.local',
-  COMPLEX_NAME: 'feast-my-complex-name-registry.namespace-with-dash.svc.cluster.local',
-  FRAUD_DETECT_HTTPS: 'https://feast-fraud-detect-registry.test-feast-banking.svc.cluster.local',
-  CREDIT_SCORING_HTTPS: 'https://feast-sample-git-registry.credit-namespace.svc.cluster.local',
-  INVALID: 'invalid-url-format',
 } as const;
 
 const API_PATH = {
@@ -78,16 +56,33 @@ const createMockFastify = () =>
   ({
     log: {
       error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
     },
   } as any);
 
-const createClientConfigInfo = (overrides: Partial<ClientConfigInfo> = {}): ClientConfigInfo => ({
-  configName: CONFIG_NAME.BANKING,
-  namespace: NAMESPACE.VIEWER,
-  registryUrl: REGISTRY_URL.BANKING_HTTPS,
-  projectName: PROJECT.BANKING,
-  ...overrides,
+const createMockApi = () => ({
+  setApiKey: jest.fn(),
+  listClusterCustomObject: jest.fn(),
+  listNamespacedCustomObject: jest.fn(),
+  getNamespacedCustomObject: jest.fn(),
 });
+
+const createMockKubeFastify = (mockApi = createMockApi()) =>
+  ({
+    log: {
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      info: jest.fn(),
+    },
+    kube: {
+      customObjectsApi: mockApi,
+    },
+  } as any);
+
+const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
 
 const createFeatureStoreCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCRD => ({
   apiVersion: 'feast.dev/v1',
@@ -125,108 +120,145 @@ describe('featureStoreUtils', () => {
     });
   });
 
-  describe('parseNamespacesData', () => {
-    it('should parse valid namespaces data', () => {
-      const configMapData = JSON.stringify({
-        namespaces: {
-          namespace1: ['config1', 'config2'],
-          namespace2: ['config3'],
+  describe('isRegistryReady', () => {
+    it('should return true when Registry condition is True', () => {
+      const crd = createFeatureStoreCRD({
+        status: {
+          conditions: [
+            { type: 'Registry', status: 'True', lastTransitionTime: '2024-01-01T00:00:00Z' },
+          ],
         },
       });
 
-      const result = parseNamespacesData(configMapData);
+      expect(isRegistryReady(crd)).toBe(true);
+    });
 
-      expect(result).toEqual({
-        namespaces: {
-          namespace1: ['config1', 'config2'],
-          namespace2: ['config3'],
+    it('should return false when Registry condition is False', () => {
+      const crd = createFeatureStoreCRD({
+        status: {
+          conditions: [
+            { type: 'Registry', status: 'False', lastTransitionTime: '2024-01-01T00:00:00Z' },
+          ],
         },
       });
+
+      expect(isRegistryReady(crd)).toBe(false);
     });
 
-    it('should handle empty namespaces object', () => {
-      const configMapData = JSON.stringify({ namespaces: {} });
+    it('should return false when no conditions exist', () => {
+      const crd = createFeatureStoreCRD({ status: { conditions: [] } });
 
-      const result = parseNamespacesData(configMapData);
-
-      expect(result).toEqual({ namespaces: {} });
+      expect(isRegistryReady(crd)).toBe(false);
     });
 
-    it('should handle missing namespaces key', () => {
-      const configMapData = JSON.stringify({});
+    it('should return false when status is missing', () => {
+      const crd = createFeatureStoreCRD();
 
-      const result = parseNamespacesData(configMapData);
-
-      expect(result).toEqual({ namespaces: {} });
+      expect(isRegistryReady(crd)).toBe(false);
     });
 
-    it('should throw error on invalid JSON', () => {
-      const invalidJson = 'not valid json';
+    it('should return false when Registry condition is absent but other conditions exist', () => {
+      const crd = createFeatureStoreCRD({
+        status: {
+          conditions: [
+            { type: 'Ready', status: 'True', lastTransitionTime: '2024-01-01T00:00:00Z' },
+          ],
+        },
+      });
 
-      expect(() => parseNamespacesData(invalidJson)).toThrow('Failed to parse namespaces data');
+      expect(isRegistryReady(crd)).toBe(false);
     });
   });
 
-  describe('extractServiceInfo', () => {
-    it('should extract service info from https URL with port', () => {
-      const result = extractServiceInfo(REGISTRY_URL.BANKING_HTTPS_WITH_PORT);
+  describe('getServiceFromCRD', () => {
+    it('should derive service name, namespace, and default to https/443 when TLS is not configured', () => {
+      const crd = createFeatureStoreCRD();
+
+      const result = getServiceFromCRD(crd);
 
       expect(result).toEqual({
         serviceName: SERVICE_NAME.BANKING_REST,
-        serviceNamespace: NAMESPACE.VIEWER,
-        originalUrl: REGISTRY_URL.BANKING_HTTPS_WITH_PORT,
-        protocol: PROTOCOL.HTTPS,
-        port: PORT.CUSTOM_8080,
-      });
-    });
-
-    it('should extract service info from https URL without port', () => {
-      const result = extractServiceInfo(REGISTRY_URL.BANKING_HTTPS);
-
-      expect(result).toEqual({
-        serviceName: SERVICE_NAME.BANKING_REST,
-        serviceNamespace: NAMESPACE.VIEWER,
-        originalUrl: REGISTRY_URL.BANKING_HTTPS,
+        namespace: NAMESPACE.VIEWER,
         protocol: PROTOCOL.HTTPS,
         port: PORT.HTTPS_DEFAULT,
       });
     });
 
-    it('should extract service info from http URL without port', () => {
-      const result = extractServiceInfo(REGISTRY_URL.RETAIL_HTTP);
+    it('should handle CRD names with hyphens and default to https/443', () => {
+      const crd = createFeatureStoreCRD({
+        metadata: { name: 'my-complex-name', namespace: NAMESPACE.DEFAULT },
+      });
+
+      const result = getServiceFromCRD(crd);
 
       expect(result).toEqual({
-        serviceName: SERVICE_NAME.RETAIL_REST,
-        serviceNamespace: NAMESPACE.DEFAULT,
-        originalUrl: REGISTRY_URL.RETAIL_HTTP,
+        serviceName: 'feast-my-complex-name-registry-rest',
+        namespace: NAMESPACE.DEFAULT,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
+      });
+    });
+
+    it('should handle CRD names with underscores and default to https/443', () => {
+      const crd = createFeatureStoreCRD({
+        metadata: { name: 'feast_rbac', namespace: NAMESPACE.TEST_NS },
+      });
+
+      const result = getServiceFromCRD(crd);
+
+      expect(result).toEqual({
+        serviceName: 'feast-feast_rbac-registry-rest',
+        namespace: NAMESPACE.TEST_NS,
+        protocol: PROTOCOL.HTTPS,
+        port: PORT.HTTPS_DEFAULT,
+      });
+    });
+
+    it('should return http/80 when tls.disable is true', () => {
+      const crd = createFeatureStoreCRD({
+        spec: {
+          services: {
+            registry: {
+              local: {
+                server: {
+                  tls: { disable: true },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const result = getServiceFromCRD(crd);
+
+      expect(result).toEqual({
+        serviceName: SERVICE_NAME.BANKING_REST,
+        namespace: NAMESPACE.VIEWER,
         protocol: PROTOCOL.HTTP,
         port: PORT.HTTP_DEFAULT,
       });
     });
 
-    it('should default to https when no protocol specified', () => {
-      const result = extractServiceInfo(REGISTRY_URL.TEST_NO_PROTOCOL);
-
-      expect(result).toEqual({
-        serviceName: SERVICE_NAME.TEST_REST,
-        serviceNamespace: NAMESPACE.TEST_NS,
-        originalUrl: REGISTRY_URL.TEST_NO_PROTOCOL,
-        protocol: PROTOCOL.HTTPS,
-        port: PORT.HTTPS_DEFAULT,
+    it('should return https/443 when tls.disable is false', () => {
+      const crd = createFeatureStoreCRD({
+        spec: {
+          services: {
+            registry: {
+              local: {
+                server: {
+                  tls: { disable: false },
+                },
+              },
+            },
+          },
+        },
       });
-    });
 
-    it('should throw error for invalid URL format', () => {
-      expect(() => extractServiceInfo(REGISTRY_URL.INVALID)).toThrow('Invalid registry URL format');
-    });
-
-    it('should handle service names with hyphens', () => {
-      const result = extractServiceInfo(REGISTRY_URL.COMPLEX_NAME);
+      const result = getServiceFromCRD(crd);
 
       expect(result).toEqual({
-        serviceName: SERVICE_NAME.COMPLEX_REST,
-        serviceNamespace: NAMESPACE.NAMESPACE_WITH_DASH,
-        originalUrl: REGISTRY_URL.COMPLEX_NAME,
+        serviceName: SERVICE_NAME.BANKING_REST,
+        namespace: NAMESPACE.VIEWER,
         protocol: PROTOCOL.HTTPS,
         port: PORT.HTTPS_DEFAULT,
       });
@@ -327,39 +359,238 @@ describe('featureStoreUtils', () => {
     });
   });
 
-  describe('findRegistryUrlForFeatureStore', () => {
-    const registryUrls: ClientConfigInfo[] = [
-      createClientConfigInfo(),
-      createClientConfigInfo({
-        configName: CONFIG_NAME.RETAIL,
-        namespace: NAMESPACE.DEFAULT,
-        registryUrl: REGISTRY_URL.RETAIL_HTTPS,
-        projectName: PROJECT.RETAIL,
-      }),
-    ];
+  describe('listFeastNamespaces', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
 
-    it('should find registry URL for existing feature store', () => {
-      const result = findRegistryUrlForFeatureStore(PROJECT.BANKING, registryUrls);
-
-      expect(result).toBe(REGISTRY_URL.BANKING_HTTPS);
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
     });
 
-    it('should find registry URL for second feature store', () => {
-      const result = findRegistryUrlForFeatureStore(PROJECT.RETAIL, registryUrls);
+    it('should return project names for accessible namespaces', async () => {
+      mockApi.listClusterCustomObject.mockResolvedValue({
+        body: {
+          items: [{ metadata: { name: 'feast-ns-1' } }, { metadata: { name: 'feast-ns-2' } }],
+        },
+      });
 
-      expect(result).toBe(REGISTRY_URL.RETAIL_HTTPS);
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual(['feast-ns-1', 'feast-ns-2']);
+      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith(
+        'project.openshift.io',
+        'v1',
+        'projects',
+        undefined,
+        undefined,
+        undefined,
+        'opendatahub.io/feast=true',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
     });
 
-    it('should return null for non-existent feature store', () => {
-      const result = findRegistryUrlForFeatureStore('non-existent', registryUrls);
+    it('should filter out items with falsy names', async () => {
+      mockApi.listClusterCustomObject.mockResolvedValue({
+        body: {
+          items: [
+            { metadata: { name: 'feast-ns-1' } },
+            { metadata: { name: '' } },
+            { metadata: { name: 'feast-ns-2' } },
+          ],
+        },
+      });
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual(['feast-ns-1', 'feast-ns-2']);
+    });
+
+    it('should return empty array when no projects exist', async () => {
+      mockApi.listClusterCustomObject.mockResolvedValue({
+        body: { items: [] },
+      });
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue(new Error('network failure'));
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list Feast namespaces for user'),
+      );
+    });
+  });
+
+  describe('listFeastFeatureStoreCRDs', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should return enabled FeatureStore CRDs for the namespace', async () => {
+      const crd1 = createFeatureStoreCRD({
+        metadata: { name: 'banking', namespace: NAMESPACE.VIEWER },
+      });
+      const crd2 = createFeatureStoreCRD({
+        metadata: { name: 'retail', namespace: NAMESPACE.VIEWER },
+      });
+
+      mockApi.listNamespacedCustomObject.mockResolvedValue({
+        body: { items: [crd1, crd2] },
+      });
+
+      const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.VIEWER, KUBE_HEADERS);
+
+      expect(result).toEqual([crd1, crd2]);
+      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith(
+        'feast.dev',
+        'v1',
+        NAMESPACE.VIEWER,
+        'featurestores',
+        undefined,
+        undefined,
+        undefined,
+        'feature-store-ui=enabled',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
+    });
+
+    it('should return empty array when no enabled CRDs exist', async () => {
+      mockApi.listNamespacedCustomObject.mockResolvedValue({
+        body: { items: [] },
+      });
+
+      const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.DEFAULT, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.VIEWER, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue(new Error('timeout'));
+
+      const result = await listFeastFeatureStoreCRDs(mockFastify, NAMESPACE.VIEWER, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to list FeatureStore CRDs in ${NAMESPACE.VIEWER}`),
+      );
+    });
+  });
+
+  describe('getFeastFeatureStoreCRD', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should return the CRD when found', async () => {
+      const crd = createFeatureStoreCRD();
+      mockApi.getNamespacedCustomObject.mockResolvedValue({ body: crd });
+
+      const result = await getFeastFeatureStoreCRD(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        PROJECT.BANKING,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual(crd);
+      expect(mockApi.getNamespacedCustomObject).toHaveBeenCalledWith(
+        'feast.dev',
+        'v1',
+        NAMESPACE.VIEWER,
+        'featurestores',
+        PROJECT.BANKING,
+        { headers: KUBE_HEADERS },
+      );
+    });
+
+    it('should return null on 404', async () => {
+      mockApi.getNamespacedCustomObject.mockRejectedValue({ statusCode: 404 });
+
+      const result = await getFeastFeatureStoreCRD(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        PROJECT.BANKING,
+        KUBE_HEADERS,
+      );
 
       expect(result).toBeNull();
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
     });
 
-    it('should return null for empty registry URLs array', () => {
-      const result = findRegistryUrlForFeatureStore(PROJECT.BANKING, []);
+    it('should return null on 403', async () => {
+      mockApi.getNamespacedCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await getFeastFeatureStoreCRD(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        PROJECT.BANKING,
+        KUBE_HEADERS,
+      );
 
       expect(result).toBeNull();
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return null and log on unexpected errors', async () => {
+      mockApi.getNamespacedCustomObject.mockRejectedValue(new Error('cluster unreachable'));
+
+      const result = await getFeastFeatureStoreCRD(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        PROJECT.BANKING,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Failed to get FeatureStore CRD ${NAMESPACE.VIEWER}/${PROJECT.BANKING}`,
+        ),
+      );
     });
   });
 
@@ -422,82 +653,6 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result.namespace).toBeUndefined();
-    });
-  });
-
-  describe('filterEnabledCRDs', () => {
-    const crds: FeatureStoreCRD[] = [
-      createFeatureStoreCRD({
-        metadata: {
-          name: PROJECT.BANKING,
-          namespace: NAMESPACE.VIEWER,
-          labels: {
-            'feature-store-ui': 'enabled',
-          },
-        },
-      }),
-      createFeatureStoreCRD({
-        metadata: {
-          name: PROJECT.RETAIL,
-          namespace: NAMESPACE.DEFAULT,
-          labels: {
-            'feature-store-ui': 'disabled',
-          },
-        },
-      }),
-      createFeatureStoreCRD({
-        metadata: {
-          name: PROJECT.TEST,
-          namespace: NAMESPACE.TEST_NS,
-        },
-      }),
-      createFeatureStoreCRD({
-        metadata: {
-          name: PROJECT.ENABLED_2,
-          namespace: NAMESPACE.VIEWER,
-          labels: {
-            'feature-store-ui': 'enabled',
-            'other-label': 'value',
-          },
-        },
-      }),
-    ];
-
-    it('should filter CRDs with feature-store-ui label set to enabled', () => {
-      const result = filterEnabledCRDs(crds);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].metadata.name).toBe(PROJECT.BANKING);
-      expect(result[1].metadata.name).toBe(PROJECT.ENABLED_2);
-    });
-
-    it('should return empty array when no CRDs are enabled', () => {
-      const disabledCrds = crds.filter(
-        (crd) => crd.metadata.name !== PROJECT.BANKING && crd.metadata.name !== PROJECT.ENABLED_2,
-      );
-
-      const result = filterEnabledCRDs(disabledCrds);
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should return empty array for empty input', () => {
-      const result = filterEnabledCRDs([]);
-
-      expect(result).toHaveLength(0);
-    });
-
-    it('should handle CRDs with no labels', () => {
-      const noLabelsCrd = createFeatureStoreCRD({
-        metadata: {
-          name: PROJECT.NO_LABELS,
-          namespace: NAMESPACE.DEFAULT,
-        },
-      });
-
-      const result = filterEnabledCRDs([noLabelsCrd]);
-
-      expect(result).toHaveLength(0);
     });
   });
 });

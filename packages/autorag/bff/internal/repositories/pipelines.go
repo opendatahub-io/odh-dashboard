@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -75,6 +76,10 @@ func (r *PipelinesRepository) pipelineDefinition() (pipelines.PipelineDefinition
 	yamlBytes, err := embeddedpipelines.GetPipelineYAML(constants.PipelineDirAutoRAG)
 	if err != nil {
 		return pipelines.PipelineDefinition{}, fmt.Errorf("failed to load embedded pipeline YAML %q: %w", constants.PipelineDirAutoRAG, err)
+	}
+
+	if override := os.Getenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE"); override != "" {
+		yamlBytes = embeddedpipelines.ReplaceImageRef(yamlBytes, embeddedpipelines.AutoRAGImagePattern, override)
 	}
 
 	return pipelines.PipelineDefinition{

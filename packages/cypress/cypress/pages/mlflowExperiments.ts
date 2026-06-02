@@ -184,7 +184,7 @@ class MlflowExperiments {
   }
 
   findCompareRunsHeading() {
-    return cy.contains('Comparing');
+    return cy.findByTestId('mlflow-breadcrumb-active');
   }
 
   findCompareRunsVisualizations() {

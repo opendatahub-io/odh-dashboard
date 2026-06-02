@@ -43,7 +43,6 @@ const mockUseAutoragResults = jest.fn();
 
 jest.mock('~/app/hooks/queries', () => ({
   usePipelineRunQuery: (...args: unknown[]) => mockUsePipelineRunQuery(...args),
-  isTerminalState: jest.requireActual('~/app/hooks/queries').isTerminalState,
 }));
 
 jest.mock('~/app/hooks/useAutoragResults', () => ({
@@ -593,7 +592,7 @@ describe('AutoragResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({
