@@ -8,13 +8,16 @@ Minimal backend-for-frontend providing only core endpoints required by the start
 
 ## Scope
 
-This trimmed service exposes ONLY:
+This service exposes core dashboard endpoints plus agent runtime APIs backed by an in-memory mock for local development:
 
 - GET `/healthcheck` – liveness probe
-- GET `/api/v1/user` – returns the authenticated (mock) user
+- GET `/api/v1/user` – returns the authenticated user
 - GET `/api/v1/namespaces` – list namespaces (available only when DEV_MODE=true or mock k8s enabled)
+- GET `/api/v1/agents/runtimes` – list deployed agent and tool runtimes
+- GET `/api/v1/agents/runtimes/{ns}/{name}` – full runtime detail for one agent
+- GET `/api/v1/agents/cards/{ns}/{name}` – agent discovery card for one agent
 
-All former Mod Arch–related endpoints, validation, mocks and OpenAPI dependencies were removed.
+Agent endpoints validate `{ns}` and `{name}` as DNS-1123 identifiers. Runtime data is served from the built-in mock agent data client (sample data for `agent-ops-demo` / `sample-support-agent`). A future change will load agents from Kubernetes via the same `agents` integration layer.
 
 ## Development
 
@@ -93,23 +96,41 @@ make docker-build
 
 ## Endpoints
 
-Only three JSON endpoints are available plus static asset serving (index.html fallback):
+JSON API endpoints plus static asset serving (index.html fallback):
 
 ```text
 GET /healthcheck
 GET /api/v1/user
-GET /api/v1/namespaces   (dev / mock mode only)
+GET /api/v1/namespaces              (dev / mock mode only)
+GET /api/v1/agents/runtimes
+GET /api/v1/agents/runtimes/{ns}/{name}
+GET /api/v1/agents/cards/{ns}/{name}
 ```
 
 ### Sample local calls
 
-When running with the mocked Kubernetes client (MOCK_K8S_CLIENT=true), the user `user@example.com` has RBAC allowing all three endpoints.
+Start the BFF with mock Kubernetes and mock agent data (from `packages/agent-ops`):
 
 ```shell
-curl -i localhost:4000/healthcheck
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/user
-curl -i -H "kubeflow-userid: user@example.com" localhost:4000/api/v1/namespaces   # (dev / mock only)
+make dev-bff
 ```
+
+`dev-bff` uses `AUTH_METHOD=user_token`. Send any non-empty token on the default header (the value is not validated in mock mode):
+
+```shell
+TOKEN_HDR="x-forwarded-access-token: dev-token"
+
+curl -i localhost:4000/healthcheck
+curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/user
+curl -i -H "$TOKEN_HDR" localhost:4000/api/v1/namespaces   # dev / mock only
+
+# Agent APIs (mock agent data; sample agent: agent-ops-demo / sample-support-agent)
+curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes | jq .
+curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/runtimes/agent-ops-demo/sample-support-agent | jq .
+curl -s -H "$TOKEN_HDR" localhost:4000/api/v1/agents/cards/agent-ops-demo/sample-support-agent | jq .
+```
+
+For Kubeflow-style `internal` auth instead, use `kubeflow-userid: user@example.com` (and run with `AUTH_METHOD=internal`).
 
 ### Inter-BFF Communication
 

@@ -44,10 +44,11 @@ func (d *DeploymentMode) Set(value string) error {
 	switch strings.ToLower(value) {
 	case "federated":
 		*d = DeploymentModeFederated
-	case "standalone":
+	case "standalone", "kubeflow":
+		// kubeflow is accepted as an alias for standalone (legacy Makefile / frontend naming).
 		*d = DeploymentModeStandalone
 	default:
-		return fmt.Errorf("invalid deployment mode: %s (must be federated or standalone)", value)
+		return fmt.Errorf("invalid deployment mode: %s (must be federated, standalone, or kubeflow)", value)
 	}
 	return nil
 }

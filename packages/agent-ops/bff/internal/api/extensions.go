@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log/slog"
 	"sync"
 
 	"github.com/julienschmidt/httprouter"
@@ -46,28 +45,4 @@ func RegisterHandlerOverride(id HandlerID, factory HandlerFactory) { //nolint:un
 	handlerOverrideMu.Lock()
 	defer handlerOverrideMu.Unlock()
 	handlerOverrides[id] = factory
-}
-
-// getHandlerOverride returns the registered handler override for the given HandlerID.
-// Returns nil if no override is registered.
-func getHandlerOverride(id HandlerID) HandlerFactory {
-	handlerOverrideMu.RLock()
-	defer handlerOverrideMu.RUnlock()
-	return handlerOverrides[id]
-}
-
-// handlerWithOverride returns the handler for the given HandlerID.
-// If an override is registered, it uses the override factory.
-// Otherwise, it uses the default handler from buildDefault.
-func (app *App) handlerWithOverride(id HandlerID, buildDefault func() httprouter.Handle) httprouter.Handle {
-	if override := getHandlerOverride(id); override != nil {
-		app.logHandlerOverride(id)
-		return override(app, buildDefault)
-	}
-	return buildDefault()
-}
-
-// logHandlerOverride logs that a handler override is being applied.
-func (app *App) logHandlerOverride(id HandlerID) {
-	app.logger.Info("applying handler override", slog.String("handler_id", string(id)))
 }
