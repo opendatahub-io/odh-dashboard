@@ -5,16 +5,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"os/signal"
-	"syscall"
-
-	"github.com/opendatahub-io/autorag-library/bff/internal/api"
-	"github.com/opendatahub-io/autorag-library/bff/internal/config"
-
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 	"time"
+
+	"github.com/opendatahub-io/autorag-library/bff/internal/api"
+	"github.com/opendatahub-io/autorag-library/bff/internal/config"
 )
 
 func main() {
@@ -66,6 +66,12 @@ func main() {
 		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
 			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
 			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
+
+	cfg.AutoRAGPipelineNamePrefix = strings.TrimSpace(cfg.AutoRAGPipelineNamePrefix)
+	if cfg.AutoRAGPipelineNamePrefix == "" {
+		logger.Error("autorag-pipeline-name-prefix must not be empty")
+		os.Exit(1)
 	}
 
 	// Prevent MockS3Client from being enabled in production (bypasses SSRF protections)

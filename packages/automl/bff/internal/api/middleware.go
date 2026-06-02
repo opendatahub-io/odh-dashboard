@@ -76,7 +76,7 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 
 		// Validate namespace against DNS-1123 label rules
 		if err := kubernetes.ValidateNamespaceName(namespace); err != nil {
-			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: must be a valid DNS-1123 label (lowercase alphanumeric or '-', start/end with alphanumeric, max 63 chars)"))
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace: %w", err))
 			return
 		}
 
@@ -87,9 +87,9 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 	}
 }
 
-// RequireAccessToPipelineServers enforces RBAC-based authorization for Pipeline Server access in the namespace.
+// RequireAccessToService enforces RBAC-based authorization for Pipeline Server access in the namespace.
 // Performs a SSAR to check if the user can list DSPipelineApplications before proceeding.
-func (app *App) RequireAccessToPipelineServers(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		if app.config.AuthMethod == config.AuthMethodDisabled {
 			next(w, r, ps)

@@ -24,14 +24,14 @@ func main() {
 	flag.IntVar(&cfg.Port, "port", getEnvAsInt("PORT", 4003), "API server port")
 	flag.StringVar(&certFile, "cert-file", "", "Path to TLS certificate file")
 	flag.StringVar(&keyFile, "key-file", "", "Path to TLS key file")
-	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", false, "Use mock Kubernetes client")
+	flag.BoolVar(&cfg.MockK8Client, "mock-k8s-client", getEnvAsBool("MOCK_K8_CLIENT", false), "Use mock Kubernetes client")
 	flag.BoolVar(&cfg.MockHTTPClient, "mock-http-client", false, "Use mock HTTP client")
-	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", false, "Use mock S3 client")
+	flag.BoolVar(&cfg.MockS3Client, "mock-s3-client", getEnvAsBool("MOCK_S3_CLIENT", false), "Use mock S3 client")
 	flag.BoolVar(&cfg.MockPipelineServerClient, "mock-pipeline-server-client", getEnvAsBool("MOCK_PIPELINE_SERVER_CLIENT", false), "Use mock Pipeline Server client")
 	flag.BoolVar(&cfg.MockModelRegistryClient, "mock-model-registry-client", getEnvAsBool("MOCK_MODEL_REGISTRY_CLIENT", false), "Use mock Model Registry client")
 	flag.StringVar(&cfg.AutoMLTimeSeriesPipelineNamePrefix, "automl-timeseries-pipeline-name-prefix", getEnvAsString("AUTOML_TIMESERIES_PIPELINE_NAME_PREFIX", "autogluon-timeseries-training-pipeline"), "Prefix for identifying AutoML time-series managed pipelines during discovery (default: autogluon-timeseries-training-pipeline)")
 	flag.StringVar(&cfg.AutoMLTabularPipelineNamePrefix, "automl-tabular-pipeline-name-prefix", getEnvAsString("AUTOML_TABULAR_PIPELINE_NAME_PREFIX", "autogluon-tabular-training-pipeline"), "Prefix for identifying AutoML tabular managed pipelines (classification + regression) during discovery (default: autogluon-tabular-training-pipeline)")
-	flag.BoolVar(&cfg.DevMode, "dev-mode", false, "Use development mode for access to local K8s cluster")
+	flag.BoolVar(&cfg.DevMode, "dev-mode", getEnvAsBool("DEV_MODE", false), "Use development mode for access to local K8s cluster")
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	// New deployment mode flag
@@ -81,6 +81,13 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
+
+	// Warn operators when DevMode + ALLOW_UNRESOLVED_S3_ENDPOINTS weakens SSRF protections
+	if cfg.DevMode && os.Getenv("ALLOW_UNRESOLVED_S3_ENDPOINTS") == "true" {
+		logger.Warn("** SECURITY WARNING ** DevMode with ALLOW_UNRESOLVED_S3_ENDPOINTS=true is active. " +
+			"DNS resolution validation for S3 endpoints is bypassed, which weakens SSRF protection " +
+			"and introduces TOCTOU risk. This configuration must NEVER be used in production.")
+	}
 
 	//validate auth method
 	if cfg.AuthMethod != config.AuthMethodDisabled && cfg.AuthMethod != config.AuthMethodInternal && cfg.AuthMethod != config.AuthMethodUser {

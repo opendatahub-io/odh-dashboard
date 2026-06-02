@@ -246,24 +246,24 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(SecretsPath, app.AttachNamespace(app.GetSecretsHandler))
 
 	// Pipeline Runs API endpoints (pipeline server and pipeline are auto-discovered)
-	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.PipelineRunHandler)))
-	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.PipelineRunsHandler)))
-	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.CreatePipelineRunHandler)))
-	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToPipelineServers(app.TerminatePipelineRunHandler)))
-	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToPipelineServers(app.RetryPipelineRunHandler)))
-	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToPipelineServers(app.DeletePipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.PipelineRunHandler)))
+	apiRouter.GET(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.PipelineRunsHandler)))
+	apiRouter.POST(PipelineRunsPath, app.AttachNamespace(app.RequireAccessToService(app.CreatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/terminate", app.AttachNamespace(app.RequireAccessToService(app.TerminatePipelineRunHandler)))
+	apiRouter.POST(PipelineRunsPath+"/:runId/retry", app.AttachNamespace(app.RequireAccessToService(app.RetryPipelineRunHandler)))
+	apiRouter.DELETE(PipelineRunsPath+"/:runId", app.AttachNamespace(app.RequireAccessToService(app.DeletePipelineRunHandler)))
 
 	// S3 operations — credentials resolved from explicit secretName query parameter.
-	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.GetS3FileHandler)))
-	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.GetS3FilesHandler)))
+	apiRouter.GET(S3FilePath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FileHandler)))
+	apiRouter.GET(S3FilesPath, app.AttachNamespace(app.RequireAccessToService(app.GetS3FilesHandler)))
 	// POST /s3/files/:key: secretName is required; there is no DSPA fallback.
-	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToPipelineServers(app.PostS3FileHandler))))
+	apiRouter.POST(S3FilePath, app.AttachNamespace(app.rejectDeclaredOversizedS3Post(app.RequireAccessToService(app.PostS3FileHandler))))
 
 	// Model Registry discovery — CRs are namespace-scoped within rhoai-model-registries
 	// but presented as global in the RHOAI UX; no user-supplied namespace parameter needed.
 	apiRouter.GET(ModelRegistriesPath, app.GetModelRegistriesHandler)
 	// Model Registry - register model binary (target registry via path param + discovered ServerURL)
-	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToPipelineServers(app.RegisterModelHandler)))
+	apiRouter.POST(ModelRegistryModelsPath, app.AttachNamespace(app.RequireAccessToService(app.RegisterModelHandler)))
 
 	// App Router
 	appMux := http.NewServeMux()
