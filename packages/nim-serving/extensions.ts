@@ -16,8 +16,35 @@ import type {
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
 import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
+import type { NIMPVCFieldType } from './src/pages/deploymentWizard/fields/NIMPVCField';
 
 export const NIM_ID = 'nvidia-nim';
+
+const nimImageFieldExtension: WizardFieldExtension<NIMImageFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import('./src/pages/deploymentWizard/fields/NIMImageField').then(
+        (m) => m.NIMImageFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
+const nimPVCFieldExtension: WizardFieldExtension<NIMPVCFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import('./src/pages/deploymentWizard/fields/NIMPVCField').then(
+        (m) => m.NIMPVCFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
 
 const extensions: (
   | AreaExtension
@@ -27,6 +54,7 @@ const extensions: (
   | ModelServingExcludeDeploymentExtension
   | DeploymentWizardFieldOverrideExtension
   | WizardFieldExtension<NIMImageFieldType>
+  | WizardFieldExtension<NIMPVCFieldType>
 )[] = [
   {
     type: 'app.area',
@@ -89,18 +117,8 @@ const extensions: (
         ),
     },
   },
-  {
-    type: 'model-serving.deployment/wizard-field',
-    properties: {
-      field: () =>
-        import('./src/pages/deploymentWizard/fields/NIMImageField').then(
-          (m) => m.NIMImageFieldWizardField,
-        ),
-    },
-    flags: {
-      required: [SupportedArea.NIM_WIZARD],
-    },
-  },
+  nimImageFieldExtension,
+  nimPVCFieldExtension,
 ];
 
 export default extensions;

@@ -15,11 +15,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	ctrlwebhook "sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/opendatahub-io/odh-platform-utilities/pkg/cluster"
 
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 	"github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller"
+	"github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/webhook"
 )
 
 var scheme = runtime.NewScheme()
@@ -38,6 +40,7 @@ func main() {
 		healthProbeAddr   string
 		leaderElect       bool
 		operatorNamespace string
+		webhookPort       int
 	)
 
 	flag.StringVar(&manifestsBasePath, "manifests-base-path", "/opt/manifests/dashboard", "Base path for dashboard manifests")
@@ -45,6 +48,7 @@ func main() {
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "Address the health probe endpoint binds to")
 	flag.BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager")
 	flag.StringVar(&operatorNamespace, "namespace", "", "Namespace where the operator is deployed")
+	flag.IntVar(&webhookPort, "webhook-port", 9443, "Port the webhook server binds to")
 
 	opts := zap.Options{Development: true}
 	opts.BindFlags(flag.CommandLine)
@@ -67,6 +71,7 @@ func main() {
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
 		LeaderElectionID:       "dashboard.opendatahub.io",
+		WebhookServer:          ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort}),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create manager")
@@ -89,6 +94,9 @@ func main() {
 		setupLog.Error(err, "unable to create Dashboard controller")
 		os.Exit(1)
 	}
+
+	mgr.GetWebhookServer().Register("/validate-dashboard", webhook.NewSingletonHandler(mgr.GetAPIReader()))
+	setupLog.Info("Registered singleton validation webhook", "path", "/validate-dashboard")
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

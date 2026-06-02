@@ -629,6 +629,26 @@ formField.type('mlmduser');
 formField.type(testData.mysqlUsername);
 ```
 
+- **No hardcoded Kubernetes role names** in OC command validations. Store role mappings in fixtures:
+
+```typescript
+// BAD - hardcoded role name
+checkProjectRoleBinding(projectName, username, 'edit').should('be.true');
+
+// GOOD - fixture-driven
+checkProjectRoleBinding(projectName, username, testData.contributorK8sRoleName).should('be.true');
+```
+
+- **Always mask usernames and sensitive data in OC command logs**. Use `'***'` instead of actual values:
+
+```typescript
+// BAD - exposes username in logs
+cy.log(`Checking role binding for user '${username}' in namespace '${namespace}'`);
+
+// GOOD - masked username
+cy.log(`Checking role binding for user '***' in namespace '${namespace}'`);
+```
+
 ### Adding `data-testid` to Source Components
 
 When a kebab action (or any interactive element) needs to be targeted in E2E tests:
