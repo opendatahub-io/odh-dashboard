@@ -723,6 +723,8 @@ export type AutomlTestData = {
   trainingDataFile: string;
   taskType: 'binary' | 'multiclass' | 'regression' | 'timeseries';
   awsBucket: 'BUCKET_2' | 'BUCKET_3';
+  // AutoGluon preset (e.g. 'medium_quality', 'good_quality', 'fast_training')
+  preset?: string;
   // Number of top models to train (min 1, default 3)
   topN?: number;
   // Tabular task types (binary, multiclass, regression)
