@@ -59,6 +59,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
+	// Ready is the rollup condition — auto-derived by the Manager from
+	// ProvisioningSucceeded and Degraded. It is never set explicitly.
 	cm := conditions.NewManager(
 		dashboard,
 		string(common.ConditionTypeReady),
