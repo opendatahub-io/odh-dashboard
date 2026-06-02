@@ -377,6 +377,30 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
     this.findTab('Settings').click();
     cy.testA11y();
   }
+
+  visitSettings(project: string) {
+    super.visitSection(project, 'settings');
+  }
+
+  findNIMEnableButton() {
+    return cy.findByTestId('nim-enable-button');
+  }
+
+  findNIMRemoveButton() {
+    return cy.findByTestId('nim-remove-button');
+  }
+
+  findNIMReplaceKeyButton() {
+    return cy.findByTestId('nim-replace-key-button');
+  }
+
+  findNIMPermissionsLoading() {
+    return cy.findByTestId('nim-permissions-loading');
+  }
+
+  findTrustyAIPermissionsLoading() {
+    return cy.findByTestId('trustyai-permissions-loading');
+  }
 }
 
 class ProjectDetailsOverviewTab extends ProjectDetails {
