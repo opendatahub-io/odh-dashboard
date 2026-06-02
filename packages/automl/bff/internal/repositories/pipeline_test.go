@@ -8,6 +8,7 @@ import (
 	ps "github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/pipelineserver/psmocks"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
+	"github.com/opendatahub-io/automl-library/bff/internal/pipelines"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,6 +42,18 @@ func (m *conflictVersionMockClient) ListPipelineVersions(_ context.Context, pipe
 		}, nil
 	}
 	return m.MockPipelineServerClient.ListPipelineVersions(context.Background(), pipelineID)
+}
+
+// capturingMockClient wraps MockPipelineServerClient and captures the YAML bytes passed to UploadPipelineVersion.
+type capturingMockClient struct {
+	*psmocks.MockPipelineServerClient
+	capturedYAML []byte
+}
+
+func (m *capturingMockClient) UploadPipelineVersion(ctx context.Context, pipelineID string, versionName string, fileContent []byte) (*models.KFPipelineVersion, error) {
+	m.capturedYAML = make([]byte, len(fileContent))
+	copy(m.capturedYAML, fileContent)
+	return m.MockPipelineServerClient.UploadPipelineVersion(ctx, pipelineID, versionName, fileContent)
 }
 
 func TestDiscoverNamedPipelines(t *testing.T) {
@@ -532,5 +545,53 @@ func TestEnsurePipeline(t *testing.T) {
 		assert.NotNil(t, discovered)
 		assert.True(t, mockClient.uploaded, "UploadPipelineVersion should have been called")
 		assert.Equal(t, "autogluon-tabular-training-pipeline", discovered.PipelineName)
+	})
+
+	t.Run("should replace image when RELATED_IMAGE_ODH_AUTOML_IMAGE is set", func(t *testing.T) {
+		overrideImage := "registry.redhat.io/rhoai/odh-automl-rhel9@sha256:overridden"
+		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", overrideImage)
+
+		namespace := "test-ns-ensure-image-override"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &capturingMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "autogluon-tabular-training-pipeline",
+			PipelineDir: "autogluon_tabular_training_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
+		assert.Contains(t, string(mockClient.capturedYAML), overrideImage)
+		assert.False(t, pipelines.AutoMLImagePattern.Match(mockClient.capturedYAML), "original image pattern should not remain after override")
+	})
+
+	t.Run("should use default image when RELATED_IMAGE_ODH_AUTOML_IMAGE is unset", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "")
+
+		namespace := "test-ns-ensure-default-image"
+		baseMock := psmocks.NewMockPipelineServerClient("http://mock-ps")
+		baseMock.PipelineNames = []string{"unrelated-pipeline"}
+		mockClient := &capturingMockClient{MockPipelineServerClient: baseMock}
+
+		def := PipelineDefinition{
+			Name:        "autogluon-tabular-training-pipeline",
+			PipelineDir: "autogluon_tabular_training_pipeline",
+		}
+
+		repo.InvalidateCache("http://mock-ps", namespace)
+
+		discovered, err := repo.EnsurePipeline(mockClient, ctx, namespace, "http://mock-ps", def)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, discovered)
+		assert.NotNil(t, mockClient.capturedYAML, "UploadPipelineVersion should have been called with YAML bytes")
+		assert.True(t, pipelines.AutoMLImagePattern.Match(mockClient.capturedYAML), "embedded default image should be preserved")
 	})
 }
