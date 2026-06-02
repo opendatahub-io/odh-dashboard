@@ -43,9 +43,9 @@ describe('useChatbotMessages - Error Handling', () => {
   const defaultProps = {
     modelId: 'test-model',
     configId: 'test-config',
-    selectedSourceSettings: null,
     systemInstruction: '',
-    isRawUploaded: false,
+    isRagEnabled: false,
+    knowledgeMode: 'inline' as const,
     username: 'testuser',
     isStreamingEnabled: false,
     temperature: 0.7,
@@ -107,14 +107,13 @@ describe('useChatbotMessages - Error Handling', () => {
       });
     });
 
-    it('should handle RAG vector store not found error', async () => {
+    it('should handle RAG vector store timeout error', async () => {
       const mockError = {
         error: {
           component: 'rag' as const,
-          code: 'rag_vector_store_not_found',
-          message:
-            'The vector store was not found. Please verify that the vector store exists and you have access to it.',
-          retriable: false,
+          code: 'vector_store_timeout',
+          message: 'The vector store operation timed out. Please try again.',
+          retriable: true,
         },
       };
 
