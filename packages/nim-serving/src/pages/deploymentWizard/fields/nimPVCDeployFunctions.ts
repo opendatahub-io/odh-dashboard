@@ -23,7 +23,6 @@ export const nimPVCPreDeploy = async (
       description: '',
       size: `${fieldData.storageSizeGi}Gi`,
       storageClassName: fieldData.storageClassName,
-      modelPath: fieldData.modelPath,
     },
     projectName,
     undefined,

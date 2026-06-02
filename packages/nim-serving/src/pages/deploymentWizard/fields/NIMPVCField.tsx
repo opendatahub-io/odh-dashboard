@@ -32,13 +32,11 @@ export enum NIMPVCStorageMode {
 export type NIMPVCFieldValue = {
   storageMode: NIMPVCStorageMode;
   pvcName: string;
-  modelPath: string;
   subPath: string;
   storageClassName: string;
   storageSizeGi: number;
 };
 
-const DEFAULT_MODEL_PATH = '/model-store';
 const DEFAULT_SUBPATH = '/';
 const DEFAULT_STORAGE_SIZE_GI = 50;
 const MIN_STORAGE_SIZE_GI = 1;
@@ -47,7 +45,6 @@ const nimPVCFieldSchema = z
   .object({
     storageMode: z.nativeEnum(NIMPVCStorageMode),
     pvcName: z.string().min(1, 'Cluster storage name is required'),
-    modelPath: z.string().min(1, 'Model path is required'),
     subPath: z.string(),
     storageClassName: z.string(),
     storageSizeGi: z.number().min(MIN_STORAGE_SIZE_GI, 'Storage size must be at least 1 GiB'),
@@ -161,7 +158,6 @@ const useNIMPVCExternalData = (dependencies?: {
 const getDefaultFieldValue = (): NIMPVCFieldValue => ({
   storageMode: NIMPVCStorageMode.NEW,
   pvcName: '',
-  modelPath: DEFAULT_MODEL_PATH,
   subPath: DEFAULT_SUBPATH,
   storageClassName: '',
   storageSizeGi: DEFAULT_STORAGE_SIZE_GI,
@@ -174,57 +170,35 @@ type NIMPVCFieldComponentProps = {
   isDisabled?: boolean;
 };
 
-type ModelPathFieldsProps = {
-  modelPath: string;
+type SubPathFieldProps = {
   subPath: string;
-  onModelPathChange: (val: string) => void;
   onSubPathChange: (val: string) => void;
   isDisabled?: boolean;
   idSuffix?: string;
 };
 
-const ModelPathFields: React.FC<ModelPathFieldsProps> = ({
-  modelPath,
+const SubPathField: React.FC<SubPathFieldProps> = ({
   subPath,
-  onModelPathChange,
   onSubPathChange,
   isDisabled,
   idSuffix = '',
 }) => (
-  <>
-    <FormGroup label="Model path" fieldId={`nim-model-path${idSuffix}`} isRequired>
-      <TextInput
-        id={`nim-model-path${idSuffix}`}
-        data-testid={`nim-model-path${idSuffix}-input`}
-        value={modelPath}
-        onChange={(_event, val) => onModelPathChange(val)}
-        placeholder={DEFAULT_MODEL_PATH}
-        isDisabled={isDisabled}
-      />
-      <HelperText>
-        <HelperTextItem>
-          Path within the container where model files will be mounted.
-        </HelperTextItem>
-      </HelperText>
-    </FormGroup>
-
-    <FormGroup label="Subpath" fieldId={`nim-subpath${idSuffix}`}>
-      <TextInput
-        id={`nim-subpath${idSuffix}`}
-        data-testid={`nim-subpath${idSuffix}-input`}
-        value={subPath}
-        onChange={(_event, val) => onSubPathChange(val)}
-        placeholder="/"
-        isDisabled={isDisabled}
-      />
-      <HelperText>
-        <HelperTextItem>
-          Optional: Subdirectory within the PVC. Use this if you have multiple models stored in the
-          same PVC. Leave blank to use the root of the PVC.
-        </HelperTextItem>
-      </HelperText>
-    </FormGroup>
-  </>
+  <FormGroup label="Subpath" fieldId={`nim-subpath${idSuffix}`}>
+    <TextInput
+      id={`nim-subpath${idSuffix}`}
+      data-testid={`nim-subpath${idSuffix}-input`}
+      value={subPath}
+      onChange={(_event, val) => onSubPathChange(val)}
+      placeholder="/"
+      isDisabled={isDisabled}
+    />
+    <HelperText>
+      <HelperTextItem>
+        Optional: Subdirectory within the PVC. Use this if you have multiple models stored in the
+        same PVC. Leave blank to use the root of the PVC.
+      </HelperTextItem>
+    </HelperText>
+  </FormGroup>
 );
 
 const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
@@ -331,10 +305,8 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             </HelperText>
           </FormGroup>
 
-          <ModelPathFields
-            modelPath={fieldValue.modelPath}
+          <SubPathField
             subPath={fieldValue.subPath}
-            onModelPathChange={(val) => updateField({ modelPath: val })}
             onSubPathChange={(val) => updateField({ subPath: val })}
             isDisabled={isDisabled}
           />
@@ -387,10 +359,8 @@ const NIMPVCFieldComponent: React.FC<NIMPVCFieldComponentProps> = ({
             />
           </FormGroup>
 
-          <ModelPathFields
-            modelPath={fieldValue.modelPath}
+          <SubPathField
             subPath={fieldValue.subPath}
-            onModelPathChange={(val) => updateField({ modelPath: val })}
             onSubPathChange={(val) => updateField({ subPath: val })}
             isDisabled={isDisabled}
             idSuffix="-existing"
@@ -438,11 +408,6 @@ export const NIMPVCFieldWizardField: NIMPVCFieldType = {
           key: 'pvcName',
           label: 'Cluster storage name',
           value: () => value.pvcName || '-',
-        },
-        {
-          key: 'modelPath',
-          label: 'Model path',
-          value: () => value.modelPath || '-',
         },
         {
           key: 'subPath',

@@ -28,7 +28,6 @@ export const extractNIMPVCFieldData = (deployment: NIMDeployment): NIMPVCFieldVa
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
     pvcName: pvc.name,
-    modelPath: '/model-store',
     subPath: pvc.subPath ?? '/',
     storageClassName: pvc.storageClassName ?? '',
     storageSizeGi: pvc.size ? parseInt(pvc.size, 10) : 50,
