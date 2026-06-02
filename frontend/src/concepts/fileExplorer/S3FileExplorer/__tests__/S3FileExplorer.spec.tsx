@@ -31,6 +31,7 @@ describe('S3FileExplorer', () => {
   const defaultSecret = mockStorageSecret({ name: 'my-s3-secret' });
 
   const defaultProps = {
+    apiPath: '',
     isOpen: true,
     onClose: mockOnClose,
     onSelectFiles: mockOnSelectFiles,
