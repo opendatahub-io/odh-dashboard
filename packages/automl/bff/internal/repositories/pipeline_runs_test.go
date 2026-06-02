@@ -570,6 +570,49 @@ func TestValidateCreateAutoMLRunRequest(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("should accept valid preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "good_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject timeseries preset for tabular pipeline", func(t *testing.T) {
+		req := newValidTabularRequest()
+		preset := "fast_training"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "tabular")
+	})
+
+	t.Run("should accept valid preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "medium_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.NoError(t, err)
+	})
+
+	t.Run("should reject tabular-only preset for timeseries pipeline", func(t *testing.T) {
+		req := newValidTimeSeriesRequest()
+		preset := "good_quality"
+		req.Preset = &preset
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTimeSeries)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid preset")
+		assert.Contains(t, err.Error(), "timeseries")
+	})
+
+	t.Run("should allow nil preset", func(t *testing.T) {
+		req := newValidTabularRequest()
+		req.Preset = nil
+		err := ValidateCreateAutoMLRunRequest(req, constants.PipelineTypeTabular)
+		assert.NoError(t, err)
+	})
+
 	t.Run("should fail for unsupported pipeline type", func(t *testing.T) {
 		req := newValidTabularRequest()
 		err := ValidateCreateAutoMLRunRequest(req, "unsupported")

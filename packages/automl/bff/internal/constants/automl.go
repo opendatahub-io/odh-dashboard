@@ -38,11 +38,16 @@ var ValidTaskTypes = map[string]bool{
 	TaskTypeRegression: true,
 }
 
-// ValidPresets lists the valid AutoGluon preset strings accepted by the pipeline.
-var ValidPresets = map[string]bool{
+// ValidTabularPresets lists the valid AutoGluon preset strings for tabular pipelines.
+var ValidTabularPresets = map[string]bool{
 	"medium_quality": true,
 	"good_quality":   true,
+}
+
+// ValidTimeseriesPresets lists the valid AutoGluon preset strings for timeseries pipelines.
+var ValidTimeseriesPresets = map[string]bool{
 	"fast_training":  true,
+	"medium_quality": true,
 }
 
 // ValidPipelineTypes lists the valid pipeline type keys for AutoML discovery.

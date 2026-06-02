@@ -441,9 +441,18 @@ func ValidateCreateAutoMLRunRequest(req models.CreateAutoMLRunRequest, pipelineT
 		}
 	}
 
-	// Validate optional field values
-	if req.Preset != nil && !constants.ValidPresets[*req.Preset] {
-		return NewValidationError(fmt.Sprintf("invalid preset %q: must be one of medium_quality, good_quality, fast_training", *req.Preset))
+	// Validate preset against pipeline-specific allowed values
+	if req.Preset != nil {
+		var allowedPresets map[string]bool
+		switch pipelineType {
+		case constants.PipelineTypeTabular:
+			allowedPresets = constants.ValidTabularPresets
+		case constants.PipelineTypeTimeSeries:
+			allowedPresets = constants.ValidTimeseriesPresets
+		}
+		if !allowedPresets[*req.Preset] {
+			return NewValidationError(fmt.Sprintf("invalid preset %q for pipeline type %q", *req.Preset, pipelineType))
+		}
 	}
 
 	if req.TopN != nil {
