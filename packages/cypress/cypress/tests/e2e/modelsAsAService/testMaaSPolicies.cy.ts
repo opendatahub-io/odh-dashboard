@@ -133,7 +133,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   it(
     ' Verify Authorization Policy Create, View, Edit and  Delete Operations',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent'],
     },
     () => {
       cy.step('Log into the application as admin');
@@ -223,7 +223,7 @@ describe('An admin can manage MaaS authorization policies and control model acce
   it(
     'Verify auth policy group removal revokes model access',
     {
-      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS'],
+      tags: ['@Smoke', '@SmokeSet5', '@Dashboard', '@MaaS', '@NonConcurrent'],
     },
     () => {
       cy.step('Log into the application as admin');
