@@ -741,3 +741,322 @@ func TestService_findOrCreatePipeline_ConflictRetry(t *testing.T) {
 		t.Errorf("expected p1, got %q", id)
 	}
 }
+
+// --- Service pass-through method tests ---
+
+func TestService_ListPipelines(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			return &PipelinesResponse{Pipelines: []Pipeline{{PipelineID: "p1"}}}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	resp, err := svc.ListPipelines(testCtx(), "test-ns", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Pipelines) != 1 {
+		t.Errorf("expected 1 pipeline, got %d", len(resp.Pipelines))
+	}
+}
+
+func TestService_ListPipelines_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.ListPipelines(testCtx(), "test-ns", "")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetPipelineVersion(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
+			return &PipelineVersion{PipelineVersionID: "v1"}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	v, err := svc.GetPipelineVersion(testCtx(), "test-ns", "p1", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.PipelineVersionID != "v1" {
+		t.Errorf("VersionID = %q", v.PipelineVersionID)
+	}
+}
+
+func TestService_GetPipelineVersion_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error) {
+			return nil, fmt.Errorf("not found")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.GetPipelineVersion(testCtx(), "test-ns", "p1", "v1")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_ListPipelineVersions(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return &PipelineVersionsResponse{PipelineVersions: []PipelineVersion{{PipelineVersionID: "v1"}}}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	resp, err := svc.ListPipelineVersions(testCtx(), "test-ns", "p1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.PipelineVersions) != 1 {
+		t.Errorf("expected 1 version, got %d", len(resp.PipelineVersions))
+	}
+}
+
+func TestService_ListPipelineVersions_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.ListPipelineVersions(testCtx(), "test-ns", "p1")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_CreatePipeline(t *testing.T) {
+	client := &mockPipelineClient{
+		createPipelineFn: func(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+			return &Pipeline{PipelineID: "new-p"}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	p, err := svc.CreatePipeline(testCtx(), "test-ns", "my-pipe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.PipelineID != "new-p" {
+		t.Errorf("PipelineID = %q", p.PipelineID)
+	}
+}
+
+func TestService_CreatePipeline_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		createPipelineFn: func(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+			return nil, fmt.Errorf("conflict")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.CreatePipeline(testCtx(), "test-ns", "my-pipe")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_UploadPipelineVersion(t *testing.T) {
+	client := &mockPipelineClient{
+		uploadPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
+			return &PipelineVersion{PipelineVersionID: "v-new"}, nil
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	v, err := svc.UploadPipelineVersion(testCtx(), "test-ns", "p1", "v1.0", []byte("yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.PipelineVersionID != "v-new" {
+		t.Errorf("VersionID = %q", v.PipelineVersionID)
+	}
+}
+
+func TestService_UploadPipelineVersion_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		uploadPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
+			return nil, fmt.Errorf("upload failed")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.UploadPipelineVersion(testCtx(), "test-ns", "p1", "v1.0", []byte("yaml"))
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+// --- ensurePipelineAndVersion conflict recovery edge case ---
+
+func TestService_EnsurePipeline_UploadConflictRediscoverFail(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			return &PipelinesResponse{}, nil
+		},
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return &PipelineVersionsResponse{}, nil
+		},
+		createPipelineFn: func(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+			return &Pipeline{PipelineID: "p1"}, nil
+		},
+		uploadPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
+			return nil, fmt.Errorf("%w: version exists", k8s.ErrConflict)
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.EnsurePipeline(testCtx(), "test-ns", PipelineDefinition{
+		Name:        "pipe",
+		Version:     "1.0",
+		FileContent: []byte("yaml"),
+	})
+	if err == nil {
+		t.Error("expected error when conflict + rediscover finds nothing")
+	}
+}
+
+func TestService_EnsurePipeline_UploadNonConflictError(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelinesFn: func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error) {
+			return &PipelinesResponse{}, nil
+		},
+		listPipelineVersionsFn: func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error) {
+			return &PipelineVersionsResponse{}, nil
+		},
+		createPipelineFn: func(ctx context.Context, baseURL string, name string) (*Pipeline, error) {
+			return &Pipeline{PipelineID: "p1"}, nil
+		},
+		uploadPipelineVersionFn: func(ctx context.Context, baseURL string, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error) {
+			return nil, fmt.Errorf("server error")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.EnsurePipeline(testCtx(), "test-ns", PipelineDefinition{
+		Name:        "pipe",
+		Version:     "1.0",
+		FileContent: []byte("yaml"),
+	})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+// --- RetryRun / DeleteRun additional error paths ---
+
+func TestService_RetryRun_RunNotFound(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+			return nil, fmt.Errorf("%w: missing", ErrPipelineNotFound)
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	err := svc.RetryRun(testCtx(), "test-ns", "r1")
+	if !errors.Is(err, ErrPipelineRunNotFound) {
+		t.Errorf("expected ErrPipelineRunNotFound, got %v", err)
+	}
+}
+
+func TestService_DeleteRun_RunNotFound(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+			return nil, fmt.Errorf("%w: missing", ErrPipelineNotFound)
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	err := svc.DeleteRun(testCtx(), "test-ns", "r1")
+	if !errors.Is(err, ErrPipelineRunNotFound) {
+		t.Errorf("expected ErrPipelineRunNotFound, got %v", err)
+	}
+}
+
+func TestService_RetryRun_ClientError(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+			return &PipelineRun{RunID: "r1", State: "FAILED"}, nil
+		},
+		retryRunFn: func(ctx context.Context, baseURL string, runID string) error {
+			return fmt.Errorf("server error")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	err := svc.RetryRun(testCtx(), "test-ns", "r1")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_DeleteRun_ClientError(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+			return &PipelineRun{RunID: "r1", State: "SUCCEEDED"}, nil
+		},
+		deleteRunFn: func(ctx context.Context, baseURL string, runID string) error {
+			return fmt.Errorf("server error")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	err := svc.DeleteRun(testCtx(), "test-ns", "r1")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_CreatePipelineRun_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		createPipelineRunFn: func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error) {
+			return nil, fmt.Errorf("server error")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.CreatePipelineRun(testCtx(), "test-ns", &CreatePipelineRunInput{DisplayName: "test"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetPipelineRun_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
+			return nil, fmt.Errorf("not found")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.GetPipelineRun(testCtx(), "test-ns", "r1")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_ListPipelineRuns_Error(t *testing.T) {
+	client := &mockPipelineClient{
+		listPipelineRunsFn: func(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestServiceWithMock(client)
+
+	_, err := svc.ListPipelineRuns(testCtx(), "test-ns", nil)
+	if err == nil {
+		t.Error("expected error")
+	}
+}

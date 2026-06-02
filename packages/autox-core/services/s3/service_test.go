@@ -348,3 +348,102 @@ func TestService_UploadObject(t *testing.T) {
 		}
 	})
 }
+
+// --- Additional error-path tests for coverage ---
+
+func TestService_GetObject_Error(t *testing.T) {
+	client := &mockS3Client{
+		getObjectFn: func(ctx context.Context, opts ConnectionOptions, input GetObjectInput) (io.ReadCloser, string, error) {
+			return nil, "", fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestS3Service(client)
+
+	_, _, err := svc.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_DownloadObject(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		client := &mockS3Client{
+			downloadObjectFn: func(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
+				return io.NopCloser(strings.NewReader("data")), "application/gzip", nil
+			},
+		}
+		svc := newTestS3Service(client)
+
+		body, ct, err := svc.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer body.Close()
+		if ct != "application/gzip" {
+			t.Errorf("content type = %q", ct)
+		}
+	})
+
+	t.Run("error", func(t *testing.T) {
+		client := &mockS3Client{
+			downloadObjectFn: func(ctx context.Context, opts ConnectionOptions, input DownloadObjectInput) (io.ReadCloser, string, error) {
+				return nil, "", fmt.Errorf("timeout")
+			},
+		}
+		svc := newTestS3Service(client)
+
+		_, _, err := svc.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
+		if err == nil {
+			t.Error("expected error")
+		}
+	})
+}
+
+func TestService_ObjectExists_Error(t *testing.T) {
+	client := &mockS3Client{
+		objectExistsFn: func(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
+			return false, fmt.Errorf("access denied")
+		},
+	}
+	svc := newTestS3Service(client)
+
+	_, err := svc.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_ListObjects_Error(t *testing.T) {
+	client := &mockS3Client{
+		listObjectsFn: func(ctx context.Context, opts ConnectionOptions, input ListObjectsInput) (*ListObjectsResponse, error) {
+			return nil, fmt.Errorf("bucket not found")
+		},
+	}
+	svc := newTestS3Service(client)
+
+	_, err := svc.ListObjects(context.Background(), testOpts(), ListObjectsQuery{Bucket: "b"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_ResolveNonCollidingKey_ErrorDuringRetry(t *testing.T) {
+	call := 0
+	client := &mockS3Client{
+		objectExistsFn: func(ctx context.Context, opts ConnectionOptions, input ObjectExistsInput) (bool, error) {
+			call++
+			if call == 1 {
+				return true, nil // original exists
+			}
+			return false, fmt.Errorf("connection lost") // error during retry
+		},
+	}
+	svc := newTestS3Service(client)
+
+	_, err := svc.ResolveNonCollidingKey(context.Background(), testOpts(), ResolveNonCollidingKeyInput{
+		Bucket: "b", Key: "file.txt", MaxAttempts: 5,
+	})
+	if err == nil {
+		t.Error("expected error")
+	}
+}

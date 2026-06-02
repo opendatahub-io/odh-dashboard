@@ -372,6 +372,138 @@ func TestIsS3ConditionalCreateConflict(t *testing.T) {
 	}
 }
 
+// --- Client untranslated error paths ---
+
+func TestClient_GetObject_UntranslatedError(t *testing.T) {
+	api := &mockAPIClient{
+		getObjectFn: func(ctx context.Context, params *awss3.GetObjectInput, _ ...func(*awss3.Options)) (*awss3.GetObjectOutput, error) {
+			return nil, fmt.Errorf("generic AWS error")
+		},
+	}
+	c := NewClient(&mockProvider{apiClient: api})
+
+	_, _, err := c.GetObject(context.Background(), testOpts(), GetObjectInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+	if !strings.Contains(err.Error(), "error retrieving object") {
+		t.Errorf("expected wrapped error, got: %v", err)
+	}
+}
+
+func TestClient_DownloadObject_UntranslatedError(t *testing.T) {
+	tc := &mockTransferClient{
+		getObjectFn: func(ctx context.Context, params *transfermanager.GetObjectInput, _ ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error) {
+			return nil, fmt.Errorf("generic download error")
+		},
+	}
+	c := NewClient(&mockProvider{transferClient: tc})
+
+	_, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_DownloadObject_NonReadCloserBody(t *testing.T) {
+	tc := &mockTransferClient{
+		getObjectFn: func(ctx context.Context, params *transfermanager.GetObjectInput, _ ...func(*transfermanager.Options)) (*transfermanager.GetObjectOutput, error) {
+			return &transfermanager.GetObjectOutput{
+				Body:        strings.NewReader("plain-reader"),
+				ContentType: aws.String("text/plain"),
+			}, nil
+		},
+	}
+	c := NewClient(&mockProvider{transferClient: tc})
+
+	body, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer body.Close()
+	data, _ := io.ReadAll(body)
+	if string(data) != "plain-reader" {
+		t.Errorf("body = %q", string(data))
+	}
+}
+
+func TestClient_UploadObject_UntranslatedError(t *testing.T) {
+	tc := &mockTransferClient{
+		uploadObjectFn: func(ctx context.Context, params *transfermanager.UploadObjectInput, _ ...func(*transfermanager.Options)) (*transfermanager.UploadObjectOutput, error) {
+			return nil, fmt.Errorf("generic upload error")
+		},
+	}
+	c := NewClient(&mockProvider{transferClient: tc})
+
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
+	if err == nil {
+		t.Error("expected error")
+	}
+	if !strings.Contains(err.Error(), "error uploading object") {
+		t.Errorf("expected wrapped error, got: %v", err)
+	}
+}
+
+func TestClient_ListObjects_UntranslatedError(t *testing.T) {
+	api := &mockAPIClient{
+		listObjectsV2Fn: func(ctx context.Context, params *awss3.ListObjectsV2Input, _ ...func(*awss3.Options)) (*awss3.ListObjectsV2Output, error) {
+			return nil, fmt.Errorf("generic list error")
+		},
+	}
+	c := NewClient(&mockProvider{apiClient: api})
+
+	_, err := c.ListObjects(context.Background(), testOpts(), ListObjectsInput{Bucket: "b", Prefix: "/", Delimiter: "/"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_ObjectExists_UntranslatedError(t *testing.T) {
+	api := &mockAPIClient{
+		headObjectFn: func(ctx context.Context, params *awss3.HeadObjectInput, _ ...func(*awss3.Options)) (*awss3.HeadObjectOutput, error) {
+			return nil, fmt.Errorf("generic head error")
+		},
+	}
+	c := NewClient(&mockProvider{apiClient: api})
+
+	_, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_UploadObject_ProviderError(t *testing.T) {
+	c := NewClient(&mockProvider{transferErr: fmt.Errorf("provider failed")})
+	err := c.UploadObject(context.Background(), testOpts(), UploadObjectInput{Bucket: "b", Key: "k", Body: bytes.NewReader(nil)})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_DownloadObject_ProviderError(t *testing.T) {
+	c := NewClient(&mockProvider{transferErr: fmt.Errorf("provider failed")})
+	_, _, err := c.DownloadObject(context.Background(), testOpts(), DownloadObjectInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_ListObjects_ProviderError(t *testing.T) {
+	c := NewClient(&mockProvider{apiErr: fmt.Errorf("provider failed")})
+	_, err := c.ListObjects(context.Background(), testOpts(), ListObjectsInput{Bucket: "b"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestClient_ObjectExists_ProviderError(t *testing.T) {
+	c := NewClient(&mockProvider{apiErr: fmt.Errorf("provider failed")})
+	_, err := c.ObjectExists(context.Background(), testOpts(), ObjectExistsInput{Bucket: "b", Key: "k"})
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
 // --- ClientConfig.withDefaults ---
 
 func TestClientConfigWithDefaults(t *testing.T) {

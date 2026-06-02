@@ -394,6 +394,44 @@ func TestTokenClient_ListResources(t *testing.T) {
 	})
 }
 
+func TestTokenClient_GetResource(t *testing.T) {
+	client, _, dc := newTokenClientWithFakes()
+	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	dc.PrependReactor("get", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, &unstructured.Unstructured{
+			Object: map[string]interface{}{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": map[string]interface{}{"name": "d1", "namespace": "ns1"}},
+		}, nil
+	})
+
+	obj, err := client.GetResource(context.Background(), gvr, "ns1", "d1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obj.GetName() != "d1" {
+		t.Errorf("Name = %q", obj.GetName())
+	}
+}
+
+func TestTokenClient_CreateResource(t *testing.T) {
+	client, _, dc := newTokenClientWithFakes()
+	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	dc.PrependReactor("create", "deployments", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		createAction := action.(k8stesting.CreateAction)
+		return true, createAction.GetObject(), nil
+	})
+
+	obj := &unstructured.Unstructured{
+		Object: map[string]interface{}{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": map[string]interface{}{"name": "new-d", "namespace": "ns1"}},
+	}
+	created, err := client.CreateResource(context.Background(), gvr, "ns1", obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.GetName() != "new-d" {
+		t.Errorf("Name = %q", created.GetName())
+	}
+}
+
 // --- helpers ---
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)

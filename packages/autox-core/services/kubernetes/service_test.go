@@ -472,20 +472,36 @@ func TestService_GetUser(t *testing.T) {
 }
 
 func TestService_IsClusterAdmin(t *testing.T) {
-	client := &mockClient{
-		isClusterAdminFn: func(ctx context.Context) (bool, error) {
-			return true, nil
-		},
-	}
-	svc := newTestService(client)
+	t.Run("success", func(t *testing.T) {
+		client := &mockClient{
+			isClusterAdminFn: func(ctx context.Context) (bool, error) {
+				return true, nil
+			},
+		}
+		svc := newTestService(client)
 
-	isAdmin, err := svc.IsClusterAdmin(ctxWithUser("admin"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !isAdmin {
-		t.Error("expected true")
-	}
+		isAdmin, err := svc.IsClusterAdmin(ctxWithUser("admin"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !isAdmin {
+			t.Error("expected true")
+		}
+	})
+
+	t.Run("error", func(t *testing.T) {
+		client := &mockClient{
+			isClusterAdminFn: func(ctx context.Context) (bool, error) {
+				return false, fmt.Errorf("failed")
+			},
+		}
+		svc := newTestService(client)
+
+		_, err := svc.IsClusterAdmin(ctxWithUser("admin"))
+		if err == nil {
+			t.Error("expected error")
+		}
+	})
 }
 
 func TestService_GetUserInfo(t *testing.T) {
@@ -671,6 +687,27 @@ func TestService_GetResource(t *testing.T) {
 			t.Error("expected validation error")
 		}
 	})
+
+	t.Run("invalid namespace", func(t *testing.T) {
+		svc := newTestService(&mockClient{})
+		_, err := svc.GetResource(ctxWithUser("alice"), gvr, "INVALID", "my-deploy")
+		if err == nil {
+			t.Error("expected validation error")
+		}
+	})
+
+	t.Run("client error", func(t *testing.T) {
+		client := &mockClient{
+			getResourceFn: func(ctx context.Context, g schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
+				return nil, fmt.Errorf("not found")
+			},
+		}
+		svc := newTestService(client)
+		_, err := svc.GetResource(ctxWithUser("alice"), gvr, "my-ns", "my-deploy")
+		if err == nil {
+			t.Error("expected error")
+		}
+	})
 }
 
 func TestService_CreateResource(t *testing.T) {
@@ -702,6 +739,31 @@ func TestService_CreateResource(t *testing.T) {
 		_, err := svc.CreateResource(ctxWithUser("alice"), gvr, "INVALID", obj)
 		if err == nil {
 			t.Error("expected validation error")
+		}
+	})
+
+	t.Run("invalid resource name", func(t *testing.T) {
+		svc := newTestService(&mockClient{})
+		obj := &unstructured.Unstructured{}
+		obj.SetName("INVALID NAME")
+		_, err := svc.CreateResource(ctxWithUser("alice"), gvr, "my-ns", obj)
+		if err == nil {
+			t.Error("expected validation error")
+		}
+	})
+
+	t.Run("client error", func(t *testing.T) {
+		client := &mockClient{
+			createResourceFn: func(ctx context.Context, g schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+				return nil, fmt.Errorf("conflict")
+			},
+		}
+		svc := newTestService(client)
+		obj := &unstructured.Unstructured{}
+		obj.SetName("my-deploy")
+		_, err := svc.CreateResource(ctxWithUser("alice"), gvr, "my-ns", obj)
+		if err == nil {
+			t.Error("expected error")
 		}
 	})
 }
@@ -795,4 +857,153 @@ func TestLoggerWithIdentity(t *testing.T) {
 			t.Error("expected non-nil logger")
 		}
 	})
+}
+
+// --- Additional error-path tests for coverage ---
+
+func TestService_GetNamespaceInfos_Error(t *testing.T) {
+	client := &mockClient{
+		getNamespacesFn: func(ctx context.Context) ([]v1.Namespace, error) {
+			return nil, fmt.Errorf("connection refused")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetNamespaceInfos(ctxWithUser("alice"))
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetAccessibleNamespaces_ListError(t *testing.T) {
+	client := &mockClient{
+		isClusterAdminFn: func(ctx context.Context) (bool, error) { return true, nil },
+		getNamespacesFn: func(ctx context.Context) ([]v1.Namespace, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetAccessibleNamespaces(ctxWithUser("admin"))
+	if err == nil {
+		t.Error("expected error when admin namespace list fails")
+	}
+}
+
+func TestService_GetAccessibleNamespaceInfos_ListError(t *testing.T) {
+	client := &mockClient{
+		isClusterAdminFn: func(ctx context.Context) (bool, error) { return true, nil },
+		getNamespacesFn: func(ctx context.Context) ([]v1.Namespace, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetAccessibleNamespaceInfos(ctxWithUser("admin"))
+	if err == nil {
+		t.Error("expected error when admin namespace list fails")
+	}
+}
+
+func TestService_GetAccessibleNamespaceInfos_NonAdminListError(t *testing.T) {
+	client := &mockClient{
+		isClusterAdminFn: func(ctx context.Context) (bool, error) { return false, nil },
+		getNamespacesFn: func(ctx context.Context) ([]v1.Namespace, error) {
+			return nil, fmt.Errorf("forbidden")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetAccessibleNamespaceInfos(ctxWithUser("user"))
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetPods_ClientError(t *testing.T) {
+	client := &mockClient{
+		getPodsFn: func(ctx context.Context, namespace string) (*v1.PodList, error) {
+			return nil, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetPods(ctxWithUser("alice"), "my-ns")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetSecrets_ClientError(t *testing.T) {
+	client := &mockClient{
+		getSecretsFn: func(ctx context.Context, namespace string) ([]v1.Secret, error) {
+			return nil, fmt.Errorf("forbidden")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetSecrets(ctxWithUser("alice"), "my-ns")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetSecretInfos_ClientError(t *testing.T) {
+	client := &mockClient{
+		getSecretsFn: func(ctx context.Context, namespace string) ([]v1.Secret, error) {
+			return nil, fmt.Errorf("forbidden")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetSecretInfos(ctxWithUser("alice"), "my-ns")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_GetSecret_ClientError(t *testing.T) {
+	client := &mockClient{
+		getSecretFn: func(ctx context.Context, namespace, secretName string) (*v1.Secret, error) {
+			return nil, fmt.Errorf("not found")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.GetSecret(ctxWithUser("alice"), "my-ns", "my-secret")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_ListResources_ClientError(t *testing.T) {
+	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	client := &mockClient{
+		listResourcesFn: func(ctx context.Context, g schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+			return nil, fmt.Errorf("forbidden")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.ListResources(ctxWithUser("alice"), gvr, "my-ns")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_CanAccessResource_ClientError(t *testing.T) {
+	client := &mockClient{
+		canAccessResourceFn: func(ctx context.Context, namespace, verb, group, resource, name string) (bool, error) {
+			return false, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.CanAccessResource(ctxWithUser("alice"), "my-ns", "get", "", "pods", "")
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestService_DiscoverResourceGVR_ClientError(t *testing.T) {
+	client := &mockClient{
+		discoverResourceGVRFn: func(ctx context.Context, group, resource, namespace string, knownVersions []string) (schema.GroupVersionResource, error) {
+			return schema.GroupVersionResource{}, fmt.Errorf("timeout")
+		},
+	}
+	svc := newTestService(client)
+	_, err := svc.DiscoverResourceGVR(ctxWithUser("alice"), "apps", "deployments", "my-ns", []string{"v1"})
+	if err == nil {
+		t.Error("expected error")
+	}
 }
