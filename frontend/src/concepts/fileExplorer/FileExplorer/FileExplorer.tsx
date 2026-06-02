@@ -72,7 +72,6 @@ import React, { type ReactNode, useCallback, useEffect, useId, useRef, useState 
 
 // Types ---------------------------------------------------------------------->
 
-// TODO [ Gustavo ] These types should be migrated over to types file to make it easier for consumers?
 export interface Source {
   name: string;
   bucket?: string;

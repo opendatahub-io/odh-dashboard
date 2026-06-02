@@ -198,8 +198,6 @@ jest.mock('~/app/components/common/SecretSelector', () => {
 });
 
 // Mock S3FileExplorer component
-// TODO: Once test data input is hooked up, cleanup mock
-// TODO [ Gustavo ] Any way for this mock to live in a common place within the concepts/fileExplorer?
 jest.mock('@odh-dashboard/internal/concepts/fileExplorer/S3FileExplorer/S3FileExplorer', () => ({
   __esModule: true,
   default: ({
