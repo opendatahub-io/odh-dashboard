@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { Tab, Tabs, TabTitleText, PageSection } from '@patternfly/react-core';
+import { Badge, Tab, Tabs, TabTitleText, PageSection } from '@patternfly/react-core';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { LazyCodeRefComponent } from './LazyCodeRefComponent';
 import type { DetailTabProperties } from '../../extension-points/detail-tabs';
+import { sortExtensionsByGroup } from '../../extension-points/utils';
 
 const DEFAULT_GROUP = '5_default';
 
@@ -57,11 +58,10 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
 }: ExtensibleDetailTabsProps<TExtension>): React.ReactElement | null => {
   const filteredExtensions = React.useMemo(
     () =>
-      (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs).toSorted((a, b) => {
-        const groupA = a.properties.group ?? DEFAULT_GROUP;
-        const groupB = b.properties.group ?? DEFAULT_GROUP;
-        return groupA.localeCompare(groupB);
-      }),
+      sortExtensionsByGroup(
+        filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs,
+        DEFAULT_GROUP,
+      ),
     [extensionTabs, filterExtension],
   );
 
@@ -72,6 +72,7 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
         type: 'extension' as const,
         id: ext.properties.id,
         title: ext.properties.title,
+        label: ext.properties.label,
         extension: ext,
       })),
     ],
@@ -103,36 +104,42 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
       data-testid={testId}
       onSelect={(_event, eventKey) => onSelect(String(eventKey))}
     >
-      {allTabs.map((tab) =>
-        tab.type === 'static' ? (
+      {allTabs.map((tab) => {
+        const titleNode = (
+          <TabTitleText>
+            {tab.title}
+            {tab.type === 'extension' && tab.label != null && (
+              <>
+                {' '}
+                <Badge isRead>{tab.label}</Badge>
+              </>
+            )}
+          </TabTitleText>
+        );
+        const content =
+          tab.type === 'static' ? (
+            tab.content
+          ) : (
+            <LazyCodeRefComponent
+              component={tab.extension.properties.component}
+              props={componentProps}
+            />
+          );
+
+        return (
           <Tab
             key={tab.id}
             eventKey={tab.id}
-            title={<TabTitleText>{tab.title}</TabTitleText>}
+            title={titleNode}
             aria-label={`${tab.title} tab`}
             data-testid={`${tab.id}-tab`}
           >
             <PageSection hasBodyWrapper={false} isFilled data-testid={`${tab.id}-tab-content`}>
-              {tab.content}
+              {content}
             </PageSection>
           </Tab>
-        ) : (
-          <Tab
-            key={tab.id}
-            eventKey={tab.id}
-            title={<TabTitleText>{tab.title}</TabTitleText>}
-            aria-label={`${tab.title} tab`}
-            data-testid={`${tab.id}-tab`}
-          >
-            <PageSection hasBodyWrapper={false} isFilled data-testid={`${tab.id}-tab-content`}>
-              <LazyCodeRefComponent
-                component={tab.extension.properties.component}
-                props={componentProps}
-              />
-            </PageSection>
-          </Tab>
-        ),
-      )}
+        );
+      })}
     </Tabs>
   );
 };

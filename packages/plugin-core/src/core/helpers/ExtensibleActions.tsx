@@ -3,6 +3,7 @@ import { DropdownItem } from '@patternfly/react-core';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { LazyCodeRefComponent } from './LazyCodeRefComponent';
 import type { ActionProperties } from '../../extension-points/actions';
+import { sortExtensionsByGroup } from '../../extension-points/utils';
 
 type ExtensibleActionsProps<TExtension extends Extension<string, ActionProperties>> = {
   /** Loaded action extensions (from `useExtensions`). */
@@ -25,15 +26,7 @@ export const ExtensibleActions = <TExtension extends Extension<string, ActionPro
   actions,
   componentProps,
 }: ExtensibleActionsProps<TExtension>): React.ReactElement => {
-  const sorted = React.useMemo(
-    () =>
-      actions.toSorted((a, b) => {
-        const groupA = a.properties.group ?? '';
-        const groupB = b.properties.group ?? '';
-        return groupA.localeCompare(groupB);
-      }),
-    [actions],
-  );
+  const sorted = React.useMemo(() => sortExtensionsByGroup(actions), [actions]);
 
   return (
     <>

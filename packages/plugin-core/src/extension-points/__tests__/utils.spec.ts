@@ -1,5 +1,5 @@
 import type { Extension } from '@openshift/dynamic-plugin-sdk';
-import { createExtensionGuard } from '../utils';
+import { createExtensionGuard, isValidExtensionId } from '../utils';
 
 type FakeTabExtension = Extension<
   'test.details/tab',
@@ -71,4 +71,44 @@ describe('createExtensionGuard', () => {
 
     expect(guard(extension)).toBe(false);
   });
+
+  it('should return false when properties is null or undefined', () => {
+    const guard = createExtensionGuard<FakeTabExtension>('test.details/tab');
+
+    expect(guard({ type: 'test.details/tab', properties: null } as unknown as Extension)).toBe(
+      false,
+    );
+    expect(guard({ type: 'test.details/tab', properties: undefined } as unknown as Extension)).toBe(
+      false,
+    );
+  });
+
+  it('should accept a propertiesValidator and reject invalid properties', () => {
+    const guard = createExtensionGuard<FakeTabExtension>(
+      'test.details/tab',
+      (p): p is FakeTabExtension['properties'] =>
+        typeof (p as Record<string, unknown>).id === 'string' &&
+        typeof (p as Record<string, unknown>).title === 'string',
+    );
+
+    expect(guard({ type: 'test.details/tab', properties: { id: 'tab-1', title: 'Tab 1' } })).toBe(
+      true,
+    );
+    expect(
+      guard({ type: 'test.details/tab', properties: { id: 123 } } as unknown as Extension),
+    ).toBe(false);
+  });
+});
+
+describe('isValidExtensionId', () => {
+  it.each(['foo', 'my-tab', 'tab_1'])('should return true for safe id "%s"', (id) => {
+    expect(isValidExtensionId(id)).toBe(true);
+  });
+
+  it.each(['foo/bar', ':param', '*', 'tab with spaces', ''])(
+    'should return false for unsafe id "%s"',
+    (id) => {
+      expect(isValidExtensionId(id)).toBe(false);
+    },
+  );
 });

@@ -1,22 +1,6 @@
 import * as React from 'react';
-import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { DetailTabProperties } from '../../../extension-points/detail-tabs';
+import { createMockTabExtension } from './mockExtensions';
 import { generateExtensionTabRoutes } from '../generateExtensionTabRoutes';
-
-type TestTabExtension = Extension<'test.details/tab', DetailTabProperties>;
-
-const createMockTabExtension = (id: string, title: string): LoadedExtension<TestTabExtension> =>
-  ({
-    type: 'test.details/tab',
-    properties: {
-      id,
-      title,
-      component: () => Promise.resolve({ default: () => null }),
-    },
-    uid: `uid-${id}`,
-    pluginID: 'test-plugin',
-    pluginName: 'test-plugin',
-  } as unknown as LoadedExtension<TestTabExtension>);
 
 describe('generateExtensionTabRoutes', () => {
   it('should generate a route for each tab extension', () => {
@@ -66,5 +50,22 @@ describe('generateExtensionTabRoutes', () => {
     });
 
     expect(routes).toHaveLength(0);
+  });
+
+  it('should skip extensions with route-unsafe IDs', () => {
+    const tabExtensions = [
+      createMockTabExtension('valid-tab', 'Valid'),
+      createMockTabExtension(':param', 'Param'),
+      createMockTabExtension('path/nested', 'Nested'),
+      createMockTabExtension('wild*', 'Wild'),
+    ];
+
+    const routes = generateExtensionTabRoutes({
+      tabExtensions,
+      renderElement: (tabId) => <div>{tabId}</div>,
+    });
+
+    expect(routes).toHaveLength(1);
+    expect(routes[0].key).toBe('valid-tab');
   });
 });

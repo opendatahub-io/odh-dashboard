@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Route } from 'react-router-dom';
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import type { DetailTabProperties } from '../../extension-points/detail-tabs';
+import { isValidExtensionId } from '../../extension-points/utils';
 
 type GenerateExtensionTabRoutesOptions<TExtension extends Extension<string, DetailTabProperties>> =
   {
@@ -18,6 +19,8 @@ type GenerateExtensionTabRoutesOptions<TExtension extends Extension<string, Deta
  * Generates `<Route>` elements for tab extensions.
  *
  * Each route uses the extension's `id` as the URL path segment.
+ * IDs containing route-significant characters (`:`, `*`, `/`) are
+ * skipped to prevent unintended React Router matching semantics.
  * The `renderElement` callback controls what is rendered for each tab route.
  *
  * This replaces bespoke route generators like `DetailsTabExtensionRoutes.tsx`
@@ -40,10 +43,12 @@ export const generateExtensionTabRoutes = <
   tabExtensions,
   renderElement,
 }: GenerateExtensionTabRoutesOptions<TExtension>): React.ReactElement[] =>
-  tabExtensions.map((extension) => (
-    <Route
-      key={extension.properties.id}
-      path={extension.properties.id}
-      element={renderElement(extension.properties.id)}
-    />
-  ));
+  tabExtensions
+    .filter((extension) => isValidExtensionId(extension.properties.id))
+    .map((extension) => (
+      <Route
+        key={extension.properties.id}
+        path={extension.properties.id}
+        element={renderElement(extension.properties.id)}
+      />
+    ));

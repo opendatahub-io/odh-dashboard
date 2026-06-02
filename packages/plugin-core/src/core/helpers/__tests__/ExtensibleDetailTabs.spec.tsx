@@ -1,31 +1,8 @@
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
-import type { DetailTabProperties } from '../../../extension-points/detail-tabs';
+import { createMockTabExtension } from './mockExtensions';
 import { ExtensibleDetailTabs } from '../ExtensibleDetailTabs';
-
-type TestTabExtension = Extension<'test.details/tab', DetailTabProperties>;
-
-const MockTabContent: React.FC = () => <div data-testid="mock-tab-content">Tab Content</div>;
-
-const createMockTabExtension = (
-  id: string,
-  title: string,
-  group?: string,
-): LoadedExtension<TestTabExtension> =>
-  ({
-    type: 'test.details/tab',
-    properties: {
-      id,
-      title,
-      component: () => Promise.resolve({ default: MockTabContent }),
-      group,
-    },
-    uid: `uid-${id}`,
-    pluginID: 'test-plugin',
-    pluginName: 'test-plugin',
-  } as unknown as LoadedExtension<TestTabExtension>);
 
 describe('ExtensibleDetailTabs', () => {
   const defaultOnSelect = jest.fn();
@@ -180,5 +157,51 @@ describe('ExtensibleDetailTabs', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Model details tabs' })).toBeInTheDocument();
+  });
+
+  it('should render Badge when extension has a label', () => {
+    const extensionTabs = [createMockTabExtension('metrics', 'Metrics', { label: '3' })];
+
+    render(
+      <ExtensibleDetailTabs
+        activeKey="overview"
+        onSelect={defaultOnSelect}
+        staticTabs={[
+          {
+            id: 'overview',
+            title: 'Overview',
+            content: <div>Overview</div>,
+          },
+        ]}
+        extensionTabs={extensionTabs}
+        testId="test-tabs"
+      />,
+    );
+
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('3').closest('.pf-v6-c-badge')).toBeInTheDocument();
+  });
+
+  it('should not render Badge when extension label is undefined', () => {
+    const extensionTabs = [createMockTabExtension('metrics', 'Metrics')];
+
+    render(
+      <ExtensibleDetailTabs
+        activeKey="overview"
+        onSelect={defaultOnSelect}
+        staticTabs={[
+          {
+            id: 'overview',
+            title: 'Overview',
+            content: <div>Overview</div>,
+          },
+        ]}
+        extensionTabs={extensionTabs}
+        testId="test-tabs"
+      />,
+    );
+
+    expect(screen.getByTestId('metrics-tab')).toBeInTheDocument();
+    expect(document.querySelector('.pf-v6-c-badge')).toBeNull();
   });
 });
