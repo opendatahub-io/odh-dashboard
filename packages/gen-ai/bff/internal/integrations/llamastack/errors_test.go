@@ -66,7 +66,7 @@ func TestWrapClientError_NetworkErrors(t *testing.T) {
 			require.NotNil(t, result)
 			assert.Equal(t, tt.expectedCode, result.Code)
 			assert.Equal(t, 502, result.StatusCode) // Connection errors return 502 Bad Gateway
-			assert.Equal(t, ComponentLlamaStack, result.Component)
+			assert.Equal(t, ComponentOGX, result.Component)
 			assert.Contains(t, result.Message, fmt.Sprintf("failed to connect to LlamaStack server on operation %s", tt.operation))
 			assert.Contains(t, result.Message, tt.urlErr.Err.Error())
 		})
@@ -85,7 +85,7 @@ func TestWrapClientError_APIErrors_BadRequest(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInvalidRequest, result.Code)
 		assert.Equal(t, 400, result.StatusCode)
-		assert.Equal(t, ComponentLlamaStack, result.Component)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation CreateResponse")
 		assert.Contains(t, result.Message, "invalid model parameter")
 	})
@@ -104,7 +104,7 @@ func TestWrapClientError_APIErrors_Unauthorized(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeUnauthorized, result.Code)
 		assert.Equal(t, 401, result.StatusCode)
-		assert.Equal(t, ComponentLlamaStack, result.Component)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation ListModels")
 		assert.Contains(t, result.Message, "invalid API key")
 	})
@@ -122,7 +122,7 @@ func TestWrapClientError_APIErrors_NotFound(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeNotFound, result.Code)
 		assert.Equal(t, 404, result.StatusCode)
-		assert.Equal(t, ComponentLlamaStack, result.Component)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation GetModel")
 		assert.Contains(t, result.Message, "model not found")
 	})
@@ -239,7 +239,7 @@ func TestWrapClientError_UnknownErrors(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInternalError, result.Code)
 		assert.Equal(t, 0, result.StatusCode)
-		assert.Equal(t, ComponentLlamaStack, result.Component)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "unexpected error on operation CreateResponse")
 		assert.Contains(t, result.Message, "some unexpected error")
 	})
@@ -252,7 +252,7 @@ func TestWrapClientError_UnknownErrors(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInternalError, result.Code)
 		assert.Equal(t, 0, result.StatusCode)
-		assert.Equal(t, ComponentLlamaStack, result.Component)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "unexpected error on operation GetModel")
 	})
 }
@@ -329,11 +329,11 @@ func TestResolveComponent(t *testing.T) {
 		{OGXErrEmptyImageFile, ComponentModel},
 		{OGXErrFailedToDownloadImage, ComponentModel},
 		{OGXErrImageFileNotFound, ComponentModel},
-		// llama_stack (default + generic OGX codes)
-		{OGXErrServerError, ComponentLlamaStack},
-		{OGXErrRateLimitExceeded, ComponentLlamaStack},
-		{"unknown_code", ComponentLlamaStack},
-		{"", ComponentLlamaStack},
+		// ogx (default + generic OGX codes)
+		{OGXErrServerError, ComponentOGX},
+		{OGXErrRateLimitExceeded, ComponentOGX},
+		{"unknown_code", ComponentOGX},
+		{"", ComponentOGX},
 	}
 
 	for _, tt := range tests {
@@ -374,14 +374,14 @@ func TestOGXResponseErrorConstants(t *testing.T) {
 }
 
 func TestConstructorComponents(t *testing.T) {
-	t.Run("NewConnectionError sets llama_stack component", func(t *testing.T) {
+	t.Run("NewConnectionError sets ogx component", func(t *testing.T) {
 		err := NewConnectionError("connection refused")
-		assert.Equal(t, ComponentLlamaStack, err.Component)
+		assert.Equal(t, ComponentOGX, err.Component)
 	})
 
-	t.Run("NewServerUnavailableError sets llama_stack component", func(t *testing.T) {
+	t.Run("NewServerUnavailableError sets ogx component", func(t *testing.T) {
 		err := NewServerUnavailableError("service down")
-		assert.Equal(t, ComponentLlamaStack, err.Component)
+		assert.Equal(t, ComponentOGX, err.Component)
 	})
 
 	t.Run("NewUnauthorizedError sets bff component", func(t *testing.T) {

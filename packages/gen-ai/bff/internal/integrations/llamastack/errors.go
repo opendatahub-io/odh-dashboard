@@ -16,7 +16,7 @@ type LlamaStackError struct {
 	Type       string `json:"type,omitempty"`       // OpenAI error type (e.g., "invalid_request_error")
 	ErrorCode  string `json:"error_code,omitempty"` // OpenAI error code (e.g., "rate_limit_exceeded")
 	Param      string `json:"param,omitempty"`      // Parameter that caused the error
-	Component  string `json:"-"`                    // Which subsystem caused the error (e.g., "bff", "llama_stack", "model"). Set at creation time, sent to frontend in ErrorDetail.Component. See Component* constants
+	Component  string `json:"-"`                    // Which subsystem caused the error (e.g., "bff", "ogx", "model"). Set at creation time, sent to frontend in ErrorDetail.Component. See Component* constants
 	StatusCode int    `json:"-"`
 }
 
@@ -42,12 +42,10 @@ const (
 // this to select user-facing microcopy and to classify errors as partial
 // (warning) vs full (danger) failures.
 const (
-	ComponentBFF        = "bff"
-	ComponentLlamaStack = "llama_stack"
-	ComponentRAG        = "rag"
-	ComponentMCP        = "mcp"
-	ComponentModel      = "model"
-	ComponentGuardrails = "guardrails"
+	ComponentBFF   = "bff"
+	ComponentOGX   = "ogx"
+	ComponentRAG   = "rag"
+	ComponentModel = "model"
 )
 
 func NewLlamaStackError(code, message string, statusCode int) *LlamaStackError {
@@ -72,13 +70,13 @@ func NewLlamaStackErrorWithDetails(code, message, errorType, errorCode, param, c
 
 func NewConnectionError(message string) *LlamaStackError {
 	e := NewLlamaStackError(ErrCodeConnectionFailed, message, 502)
-	e.Component = ComponentLlamaStack
+	e.Component = ComponentOGX
 	return e
 }
 
 func NewServerUnavailableError(message string) *LlamaStackError {
 	e := NewLlamaStackError(ErrCodeServerUnavailable, message, 503)
-	e.Component = ComponentLlamaStack
+	e.Component = ComponentOGX
 	return e
 }
 
@@ -151,7 +149,7 @@ const (
 // ResolveComponent maps an OGX response.failed error code to the subsystem
 // that produced it. Used by streaming handlers to set the "component" field
 // in error events sent to the frontend. Codes not explicitly mapped default
-// to "llama_stack" (the OGX server itself).
+// to "ogx" (the OGX server itself).
 func ResolveComponent(errorCode string) string {
 	switch errorCode {
 	// RAG (OGX response.failed code)
@@ -167,7 +165,7 @@ func ResolveComponent(errorCode string) string {
 		OGXErrFailedToDownloadImage, OGXErrImageFileNotFound:
 		return ComponentModel
 	default:
-		return ComponentLlamaStack
+		return ComponentOGX
 	}
 }
 
@@ -229,6 +227,6 @@ func wrapClientError(err error, operation string) *LlamaStackError {
 
 	// For other unknown errors, wrap as internal error
 	e := NewLlamaStackError(ErrCodeInternalError, fmt.Sprintf("unexpected error on operation %s: %s", operation, err.Error()), 0)
-	e.Component = ComponentLlamaStack
+	e.Component = ComponentOGX
 	return e
 }

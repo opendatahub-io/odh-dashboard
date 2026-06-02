@@ -362,7 +362,7 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	}()
 
 	sendGuardrailViolation := func() {
-		_ = sendEvent(buildStreamingErrorEvent(constants.GuardrailOutputViolationCode, "output blocked by safety guardrails", llamastack.ComponentGuardrails, false))
+		_ = sendEvent(buildStreamingErrorEvent(constants.GuardrailOutputViolationCode, "output blocked by safety guardrails", "guardrails", false))
 	}
 
 	// Current chunk being accumulated

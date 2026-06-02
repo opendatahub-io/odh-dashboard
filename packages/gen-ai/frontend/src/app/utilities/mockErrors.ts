@@ -101,79 +101,12 @@ export const MOCK_SCENARIOS: MockScenario[] = [
       },
     },
   },
-  // Model error codes (from LlamaStack/OpenAI API responses)
-  {
-    trigger: 'invalid_model',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'invalid_model',
-        message: 'The specified model is invalid or not supported',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'model_not_found',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'model_not_found',
-        message: 'The specified model was not found',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'model_unavailable',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'model_unavailable',
-        message: 'Model is currently unavailable',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'model_error',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'model_error',
-        message: 'Model encountered an error during inference',
-        retriable: true,
-      },
-    },
-  },
-  {
-    trigger: 'invalid_parameter',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'invalid_parameter',
-        message: 'Invalid parameter: temperature must be between 0 and 2',
-        retriable: false,
-      },
-    },
-  },
-  {
-    trigger: 'invalid_request_error',
-    apiError: {
-      error: {
-        component: 'model',
-        code: 'invalid_request_error',
-        message: 'Invalid request: missing required field',
-        retriable: false,
-      },
-    },
-  },
-  // Rate limiting errors
+  // OGX error codes (from OGXErr* constants in llamastack/errors.go)
   {
     trigger: 'rate_limit_exceeded',
     apiError: {
       error: {
-        component: 'llama_stack',
+        component: 'ogx',
         code: 'rate_limit_exceeded',
         message: 'Rate limit exceeded: 60 requests per minute',
         retriable: true,
@@ -181,69 +114,18 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     },
   },
   {
-    trigger: 'insufficient_quota',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'insufficient_quota',
-        message: 'Insufficient quota for this operation',
-        retriable: true,
-      },
-    },
-  },
-  // Server errors
-  {
     trigger: 'server_error',
     apiError: {
       error: {
-        component: 'llama_stack',
+        component: 'ogx',
         code: 'server_error',
         message: 'Server encountered an internal error',
         retriable: true,
       },
     },
   },
-  {
-    trigger: 'service_unavailable',
-    apiError: {
-      error: {
-        component: 'llama_stack',
-        code: 'service_unavailable',
-        message: 'Service is temporarily unavailable',
-        retriable: true,
-      },
-    },
-  },
-
   // ── Partial failures (show response + warning) ────────────────
-  // RAG error codes (actual codes from BFF error handling)
-  {
-    trigger: 'resource_not_found',
-    apiError: {
-      error: {
-        component: 'rag',
-        code: 'resource_not_found',
-        message: 'Vector store resource not found',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'Based on my general knowledge, the deployment process involves building a container image, pushing it to the registry, and applying the Kubernetes manifests. However, I was unable to retrieve specific documentation from your knowledge sources.',
-  },
-  {
-    trigger: 'vector_store_not_found',
-    apiError: {
-      error: {
-        component: 'rag',
-        code: 'vector_store_not_found',
-        message: 'Vector store not found or unavailable',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I didn't find any matching documents in your knowledge sources, so here's what I know generally: the API accepts JSON payloads with a maximum size of 10MB.",
-  },
-  // Guardrails error codes (actual codes from BFF constants)
+  // Guardrails error codes (from BFF constants in guardrails.go)
   {
     trigger: 'guardrail_service_unavailable',
     apiError: {
@@ -283,53 +165,6 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     partialResponse:
       'The response was flagged by the guardrail system. The content has been delivered but should be reviewed carefully before use in any production context.',
   },
-  // MCP error codes (actual codes from BFF error handling)
-  {
-    trigger: 'tool_error',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'tool_error',
-        message: 'MCP tool execution failed',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Jira',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'I tried to look up the relevant Jira tickets but the tool encountered an error. Based on what I know, the current sprint has 12 story points remaining.',
-  },
-  {
-    trigger: 'tool_not_found',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'tool_not_found',
-        message: 'MCP tool not found on server',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Jira',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      "I tried to look up the relevant Jira tickets but the tool wasn't available on the server. Based on what I know, the current sprint has 12 story points remaining.",
-  },
-  {
-    trigger: 'mcp_error',
-    apiError: {
-      error: {
-        component: 'mcp',
-        code: 'mcp_error',
-        message: 'MCP server connection failed',
-        // eslint-disable-next-line camelcase
-        tool_name: 'Kubernetes',
-        retriable: false,
-      },
-    },
-    partialResponse:
-      'I attempted to query the Kubernetes cluster but the MCP server was unreachable. You may need to check the server configuration.',
-  },
-
   // ── Streaming interruptions (dimmed partial text + error) ─────
   // These use actual timeout/error codes that would occur during streaming
   {
@@ -366,7 +201,7 @@ export const MOCK_SCENARIOS: MockScenario[] = [
     trigger: 'stream_context',
     apiError: {
       error: {
-        component: 'llama_stack',
+        component: 'ogx',
         code: 'context_length_exceeded',
         message: 'Context length 8192 exceeded at token 8191',
         retriable: false,

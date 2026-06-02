@@ -70,7 +70,6 @@ func (app *App) isRetriable(errorCode string, statusCode int) bool {
 
 // buildStreamingErrorEvent constructs the SSE error JSON payload that the frontend
 // expects on every streaming error: {error: {message, code, component, retriable}}.
-// Returns nil if marshaling fails (should never happen with simple map types).
 func buildStreamingErrorEvent(code, message, component string, retriable bool) []byte {
 	errorData := map[string]interface{}{
 		"error": map[string]interface{}{
@@ -109,7 +108,7 @@ func (app *App) extractStreamingError(err error) (message, code, component strin
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
 		return fmt.Sprintf("Failed to connect to LlamaStack server: %s", urlErr.Err.Error()),
-			llamastack.ErrCodeConnectionFailed, llamastack.ComponentLlamaStack, true
+			llamastack.ErrCodeConnectionFailed, llamastack.ComponentOGX, true
 	}
 
 	var apiErr *openai.Error
@@ -137,18 +136,12 @@ func (app *App) mapLlamaStackClientErrorToFrontendError(lsErr *llamastack.LlamaS
 
 	retriable := app.isRetriable(errorCode, statusCode)
 
-	toolName := ""
-	if lsErr.Component == llamastack.ComponentMCP && lsErr.Param != "" {
-		toolName = lsErr.Param
-	}
-
 	return &integrations.FrontendErrorResponse{
 		StatusCode: statusCode,
 		Error: &integrations.ErrorDetail{
 			Component: lsErr.Component,
 			Code:      errorCode,
 			Message:   lsErr.Message,
-			ToolName:  toolName,
 			Retriable: retriable,
 		},
 	}

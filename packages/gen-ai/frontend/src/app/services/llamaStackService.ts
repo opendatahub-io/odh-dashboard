@@ -224,7 +224,7 @@ const postCreateResponse = (
   return restCREATE<{
     data?: BackendResponseData;
     error?: {
-      component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'llama_stack' | 'bff';
+      component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'ogx' | 'bff';
       code: string;
       message: string;
       tool_name?: string;

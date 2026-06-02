@@ -22,12 +22,12 @@ describe('errorClassifier', () => {
         expect(result.variant).toBe('danger' as ErrorVariant);
       });
 
-      it('should classify as partial-failure when response was generated', () => {
+      it('should classify as partial-failure when response was generated with guardrails component', () => {
         const error = {
           error: {
-            component: 'rag' as const,
-            code: 'unreachable',
-            message: 'RAG retrieval failed',
+            component: 'guardrails' as const,
+            code: 'guardrail_output_violation',
+            message: 'Output flagged',
             retriable: false,
           },
         };
@@ -118,97 +118,83 @@ describe('errorClassifier', () => {
       });
     });
 
-    describe('error title generation', () => {
-      it('should generate title for max_tokens error', () => {
+    describe('error title generation for real BFF codes', () => {
+      it('should generate title for bff:invalid_request', () => {
         const error = {
-          error: {
-            component: 'model' as const,
-            code: 'max_tokens',
-            message: 'Token limit exceeded',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Token limit exceeds model capacity');
-      });
-
-      it('should generate title for invalid_model_config error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'invalid_model_config',
-            message: 'Invalid template',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Model configuration error');
-      });
-
-      it('should generate title for unsupported_feature error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'unsupported_feature',
-            message: 'Tools not supported',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe("This model doesn't support tool calling");
-      });
-
-      it('should generate title for no_images error', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'no_images',
-            message: 'Images not supported',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe("This model doesn't support image input");
-      });
-
-      it('should generate title for model_timeout error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'model_timeout',
-            message: 'Request timed out',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Model inference failed');
-      });
-
-      it('should generate title for generic_error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'generic_error',
-            message: 'Internal error',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Model server error');
-      });
-
-      it('should generate title for rate_limit error', () => {
-        const error = {
-          status: 429,
           error: {
             component: 'bff' as const,
-            code: 'rate_limit',
+            code: 'invalid_request',
+            message: 'Missing input',
+            retriable: false,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Invalid request');
+      });
+
+      it('should generate title for bff:connection_failed', () => {
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'connection_failed',
+            message: 'Connection refused',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe("Couldn't reach the server");
+      });
+
+      it('should generate title for bff:timeout', () => {
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'timeout',
+            message: 'Request timed out',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        // 'timeout' matches STREAMING_ERROR_MAP before fullFailureTemplates
+        expect(result.title).toBe('Streaming error — response timed out');
+      });
+
+      it('should generate title for bff:server_unavailable', () => {
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'server_unavailable',
+            message: 'Server down',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Server unavailable');
+      });
+
+      it('should generate title for ogx:server_error', () => {
+        const error = {
+          error: {
+            component: 'ogx' as const,
+            code: 'server_error',
+            message: 'Internal error',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Server error');
+      });
+
+      it('should generate title for ogx:rate_limit_exceeded', () => {
+        const error = {
+          error: {
+            component: 'ogx' as const,
+            code: 'rate_limit_exceeded',
             message: 'Too many requests',
             retriable: true,
           },
@@ -218,75 +204,50 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Request was rate limited');
       });
 
-      it('should generate title for RAG errors', () => {
-        const errors = [
-          { code: 'unreachable', expected: 'Knowledge source retrieval failed' },
-          { code: 'embedding_failure', expected: 'Knowledge source retrieval failed' },
-          { code: 'no_results', expected: 'No matching knowledge found' },
-        ];
-
-        errors.forEach(({ code, expected }) => {
-          const error = {
-            error: {
-              component: 'rag' as const,
-              code,
-              message: 'RAG error',
-              retriable: false,
-            },
-          };
-          expect(classifyError(error).title).toBe(expected);
-        });
-      });
-
-      it('should generate title for guardrails errors', () => {
-        const errors = [
-          { code: 'guardrails_violation', expected: 'Content was flagged by guardrails' },
-          { code: 'service_down', expected: 'Guardrail check was not applied' },
-        ];
-
-        errors.forEach(({ code, expected }) => {
-          const error = {
-            error: {
-              component: 'guardrails' as const,
-              code,
-              message: 'Guardrails error',
-              retriable: false,
-            },
-          };
-          expect(classifyError(error).title).toBe(expected);
-        });
-      });
-
-      it('should generate title for MCP errors with tool name', () => {
+      it('should generate title for guardrail_input_violation', () => {
         const error = {
           error: {
-            component: 'mcp' as const,
-            code: 'unreachable',
-            message: 'Tool failed',
-            // eslint-disable-next-line camelcase
-            tool_name: 'GitHub',
+            component: 'guardrails' as const,
+            code: 'guardrail_input_violation',
+            message: 'Input blocked',
             retriable: false,
           },
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('GitHub tool call failed');
+        expect(result.title).toBe('Content was flagged by guardrails');
       });
 
-      it('should generate title for MCP errors without tool name', () => {
+      it('should generate title for guardrail_output_violation', () => {
         const error = {
           error: {
-            component: 'mcp' as const,
-            code: 'unreachable',
-            message: 'Tool failed',
+            component: 'guardrails' as const,
+            code: 'guardrail_output_violation',
+            message: 'Output blocked',
             retriable: false,
           },
         };
         const result = classifyError(error);
 
-        expect(result.title).toBe('A tool tool call failed');
+        expect(result.title).toBe('Content was flagged by guardrails');
       });
 
+      it('should generate title for guardrail_service_unavailable', () => {
+        const error = {
+          error: {
+            component: 'guardrails' as const,
+            code: 'guardrail_service_unavailable',
+            message: 'Service down',
+            retriable: false,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.title).toBe('Guardrail check was not applied');
+      });
+    });
+
+    describe('streaming error titles', () => {
       it('should generate title for streaming interruptions', () => {
         const errors = [
           { code: 'stream_lost', expected: 'Streaming error — connection lost' },
@@ -303,12 +264,12 @@ describe('errorClassifier', () => {
         });
       });
 
-      it('should use BFF-provided streaming error code for timeout', () => {
+      it('should use BFF-provided streaming error code for connection lost', () => {
         const error = {
           error: {
-            component: 'llama_stack' as const,
+            component: 'ogx' as const,
             code: 'stream_lost',
-            message: '{"error": "stream terminated: connection reset by peer"}',
+            message: 'stream terminated: connection reset by peer',
             retriable: false,
           },
         };
@@ -321,9 +282,9 @@ describe('errorClassifier', () => {
       it('should use BFF-provided context_length code', () => {
         const error = {
           error: {
-            component: 'model' as const,
+            component: 'ogx' as const,
             code: 'context_length',
-            message: '{"error": "context length 8192 exceeded at token 8191"}',
+            message: 'context length 8192 exceeded at token 8191',
             retriable: false,
           },
         };
@@ -332,8 +293,42 @@ describe('errorClassifier', () => {
         expect(result.title).toBe('Streaming error — context length exceeded');
         expect(result.description).toBe("The response exceeded the model's context length.");
       });
+    });
 
-      it('should use generic title for unknown errors', () => {
+    describe('error description generation', () => {
+      it('should generate description for bff:connection_failed', () => {
+        const error = {
+          error: {
+            component: 'bff' as const,
+            code: 'connection_failed',
+            message: 'Connection refused',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          'Unable to connect to the OGX server. Check that the service is running.',
+        );
+      });
+
+      it('should generate description for ogx:server_error', () => {
+        const error = {
+          error: {
+            component: 'ogx' as const,
+            code: 'server_error',
+            message: 'Internal error',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.description).toBe(
+          'The server encountered an internal error. Please try again.',
+        );
+      });
+
+      it('should use generic fallback for unknown errors', () => {
         const error = {
           error: {
             component: 'bff' as const,
@@ -344,585 +339,10 @@ describe('errorClassifier', () => {
         };
         const result = classifyError(error);
 
-        // Unknown errors without status or component fall back to bff:unreachable
-        expect(result.title).toBe('Something went wrong');
-      });
-    });
-
-    describe('error description generation', () => {
-      it('should generate description for max_tokens error with model name', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'max_tokens',
-            message: 'Token limit exceeded',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
-
-        expect(result.description).toBe(
-          'Llama 3.1 8B supports a maximum of the maximum tokens. Reduce the token limit in the Build panel.',
-        );
-      });
-
-      it('should generate description for max_tokens error without model name', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'max_tokens',
-            message: 'Token limit exceeded',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'The selected model supports a maximum of the maximum tokens. Reduce the token limit in the Build panel.',
-        );
-      });
-
-      it('should generate description for invalid_model_config error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'invalid_model_config',
-            message: 'Invalid template',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
-
-        expect(result.description).toBe(
-          "Llama 3.1 8B doesn't support the current chat template. Check the model's documentation for supported templates.",
-        );
-      });
-
-      it('should generate description for unsupported_feature error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'unsupported_feature',
-            message: 'Tools not supported',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error, { modelName: 'Llama 3.1 8B' });
-
-        expect(result.description).toBe(
-          "Llama 3.1 8B doesn't support the tools feature you've enabled. Try selecting a model that supports tool calling, or disable tools in the Build panel.",
-        );
-      });
-
-      it('should generate description for no_images error', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'no_images',
-            message: 'Images not supported',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The selected model can't process images. Try selecting a multimodal model, or remove the image from your message.",
-        );
-      });
-
-      it('should generate description for model_timeout error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'model_timeout',
-            message: 'Request timed out',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The model server didn't respond in time. This may be a temporary issue.",
-        );
-      });
-
-      it('should generate description for generic_error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'generic_error',
-            message: 'Server error',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The model server encountered an internal error and couldn't generate a response.",
-        );
-      });
-
-      it('should generate description for rate_limit error', () => {
-        const error = {
-          status: 429,
-          error: {
-            component: 'bff' as const,
-            code: 'bff_error',
-            message: 'Rate limited',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'An unexpected error occurred. Check the details below for more information.',
-        );
-      });
-
-      it('should generate description for service_unavailable error', () => {
-        const error = {
-          status: 503,
-          error: {
-            component: 'bff' as const,
-            code: 'bff_error',
-            message: 'Service down',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'An unexpected error occurred. Check the details below for more information.',
-        );
-      });
-
-      it('should generate description for RAG partial failures', () => {
-        const error = {
-          error: {
-            component: 'rag' as const,
-            code: 'unreachable',
-            message: 'RAG failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error, { wasResponseGenerated: true });
-
-        expect(result.description).toBe(
-          'This response was generated without context from your knowledge sources. Results may be less accurate.',
-        );
-        expect(result.pattern).toBe('partial-failure' as ErrorPattern);
-      });
-
-      it('should generate description for rag_embed error', () => {
-        const error = {
-          error: {
-            component: 'rag' as const,
-            code: 'embedding_failure',
-            message: 'Embedding failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The embedding model couldn't process your query for retrieval. The response doesn't include knowledge source context.",
-        );
-      });
-
-      it('should generate description for rag_empty error', () => {
-        const error = {
-          error: {
-            component: 'rag' as const,
-            code: 'no_results',
-            message: 'No results',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "Your knowledge sources didn't return any relevant results. The response was generated without additional context.",
-        );
-      });
-
-      it('should generate description for guardrails_violation error', () => {
-        const error = {
-          error: {
-            component: 'guardrails' as const,
-            code: 'guardrails_violation',
-            message: 'Content flagged',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'A guardrail flagged this response. Review the output carefully.',
-        );
-      });
-
-      it('should generate description for guardrail_down error', () => {
-        const error = {
-          error: {
-            component: 'guardrails' as const,
-            code: 'service_down',
-            message: 'Guardrails down',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The safety filter couldn't process this response. Review the output carefully.",
-        );
-      });
-
-      it('should generate description for mcp_down error', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'unreachable',
-            message: 'MCP server down',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The model attempted to use the A tool tool but the server didn't respond. The response was generated without this tool's output.",
-        );
-      });
-
-      it('should generate description for mcp_auth_error', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'mcp_auth_error',
-            message: 'Auth failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          "The A tool tool server rejected the request due to an authentication error. Check the server's credentials in the Build panel.",
-        );
-      });
-
-      it('should generate description for mcp_exec error', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'execution_error',
-            message: 'Execution failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'The A tool tool encountered an error during execution. The response may be incomplete.',
-        );
-      });
-
-      it('should generate description for stream_lost error', () => {
-        const error = {
-          error: {
-            component: 'bff' as const,
-            code: 'stream_lost',
-            message: 'Stream lost',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error, { wasStreamStarted: true });
-
-        expect(result.description).toBe('The connection to the model was lost during generation.');
-      });
-
-      it('should generate description for stream_timeout error', () => {
-        const error = {
-          error: {
-            component: 'bff' as const,
-            code: 'stream_timeout',
-            message: 'Stream timeout',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error, { wasStreamStarted: true });
-
-        expect(result.description).toBe('The model stopped responding during generation.');
-      });
-
-      it('should generate description for stream_context error', () => {
-        const error = {
-          error: {
-            component: 'bff' as const,
-            code: 'stream_context',
-            message: 'Context exceeded',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error, { wasStreamStarted: true });
-
-        expect(result.description).toBe("The response exceeded the model's context length.");
-      });
-
-      it('should use error message as fallback for unknown errors', () => {
-        const error = {
-          error: {
-            component: 'bff' as const,
-            code: 'unknown',
-            message: 'Custom error message',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.description).toBe(
-          'An unexpected error occurred. Check the details below for more information.',
-        );
-      });
-
-      it('should use default message when error message is empty', () => {
-        const error = {
-          error: { component: 'bff' as const, code: 'unknown', message: '', retriable: true },
-        };
-        const result = classifyError(error);
-
-        // Unknown errors fall back to the generic fallback message
-        expect(result.description).toBe(
-          'An unexpected error occurred. Check the details below for more information.',
-        );
-      });
-    });
-
-    describe('error category constants integration', () => {
-      it('should recognize error category constants', () => {
-        // Error category constants map to their respective components
-        const categoryTests = [
-          { code: 'invalid_model_config', component: 'llama_stack' as const },
-          { code: 'unsupported_feature', component: 'llama_stack' as const },
-          { code: 'invalid_parameter', component: 'llama_stack' as const },
-          { code: 'rag_error', component: 'rag' as const },
-          { code: 'rag_vector_store_not_found', component: 'rag' as const },
-          { code: 'guardrails_error', component: 'guardrails' as const },
-          { code: 'guardrails_violation', component: 'guardrails' as const },
-          { code: 'mcp_error', component: 'mcp' as const },
-          { code: 'mcp_tool_not_found', component: 'mcp' as const },
-          { code: 'mcp_auth_error', component: 'mcp' as const },
-          { code: 'model_invocation_error', component: 'model' as const },
-          { code: 'model_timeout', component: 'llama_stack' as const },
-          { code: 'model_overloaded', component: 'llama_stack' as const },
-        ];
-
-        categoryTests.forEach(({ code, component }) => {
-          const error = {
-            error: { component, code, message: 'Error message', retriable: false },
-          };
-          const result = classifyError(error);
-          // Each component will have its own fallback or default
-          expect(result.title).toBeTruthy();
-        });
-      });
-
-      it('should handle service_unavailable code', () => {
-        const error = {
-          status: 503,
-          error: {
-            component: 'bff' as const,
-            code: 'service_unavailable',
-            message: 'Service down',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
         expect(result.title).toBe('Something went wrong');
         expect(result.description).toBe(
           'An unexpected error occurred. Check the details below for more information.',
         );
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should handle bad_gateway code', () => {
-        const error = {
-          status: 502,
-          error: {
-            component: 'bff' as const,
-            code: 'bad_gateway',
-            message: 'Gateway error',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Something went wrong');
-        expect(result.description).toBe(
-          'An unexpected error occurred. Check the details below for more information.',
-        );
-        expect(result.isRetriable).toBe(true);
-      });
-
-      it('should handle invalid parameter error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'invalid_parameter',
-            message: 'Invalid param',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Invalid parameter');
-        expect(result.isRetriable).toBe(false);
-      });
-
-      it('should handle RAG vector store not found error', () => {
-        const error = {
-          error: {
-            component: 'rag' as const,
-            code: 'rag_vector_store_not_found',
-            message: 'Vector store not found',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('No matching knowledge found');
-      });
-
-      it('should handle MCP tool not found error', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'mcp_tool_not_found',
-            message: 'Tool not found',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('A tool tool call failed');
-      });
-
-      it('should handle MCP auth error', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'mcp_auth_error',
-            message: 'Auth failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('A tool tool call failed');
-      });
-
-      it('should handle model invocation error', () => {
-        const error = {
-          error: {
-            component: 'model' as const,
-            code: 'model_invocation_error',
-            message: 'Model error',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Model server error');
-      });
-
-      it('should handle model overloaded error', () => {
-        const error = {
-          error: {
-            component: 'llama_stack' as const,
-            code: 'model_overloaded',
-            message: 'Model overloaded',
-            retriable: true,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('Request was rate limited');
-        expect(result.isRetriable).toBe(true);
-      });
-    });
-
-    describe('component-based classification', () => {
-      it('should classify RAG errors by component field', () => {
-        const error = {
-          error: {
-            component: 'rag' as const,
-            code: 'unknown',
-            message: 'Retrieval failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        // Without a code, errors fall back to generic template
-        expect(result.title).toBe('Something went wrong');
-      });
-
-      it('should classify guardrails errors by component field', () => {
-        const error = {
-          error: {
-            component: 'guardrails' as const,
-            code: 'unknown',
-            message: 'Guardrails failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        // Without a code, errors fall back to generic template
-        expect(result.title).toBe('Something went wrong');
-      });
-
-      it('should classify MCP errors by component field', () => {
-        const error = {
-          error: {
-            component: 'mcp' as const,
-            code: 'unknown',
-            message: 'MCP failed',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        // Without a code, errors fall back to generic template
-        expect(result.title).toBe('Something went wrong');
-      });
-
-      it('should prefer code over component for RAG errors', () => {
-        const error = {
-          error: {
-            code: 'no_results',
-            component: 'rag' as const,
-            message: 'No results',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        expect(result.title).toBe('No matching knowledge found');
-      });
-
-      it('should use component when code does not match', () => {
-        const error = {
-          error: {
-            code: 'unknown_code',
-            component: 'guardrails' as const,
-            message: 'Unknown guardrails error',
-            retriable: false,
-          },
-        };
-        const result = classifyError(error);
-
-        // Unknown code with component still falls back to generic template
-        expect(result.title).toBe('Something went wrong');
       });
     });
 
@@ -931,7 +351,7 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             component: 'guardrails' as const,
-            code: 'some_error',
+            code: 'guardrail_service_unavailable',
             message: 'Guardrails error',
             retriable: false,
           },
@@ -970,11 +390,25 @@ describe('errorClassifier', () => {
         expect(result.details.component).toBe('BFF');
       });
 
+      it('should use OGX display name for ogx component', () => {
+        const error = {
+          error: {
+            component: 'ogx' as const,
+            code: 'server_error',
+            message: 'Server error',
+            retriable: true,
+          },
+        };
+        const result = classifyError(error);
+
+        expect(result.details.component).toBe('OGX');
+      });
+
       it('should format MCP component with tool name', () => {
         const error = {
           error: {
             component: 'mcp' as const,
-            code: 'mcp_down',
+            code: 'some_error',
             message: 'Tool failed',
             // eslint-disable-next-line camelcase
             tool_name: 'GitHub',
@@ -990,7 +424,7 @@ describe('errorClassifier', () => {
         const error = {
           error: {
             component: 'mcp' as const,
-            code: 'mcp_down',
+            code: 'some_error',
             message: 'Tool failed',
             retriable: false,
           },

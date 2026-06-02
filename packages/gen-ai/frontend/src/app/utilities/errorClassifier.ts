@@ -14,8 +14,7 @@ const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
   rag: 'RAG',
   mcp: 'MCP',
   model: 'Model',
-  // eslint-disable-next-line camelcase
-  llama_stack: 'Llama Stack',
+  ogx: 'OGX',
   bff: 'BFF',
 };
 

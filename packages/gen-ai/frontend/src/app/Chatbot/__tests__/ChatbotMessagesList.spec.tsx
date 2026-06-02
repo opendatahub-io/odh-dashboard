@@ -97,7 +97,7 @@ describe('ChatbotMessages', () => {
             title: 'Model inference failed',
             description: 'The model server did not respond in time.',
             details: {
-              component: 'Llama Stack',
+              component: 'OGX',
               errorCode: 'timeout',
               rawMessage: 'Request timed out',
             },
@@ -341,7 +341,7 @@ describe('ChatbotMessages', () => {
             title: 'Streaming error — connection lost',
             description: 'The connection to the model was lost during generation.',
             details: {
-              component: 'Llama Stack',
+              component: 'OGX',
               errorCode: 'timeout',
               rawMessage: 'Connection reset',
             },

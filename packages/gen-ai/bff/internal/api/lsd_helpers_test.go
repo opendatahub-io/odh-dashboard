@@ -75,7 +75,7 @@ func TestHandleLlamaStackClientError(t *testing.T) {
 			inputError:         llamastack.NewConnectionError("connection refused"),
 			expectedStatusCode: http.StatusBadGateway,
 			expectedBodyContains: []string{
-				`"component": "llama_stack"`,
+				`"component": "ogx"`,
 				`"code": "CONNECTION_FAILED"`,
 				`"message": "connection refused"`,
 			},
@@ -213,7 +213,7 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name:                    "connection error",
 			lsErr:                   llamastack.NewConnectionError("connection refused"),
 			statusCode:              http.StatusBadGateway,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "CONNECTION_FAILED",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "connection refused",
@@ -223,11 +223,11 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 			name: "timeout error - keeps 504",
 			lsErr: func() *llamastack.LlamaStackError {
 				e := llamastack.NewLlamaStackError(llamastack.ErrCodeTimeout, "request timed out", 504)
-				e.Component = llamastack.ComponentLlamaStack
+				e.Component = llamastack.ComponentOGX
 				return e
 			}(),
 			statusCode:              http.StatusGatewayTimeout,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "TIMEOUT",
 			expectedStatusCode:      http.StatusGatewayTimeout,
 			expectedMessageContains: "request timed out",
@@ -235,29 +235,19 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "overload error - keeps 429",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentLlamaStack,429),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "model is currently overloaded", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentOGX, 429),
 			statusCode:              http.StatusTooManyRequests,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "rate_limit_exceeded",
 			expectedStatusCode:      http.StatusTooManyRequests,
 			expectedMessageContains: "model is currently overloaded",
 			expectedRetriable:       true,
 		},
 		{
-			name:                    "guardrails violation",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails("CUSTOM_ERROR", "content blocked by guardrails", "", "content_policy_violation", "", llamastack.ComponentLlamaStack,400),
-			statusCode:              http.StatusBadRequest,
-			expectedComponent:       llamastack.ComponentLlamaStack,
-			expectedCode:            "content_policy_violation",
-			expectedStatusCode:      http.StatusBadRequest,
-			expectedMessageContains: "content blocked by guardrails",
-			expectedRetriable:       false,
-		},
-		{
 			name:                    "HTTP 429 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "too many requests", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,429),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "too many requests", "server_error", "unknown_error", "", llamastack.ComponentOGX, 429),
 			statusCode:              http.StatusTooManyRequests,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusTooManyRequests,
 			expectedMessageContains: "too many requests",
@@ -265,9 +255,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 500 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "internal server error", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,500),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "internal server error", "server_error", "unknown_error", "", llamastack.ComponentOGX, 500),
 			statusCode:              http.StatusInternalServerError,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusInternalServerError,
 			expectedMessageContains: "internal server error",
@@ -275,9 +265,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 502 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "bad gateway", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,502),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "bad gateway", "server_error", "unknown_error", "", llamastack.ComponentOGX, 502),
 			statusCode:              http.StatusBadGateway,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusBadGateway,
 			expectedMessageContains: "bad gateway",
@@ -285,9 +275,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 503 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service unavailable", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,503),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service unavailable", "server_error", "unknown_error", "", llamastack.ComponentOGX, 503),
 			statusCode:              http.StatusServiceUnavailable,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusServiceUnavailable,
 			expectedMessageContains: "service unavailable",
@@ -295,9 +285,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 504 with generic error code is retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "gateway timeout", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,504),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "gateway timeout", "server_error", "unknown_error", "", llamastack.ComponentOGX, 504),
 			statusCode:              http.StatusGatewayTimeout,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusGatewayTimeout,
 			expectedMessageContains: "gateway timeout",
@@ -305,9 +295,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 400 with generic error code is not retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "bad request", "invalid_request_error", "unknown_error", "", llamastack.ComponentLlamaStack,400),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInvalidRequest, "bad request", "invalid_request_error", "unknown_error", "", llamastack.ComponentOGX, 400),
 			statusCode:              http.StatusBadRequest,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusBadRequest,
 			expectedMessageContains: "bad request",
@@ -315,9 +305,9 @@ func TestMapLlamaStackClientErrorToFrontendError(t *testing.T) {
 		},
 		{
 			name:                    "HTTP 403 with generic error code is not retriable",
-			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "forbidden", "server_error", "unknown_error", "", llamastack.ComponentLlamaStack,403),
+			lsErr:                   llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "forbidden", "server_error", "unknown_error", "", llamastack.ComponentOGX, 403),
 			statusCode:              http.StatusForbidden,
-			expectedComponent:       llamastack.ComponentLlamaStack,
+			expectedComponent:       llamastack.ComponentOGX,
 			expectedCode:            "unknown_error",
 			expectedStatusCode:      http.StatusForbidden,
 			expectedMessageContains: "forbidden",
@@ -408,12 +398,12 @@ func TestLlamaStackHelpersIntegration(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
 
-		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "request timed out", "server_error", "timeout", "", llamastack.ComponentLlamaStack,500)
+		lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "request timed out", "server_error", "timeout", "", llamastack.ComponentOGX, 500)
 
 		app.handleLlamaStackClientError(rr, req, lsErr)
 
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
-		assert.Contains(t, rr.Body.String(), `"component": "llama_stack"`)
+		assert.Contains(t, rr.Body.String(), `"component": "ogx"`)
 		assert.Contains(t, rr.Body.String(), `"code": "timeout"`)
 		assert.Contains(t, rr.Body.String(), "timed out")
 		assert.Contains(t, rr.Body.String(), `"retriable": true`)
@@ -430,15 +420,15 @@ func TestBuildStreamingErrorEvent(t *testing.T) {
 		expectedContains []string
 	}{
 		{
-			name:      "server error from llama_stack",
+			name:      "server error from ogx",
 			code:      "server_error",
 			message:   "An unexpected error occurred",
-			component: "llama_stack",
+			component: "ogx",
 			retriable: true,
 			expectedContains: []string{
 				`"code":"server_error"`,
 				`"message":"An unexpected error occurred"`,
-				`"component":"llama_stack"`,
+				`"component":"ogx"`,
 				`"retriable":true`,
 			},
 		},
@@ -446,12 +436,12 @@ func TestBuildStreamingErrorEvent(t *testing.T) {
 			name:      "model not found",
 			code:      "404",
 			message:   "Model 'nonexistent' not found",
-			component: "llama_stack",
+			component: "ogx",
 			retriable: false,
 			expectedContains: []string{
 				`"code":"404"`,
 				`"message":"Model 'nonexistent' not found"`,
-				`"component":"llama_stack"`,
+				`"component":"ogx"`,
 				`"retriable":false`,
 			},
 		},
@@ -516,10 +506,10 @@ func TestExtractStreamingError(t *testing.T) {
 	}{
 		{
 			name:              "LlamaStackError with ErrorCode",
-			err:               llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "rate limit hit", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentLlamaStack, 429),
+			err:               llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeInternalError, "rate limit hit", "rate_limit_error", "rate_limit_exceeded", "", llamastack.ComponentOGX, 429),
 			expectedMessage:   "rate limit hit",
 			expectedCode:      "rate_limit_exceeded",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 		{
@@ -527,7 +517,7 @@ func TestExtractStreamingError(t *testing.T) {
 			err:               llamastack.NewConnectionError("connection refused"),
 			expectedMessage:   "connection refused",
 			expectedCode:      "CONNECTION_FAILED",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 		{
@@ -541,12 +531,12 @@ func TestExtractStreamingError(t *testing.T) {
 		{
 			name: "wrapped LlamaStackError",
 			err: func() error {
-				lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service down", "server_error", "service_unavailable", "", llamastack.ComponentLlamaStack, 503)
+				lsErr := llamastack.NewLlamaStackErrorWithDetails(llamastack.ErrCodeServerUnavailable, "service down", "server_error", "service_unavailable", "", llamastack.ComponentOGX, 503)
 				return fmt.Errorf("stream failed: %w", lsErr)
 			}(),
 			expectedMessage:   "service down",
 			expectedCode:      "service_unavailable",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 		{
@@ -554,7 +544,7 @@ func TestExtractStreamingError(t *testing.T) {
 			err:               &url.Error{Op: "Post", URL: "http://localhost:8321/v1/responses", Err: fmt.Errorf("connect: connection refused")},
 			expectedMessage:   "Failed to connect to LlamaStack server: connect: connection refused",
 			expectedCode:      "CONNECTION_FAILED",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 		{
@@ -562,7 +552,7 @@ func TestExtractStreamingError(t *testing.T) {
 			err:               &openai.Error{StatusCode: 500, Message: "internal server error", Code: "server_error"},
 			expectedMessage:   "internal server error",
 			expectedCode:      "server_error",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 		{
@@ -570,7 +560,7 @@ func TestExtractStreamingError(t *testing.T) {
 			err:               &openai.Error{StatusCode: 429, Message: "rate limit exceeded", Code: "rate_limit_exceeded"},
 			expectedMessage:   "rate limit exceeded",
 			expectedCode:      "rate_limit_exceeded",
-			expectedComponent: llamastack.ComponentLlamaStack,
+			expectedComponent: llamastack.ComponentOGX,
 			expectedRetriable: true,
 		},
 	}
