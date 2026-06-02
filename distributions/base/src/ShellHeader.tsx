@@ -79,7 +79,7 @@ const ShellAbout: React.FC = () => {
     <>
       <ToolbarItem>
         <Button
-          aria-label="Help"
+          aria-label="About"
           variant="plain"
           icon={<QuestionCircleIcon />}
           onClick={() => setIsOpen(true)}
