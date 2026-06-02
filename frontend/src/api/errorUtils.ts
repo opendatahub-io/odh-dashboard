@@ -42,7 +42,11 @@ export const getGenericErrorCode = (error: unknown): number | undefined => {
 const K8S_SERVING_RESOURCE_PATTERN = /(?:servingruntimes|inferenceservices)\.serving\.kserve\.io/i;
 
 export const translateModelServingError = (error: unknown): string => {
-  if (error instanceof K8sStatusError && error.statusObject.code === 409) {
+  if (
+    error instanceof K8sStatusError &&
+    error.statusObject.code === 409 &&
+    error.statusObject.reason === 'AlreadyExists'
+  ) {
     const name = error.statusObject.details?.name;
     return name
       ? `A model deployment with the name "${name}" already exists. Please choose a different Model deployment name.`
