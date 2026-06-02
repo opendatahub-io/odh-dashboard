@@ -8,7 +8,8 @@ Manifests for federated dashboard BFF modules and **module manifest templates** 
 |------|-------------|
 | [templates/](templates/) | Deployment, Service, and NetworkPolicy templates with placeholders |
 | [templates/README.md](templates/README.md) | Template reference and guide for controller authors |
-| [modules/](modules/) | Substituted manifests for all seven BFF modules (wired into kustomize) |
+| [modules/](modules/) | Substituted manifests for all seven BFF modules (dev kustomize overlay) |
+| [overlays/standalone-modules/](overlays/standalone-modules/) | Pointer to the `modules/` kustomize overlay |
 | [examples/model-registry/](examples/model-registry/) | Pointer to `modules/model-registry/` (historical example path) |
 
 ## Naming (seven BFF modules)
@@ -38,13 +39,19 @@ Deployment and NetworkPolicy resources use the **slug** as `metadata.name`. Serv
 
 ## Local testing
 
-`manifests/odh` includes this directory. Build and apply the full overlay (core dashboard, sidecar patches, **and** standalone module Deployments/Services):
+**Normal install (sidecar BFFs):** `manifests/odh` includes this directory. Build and apply the dashboard with BFF sidecar patches:
 
 ```bash
 kustomize build manifests/odh | oc apply -f -
 ```
 
-**Duplicate BFF workloads:** Sidecar patches in `deployment.yaml` and module resources under `modules/` both define the same BFF containers until sidecars are removed from the shared Deployment. A full apply may run two copies of each BFF during transition.
+**Standalone module Deployments (split architecture):** Use the dev-only overlay so module resources are not applied alongside sidecars:
+
+```bash
+kustomize build manifests/modular-architecture/modules | oc apply -f -
+```
+
+Do **not** apply both overlays together unless you intentionally want duplicate BFF workloads during transition (sidecar + standalone Deployment for each module).
 
 **mlflow:** The shared `odh-dashboard` Service patch may still expose an embedded `mlflow` port (8443) alongside `odh-dashboard-mlflow-ui` from the module Service. Those are different objects; federation and routing should target the module Service when using standalone modules.
 

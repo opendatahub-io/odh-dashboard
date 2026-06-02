@@ -20,7 +20,21 @@ spec:
         - podSelector: {}
   egress:
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              deployment: maas
+      ports:
+        - port: 8243
+          protocol: TCP
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

@@ -28,7 +28,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchExpressions:
-                    - key: app
+                    - key: app.kubernetes.io/part-of
                       operator: In
                       values:
                         - odh-dashboard
@@ -102,7 +102,9 @@ spec:
               memory: 512Mi
               ephemeral-storage: 10Mi
             limits:
+              cpu: 300m
               memory: 512Mi
+              ephemeral-storage: 10Mi
           ports:
             - containerPort: 8043
               name: mr-ui
@@ -143,6 +145,8 @@ spec:
               value: ""
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

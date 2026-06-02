@@ -1,13 +1,27 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../core-bases/base
-  - federation-configmap.yaml
-  - networkpolicy.yaml
-  - modules-service-account.yaml
-  - modules-cluster-role.yaml
-  - modules-cluster-role-binding.yaml
-  - modules-sa-token-secret.yaml
+  - model-registry/deployment.yaml
+  - model-registry/service.yaml
+  - model-registry/networkpolicy.yaml
+  - gen-ai/deployment.yaml
+  - gen-ai/service.yaml
+  - gen-ai/networkpolicy.yaml
+  - maas/deployment.yaml
+  - maas/service.yaml
+  - maas/networkpolicy.yaml
+  - mlflow/deployment.yaml
+  - mlflow/service.yaml
+  - mlflow/networkpolicy.yaml
+  - eval-hub/deployment.yaml
+  - eval-hub/service.yaml
+  - eval-hub/networkpolicy.yaml
+  - automl/deployment.yaml
+  - automl/service.yaml
+  - automl/networkpolicy.yaml
+  - autorag/deployment.yaml
+  - autorag/service.yaml
+  - autorag/networkpolicy.yaml
 configMapGenerator:
   - name: modular-architecture-params
     env: params.env
@@ -79,15 +93,3 @@ vars:
       fieldpath: data.autorag-pipeline-runtime-image
 configurations:
   - params.yaml
-patchesJson6902:
-  - path: deployment.yaml
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: odh-dashboard
-  - path: service.yaml
-    target:
-      version: v1
-      kind: Service
-      name: odh-dashboard

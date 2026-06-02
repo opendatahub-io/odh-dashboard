@@ -30,10 +30,10 @@ Replace every `<PLACEHOLDER>` (angle brackets) with concrete values. The control
 | `<MODULE_SERVICE_ACCOUNT_NAME>` | Pod `serviceAccountName` (default `odh-dashboard-modules`) |
 | `<MODULES_SA_TOKEN_SECRET_NAME>` | Projected SA token secret (default `odh-dashboard-modules-token`) |
 | `<TLS_SECRET_NAME>` | TLS secret for `proxy-tls` volume and Service serving-cert annotation (default `dashboard-proxy-tls`) |
-| `<PART_OF_LABEL>` | Value for `app.kubernetes.io/part-of` (e.g. `odh-dashboard`) |
-| `<CORE_APP_LABEL>` | `app` label value for pod anti-affinity (core dashboard app label) |
+| `<PART_OF_LABEL>` | Value for `app.kubernetes.io/part-of` (e.g. `odh-dashboard`); also used for pod anti-affinity |
 | `<MODULE_EXTRA_ARGS>` | Optional: additional container `args` after the standard auth/TLS entries |
 | `<MODULE_EXTRA_ENV>` | Optional: `env` list for module-specific variables |
+| `<MODULE_EXTRA_EGRESS>` | Optional: additional NetworkPolicy egress rules for in-cluster dependencies |
 
 Shared namespace resources (not in the template) are defined alongside other dashboard manifests:
 
@@ -53,9 +53,9 @@ The Deployment template encodes the BFF container contract:
 - **Trust bundles:** `odh-trusted-ca-cert` and `odh-ca-cert` volumes from ConfigMap `odh-trusted-ca-bundle`.
 - **Auth args:** `--auth-method=user_token`, `--auth-token-header=x-forwarded-access-token`, `--auth-token-prefix=`.
 - **Health checks:** HTTPS GET `/healthcheck` on `<MODULE_PORT>` with the same timing as existing BFF containers.
-- **Resources:** requests `cpu: 300m`, `memory: 512Mi`, `ephemeral-storage: 10Mi`; limit `memory: 512Mi`.
-- **Security:** `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`.
-- **Scheduling:** preferred pod anti-affinity vs pods with `app: <CORE_APP_LABEL>` in the same zone.
+- **Resources:** requests and limits for `cpu: 300m`, `memory: 512Mi`, `ephemeral-storage: 10Mi`.
+- **Security:** `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`. Do not set `runAsUser`; OpenShift assigns a UID from the namespace range.
+- **Scheduling:** preferred pod anti-affinity vs pods with `app.kubernetes.io/part-of: <PART_OF_LABEL>` in the same zone.
 
 Add module-specific `args` and `env` only when the module profile requires them (see example below).
 
@@ -76,7 +76,7 @@ Add module-specific `args` and `env` only when the module profile requires them 
 - Name `<MODULE_NAME>-allow-ports`
 - Selector `deployment: <MODULE_NAME>`
 - **Ingress:** TCP `<MODULE_PORT>` from OpenShift ingress (`network.openshift.io/policy-group: ingress`) and from all pods in the namespace (`podSelector: {}`)
-- **Egress:** all namespaces (in-cluster DNS and service traffic); API server TCP 6443; external TCP 80 and 443
+- **Egress:** DNS to `openshift-dns` (TCP/UDP 5353); API server TCP 6443; external TCP 80 and 443. Add `<MODULE_EXTRA_EGRESS>` rules for module-specific in-cluster peers (e.g. gen-ai → MaaS on 8243).
 
 ---
 
@@ -116,7 +116,7 @@ Compare [modules/model-registry/deployment.yaml](../modules/model-registry/deplo
 
 ## Adding a new module to the controller
 
-1. **Profile** — Define placeholder values: name, container name, port, port name, image, optional extra `args`/`env`, and distro-specific labels (`<PART_OF_LABEL>`, `<CORE_APP_LABEL>`).
+1. **Profile** — Define placeholder values: name, container name, port, port name, image, optional extra `args`/`env`, and distro-specific labels (`<PART_OF_LABEL>`).
 2. **Source container spec** — Use the module’s existing BFF container in [`deployment.yaml`](../deployment.yaml) (or the package’s runtime contract) as the source for any deviations from the template defaults.
 3. **Render** — Copy the three template files, replace all placeholders, append `MODULE_EXTRA_ARGS` / `MODULE_EXTRA_ENV` when needed.
 4. **Validate** — Ensure the result is self-contained YAML; optional `kustomization.yaml` in the module directory for `kustomize build` checks only.
@@ -127,10 +127,10 @@ Compare [modules/model-registry/deployment.yaml](../modules/model-registry/deplo
 
 ## Local validation (optional)
 
-Module manifests under `modules/` are listed in [`kustomization.yaml`](../kustomization.yaml). To render all seven modules with image vars from `params.env`:
+Module manifests under `modules/` are rendered via [`modules/kustomization.yaml`](../modules/kustomization.yaml):
 
 ```bash
-kustomize build manifests/odh
+kustomize build manifests/modular-architecture/modules
 ```
 
 Dry-run apply for a single module:

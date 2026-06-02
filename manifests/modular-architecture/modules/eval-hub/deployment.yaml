@@ -28,7 +28,7 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchExpressions:
-                    - key: app
+                    - key: app.kubernetes.io/part-of
                       operator: In
                       values:
                         - odh-dashboard
@@ -102,7 +102,9 @@ spec:
               memory: 512Mi
               ephemeral-storage: 10Mi
             limits:
+              cpu: 300m
               memory: 512Mi
+              ephemeral-storage: 10Mi
           ports:
             - containerPort: 8543
               name: eval-hub-ui
@@ -140,6 +142,8 @@ spec:
             - '--bundle-paths=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem,/var/run/secrets/kubernetes.io/serviceaccount/ca.crt,/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt,/etc/pki/tls/certs/odh-ca-bundle.crt,/etc/pki/tls/certs/odh-trusted-ca-bundle.crt'
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

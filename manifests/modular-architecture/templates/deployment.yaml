@@ -30,10 +30,10 @@ spec:
               podAffinityTerm:
                 labelSelector:
                   matchExpressions:
-                    - key: app
+                    - key: app.kubernetes.io/part-of
                       operator: In
                       values:
-                        - <CORE_APP_LABEL>
+                        - <PART_OF_LABEL>
                 topologyKey: topology.kubernetes.io/zone
       volumes:
         - name: modules-sa-token
@@ -104,7 +104,9 @@ spec:
               memory: 512Mi
               ephemeral-storage: 10Mi
             limits:
+              cpu: 300m
               memory: 512Mi
+              ephemeral-storage: 10Mi
           ports:
             - containerPort: <MODULE_PORT>
               name: <MODULE_PORT_NAME>
@@ -143,6 +145,8 @@ spec:
           # <MODULE_EXTRA_ENV> — add an env: list when the module needs extra variables
           securityContext:
             allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL

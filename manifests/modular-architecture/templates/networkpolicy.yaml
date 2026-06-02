@@ -21,7 +21,15 @@ spec:
         - podSelector: {}
   egress:
     - to:
-        - namespaceSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - port: 5353
+          protocol: UDP
+        - port: 5353
+          protocol: TCP
+    # <MODULE_EXTRA_EGRESS> — add module-specific in-cluster egress rules here when required
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
