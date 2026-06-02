@@ -380,7 +380,7 @@ describe('Model Catalog Page', () => {
         .click();
 
       cy.wait('@getFilteredModels').then((interception) => {
-        expect(interception.request.url).to.include('validatedTasks%3D%27tool-calling%27');
+        expect(interception.request.url).to.include('validated_tasks%3D%27tool-calling%27');
       });
     });
 
@@ -402,7 +402,7 @@ describe('Model Catalog Page', () => {
 
       cy.wait('@getFilteredModels').then((interception) => {
         const { url } = interception.request;
-        expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+        expect(url).to.include('validated_tasks%3D%27tool-calling%27');
         expect(url).to.include('provider%3D%27Google%27');
       });
     });
@@ -448,9 +448,9 @@ describe('Model Catalog Page', () => {
 
         cy.wait('@getFilteredModels').then((interception) => {
           const { url } = interception.request;
-          expect(url).to.include('validatedTasks%3D%27tool-calling%27');
+          expect(url).to.include('validated_tasks%3D%27tool-calling%27');
           expect(url).to.include('AND');
-          expect(url).to.include('validatedTasks%3D%27text-generation%27');
+          expect(url).to.include('validated_tasks%3D%27text-generation%27');
           expect(url).to.not.include('IN');
         });
       });

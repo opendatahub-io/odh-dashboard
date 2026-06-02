@@ -4,7 +4,7 @@ export enum ModelCatalogStringFilterKey {
   LICENSE = 'license',
   LANGUAGE = 'language',
   TENSOR_TYPE = 'tensor_type.string_value',
-  VALIDATED_CONFIGURATION = 'validatedTasks',
+  VALIDATED_CONFIGURATION = 'validated_tasks',
   // Performance filter keys use backend format
   HARDWARE_TYPE = 'artifacts.hardware_type.string_value',
   HARDWARE_CONFIGURATION = 'artifacts.hardware_configuration.string_value',
@@ -468,6 +468,13 @@ export const BASIC_FILTER_KEYS: ModelCatalogFilterKey[] = [
 export const MATCH_ALL_FILTER_KEYS: ModelCatalogStringFilterKey[] = [
   ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION,
 ];
+
+/**
+ * Prefixes used to identify deployment resource entries within validated_on.
+ * Entries starting with any of these prefixes are categorized as deployment resources
+ * rather than certified platforms.
+ */
+export const DEPLOYMENT_RESOURCE_PREFIXES = ['vllm'];
 
 /**
  * Performance filter keys that are shown when performance view is enabled.
