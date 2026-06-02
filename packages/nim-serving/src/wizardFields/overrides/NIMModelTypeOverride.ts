@@ -16,4 +16,5 @@ export const NIMModelTypeOverride: ModelTypeFieldOverride = {
     key: 'NVIDIA NIM',
     label: 'NVIDIA NIM',
   },
+  forced: true,
 };
