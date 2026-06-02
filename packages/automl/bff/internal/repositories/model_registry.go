@@ -14,7 +14,6 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metameta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -315,11 +314,11 @@ func (r *ModelRegistryRepository) ListModelRegistries(
 		// CRD not installed: metameta.IsNoMatchError covers NoKindMatchError and
 		// NoResourceMatchError, which the dynamic client returns when the resource
 		// type is unknown. Return an empty list rather than an error.
-		if metameta.IsNoMatchError(err) || k8serrors.IsNotFound(err) {
+		if metameta.IsNoMatchError(err) || errors.Is(err, kubernetes.ErrNotFound) {
 			logger.Debug("ModelRegistry CRD not found on this cluster, returning empty list")
 			return &models.ModelRegistriesData{ModelRegistries: []models.ModelRegistry{}}, nil
 		}
-		if k8serrors.IsForbidden(err) {
+		if errors.Is(err, kubernetes.ErrForbidden) {
 			// Join sentinel with original so errors.Is(err, ErrModelRegistryForbidden)
 			// succeeds in the handler while the API server message is retained for logs.
 			return nil, errors.Join(ErrModelRegistryForbidden, err)

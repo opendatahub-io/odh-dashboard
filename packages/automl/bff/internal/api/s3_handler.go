@@ -16,7 +16,6 @@ import (
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // buildS3Request builds an S3RequestContext from the HTTP request.
@@ -36,19 +35,16 @@ func (app *App) buildS3Request(w http.ResponseWriter, r *http.Request, secretNam
 
 // handleS3RepoError classifies errors from S3 repository calls and writes the appropriate HTTP response.
 func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err error, key string) {
-	// K8s errors from credential resolution
-	var statusErr *apierrors.StatusError
-	if errors.As(err, &statusErr) {
-		switch {
-		case apierrors.IsNotFound(statusErr):
-			app.notFoundResponseWithMessage(w, r, err.Error())
-		case apierrors.IsForbidden(statusErr):
-			app.forbiddenResponse(w, r, err.Error())
-		case apierrors.IsUnauthorized(statusErr):
-			app.unauthorizedResponse(w, r, err.Error())
-		default:
-			app.serverErrorResponse(w, r, err)
-		}
+	// K8s domain errors from credential resolution
+	switch {
+	case errors.Is(err, kubernetes.ErrNotFound):
+		app.notFoundResponseWithMessage(w, r, err.Error())
+		return
+	case errors.Is(err, kubernetes.ErrForbidden):
+		app.forbiddenResponse(w, r, err.Error())
+		return
+	case errors.Is(err, kubernetes.ErrUnauthorized):
+		app.unauthorizedResponse(w, r, err.Error())
 		return
 	}
 

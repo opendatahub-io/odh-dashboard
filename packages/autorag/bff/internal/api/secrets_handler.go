@@ -11,7 +11,7 @@ import (
 	"github.com/opendatahub-io/autorag-library/bff/internal/constants"
 	"github.com/opendatahub-io/autorag-library/bff/internal/integrations"
 	"github.com/opendatahub-io/autorag-library/bff/internal/models"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 )
 
 type SecretsEnvelope Envelope[[]models.SecretListItem, None]
@@ -43,41 +43,32 @@ func (app *App) GetSecretsHandler(w http.ResponseWriter, r *http.Request, _ http
 	// Call repository which uses autox-core for fetching and applies module-specific filtering
 	secrets, err := app.repositories.Secret.GetFilteredSecrets(app.k8sService, ctx, namespace, secretType)
 	if err != nil {
-		// Check if it's a Kubernetes API error and handle accordingly
-		var statusErr *apierrors.StatusError
-		if errors.As(err, &statusErr) {
-			if apierrors.IsNotFound(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusNotFound,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusNotFound),
-						Message: fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace),
-					},
-				}
-				app.errorResponse(w, r, httpError)
-				return
+		switch {
+		case errors.Is(err, kubernetes.ErrNotFound):
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusNotFound,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusNotFound),
+					Message: fmt.Sprintf("namespace '%s' does not exist or is not accessible", namespace),
+				},
 			}
-			if apierrors.IsForbidden(statusErr) {
-				app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
-				return
+			app.errorResponse(w, r, httpError)
+		case errors.Is(err, kubernetes.ErrForbidden):
+			app.forbiddenResponse(w, r, "insufficient permissions to access secrets in this namespace")
+		case errors.Is(err, kubernetes.ErrUnauthorized):
+			app.unauthorizedResponse(w, r, "access unauthorized")
+		case errors.Is(err, kubernetes.ErrInvalid):
+			httpError := &integrations.HTTPError{
+				StatusCode: http.StatusBadRequest,
+				ErrorResponse: integrations.ErrorResponse{
+					Code:    strconv.Itoa(http.StatusBadRequest),
+					Message: fmt.Sprintf("invalid request for namespace '%s'", namespace),
+				},
 			}
-			if apierrors.IsUnauthorized(statusErr) {
-				app.unauthorizedResponse(w, r, "access unauthorized")
-				return
-			}
-			if apierrors.IsBadRequest(statusErr) || apierrors.IsInvalid(statusErr) {
-				httpError := &integrations.HTTPError{
-					StatusCode: http.StatusBadRequest,
-					ErrorResponse: integrations.ErrorResponse{
-						Code:    strconv.Itoa(http.StatusBadRequest),
-						Message: fmt.Sprintf("invalid request for namespace '%s'", namespace),
-					},
-				}
-				app.errorResponse(w, r, httpError)
-				return
-			}
+			app.errorResponse(w, r, httpError)
+		default:
+			app.serverErrorResponse(w, r, err)
 		}
-		app.serverErrorResponse(w, r, err)
 		return
 	}
 
