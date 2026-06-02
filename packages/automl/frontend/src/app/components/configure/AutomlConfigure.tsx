@@ -70,7 +70,6 @@ import {
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
 import {
-  PRESET_AUTOGLUON_VALUES,
   PRESET_BETTER_QUALITY,
   PRESET_FASTER,
   PRESET_LABELS,
@@ -999,23 +998,41 @@ function AutomlConfigure({
                       <StackItem className="automl-configure__form-field">
                         <ConfigureFormGroup
                           label="Run preset"
+                          description="Choose a predefined resource allocation and optimization strategy for this run."
                           labelHelp={{
                             header: 'Run preset',
-                            body: 'Controls whether to prioritize pipeline run time or model performance. Faster completes sooner and uses fewer resources; Better quality uses more resources for stronger accuracy.',
+                            body: (
+                              <>
+                                <Content component="p">
+                                  Select how to balance training speed and model quality.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Faster:</strong> Uses fewer resources to prioritize speed.
+                                </Content>
+                                <Content component="p">
+                                  <strong>Better quality:</strong> Trains more models with stronger
+                                  ensembling to prioritize accuracy.
+                                </Content>
+                              </>
+                            ),
                           }}
                         >
                           <Controller
                             control={form.control}
                             name="preset"
                             render={({ field }) => (
-                              <Flex>
+                              <Flex direction={{ default: 'column' }}>
                                 {[PRESET_FASTER, PRESET_BETTER_QUALITY].map((preset) => (
                                   <Radio
                                     key={preset}
                                     id={`preset-${preset}`}
                                     name="preset"
                                     label={PRESET_LABELS[preset]}
-                                    description={`${PRESET_AUTOGLUON_VALUES[preset][taskType]} · ${preset === PRESET_FASTER ? '4 vCPU / 16 GiB · good default for most datasets' : '8 vCPU / 32 GiB · stronger accuracy, longer training'}`}
+                                    description={
+                                      preset === PRESET_FASTER
+                                        ? '4 vCPU, 16 GiB | A good default for most datasets.'
+                                        : '8 vCPU, 32 GiB | Prioritizes stronger accuracy, but requires longer training.'
+                                    }
                                     isChecked={field.value === preset}
                                     isDisabled={formIsSubmitting}
                                     onChange={() => field.onChange(preset)}
