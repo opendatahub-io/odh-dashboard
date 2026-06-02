@@ -102,8 +102,8 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
         currentState === 'completed'
           ? 'completed'
           : currentState === 'cancelled' || currentState === 'stopped'
-          ? 'cancelled'
-          : 'failed';
+            ? 'cancelled'
+            : 'failed';
 
       fireMiscTrackingEvent(EVAL_HUB_EVENTS.EVALUATION_COMPLETED, {
         evaluationName: evalName,

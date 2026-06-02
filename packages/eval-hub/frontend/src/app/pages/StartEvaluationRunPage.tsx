@@ -27,7 +27,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   MlflowExperimentSelector,
@@ -53,7 +53,6 @@ import './StartEvaluationRunPage.css';
 
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigate = useNavigate();
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
