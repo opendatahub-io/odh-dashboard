@@ -1,0 +1,13 @@
+import { createIcon } from '@patternfly/react-icons/dist/esm/createIcon';
+
+const ApiKeysAndSubscriptionsIcon = createIcon({
+  name: 'ApiKeysAndSubscriptionsIcon',
+  width: 768,
+  height: 768,
+  svgPath:
+    'M410.3 471.7L376.1 504.1C372.5 509.5 366.4 512 360 512H320V552C320 565.3 309.3 576 296 576H256V616C256 629.3 245.3 640 232 640H152C138.8 640 128 629.3 128 616V536C128 529.6 130.5 523.5 135 519L296.3 357.7C290.9 340.8 288 322.7 288 304C288 206.8 366.8 128 464 128C561.2 128 640 206.8 640 304C640 401.2 561.2 480 464 480C445.3 480 427.2 477.1 410.3 471.7zM504 304C526.1 304 544 286.1 544 264C544 241.9 526.1 224 504 224C481.9 224 464 241.9 464 264C464 286.1 481.9 304 504 304z',
+  xOffset: 0,
+  yOffset: 0,
+});
+
+export default ApiKeysAndSubscriptionsIcon;

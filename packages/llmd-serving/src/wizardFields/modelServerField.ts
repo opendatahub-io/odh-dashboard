@@ -1,9 +1,9 @@
-import type { ModelServerTemplateField } from '@odh-dashboard/model-serving/types/form-data';
+import type { ModelServerTemplateFieldOverride } from '@odh-dashboard/model-serving/types/form-data';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { LLMD_OPTION } from '../deployments/server';
 
 // Use for pre-vLLMonMaaS feature flag support
-const shouldAddLLMDOptionToRuntimeTemplates: ModelServerTemplateField['isActive'] = (
+const shouldAddLLMDOptionToRuntimeTemplates: ModelServerTemplateFieldOverride['isActive'] = (
   wizardState,
 ) => {
   const modelType = wizardState.modelType?.data;
@@ -15,7 +15,7 @@ const shouldAddLLMDOptionToRuntimeTemplates: ModelServerTemplateField['isActive'
   return false;
 };
 
-export const modelServerField: ModelServerTemplateField = {
+export const modelServerField: ModelServerTemplateFieldOverride = {
   id: 'modelServerTemplate',
   type: 'modifier',
   isActive: shouldAddLLMDOptionToRuntimeTemplates,

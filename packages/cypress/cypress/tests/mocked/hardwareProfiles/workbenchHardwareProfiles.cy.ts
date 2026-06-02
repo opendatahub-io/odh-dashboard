@@ -287,7 +287,7 @@ describe('Workbench Hardware Profiles', () => {
     hardwareProfileSection.selectProfile(
       'Large Profile CPU: Default = 4 Cores, Max = 8 Cores; Memory: Default = 8 GiB, Max = 16 GiB',
     );
-    hardwareProfileSection.findCustomizeButton().click();
+    hardwareProfileSection.expandCustomizeSection();
 
     // Test CPU validation
     hardwareProfileSection.verifyResourceValidation(

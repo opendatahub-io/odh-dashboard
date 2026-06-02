@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import type { AutoRAGEvaluationResult, AutoragPattern } from '~/app/types/autoragPattern';
-import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal';
+import PatternDetailsModal from '~/app/components/run-results/PatternDetailsModal/PatternDetailsModal';
 
 const mockUsePatternEvaluationResults = jest.fn();
 jest.mock('~/app/hooks/usePatternEvaluationResults', () => ({
@@ -468,6 +468,196 @@ describe('PatternDetailsModal', () => {
       });
       render(<PatternDetailsModal {...defaultProps} />);
       expect(screen.queryByText('Sample Q&A')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('comparison mode', () => {
+    const comparisonPattern: AutoragPattern = {
+      ...mockPattern,
+      name: 'pattern1',
+      iteration: 1,
+      max_combinations: 10,
+      duration_seconds: 90,
+      final_score: 0.45,
+      scores: {
+        answer_correctness: { mean: 0.55, ci_low: 0.3, ci_high: 0.7 },
+        faithfulness: { mean: 0.38, ci_low: 0.15, ci_high: 0.5 },
+        context_correctness: { mean: 0.82, ci_low: 0.75, ci_high: 0.88 },
+      },
+    };
+
+    const twoPatternProps = {
+      ...defaultProps,
+      patterns: [mockPattern, comparisonPattern],
+    };
+
+    it('should render Compare Patterns toggle', () => {
+      render(<PatternDetailsModal {...twoPatternProps} />);
+      expect(screen.getByTestId('compare-patterns-toggle')).toBeInTheDocument();
+    });
+
+    it('should open comparison select modal when toggle is clicked', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      expect(screen.getByTestId('pattern-comparison-select-modal')).toBeInTheDocument();
+      expect(screen.getByTestId('comparison-pattern-table')).toBeInTheDocument();
+    });
+
+    it('should exclude the selected pattern from comparison list', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      // pattern0 (selectedIndex=0) should be excluded, pattern1 should be present
+      expect(screen.queryByTestId('comparison-pattern-row-0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('comparison-pattern-row-1')).toBeInTheDocument();
+    });
+
+    it('should show comparison column headers after selecting a comparison pattern', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      expect(screen.getByTestId('comparison-column-header-primary')).toBeInTheDocument();
+      expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
+    });
+
+    it('should show "Pattern" row header in comparison mode', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      expect(screen.getByText('Pattern')).toBeInTheDocument();
+    });
+
+    it('should display both patterns values side by side', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Both patterns' unique field values should be visible
+      // pattern0 has max_combinations=20, pattern1 has max_combinations=10
+      expect(screen.getByText('20')).toBeInTheDocument();
+      expect(screen.getByText('10')).toBeInTheDocument();
+    });
+
+    it('should show both score bars in comparison mode', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Primary scores
+      expect(screen.getByText('0.650')).toBeInTheDocument();
+      // Comparison scores
+      expect(screen.getByText('0.550')).toBeInTheDocument();
+    });
+
+    it('should disable comparison when toggle is turned off', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Enable comparison
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
+
+      // Disable comparison
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+
+      expect(screen.queryByTestId('comparison-column-header-comparison')).not.toBeInTheDocument();
+    });
+
+    it('should show comparison on settings tabs too', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Enable comparison
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Switch to chunking tab
+      await user.click(screen.getByTestId('tab-chunking'));
+
+      expect(screen.getByTestId('comparison-column-header-primary')).toBeInTheDocument();
+      expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
+    });
+
+    it('should disable confirm button when the already-compared pattern is still selected', async () => {
+      const user = userEvent.setup();
+      const thirdPattern: AutoragPattern = {
+        ...mockPattern,
+        name: 'pattern2',
+        iteration: 2,
+        final_score: 0.3,
+      };
+      const threePatternProps = {
+        ...defaultProps,
+        patterns: [mockPattern, comparisonPattern, thirdPattern],
+      };
+
+      render(<PatternDetailsModal {...threePatternProps} />);
+
+      // Enable comparison with pattern1
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      // Open the "Change" modal — pattern1 is pre-selected
+      await user.click(screen.getByTestId('change-comparison-pattern'));
+
+      // Confirm button should be disabled since the same pattern is still selected
+      expect(screen.getByTestId('compare-pattern-confirm')).toBeDisabled();
+
+      // Select a different pattern — confirm should become enabled
+      await user.click(screen.getByTestId('comparison-pattern-row-2'));
+      expect(screen.getByTestId('compare-pattern-confirm')).toBeEnabled();
+    });
+
+    it('should cancel comparison select modal without enabling comparison', async () => {
+      const user = userEvent.setup();
+      render(<PatternDetailsModal {...twoPatternProps} />);
+
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-modal-cancel'));
+
+      expect(screen.queryByTestId('comparison-column-header-comparison')).not.toBeInTheDocument();
+    });
+
+    it('should reset comparison state when modal reopens', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(<PatternDetailsModal {...twoPatternProps} />);
+
+      // Enable comparison
+      await user.click(screen.getByTestId('compare-patterns-toggle'));
+      await user.click(screen.getByTestId('comparison-pattern-row-1'));
+      await user.click(screen.getByTestId('compare-pattern-confirm'));
+
+      expect(screen.getByTestId('comparison-column-header-comparison')).toBeInTheDocument();
+
+      // Close and reopen
+      rerender(<PatternDetailsModal {...twoPatternProps} isOpen={false} />);
+      rerender(<PatternDetailsModal {...twoPatternProps} isOpen />);
+
+      expect(screen.queryByTestId('comparison-column-header-comparison')).not.toBeInTheDocument();
     });
   });
 

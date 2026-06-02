@@ -76,11 +76,12 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     refresh: refreshRegistry,
   } = useRegistryFeatureStores();
 
+  // Reserved for future multi-store UI selection. GA currently defaults to first discovered store.
   const [selectedFeatureStoreName, setSelectedFeatureStoreName] = React.useState<string | null>(
     null,
   );
 
-  const apiActiveFeatureStore = React.useMemo(() => {
+  const activeFeatureStore = React.useMemo(() => {
     // Use the selected feature store, or fall back to the first one
     if (selectedFeatureStoreName) {
       return registryFeatureStores.find((fs) => fs.name === selectedFeatureStoreName) || null;
@@ -90,10 +91,8 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
   }, [registryFeatureStores, selectedFeatureStoreName]);
 
   // Use backend proxy to access registry services
-  const hostPath = apiActiveFeatureStore
-    ? `/api/featurestores/${apiActiveFeatureStore.namespace || 'default'}/${
-        apiActiveFeatureStore.name
-      }`
+  const hostPath = activeFeatureStore
+    ? `/api/featurestores/${activeFeatureStore.namespace || 'default'}/${activeFeatureStore.name}`
     : null;
 
   const [apiState, refreshAPIState] = useFeatureStoreAPIState(hostPath);
@@ -138,13 +137,6 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
     [setSelectedFeatureStoreName],
   );
 
-  const filteredFeatureStores = registryFeatureStores;
-
-  const activeFeatureStore = React.useMemo(() => {
-    //INFO: For GA we are only allowing one FeatureStore and hence we are picking the first one
-    return filteredFeatureStores.length > 0 ? filteredFeatureStores[0] : null;
-  }, [filteredFeatureStores]);
-
   const refreshFeatureStores = React.useCallback(async () => {
     await refreshRegistry();
   }, [refreshRegistry]);
@@ -152,7 +144,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
   const contextValue = React.useMemo(
     () => ({
       // Registry-based discovery
-      featureStores: filteredFeatureStores,
+      featureStores: registryFeatureStores,
       enabledCRDCount,
       activeFeatureStore,
       loaded: registryLoaded && featureStoreProjectsLoaded,
@@ -172,7 +164,7 @@ const FeatureStoreContextProviderComponent: React.FC<FeatureStoreContextProvider
       refreshFeatureStoreProjects,
     }),
     [
-      filteredFeatureStores,
+      registryFeatureStores,
       enabledCRDCount,
       activeFeatureStore,
       registryLoaded,
@@ -239,6 +231,7 @@ export const useFeatureStoreProject = (): {
   };
 };
 
+// Multi-store selection hook (currently unused in GA).
 export const useFeatureStoreSelection = (): {
   selectedFeatureStoreName: string | null;
   setCurrentFeatureStore: (featureStoreName?: string) => void;

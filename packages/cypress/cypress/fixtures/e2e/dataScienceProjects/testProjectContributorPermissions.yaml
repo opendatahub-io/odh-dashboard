@@ -1,4 +1,5 @@
 # testProjectContributorPermissions.cy.ts Test Data #
 projectContributorResourceName: "cypress-user-perm-contr-test"
 contributorRoleName: "Contributor"
+contributorK8sRoleName: "edit"
 userSubjectKind: "user"

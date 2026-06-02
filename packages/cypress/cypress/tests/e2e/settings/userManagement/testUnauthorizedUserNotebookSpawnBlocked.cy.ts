@@ -1,50 +1,32 @@
-import { HTPASSWD_CLUSTER_ADMIN_USER, LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
-import { userManagement } from '../../../../pages/userManagement';
+import { LDAP_CONTRIBUTOR_USER } from '../../../../utils/e2eUsers';
 import { header } from '../../../../pages/components/Header';
-import { restoreDefaultGroupsConfig } from '../../../../utils/oc_commands/groupConfig';
+import {
+  restoreDefaultGroupsConfig,
+  updateGroupsConfig,
+} from '../../../../utils/oc_commands/groupConfig';
 
 describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () => {
+  before(() => {
+    // Restrict dashboard access to rhods-admins members only.
+    // Matches the original test which cleared all user groups then selected rhods-admins before saving.
+    // Admin groups are left at their default (rhods-admins) so cluster admin access is preserved.
+    cy.step('Set user (allowed) groups to rhods-admins only');
+    updateGroupsConfig('rhods-admins', 'rhods-admins');
+  });
+
+  after(() => {
+    cy.step('Restore default groups configuration');
+    restoreDefaultGroupsConfig();
+  });
+
   it(
-    'Remove Admin privileges and apply access to the Dashboard only to Admin',
-    // Note - this test should not executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
+    'Verify that the Non-admin user does not have access to Dashboard or Jupyter Notebooks',
+    // Note - this test should not be executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
     { tags: ['@Destructive', '@ODS-1680', '@Dashboard', '@NonConcurrent'] },
     () => {
-      // Authentication and navigation
-      cy.step('Log into the application');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-
-      // Navigate to User Management
-      cy.step('Navigate to User Management');
-      userManagement.navigate();
-
-      // Remove system:authenticated from the Data Science User Groups and apply rhods-admins only permissions
-      cy.step('Clear the current Data Science User Groups');
-      userManagement.getUserGroupSection().clearMultiChipItem();
-      const userGroupSection = userManagement.getUserGroupSection();
-
-      cy.step('Select rhods-admin and save it');
-      // Click the text field to open the dropdown
-      userGroupSection.findMultiGroupSelectButton().click();
-      // Click the 'rhods-admin' option from the dropdown
-      userGroupSection.findMultiGroupOptions('rhods-admins').click();
-      // Click outside the dropdown to close it (e.g., clicking on the page title)
-      cy.findByTestId('app-page-title').click();
-      // Submit the form
-      userManagement.findSubmitButton().click();
-      // Validate that changes were saved successfully
-      userManagement.shouldHaveSuccessAlertMessage();
-    },
-  );
-  it(
-    'Login as the Admin and verify that the user does not have acceess to any tabs/applications',
-    // Note - this test should not executed alongside Smoke/Sanity as it has the potential to cause breakages within those tests
-    { tags: ['@Destructive', '@ODS-1680', '@Dashboard', '@NonConcurrent'] },
-    () => {
-      // Authentication and navigation
-      cy.step('Log into the application as a Non-admin');
+      cy.step('Log into the application as a Non-admin user');
       cy.visitWithLogin('/', LDAP_CONTRIBUTOR_USER);
 
-      // Validate that the Dashboard and Jupyter Notebooks are not accessible
       cy.step('Verify that the Dashboard is not accessible');
       header.findUnauthorizedErrorSection().should('be.visible');
       header.findUnauthorizedErrorTitle().should('exist');
@@ -55,9 +37,4 @@ describe('Verify Unauthorized User Is Not Able To Spawn Jupyter Notebook', () =>
       header.findUnauthorizedErrorTitle().should('exist');
     },
   );
-
-  after(() => {
-    cy.step('Restore default groups configuration');
-    restoreDefaultGroupsConfig();
-  });
 });

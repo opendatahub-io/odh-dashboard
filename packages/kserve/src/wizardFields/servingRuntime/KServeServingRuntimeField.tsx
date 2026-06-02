@@ -1,7 +1,7 @@
 import React from 'react';
 import { z } from 'zod';
 import type { WizardField, WizardFormData } from '@odh-dashboard/model-serving/types/form-data';
-import { isModelServerTemplateField } from '@odh-dashboard/model-serving/types/form-data';
+import { isModelServerTemplateFieldOverride } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import { useWizardFieldOverrides } from '@odh-dashboard/model-serving/components/deploymentWizard/dynamicFormUtils';
 import ModelServerTemplateSelectField, {
   type ModelServerOption,
@@ -124,7 +124,10 @@ export const useKServeServingRuntimeExternalData = (
     [dependencies?.modelType, dependencies?.vLLMDeploymentOnMaaS],
   );
 
-  const modelServerOverrides = useWizardFieldOverrides(isModelServerTemplateField, formData);
+  const modelServerOverrides = useWizardFieldOverrides(
+    isModelServerTemplateFieldOverride,
+    formData,
+  );
 
   return React.useMemo(() => {
     try {

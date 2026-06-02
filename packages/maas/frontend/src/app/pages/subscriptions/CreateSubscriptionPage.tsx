@@ -20,7 +20,7 @@ const CreateSubscriptionPage: React.FC = () => {
           <BreadcrumbItem isActive>Create subscription</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={loaded}
+      loaded={loaded || !!error}
       empty={false}
       loadError={error}
     >
