@@ -149,6 +149,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose }) => {
       selectedSubscription?.model_refs.map((ref) => ({
         name: ref.name,
         namespace: ref.namespace ?? '',
+        description: ref.description,
         tokenRateLimits: ref.token_rate_limits ?? [],
       })) ?? [],
     [selectedSubscription],

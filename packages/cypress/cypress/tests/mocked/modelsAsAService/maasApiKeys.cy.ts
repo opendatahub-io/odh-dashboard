@@ -652,6 +652,18 @@ describe('API Keys Page', () => {
     createApiKeyModal.findSubscriptionCostCenter().should('contain.text', 'engineering');
     createApiKeyModal.findSubscriptionModelsTable().should('be.visible');
     createApiKeyModal
+      .findSubscriptionModelDescription('granite-3-8b-instruct')
+      .should(
+        'contain.text',
+        'Granite 3 8B Instruct is a large language model that is used for advanced tasks.',
+      );
+    createApiKeyModal
+      .findSubscriptionModelDescription('flan-t5-small')
+      .should(
+        'contain.text',
+        'Flan T5 Small is a small language model that is used for basic tasks.',
+      );
+    createApiKeyModal
       .findSubscriptionModelRateLimit('granite-3-8b-instruct')
       .should('contain.text', '100,000 / 24 hours');
     createApiKeyModal
