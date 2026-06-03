@@ -168,18 +168,6 @@ export default function PromptAssistantFormGroup({
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
           </Flex>
-          <TextArea
-            className={!editMode ? 'pf-m-readonly' : undefined}
-            id="system-instructions-input"
-            type="text"
-            value={systemInstruction}
-            readOnly={!editMode}
-            resizeOrientation="vertical"
-            onChange={(_event, value) => handleTextChange(value)}
-            aria-label="Prompt instructions input"
-            rows={18}
-            data-testid="system-instructions-input"
-          />
           {!editMode && (
             <Flex>
               <Button
@@ -276,6 +264,18 @@ export default function PromptAssistantFormGroup({
               )}
             </Flex>
           )}
+          <TextArea
+            className={!editMode ? 'pf-m-readonly' : undefined}
+            id="system-instructions-input"
+            type="text"
+            value={systemInstruction}
+            readOnly={!editMode}
+            resizeOrientation="vertical"
+            onChange={(_event, value) => handleTextChange(value)}
+            aria-label="Prompt instructions input"
+            rows={18}
+            data-testid="system-instructions-input"
+          />
         </Stack>
       </Panel>
     </>
