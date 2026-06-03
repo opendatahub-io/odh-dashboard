@@ -6,6 +6,7 @@ import {
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KServeDeploymentMode } from '@odh-dashboard/kserve/deployUtils';
 import { createNIMService, updateNIMService, patchNIMService, assembleNIMService } from '../k8s';
 import { NIMServiceModel, type NIMServiceKind } from '../types';
 
@@ -128,7 +129,9 @@ describe('assembleNIMService', () => {
     expect(result.spec.image.pullPolicy).toBe('IfNotPresent');
     expect(result.spec.expose?.service?.type).toBe('ClusterIP');
     expect(result.spec.expose?.service?.port).toBe(8000);
-    expect(result.spec.annotations?.['serving.kserve.io/deploymentMode']).toBe('Standard');
+    expect(result.spec.annotations?.['serving.kserve.io/deploymentMode']).toBe(
+      KServeDeploymentMode.Standard,
+    );
     expect(result.spec.annotations?.['security.opendatahub.io/enable-auth']).toBe('false');
     expect(result.spec.replicas).toBe(1);
     expect(result.metadata.labels?.[KnownLabels.DASHBOARD_RESOURCE]).toBe('true');
@@ -253,6 +256,42 @@ describe('assembleNIMService', () => {
     );
 
     expect(result.spec.env).toBeUndefined();
+  });
+
+  it('should set runtime args when enabled', () => {
+    const result = assembleNIMService({
+      projectName: 'ns',
+      k8sName: 'test',
+      runtimeArgs: {
+        enabled: true,
+        args: ['--max-batch-size', '8', '--tensor-parallel-size', '2'],
+      },
+      hardwareProfile: emptyHardwareProfile,
+    });
+
+    expect(result.spec.args).toEqual(['--max-batch-size', '8', '--tensor-parallel-size', '2']);
+  });
+
+  it('should clear runtime args when disabled', () => {
+    const existing: NIMServiceKind = {
+      ...mockNIMService,
+      spec: {
+        ...mockNIMService.spec,
+        args: ['--old-arg'],
+      },
+    };
+
+    const result = assembleNIMService(
+      {
+        projectName: 'ns',
+        k8sName: 'test',
+        runtimeArgs: { enabled: false, args: [] },
+        hardwareProfile: emptyHardwareProfile,
+      },
+      existing,
+    );
+
+    expect(result.spec.args).toBeUndefined();
   });
 
   it('should set authSecret and pullSecrets', () => {
