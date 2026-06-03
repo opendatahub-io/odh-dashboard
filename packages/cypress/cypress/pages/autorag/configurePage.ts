@@ -1,9 +1,3 @@
-import { autoragExperimentsPage } from './experimentsPage';
-import { autoragResultsPage } from './resultsPage';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../utils/e2eUsers';
-import { waitForDspaReady } from '../../utils/oc_commands/dspa';
-import type { AutoragTestData } from '../../types';
-
 class AutoragConfigurePage {
   visit(namespace: string) {
     cy.visitWithLogin(`/gen-ai-studio/autorag/configure/${namespace}`);
@@ -122,8 +116,8 @@ class AutoragConfigurePage {
     return cy.findByTestId('max-rag-patterns-input');
   }
 
-  setMaxRagPatterns(value: number) {
-    this.findMaxRagPatternsInput().find('input').type(`{selectall}${value}`);
+  findMaxRagPatternsInputField() {
+    return this.findMaxRagPatternsInput().find('input');
   }
 
   // Step 2 - Experiment settings
@@ -156,105 +150,6 @@ class AutoragConfigurePage {
   // Submit
   findCreateRunButton() {
     return cy.findByTestId('autorag-create-run-button');
-  }
-
-  /**
-   * Common setup for submitting an AutoRAG run.
-   *
-   * Handles: login, wait for DSPA, navigate to experiments, create run,
-   * fill name/description, select OGX secret, select S3 connection,
-   * upload document, and select first available models + vector store.
-   *
-   * After this, optionally configure metric/patterns, then call `submitRun()`.
-   */
-  submitRunSetup(testData: AutoragTestData, projectName: string, uuid: string) {
-    cy.step('Login and wait for pipeline server');
-    cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-    waitForDspaReady(projectName);
-
-    cy.step('Navigate to AutoRAG experiments page');
-    autoragExperimentsPage.visit(projectName);
-
-    cy.step('Wait for pipeline server to be fully ready and click Create run');
-    // Pipeline server startup can take up to 2 minutes on first provisioning
-    cy.findByTestId('app-page-title', { timeout: 120000 }).should('be.visible');
-    // Use header button if runs already exist, otherwise empty state button
-    cy.get('body').then(($body) => {
-      if ($body.find('[data-testid="autorag-header-create-run-button"]').length) {
-        autoragExperimentsPage.findHeaderCreateRunButton().click();
-      } else {
-        autoragExperimentsPage.findEmptyState().should('exist');
-        autoragExperimentsPage.findCreateRunButton().click();
-      }
-    });
-
-    cy.step('Step 1 - Fill name and description');
-    cy.findByTestId('autorag-name-input', { timeout: 30000 }).type(testData.runName);
-    this.findDescriptionInput().type(testData.runDescription);
-
-    cy.step('Step 1 - Select OGX secret');
-    this.findOgxSecretSelector().click();
-    this.findOgxSecretSelector().type(testData.ogxSecretName);
-    this.findSelectOption(new RegExp(testData.ogxSecretName, 'i')).click();
-
-    cy.step('Click Next to go to Configure step');
-    this.findNextButton().click();
-
-    cy.step('Verify configure step subtitle shows the run name');
-    this.findConfigureStepSubtitle().should('contain.text', testData.runName);
-
-    cy.step('Select S3 connection');
-    this.findSecretSelector().click();
-    this.findSecretSelector().type(testData.s3SecretName);
-    this.findSelectOption(new RegExp(testData.s3SecretName, 'i')).click();
-
-    cy.step('Upload document file');
-    const uploadFileName = `${testData.documentFile.replace('.txt', '')}-${uuid}.txt`;
-    this.findUploadFileToggle().click();
-    this.findUploadFileInput().selectFile(
-      { contents: `resources/autorag/${testData.documentFile}`, fileName: uploadFileName },
-      { force: true },
-    );
-
-    cy.step('Wait for upload to complete');
-    this.findUploadSpinner().should('not.exist');
-    this.findUploadedFileCell().should('be.visible');
-
-    cy.step('Verify uploaded file is browsable in file explorer and select it');
-    this.findSelectFileToggle().click();
-    this.findBrowseBucketButton().click();
-    this.findFileExplorerTable().should('be.visible');
-    this.findFileExplorerSearch().type(uploadFileName);
-    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
-    this.findFileExplorerSelectBtn().click();
-
-    cy.step('Upload evaluation dataset JSON');
-    const evalFileName = `${testData.evaluationFile.replace('.json', '')}-${uuid}.json`;
-    this.findEvaluationFileInput().selectFile(
-      { contents: `resources/autorag/${testData.evaluationFile}`, fileName: evalFileName },
-      { force: true },
-    );
-
-    cy.step('Select first available vector store');
-    this.findVectorStoreSelector().should('not.be.disabled').click();
-    this.findFirstVectorStoreOption().should('be.visible').click();
-    // Verify the selection was applied before proceeding
-    this.findVectorStoreSelector().should('not.contain.text', 'Select vector I/O provider');
-  }
-
-  /**
-   * Submit the AutoRAG run and verify redirect to results page.
-   * Call after `submitRunSetup()` and any custom configuration.
-   */
-  submitRun() {
-    cy.step('Submit the form');
-    this.findCreateRunButton().click();
-
-    cy.step('Verify redirect to results page');
-    cy.url().should('include', '/gen-ai-studio/autorag/results/');
-
-    cy.step('Verify the run is in progress');
-    autoragResultsPage.findRunInProgressMessage().should('be.visible');
   }
 }
 

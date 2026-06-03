@@ -1,27 +1,35 @@
 import yaml from 'js-yaml';
 import { deleteOpenShiftProject } from '../../../utils/oc_commands/project';
 import { deleteS3TestFiles } from '../../../utils/oc_commands/s3Cleanup';
-import { HTPASSWD_CLUSTER_ADMIN_USER } from '../../../utils/e2eUsers';
 import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
-import { waitForDspaReady } from '../../../utils/oc_commands/dspa';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
-import {
-  autoragExperimentsPage,
-  autoragConfigurePage,
-  autoragResultsPage,
-} from '../../../pages/autorag';
+import { autoragConfigurePage, autoragResultsPage } from '../../../pages/autorag';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
+import {
+  isOgxOperatorManaged,
+  provisionAutoragInfrastructure,
+  cleanupAutoragInfrastructure,
+} from '../../../utils/oc_commands/autoragInfra';
+import {
+  configureAutoragRun,
+  submitAutoragRun,
+  verifyAutoragRunSubmitted,
+  verifyAutoragRunStopped,
+} from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
-describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: false }, () => {
+const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
+
+describe('AutoRAG Experiments List and Run Management E2E', () => {
   let testData: AutoragTestData;
   let projectName: string;
   let autoragWasEnabled = false;
+  let selfProvisioned = false;
 
   retryableBefore(() =>
     cy
@@ -36,22 +44,41 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
         }),
       )
       .then(() => setAutoragEnabled(true))
-      .then(() => {
-        provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-        allowOgxAccess(projectName);
+      .then(() =>
+        isOgxOperatorManaged().then((isManaged) => {
+          if (isExternalOgx()) {
+            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+            allowOgxAccess(projectName);
 
-        const ogxUrl = Cypress.env('OGX_URL') as string | undefined;
-        if (!ogxUrl) {
-          throw new Error('OGX_URL must be set in test-variables.yml');
-        }
-        const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
-        createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
-      }),
+            const ogxUrl = Cypress.env('OGX_URL') as string;
+            const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
+            createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
+          } else {
+            if (!isManaged) {
+              throw new Error(
+                'OGX operator is not Managed on this cluster. ' +
+                  'Either set OGX_URL for external mode or ensure the operator is Managed.',
+              );
+            }
+
+            selfProvisioned = true;
+
+            cy.step('Provision project with DSPA');
+            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+
+            cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
+            provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
+          }
+        }),
+      ),
   );
 
   after(() => {
     if (!autoragWasEnabled) {
       setAutoragEnabled(false);
+    }
+    if (selfProvisioned) {
+      cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
     }
     removeOgxAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
@@ -59,46 +86,19 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
   });
 
   it(
-    'Shows empty state and create run button on experiments page',
+    'Can submit a run, verify it in experiments list, and stop it',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      cy.step('Login and wait for pipeline server');
-      cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
-      waitForDspaReady(projectName);
-
-      cy.step('Navigate to AutoRAG experiments page');
-      autoragExperimentsPage.visit(projectName);
-
-      cy.step('Verify empty state is displayed');
-      autoragExperimentsPage.findEmptyState(120000).should('exist');
-
-      cy.step('Verify create run button is available');
-      autoragExperimentsPage.findCreateRunButton().should('be.visible');
-    },
-  );
-
-  it(
-    'Can submit a run and verify it appears in the experiments list',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
-    () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid);
 
       cy.step('Set max RAG patterns to minimize run time');
-      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns);
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
 
-      autoragConfigurePage.submitRun();
+      submitAutoragRun();
+      verifyAutoragRunSubmitted(projectName, testData.runName);
 
-      cy.step('Navigate back to experiments page and verify run appears');
-      autoragExperimentsPage.visit(projectName);
-      autoragResultsPage.findRunsTable().should('be.visible');
-      autoragResultsPage.findRunsTable().should('contain.text', testData.runName);
-    },
-  );
-
-  it(
-    'Can stop a running experiment from the results page',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
-    () => {
       cy.step('Click on the run to go to results page');
       autoragResultsPage.findRunsTable().contains(testData.runName).click();
 
@@ -109,6 +109,8 @@ describe('AutoRAG Experiments List and Run Management E2E', { testIsolation: fal
       autoragResultsPage.findStopRunButton().click();
       autoragResultsPage.findStopRunModal().should('be.visible');
       autoragResultsPage.findConfirmStopRunButton().click();
+
+      verifyAutoragRunStopped(projectName);
 
       cy.step('Verify run status shows as canceling, canceled, or failed');
       autoragResultsPage

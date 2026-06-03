@@ -9,20 +9,25 @@ import { autoragConfigurePage, autoragResultsPage } from '../../../pages/autorag
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
-  ensureOgxOperator,
   isOgxOperatorManaged,
-  resetOgxOperator,
   provisionAutoragInfrastructure,
   cleanupAutoragInfrastructure,
 } from '../../../utils/oc_commands/autoragInfra';
 import type { AutoragTestData } from '../../../types';
+import {
+  configureAutoragRun,
+  submitAutoragRun,
+  verifyAutoragRunSubmitted,
+  waitForAutoragRunCompletion,
+  verifyAutoragResultsInteraction,
+} from '../../../utils/autoragTestFlows';
 
 const uuid = generateTestUUID();
 
 /**
- * Whether to self-provision OGX infrastructure (models, Milvus, OGX Distribution).
- * When OGX_URL is set, we use an external OGX instance (no provisioning).
- * When empty/unset, we provision everything programmatically.
+ * When OGX_URL is set, we use an external OGX instance (regression testing).
+ * When empty/unset, we self-provision infrastructure (CI mode) — requires
+ * the OGX operator to already be Managed on the cluster.
  */
 const isExternalOgx = (): boolean => !!(Cypress.env('OGX_URL') as string);
 
@@ -31,7 +36,6 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   let projectName: string;
   let autoragWasEnabled = false;
   let selfProvisioned = false;
-  let operatorWasManaged = false;
 
   retryableBefore(() =>
     cy
@@ -47,33 +51,32 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       )
       .then(() => setAutoragEnabled(true))
       .then(() =>
-        isOgxOperatorManaged().then((wasManaged) => {
-          operatorWasManaged = wasManaged;
+        isOgxOperatorManaged().then((isManaged) => {
+          if (isExternalOgx()) {
+            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+            allowOgxAccess(projectName);
+
+            const ogxUrl = Cypress.env('OGX_URL') as string;
+            const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
+            createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
+          } else {
+            if (!isManaged) {
+              throw new Error(
+                'OGX operator is not Managed on this cluster. ' +
+                  'Either set OGX_URL for external mode or ensure the operator is Managed.',
+              );
+            }
+
+            selfProvisioned = true;
+
+            cy.step('Provision project with DSPA');
+            provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
+
+            cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
+            provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
+          }
         }),
-      )
-      .then(() => {
-        if (isExternalOgx()) {
-          // External mode: use pre-existing OGX instance
-          provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-          allowOgxAccess(projectName);
-
-          const ogxUrl = Cypress.env('OGX_URL') as string;
-          const ogxApiKey = (Cypress.env('OGX_API_KEY') as string) || '';
-          createOgxSecret(projectName, testData.ogxSecretName, ogxUrl, ogxApiKey);
-        } else {
-          // Self-provisioned mode: deploy models, Milvus, OGX Distribution
-          selfProvisioned = true;
-
-          cy.step('Ensure OGX operator is Managed');
-          ensureOgxOperator();
-
-          cy.step('Provision project with DSPA');
-          provisionProjectForAutoX(projectName, testData.dspaSecretName, testData.awsBucket);
-
-          cy.step('Provision AutoRAG infrastructure (models, Milvus, OGX)');
-          provisionAutoragInfrastructure(projectName, testData.ogxSecretName);
-        }
-      }),
+      ),
   );
 
   after(() => {
@@ -81,7 +84,6 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
       setAutoragEnabled(false);
     }
 
-    // Explicit cleanup of each resource (resilient — each call ignores errors)
     if (selfProvisioned) {
       cleanupAutoragInfrastructure(projectName, testData.ogxSecretName);
     }
@@ -89,40 +91,37 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
     removeOgxAccess(projectName);
     deleteS3TestFiles(projectName, testData.awsBucket, `*${uuid}*`);
     deleteOpenShiftProject(projectName, { wait: false, ignoreNotFound: true });
-
-    // Restore operator to previous state if we changed it
-    if (selfProvisioned && !operatorWasManaged) {
-      resetOgxOperator();
-    }
   });
 
+  // CI test: validates the configure + submit flow only.
+  // Add @AutoRAGCI tag once the OGX operator is enabled on the CI cluster.
   it(
-    'Can create and submit a full AutoRAG optimization run',
-    { tags: ['@Smoke', '@SmokeSet4', '@AutoRAG', '@AutoRAGCI'] },
+    'Can configure and submit an AutoRAG optimization run',
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization'] },
     () => {
-      autoragConfigurePage.submitRunSetup(testData, projectName, uuid);
+      configureAutoragRun(testData, projectName, uuid);
 
       cy.step('Set max RAG patterns to minimize run time');
-      autoragConfigurePage.setMaxRagPatterns(testData.maxRagPatterns);
+      autoragConfigurePage
+        .findMaxRagPatternsInputField()
+        .type(`{selectall}${testData.maxRagPatterns}`);
 
-      autoragConfigurePage.submitRun();
+      submitAutoragRun();
+      verifyAutoragRunSubmitted(projectName, testData.runName);
     },
   );
 
+  // Regression only: waits for the run to complete (~30 min) and verifies
+  // leaderboard, pattern details, tabs, and notebook download.
   it(
-    'Verify optimization run completes with leaderboard',
+    'Verify optimization run completes and results are interactive',
     { tags: ['@AutoRAG', '@AutoRAGRegression'] },
     () => {
-      cy.step('Wait for run to complete and verify leaderboard');
-      autoragResultsPage.waitForRunCompletion();
-    },
-  );
+      cy.step('Navigate to the run results page');
+      autoragResultsPage.findRunsTable().contains(testData.runName).click();
 
-  it(
-    'Can interact with results page (leaderboard, pattern details, download)',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
-    () => {
-      autoragResultsPage.verifyResultsInteraction();
+      waitForAutoragRunCompletion();
+      verifyAutoragResultsInteraction();
     },
   );
 });

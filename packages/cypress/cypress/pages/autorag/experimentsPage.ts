@@ -15,6 +15,10 @@ class AutoragExperimentsPage {
     return appChrome.findNavItem({ name: 'AutoRAG', rootSection: 'Gen AI studio' });
   }
 
+  findPageTitle(timeout?: number) {
+    return cy.findByTestId('app-page-title', timeout ? { timeout } : undefined);
+  }
+
   findEmptyState(timeout?: number) {
     return cy.findByTestId('empty-experiments-state', timeout ? { timeout } : undefined);
   }

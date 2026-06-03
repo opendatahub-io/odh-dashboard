@@ -74,21 +74,6 @@ const detectDscComponentName = (): Cypress.Chainable<string> =>
     });
 
 /**
- * Detect which DSC condition name indicates operator readiness:
- * 'OGXReady' (new) or 'LlamaStackOperatorReady' (old).
- */
-const detectDscConditionName = (): Cypress.Chainable<string> =>
-  cy
-    .exec(
-      `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="OGXReady")].type}'`,
-      { failOnNonZeroExit: false },
-    )
-    .then((result) => {
-      const raw = result.stdout.trim().replace(/'/g, '');
-      return cy.wrap(raw.includes('OGXReady') ? 'OGXReady' : 'LlamaStackOperatorReady');
-    });
-
-/**
  * Detect which distribution CRD to use based on the active DSC component.
  * OGXServer and LlamaStackDistribution have different spec schemas, so CRD
  * existence alone is not enough — we must match the operator that is managing them.
@@ -112,50 +97,6 @@ const detectDistributionCrd = (): Cypress.Chainable<{
       plural: 'llamastackdistributions',
     });
   });
-
-/**
- * Self-contained wait for the OGX operator readiness condition on the DSC.
- * Detects the correct condition name automatically.
- */
-const waitForOperatorReady = (maxAttempts = 60, pollIntervalMs = 5000): void => {
-  detectDscConditionName().then((conditionName) => {
-    const startTime = Date.now();
-
-    const check = (attemptNumber = 1): void => {
-      cy.exec(
-        `oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="${conditionName}")].status}'`,
-        { failOnNonZeroExit: false },
-      ).then((result) => {
-        const raw = result.stdout.trim().replace(/'/g, '');
-        const isReady = raw.split(/\s+/).includes('True');
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-
-        if (isReady) {
-          cy.log(`${conditionName} condition is True (after ${elapsed}s)`);
-          return;
-        }
-
-        if (attemptNumber >= maxAttempts) {
-          throw new Error(
-            `${conditionName} not True after ${maxAttempts} attempts (${elapsed}s). Status: ${
-              raw || 'not found'
-            }`,
-          );
-        }
-
-        cy.log(
-          `Waiting for ${conditionName} (attempt ${attemptNumber}/${maxAttempts}, status: ${
-            raw || 'not found'
-          })`,
-        );
-        cy.wait(pollIntervalMs).then(() => check(attemptNumber + 1));
-      });
-    };
-
-    cy.step(`Polling for ${conditionName} condition`);
-    check();
-  });
-};
 
 /**
  * Self-contained wait for an OGX distribution server to be Ready.
@@ -249,60 +190,18 @@ const waitForDistributionReady = (
 };
 
 // ---------------------------------------------------------------------------
-// OGX operator management (AutoRAG-owned, independent of gen-ai)
+// OGX operator state (read-only — never patches the DSC)
 // ---------------------------------------------------------------------------
 
-const DSC_RESOURCE = 'datasciencecluster default-dsc';
-
 /**
- * Ensure the OGX operator is Managed and ready.
- * If already Managed, this is a no-op. Otherwise, patches the DSC and waits.
- * Detects the correct DSC component name automatically.
- */
-export const ensureOgxOperator = (): void => {
-  detectDscComponentName().then((componentName) => {
-    cy.exec(
-      `oc get ${DSC_RESOURCE} -o jsonpath='{.spec.components.${componentName}.managementState}'`,
-    ).then((result) => {
-      const state = result.stdout.trim().replace(/'/g, '');
-      if (state === 'Managed') {
-        cy.log(`OGX operator (${componentName}) already Managed, skipping`);
-        return;
-      }
-
-      cy.log(`OGX operator (${componentName}) is "${state}", patching to Managed`);
-      cy.exec(
-        `oc patch ${DSC_RESOURCE} --type=merge -p '{"spec":{"components":{"${componentName}":{"managementState":"Managed"}}}}'`,
-      );
-
-      cy.log('Waiting for OGX operator to be ready');
-      waitForOperatorReady();
-    });
-  });
-};
-
-/**
- * Reset the OGX operator to Removed state.
- * Only call this if the operator was not Managed before the test started.
- */
-export const resetOgxOperator = (): void => {
-  detectDscComponentName().then((componentName) => {
-    cy.log(`Resetting OGX operator (${componentName}) to Removed`);
-    cy.exec(
-      `oc patch ${DSC_RESOURCE} --type=merge -p '{"spec":{"components":{"${componentName}":{"managementState":"Removed"}}}}'`,
-      { failOnNonZeroExit: false },
-    );
-  });
-};
-
-/**
- * Check if the OGX operator is currently Managed.
+ * Check if the OGX/LlamaStack operator is currently Managed on the cluster.
+ * Returns true if the operator component is set to Managed in the DSC.
  */
 export const isOgxOperatorManaged = (): Cypress.Chainable<boolean> =>
   detectDscComponentName().then((componentName) =>
     cy
       .exec(
-        `oc get ${DSC_RESOURCE} -o jsonpath='{.spec.components.${componentName}.managementState}'`,
+        `oc get datasciencecluster default-dsc -o jsonpath='{.spec.components.${componentName}.managementState}'`,
         { failOnNonZeroExit: false },
       )
       .then((result) => cy.wrap(result.stdout.trim().replace(/'/g, '') === 'Managed')),
