@@ -1,5 +1,6 @@
 package kubernetes
 
+// ServiceDetails holds information about a Kubernetes service.
 type ServiceDetails struct {
 	Name                string
 	DisplayName         string
@@ -10,16 +11,19 @@ type ServiceDetails struct {
 	ExternalAddressRest string
 }
 
+// RequestIdentity holds authenticated user identity information.
 type RequestIdentity struct {
 	UserID string
 	Groups []string
 	Token  BearerToken
 }
 
+// BearerToken wraps a bearer token string with safe string representation.
 type BearerToken struct {
 	raw string
 }
 
+// NewBearerToken creates a new BearerToken from a raw token string.
 func NewBearerToken(t string) BearerToken {
 	return BearerToken{raw: t}
 }
