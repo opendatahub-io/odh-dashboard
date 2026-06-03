@@ -21,7 +21,9 @@ func newTestServer(handler http.HandlerFunc) (*httptest.Server, *client) {
 
 func jsonResponse(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // --- CreatePipelineRun ---
@@ -313,7 +315,9 @@ func TestClient_CreatePipeline(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		ts, c := newTestServer(func(w http.ResponseWriter, r *http.Request) {
 			var body map[string]string
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("failed to decode request body: %v", err)
+			}
 			if body["display_name"] != "my-pipe" {
 				t.Errorf("display_name = %q", body["display_name"])
 			}
