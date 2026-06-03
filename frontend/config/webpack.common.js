@@ -218,7 +218,7 @@ module.exports = (env) => ({
     ],
   },
   output: {
-    filename: '[name].bundle.js',
+    filename: '[name].[contenthash].bundle.js',
     path: DIST_DIR,
     publicPath: PUBLIC_PATH,
     chunkFilename: '[name]-[chunkhash].js',

@@ -186,7 +186,7 @@ module.exports = (env) => ({
     ],
   },
   output: {
-    filename: '[name].bundle.js',
+    filename: '[name].[contenthash].bundle.js',
     path: DIST_DIR,
     publicPath: 'auto',
     uniqueName: name,
