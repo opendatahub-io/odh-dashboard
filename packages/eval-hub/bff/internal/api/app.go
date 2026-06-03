@@ -231,7 +231,8 @@ func (app *App) Routes() http.Handler {
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			// Serve the file if it exists
 			w.Header().Set("Cache-Control", cacheControlForStaticFile(r.URL.Path))

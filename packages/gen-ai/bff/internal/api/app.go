@@ -500,7 +500,8 @@ func (app *App) Routes() http.Handler {
 
 			// Check if the requested file exists
 			cleanPath := path.Clean(r.URL.Path)
-			if _, err := staticDir.Open(cleanPath); err == nil {
+			if f, err := staticDir.Open(cleanPath); err == nil {
+				f.Close()
 				ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 				w.Header().Set("Cache-Control", cacheControlForStaticFile(cleanPath))
 				fileServer.ServeHTTP(w, r)
