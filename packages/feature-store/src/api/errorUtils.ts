@@ -1,10 +1,23 @@
 import { isCommonStateError } from '@odh-dashboard/internal/utilities/useFetch';
+import { transformError } from './transforms';
 import { FeatureStoreError } from '../types/global';
 
-const isError = (e: unknown): e is FeatureStoreError =>
+// Detects raw Feast API error responses (snake_case fields, not yet transformed).
+// Requires at least one definitive snake_case key to avoid false positives on
+// unrelated objects that merely carry 'code' or 'detail'.
+const isRawApiError = (e: unknown): e is Record<string, unknown> =>
   typeof e === 'object' &&
   e !== null &&
-  ['code', 'message', 'detail', 'error_type', 'status_code'].some((key) => key in e);
+  !(e instanceof Error) &&
+  !('errorType' in e) &&
+  !('statusCode' in e) &&
+  ('error_type' in e || 'status_code' in e);
+
+const isTransformedApiError = (e: unknown): e is FeatureStoreError =>
+  typeof e === 'object' &&
+  e !== null &&
+  !(e instanceof Error) &&
+  ('errorType' in e || 'statusCode' in e);
 
 export type ErrorWithDetail = Error & FeatureStoreError;
 
@@ -29,21 +42,25 @@ export const getFeatureStoreErrorMessage = (
 export const handleFeatureStoreFailures = <T>(promise: Promise<T>): Promise<T> =>
   promise
     .then((result) => {
-      if (isError(result)) {
-        throw result;
+      if (isRawApiError(result)) {
+        throw transformError(result);
       }
       return result;
     })
     .catch((e) => {
-      if (isError(e)) {
-        if (e.detail || e.error_type) {
-          throw e;
-        }
+      if (isRawApiError(e)) {
+        throw transformError(e);
+      }
+
+      if (isTransformedApiError(e)) {
         throw e;
       }
 
       if (isCommonStateError(e)) {
-        // Common state errors are handled by useFetchState at storage level, let them deal with it
+        throw e;
+      }
+
+      if (e instanceof Error) {
         throw e;
       }
       // eslint-disable-next-line no-console

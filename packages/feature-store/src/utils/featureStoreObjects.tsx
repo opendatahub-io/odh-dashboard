@@ -1,6 +1,6 @@
-/* eslint-disable camelcase */
 import React from 'react';
 import { CubeIcon } from '@patternfly/react-icons';
+// eslint-disable-next-line camelcase -- PatternFly token exports use snake_case
 import {
   chart_color_blue_200 as chartColorBlue,
   chart_color_green_200 as chartColorGreen,
@@ -54,11 +54,13 @@ export const getEntityTypeIcon = (
 };
 
 export const getFsObjectTypeLabel = (fsObjectType: FsObjectType): string => {
+  /* eslint-disable camelcase -- Feast API object type identifiers */
   const typeLabels: Record<FsObjectType, string> = {
     entity: 'Entity details',
     data_source: 'Data source details',
     feature_view: 'Feature view details',
     feature_service: 'Feature service details',
   };
+  /* eslint-enable camelcase */
   return typeLabels[fsObjectType] || fsObjectType;
 };

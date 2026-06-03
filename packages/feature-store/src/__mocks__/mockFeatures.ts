@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import { Features, FeaturesList, FeatureRelationship } from '../types/features';
 
 export const mockFeatureRelationship = (
@@ -30,10 +29,10 @@ export const mockFeaturesList = ({
   pagination = {
     page: 1,
     limit: 10,
-    total_count: 1,
-    total_pages: 1,
-    has_next: false,
-    has_previous: false,
+    totalCount: 1,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
   },
 }: Partial<FeaturesList> = {}): FeaturesList => ({
   features,
@@ -45,9 +44,9 @@ export const mockEmptyFeaturesList = (): FeaturesList => ({
   pagination: {
     page: 1,
     limit: 10,
-    total_count: 0,
-    total_pages: 0,
-    has_next: false,
-    has_previous: false,
+    totalCount: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false,
   },
 });

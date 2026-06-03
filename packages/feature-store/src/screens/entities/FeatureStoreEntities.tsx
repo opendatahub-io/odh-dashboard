@@ -1,8 +1,7 @@
 import React from 'react';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import ApplicationsPage from '@odh-dashboard/plugin-core/components/ApplicationsPage';
 import FeatureStoreEntitiesListView from './EntitiesTable/FeatureStoreEntitiesListView';
 import FeatureStoreProjectSelectorNavigator from '../components/FeatureStoreProjectSelectorNavigator';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';

@@ -22,10 +22,10 @@ export type PopularTagFeatureView = {
 };
 
 export type PopularTag = {
-  tag_key: string;
-  tag_value: string;
-  feature_views: PopularTagFeatureView[];
-  total_feature_views: number;
+  tagKey: string;
+  tagValue: string;
+  featureViews: PopularTagFeatureView[];
+  totalFeatureViews: number;
 };
 
 export type PopularTagsMetadata = {
@@ -35,7 +35,7 @@ export type PopularTagsMetadata = {
 };
 
 export type PopularTagsResponse = {
-  popular_tags: PopularTag[];
+  popularTags: PopularTag[];
   metadata: PopularTagsMetadata;
 };
 
@@ -45,7 +45,7 @@ export type RecentlyVisitedResource = {
   project: string;
   user: string;
   object: string;
-  object_name: string;
+  objectName: string;
   method: string;
 };
 

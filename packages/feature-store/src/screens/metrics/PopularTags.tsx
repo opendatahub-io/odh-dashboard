@@ -36,10 +36,7 @@ type PopularTagsProps = {
 
 const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
   return (
-    <Card
-      isFullHeight
-      data-testid={`feature-store-popular-tag-card-${tag.tag_key}-${tag.tag_value}`}
-    >
+    <Card isFullHeight data-testid={`feature-store-popular-tag-card-${tag.tagKey}-${tag.tagValue}`}>
       <CardHeader>
         <Flex gap={{ default: 'gapSm' }}>
           <FlexItem flex={{ default: 'flexNone' }}>
@@ -47,7 +44,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
           </FlexItem>
           <FlexItem flex={{ default: 'flex_1' }} style={{ minWidth: 0 }}>
             <CardTitle>
-              <TruncatedText maxLines={1} content={`${tag.tag_key}=${tag.tag_value}`} />
+              <TruncatedText maxLines={1} content={`${tag.tagKey}=${tag.tagValue}`} />
             </CardTitle>
           </FlexItem>
         </Flex>
@@ -63,7 +60,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
             gap: 'var(--pf-t--global--spacer--xs)',
           }}
         >
-          {tag.feature_views.slice(0, 5).map((featureView, index) => (
+          {tag.featureViews.slice(0, 5).map((featureView, index) => (
             <ListItem key={`${featureView.name}-${featureView.project}-${index}`}>
               <Link
                 to={featureViewRoute(featureView.name, featureView.project)}
@@ -78,9 +75,9 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
       <CardFooter>
         <Link
           to={featureStoreRoute(FeatureStoreObject.FEATURE_VIEWS)}
-          aria-label={`View all ${tag.total_feature_views} feature views for ${tag.tag_key}: ${tag.tag_value}`}
+          aria-label={`View all ${tag.totalFeatureViews} feature views for ${tag.tagKey}: ${tag.tagValue}`}
         >
-          View all ({tag.total_feature_views})
+          View all ({tag.totalFeatureViews})
         </Link>
       </CardFooter>
     </Card>
@@ -166,14 +163,14 @@ const PopularTags: React.FC<PopularTagsProps> = ({ project, limit = 4 }) => {
       );
     }
 
-    if (data.popular_tags.length === 0) {
+    if (data.popularTags.length === 0) {
       return emptyState;
     }
 
     return (
       <Gallery hasGutter>
-        {data.popular_tags.map((tag: PopularTag, index: number) => (
-          <GalleryItem key={`${tag.tag_key}-${tag.tag_value}-${index}`}>
+        {data.popularTags.map((tag: PopularTag, index: number) => (
+          <GalleryItem key={`${tag.tagKey}-${tag.tagValue}-${index}`}>
             <PopularTagCard tag={tag} />
           </GalleryItem>
         ))}

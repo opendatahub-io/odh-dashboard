@@ -5,9 +5,9 @@ export type GlobalSearchResult = {
   name: string;
   description: string;
   project: string;
-  match_score: number;
+  matchScore: number;
   featureView?: string;
-  matched_tags?: Record<string, string>;
+  matchedTags?: Record<string, string>;
 };
 
 export type GlobalSearchPagination = {
@@ -20,7 +20,7 @@ export type GlobalSearchPagination = {
 
 export type GlobalSearchResponse = {
   query: string;
-  projects_searched: string[];
+  projectsSearched: string[];
   results: GlobalSearchResult[];
   pagination: GlobalSearchPagination;
   errors: string[];

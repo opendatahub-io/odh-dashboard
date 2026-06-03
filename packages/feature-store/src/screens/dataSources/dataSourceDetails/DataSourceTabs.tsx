@@ -115,8 +115,7 @@ const DataSourceDetailsTabs: React.FC<DataSourceDetailsTabsProps> = ({ dataSourc
     data: featureViews,
     loaded: featureViewsLoaded,
     error: featureViewsLoadError,
-    // eslint-disable-next-line camelcase
-  } = useFeatureViews({ project: currentProject, ...{ data_source: dataSource.name } });
+  } = useFeatureViews({ project: currentProject, dataSource: dataSource.name });
 
   const [activeTabKey, setActiveTabKey] = React.useState<string | number>(
     DataSourceDetailsTab.DETAILS,

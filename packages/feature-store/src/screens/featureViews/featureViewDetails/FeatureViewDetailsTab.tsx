@@ -14,8 +14,7 @@ import text from '@patternfly/react-styles/css/utilities/Text/text';
 import React from 'react';
 import { Link } from 'react-router';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import IndentSection from '@odh-dashboard/internal/pages/projects/components/IndentSection';
+import IndentSection from '@odh-dashboard/plugin-core/components/IndentSection';
 import { FeatureView } from '../../../types/featureView';
 import FeatureStoreLabels from '../../../components/FeatureStoreLabels';
 import FeatureStoreTimestamp from '../../../components/FeatureStoreTimestamp';

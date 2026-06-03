@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import { act } from 'react';
 import { standardUseFetchStateObject, testHook } from '@odh-dashboard/jest-config/hooks';
@@ -24,10 +23,10 @@ describe('useFeatureStoreProjects', () => {
     pagination: {
       page: 1,
       limit: 10,
-      total_count: 2,
-      total_pages: 1,
-      has_next: false,
-      has_previous: false,
+      totalCount: 2,
+      totalPages: 1,
+      hasNext: false,
+      hasPrevious: false,
     },
   };
 

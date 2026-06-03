@@ -66,14 +66,10 @@ describe('useFeatureStoreCR', () => {
       pagination: {
         page: 1,
         limit: 10,
-        // eslint-disable-next-line camelcase
-        total_count: 0,
-        // eslint-disable-next-line camelcase
-        total_pages: 0,
-        // eslint-disable-next-line camelcase
-        has_next: false,
-        // eslint-disable-next-line camelcase
-        has_previous: false,
+        totalCount: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       },
     },
     featureStoreProjectsLoaded: false,

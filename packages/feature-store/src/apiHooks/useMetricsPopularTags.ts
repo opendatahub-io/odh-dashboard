@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -32,7 +31,7 @@ const useMetricsPopularTags = ({
   return useFetch(
     call,
     {
-      popular_tags: [],
+      popularTags: [],
       metadata: {
         totalFeatureViews: 0,
         totalTags: 0,

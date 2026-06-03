@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { DataSource, DataSourceList } from '../types/dataSources';
 
 export const mockDataSource = (partial?: Partial<DataSource>): DataSource => ({
@@ -110,10 +110,10 @@ export const mockDataSources = ({
   pagination: {
     page: 1,
     limit: 50,
-    total_count: dataSources.length,
-    total_pages: 1,
-    has_next: false,
-    has_previous: false,
+    totalCount: dataSources.length,
+    totalPages: 1,
+    hasNext: false,
+    hasPrevious: false,
   },
   relationships: {},
 });

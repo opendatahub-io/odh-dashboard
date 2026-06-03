@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { StandardFeatureView } from '../types/featureView';
 
 export const mockFeatureView = (partial?: Partial<StandardFeatureView>): StandardFeatureView => ({

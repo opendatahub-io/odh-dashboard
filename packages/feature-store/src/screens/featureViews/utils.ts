@@ -10,18 +10,19 @@ export interface Relationship {
   target: { type: string; name: string };
 }
 
+/* eslint-disable camelcase -- keys align with table column field identifiers */
 export const featureViewTableFilterKeyMapping: Record<string, string> = {
   featureView: 'spec.name',
   project: 'project',
   tag: 'spec.tags',
   features: 'features',
-  // eslint-disable-next-line camelcase
   feature_services: 'feature_services',
   owner: 'spec.owner',
   storeType: 'storeType',
   created: 'meta.createdTimestamp',
   updated: 'meta.lastUpdatedTimestamp',
 };
+/* eslint-enable camelcase */
 
 const featureViewFilterUtils = createFeatureStoreFilterUtils<FeatureView, FeatureStoreRelationship>(
   featureViewTableFilterKeyMapping,

@@ -28,15 +28,15 @@ const RecentlyVisitedResourcesTableRow: React.FC<{
   item: RecentlyVisitedResource;
 }> = ({ item }) => {
   const resourceType = formatResourceType(item.object);
-  const resourceLink = getResourceRoute(resourceType, item.object_name, item.project);
+  const resourceLink = getResourceRoute(resourceType, item.objectName, item.project);
   return (
     <Tr>
       <Td dataLabel="Resource name">
         <Link
           to={resourceLink}
-          aria-label={`Go to ${item.object_name} ${resourceType} in ${item.project} project`}
+          aria-label={`Go to ${item.objectName} ${resourceType} in ${item.project} project`}
         >
-          {item.object_name}
+          {item.objectName}
         </Link>
       </Td>
       <Td dataLabel="Resource type">{capitalize(resourceType)}</Td>
@@ -103,7 +103,7 @@ const RecentlyVisitedResources: React.FC<RecentlyVisitedResourcesProps> = ({
         data={data.visits}
         columns={recentlyVisitedResourcesColumns}
         rowRenderer={(item, index) => (
-          <RecentlyVisitedResourcesTableRow key={`${item.object_name}-${index}`} item={item} />
+          <RecentlyVisitedResourcesTableRow key={`${item.objectName}-${index}`} item={item} />
         )}
         variant="compact"
       />

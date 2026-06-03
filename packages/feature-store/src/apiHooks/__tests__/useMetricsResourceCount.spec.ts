@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { renderHook, waitFor } from '@testing-library/react';
 import { useFeatureStoreAPI } from '../../FeatureStoreContext';
 import useMetricsResourceCount from '../useMetricsResourceCount';
@@ -29,7 +30,6 @@ describe('useMetricsResourceCount', () => {
         featureViews: 2,
         featureServices: 3,
       },
-      // eslint-disable-next-line camelcase
       credit_scoring_local: {
         entities: 4,
         dataSources: 5,

@@ -1,4 +1,4 @@
-/* eslint-disable camelcase */
+/* eslint-disable camelcase -- mock data uses Feast API naming conventions */
 import { FeatureService } from '../types/featureServices';
 
 export const mockFeatureService = ({

@@ -166,9 +166,9 @@ export const isNotFoundError = (error: Error | undefined): boolean => {
     return false;
   }
   const statusCode =
-    'status_code' in error
+    'statusCode' in error
       ? // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-        (error['status_code' as keyof Error] as unknown as number)
+        (error['statusCode' as keyof Error] as unknown as number)
       : null;
 
   return statusCode === 404;

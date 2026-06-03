@@ -31,16 +31,14 @@ export enum FeatureStoreTabs {
   METRICS = 'Metrics',
   LINEAGE = 'Lineage',
 }
-/* eslint-disable camelcase */
 export const DEFAULT_PROJECT_LIST: ProjectList = {
   projects: [],
   pagination: {
     page: 0,
     limit: 0,
-    total_count: 0,
-    total_pages: 0,
-    has_next: false,
-    has_previous: false,
+    totalCount: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false,
   },
 };
-/* eslint-enable camelcase */

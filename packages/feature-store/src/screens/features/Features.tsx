@@ -2,8 +2,7 @@ import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
-// eslint-disable-next-line @odh-dashboard/no-restricted-imports
-import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+import ApplicationsPage from '@odh-dashboard/plugin-core/components/ApplicationsPage';
 import FeaturesList from './FeaturesList';
 import { useFeatureStoreProject } from '../../FeatureStoreContext';
 import { featureStoreRoute } from '../../FeatureStoreRoutes';

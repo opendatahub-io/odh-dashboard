@@ -1,6 +1,12 @@
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { K8sAPIOptions } from '@odh-dashboard/internal/k8sTypes';
 import { handleFeatureStoreFailures } from './errorUtils';
+import {
+  transformListResponse,
+  transformPopularTagsResponse,
+  transformRecentlyVisitedResponse,
+  transformSearchResponse,
+} from './transforms';
 import { FeatureStoreLineage, FeatureViewLineage } from '../types/lineage';
 import { FEATURE_STORE_API_VERSION } from '../const';
 import { Entity, EntityList } from '../types/entities';
@@ -19,11 +25,10 @@ import { GlobalSearchResponse } from '../types/search';
 
 export const listFeatureStoreProject =
   (hostPath: string) =>
-  (opts: K8sAPIOptions): Promise<ProjectList> => {
-    return handleFeatureStoreFailures<ProjectList>(
+  (opts: K8sAPIOptions): Promise<ProjectList> =>
+    handleFeatureStoreFailures(
       proxyGET(hostPath, `/api/${FEATURE_STORE_API_VERSION}/projects`, {}, opts),
-    );
-  };
+    ).then(transformListResponse<ProjectList>);
 
 export const getEntities =
   (hostPath: string) =>
@@ -34,7 +39,9 @@ export const getEntities =
         project,
       )}&include_relationships=true`;
     }
-    return handleFeatureStoreFailures<EntityList>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformListResponse<EntityList>,
+    );
   };
 
 export const getFeatureViews =
@@ -45,8 +52,7 @@ export const getFeatureViews =
     entity?: string,
     featureService?: string,
     feature?: string,
-    // eslint-disable-next-line camelcase
-    data_source?: string,
+    dataSource?: string,
   ): Promise<FeatureViewsList> => {
     let endpoint = `/api/${FEATURE_STORE_API_VERSION}/feature_views`;
     const queryParams: string[] = [];
@@ -68,9 +74,9 @@ export const getFeatureViews =
     if (feature) {
       queryParams.push(`feature=${encodeURIComponent(feature)}`);
     }
-    // eslint-disable-next-line camelcase
-    if (data_source) {
-      queryParams.push(`data_source=${encodeURIComponent(data_source)}`);
+
+    if (dataSource) {
+      queryParams.push(`data_source=${encodeURIComponent(dataSource)}`);
     }
 
     if (queryParams.length > 0) {
@@ -102,7 +108,9 @@ export const getFeatures =
         project,
       )}`;
     }
-    return handleFeatureStoreFailures<FeaturesList>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformListResponse<FeaturesList>,
+    );
   };
 
 export const getFeatureByName =
@@ -204,7 +212,9 @@ export const getPopularTags =
       endpoint += `?${queryParams.join('&')}`;
     }
 
-    return handleFeatureStoreFailures<PopularTagsResponse>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformPopularTagsResponse,
+    );
   };
 
 export const getRecentlyVisitedResources =
@@ -224,8 +234,8 @@ export const getRecentlyVisitedResources =
       endpoint += `?${queryParams.join('&')}`;
     }
 
-    return handleFeatureStoreFailures<RecentlyVisitedResponse>(
-      proxyGET(hostPath, endpoint, {}, opts),
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformRecentlyVisitedResponse,
     );
   };
 
@@ -263,7 +273,9 @@ export const getSavedDatasets =
       )}&include_relationships=true`;
     }
 
-    return handleFeatureStoreFailures<DataSetList>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformListResponse<DataSetList>,
+    );
   };
 
 export const getDataSetByName =
@@ -299,7 +311,9 @@ export const getDataSources =
         project,
       )}&include_relationships=true`;
     }
-    return handleFeatureStoreFailures<DataSourceList>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformListResponse<DataSourceList>,
+    );
   };
 
 export const getDataSourceByName =
@@ -348,5 +362,7 @@ export const getGlobalSearch =
 
     const endpoint = `/api/${FEATURE_STORE_API_VERSION}/search?${queryParams.join('&')}`;
 
-    return handleFeatureStoreFailures<GlobalSearchResponse>(proxyGET(hostPath, endpoint, {}, opts));
+    return handleFeatureStoreFailures(proxyGET(hostPath, endpoint, {}, opts)).then(
+      transformSearchResponse,
+    );
   };

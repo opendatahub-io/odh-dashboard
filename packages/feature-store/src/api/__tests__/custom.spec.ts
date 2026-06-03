@@ -1,3 +1,4 @@
+/* eslint-disable camelcase -- test data mirrors raw Feast API snake_case responses */
 import { proxyGET } from '@odh-dashboard/internal/api/proxyUtils';
 import { handleFeatureStoreFailures } from '../errorUtils';
 import {
@@ -13,7 +14,18 @@ import {
 } from '../custom';
 import { FEATURE_STORE_API_VERSION } from '../../const';
 
-const mockProxyPromise = Promise.resolve();
+const mockListResponse = {
+  pagination: {
+    page: 0,
+    limit: 0,
+    total_count: 0,
+    total_pages: 0,
+    has_next: false,
+    has_previous: false,
+  },
+};
+
+const mockProxyPromise = Promise.resolve(mockListResponse);
 
 jest.mock('@odh-dashboard/internal/api/proxyUtils', () => ({
   proxyGET: jest.fn(() => mockProxyPromise),
@@ -35,7 +47,7 @@ describe('listFeatureStoreProject', () => {
     const hostPath = 'test-host';
     const opts = { dryRun: true };
 
-    const result = listFeatureStoreProject(hostPath)(opts);
+    listFeatureStoreProject(hostPath)(opts);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -46,7 +58,6 @@ describe('listFeatureStoreProject', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should work with empty options', () => {
@@ -73,7 +84,7 @@ describe('getEntities', () => {
     const hostPath = 'test-host';
     const opts = { dryRun: true };
 
-    const result = getEntities(hostPath)(opts);
+    getEntities(hostPath)(opts);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -84,7 +95,6 @@ describe('getEntities', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with project-specific endpoint when project is provided', () => {
@@ -92,7 +102,7 @@ describe('getEntities', () => {
     const opts = { dryRun: true };
     const project = 'test-project';
 
-    const result = getEntities(hostPath)(opts, project);
+    getEntities(hostPath)(opts, project);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -105,7 +115,6 @@ describe('getEntities', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -120,7 +129,7 @@ describe('getEntityByName', () => {
     const project = 'test-project';
     const entityName = 'test-entity';
 
-    const result = getEntityByName(hostPath)(opts, project, entityName);
+    getEntityByName(hostPath)(opts, project, entityName);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -133,7 +142,6 @@ describe('getEntityByName', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -146,7 +154,7 @@ describe('getFeatureViews', () => {
     const hostPath = 'test-host';
     const opts = { dryRun: true };
 
-    const result = getFeatureViews(hostPath)(opts);
+    getFeatureViews(hostPath)(opts);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -157,7 +165,6 @@ describe('getFeatureViews', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with project-specific endpoint when project is provided', () => {
@@ -165,7 +172,7 @@ describe('getFeatureViews', () => {
     const opts = { dryRun: true };
     const project = 'test-project';
 
-    const result = getFeatureViews(hostPath)(opts, project);
+    getFeatureViews(hostPath)(opts, project);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -178,7 +185,6 @@ describe('getFeatureViews', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with feature service filter when featureService is provided', () => {
@@ -187,7 +193,7 @@ describe('getFeatureViews', () => {
     const project = 'test-project';
     const featureService = 'test-service';
 
-    const result = getFeatureViews(hostPath)(opts, project, undefined, featureService);
+    getFeatureViews(hostPath)(opts, project, undefined, featureService);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -200,7 +206,6 @@ describe('getFeatureViews', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with entity filter when entity is provided', () => {
@@ -209,7 +214,7 @@ describe('getFeatureViews', () => {
     const project = 'test-project';
     const entity = 'test-entity';
 
-    const result = getFeatureViews(hostPath)(opts, project, entity);
+    getFeatureViews(hostPath)(opts, project, entity);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -222,7 +227,6 @@ describe('getFeatureViews', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -235,7 +239,7 @@ describe('getFeatureServices', () => {
     const hostPath = 'test-host';
     const opts = { dryRun: true };
 
-    const result = getFeatureServices(hostPath)(opts);
+    getFeatureServices(hostPath)(opts);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -246,7 +250,6 @@ describe('getFeatureServices', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with project-specific endpoint when project is provided', () => {
@@ -254,7 +257,7 @@ describe('getFeatureServices', () => {
     const opts = { dryRun: true };
     const project = 'test-project';
 
-    const result = getFeatureServices(hostPath)(opts, project);
+    getFeatureServices(hostPath)(opts, project);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -267,7 +270,6 @@ describe('getFeatureServices', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with feature view filter when featureView is provided', () => {
@@ -276,7 +278,7 @@ describe('getFeatureServices', () => {
     const project = 'test-project';
     const featureView = 'test-feature-view';
 
-    const result = getFeatureServices(hostPath)(opts, project, featureView);
+    getFeatureServices(hostPath)(opts, project, featureView);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -289,7 +291,6 @@ describe('getFeatureServices', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -304,7 +305,7 @@ describe('getFeatureServiceByName', () => {
     const project = 'test-project';
     const featureServiceName = 'test-service';
 
-    const result = getFeatureServiceByName(hostPath)(opts, project, featureServiceName);
+    getFeatureServiceByName(hostPath)(opts, project, featureServiceName);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -317,7 +318,6 @@ describe('getFeatureServiceByName', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -332,7 +332,7 @@ describe('getFeatureViewByName', () => {
     const project = 'test-project';
     const featureViewName = 'test-feature-view';
 
-    const result = getFeatureViewByName(hostPath)(opts, project, featureViewName);
+    getFeatureViewByName(hostPath)(opts, project, featureViewName);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -345,7 +345,6 @@ describe('getFeatureViewByName', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should throw error when project is not provided', () => {
@@ -376,7 +375,7 @@ describe('getFeatures', () => {
     const hostPath = 'test-host';
     const opts = { dryRun: true };
 
-    const result = getFeatures(hostPath)(opts);
+    getFeatures(hostPath)(opts);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -387,7 +386,6 @@ describe('getFeatures', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 
   it('should call proxyGET with project-specific endpoint when project is provided', () => {
@@ -395,7 +393,7 @@ describe('getFeatures', () => {
     const opts = { dryRun: true };
     const project = 'test-project';
 
-    const result = getFeatures(hostPath)(opts, project);
+    getFeatures(hostPath)(opts, project);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -406,7 +404,6 @@ describe('getFeatures', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });
 
@@ -422,7 +419,7 @@ describe('getFeatureByName', () => {
     const featureViewName = 'test-feature-view';
     const featureName = 'test-feature';
 
-    const result = getFeatureByName(hostPath)(opts, project, featureViewName, featureName);
+    getFeatureByName(hostPath)(opts, project, featureViewName, featureName);
 
     expect(proxyGETMock).toHaveBeenCalledTimes(1);
     expect(proxyGETMock).toHaveBeenCalledWith(
@@ -435,6 +432,5 @@ describe('getFeatureByName', () => {
     );
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledTimes(1);
     expect(handleFeatureStoreFailuresMock).toHaveBeenCalledWith(mockProxyPromise);
-    expect(result).toBe(mockProxyPromise);
   });
 });

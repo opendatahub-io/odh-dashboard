@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import useFetch, {
   FetchStateCallbackPromise,
@@ -28,10 +27,10 @@ const useFeatureStoreEntities = (project?: string): FetchStateObject<EntityList>
       pagination: {
         page: 0,
         limit: 0,
-        total_count: 0,
-        total_pages: 0,
-        has_next: false,
-        has_previous: false,
+        totalCount: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       },
       relationships: {},
     },

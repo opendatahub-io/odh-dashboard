@@ -27,7 +27,7 @@ export type DataSource =
     };
 
 export type DataSources = {
-  data_sources: DataSource[];
+  dataSources: DataSource[];
 };
 
 export type StreamSource = {
@@ -167,7 +167,7 @@ export type GetFeatureViews = (
   entity?: string,
   featureService?: string,
   feature?: string,
-  data_source?: string,
+  dataSource?: string,
 ) => Promise<FeatureViewsList>;
 
 export type GetFeatureViewsByName = (

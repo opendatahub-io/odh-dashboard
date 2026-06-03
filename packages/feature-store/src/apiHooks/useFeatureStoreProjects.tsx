@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 import * as React from 'react';
 import { FetchStateObject } from '@odh-dashboard/internal/utilities/useFetch';
 import { FeatureStoreContext } from '../FeatureStoreContext';
