@@ -1,36 +1,10 @@
 // Modules -------------------------------------------------------------------->
 
 import * as z from 'zod';
-import type { S3ListObjectsResponse } from '#~/concepts/fileExplorer/types.ts';
-
-// Globals -------------------------------------------------------------------->
-
-/* eslint-disable camelcase */
-const S3ListObjectsResponseSchema = z.object({
-  common_prefixes: z.array(
-    z.object({
-      prefix: z.string(),
-    }),
-  ),
-  contents: z.array(
-    z.object({
-      key: z.string(),
-      size: z.number(),
-      last_modified: z.string().optional(),
-      etag: z.string().optional(),
-      storage_class: z.string().optional(),
-    }),
-  ),
-  is_truncated: z.boolean(),
-  key_count: z.number(),
-  max_keys: z.number(),
-  continuation_token: z.string().optional(),
-  delimiter: z.string().optional(),
-  name: z.string().optional(),
-  next_continuation_token: z.string().optional(),
-  prefix: z.string().optional(),
-});
-/* eslint-enable camelcase */
+import {
+  S3ListObjectsResponseSchema,
+  type S3ListObjectsResponse,
+} from '#~/concepts/fileExplorer/types.ts';
 
 // Types ---------------------------------------------------------------------->
 
