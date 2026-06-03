@@ -106,14 +106,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       // Error is injected into beforeMainContent, not as error prop
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
@@ -142,14 +135,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       // Error alert is in beforeMainContent slot, not error prop
       expect(screen.getByTestId('before-main-content')).toBeInTheDocument();
@@ -174,14 +160,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('error-severity')).toHaveTextContent('warning');
     });
@@ -204,14 +183,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       const retryButton = screen.getByTestId('retry-button');
       expect(retryButton).toBeInTheDocument();
@@ -240,14 +212,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('before-main-content')).toBeInTheDocument();
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
@@ -273,14 +238,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('message-content')).toBeInTheDocument();
       expect(screen.getByTestId('message-content')).toHaveTextContent('Response content here');
@@ -314,14 +272,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.queryByTestId('metrics')).not.toBeInTheDocument();
     });
@@ -350,14 +301,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('after-main-content')).toBeInTheDocument();
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
@@ -381,14 +325,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('message-content')).toHaveTextContent(
         'The capital of France is Par...',
@@ -407,14 +344,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('message-content')).toHaveTextContent('Normal response');
       expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
@@ -441,14 +371,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('end-content')).toBeInTheDocument();
       expect(screen.getByTestId('metrics')).toBeInTheDocument();
@@ -463,14 +386,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.queryByTestId('end-content')).not.toBeInTheDocument();
       expect(screen.queryByTestId('before-main-content')).not.toBeInTheDocument();
@@ -498,12 +414,7 @@ describe('ChatbotMessages', () => {
       ];
 
       const { container } = render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
+        <ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />,
       );
 
       // Check that Message component is called without these props
@@ -530,14 +441,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('metrics')).toBeInTheDocument();
       expect(screen.queryByTestId('chatbot-error-alert-msg-1')).not.toBeInTheDocument();
@@ -562,14 +466,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.queryByTestId('message-error')).not.toBeInTheDocument();
       expect(screen.getByTestId('message-content')).toHaveTextContent('User message');
@@ -618,14 +515,7 @@ describe('ChatbotMessages', () => {
         },
       ];
 
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading={false}
-
-        />,
-      );
+      render(<ChatbotMessages messageList={messages} scrollRef={scrollRef} isLoading={false} />);
 
       expect(screen.getByTestId('chatbot-error-alert-msg-1')).toBeInTheDocument();
       expect(screen.getByTestId('chatbot-error-alert-msg-2')).toBeInTheDocument();
