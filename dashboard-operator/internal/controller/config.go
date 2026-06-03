@@ -12,6 +12,7 @@ import (
 )
 
 const operatorConfigMapName = "dashboard-operator-config"
+const minReconcileInterval = 5 * time.Second
 
 // OperatorConfig holds internal controller flags read from a ConfigMap.
 // A missing or malformed ConfigMap results in zero-value defaults and
@@ -50,6 +51,8 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 		d, err := time.ParseDuration(v)
 		if err != nil {
 			logger.Error(err, "Invalid reconcileInterval in operator config", "value", v)
+		} else if d < minReconcileInterval {
+			logger.Error(nil, "reconcileInterval below minimum; ignoring", "value", v, "min", minReconcileInterval)
 		} else {
 			cfg.ReconcileInterval = d
 		}

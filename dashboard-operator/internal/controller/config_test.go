@@ -89,6 +89,17 @@ func TestReadOperatorConfig(t *testing.T) {
 			wantLogLevel:  "",
 			wantReconcile: 0,
 		},
+		{
+			name: "reconcile interval below minimum is ignored",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"reconcileInterval": "1ms",
+				},
+			},
+			wantLogLevel:  "",
+			wantReconcile: 0,
+		},
 	}
 
 	for _, tt := range tests {

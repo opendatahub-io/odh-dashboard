@@ -85,8 +85,8 @@ The rendering pipeline:
 
 A static map compiled into the controller binary defining each module's properties:
 
-| Module | Type | Container | Port | DSC Dependencies |
-|--------|------|-----------|------|-----------------|
+| Module | Type | Container | Port | Dependencies |
+|--------|------|-----------|------|--------------|
 | modelRegistry | BFF | model-registry-ui | 8043 | modelregistry |
 | genAi | BFF | gen-ai-ui | 8143 | (none) |
 | mlflow | BFF | mlflow-ui | 8343 | mlflowoperator |
@@ -96,6 +96,8 @@ A static map compiled into the controller binary defining each module's properti
 | automl | BFF | automl-ui | 8543 | (none) |
 | autorag | BFF | autorag-ui | 8643 | (none) |
 | perses | ProxyService | — | — | (observability spec) |
+
+Dependencies prefixed with `module:` are inter-module dependencies resolved in Pass 2; others are DSC component dependencies checked in Pass 1.
 
 ### Two-Pass Resolution Algorithm
 
