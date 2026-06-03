@@ -43,7 +43,7 @@ func applyKustomizeParams(dashboard *v1alpha1.Dashboard, manifests []render.Mani
 
 func extractDashboardURL(ctx context.Context, cli client.Client, namespace string, platform cluster.Platform) (string, error) {
 	if platform == cluster.XKS {
-		return "", ErrDashboardRouteNotReady
+		return "", nil
 	}
 
 	rl := &routev1.RouteList{}

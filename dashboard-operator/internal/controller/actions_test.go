@@ -79,10 +79,8 @@ func TestExtractDashboardURL(t *testing.T) {
 		wantErrIs bool
 	}{
 		{
-			name:      "xKS platform returns not ready",
-			platform:  cluster.XKS,
-			wantErr:   ErrDashboardRouteNotReady,
-			wantErrIs: true,
+			name:     "xKS platform returns empty URL without error",
+			platform: cluster.XKS,
 		},
 		{
 			name:      "no routes",
