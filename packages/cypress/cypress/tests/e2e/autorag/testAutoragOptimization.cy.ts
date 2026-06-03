@@ -5,7 +5,8 @@ import { provisionProjectForAutoX } from '../../../utils/autoXPipelines';
 import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
-import { autoragConfigurePage, autoragResultsPage } from '../../../pages/autorag';
+import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
+import { autoragResultsPage } from '../../../pages/autorag/resultsPage';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
@@ -97,7 +98,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   // Add @AutoRAGCI tag once the OGX operator is enabled on the CI cluster.
   it(
     'Can configure and submit an AutoRAG optimization run',
-    { tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization'] },
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@AutoRAGOptimization', '@Featureflagged'] },
     () => {
       configureAutoragRun(testData, projectName, uuid);
 
@@ -115,7 +116,7 @@ describe('AutoRAG Optimization E2E', { testIsolation: false }, () => {
   // leaderboard, pattern details, tabs, and notebook download.
   it(
     'Verify optimization run completes and results are interactive',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       cy.step('Navigate to the run results page');
       autoragResultsPage.findRunsTable().contains(testData.runName).click();

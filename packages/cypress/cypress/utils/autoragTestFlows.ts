@@ -1,6 +1,8 @@
 import { HTPASSWD_CLUSTER_ADMIN_USER } from './e2eUsers';
 import { waitForDspaReady } from './oc_commands/dspa';
-import { autoragExperimentsPage, autoragConfigurePage, autoragResultsPage } from '../pages/autorag';
+import { autoragExperimentsPage } from '../pages/autorag/experimentsPage';
+import { autoragConfigurePage } from '../pages/autorag/configurePage';
+import { autoragResultsPage } from '../pages/autorag/resultsPage';
 import type { AutoragTestData } from '../types';
 
 const RESOURCES_PATH = 'resources/autorag';

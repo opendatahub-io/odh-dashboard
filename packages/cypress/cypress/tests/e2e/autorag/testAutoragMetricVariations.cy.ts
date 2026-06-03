@@ -6,7 +6,7 @@ import { createOgxSecret } from '../../../utils/oc_commands/ogxSecret';
 import { retryableBefore } from '../../../utils/retryableHooks';
 import { generateTestUUID } from '../../../utils/uuidGenerator';
 import type { AutoragTestData } from '../../../types';
-import { autoragConfigurePage } from '../../../pages/autorag';
+import { autoragConfigurePage } from '../../../pages/autorag/configurePage';
 import { isAutoragEnabled, setAutoragEnabled } from '../../../utils/oc_commands/autoX';
 import { allowOgxAccess, removeOgxAccess } from '../../../utils/oc_commands/ogxNetworkPolicy';
 import {
@@ -87,7 +87,7 @@ describe('AutoRAG Metric Variations E2E', () => {
 
   it(
     'Can submit a run with answer_correctness metric',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(testData, projectName, uuid);
 
@@ -107,7 +107,7 @@ describe('AutoRAG Metric Variations E2E', () => {
 
   it(
     'Can submit a run with faithfulness metric',
-    { tags: ['@AutoRAG', '@AutoRAGRegression'] },
+    { tags: ['@AutoRAG', '@AutoRAGRegression', '@Featureflagged'] },
     () => {
       configureAutoragRun(
         { ...testData, runName: `${testData.runName}-faith` },

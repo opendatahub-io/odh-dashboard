@@ -41,11 +41,11 @@ class AutoragResultsPage {
   }
 
   findManageColumnsCancelButton() {
-    return cy.findByRole('dialog').findByRole('button', { name: 'Cancel' });
+    return cy.get('[data-ouia-component-id="ColumnManagementModal-cancel-button"]');
   }
 
   findManageColumnsSaveButton() {
-    return cy.findByRole('dialog').findByRole('button', { name: 'Save' });
+    return cy.get('[data-ouia-component-id="ColumnManagementModal-save-button"]');
   }
 
   findTopRankLabel() {
