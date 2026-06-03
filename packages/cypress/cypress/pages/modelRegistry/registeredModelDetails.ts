@@ -67,15 +67,39 @@ class RegisteredModelDetails {
     // Wait for the expandable section to contain a visible table
     // The table is conditionally rendered only when properties exist
     this.findPropertiesExpandableSection().within(() => {
+      // Step 1: Wait for table to exist and be visible
       cy.findByTestId('properties-table', { timeout: 10000 }).should('be.visible');
-      // Wait for table to have content (tbody with rows) before searching for specific properties
+
+      // Step 2: Wait for table body rows to exist (structure is rendered)
       cy.findByTestId('properties-table').find('tbody tr').should('have.length.at.least', 1);
-      // Wait for the actual property content to be visible within the table
-      // Use .within() to scope the search to the properties table
-      cy.findByTestId('properties-table').within(() => {
-        cy.contains(key, { timeout: 10000 }).should('be.visible');
-        cy.contains(value, { timeout: 10000 }).should('be.visible');
-      });
+
+      // Step 3: Wait for the first table cell to be visible (ensures CSS rendering complete)
+      cy.findByTestId('properties-table').find('tbody tr td').first().should('be.visible');
+
+      // Step 4: Wait for property data to load from database and be visible in the table
+      // Use a custom retry mechanism that accounts for DB-to-UI propagation delays
+      // This is critical for CI environments where DB queries may be slower
+      cy.findByTestId('properties-table')
+        .find('tbody')
+        .should(($tbody) => {
+          // Get all text content from the table body
+          const tableText = $tbody.text();
+          // Assert both key and value are present and visible in the table
+          // Cypress will retry this assertion until it passes or times out
+          expect(tableText).to.include(key);
+          expect(tableText).to.include(value);
+        });
+
+      // Step 5: Double-check that the specific elements containing key and value are visible
+      // This ensures the content isn't just in the DOM but actually rendered and visible
+      cy.findByTestId('properties-table')
+        .find('tbody')
+        .contains(key, { timeout: 10000 })
+        .should('be.visible');
+      cy.findByTestId('properties-table')
+        .find('tbody')
+        .contains(value, { timeout: 10000 })
+        .should('be.visible');
     });
     return this;
   }
