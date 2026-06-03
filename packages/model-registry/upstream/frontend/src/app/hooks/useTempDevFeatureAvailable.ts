@@ -24,7 +24,6 @@ declare global {
 
 export enum TempDevFeature {
   CatalogHuggingFaceApiKey = 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  ToolCallingConfiguration = 'tempDevToolCallingConfigurationFeatureAvailable',
 }
 
 export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => {

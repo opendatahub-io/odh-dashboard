@@ -12,6 +12,7 @@ import {
   MODEL_CATALOG_MIDDLE_EASTERN_AND_OTHER_LANGUAGES_DETAILS,
   ModelCatalogTensorType,
 } from '~/concepts/modelCatalog/const';
+import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import {
   CatalogFilterPanel,
   useCatalogFilterConfigs,
@@ -46,6 +47,19 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 const ModelCatalogFilters: React.FC = () => {
   const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filterData, setFilterData } =
     React.useContext(ModelCatalogContext);
+  const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
+
+  React.useEffect(() => {
+    if (
+      !toolCallingFeatureAvailable &&
+      filterData[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
+    ) {
+      setFilterData(ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION, []);
+    }
+    // Only react to flag changes — including filterData would cause an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toolCallingFeatureAvailable]);
+
   const onFilterChange = React.useCallback(
     (key: string, values: string[]) => {
       const match = BASIC_STRING_FILTER_KEYS.find((k) => k === key);
@@ -86,6 +100,7 @@ const ModelCatalogFilters: React.FC = () => {
         const hasSelection = item.selectedValues.length > 0;
         return {
           ...itemWithTestIds,
+          visible: toolCallingFeatureAvailable,
           footer:
             hasMultiple && hasSelection ? (
               <Content component={ContentVariants.small} className="pf-v6-u-mt-sm">
@@ -96,7 +111,7 @@ const ModelCatalogFilters: React.FC = () => {
       }
       return itemWithTestIds;
     });
-  }, [baseFilterItems]);
+  }, [baseFilterItems, toolCallingFeatureAvailable]);
 
   return (
     <CatalogFilterPanel

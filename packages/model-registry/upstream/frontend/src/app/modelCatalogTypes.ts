@@ -16,7 +16,7 @@ import {
 import type {
   CatalogFilterStringOption,
   CatalogFilterNumberOption,
-} from './shared/components/catalog';
+} from './shared/components/catalog/types/catalogFilterTypes';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
