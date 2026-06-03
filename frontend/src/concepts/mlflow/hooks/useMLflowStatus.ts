@@ -22,10 +22,12 @@ const TEARDOWN_GRACE_MS = 1000;
 
 export const useMLflowStatus = (() => {
   let lastPollErrored = false;
+  let hadSuccessfulResponse = false;
 
   return createSharedPollingStore<MLflowStatus>({
     fetchFn: async () => {
       const response = await axios.get<{ configured: boolean }>(STATUS_ENDPOINT);
+      hadSuccessfulResponse = true;
       if (lastPollErrored) {
         lastPollErrored = false;
         // eslint-disable-next-line no-console
@@ -45,13 +47,14 @@ export const useMLflowStatus = (() => {
       }
       // Mark loaded so consumers (e.g. embedded Experiments page) do not spin forever on first failure.
       // Only surface error when we have no prior successful status (transient failures keep last good state).
-      if (!previous.loaded) {
+      if (!hadSuccessfulResponse) {
         return { ...previous, loaded: true, error: true };
       }
       return { ...previous, loaded: true, error: false };
     },
     onReset: () => {
       lastPollErrored = false;
+      hadSuccessfulResponse = false;
     },
   });
 })();
