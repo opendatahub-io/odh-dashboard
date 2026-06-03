@@ -1,6 +1,11 @@
 import { NIMPVCStorageMode, type NIMPVCFieldValue } from './NIMPVCField';
 import type { NIMDeployment } from '../../../api/nimservices/types';
 
+const normalizeSubPath = (subPath: string): string | undefined => {
+  const stripped = subPath.replace(/^\//, '');
+  return stripped || undefined;
+};
+
 export const applyNIMPVCFieldData = (
   deployment: NIMDeployment,
   fieldData: NIMPVCFieldValue,
@@ -13,7 +18,7 @@ export const applyNIMPVCFieldData = (
       storage: {
         pvc: {
           name: fieldData.pvcName,
-          subPath: fieldData.subPath || undefined,
+          subPath: normalizeSubPath(fieldData.subPath),
         },
       },
     },
@@ -28,7 +33,7 @@ export const extractNIMPVCFieldData = (deployment: NIMDeployment): NIMPVCFieldVa
   return {
     storageMode: NIMPVCStorageMode.EXISTING,
     pvcName: pvc.name,
-    subPath: pvc.subPath ?? '/',
+    subPath: pvc.subPath ?? '',
     storageClassName: pvc.storageClassName ?? '',
     storageSizeGi: pvc.size ? parseInt(pvc.size, 10) : 50,
   };

@@ -49,7 +49,9 @@ export const nimPVCPreDeploy = async (
         storage: {
           pvc: {
             name: pvc.metadata.name,
-            subPath: fieldData.subPath || undefined,
+            subPath: fieldData.subPath
+              ? fieldData.subPath.replace(/^\//, '') || undefined
+              : undefined,
           },
         },
       },

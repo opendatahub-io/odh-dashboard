@@ -37,7 +37,7 @@ export type NIMPVCFieldValue = {
   storageSizeGi: number;
 };
 
-const DEFAULT_SUBPATH = '/';
+const DEFAULT_SUBPATH = '';
 const DEFAULT_STORAGE_SIZE_GI = 50;
 const MIN_STORAGE_SIZE_GI = 1;
 
@@ -440,7 +440,7 @@ export const NIMPVCFieldWizardField: NIMPVCFieldType = {
           label: 'Subpath',
           value: () => value.subPath || '-',
           optional: true,
-          isVisible: () => !!value.subPath && value.subPath !== '/',
+          isVisible: () => !!value.subPath,
         },
         {
           key: 'storageClass',
