@@ -16,7 +16,10 @@ import {
   ModelRegistryFilterDataType,
   ModelRegistryVersionsFilterDataType,
 } from '~/app/pages/modelRegistry/screens/const';
-import { CatalogModelCustomPropertyKey } from '~/concepts/modelCatalog/const';
+import {
+  CatalogModelCustomPropertyKey,
+  DEPLOYMENT_RESOURCE_PREFIXES,
+} from '~/concepts/modelCatalog/const';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -273,7 +276,10 @@ export const getLatestVersionForRegisteredModel = (
   return latestVersion;
 };
 
-export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+const isDeploymentResource = (entry: string): boolean =>
+  DEPLOYMENT_RESOURCE_PREFIXES.some((prefix) => entry.toLowerCase().startsWith(prefix));
+
+const getValidatedOnEntries = <T extends ModelRegistryCustomProperties>(
   customProperties: T | undefined,
 ): string[] => {
   if (!customProperties) {
@@ -302,3 +308,12 @@ export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>
     return [];
   }
 };
+
+export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] =>
+  getValidatedOnEntries(customProperties).filter((entry) => !isDeploymentResource(entry));
+
+export const getValidatedDeploymentResources = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] => getValidatedOnEntries(customProperties).filter(isDeploymentResource);
