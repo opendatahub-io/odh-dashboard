@@ -25,11 +25,13 @@ module.exports = ({
   title = 'App Shell',
   additionalIncludes = [],
 } = {}) => {
-  const resolvedOutputDir = outputDir || path.resolve(path.dirname(distributionSrcDir), 'public');
+  const normalizedDistDir = path.resolve(distributionSrcDir);
+  const normalizedIncludes = additionalIncludes.map((p) => path.resolve(p));
+  const resolvedOutputDir = outputDir || path.resolve(path.dirname(normalizedDistDir), 'public');
 
   return {
     entry: {
-      app: path.join(distributionSrcDir, 'index.tsx'),
+      app: path.join(normalizedDistDir, 'index.tsx'),
     },
     module: {
       rules: [
@@ -37,11 +39,11 @@ module.exports = ({
           test: /\.(tsx|ts|jsx|js)?$/,
           exclude: /node_modules/,
           include: [
-            distributionSrcDir,
+            normalizedDistDir,
             BASE_SRC_DIR,
             PLUGIN_CORE_DIR,
             INTERNAL_DIR,
-            ...additionalIncludes,
+            ...normalizedIncludes,
           ],
           use: [{ loader: 'swc-loader' }],
         },
@@ -78,7 +80,7 @@ module.exports = ({
         {
           test: /\.(jpg|jpeg|png|gif)$/i,
           include: [
-            distributionSrcDir,
+            normalizedDistDir,
             BASE_SRC_DIR,
             path.resolve(REPO_ROOT, 'node_modules/@patternfly/patternfly/assets/images'),
           ],
@@ -107,7 +109,7 @@ module.exports = ({
     },
     plugins: [
       new HtmlWebpackPlugin({
-        template: path.join(distributionSrcDir, 'index.html'),
+        template: path.join(normalizedDistDir, 'index.html'),
         title,
       }),
     ],
