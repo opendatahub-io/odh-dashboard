@@ -34,6 +34,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // no-op: storage unavailable
     }
     setThemeState(t);
+    window.dispatchEvent(new CustomEvent('odh-theme-change', { detail: { theme: t } }));
   }, []);
 
   useEffect(() => {

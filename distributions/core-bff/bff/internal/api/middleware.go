@@ -12,8 +12,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"github.com/rs/cors"
 )
 
@@ -31,9 +32,18 @@ func (app *App) RecoverPanic(next http.Handler) http.Handler {
 	})
 }
 
+func requiresAuth(path string) bool {
+	return strings.HasPrefix(path, APIPathPrefix) ||
+		strings.HasPrefix(path, PathPrefix+APIPathPrefix) ||
+		strings.HasPrefix(path, proxy.K8sProxyPrefix) ||
+		strings.HasPrefix(path, PathPrefix+proxy.K8sProxyPrefix) ||
+		strings.HasPrefix(path, proxy.WssProxyPrefix) ||
+		strings.HasPrefix(path, PathPrefix+proxy.WssProxyPrefix)
+}
+
 func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, ApiPathPrefix) && !strings.HasPrefix(r.URL.Path, PathPrefix+ApiPathPrefix) {
+		if !requiresAuth(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -83,15 +93,15 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Adds a unique id to the context to allow tracing of requests
-		traceId := uuid.NewString()
-		ctx := context.WithValue(r.Context(), constants.TraceIdKey, traceId)
+		traceID := uuid.NewString()
+		ctx := context.WithValue(r.Context(), constants.TraceIDKey, traceID)
 
 		// logger will only be nil in tests.
 		if app.logger != nil {
-			traceLogger := app.logger.With(slog.String("trace_id", traceId))
+			traceLogger := app.logger.With(slog.String("trace_id", traceID))
 			ctx = context.WithValue(ctx, constants.TraceLoggerKey, traceLogger)
 
-			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helper.RequestLogValuer{Request: r}))
+			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helpers.RequestLogValuer{Request: r}))
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

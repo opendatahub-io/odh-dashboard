@@ -12,6 +12,35 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ tab: mockTab }),
 }));
 
+jest.mock('~/app/hooks/useApiKeysPageLoad', () => ({
+  useApiKeysPageLoad: () => ({
+    loadError: undefined,
+    loaded: true,
+    hasAnyApiKeys: true,
+    existenceLoaded: true,
+    isMaasAdmin: false,
+    isMaasAdminLoaded: true,
+    // eslint-disable-next-line camelcase
+    response: { data: [], has_more: false, object: 'list' },
+    refreshAll: jest.fn(),
+    filterData: { username: '', statuses: [] },
+    localUsername: '',
+    setLocalUsername: jest.fn(),
+    page: 1,
+    perPage: 50,
+    sortField: 'created_at',
+    sortDirection: 'desc',
+    isFetching: false,
+    onUsernameChange: jest.fn(),
+    onStatusToggle: jest.fn(),
+    onStatusClear: jest.fn(),
+    onSort: jest.fn(),
+    onSetPage: jest.fn(),
+    onPerPageSelect: jest.fn(),
+    onClearFilters: jest.fn(),
+  }),
+}));
+
 jest.mock('~/app/pages/api-keys/ApiKeysTab', () => {
   const MockApiKeysTab = () => <div data-testid="mock-api-keys-tab">ApiKeysTab</div>;
   MockApiKeysTab.displayName = 'MockApiKeysTab';

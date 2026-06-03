@@ -2,8 +2,10 @@ package repositories
 
 import "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 
+// HealthCheckRepository handles health check operations.
 type HealthCheckRepository struct{}
 
+// NewHealthCheckRepository creates a new HealthCheckRepository instance.
 func NewHealthCheckRepository() *HealthCheckRepository {
 	return &HealthCheckRepository{}
 }
