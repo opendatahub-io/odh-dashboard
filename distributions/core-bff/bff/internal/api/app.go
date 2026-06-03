@@ -1,3 +1,4 @@
+// Package api implements the Core BFF HTTP server, routing, and middleware.
 package api
 
 import (
@@ -5,19 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"path"
-	"strings"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient/bffmocks"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	k8mocks "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes/k8mocks"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/proxy"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
@@ -26,20 +26,33 @@ import (
 )
 
 const (
-	Version            = "1.0.0"
-	PathPrefix         = "/core-bff"
-	ApiPathPrefix      = "/api"
-	ApiVersion         = "/v1"
-	HealthCheckPath    = "/healthcheck"
-	ApiHealthCheckPath = ApiPathPrefix + ApiVersion + "/healthcheck"
-	UserPath           = ApiPathPrefix + ApiVersion + "/user"
-	NamespacePath      = ApiPathPrefix + ApiVersion + "/namespaces"
-	OpenAPIPath        = PathPrefix + "/openapi"
-	OpenAPIJSONPath    = PathPrefix + "/openapi.json"
-	OpenAPIYAMLPath    = PathPrefix + "/openapi.yaml"
-	SwaggerUIPath      = PathPrefix + "/swagger-ui"
+	// Version is the current BFF version string.
+	Version = "1.0.0"
+	// PathPrefix is the URL prefix for BFF-scoped paths.
+	PathPrefix = "/core-bff"
+	// APIPathPrefix is the base API path prefix.
+	APIPathPrefix = "/api"
+	// APIVersion is the API version path segment.
+	APIVersion = "/v1"
+	// HealthCheckPath is the health check endpoint path.
+	HealthCheckPath = "/healthcheck"
+	// APIHealthCheckPath is the full API health check path.
+	APIHealthCheckPath = APIPathPrefix + APIVersion + "/healthcheck"
+	// UserPath is the user endpoint path.
+	UserPath = APIPathPrefix + APIVersion + "/user"
+	// NamespacePath is the namespaces endpoint path.
+	NamespacePath = APIPathPrefix + APIVersion + "/namespaces"
+	// OpenAPIPath is the OpenAPI spec endpoint path.
+	OpenAPIPath = PathPrefix + "/openapi"
+	// OpenAPIJSONPath is the OpenAPI JSON spec endpoint path.
+	OpenAPIJSONPath = PathPrefix + "/openapi.json"
+	// OpenAPIYAMLPath is the OpenAPI YAML spec endpoint path.
+	OpenAPIYAMLPath = PathPrefix + "/openapi.yaml"
+	// SwaggerUIPath is the Swagger UI endpoint path.
+	SwaggerUIPath = PathPrefix + "/swagger-ui"
 )
 
+// App holds the BFF application state and dependencies.
 type App struct {
 	config                  config.EnvConfig
 	logger                  *slog.Logger
@@ -55,6 +68,12 @@ type App struct {
 	openAPI *OpenAPIHandler
 	// clusterInfo holds startup-time cluster metadata (best-effort, defaults on vanilla K8s)
 	clusterInfo clusterInfo
+	// k8sProxy handles /api/k8s/* HTTP passthrough to the K8s API server
+	k8sProxy http.Handler
+	// wsTracker manages active WebSocket connections and stale cleanup
+	wsTracker *proxy.ConnectionTracker
+	// wsProxy handles /wss/k8s/* WebSocket relay to the K8s API server
+	wsProxy http.Handler
 }
 
 type k8sSetupResult struct {
@@ -63,6 +82,7 @@ type k8sSetupResult struct {
 	clientset kubernetes.Interface
 }
 
+// NewApp creates a new BFF application instance with all dependencies initialized.
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	logger.Debug("Initializing app with config", slog.Any("config", cfg))
 
@@ -81,7 +101,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		return nil, fmt.Errorf("failed to initialize OpenAPI handler: %w", err)
 	}
 
-	return &App{
+	app := &App{
 		config:                  cfg,
 		logger:                  logger,
 		kubernetesClientFactory: k8sResult.factory,
@@ -91,45 +111,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffClientFactory:        bffFactory,
 		openAPI:                 openAPIHandler,
 		clusterInfo:             ci,
-	}, nil
-}
-
-func initRootCAs(bundlePaths []string, logger *slog.Logger) *x509.CertPool {
-	if len(bundlePaths) == 0 {
-		return nil
 	}
 
-	var rootCAs *x509.CertPool
-	if pool, err := x509.SystemCertPool(); err == nil {
-		rootCAs = pool
-	} else {
-		rootCAs = x509.NewCertPool()
+	if err := app.initK8sProxy(cfg, k8sResult); err != nil {
+		_ = app.Shutdown()
+		return nil, fmt.Errorf("failed to initialize K8s proxy: %w", err)
 	}
 
-	var loadedAny bool
-	for _, p := range bundlePaths {
-		p = strings.TrimSpace(p)
-		if p == "" {
-			continue
-		}
-		pemBytes, readErr := os.ReadFile(p)
-		if readErr != nil {
-			logger.Debug("CA bundle not readable, skipping", slog.String("path", p), slog.Any("error", readErr))
-			continue
-		}
-		if ok := rootCAs.AppendCertsFromPEM(pemBytes); !ok {
-			logger.Debug("No certs appended from PEM bundle", slog.String("path", p))
-			continue
-		}
-		loadedAny = true
-		logger.Info("Added CA bundle", slog.String("path", p))
-	}
-
-	if !loadedAny {
-		logger.Warn("No CA certificates loaded from bundle-paths; falling back to system defaults")
-		return nil
-	}
-	return rootCAs
+	return app, nil
 }
 
 func initKubernetesClients(cfg config.EnvConfig, logger *slog.Logger) (k8sSetupResult, error) {
@@ -161,7 +150,7 @@ func initStartupClusterInfo(cfg config.EnvConfig, k8sResult k8sSetupResult, logg
 		return queryClusterInfo(k8sResult.clientset, dynClient, logger)
 	}
 
-	kubeconfig, kcErr := helper.GetKubeconfig()
+	kubeconfig, kcErr := helpers.GetKubeconfig()
 	if kcErr != nil {
 		logger.Warn("Failed to get kubeconfig for startup queries", slog.Any("error", kcErr))
 		return ci
@@ -193,10 +182,12 @@ func initBFFClientFactory(cfg config.EnvConfig, rootCAs *x509.CertPool, logger *
 
 func (app *App) Shutdown() error {
 	app.logger.Info("shutting down app...")
+	if app.wsTracker != nil {
+		app.wsTracker.Stop()
+	}
 	if app.testEnv == nil {
 		return nil
 	}
-	//shutdown the envtest control plane when we are in the mock mode.
 	app.logger.Info("shutting env test...")
 	return app.testEnv.Stop()
 }
@@ -209,7 +200,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(ApiHealthCheckPath, app.HealthcheckHandler)
+	apiRouter.GET(APIHealthCheckPath, app.HealthcheckHandler)
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 
@@ -217,17 +208,30 @@ func (app *App) Routes() http.Handler {
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(ApiPathPrefix+"/", apiRouter)
-	appMux.Handle(PathPrefix+ApiPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
-	appMux.HandleFunc(ApiPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+	appMux.Handle(APIPathPrefix+"/", apiRouter)
+	appMux.Handle(PathPrefix+APIPathPrefix+"/", http.StripPrefix(PathPrefix, apiRouter))
+	appMux.HandleFunc(APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
 		app.notFoundResponse(w, r)
 	})
+	appMux.HandleFunc(PathPrefix+APIPathPrefix, func(w http.ResponseWriter, r *http.Request) {
+		app.notFoundResponse(w, r)
+	})
+
+	// K8s API proxy and WebSocket proxy
+	if app.k8sProxy != nil {
+		appMux.Handle(proxy.K8sProxyPrefix, app.k8sProxy)
+		appMux.Handle(PathPrefix+proxy.K8sProxyPrefix, http.StripPrefix(PathPrefix, app.k8sProxy))
+	}
+	if app.wsProxy != nil {
+		appMux.Handle(proxy.WssProxyPrefix, app.wsProxy)
+		appMux.Handle(PathPrefix+proxy.WssProxyPrefix, http.StripPrefix(PathPrefix, app.wsProxy))
+	}
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ctxLogger := helper.GetContextLoggerFromReq(r)
+		ctxLogger := helpers.GetContextLoggerFromReq(r)
 		// Check if the requested file exists
 		if _, err := staticDir.Open(r.URL.Path); err == nil {
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
