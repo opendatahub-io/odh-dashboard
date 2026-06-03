@@ -1,5 +1,5 @@
 import React from 'react';
-import { Checkbox, Stack, StackItem } from '@patternfly/react-core';
+import { Checkbox, Flex, FlexItem, Stack, StackItem } from '@patternfly/react-core';
 import { z } from 'zod';
 import type {
   WizardField,
@@ -38,8 +38,17 @@ const MaaSField: React.FC<MaaSFieldProps> = ({ id, value, onChange, isDisabled }
         <Checkbox
           id={id}
           data-testid={id}
-          label={<span className="pf-v6-c-form__label-text">Publish as MaaS</span>}
-          description="Publishing as MaaS makes the model deployment endpoint accessible to others as a service through a gateway API."
+          label={
+            <>
+              <div className="pf-v6-c-form__label-text">Publish as MaaS</div>
+              <Flex>
+                <FlexItem>
+                  Publishing as MaaS makes the model deployment endpoint accessible to others as a
+                  service through a gateway API.
+                </FlexItem>
+              </Flex>
+            </>
+          }
           isChecked={value?.isChecked}
           isDisabled={isDisabled}
           onChange={handleCheckboxChange}
