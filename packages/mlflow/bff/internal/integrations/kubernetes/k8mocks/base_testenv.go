@@ -20,8 +20,15 @@ const (
 	nsDora    = "dora-namespace"
 	nsGiulio  = "giulio-namespace"
 	nsBento   = "bento-namespace"
+	nsODH     = "opendatahub"
 	rbacGroup = "rbac.authorization.k8s.io"
 )
+
+// MockGlobalNamespaces returns the global namespaces injected in mock mode,
+// matching the pattern used by MLflow CR mock (bypass CR discovery, inject directly).
+func MockGlobalNamespaces() []string {
+	return []string{nsDora}
+}
 
 // DefaultTestUsers provides pre-configured test users for envtest scenarios.
 var DefaultTestUsers = []TestUser{
@@ -97,7 +104,7 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, kubernetes.Interfac
 }
 
 func setupMock(ctx context.Context, mockK8sClient kubernetes.Interface) error {
-	namespaces := []string{nsMLflow, nsDora, nsGiulio, nsBento}
+	namespaces := []string{nsMLflow, nsDora, nsGiulio, nsBento, nsODH}
 	for _, ns := range namespaces {
 		if err := createNamespace(ctx, mockK8sClient, ns); err != nil {
 			return err

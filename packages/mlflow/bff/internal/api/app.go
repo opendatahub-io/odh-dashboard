@@ -56,6 +56,13 @@ type App struct {
 	testEnv                 *envtest.Environment     // used only with mocked k8s client
 	rootCAs                 *x509.CertPool           // custom CA pool for outbound TLS connections
 	mlflowState             *mlflowmocks.MLflowState // set when MockHTTPClient starts a child MLflow via uv
+
+	// Global namespace config (cached, polled from OdhDashboardConfig CR)
+	dashboardConfigReader *k8s.DashboardConfigReader
+	globalNamespacesMu    sync.RWMutex
+	globalNamespaces      []string
+	globalNsWatcherDone   chan struct{}
+	globalNsWatcherWg     sync.WaitGroup
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -93,6 +100,20 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 
 	if app.shouldWatchMLflow() {
 		app.startMLflowWatcher()
+	}
+
+	if cfg.MockK8Client {
+		app.globalNamespaces = k8mocks.MockGlobalNamespaces()
+	} else if app.shouldWatchGlobalNamespaces() {
+		reader, err := k8s.NewDashboardConfigReader(logger)
+		if err != nil {
+			logger.Warn("Dashboard config reader unavailable, global namespace prompts disabled",
+				slog.Any("error", err))
+		} else {
+			app.dashboardConfigReader = reader
+			app.refreshGlobalNamespaces()
+			app.startGlobalNamespaceWatcher()
+		}
 	}
 
 	return app, nil
@@ -160,6 +181,11 @@ func (app *App) Shutdown() error {
 	app.shutdownOnce.Do(func() {
 		app.logger.Info("shutting down app...")
 
+		if app.globalNsWatcherDone != nil {
+			close(app.globalNsWatcherDone)
+			app.globalNsWatcherWg.Wait()
+		}
+
 		if app.mlflowWatcherDone != nil {
 			close(app.mlflowWatcherDone)
 			app.mlflowWatcherWg.Wait()
@@ -192,8 +218,6 @@ func (app *App) Routes() http.Handler {
 	// MLflow API routes
 	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
 	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
-
-	// Prompt Registry routes
 	apiRouter.GET(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
 	apiRouter.POST(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
 	apiRouter.GET(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))

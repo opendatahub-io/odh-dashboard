@@ -75,12 +75,24 @@ describe('MLflow API Contract Tests', () => {
       await apiClient.delete(promptUrl(promptName)).catch(() => undefined);
     });
 
-    it('should list registered prompts', async () => {
+    it('should list registered prompts with scope annotation', async () => {
       const result = await apiClient.get(promptUrl());
       expect(result).toMatchContract(apiSchema, {
         ref: '#/components/responses/PromptsResponse/content/application/json/schema',
         status: 200,
       });
+      expect(result.success).toBe(true);
+
+      const envelope = result.response.data as {
+        data?: { prompts?: Array<{ scope?: { type: string } }> };
+      };
+      const prompts = envelope.data?.prompts ?? [];
+      expect(prompts.length).toBeGreaterThan(0);
+
+      const hasProjectScope = prompts.some((p) => p.scope?.type === 'project');
+      const hasGlobalScope = prompts.some((p) => p.scope?.type === 'global');
+      expect(hasProjectScope).toBe(true);
+      expect(hasGlobalScope).toBe(true);
     });
 
     it('should register a new prompt', async () => {
@@ -145,6 +157,75 @@ describe('MLflow API Contract Tests', () => {
         ref: '#/components/responses/NoContent',
         status: 204,
       });
+    });
+
+    it('should return 400 when registering a prompt with invalid name', async () => {
+      const result = await apiClient.post(promptUrl(), {
+        name: '/invalid/name',
+        template: 'Hello',
+        // eslint-disable-next-line camelcase
+        commit_message: 'test',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when registering a prompt without content', async () => {
+      const result = await apiClient.post(promptUrl(), {
+        name: 'valid-name',
+        // eslint-disable-next-line camelcase
+        commit_message: 'test',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when loading a prompt with invalid version', async () => {
+      const result = await apiClient.get(`${promptUrl(promptName)}&version=notanumber`);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
+    });
+
+    it('should return 400 when loading a prompt with non-positive version', async () => {
+      const result = await apiClient.get(`${promptUrl(promptName)}&version=0`);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.status).toBe(400);
+        expect({
+          status: result.error.status,
+          data: result.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/BadRequest/content/application~1json/schema',
+          status: 400,
+        });
+      }
     });
   });
 });

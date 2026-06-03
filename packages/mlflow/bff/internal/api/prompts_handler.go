@@ -1,37 +1,111 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
+	"github.com/opendatahub-io/mlflow/bff/internal/constants"
+	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/mlflow/bff/internal/models"
 )
 
 var validPromptName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
 
-type PromptsEnvelope = Envelope[models.MLflowPromptsResponse, None]
-type PromptVersionEnvelope = Envelope[models.MLflowPromptVersion, None]
-type PromptVersionsEnvelope = Envelope[models.MLflowPromptVersionsResponse, None]
+func validatePromptName(name string) error {
+	if name == "" || !validPromptName.MatchString(name) {
+		return fmt.Errorf("invalid prompt name %q: must start with an alphanumeric character and contain only alphanumerics, hyphens, underscores, or dots", name)
+	}
+	return nil
+}
 
-// MLflowListPromptsHandler handles GET /api/v1/prompts
+type PromptsEnvelope = Envelope[models.PromptsResponse, None]
+type PromptVersionEnvelope = Envelope[models.PromptVersion, None]
+type PromptVersionsEnvelope = Envelope[models.PromptVersionsResponse, None]
+
+const globalNamespaceFetchTimeout = 10 * time.Second
+
+// MLflowListPromptsHandler returns all prompts from the user's workspace and
+// any configured global namespaces, annotated with scope and sorted by name.
+//
+// TODO(RHOAIUX-2614): pagination is deferred until UX designs clarify how
+// project and global prompts should be paginated.
 func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	pageToken := r.URL.Query().Get("page_token")
-	maxResults := r.URL.Query().Get("max_results")
 	nameFilter := r.URL.Query().Get("filter_name")
+	workspace := r.URL.Query().Get("workspace")
+	globalNamespaces := app.getGlobalNamespaces()
 
-	result, err := app.repositories.Prompts.ListPrompts(ctx, pageToken, maxResults, nameFilter)
-	if err != nil {
-		app.handleMLflowClientError(w, r, err)
+	app.logger.Debug("listing prompts",
+		slog.String("workspace", workspace),
+		slog.String("filter_name", nameFilter),
+		slog.Int("global_namespaces", len(globalNamespaces)))
+
+	type projectResult struct {
+		resp *models.PromptsResponse
+		err  error
+	}
+	projectCh := make(chan projectResult, 1)
+	go func() {
+		noPageToken, noMaxResults := "", ""
+		resp, err := app.repositories.Prompts.ListPrompts(ctx, noPageToken, noMaxResults, nameFilter)
+		projectCh <- projectResult{resp, err}
+	}()
+
+	type globalResult struct {
+		prompts []models.Prompt
+		failed  []string
+	}
+	globalCh := make(chan globalResult, 1)
+	if len(globalNamespaces) > 0 {
+		go func() {
+			p, f := app.fetchGlobalPrompts(r, globalNamespaces, nameFilter)
+			globalCh <- globalResult{p, f}
+		}()
+	} else {
+		globalCh <- globalResult{}
+	}
+
+	pr := <-projectCh
+	if pr.err != nil {
+		app.handleMLflowClientError(w, r, pr.err)
 		return
 	}
+	if pr.resp == nil {
+		pr.resp = &models.PromptsResponse{}
+	}
+	result := pr.resp
+
+	gr := <-globalCh
+
+	for i := range result.Prompts {
+		result.Prompts[i].Scope = models.PromptScope{
+			Type:      models.PromptScopeProject,
+			Namespace: workspace,
+		}
+	}
+
+	result.Prompts = append(result.Prompts, gr.prompts...)
+	result.FailedNamespaces = gr.failed
+
+	sort.SliceStable(result.Prompts, func(i, j int) bool {
+		if result.Prompts[i].Name != result.Prompts[j].Name {
+			return result.Prompts[i].Name < result.Prompts[j].Name
+		}
+		return result.Prompts[i].Scope.Namespace < result.Prompts[j].Scope.Namespace
+	})
 
 	response := PromptsEnvelope{Data: *result}
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
@@ -39,22 +113,81 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// fetchGlobalPrompts queries global namespaces in parallel using the user's
+// token for RBAC. Each namespace gets a 10s timeout. Failed queries are skipped.
+func (app *App) fetchGlobalPrompts(r *http.Request, globalNamespaces []string, nameFilter string) ([]models.Prompt, []string) {
+	var token string
+	if app.config.AuthMethod != config.AuthMethodDisabled {
+		identity, ok := r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if ok && identity != nil {
+			token = identity.Token.Raw()
+		}
+	}
+
+	var mu sync.Mutex
+	var all []models.Prompt
+	var failed []string
+	var wg sync.WaitGroup
+
+	for _, ns := range globalNamespaces {
+		wg.Add(1)
+		go func(ns string) {
+			defer wg.Done()
+
+			ctx, cancel := context.WithTimeout(r.Context(), globalNamespaceFetchTimeout)
+			defer cancel()
+
+			client, err := app.getMLflowClientFactory().GetClient(ctx, token, ns)
+			if err != nil {
+				app.logger.Warn("Failed to create MLflow client for global namespace",
+					slog.String("namespace", ns), slog.Any("error", err))
+				mu.Lock()
+				failed = append(failed, ns)
+				mu.Unlock()
+				return
+			}
+
+			resp, err := app.repositories.Prompts.ListPromptsWithClient(ctx, client, "", "", nameFilter)
+			if err != nil {
+				app.logger.Warn("Failed to fetch prompts from global namespace",
+					slog.String("namespace", ns), slog.Any("error", err))
+				mu.Lock()
+				failed = append(failed, ns)
+				mu.Unlock()
+				return
+			}
+
+			for i := range resp.Prompts {
+				resp.Prompts[i].Scope = models.PromptScope{
+					Type:      models.PromptScopeGlobal,
+					Namespace: ns,
+				}
+			}
+
+			mu.Lock()
+			all = append(all, resp.Prompts...)
+			mu.Unlock()
+		}(ns)
+	}
+
+	wg.Wait()
+
+	sort.Strings(failed)
+	return all, failed
+}
+
 // MLflowRegisterPromptHandler handles POST /api/v1/prompts
 func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
-	var req models.MLflowRegisterPromptRequest
+	var req models.RegisterPromptRequest
 	if err := app.ReadJSON(w, r, &req); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
-	if req.Name == "" {
-		app.badRequestResponse(w, r, errors.New("name is required"))
-		return
-	}
-	if !validPromptName.MatchString(req.Name) {
-		app.badRequestResponse(w, r, fmt.Errorf("invalid prompt name %q: must start with an alphanumeric character and contain only alphanumerics, hyphens, underscores, or dots", req.Name))
+	if err := validatePromptName(req.Name); err != nil {
+		app.badRequestResponse(w, r, err)
 		return
 	}
 
@@ -69,11 +202,8 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// TOCTOU: LoadPrompt + RegisterPrompt is not atomic. A concurrent request could
-	// create the same prompt between the check and the register. The MLflow server's
-	// RegisterPrompt is idempotent (creates a new version), so the worst case is a
-	// duplicate version rather than data corruption. An atomic "create-if-not-exists"
-	// would require server-side support (e.g., a conditional create API).
+	// TOCTOU: not atomic, but MLflow's RegisterPrompt is idempotent (worst case
+	// is a duplicate version, not corruption). Atomic create requires server support.
 	if req.CreateOnly {
 		_, err := app.repositories.Prompts.LoadPrompt(ctx, req.Name, nil)
 		if err == nil {
@@ -108,11 +238,20 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 	ctx := r.Context()
 	name := ps.ByName("name")
 
+	if err := validatePromptName(name); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	var version *int
 	if v := r.URL.Query().Get("version"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil {
 			app.badRequestResponse(w, r, errors.New("version must be a valid integer"))
+			return
+		}
+		if n <= 0 {
+			app.badRequestResponse(w, r, errors.New("version must be a positive integer"))
 			return
 		}
 		version = &n
@@ -135,6 +274,11 @@ func (app *App) MLflowListPromptVersionsHandler(w http.ResponseWriter, r *http.R
 	ctx := r.Context()
 	name := ps.ByName("name")
 
+	if err := validatePromptName(name); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	pageToken := r.URL.Query().Get("page_token")
 	maxResults := r.URL.Query().Get("max_results")
 
@@ -155,6 +299,11 @@ func (app *App) MLflowDeletePromptHandler(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	name := ps.ByName("name")
 
+	if err := validatePromptName(name); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	if err := app.repositories.Prompts.DeletePrompt(ctx, name); err != nil {
 		app.handleMLflowClientError(w, r, err)
 		return
@@ -168,9 +317,18 @@ func (app *App) MLflowDeletePromptVersionHandler(w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	name := ps.ByName("name")
 
+	if err := validatePromptName(name); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
 	version, err := strconv.Atoi(ps.ByName("version"))
 	if err != nil {
 		app.badRequestResponse(w, r, errors.New("version must be a valid integer"))
+		return
+	}
+	if version <= 0 {
+		app.badRequestResponse(w, r, errors.New("version must be a positive integer"))
 		return
 	}
 

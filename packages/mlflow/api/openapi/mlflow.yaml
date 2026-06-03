@@ -117,19 +117,6 @@ paths:
         - PromptOperation
       parameters:
         - $ref: "#/components/parameters/workspace"
-        - name: page_token
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Token for fetching the next page of results.
-        - name: max_results
-          in: query
-          required: false
-          schema:
-            type: integer
-            example: 10
-          description: Maximum number of prompts to return per page.
         - name: filter_name
           in: query
           required: false
@@ -148,11 +135,17 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: listPrompts
       summary: List All Prompts
-      description: Gets a paginated list of all registered prompts from the MLflow Prompt Registry.
+      description: >-
+        Returns all prompts from the user's workspace and any configured global
+        namespaces. Each prompt is annotated with a scope object indicating
+        whether it is project-scoped or global. Pagination is not yet supported
+        on this endpoint — all prompts are returned in a single response.
     post:
       tags:
         - PromptOperation
@@ -177,6 +170,8 @@ paths:
           $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: registerPrompt
@@ -207,6 +202,7 @@ paths:
           required: false
           schema:
             type: integer
+            minimum: 1
             example: 1
       responses:
         "200":
@@ -221,6 +217,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: loadPrompt
@@ -251,6 +249,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: deletePrompt
@@ -295,8 +295,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: listPromptVersions
@@ -322,6 +326,7 @@ paths:
           required: true
           schema:
             type: integer
+            minimum: 1
             example: 1
         - $ref: "#/components/parameters/workspace"
       responses:
@@ -337,6 +342,8 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
       operationId: deletePromptVersion
@@ -504,14 +511,34 @@ components:
         nextPageToken:
           type: string
           description: Token for retrieving the next page of results.
+    PromptScopeType:
+      description: Classifies a prompt's scope within the platform.
+      type: string
+      enum:
+        - project
+        - global
+      example: project
+    PromptScope:
+      description: Identifies where a prompt lives and how it is scoped.
+      type: object
+      required:
+        - type
+        - namespace
+      properties:
+        type:
+          $ref: "#/components/schemas/PromptScopeType"
+        namespace:
+          type: string
+          description: The Kubernetes namespace where the prompt resides.
+          example: my-project
     MLflowPrompt:
       description: A prompt from the MLflow Prompt Registry.
       type: object
       required:
         - name
-        - description
         - latest_version
         - creation_timestamp
+        - scope
       properties:
         name:
           type: string
@@ -537,8 +564,10 @@ components:
           type: string
           format: date-time
           description: When the prompt was first created.
+        scope:
+          $ref: "#/components/schemas/PromptScope"
     MLflowPromptsResponse:
-      description: Paginated list of MLflow prompts.
+      description: List of MLflow prompts from project and global namespaces.
       type: object
       required:
         - prompts
@@ -547,9 +576,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MLflowPrompt"
-        next_page_token:
-          type: string
-          description: Token for fetching the next page of results.
+        failed_namespaces:
+          type: array
+          items:
+            type: string
+          description: Global namespace names that could not be queried (e.g., RBAC denied, timeout). Empty when all sources succeeded.
     MLflowMessage:
       description: A single message in a chat prompt.
       type: object
@@ -813,6 +844,11 @@ components:
               - data
       description: A response containing a paginated list of prompts.
     PromptVersionResponse:
+      headers:
+        Location:
+          schema:
+            type: string
+          description: URI of the created prompt version (present on 201 responses).
       content:
         application/json:
           schema:

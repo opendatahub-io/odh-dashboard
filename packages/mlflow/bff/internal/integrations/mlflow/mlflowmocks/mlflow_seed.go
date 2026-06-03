@@ -129,12 +129,13 @@ func seedPrompts(ctx context.Context, client *mlflow.Client, logger *slog.Logger
 	}
 
 	for _, p := range prompts {
-		var opts []promptregistry.RegisterOption
-		if p.commit != "" {
-			opts = append(opts, promptregistry.WithCommitMessage(p.commit))
+		if _, err := reg.LoadPrompt(ctx, p.name); err == nil {
+			logger.Debug("Prompt already exists, skipping seed", slog.String("name", p.name))
+			continue
 		}
-		if len(p.tags) > 0 {
-			opts = append(opts, promptregistry.WithTags(p.tags))
+		opts := []promptregistry.RegisterOption{
+			promptregistry.WithCommitMessage(p.commit),
+			promptregistry.WithTags(p.tags),
 		}
 		if _, err := reg.RegisterChatPrompt(ctx, p.name, p.messages, opts...); err != nil {
 			return fmt.Errorf("failed to seed prompt %s: %w", p.name, err)
