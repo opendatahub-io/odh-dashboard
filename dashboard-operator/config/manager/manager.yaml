@@ -35,12 +35,19 @@ spec:
               drop:
                 - ALL
           ports:
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
             - containerPort: 8080
               name: metrics
               protocol: TCP
             - containerPort: 8081
               name: health
               protocol: TCP
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /healthz
@@ -60,5 +67,9 @@ spec:
             requests:
               cpu: 10m
               memory: 64Mi
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: dashboard-operator-webhook-tls
       serviceAccountName: dashboard-operator
       terminationGracePeriodSeconds: 10
