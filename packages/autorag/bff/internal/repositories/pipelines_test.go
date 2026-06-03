@@ -665,6 +665,40 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinition(t *testing.T) {
 	}
 }
 
+func TestPipelineDefinition(t *testing.T) {
+	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{
+		AutoRAGPipelineName:    "rag-pipe",
+		DefaultPipelineVersion: "2.0",
+	})
+
+	t.Run("autorag", func(t *testing.T) {
+		def, err := repo.pipelineDefinition()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if def.Name != "rag-pipe" {
+			t.Errorf("Name = %q", def.Name)
+		}
+		if def.Version != "2.0" {
+			t.Errorf("Version = %q", def.Version)
+		}
+		if len(def.FileContent) == 0 {
+			t.Error("FileContent should be loaded from embedded YAML")
+		}
+	})
+
+	t.Run("image override via env var", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_AUTORAG_IMAGE", "quay.io/custom/autorag:latest")
+		def, err := repo.pipelineDefinition()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(def.FileContent) == 0 {
+			t.Error("FileContent should be non-empty")
+		}
+	})
+}
+
 func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
 	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
 	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {

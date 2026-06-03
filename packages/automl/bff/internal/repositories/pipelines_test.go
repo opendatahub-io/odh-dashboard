@@ -755,6 +755,58 @@ func TestDiscoverNamedPipelines_PassesCorrectDefinitions(t *testing.T) {
 	}
 }
 
+func TestPipelineDefinition(t *testing.T) {
+	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{
+		TimeSeriesPipelineName: "ts-pipe",
+		TabularPipelineName:    "tab-pipe",
+		DefaultPipelineVersion: "2.0",
+	})
+
+	t.Run("tabular", func(t *testing.T) {
+		def, err := repo.pipelineDefinition(constants.PipelineTypeTabular)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if def.Name != "tab-pipe" {
+			t.Errorf("Name = %q", def.Name)
+		}
+		if def.Version != "2.0" {
+			t.Errorf("Version = %q", def.Version)
+		}
+		if len(def.FileContent) == 0 {
+			t.Error("FileContent should be loaded from embedded YAML")
+		}
+	})
+
+	t.Run("timeseries", func(t *testing.T) {
+		def, err := repo.pipelineDefinition(constants.PipelineTypeTimeSeries)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if def.Name != "ts-pipe" {
+			t.Errorf("Name = %q", def.Name)
+		}
+	})
+
+	t.Run("unsupported type", func(t *testing.T) {
+		_, err := repo.pipelineDefinition("invalid")
+		if err == nil {
+			t.Error("expected error for unsupported type")
+		}
+	})
+
+	t.Run("image override via env var", func(t *testing.T) {
+		t.Setenv("RELATED_IMAGE_ODH_AUTOML_IMAGE", "quay.io/custom/automl:latest")
+		def, err := repo.pipelineDefinition(constants.PipelineTypeTabular)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(def.FileContent) == 0 {
+			t.Error("FileContent should be non-empty")
+		}
+	})
+}
+
 func TestNewPipelinesRepository_DefaultVersion(t *testing.T) {
 	repo := NewPipelinesRepository(&mockPipelinesService{}, PipelinesRepositoryConfig{})
 	if repo.config.DefaultPipelineVersion != constants.DefaultPipelineVersionSuffix {
