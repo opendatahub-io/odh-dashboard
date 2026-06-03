@@ -34,6 +34,8 @@ spec:
                     deployment: model-registry
                 topologyKey: topology.kubernetes.io/zone
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: modules-sa-token
           projected:
             defaultMode: 420
@@ -108,6 +110,8 @@ spec:
             - containerPort: 8043
               name: mr-ui
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: proxy-tls
               mountPath: /etc/tls/private
               readOnly: true
