@@ -124,7 +124,7 @@ Compare [modules/model-registry/deployment.yaml](../modules/model-registry/deplo
 3. **Render** — Copy the three template files, replace all placeholders, append `MODULE_EXTRA_ARGS` / `MODULE_EXTRA_ENV` when needed.
 4. **Validate** — Ensure the result is self-contained YAML; optional `kustomization.yaml` in the module directory for `kustomize build` checks only.
 5. **Register** — Wire the module into controller reconciliation so Deployment, Service, and NetworkPolicy are created/updated/deleted with the module lifecycle.
-6. **RBAC** — Add `service-account.yaml`, `cluster-role.yaml`, and `cluster-role-binding.yaml` with least-privilege rules for the module (see parent `modules-cluster-role.yaml` comments for rule scoping).
+6. **RBAC** — Add `service-account.yaml` (`automountServiceAccountToken: false`), `cluster-role.yaml`, and `cluster-role-binding.yaml` with least-privilege rules for the module (see parent `modules-cluster-role.yaml` comments for rule scoping). Deployments must also set `automountServiceAccountToken: false` and use a projected `serviceAccountToken` volume.
 
 ---
 
