@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -113,39 +112,30 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	objectReader, contentType, err := app.repositories.S3.GetObject(r.Context(), req, key)
+	result, err := app.repositories.S3.GetObject(r.Context(), req, key)
 	if err != nil {
 		app.handleS3RepoError(w, r, err, key)
 		return
 	}
-	defer objectReader.Close()
+	defer result.Body.Close()
 
-	sanitizedContentType := sanitizeUploadContentType(contentType)
-	if isInlineDangerousContentType(contentType) || sanitizedContentType == "application/octet-stream" {
+	w.Header().Set("Content-Type", result.ContentType)
+	if result.ForceDownload {
 		w.Header().Set("Content-Disposition", "attachment")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
-	// Same normalization as POST uploads so GET cannot echo arbitrary S3 metadata types.
-	w.Header().Set("Content-Type", sanitizedContentType)
 
 	w.WriteHeader(http.StatusOK)
-	_, err = io.Copy(w, objectReader)
-	if err != nil {
-		// Log the error but can't send error response as headers are already written
-		app.logger.Error("error streaming S3 object to response",
-			"error", err,
-			"key", key,
-		)
+	if _, err = io.Copy(w, result.Body); err != nil {
+		app.logger.Error("error streaming S3 object to response", "error", err, "key", key)
 	}
 }
-
-const defaultS3PostMaxCollisionAttempts = 10
 
 func (app *App) effectivePostS3CollisionAttempts() int {
 	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
 		return app.s3PostMaxCollisionAttempts
 	}
-	return defaultS3PostMaxCollisionAttempts
+	return 0 // repo uses its own default
 }
 
 // effectiveFilePartMaxBytes returns the cap for the file part body.
@@ -245,15 +235,10 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	contentType := sanitizeUploadContentType(filePart.Header.Get("Content-Type"))
-
-	// MaxBytesReader's first arg is the ResponseWriter used by net/http.Server to force-close the
-	// connection when the limit is exceeded. We pass nil because this reader is used for an S3 upload
-	// body, not an inbound server request body—only the read-limit and *MaxBytesError behavior matter.
 	limitedFile := http.MaxBytesReader(nil, filePart, app.effectiveFilePartMaxBytes())
 	defer limitedFile.Close()
 
-	resolvedKey, err := app.repositories.S3.UploadFile(r.Context(), req, key, limitedFile, contentType, app.effectivePostS3CollisionAttempts())
+	resolvedKey, err := app.repositories.S3.UploadFile(r.Context(), req, key, limitedFile, filePart.Header.Get("Content-Type"), app.effectivePostS3CollisionAttempts())
 	if err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
@@ -293,74 +278,6 @@ func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter
 func isS3PostRequestBodyTooLarge(err error) bool {
 	var maxBytesErr *http.MaxBytesError
 	return err != nil && errors.As(err, &maxBytesErr)
-}
-
-// Upload vs GET for HTML and other inline-unsafe types:
-// Users may upload pipeline input files (e.g. text/html) that must be stored in S3 with an
-// accurate Content-Type — see allowedS3UploadMediaTypes. The UI does not need to render those
-// objects inline in the browser; serving them inline from this origin would risk XSS. For the
-// same media types, GetS3FileHandler therefore uses dangerousS3GetMediaTypes / isInlineDangerousContentType
-// to force Content-Disposition: attachment and nosniff. Allowing upload as text/html but
-// downloading as attachment is intentional: store faithfully for RAG input; never execute in-dashboard.
-//
-// dangerousS3GetMediaTypes are served with Content-Disposition: attachment and nosniff so the
-// dashboard origin cannot be used as an XSS/SVG script vector when objects declare these types
-// (including parameterized forms, e.g. text/html; charset=utf-8).
-var dangerousS3GetMediaTypes = map[string]struct{}{
-	"text/html":             {},
-	"application/xhtml+xml": {},
-	"image/svg+xml":         {},
-}
-
-func isInlineDangerousContentType(v string) bool {
-	raw := strings.TrimSpace(v)
-	mediaType, _, err := mime.ParseMediaType(raw)
-	if err != nil {
-		return false
-	}
-	mediaType = strings.ToLower(mediaType)
-	_, ok := dangerousS3GetMediaTypes[mediaType]
-	return ok
-}
-
-// allowedS3UploadMediaTypes are the only multipart part Content-Types we persist to S3.
-// Anything else is stored as application/octet-stream so GET cannot echo arbitrary
-// caller-controlled MIME types (e.g. image/svg+xml, application/javascript) under the dashboard origin.
-// Includes text/html so pipeline input can be stored correctly; GET still forces download for HTML
-// (see the "Upload vs GET" comment before dangerousS3GetMediaTypes).
-var allowedS3UploadMediaTypes = map[string]struct{}{
-	"application/json":     {},
-	"application/markdown": {}, // some clients use this for .md
-	"application/pdf":      {},
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {}, // .pptx
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {}, // .docx
-	// "application/x-yaml":   {},
-	// "application/xml":      {},
-	// "application/yaml":     {},
-	"text/html":           {},
-	"text/markdown":       {},
-	"text/plain":          {},
-	"text/x-web-markdown": {},
-	"text/x-markdown":     {},
-	// "text/x-yaml":        {},
-	// "text/xml":           {},
-	// "text/yaml":          {},
-}
-
-func sanitizeUploadContentType(v string) string {
-	v = strings.TrimSpace(v)
-	if v == "" {
-		return "application/octet-stream"
-	}
-	mediaType, _, err := mime.ParseMediaType(v)
-	if err != nil {
-		return "application/octet-stream"
-	}
-	mediaType = strings.ToLower(mediaType)
-	if _, ok := allowedS3UploadMediaTypes[mediaType]; ok {
-		return mediaType
-	}
-	return "application/octet-stream"
 }
 
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.

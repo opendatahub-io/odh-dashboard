@@ -599,14 +599,17 @@ func TestS3Repository_GetObject(t *testing.T) {
 	}
 	repo := NewS3Repository(s3svc, k8s, nil)
 
-	body, ct, err := repo.GetObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "path/file.csv")
+	result, err := repo.GetObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "path/file.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer body.Close()
+	defer result.Body.Close()
 
-	if ct != "text/csv" {
-		t.Errorf("content type = %q", ct)
+	if result.ContentType != "text/csv" {
+		t.Errorf("content type = %q", result.ContentType)
+	}
+	if result.ForceDownload {
+		t.Error("text/csv should allow inline viewing")
 	}
 	if gotInput.Bucket != "my-bucket" || gotInput.Key != "path/file.csv" {
 		t.Errorf("input: %+v", gotInput)

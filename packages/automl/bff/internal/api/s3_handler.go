@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -131,24 +130,21 @@ func (app *App) GetS3FileHandler(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	objectReader, contentType, err := app.repositories.S3.GetObject(r.Context(), req, key)
+	result, err := app.repositories.S3.GetObject(r.Context(), req, key)
 	if err != nil {
 		app.handleS3RepoError(w, r, err, key)
 		return
 	}
-	defer objectReader.Close()
+	defer result.Body.Close()
 
-	sanitizedContentType := sanitizeS3ResponseContentType(contentType)
-	w.Header().Set("Content-Type", sanitizedContentType)
-	if !s3GetResponseTypeAllowsInlineViewing(sanitizedContentType) {
+	w.Header().Set("Content-Type", result.ContentType)
+	if result.ForceDownload {
 		w.Header().Set("Content-Disposition", "attachment")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 	}
 	w.WriteHeader(http.StatusOK)
-	_, err = io.Copy(w, objectReader)
-	if err != nil {
-		app.logger.Error("error streaming S3 object to response",
-			"error", err, "key", key)
+	if _, err = io.Copy(w, result.Body); err != nil {
+		app.logger.Error("error streaming S3 object to response", "error", err, "key", key)
 	}
 }
 
@@ -172,13 +168,11 @@ func (app *App) getS3FileSchemaHandler(w http.ResponseWriter, r *http.Request, r
 	}
 }
 
-const defaultS3PostMaxCollisionAttempts = 10
-
 func (app *App) effectivePostS3CollisionAttempts() int {
 	if app != nil && app.s3PostMaxCollisionAttempts > 0 {
 		return app.s3PostMaxCollisionAttempts
 	}
-	return defaultS3PostMaxCollisionAttempts
+	return 0 // repo uses its own default
 }
 
 // effectiveFilePartMaxBytes returns the cap for the file part body.
@@ -328,38 +322,6 @@ func (app *App) rejectDeclaredOversizedS3Post(next httprouter.Handle) httprouter
 func isS3PostRequestBodyTooLarge(err error) bool {
 	var maxBytesErr *http.MaxBytesError
 	return err != nil && errors.As(err, &maxBytesErr)
-}
-
-// sanitizeS3ResponseContentType normalizes S3 metadata on GET. text/csv and application/json are
-// echoed for AutoML pipelines; other types become application/octet-stream so arbitrary S3
-// metadata cannot set executable types under the dashboard origin.
-func sanitizeS3ResponseContentType(v string) string {
-	v = strings.TrimSpace(v)
-	if v == "" {
-		return "application/octet-stream"
-	}
-	mediaType, _, err := mime.ParseMediaType(v)
-	if err != nil {
-		return "application/octet-stream"
-	}
-	mediaType = strings.ToLower(mediaType)
-	switch mediaType {
-	case "text/csv":
-		return "text/csv"
-	case "application/json":
-		return "application/json"
-	default:
-		return "application/octet-stream"
-	}
-}
-
-func s3GetResponseTypeAllowsInlineViewing(sanitizedContentType string) bool {
-	switch sanitizedContentType {
-	case "text/csv", "application/json":
-		return true
-	default:
-		return false
-	}
 }
 
 // S3FilesEnvelope is the response envelope for GET /api/v1/s3/files.

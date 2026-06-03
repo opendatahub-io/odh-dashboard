@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"strings"
 	"time"
 
@@ -17,6 +18,8 @@ import (
 // ErrS3Configuration is returned when S3 credentials or storage configuration is
 // missing or invalid (e.g., missing secret fields, missing bucket, bad DSPA spec).
 var ErrS3Configuration = errors.New("S3 configuration error")
+
+const defaultMaxCollisionAttempts = 10
 
 // S3RequestContext captures the S3 access parameters available from an HTTP request.
 // Handlers build this from query params and middleware-injected context, then pass
@@ -154,22 +157,37 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 	}, bucket, nil
 }
 
-// GetObject resolves credentials from req and retrieves the object at key.
-// The caller is responsible for closing the returned body.
-func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (io.ReadCloser, string, error) {
+// GetObject resolves credentials from req, retrieves the object at key, and applies
+// content-type policy (sanitization + force-download classification).
+// The caller is responsible for closing Result.Body.
+func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (*GetObjectResult, error) {
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return r.s3Service.DownloadObject(ctx, opts, s3.DownloadObjectInput{Bucket: bucket, Key: key})
+	body, rawCT, err := r.s3Service.DownloadObject(ctx, opts, s3.DownloadObjectInput{Bucket: bucket, Key: key})
+	if err != nil {
+		return nil, err
+	}
+	sanitized := SanitizeContentType(rawCT)
+	return &GetObjectResult{
+		Body:          body,
+		ContentType:   sanitized,
+		ForceDownload: isForceDownloadType(rawCT) || sanitized == "application/octet-stream",
+	}, nil
 }
 
-// UploadFile resolves credentials from req, resolves a non-colliding key, and uploads body.
-// contentType must already be sanitized by the caller. Returns the resolved key.
-func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key string, body io.Reader, contentType string, maxAttempts int) (string, error) {
+// UploadFile resolves credentials from req, sanitizes the raw content type against the
+// upload allowlist, resolves a non-colliding key, and uploads body. Returns the resolved key.
+// maxAttempts of 0 uses the default (10).
+func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key string, body io.Reader, rawContentType string, maxAttempts int) (string, error) {
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
 	if err != nil {
 		return "", err
+	}
+
+	if maxAttempts <= 0 {
+		maxAttempts = defaultMaxCollisionAttempts
 	}
 
 	keyCtx, cancel := context.WithTimeout(ctx, s3KeyResolutionTimeout)
@@ -188,7 +206,7 @@ func (r *S3Repository) UploadFile(ctx context.Context, req S3RequestContext, key
 		Bucket:      bucket,
 		Key:         resolvedKey,
 		Body:        body,
-		ContentType: contentType,
+		ContentType: SanitizeContentType(rawContentType),
 	})
 }
 
@@ -267,4 +285,71 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 		Region:          region,
 		BaseEndpoint:    endpoint,
 	}, bucket, nil
+}
+
+// --- Content-type policy ---
+
+// allowedUploadMediaTypes lists the Content-Types that are stored as-is in S3.
+// Other types are normalized to application/octet-stream so GET cannot echo
+// arbitrary caller-controlled MIME types under the dashboard origin.
+// text/html is included so pipeline input can be stored correctly; the GET path
+// forces download for HTML via dangerousGetMediaTypes.
+var allowedUploadMediaTypes = map[string]struct{}{
+	"application/json":     {},
+	"application/markdown": {},
+	"application/pdf":      {},
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": {},
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {},
+	"text/html":           {},
+	"text/markdown":       {},
+	"text/plain":          {},
+	"text/x-web-markdown": {},
+	"text/x-markdown":     {},
+}
+
+// dangerousGetMediaTypes are types that must never be rendered inline under the
+// dashboard origin (XSS/SVG script vectors). The handler uses ForceDownload to
+// set Content-Disposition: attachment.
+var dangerousGetMediaTypes = map[string]struct{}{
+	"text/html":             {},
+	"application/xhtml+xml": {},
+	"image/svg+xml":         {},
+}
+
+// SanitizeContentType normalizes a raw Content-Type against the upload allowlist.
+// Returns "application/octet-stream" for empty, unparseable, or disallowed types.
+func SanitizeContentType(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	if _, ok := allowedUploadMediaTypes[mediaType]; ok {
+		return mediaType
+	}
+	return "application/octet-stream"
+}
+
+// isForceDownloadType returns true for content types that must be served with
+// Content-Disposition: attachment to prevent inline rendering under the dashboard origin.
+func isForceDownloadType(contentType string) bool {
+	raw := strings.TrimSpace(contentType)
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return false
+	}
+	_, ok := dangerousGetMediaTypes[strings.ToLower(mediaType)]
+	return ok
+}
+
+// GetObjectResult holds the result of an S3 object retrieval with content-type
+// policy already applied by the repository.
+type GetObjectResult struct {
+	Body          io.ReadCloser
+	ContentType   string
+	ForceDownload bool
 }

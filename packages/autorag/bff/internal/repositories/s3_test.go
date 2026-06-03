@@ -536,14 +536,14 @@ func TestS3Repository_GetObject(t *testing.T) {
 	}
 	repo := NewS3Repository(s3svc, k8s, nil)
 
-	body, ct, err := repo.GetObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "docs/file.jsonl")
+	result, err := repo.GetObject(context.Background(), S3RequestContext{Namespace: "ns", SecretName: "s"}, "docs/file.jsonl")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer body.Close()
+	defer result.Body.Close()
 
-	if ct != "application/json" {
-		t.Errorf("content type = %q", ct)
+	if result.ContentType != "application/json" {
+		t.Errorf("content type = %q", result.ContentType)
 	}
 	if gotInput.Bucket != "my-bucket" || gotInput.Key != "docs/file.jsonl" {
 		t.Errorf("input: %+v", gotInput)
@@ -572,14 +572,14 @@ func TestS3Repository_UploadFile(t *testing.T) {
 
 		key, err := repo.UploadFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
-			"docs/file.jsonl", strings.NewReader("data"), "application/jsonl", 5)
+			"docs/file.jsonl", strings.NewReader("data"), "application/json", 5)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if key != "docs/file.jsonl" || uploadedKey != "docs/file.jsonl" {
 			t.Errorf("key = %q, uploaded = %q", key, uploadedKey)
 		}
-		if uploadedCT != "application/jsonl" {
+		if uploadedCT != "application/json" {
 			t.Errorf("content type = %q", uploadedCT)
 		}
 	})
@@ -602,7 +602,7 @@ func TestS3Repository_UploadFile(t *testing.T) {
 
 		key, err := repo.UploadFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
-			"docs/file.jsonl", nil, "application/jsonl", 5)
+			"docs/file.jsonl", nil, "application/json", 5)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -629,7 +629,7 @@ func TestS3Repository_UploadFile(t *testing.T) {
 
 		_, err := repo.UploadFile(context.Background(),
 			S3RequestContext{Namespace: "ns", SecretName: "s"},
-			"file.jsonl", nil, "application/jsonl", 5)
+			"file.jsonl", nil, "application/json", 5)
 		if !errors.Is(err, s3.ErrObjectAlreadyExists) {
 			t.Errorf("expected ErrObjectAlreadyExists, got %v", err)
 		}

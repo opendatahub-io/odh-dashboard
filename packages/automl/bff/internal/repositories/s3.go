@@ -23,7 +23,10 @@ var ErrS3Configuration = errors.New("S3 configuration error")
 // ErrCSVUploadValidation is returned when an upload fails CSV content-type validation.
 var ErrCSVUploadValidation = errors.New("CSV upload validation error")
 
-const s3KeyResolutionTimeout = 15 * time.Second
+const (
+	s3KeyResolutionTimeout         = 15 * time.Second
+	defaultMaxCollisionAttempts    = 10
+)
 
 // S3RequestContext captures the S3 access parameters available from an HTTP request.
 // Handlers build this from query params and middleware-injected context, then pass
@@ -165,14 +168,24 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 	}, bucket, nil
 }
 
-// GetObject resolves credentials from req and retrieves the object at key.
-// The caller is responsible for closing the returned body.
-func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (io.ReadCloser, string, error) {
+// GetObject resolves credentials from req, retrieves the object at key, and applies
+// content-type policy (sanitization + force-download classification).
+// The caller is responsible for closing Result.Body.
+func (r *S3Repository) GetObject(ctx context.Context, req S3RequestContext, key string) (*GetObjectResult, error) {
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return r.s3Service.DownloadObject(ctx, opts, s3.DownloadObjectInput{Bucket: bucket, Key: key})
+	body, rawCT, err := r.s3Service.DownloadObject(ctx, opts, s3.DownloadObjectInput{Bucket: bucket, Key: key})
+	if err != nil {
+		return nil, err
+	}
+	sanitized := SanitizeResponseContentType(rawCT)
+	return &GetObjectResult{
+		Body:          body,
+		ContentType:   sanitized,
+		ForceDownload: !inlineAllowedTypes[sanitized],
+	}, nil
 }
 
 // UploadObject resolves credentials from req and uploads body at key.
@@ -292,6 +305,7 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 
 // UploadCSVFile validates the upload is a CSV, resolves a non-colliding key, and uploads
 // body to S3. It is the single repo call for the upload handler.
+// maxAttempts of 0 uses the default (10).
 func (r *S3Repository) UploadCSVFile(ctx context.Context, req S3RequestContext, key string, body io.Reader, rawContentType, filename string, maxAttempts int) (string, error) {
 	contentType, err := ValidateCsvUpload(rawContentType, filename)
 	if err != nil {
@@ -301,6 +315,10 @@ func (r *S3Repository) UploadCSVFile(ctx context.Context, req S3RequestContext, 
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
 	if err != nil {
 		return "", err
+	}
+
+	if maxAttempts <= 0 {
+		maxAttempts = defaultMaxCollisionAttempts
 	}
 
 	keyCtx, cancel := context.WithTimeout(ctx, s3KeyResolutionTimeout)
@@ -354,4 +372,40 @@ func ValidateCsvUpload(contentType, filename string) (string, error) {
 	default:
 		return "", fmt.Errorf("%w: Content-Type must be text/csv, or application/octet-stream with a .csv filename", ErrCSVUploadValidation)
 	}
+}
+
+// --- Content-type policy ---
+
+// inlineAllowedTypes are the only content types served inline on GET responses.
+// All others get Content-Disposition: attachment to prevent XSS.
+var inlineAllowedTypes = map[string]bool{
+	"text/csv":          true,
+	"application/json":  true,
+}
+
+// SanitizeResponseContentType normalizes S3 metadata on GET. Only text/csv and
+// application/json are echoed; other types become application/octet-stream so
+// arbitrary S3 metadata cannot set executable types under the dashboard origin.
+func SanitizeResponseContentType(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "application/octet-stream"
+	}
+	mediaType, _, err := mime.ParseMediaType(raw)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	mediaType = strings.ToLower(mediaType)
+	if inlineAllowedTypes[mediaType] {
+		return mediaType
+	}
+	return "application/octet-stream"
+}
+
+// GetObjectResult holds the result of an S3 object retrieval with content-type
+// policy already applied by the repository.
+type GetObjectResult struct {
+	Body          io.ReadCloser
+	ContentType   string
+	ForceDownload bool
 }
