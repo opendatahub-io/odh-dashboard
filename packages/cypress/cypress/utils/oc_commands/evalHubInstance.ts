@@ -87,7 +87,7 @@ export const deleteEvalHubE2eDatabaseSecret = (): Cypress.Chainable<CommandLineR
 
 /**
  * Polls until at least one Job in the namespace has a `Complete` condition.
- * Use after submitting an evaluation to wait for the lm-eval Job to finish.
+ * The namespace is ephemeral (created fresh each test run), so only one job exists.
  */
 export const waitForEvaluationJobComplete = (
   namespace: string,

@@ -56,6 +56,7 @@ describe('Eval Hub E2E', () => {
       inferenceModelName = testData.inferenceModelName;
       additionalBenchmarkParams = testData.additionalBenchmarkParams;
       projectNamePrefix = testData.projectNamePrefix;
+      evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
     });
 
     cy.then(() => {
@@ -73,12 +74,14 @@ describe('Eval Hub E2E', () => {
     });
 
     cy.then(() => {
-      evaluationTenantProject = `${testData.projectNamePrefix}-${uuid}`;
       const tracked: string[] = Cypress.env('EVAL_HUB_CREATED_PROJECTS') || [];
       tracked.push(evaluationTenantProject);
       Cypress.env('EVAL_HUB_CREATED_PROJECTS', tracked);
       cy.step(`Create ephemeral project ${evaluationTenantProject}`);
       createCleanProject(evaluationTenantProject);
+    });
+
+    cy.then(() => {
       addUserToProject(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME, 'admin');
       setupTenantAndDeployModel(evaluationTenantProject, testData, hardwareProfileName);
       grantEvalHubTenantAccess(evaluationTenantProject, LDAP_ADMIN_USER.USERNAME);
@@ -118,7 +121,7 @@ describe('Eval Hub E2E', () => {
   it(
     'Eval Hub: start inference evaluation and see it complete',
     {
-      tags: ['@Sanity', '@SanitySet1', '@EvalHub', '@NonConcurrent'],
+      tags: ['@Sanity', '@SanitySet1', '@EvalHub', '@NonConcurrent', '@Featureflagged'],
     },
     () => {
       const extraParams = additionalBenchmarkParams.trim();
@@ -127,11 +130,11 @@ describe('Eval Hub E2E', () => {
         '',
       )}`;
 
-      cy.step('Log into the application');
-      cy.visitWithLogin('/', LDAP_ADMIN_USER);
-
-      cy.step('Open Evaluations page');
-      cy.visit(evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject));
+      cy.step('Log into the application and open Evaluations page');
+      cy.visitWithLogin(
+        evaluationsPage.pathWithLmEvalDevFlags(evaluationTenantProject),
+        LDAP_ADMIN_USER,
+      );
       evaluationsPage.assertEvaluationsShellVisible(evaluationTenantProject);
 
       cy.step('Create new evaluation → single benchmark');
