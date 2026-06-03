@@ -156,18 +156,6 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
     return <NotFound />;
   }
 
-  const pageTitle = (
-    <PageSection hasBodyWrapper={false}>
-      <Content component="h1" data-testid="app-tab-page-title">
-        {objectType ? (
-          <TitleWithIcon title={extension.properties.title} objectType={objectType} />
-        ) : (
-          extension.properties.title
-        )}
-      </Content>
-    </PageSection>
-  );
-
   const tabContentFallback = (
     <PageSection>
       <Spinner />
@@ -176,9 +164,27 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
 
   const defaultTab = getDefaultTab(pageId, tabExtensions);
 
-  // Single tab: render content directly without tab bar
+  // Single tab: render content directly without tab bar.
+  // Use the tab's singleTabTitle (e.g. "Model deployments") when available
+  // so users can identify the page without a tab bar for context.
   if (tabExtensions.length === 1) {
     const singleTab = tabExtensions[0];
+    const singleTabPageTitle = singleTab.properties.singleTabTitle || extension.properties.title;
+    const tabObjectTypeStr = singleTab.properties.objectType;
+    const singleTabObjectType =
+      (tabObjectTypeStr && isProjectObjectType(tabObjectTypeStr) ? tabObjectTypeStr : undefined) ??
+      objectType;
+    const pageTitle = (
+      <PageSection hasBodyWrapper={false}>
+        <Content component="h1" data-testid="app-tab-page-title">
+          {singleTabObjectType ? (
+            <TitleWithIcon title={singleTabPageTitle} objectType={singleTabObjectType} />
+          ) : (
+            singleTabPageTitle
+          )}
+        </Content>
+      </PageSection>
+    );
     return (
       <Routes>
         <Route
@@ -202,6 +208,18 @@ const TabRoutePage: React.FC<TabRoutePageProps> = ({ extension }) => {
       </Routes>
     );
   }
+
+  const pageTitle = (
+    <PageSection hasBodyWrapper={false}>
+      <Content component="h1" data-testid="app-tab-page-title">
+        {objectType ? (
+          <TitleWithIcon title={extension.properties.title} objectType={objectType} />
+        ) : (
+          extension.properties.title
+        )}
+      </Content>
+    </PageSection>
+  );
 
   // Multiple tabs: single parametric route with tab ID from URL
   return (
