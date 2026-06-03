@@ -16,7 +16,7 @@ describe('PersesVariables', () => {
 
   it('should render the variable toolbar', () => {
     render(<PersesVariables />);
-    expect(screen.getByTestId('perses-variables')).toBeInTheDocument();
+    expect(screen.getByTestId('perses-variables')).toBeDefined();
   });
 
   it('should default initialVariableIsSticky to undefined', () => {

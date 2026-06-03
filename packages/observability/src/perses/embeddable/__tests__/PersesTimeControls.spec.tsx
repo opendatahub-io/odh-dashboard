@@ -24,7 +24,7 @@ describe('PersesTimeControls', () => {
 
   it('should render time range controls', () => {
     render(<PersesTimeControls />);
-    expect(screen.getByTestId('time-range-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('time-range-controls')).toBeDefined();
   });
 
   it('should pass default props', () => {

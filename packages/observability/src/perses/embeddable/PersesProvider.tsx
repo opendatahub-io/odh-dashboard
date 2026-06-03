@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ThemeProvider } from '@mui/material';
 import { ChartsProvider, SnackbarProvider } from '@perses-dev/components';
-import { DashboardResource, DurationString } from '@perses-dev/core';
+import type { DashboardResource, DurationString, TimeRangeValue } from '@perses-dev/core';
 import {
   DashboardProvider,
   DatasourceStoreProvider,
@@ -45,28 +45,28 @@ export type PersesProviderProps = {
    * When true, syncs time range and variables to URL query params.
    * Use for full-page dashboard views. When false (default), state
    * is kept in memory only -- safe for multiple dashboards on one page.
+   * Requires a React Router context in the component tree.
    */
   syncToUrl?: boolean;
   children: React.ReactNode;
 };
 
-type PersesProviderInnerProps = Omit<PersesProviderProps, 'syncToUrl'> & { syncToUrl: boolean };
+type PersesProviderCoreProps = {
+  dashboardResource: DashboardResource;
+  initialTimeRange: TimeRangeValue;
+  initialRefreshInterval: DurationString;
+  syncToUrl: boolean;
+  children: React.ReactNode;
+};
 
-/**
- * Inner component that must be a child of QueryParamProvider.
- * useInitialTimeRange and useInitialRefreshInterval call useQueryParams
- * internally, so QueryParamProvider must already be in the tree above.
- */
-const PersesProviderInner: React.FC<PersesProviderInnerProps> = ({
+const PersesProviderCore: React.FC<PersesProviderCoreProps> = ({
   children,
   dashboardResource,
-  defaultDuration = DEFAULT_DURATION,
-  defaultRefreshInterval = DEFAULT_REFRESH_INTERVAL,
+  initialTimeRange,
+  initialRefreshInterval,
   syncToUrl,
 }) => {
   const { muiTheme, chartsTheme } = usePatternFlyTheme();
-  const initialTimeRange = useInitialTimeRange(defaultDuration);
-  const initialRefreshInterval = useInitialRefreshInterval(defaultRefreshInterval);
 
   const datasourceApi = useMemo(
     () => new CachedDatasourceAPI(new OdhDatasourceApi(PERSES_PROXY_BASE_PATH)),
@@ -112,14 +112,59 @@ const PersesProviderInner: React.FC<PersesProviderInnerProps> = ({
   );
 };
 
-const PersesProvider: React.FC<PersesProviderProps> = ({ syncToUrl = false, ...props }) => {
+/**
+ * Wrapper that reads initial time range and refresh interval from URL query
+ * params. Must be rendered inside a QueryParamProvider.
+ */
+const PersesProviderWithUrlSync: React.FC<
+  Omit<PersesProviderCoreProps, 'initialTimeRange' | 'initialRefreshInterval' | 'syncToUrl'> & {
+    defaultDuration: DurationString;
+    defaultRefreshInterval: DurationString;
+  }
+> = ({ defaultDuration, defaultRefreshInterval, ...rest }) => {
+  const initialTimeRange = useInitialTimeRange(defaultDuration);
+  const initialRefreshInterval = useInitialRefreshInterval(defaultRefreshInterval);
+
+  return (
+    <PersesProviderCore
+      {...rest}
+      initialTimeRange={initialTimeRange}
+      initialRefreshInterval={initialRefreshInterval}
+      syncToUrl
+    />
+  );
+};
+
+const PersesProvider: React.FC<PersesProviderProps> = ({
+  syncToUrl = false,
+  defaultDuration = DEFAULT_DURATION,
+  defaultRefreshInterval = DEFAULT_REFRESH_INTERVAL,
+  ...rest
+}) => {
   const [queryClient] = React.useState(createQueryClient);
+
+  if (syncToUrl) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <QueryParamProvider adapter={ReactRouter6Adapter}>
+          <PersesProviderWithUrlSync
+            {...rest}
+            defaultDuration={defaultDuration}
+            defaultRefreshInterval={defaultRefreshInterval}
+          />
+        </QueryParamProvider>
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <QueryParamProvider adapter={ReactRouter6Adapter}>
-        <PersesProviderInner syncToUrl={syncToUrl} {...props} />
-      </QueryParamProvider>
+      <PersesProviderCore
+        {...rest}
+        initialTimeRange={{ pastDuration: defaultDuration }}
+        initialRefreshInterval={defaultRefreshInterval}
+        syncToUrl={false}
+      />
     </QueryClientProvider>
   );
 };

@@ -16,7 +16,7 @@ describe('PersesDashboard', () => {
 
   it('should render the Perses Dashboard component', () => {
     render(<PersesDashboard />);
-    expect(screen.getByTestId('perses-dashboard')).toBeInTheDocument();
+    expect(screen.getByTestId('perses-dashboard')).toBeDefined();
   });
 
   it('should pass empty dashboard props', () => {
