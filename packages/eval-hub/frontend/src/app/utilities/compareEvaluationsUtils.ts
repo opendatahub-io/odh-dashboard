@@ -3,8 +3,10 @@ import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
   getBenchmarkDisplayName,
   getBenchmarkName,
+  getBenchmarkResultScore,
   getEvaluationName,
   getJobBenchmarks,
+  getResultScore,
 } from '~/app/utilities/evaluationUtils';
 
 export type BenchmarkSelection = {
@@ -19,6 +21,8 @@ export type ComparableRun = {
   benchmarkId: string;
   benchmarkIndex: number;
 };
+
+export type ComparableRunWithJobId = ComparableRun & { jobId: string };
 
 export const parseCsvParam = (raw: string): string[] =>
   raw
@@ -121,24 +125,27 @@ export const getComparableRunsForJob = (job: EvaluationJob): ComparableRun[] => 
 export const isBenchmarkSuiteRun = (job: EvaluationJob): boolean =>
   getJobBenchmarks(job).length > 1;
 
-export const getRunDisplayTitle = (job: EvaluationJob): string => getEvaluationName(job);
+export type CompareRunType = 'Single benchmark' | 'Benchmark suite';
 
-export const getBenchmarkDisplayTitle = (benchmarkId: string): string =>
-  getBenchmarkDisplayName(benchmarkId);
+export const COMPARE_RUNS_PAGE_TITLE = 'Compare runs';
 
-export type CompareRunType = 'Collection' | 'Benchmark';
+export const COMPARE_CHILD_RUN_TYPE = 'Benchmark run';
 
 export const getCompareRunType = (job: EvaluationJob): CompareRunType =>
-  isBenchmarkSuiteRun(job) ? 'Collection' : 'Benchmark';
+  isBenchmarkSuiteRun(job) ? 'Benchmark suite' : 'Single benchmark';
 
-/** Collection: run timestamp in Evaluation run. Benchmark: job name (same as the child benchmark row). */
-export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string => {
-  if (isBenchmarkSuiteRun(job)) {
-    return formatCompareEvaluationRunLabel(job.resource.created_at);
-  }
+/** Evaluation run column for parent rows. */
+export const getCompareParentEvaluationRunLabel = (job: EvaluationJob): string =>
+  getEvaluationName(job);
 
-  return getRunDisplayTitle(job);
-};
+export const getCompareParentResultScore = (job: EvaluationJob): string =>
+  isBenchmarkSuiteRun(job) ? '-' : getResultScore(job);
+
+export const getCompareBenchmarkResultScore = (
+  job: EvaluationJob,
+  benchmarkId: string,
+  benchmarkIndex: number,
+): string => getBenchmarkResultScore(job, benchmarkId, benchmarkIndex);
 
 export const getCompareRunEvaluationLabel = (
   job: EvaluationJob,
@@ -149,123 +156,153 @@ export const getCompareRunEvaluationLabel = (
   }
 
   const benchmarks = getJobBenchmarks(job);
-  return benchmarks.length > 0 ? getBenchmarkDisplayTitle(benchmarks[0].id) : '-';
+  return benchmarks.length > 0 ? getBenchmarkDisplayName(benchmarks[0].id) : '-';
 };
 
-export const formatCompareEvaluationRunLabel = (dateStr?: string): string => {
-  if (!dateStr) {
-    return '-';
+export { formatDate as formatCompareTableDate } from '~/app/utilities/evaluationUtils';
+
+export const getSelectionKeysCheckedState = (
+  selectionKeys: string[],
+  selectedBenchmarkKeys: Set<string>,
+): boolean | null => {
+  if (selectionKeys.length === 0) {
+    return false;
   }
 
-  try {
-    return new Date(dateStr).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
+  const selectedCount = selectionKeys.filter((key) => selectedBenchmarkKeys.has(key)).length;
+  if (selectedCount === selectionKeys.length) {
+    return true;
   }
+  if (selectedCount > 0) {
+    return null;
+  }
+  return false;
 };
 
-export const formatCompareTableDate = (dateStr?: string): string => {
-  if (!dateStr) {
-    return '-';
-  }
+export const getBenchmarkSelectionsFromKeys = (
+  selectedBenchmarkKeys: Set<string>,
+): BenchmarkSelection[] =>
+  Array.from(selectedBenchmarkKeys)
+    .map(parseBenchmarkSelectionKey)
+    .filter((selection): selection is BenchmarkSelection => selection !== null);
 
-  try {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
+export const resolveComparableRunsFromSelections = (
+  jobs: EvaluationJob[],
+  selections: BenchmarkSelection[],
+): ComparableRunWithJobId[] => {
+  const jobsById = new Map(jobs.map((job) => [job.resource.id, job]));
+
+  return selections
+    .map((selection) => {
+      const selectedJob = jobsById.get(selection.jobId);
+      if (!selectedJob) {
+        return null;
+      }
+
+      const matchingComparableRun = getComparableRunsForJob(selectedJob).find(
+        (run) =>
+          run.benchmarkId === selection.benchmarkId &&
+          (selection.benchmarkIndex === undefined ||
+            run.benchmarkIndex === selection.benchmarkIndex),
+      );
+
+      if (!matchingComparableRun) {
+        return null;
+      }
+
+      return {
+        ...matchingComparableRun,
+        jobId: selection.jobId,
+      };
+    })
+    .filter((run): run is ComparableRunWithJobId => run !== null);
 };
 
-/** Label for the page title: suite/collection runs use the run timestamp; single benchmarks use the evaluation name. */
-export const getCompareRunTitleLabel = (job: EvaluationJob): string => {
-  if (isBenchmarkSuiteRun(job)) {
-    return formatCompareEvaluationRunLabel(job.resource.created_at);
-  }
+export const buildDefaultComparableRunsFromJobs = (
+  jobs: EvaluationJob[],
+): ComparableRunWithJobId[] =>
+  jobs.flatMap((job) =>
+    getComparableRunsForJob(job)
+      .slice(0, 1)
+      .map((defaultRun) => ({
+        ...defaultRun,
+        jobId: job.resource.id,
+      })),
+  );
 
-  return getRunDisplayTitle(job);
+export const buildMlflowCompareSearchParams = (
+  runs: ComparableRunWithJobId[],
+  resolveRunName: (run: ComparableRunWithJobId) => string,
+): string => {
+  const search = new URLSearchParams();
+  search.set('runs', serializeMlflowArrayParam(runs.map((run) => run.runUuid)));
+  search.set('experiments', serializeMlflowArrayParam(runs.map((run) => run.experimentId)));
+  search.set('names', serializeMlflowArrayParam(Array.from(new Set(runs.map(resolveRunName)))));
+  return search.toString();
 };
 
-export const buildCompareBenchmarksPageTitle = (jobs: EvaluationJob[]): string => {
-  const labels = jobs.map(getCompareRunTitleLabel);
+const normalizeCompareBenchmarkSearchText = (searchText: string): string =>
+  searchText.trim().toLowerCase();
 
-  if (labels.length < 2) {
-    return 'Compare runs';
+const getCompareBenchmarkEvaluationRunSearchValue = (job: EvaluationJob): string =>
+  getCompareParentEvaluationRunLabel(job).toLowerCase();
+
+const getComparableRunEvaluationRunSearchValue = (
+  job: EvaluationJob,
+  run: ComparableRun,
+): string => {
+  if (getCompareRunType(job) === 'Single benchmark') {
+    return getCompareBenchmarkEvaluationRunSearchValue(job);
   }
 
-  if (labels.length === 2) {
-    return `Comparing ${labels[0]} and ${labels[1]}`;
-  }
-
-  return `Comparing ${labels[0]}, ${labels[1]} and ${labels.length - 2} more`;
+  return getBenchmarkDisplayName(run.benchmarkId).toLowerCase();
 };
 
-export type CompareBenchmarkSearchMatch = {
-  job: EvaluationJob;
-  /** When set, only these comparable runs are shown for the job; otherwise all runs are shown. */
-  visibleRunKeys: Set<string> | null;
+export const jobMatchesCompareBenchmarkSearch = (
+  job: EvaluationJob,
+  searchText: string,
+): boolean => {
+  const normalized = normalizeCompareBenchmarkSearchText(searchText);
+  if (!normalized) {
+    return true;
+  }
+
+  if (getCompareBenchmarkEvaluationRunSearchValue(job).includes(normalized)) {
+    return true;
+  }
+
+  return getComparableRunsForJob(job).some((run) =>
+    getComparableRunEvaluationRunSearchValue(job, run).includes(normalized),
+  );
+};
+
+export const filterComparableRunsForCompareBenchmarkSearch = (
+  job: EvaluationJob,
+  searchText: string,
+): ComparableRun[] => {
+  const comparableRuns = getComparableRunsForJob(job);
+  const normalized = normalizeCompareBenchmarkSearchText(searchText);
+  if (!normalized) {
+    return comparableRuns;
+  }
+
+  if (getCompareBenchmarkEvaluationRunSearchValue(job).includes(normalized)) {
+    return comparableRuns;
+  }
+
+  return comparableRuns.filter((run) =>
+    getComparableRunEvaluationRunSearchValue(job, run).includes(normalized),
+  );
 };
 
 export const filterJobsForCompareBenchmarkSearch = (
   jobs: EvaluationJob[],
-  collectionNameMap: CollectionNameMap | undefined,
   searchText: string,
-): CompareBenchmarkSearchMatch[] => {
-  const normalized = searchText.trim().toLowerCase();
+): EvaluationJob[] => {
+  const normalized = normalizeCompareBenchmarkSearchText(searchText);
   if (!normalized) {
-    return jobs.map((job) => ({ job, visibleRunKeys: null }));
+    return jobs;
   }
 
-  return jobs
-    .map((job) => {
-      const evaluationRunLabel = getCompareParentEvaluationRunLabel(job).toLowerCase();
-      const evaluationLabel = getCompareRunEvaluationLabel(job, collectionNameMap).toLowerCase();
-      const evaluatedLabel = job.model.name.toLowerCase();
-      const runType = getCompareRunType(job).toLowerCase();
-      const runDisplayTitle = getRunDisplayTitle(job).toLowerCase();
-
-      const parentMatches =
-        evaluationRunLabel.includes(normalized) ||
-        evaluationLabel.includes(normalized) ||
-        evaluatedLabel.includes(normalized) ||
-        runType.includes(normalized) ||
-        runDisplayTitle.includes(normalized);
-
-      if (parentMatches) {
-        return { job, visibleRunKeys: null };
-      }
-
-      const visibleRunKeys = new Set<string>();
-      getComparableRunsForJob(job).forEach((run) => {
-        const benchmarkLabel = getBenchmarkDisplayTitle(run.benchmarkId).toLowerCase();
-        if (
-          benchmarkLabel.includes(normalized) ||
-          run.benchmarkId.toLowerCase().includes(normalized)
-        ) {
-          visibleRunKeys.add(
-            buildBenchmarkSelectionKey({
-              jobId: job.resource.id,
-              benchmarkId: run.benchmarkId,
-              benchmarkIndex: run.benchmarkIndex,
-            }),
-          );
-        }
-      });
-
-      if (visibleRunKeys.size === 0) {
-        return null;
-      }
-
-      return { job, visibleRunKeys };
-    })
-    .filter((match): match is CompareBenchmarkSearchMatch => match !== null);
+  return jobs.filter((job) => jobMatchesCompareBenchmarkSearch(job, normalized));
 };

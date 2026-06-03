@@ -1,11 +1,7 @@
 import * as React from 'react';
 import {
-  Bullseye,
   Button,
   Checkbox,
-  EmptyState,
-  EmptyStateBody,
-  EmptyStateFooter,
   EmptyStateVariant,
   MenuToggle,
   MenuToggleElement,
@@ -20,28 +16,30 @@ import {
   ToolbarItem,
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
-import { FilterIcon, SearchIcon } from '@patternfly/react-icons';
+import DashboardEmptyTableView from '@odh-dashboard/internal/concepts/dashboard/DashboardEmptyTableView';
+import { FilterIcon } from '@patternfly/react-icons';
 import { Table, Thead, Tr, Th, Tbody, ThProps } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { fireSimpleTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
-import { getEvaluationName, getBenchmarkName } from '~/app/utilities/evaluationUtils';
+import {
+  getEvaluationName,
+  getBenchmarkName,
+  isEvaluationJobComparable,
+} from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import {
-  getComparableRunsForJob,
+  buildDefaultComparableRunsFromJobs,
+  buildMlflowCompareSearchParams,
   isBenchmarkSuiteRun,
-  serializeMlflowArrayParam,
 } from '~/app/utilities/compareEvaluationsUtils';
+import {
+  DEFAULT_TABLE_PER_PAGE,
+  TABLE_PER_PAGE_OPTIONS,
+} from '~/app/utilities/tablePaginationConstants';
 import { evaluationCompareBenchmarksRoute, evaluationCompareRoute } from '~/app/routes';
 import EvaluationsTableRow from './EvaluationsTableRow';
-
-const DEFAULT_PER_PAGE = 20;
-const PER_PAGE_OPTIONS = [
-  { title: '5', value: 5 },
-  { title: '10', value: 10 },
-  { title: '20', value: 20 },
-];
 
 type FilterOption = 'name' | 'evaluation' | 'evaluated' | 'status';
 
@@ -126,7 +124,7 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
   const [isFilterSelectOpen, setIsFilterSelectOpen] = React.useState(false);
   const [isStatusSelectOpen, setIsStatusSelectOpen] = React.useState(false);
   const [page, setPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
+  const [perPage, setPerPage] = React.useState(DEFAULT_TABLE_PER_PAGE);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({
     index: 4,
     direction: 'desc',
@@ -169,14 +167,30 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     [sortedEvaluations, page, perPage],
   );
 
+  const comparableEvaluationsInView = React.useMemo(
+    () => paginatedEvaluations.filter(isEvaluationJobComparable),
+    [paginatedEvaluations],
+  );
+
   const selectedRowsInView = React.useMemo(
-    () => paginatedEvaluations.filter((job) => selectedEvaluationIds.has(job.resource.id)),
-    [paginatedEvaluations, selectedEvaluationIds],
+    () => comparableEvaluationsInView.filter((job) => selectedEvaluationIds.has(job.resource.id)),
+    [comparableEvaluationsInView, selectedEvaluationIds],
   );
 
   const canCompare = selectedEvaluationIds.size >= 2;
   const allRowsInViewSelected =
-    paginatedEvaluations.length > 0 && selectedRowsInView.length === paginatedEvaluations.length;
+    comparableEvaluationsInView.length > 0 &&
+    selectedRowsInView.length === comparableEvaluationsInView.length;
+
+  React.useEffect(() => {
+    setSelectedEvaluationIds((prev) => {
+      const comparableIds = new Set(
+        evaluations.filter(isEvaluationJobComparable).map((job) => job.resource.id),
+      );
+      const next = new Set([...prev].filter((id) => comparableIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [evaluations]);
 
   React.useEffect(() => {
     setPage(1);
@@ -211,34 +225,27 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
     if (hasSuiteSelections) {
       const search = new URLSearchParams();
       search.set('jobIds', selectedJobIds.join(','));
-      navigate(`${evaluationCompareBenchmarksRoute(namespace)}?${search.toString()}`);
+      navigate({
+        pathname: evaluationCompareBenchmarksRoute(namespace),
+        search: search.toString(),
+      });
       return;
     }
 
-    const selectedRuns = selectedJobs.flatMap((job) =>
-      getComparableRunsForJob(job)
-        .slice(0, 1)
-        .map((defaultRun) => ({
-          ...defaultRun,
-          jobId: job.resource.id,
-        })),
-    );
+    const selectedRuns = buildDefaultComparableRunsFromJobs(selectedJobs);
 
     if (selectedRuns.length < 2) {
       return;
     }
 
-    const search = new URLSearchParams();
-    search.set('runs', serializeMlflowArrayParam(selectedRuns.map((run) => run.runUuid)));
-    search.set(
-      'experiments',
-      serializeMlflowArrayParam(selectedRuns.map((run) => run.experimentId)),
-    );
-    search.set(
-      'names',
-      serializeMlflowArrayParam(selectedJobs.map((job) => getEvaluationName(job))),
-    );
-    navigate(`${evaluationCompareRoute(namespace)}?${search.toString()}`);
+    const jobsById = new Map(selectedJobs.map((job) => [job.resource.id, job]));
+    navigate({
+      pathname: evaluationCompareRoute(namespace),
+      search: buildMlflowCompareSearchParams(selectedRuns, (run) => {
+        const job = jobsById.get(run.jobId);
+        return job ? getEvaluationName(job) : run.jobId;
+      }),
+    });
   }, [evaluations, namespace, navigate, selectedEvaluationIds]);
 
   const getSortParams = (columnIndex: number): ThProps['sort'] => ({
@@ -404,33 +411,17 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                 setPerPage(newPerPage);
                 setPage(newPage);
               }}
-              perPageOptions={PER_PAGE_OPTIONS}
+              perPageOptions={TABLE_PER_PAGE_OPTIONS}
             />
           </ToolbarItem>
         </ToolbarContent>
       </Toolbar>
 
       {isEmpty ? (
-        <Bullseye>
-          <EmptyState
-            headingLevel="h2"
-            titleText="No results found"
-            variant={EmptyStateVariant.sm}
-            data-testid="evaluations-empty-filter-state"
-            icon={SearchIcon}
-          >
-            <EmptyStateBody>Adjust your filters and try again.</EmptyStateBody>
-            <EmptyStateFooter>
-              <Button
-                variant="link"
-                onClick={handleClearFilters}
-                data-testid="clear-filters-button"
-              >
-                Clear all filters
-              </Button>
-            </EmptyStateFooter>
-          </EmptyState>
-        </Bullseye>
+        <DashboardEmptyTableView
+          onClearFilters={handleClearFilters}
+          variant={EmptyStateVariant.sm}
+        />
       ) : (
         <Table aria-label="Evaluations table" data-testid="evaluations-table">
           <Thead>
@@ -443,14 +434,14 @@ const EvaluationsTable: React.FC<EvaluationsTableProps> = ({
                   id="select-all-evaluation-rows"
                   aria-label="Select all evaluations on current page"
                   isChecked={allRowsInViewSelected}
-                  isDisabled={paginatedEvaluations.length === 0}
+                  isDisabled={comparableEvaluationsInView.length === 0}
                   onChange={(_event, checked) => {
                     setSelectedEvaluationIds((prev) => {
                       const next = new Set(prev);
                       if (checked) {
-                        paginatedEvaluations.forEach((job) => next.add(job.resource.id));
+                        comparableEvaluationsInView.forEach((job) => next.add(job.resource.id));
                       } else {
-                        paginatedEvaluations.forEach((job) => next.delete(job.resource.id));
+                        comparableEvaluationsInView.forEach((job) => next.delete(job.resource.id));
                       }
                       return next;
                     });

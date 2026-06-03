@@ -60,6 +60,7 @@ describe('ChooseCompareBenchmarksPage', () => {
       id: 'job-collection',
       name: 'Suite One',
       collectionId: 'col-1',
+      createdAt: '2026-02-20T10:00:00Z',
     });
     collectionJob.resource.mlflow_experiment_id = 'exp-1';
     collectionJob.collection = {
@@ -94,27 +95,26 @@ describe('ChooseCompareBenchmarksPage', () => {
 
     renderPage('/test-project/compare-runs/benchmarks?jobIds=job-collection,job-benchmark');
 
-    expect(screen.getByTestId('page-title')).toHaveTextContent(
-      /Comparing .+ and Toxicity Detection/,
-    );
-    expect(screen.getByTestId('choose-compare-benchmarks-subtitle')).toHaveTextContent(
-      'Choose benchmarks to compare',
-    );
+    expect(screen.getByTestId('page-title')).toHaveTextContent('Compare runs');
     expect(screen.getByTestId('choose-compare-benchmarks-search')).toBeInTheDocument();
+    expect(screen.getByTestId('compare-selected-benchmarks-button')).toBeInTheDocument();
     expect(screen.getByTestId('choose-compare-benchmarks-table')).toBeInTheDocument();
     expect(screen.getByTestId('compare-select-all-checkbox')).toBeInTheDocument();
-    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent('Collection');
+    expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
+      'Benchmark suite',
+    );
     expect(screen.getByTestId('compare-run-row-job-collection')).toHaveTextContent(
       'Safety and fairness',
     );
-    expect(screen.getByTestId('compare-run-row-job-benchmark')).toHaveTextContent('Benchmark');
+    expect(screen.getByTestId('compare-run-row-job-benchmark')).toHaveTextContent(
+      'Single benchmark',
+    );
     expect(screen.getByTestId('compare-run-row-job-benchmark')).toHaveTextContent(
       'Toxicity Detection',
     );
-
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|truthfulqa_mc1|0'),
-    ).toBeInTheDocument();
+    ).toHaveTextContent('Benchmark run');
     expect(
       screen.getByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
     ).toBeInTheDocument();
@@ -132,12 +132,13 @@ describe('ChooseCompareBenchmarksPage', () => {
     ).toBeChecked();
   });
 
-  it('should filter benchmarks by search text', () => {
+  it('should filter jobs by evaluation run', () => {
     /* eslint-disable camelcase */
     const collectionJob = mockEvaluationJob({
       id: 'job-collection',
       name: 'Suite One',
       collectionId: 'col-1',
+      createdAt: '2026-02-20T10:00:00Z',
     });
     collectionJob.resource.mlflow_experiment_id = 'exp-1';
     collectionJob.collection = {
@@ -172,19 +173,74 @@ describe('ChooseCompareBenchmarksPage', () => {
 
     renderPage('/test-project/compare-runs/benchmarks?jobIds=job-collection,job-benchmark');
 
-    fireEvent.change(screen.getByPlaceholderText('Search by name'), {
-      target: { value: 'truthfulqa' },
+    fireEvent.change(screen.getByPlaceholderText('Search name'), {
+      target: { value: 'Suite One' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /search/i }));
 
     expect(screen.getByTestId('compare-run-row-job-collection')).toBeInTheDocument();
     expect(screen.queryByTestId('compare-run-row-job-benchmark')).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
-    ).not.toBeInTheDocument();
+      screen.getByTestId('compare-benchmark-row-job-collection|truthfulqa_mc1|0'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
+    ).toBeInTheDocument();
   });
 
-  it('should require selections from at least two runs', () => {
+  it('should filter expandable child rows by evaluation run label', () => {
+    /* eslint-disable camelcase */
+    const collectionJob = mockEvaluationJob({
+      id: 'job-collection',
+      name: 'Suite One',
+      collectionId: 'col-1',
+      createdAt: '2026-02-20T10:00:00Z',
+    });
+    collectionJob.resource.mlflow_experiment_id = 'exp-1';
+    collectionJob.collection = {
+      id: 'col-1',
+      benchmarks: [
+        { id: 'truthfulqa_mc1', provider_id: 'lm', benchmark_index: 0 },
+        { id: 'toxicity_detection', provider_id: 'lm', benchmark_index: 1 },
+      ],
+    };
+    collectionJob.results.benchmarks = [
+      { id: 'truthfulqa_mc1', benchmark_index: 0, mlflow_run_id: 'run-1' },
+      { id: 'toxicity_detection', benchmark_index: 1, mlflow_run_id: 'run-2' },
+    ];
+
+    const benchmarkJob = mockEvaluationJob({
+      id: 'job-benchmark',
+      name: 'Other Run',
+      benchmarkId: 'gpqa',
+    });
+    benchmarkJob.resource.mlflow_experiment_id = 'exp-2';
+    benchmarkJob.results.benchmarks = [{ id: 'gpqa', benchmark_index: 0, mlflow_run_id: 'run-3' }];
+    /* eslint-enable camelcase */
+
+    mockUseEvaluationJobs.mockReturnValue([
+      [collectionJob, benchmarkJob],
+      true,
+      undefined,
+      jest.fn(),
+    ]);
+
+    renderPage('/test-project/compare-runs/benchmarks?jobIds=job-collection,job-benchmark');
+
+    fireEvent.change(screen.getByPlaceholderText('Search name'), {
+      target: { value: 'Toxicity' },
+    });
+
+    expect(screen.getByTestId('compare-run-row-job-collection')).toBeInTheDocument();
+    expect(screen.queryByTestId('compare-run-row-job-benchmark')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('compare-benchmark-row-job-collection|truthfulqa_mc1|0'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('compare-benchmark-row-job-collection|toxicity_detection|1'),
+    ).toBeInTheDocument();
+  });
+
+  it('should require at least two benchmark selections to compare', () => {
     /* eslint-disable camelcase */
     const jobOne = mockEvaluationJob({ id: 'job-1', name: 'Suite One', benchmarkId: 'ifeval' });
     jobOne.resource.mlflow_experiment_id = 'exp-1';
@@ -228,5 +284,41 @@ describe('ChooseCompareBenchmarksPage', () => {
         pathname: '/evaluation/test-project/compare-runs',
       }),
     );
+  });
+
+  it('should enable compare when two benchmarks from the same collection run are selected', () => {
+    /* eslint-disable camelcase */
+    const collectionJob = mockEvaluationJob({
+      id: 'job-collection',
+      name: 'Suite One',
+      collectionId: 'col-1',
+      createdAt: '2026-02-20T10:00:00Z',
+    });
+    collectionJob.resource.mlflow_experiment_id = 'exp-1';
+    collectionJob.collection = {
+      id: 'col-1',
+      benchmarks: [
+        { id: 'ifeval', provider_id: 'lm', benchmark_index: 0 },
+        { id: 'bbh', provider_id: 'lm', benchmark_index: 1 },
+      ],
+    };
+    collectionJob.results.benchmarks = [
+      { id: 'ifeval', benchmark_index: 0, mlflow_run_id: 'run-1' },
+      { id: 'bbh', benchmark_index: 1, mlflow_run_id: 'run-2' },
+    ];
+
+    const otherJob = mockEvaluationJob({ id: 'job-other', name: 'Other', benchmarkId: 'gpqa' });
+    otherJob.resource.mlflow_experiment_id = 'exp-2';
+    otherJob.results.benchmarks = [{ id: 'gpqa', benchmark_index: 0, mlflow_run_id: 'run-3' }];
+    /* eslint-enable camelcase */
+
+    mockUseEvaluationJobs.mockReturnValue([[collectionJob, otherJob], true, undefined, jest.fn()]);
+
+    renderPage('/test-project/compare-runs/benchmarks?jobIds=job-collection,job-other');
+
+    const compareButton = screen.getByTestId('compare-selected-benchmarks-button');
+    fireEvent.click(getCheckbox('compare-benchmark-checkbox-job-collection|ifeval|0'));
+    fireEvent.click(getCheckbox('compare-benchmark-checkbox-job-collection|bbh|1'));
+    expect(compareButton).toBeEnabled();
   });
 });

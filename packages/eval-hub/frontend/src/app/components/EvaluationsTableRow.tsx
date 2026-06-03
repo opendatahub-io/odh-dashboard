@@ -21,6 +21,7 @@ import {
   getEvaluationName,
   getResultPass,
   getResultScore,
+  isEvaluationJobComparable,
 } from '~/app/utilities/evaluationUtils';
 import { CollectionNameMap } from '~/app/hooks/useCollectionNameMap';
 import { cancelEvaluationJob, deleteEvaluationJob } from '~/app/api/k8s';
@@ -58,6 +59,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   const benchmarkName = getBenchmarkName(job, collectionNameMap);
   const allBenchmarkNames = getAllBenchmarkNames(job);
   const isInProgress = IN_PROGRESS_STATES.has(job.status.state);
+  const isComparable = isEvaluationJobComparable(job);
   const displayState = isStopping ? 'stopping' : job.status.state;
 
   React.useEffect(() => {
@@ -184,6 +186,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
             id={`evaluation-select-checkbox-${job.resource.id}`}
             aria-label={`Select ${evaluationName}`}
             isChecked={isSelected}
+            isDisabled={!isComparable}
             onChange={(_event, checked) => onSelectionChange(checked)}
             data-testid={`evaluation-select-checkbox-${rowIndex}`}
           />

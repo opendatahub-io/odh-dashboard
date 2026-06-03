@@ -66,6 +66,16 @@ describe('EvaluationsTableRow', () => {
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
   });
 
+  it('should disable the compare checkbox when evaluation is not completed', () => {
+    renderRow({ state: 'running' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeDisabled();
+  });
+
+  it('should enable the compare checkbox when evaluation is completed', () => {
+    renderRow({ state: 'completed' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
+  });
+
   it('should show error popover when clicking a failed status with a message', () => {
     renderRow({
       state: 'failed',
