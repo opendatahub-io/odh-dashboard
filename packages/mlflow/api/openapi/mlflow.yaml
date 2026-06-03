@@ -240,7 +240,9 @@ paths:
         - $ref: "#/components/parameters/workspace"
       responses:
         "204":
-          description: Prompt deleted successfully
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -324,7 +326,7 @@ paths:
         - $ref: "#/components/parameters/workspace"
       responses:
         "204":
-          description: Prompt version deleted successfully
+          $ref: "#/components/responses/NoContent"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -862,6 +864,8 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Service unavailable - MLflow server is not configured or reachable
+    NoContent:
+      description: Operation completed successfully with no response body.
 
   parameters:
     id:

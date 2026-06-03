@@ -43,30 +43,37 @@ func (c *Client) SearchExperiments(ctx context.Context, opts ...tracking.SearchE
 	return c.sdk.Tracking().SearchExperiments(ctx, opts...)
 }
 
+// ListPrompts returns a paginated list of prompts matching the given options.
 func (c *Client) ListPrompts(ctx context.Context, opts ...promptregistry.ListPromptsOption) (*promptregistry.PromptList, error) {
 	return c.sdk.PromptRegistry().ListPrompts(ctx, opts...)
 }
 
+// RegisterPrompt creates a new text prompt or adds a new version to an existing one.
 func (c *Client) RegisterPrompt(ctx context.Context, name, template string, opts ...promptregistry.RegisterOption) (*promptregistry.PromptVersion, error) {
 	return c.sdk.PromptRegistry().RegisterPrompt(ctx, name, template, opts...)
 }
 
+// RegisterChatPrompt creates a new chat prompt or adds a new version to an existing one.
 func (c *Client) RegisterChatPrompt(ctx context.Context, name string, messages []promptregistry.ChatMessage, opts ...promptregistry.RegisterOption) (*promptregistry.PromptVersion, error) {
 	return c.sdk.PromptRegistry().RegisterChatPrompt(ctx, name, messages, opts...)
 }
 
+// LoadPrompt retrieves a specific prompt, optionally at a given version.
 func (c *Client) LoadPrompt(ctx context.Context, name string, opts ...promptregistry.LoadOption) (*promptregistry.PromptVersion, error) {
 	return c.sdk.PromptRegistry().LoadPrompt(ctx, name, opts...)
 }
 
+// ListPromptVersions returns a paginated list of versions for a named prompt.
 func (c *Client) ListPromptVersions(ctx context.Context, name string, opts ...promptregistry.ListVersionsOption) (*promptregistry.PromptVersionList, error) {
 	return c.sdk.PromptRegistry().ListPromptVersions(ctx, name, opts...)
 }
 
+// DeletePrompt removes an entire prompt and all its versions.
 func (c *Client) DeletePrompt(ctx context.Context, name string) error {
 	return c.sdk.PromptRegistry().DeletePrompt(ctx, name)
 }
 
+// DeletePromptVersion removes a specific version of a prompt.
 func (c *Client) DeletePromptVersion(ctx context.Context, name string, version int) error {
 	return c.sdk.PromptRegistry().DeletePromptVersion(ctx, name, version)
 }
