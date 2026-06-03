@@ -29,7 +29,7 @@ import type { Configuration as DevServerConfiguration } from 'webpack-dev-server
 const currentDir = __dirname;
 
 const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
-const ODH_ROOT = path.resolve(PROJECT_ROOT, '../../../');
+const ODH_ROOT = path.resolve(PROJECT_ROOT, '../');
 
 const getProxyHeaders = () => {
   try {
