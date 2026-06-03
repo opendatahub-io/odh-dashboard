@@ -55,7 +55,7 @@ const InnerExperimentSelector: React.FC<
         searchHelpText={`Type a name to search your ${totalSize} run groups.`}
         isDisabled={totalSize === 0}
         footer={
-          initialLoaded
+          initialLoaded && loaded
             ? ({ menuClose }) => (
                 <Button
                   variant="link"
