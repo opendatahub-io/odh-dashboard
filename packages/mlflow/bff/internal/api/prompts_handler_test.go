@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,7 +13,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 	sdkmlflow "github.com/opendatahub-io/mlflow-go/mlflow"
 	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
+	"github.com/opendatahub-io/mlflow/bff/internal/config"
+	"github.com/opendatahub-io/mlflow/bff/internal/constants"
+	k8s "github.com/opendatahub-io/mlflow/bff/internal/integrations/kubernetes"
 	mlflowpkg "github.com/opendatahub-io/mlflow/bff/internal/integrations/mlflow"
+	"github.com/opendatahub-io/mlflow/bff/internal/models"
 	"github.com/opendatahub-io/mlflow/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	tmock "github.com/stretchr/testify/mock"
@@ -388,4 +393,167 @@ func TestDeletePromptVersionInvalidVersion(t *testing.T) {
 	app.MLflowDeletePromptVersionHandler(rr, req, ps)
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
+}
+
+// --- Global Namespace Awareness ---
+
+func newTestAppWithGlobalNamespaces(globalNs []string, factory mlflowpkg.MLflowClientFactory) *App {
+	return &App{
+		config:              config.EnvConfig{AuthMethod: config.AuthMethodUser},
+		logger:              testLogger(),
+		repositories:        repositories.NewRepositories(),
+		mlflowClientFactory: factory,
+		globalNamespaces:    globalNs,
+	}
+}
+
+func withIdentityToken(req *http.Request, token string) *http.Request {
+	identity := &k8s.RequestIdentity{Token: k8s.NewBearerToken(token)}
+	ctx := context.WithValue(req.Context(), constants.RequestIdentityKey, identity)
+	return req.WithContext(ctx)
+}
+
+func TestListPromptsWithScopeAnnotation(t *testing.T) {
+	app := newTestAppWithPromptsRepos()
+	mockClient := &mlflowpkg.MockClient{}
+
+	now := time.Now()
+	mockClient.On("ListPrompts", tmock.Anything, tmock.Anything).
+		Return(&promptregistry.PromptList{
+			Prompts: []promptregistry.Prompt{
+				{Name: "my-prompt", LatestVersion: 1, CreationTimestamp: now},
+			},
+		}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
+	req = requestWithMLflowClient(req, mockClient)
+	rr := httptest.NewRecorder()
+
+	app.MLflowListPromptsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var envelope PromptsEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	require.Len(t, envelope.Data.Prompts, 1)
+	assert.Equal(t, "project", string(envelope.Data.Prompts[0].Scope.Type))
+	assert.Equal(t, "my-project", envelope.Data.Prompts[0].Scope.Namespace)
+}
+
+func TestListPromptsWithGlobalNamespace(t *testing.T) {
+	userClient := &mlflowpkg.MockClient{}
+	globalClient := &mlflowpkg.MockClient{}
+	mockFactory := &mlflowpkg.MockFactory{}
+
+	now := time.Now()
+	userClient.On("ListPrompts", tmock.Anything, tmock.Anything).
+		Return(&promptregistry.PromptList{
+			Prompts: []promptregistry.Prompt{
+				{Name: "user-prompt", LatestVersion: 1, CreationTimestamp: now},
+			},
+		}, nil)
+
+	globalClient.On("ListPrompts", tmock.Anything, tmock.Anything).
+		Return(&promptregistry.PromptList{
+			Prompts: []promptregistry.Prompt{
+				{Name: "global-prompt", LatestVersion: 2, CreationTimestamp: now},
+			},
+		}, nil)
+
+	mockFactory.On("GetClient", tmock.Anything, "test-token", "global-ns").
+		Return(globalClient, nil)
+
+	app := newTestAppWithGlobalNamespaces([]string{"global-ns"}, mockFactory)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
+	req = requestWithMLflowClient(req, userClient)
+	req = withIdentityToken(req, "test-token")
+	rr := httptest.NewRecorder()
+
+	app.MLflowListPromptsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var envelope PromptsEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	require.Len(t, envelope.Data.Prompts, 2)
+
+	scopeMap := make(map[string]models.PromptScope)
+	for _, p := range envelope.Data.Prompts {
+		scopeMap[p.Name] = p.Scope
+	}
+
+	assert.Equal(t, models.PromptScopeProject, scopeMap["user-prompt"].Type)
+	assert.Equal(t, "my-project", scopeMap["user-prompt"].Namespace)
+	assert.Equal(t, models.PromptScopeGlobal, scopeMap["global-prompt"].Type)
+	assert.Equal(t, "global-ns", scopeMap["global-prompt"].Namespace)
+
+	userClient.AssertExpectations(t)
+	globalClient.AssertExpectations(t)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestListPromptsGlobalNamespaceFailsGracefully(t *testing.T) {
+	userClient := &mlflowpkg.MockClient{}
+	mockFactory := &mlflowpkg.MockFactory{}
+
+	now := time.Now()
+	userClient.On("ListPrompts", tmock.Anything, tmock.Anything).
+		Return(&promptregistry.PromptList{
+			Prompts: []promptregistry.Prompt{
+				{Name: "user-prompt", LatestVersion: 1, CreationTimestamp: now},
+			},
+		}, nil)
+
+	mockFactory.On("GetClient", tmock.Anything, "test-token", "bad-ns").
+		Return(nil, fmt.Errorf("connection refused"))
+
+	app := newTestAppWithGlobalNamespaces([]string{"bad-ns"}, mockFactory)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
+	req = requestWithMLflowClient(req, userClient)
+	req = withIdentityToken(req, "test-token")
+	rr := httptest.NewRecorder()
+
+	app.MLflowListPromptsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var envelope PromptsEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	require.Len(t, envelope.Data.Prompts, 1)
+	assert.Equal(t, "user-prompt", envelope.Data.Prompts[0].Name)
+	assert.Equal(t, models.PromptScopeProject, envelope.Data.Prompts[0].Scope.Type)
+	require.Len(t, envelope.Data.FailedNamespaces, 1)
+	assert.Equal(t, "bad-ns", envelope.Data.FailedNamespaces[0])
+
+	userClient.AssertExpectations(t)
+	mockFactory.AssertExpectations(t)
+}
+
+func TestListPromptsNoGlobalNamespacesConfigured(t *testing.T) {
+	app := newTestAppWithPromptsRepos()
+	mockClient := &mlflowpkg.MockClient{}
+
+	now := time.Now()
+	mockClient.On("ListPrompts", tmock.Anything, tmock.Anything).
+		Return(&promptregistry.PromptList{
+			Prompts: []promptregistry.Prompt{
+				{Name: "only-user", LatestVersion: 1, CreationTimestamp: now},
+			},
+		}, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
+	req = requestWithMLflowClient(req, mockClient)
+	rr := httptest.NewRecorder()
+
+	app.MLflowListPromptsHandler(rr, req, nil)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var envelope PromptsEnvelope
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
+	require.Len(t, envelope.Data.Prompts, 1)
+	assert.Equal(t, models.PromptScopeProject, envelope.Data.Prompts[0].Scope.Type)
+	assert.Equal(t, "my-project", envelope.Data.Prompts[0].Scope.Namespace)
 }

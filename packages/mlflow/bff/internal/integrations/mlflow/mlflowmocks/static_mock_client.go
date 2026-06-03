@@ -66,9 +66,9 @@ func staticExperiments() []tracking.Experiment {
 func staticPrompts() []promptregistry.Prompt {
 	now := time.Now()
 	return []promptregistry.Prompt{
-		{Name: "vet-appointment-dora", Description: "Schedule a veterinary appointment for Dora", LatestVersion: 2, Tags: map[string]string{"pet": "dora", "category": "health"}, CreationTimestamp: now.Add(-14 * 24 * time.Hour)},
+		{Name: "vet-appointment-dora", Description: "Schedule a veterinary appointment for Dora", LatestVersion: 1, Tags: map[string]string{"pet": "dora", "category": "health"}, CreationTimestamp: now.Add(-14 * 24 * time.Hour)},
 		{Name: "pet-health-bella", Description: "Pet health check for Bella", LatestVersion: 1, Tags: map[string]string{"pet": "bella"}, CreationTimestamp: now.Add(-10 * 24 * time.Hour)},
-		{Name: "medication-reminder-ellie", Description: "Medication reminder prompt", LatestVersion: 2, Tags: map[string]string{"pet": "ellie"}, CreationTimestamp: now.Add(-7 * 24 * time.Hour)},
+		{Name: "medication-reminder-ellie", Description: "Medication reminder prompt", LatestVersion: 1, Tags: map[string]string{"pet": "ellie"}, CreationTimestamp: now.Add(-7 * 24 * time.Hour)},
 		{Name: "pet-adoption-letter", Description: "Generate pet adoption letters", LatestVersion: 1, Tags: map[string]string{"category": "adoption"}, CreationTimestamp: now.Add(-5 * 24 * time.Hour)},
 	}
 }
