@@ -116,15 +116,19 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		maasFakeServer = maas.CreateMaasFakeServer()
 		logger.Info("MaaS Fake API Server is running", "url", maasFakeServer.URL)
 		cfg.MaasApiUrl = maasFakeServer.URL
-	} else {
-		// Fallback to discovery of MaaS API url, when not provided via envvar, or cmd flags
-		if cfg.MaasApiUrl == "" {
-			clusterDomain, err := helper.GetClusterDomainUsingServiceAccount(context.Background(), logger)
-			if err != nil {
-				logger.Error("Failed to auto-discover cluster domain, MaaS API URL will be unavailable", "error", err)
+	} else if cfg.MaasApiUrl == "" {
+		ctx := context.Background()
+		if hostname, gwErr := helper.GetGatewayHostname(ctx, logger, cfg.GatewayName, cfg.GatewayNamespace); gwErr == nil {
+			cfg.MaasApiUrl = fmt.Sprintf("https://%s/maas-api", hostname)
+			logger.Info("Using Gateway hostname for MaaS API URL", "url", cfg.MaasApiUrl)
+		} else {
+			logger.Warn("Gateway hostname discovery failed, falling back to ingress domain", "error", gwErr)
+			clusterDomain, domainErr := helper.GetClusterDomainUsingServiceAccount(ctx, logger)
+			if domainErr != nil {
+				logger.Error("Failed to auto-discover MaaS API URL", "gatewayError", gwErr, "ingressError", domainErr)
 			} else {
 				cfg.MaasApiUrl = fmt.Sprintf("https://maas.%s/maas-api", clusterDomain)
-				logger.Info("Using automatically discovered MaaS URL", "url", cfg.MaasApiUrl)
+				logger.Info("Using ingress domain for MaaS API URL", "url", cfg.MaasApiUrl)
 			}
 		}
 	}
