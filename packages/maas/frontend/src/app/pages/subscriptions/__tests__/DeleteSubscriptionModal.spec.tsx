@@ -12,9 +12,7 @@ jest.mock('~/app/hooks/useDeleteSubscription', () => ({
   }),
 }));
 
-const mockSubscription = (
-  overrides: Partial<MaaSSubscription> = {},
-): MaaSSubscription => ({
+const mockSubscription = (overrides: Partial<MaaSSubscription> = {}): MaaSSubscription => ({
   name: 'prod-api-access',
   namespace: 'test-ns',
   owner: { groups: [] },
@@ -37,8 +35,16 @@ describe('DeleteSubscriptionModal', () => {
 
   it('should fall back to name when displayName is not set', () => {
     render(
+      <DeleteSubscriptionModal subscription={mockSubscription()} onClose={jest.fn()} />,
+    );
+
+    expect(screen.getByText('prod-api-access')).toBeInTheDocument();
+  });
+
+  it('should fall back to name when displayName is empty string', () => {
+    render(
       <DeleteSubscriptionModal
-        subscription={mockSubscription()}
+        subscription={mockSubscription({ displayName: '' })}
         onClose={jest.fn()}
       />,
     );

@@ -12,9 +12,7 @@ jest.mock('~/app/hooks/useDeleteAuthPolicy', () => ({
   }),
 }));
 
-const mockAuthPolicy = (
-  overrides: Partial<MaaSAuthPolicy> = {},
-): MaaSAuthPolicy => ({
+const mockAuthPolicy = (overrides: Partial<MaaSAuthPolicy> = {}): MaaSAuthPolicy => ({
   name: 'prod-policy',
   namespace: 'test-ns',
   modelRefs: [],
@@ -37,8 +35,16 @@ describe('DeleteAuthPolicyModal', () => {
 
   it('should fall back to name when displayName is not set', () => {
     render(
+      <DeleteAuthPolicyModal authPolicy={mockAuthPolicy()} onClose={jest.fn()} />,
+    );
+
+    expect(screen.getByText('prod-policy')).toBeInTheDocument();
+  });
+
+  it('should fall back to name when displayName is empty string', () => {
+    render(
       <DeleteAuthPolicyModal
-        authPolicy={mockAuthPolicy()}
+        authPolicy={mockAuthPolicy({ displayName: '' })}
         onClose={jest.fn()}
       />,
     );

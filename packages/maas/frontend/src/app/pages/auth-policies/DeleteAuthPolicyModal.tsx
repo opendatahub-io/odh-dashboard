@@ -25,7 +25,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
         await deleteAuthPolicyCallback(authPolicy.name);
         onClose(true);
       }}
-      deleteName={authPolicy.displayName ?? authPolicy.name}
+      deleteName={authPolicy.displayName || authPolicy.name}
       genericLabel
       testId="delete-auth-policy-modal"
       error={error}
@@ -33,7 +33,7 @@ const DeleteAuthPolicyModal: React.FC<DeleteAuthPolicyModalProps> = ({ authPolic
       <Stack hasGutter>
         <StackItem>
           Are you sure you want to delete the Policy{' '}
-          <strong>{authPolicy.displayName ?? authPolicy.name}</strong>?
+          <strong>{authPolicy.displayName || authPolicy.name}</strong>?
         </StackItem>
       </Stack>
     </DeleteModal>

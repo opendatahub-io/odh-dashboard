@@ -30,7 +30,7 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
         onClose(true);
       }}
       submitButtonLabel="Delete"
-      deleteName={subscription.displayName ?? subscription.name}
+      deleteName={subscription.displayName || subscription.name}
       error={error}
       genericLabel
       data-testid="delete-subscription-modal"
@@ -38,7 +38,7 @@ const DeleteSubscriptionModal: React.FC<DeleteSubscriptionModalProps> = ({
       <Stack hasGutter>
         <StackItem>
           Are you sure you want to delete the Subscription{' '}
-          <strong>{subscription.displayName ?? subscription.name}</strong>?
+          <strong>{subscription.displayName || subscription.name}</strong>?
         </StackItem>
       </Stack>
     </DeleteModal>
