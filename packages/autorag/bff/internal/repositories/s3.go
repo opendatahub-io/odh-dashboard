@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +13,10 @@ import (
 	pipelines "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/pipelines"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
+
+// ErrS3Configuration is returned when S3 credentials or storage configuration is
+// missing or invalid (e.g., missing secret fields, missing bucket, bad DSPA spec).
+var ErrS3Configuration = errors.New("S3 configuration error")
 
 // S3RequestContext captures the S3 access parameters available from an HTTP request.
 // Handlers build this from query params and middleware-injected context, then pass
@@ -73,7 +78,7 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 		bucket = defaultBucket
 	}
 	if bucket == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("bucket is required: supply ?bucket= or set AWS_S3_BUCKET in secret %q", req.SecretName)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: bucket is required — supply ?bucket= or set AWS_S3_BUCKET in secret %q", ErrS3Configuration, req.SecretName)
 	}
 
 	return opts, bucket, nil
@@ -90,13 +95,13 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
 	}
 	if spec.SecretName == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a secret name", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a secret name", ErrS3Configuration, dspa.Name)
 	}
 	if spec.EndpointURL == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing an endpoint URL", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing an endpoint URL", ErrS3Configuration, dspa.Name)
 	}
 	if spec.Bucket == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a bucket — contact your administrator", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a bucket — contact your administrator", ErrS3Configuration, dspa.Name)
 	}
 
 	secret, err := r.k8sService.GetSecret(ctx, namespace, spec.SecretName)
@@ -109,7 +114,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if accessKeyID == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.AccessKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.AccessKeyField)
 	}
 
 	secretAccessKey, err := kubernetes.LookupSecretValue(secret.Data, spec.SecretKeyField)
@@ -117,7 +122,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if secretAccessKey == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.SecretKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.SecretKeyField)
 	}
 
 	region := spec.Region
@@ -244,16 +249,16 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	}
 
 	if accessKeyID == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_ACCESS_KEY_ID")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_ACCESS_KEY_ID", ErrS3Configuration)
 	}
 	if secretAccessKey == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_SECRET_ACCESS_KEY")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_SECRET_ACCESS_KEY", ErrS3Configuration)
 	}
 	if region == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_DEFAULT_REGION")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_DEFAULT_REGION", ErrS3Configuration)
 	}
 	if endpoint == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_S3_ENDPOINT")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_S3_ENDPOINT", ErrS3Configuration)
 	}
 
 	return s3.ConnectionOptions{

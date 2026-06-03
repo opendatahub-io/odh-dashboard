@@ -13,6 +13,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
+	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/repositories"
 	kubernetes "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/kubernetes"
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
@@ -68,27 +69,11 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 
 	// Credential resolution / validation bad-request errors
 	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
-		errors.Is(err, s3.ErrEndpointValidation) {
+		errors.Is(err, s3.ErrEndpointValidation) ||
+		errors.Is(err, repositories.ErrS3Configuration) ||
+		errors.Is(err, repositories.ErrCSVUploadValidation) ||
+		errors.Is(err, helper.ErrCSVValidation) {
 		app.badRequestResponse(w, r, err)
-		return
-	}
-	errMsg := err.Error()
-	if strings.Contains(errMsg, "bucket is required") ||
-		strings.Contains(errMsg, "missing required field") ||
-		strings.Contains(errMsg, "missing secret name") ||
-		strings.Contains(errMsg, "missing an endpoint") ||
-		strings.Contains(errMsg, "missing a bucket") ||
-		strings.Contains(errMsg, "only CSV files are supported") ||
-		strings.Contains(errMsg, "CSV file must contain") ||
-		strings.Contains(errMsg, "CSV file is empty") ||
-		strings.Contains(errMsg, "CSV file has no columns") ||
-		strings.Contains(errMsg, "100 or more lines are supported") ||
-		strings.Contains(errMsg, "does not appear to be a valid text/CSV file") {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-	if strings.Contains(errMsg, "not found") {
-		app.notFoundResponseWithMessage(w, r, errMsg)
 		return
 	}
 

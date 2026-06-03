@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -10,6 +11,10 @@ import (
 	"time"
 	"unicode/utf8"
 )
+
+// ErrCSVValidation is returned when a file fails CSV schema inference validation
+// (empty file, no columns, too few rows, invalid encoding).
+var ErrCSVValidation = errors.New("CSV validation error")
 
 // ColumnSchema represents a column with its name and inferred type.
 type ColumnSchema struct {
@@ -55,7 +60,7 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 	header, err := reader.Read()
 	if err != nil {
 		if err == io.EOF {
-			return CSVSchemaResult{}, fmt.Errorf("CSV file is empty")
+			return CSVSchemaResult{}, fmt.Errorf("%w: file is empty", ErrCSVValidation)
 		}
 		return CSVSchemaResult{}, fmt.Errorf("error reading CSV header: %w", err)
 	}
@@ -63,7 +68,7 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 		header[i] = strings.TrimSpace(header[i])
 	}
 	if len(header) == 0 {
-		return CSVSchemaResult{}, fmt.Errorf("CSV file has no columns in header")
+		return CSVSchemaResult{}, fmt.Errorf("%w: file has no columns in header", ErrCSVValidation)
 	}
 
 	var dataRows [][]string
@@ -79,7 +84,7 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 			if parseWarnings == 0 {
 				for _, col := range header {
 					if !utf8.ValidString(col) {
-						return CSVSchemaResult{}, fmt.Errorf("file does not appear to be a valid text/CSV file (invalid UTF-8)")
+						return CSVSchemaResult{}, fmt.Errorf("%w: file does not appear to be a valid text/CSV file (invalid UTF-8)", ErrCSVValidation)
 					}
 				}
 			}
@@ -91,9 +96,8 @@ func InferCSVSchema(r io.Reader) (CSVSchemaResult, error) {
 
 	if len(dataRows) < minDataRowsRequired {
 		return CSVSchemaResult{}, fmt.Errorf(
-			"CSV file must contain at least %d data rows (excluding header), found %d. "+
-				"Only files with %d or more lines are supported",
-			minDataRowsRequired, len(dataRows), minDataRowsRequired)
+			"%w: file must contain at least %d data rows (excluding header), found %d",
+			ErrCSVValidation, minDataRowsRequired, len(dataRows))
 	}
 
 	columnSchemas := make([]ColumnSchema, len(header))

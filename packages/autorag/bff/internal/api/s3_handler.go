@@ -65,21 +65,10 @@ func (app *App) handleS3RepoError(w http.ResponseWriter, r *http.Request, err er
 		return
 	}
 	// Credential/validation errors
-	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) || errors.Is(err, s3.ErrEndpointValidation) {
+	if errors.Is(err, kubernetes.ErrAmbiguousSecretKey) ||
+		errors.Is(err, s3.ErrEndpointValidation) ||
+		errors.Is(err, repositories.ErrS3Configuration) {
 		app.badRequestResponse(w, r, err)
-		return
-	}
-	errMsg := err.Error()
-	if strings.Contains(errMsg, "bucket is required") ||
-		strings.Contains(errMsg, "missing required field") ||
-		strings.Contains(errMsg, "missing secret name") ||
-		strings.Contains(errMsg, "missing an endpoint") ||
-		strings.Contains(errMsg, "missing a bucket") {
-		app.badRequestResponse(w, r, err)
-		return
-	}
-	if strings.Contains(errMsg, "not found") {
-		app.notFoundResponseWithMessage(w, r, errMsg)
 		return
 	}
 	if s3.IsConnectivityError(err) {

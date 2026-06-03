@@ -16,7 +16,13 @@ import (
 	s3 "github.com/opendatahub-io/odh-dashboard/packages/autox-core/services/s3"
 )
 
-// s3MetadataTimeout caps the total time for key-existence checks during collision resolution.
+// ErrS3Configuration is returned when S3 credentials or storage configuration is
+// missing or invalid (e.g., missing secret fields, missing bucket, bad DSPA spec).
+var ErrS3Configuration = errors.New("S3 configuration error")
+
+// ErrCSVUploadValidation is returned when an upload fails CSV content-type validation.
+var ErrCSVUploadValidation = errors.New("CSV upload validation error")
+
 const s3KeyResolutionTimeout = 15 * time.Second
 
 // S3RequestContext captures the S3 access parameters available from an HTTP request.
@@ -80,7 +86,7 @@ func (r *S3Repository) resolveFromSecret(ctx context.Context, req S3RequestConte
 		bucket = defaultBucket
 	}
 	if bucket == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("bucket is required: supply ?bucket= or set AWS_S3_BUCKET in secret %q", req.SecretName)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: bucket is required — supply ?bucket= or set AWS_S3_BUCKET in secret %q", ErrS3Configuration, req.SecretName)
 	}
 
 	return opts, bucket, nil
@@ -97,13 +103,13 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q in namespace %s has no object storage configured", dspa.Name, namespace)
 	}
 	if spec.SecretName == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a secret name", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a secret name", ErrS3Configuration, dspa.Name)
 	}
 	if spec.EndpointURL == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing an endpoint URL", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing an endpoint URL", ErrS3Configuration, dspa.Name)
 	}
 	if spec.Bucket == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA %q object storage spec is missing a bucket — contact your administrator", dspa.Name)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA %q object storage spec is missing a bucket — contact your administrator", ErrS3Configuration, dspa.Name)
 	}
 
 	secret, err := r.k8sService.GetSecret(ctx, namespace, spec.SecretName)
@@ -116,7 +122,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if accessKeyID == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.AccessKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.AccessKeyField)
 	}
 
 	secretAccessKey, err := kubernetes.LookupSecretValue(secret.Data, spec.SecretKeyField)
@@ -124,7 +130,7 @@ func (r *S3Repository) resolveFromDSPA(ctx context.Context, namespace string) (s
 		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q: %w", spec.SecretName, err)
 	}
 	if secretAccessKey == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("DSPA secret %q missing required field: %s", spec.SecretName, spec.SecretKeyField)
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: DSPA secret %q missing required field: %s", ErrS3Configuration, spec.SecretName, spec.SecretKeyField)
 	}
 
 	region := spec.Region
@@ -213,7 +219,7 @@ const csvSchemaRange = "bytes=0-1048575" // 1 MB
 // Returns an error if the file has fewer than 100 data rows.
 func (r *S3Repository) GetCSVSchema(ctx context.Context, req S3RequestContext, key string) (helper.CSVSchemaResult, error) {
 	if !strings.HasSuffix(strings.ToLower(key), ".csv") {
-		return helper.CSVSchemaResult{}, fmt.Errorf("only CSV files are supported (must have .csv extension)")
+		return helper.CSVSchemaResult{}, fmt.Errorf("%w: only CSV files are supported (must have .csv extension)", ErrCSVUploadValidation)
 	}
 
 	opts, bucket, err := r.resolveCredsAndBucket(ctx, req)
@@ -264,16 +270,16 @@ func extractAWSS3ConnectionOptions(data map[string][]byte) (s3.ConnectionOptions
 	}
 
 	if accessKeyID == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_ACCESS_KEY_ID")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_ACCESS_KEY_ID", ErrS3Configuration)
 	}
 	if secretAccessKey == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_SECRET_ACCESS_KEY")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_SECRET_ACCESS_KEY", ErrS3Configuration)
 	}
 	if region == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_DEFAULT_REGION")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_DEFAULT_REGION", ErrS3Configuration)
 	}
 	if endpoint == "" {
-		return s3.ConnectionOptions{}, "", fmt.Errorf("secret missing required field: AWS_S3_ENDPOINT")
+		return s3.ConnectionOptions{}, "", fmt.Errorf("%w: missing required field AWS_S3_ENDPOINT", ErrS3Configuration)
 	}
 
 	return s3.ConnectionOptions{
@@ -328,7 +334,7 @@ func ValidateCsvUpload(contentType, filename string) (string, error) {
 		if strings.HasSuffix(fn, ".csv") {
 			return "text/csv", nil
 		}
-		return "", errors.New("only CSV files are supported: use a .csv filename or Content-Type text/csv")
+		return "", fmt.Errorf("%w: use a .csv filename or Content-Type text/csv", ErrCSVUploadValidation)
 	}
 
 	mediaType, _, err := mime.ParseMediaType(raw)
@@ -344,8 +350,8 @@ func ValidateCsvUpload(contentType, filename string) (string, error) {
 		if strings.HasSuffix(fn, ".csv") {
 			return "text/csv", nil
 		}
-		return "", errors.New("only CSV files are supported (application/octet-stream requires a .csv filename)")
+		return "", fmt.Errorf("%w: application/octet-stream requires a .csv filename", ErrCSVUploadValidation)
 	default:
-		return "", errors.New("only CSV files are supported (Content-Type must be text/csv, or application/octet-stream with a .csv filename)")
+		return "", fmt.Errorf("%w: Content-Type must be text/csv, or application/octet-stream with a .csv filename", ErrCSVUploadValidation)
 	}
 }
