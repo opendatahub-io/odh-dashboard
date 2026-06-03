@@ -9,7 +9,7 @@ import {
   ModalHeader,
   Tooltip,
 } from '@patternfly/react-core';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { EvaluationJob, EvaluationJobState } from '~/app/types';
 import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
@@ -44,7 +44,6 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
   collectionNameMap,
   onActionComplete,
 }) => {
-  const navigate = useNavigate();
   const [confirmAction, setConfirmAction] = React.useState<ConfirmAction>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isStopping, setIsStopping] = React.useState(false);
@@ -180,7 +179,7 @@ const EvaluationsTableRow: React.FC<EvaluationsTableRowProps> = ({
               variant="link"
               isInline
               data-testid={`evaluation-link-${rowIndex}`}
-              onClick={() => navigate(`results/${job.resource.id}`)}
+              component={(props) => <Link {...props} to={`results/${job.resource.id}`} />}
             >
               {evaluationName}
             </Button>
