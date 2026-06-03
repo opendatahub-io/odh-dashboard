@@ -47,6 +47,7 @@ const getProxyHeaders = () => {
       `Failed to get Kubernetes token. Ensure you are logged in with \`oc login\`. Cause: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`,
+      { cause: error },
     );
   }
 };
