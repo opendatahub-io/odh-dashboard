@@ -41,6 +41,10 @@ const fullFailureTemplates: Record<string, MicrocopyTemplate> = {
     title: "Couldn't reach the server",
     description: 'Unable to connect to the OGX server. Check that the service is running.',
   },
+  'ogx:connection_failed': {
+    title: "Couldn't reach the server",
+    description: 'Unable to connect to the OGX server. Check that the service is running.',
+  },
   'bff:timeout': {
     title: 'Request timed out',
     description: "The server didn't respond in time. This may be a temporary issue.",
