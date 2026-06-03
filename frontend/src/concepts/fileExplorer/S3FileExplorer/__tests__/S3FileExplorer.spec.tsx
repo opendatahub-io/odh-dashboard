@@ -745,20 +745,20 @@ describe('S3FileExplorer', () => {
       expect(mockGetFiles).toHaveBeenCalledTimes(1);
     });
 
-    it('should skip re-fetch when apiPath changes but connection identity stays the same', async () => {
+    it('should re-fetch when apiPath changes even if namespace/secret/bucket stay the same', async () => {
       const { rerender } = render(<S3FileExplorer {...defaultProps} apiPath="/v1/s3" />);
 
       await waitFor(() => {
         expect(mockGetFiles).toHaveBeenCalledTimes(1);
       });
 
-      // Change apiPath — this recreates the fetchPath callback (its dependency), which
-      // triggers the useEffect to re-run. But namespace/secretName/bucket are unchanged,
-      // so connectionKeyRef.current === connectionKey and the effect returns early (line 356-357).
+      mockGetFiles.mockResolvedValueOnce(mockS3ListObjectsResponse());
+
       rerender(<S3FileExplorer {...defaultProps} apiPath="/v2/s3" />);
 
-      // Still only 1 fetch — the effect saw the same connection key and skipped
-      expect(mockGetFiles).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(mockGetFiles).toHaveBeenCalledTimes(2);
+      });
     });
   });
 

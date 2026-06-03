@@ -246,7 +246,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
       return;
     }
 
-    const connectionKey = `${namespace}/${secretName}/${bucket}`;
+    const connectionKey = `${apiPath}/${namespace}/${secretName}/${bucket}`;
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
@@ -254,7 +254,7 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     connectionKeyRef.current = connectionKey;
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
-  }, [isOpen, secretName, namespace, bucket, fetchPath, resetState]);
+  }, [apiPath, isOpen, secretName, namespace, bucket, fetchPath, resetState]);
 
   const debouncedSearch = useMemo(
     () =>
