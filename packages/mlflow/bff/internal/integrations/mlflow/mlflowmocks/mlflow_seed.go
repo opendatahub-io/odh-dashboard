@@ -74,14 +74,14 @@ func SeedExperimentsAndRuns(trackingURI string, logger *slog.Logger) error {
 		slog.Int("experiments", len(experiments)),
 	)
 
-	if err := seedPrompts(client, ctx, logger); err != nil {
+	if err := seedPrompts(ctx, client, logger); err != nil {
 		logger.Warn("Failed to seed prompts (non-fatal)", slog.Any("error", err))
 	}
 
 	return nil
 }
 
-func seedPrompts(client *mlflow.Client, ctx context.Context, logger *slog.Logger) error {
+func seedPrompts(ctx context.Context, client *mlflow.Client, logger *slog.Logger) error {
 	reg := client.PromptRegistry()
 
 	prompts := []struct {

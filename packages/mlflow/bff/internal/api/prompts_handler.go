@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 
@@ -68,6 +69,11 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	// TOCTOU: LoadPrompt + RegisterPrompt is not atomic. A concurrent request could
+	// create the same prompt between the check and the register. The MLflow server's
+	// RegisterPrompt is idempotent (creates a new version), so the worst case is a
+	// duplicate version rather than data corruption. An atomic "create-if-not-exists"
+	// would require server-side support (e.g., a conditional create API).
 	if req.CreateOnly {
 		_, err := app.repositories.Prompts.LoadPrompt(ctx, req.Name, nil)
 		if err == nil {
@@ -88,8 +94,9 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	response := PromptVersionEnvelope{Data: *result}
+	workspace := r.URL.Query().Get("workspace")
 	headers := http.Header{
-		"Location": {fmt.Sprintf("%s/%s?version=%d", PromptsPath, result.Name, result.Version)},
+		"Location": {fmt.Sprintf("%s/%s?workspace=%s&version=%d", PromptsPath, url.PathEscape(result.Name), url.QueryEscape(workspace), result.Version)},
 	}
 	if err := app.WriteJSON(w, http.StatusCreated, response, headers); err != nil {
 		app.serverErrorResponse(w, r, err)

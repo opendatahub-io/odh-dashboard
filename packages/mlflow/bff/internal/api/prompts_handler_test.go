@@ -118,7 +118,7 @@ func TestRegisterChatPromptSuccess(t *testing.T) {
 		}, nil)
 
 	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
 	req = requestWithMLflowClient(req, mockClient)
 	rr := httptest.NewRecorder()
 
@@ -126,6 +126,7 @@ func TestRegisterChatPromptSuccess(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, rr.Code)
 	assert.Contains(t, rr.Header().Get("Location"), "test-prompt")
+	assert.Contains(t, rr.Header().Get("Location"), "workspace=my-ns")
 
 	var envelope PromptVersionEnvelope
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&envelope))
