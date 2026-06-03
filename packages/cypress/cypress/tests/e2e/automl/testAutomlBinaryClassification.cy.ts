@@ -43,7 +43,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Can create and submit an AutoML binary classification run',
-    { tags: ['@Smoke', '@SmokeSet4', '@AutoML', '@AutoMLCI'] },
+    { tags: ['@AutoML', '@AutoMLCI', '@Featureflagged'] },
     () => {
       automlConfigurePage.submitRunSetup(testData, projectName, uuid);
 
@@ -63,7 +63,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Verify binary classification run completes with leaderboard',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Wait for run to complete and verify leaderboard');
       automlResultsPage.waitForRunCompletion();
@@ -72,7 +72,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Can interact with results page (leaderboard, model details, download)',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       automlResultsPage.verifyResultsInteraction('binary');
     },
@@ -80,7 +80,7 @@ describe('AutoML Binary Classification E2E', { testIsolation: false }, () => {
 
   it(
     'Can open register model modal from model details',
-    { tags: ['@AutoML', '@AutoMLRegression'] },
+    { tags: ['@AutoML', '@AutoMLRegression', '@Featureflagged'] },
     () => {
       cy.step('Open model details for top-ranked model');
       automlResultsPage.findModelLink(1).click();

@@ -68,8 +68,11 @@ class RegisteredModelDetails {
     // The table is conditionally rendered only when properties exist
     this.findPropertiesExpandableSection().within(() => {
       cy.findByTestId('properties-table', { timeout: 10000 }).should('be.visible');
-      cy.contains(key).should('be.visible');
-      cy.contains(value).should('be.visible');
+      // Wait for table to have content (tbody with rows) before searching for specific properties
+      cy.findByTestId('properties-table').find('tbody tr').should('have.length.at.least', 1);
+      // Use higher timeout for contains() in case of slow property loading/rendering
+      cy.contains(key, { timeout: 10000 }).should('be.visible');
+      cy.contains(value, { timeout: 10000 }).should('be.visible');
     });
     return this;
   }
