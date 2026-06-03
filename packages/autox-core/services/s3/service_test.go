@@ -43,9 +43,9 @@ func newTestS3Service(client *mockS3Client) *service {
 
 func TestBuildListPrefix(t *testing.T) {
 	tests := []struct {
-		name   string
-		query  ListObjectsQuery
-		want   string
+		name  string
+		query ListObjectsQuery
+		want  string
 	}{
 		{"empty path and search", ListObjectsQuery{}, ""},
 		{"path only", ListObjectsQuery{Path: "data"}, "data/"},
@@ -67,8 +67,8 @@ func TestBuildListPrefix(t *testing.T) {
 
 func TestSplitS3ObjectPath(t *testing.T) {
 	tests := []struct {
-		key     string
-		wantDir string
+		key      string
+		wantDir  string
 		wantName string
 	}{
 		{"data/models/file.tar.gz", "data/models/", "file.tar.gz"},

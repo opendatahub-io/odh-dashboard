@@ -120,10 +120,10 @@ func TestMapNamespacesToInfos(t *testing.T) {
 
 func TestLookupSecretValue(t *testing.T) {
 	data := map[string][]byte{
-		"AccessKey":   []byte("exact-val"),
-		"secret_key":  []byte("lower-val"),
-		"SECRET_KEY":  []byte("upper-val"),
-		"unique_key":  []byte("unique-val"),
+		"AccessKey":  []byte("exact-val"),
+		"secret_key": []byte("lower-val"),
+		"SECRET_KEY": []byte("upper-val"),
+		"unique_key": []byte("unique-val"),
 	}
 
 	t.Run("exact match", func(t *testing.T) {

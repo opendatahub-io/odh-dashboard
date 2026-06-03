@@ -28,7 +28,7 @@ func (m *mockK8sService) GetSecret(ctx context.Context, namespace, secretName st
 }
 
 // Unused — stub to satisfy kubernetes.Service
-func (m *mockK8sService) GetNamespaces(context.Context) ([]v1.Namespace, error)   { return nil, nil }
+func (m *mockK8sService) GetNamespaces(context.Context) ([]v1.Namespace, error) { return nil, nil }
 func (m *mockK8sService) GetNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
@@ -38,13 +38,13 @@ func (m *mockK8sService) GetAccessibleNamespaces(context.Context) ([]v1.Namespac
 func (m *mockK8sService) GetAccessibleNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sService) GetPods(context.Context, string) (*v1.PodList, error)     { return nil, nil }
-func (m *mockK8sService) GetSecrets(context.Context, string) ([]v1.Secret, error)  { return nil, nil }
+func (m *mockK8sService) GetPods(context.Context, string) (*v1.PodList, error)    { return nil, nil }
+func (m *mockK8sService) GetSecrets(context.Context, string) ([]v1.Secret, error) { return nil, nil }
 func (m *mockK8sService) GetSecretInfos(context.Context, string) ([]kubernetes.SecretInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sService) GetUser(context.Context) (string, error)                { return "", nil }
-func (m *mockK8sService) IsClusterAdmin(context.Context) (bool, error)           { return false, nil }
+func (m *mockK8sService) GetUser(context.Context) (string, error)                   { return "", nil }
+func (m *mockK8sService) IsClusterAdmin(context.Context) (bool, error)              { return false, nil }
 func (m *mockK8sService) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) { return nil, nil }
 func (m *mockK8sService) CanAccessResource(context.Context, string, string, string, string, string) (bool, error) {
 	return false, nil
@@ -63,11 +63,11 @@ func (m *mockK8sService) DiscoverResourceGVR(context.Context, string, string, st
 }
 
 type mockS3Service struct {
-	getObjectFn             func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error)
-	downloadObjectFn        func(ctx context.Context, opts s3.ConnectionOptions, input s3.DownloadObjectInput) (io.ReadCloser, string, error)
-	uploadObjectFn          func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error
-	listObjectsFn           func(ctx context.Context, opts s3.ConnectionOptions, query s3.ListObjectsQuery) (*s3.ListObjectsResponse, error)
-	objectExistsFn          func(ctx context.Context, opts s3.ConnectionOptions, input s3.ObjectExistsInput) (bool, error)
+	getObjectFn              func(ctx context.Context, opts s3.ConnectionOptions, input s3.GetObjectInput) (io.ReadCloser, string, error)
+	downloadObjectFn         func(ctx context.Context, opts s3.ConnectionOptions, input s3.DownloadObjectInput) (io.ReadCloser, string, error)
+	uploadObjectFn           func(ctx context.Context, opts s3.ConnectionOptions, input s3.UploadObjectInput) error
+	listObjectsFn            func(ctx context.Context, opts s3.ConnectionOptions, query s3.ListObjectsQuery) (*s3.ListObjectsResponse, error)
+	objectExistsFn           func(ctx context.Context, opts s3.ConnectionOptions, input s3.ObjectExistsInput) (bool, error)
 	resolveNonCollidingKeyFn func(ctx context.Context, opts s3.ConnectionOptions, input s3.ResolveNonCollidingKeyInput) (string, error)
 }
 

@@ -44,7 +44,7 @@ func (m *mockK8sServiceForMR) ListResources(ctx context.Context, gvr schema.Grou
 }
 
 // Unused — stub to satisfy kubernetes.Service
-func (m *mockK8sServiceForMR) GetNamespaces(context.Context) ([]v1.Namespace, error)   { return nil, nil }
+func (m *mockK8sServiceForMR) GetNamespaces(context.Context) ([]v1.Namespace, error) { return nil, nil }
 func (m *mockK8sServiceForMR) GetNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
@@ -54,17 +54,21 @@ func (m *mockK8sServiceForMR) GetAccessibleNamespaces(context.Context) ([]v1.Nam
 func (m *mockK8sServiceForMR) GetAccessibleNamespaceInfos(context.Context) ([]kubernetes.NamespaceInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForMR) GetPods(context.Context, string) (*v1.PodList, error)     { return nil, nil }
-func (m *mockK8sServiceForMR) GetSecrets(context.Context, string) ([]v1.Secret, error)  { return nil, nil }
+func (m *mockK8sServiceForMR) GetPods(context.Context, string) (*v1.PodList, error) { return nil, nil }
+func (m *mockK8sServiceForMR) GetSecrets(context.Context, string) ([]v1.Secret, error) {
+	return nil, nil
+}
 func (m *mockK8sServiceForMR) GetSecretInfos(context.Context, string) ([]kubernetes.SecretInfo, error) {
 	return nil, nil
 }
 func (m *mockK8sServiceForMR) GetSecret(context.Context, string, string) (*v1.Secret, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForMR) GetUser(context.Context) (string, error)                { return "", nil }
-func (m *mockK8sServiceForMR) IsClusterAdmin(context.Context) (bool, error)           { return false, nil }
-func (m *mockK8sServiceForMR) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) { return nil, nil }
+func (m *mockK8sServiceForMR) GetUser(context.Context) (string, error)      { return "", nil }
+func (m *mockK8sServiceForMR) IsClusterAdmin(context.Context) (bool, error) { return false, nil }
+func (m *mockK8sServiceForMR) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) {
+	return nil, nil
+}
 func (m *mockK8sServiceForMR) CanAccessResource(context.Context, string, string, string, string, string) (bool, error) {
 	return false, nil
 }

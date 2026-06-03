@@ -45,8 +45,8 @@ func (m *mockK8sServiceForS3) GetSecrets(context.Context, string) ([]v1.Secret, 
 func (m *mockK8sServiceForS3) GetSecretInfos(context.Context, string) ([]kubernetes.SecretInfo, error) {
 	return nil, nil
 }
-func (m *mockK8sServiceForS3) GetUser(context.Context) (string, error)                { return "", nil }
-func (m *mockK8sServiceForS3) IsClusterAdmin(context.Context) (bool, error)           { return false, nil }
+func (m *mockK8sServiceForS3) GetUser(context.Context) (string, error)      { return "", nil }
+func (m *mockK8sServiceForS3) IsClusterAdmin(context.Context) (bool, error) { return false, nil }
 func (m *mockK8sServiceForS3) GetUserInfo(context.Context) (*kubernetes.UserInfo, error) {
 	return nil, nil
 }

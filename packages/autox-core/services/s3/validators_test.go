@@ -13,9 +13,9 @@ func TestIsInternalHost(t *testing.T) {
 	}{
 		{"minio.my-ns.svc.cluster.local", true},
 		{"ds-pipeline.odh.svc.cluster.local", true},
-		{"svc.cluster.local", false},          // only 3 parts
-		{"a.b.c.d.svc.cluster.local", false},  // 7 parts
-		{".ns.svc.cluster.local", false},       // empty service
+		{"svc.cluster.local", false},         // only 3 parts
+		{"a.b.c.d.svc.cluster.local", false}, // 7 parts
+		{".ns.svc.cluster.local", false},     // empty service
 		{"svc.ns.notcluster.local", false},
 		{"minio.my-ns.svc.cluster.remote", false},
 		{"s3.amazonaws.com", false},

@@ -539,4 +539,3 @@ type s3CodedError struct {
 
 func (e *s3CodedError) Error() string     { return "s3 error: " + e.code }
 func (e *s3CodedError) ErrorCode() string { return e.code }
-

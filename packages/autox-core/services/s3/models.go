@@ -21,14 +21,14 @@ type CommonPrefix struct {
 type ListObjectsResponse struct {
 	CommonPrefixes        []CommonPrefix `json:"common_prefixes"`
 	Contents              []ObjectInfo   `json:"contents"`
-	ContinuationToken     string           `json:"continuation_token,omitempty"`
-	Delimiter             string           `json:"delimiter,omitempty"`
-	IsTruncated           bool             `json:"is_truncated"`
-	KeyCount              int32            `json:"key_count"`
-	MaxKeys               int32            `json:"max_keys"`
-	Name                  string           `json:"name,omitempty"`
-	NextContinuationToken string           `json:"next_continuation_token,omitempty"`
-	Prefix                string           `json:"prefix,omitempty"`
+	ContinuationToken     string         `json:"continuation_token,omitempty"`
+	Delimiter             string         `json:"delimiter,omitempty"`
+	IsTruncated           bool           `json:"is_truncated"`
+	KeyCount              int32          `json:"key_count"`
+	MaxKeys               int32          `json:"max_keys"`
+	Name                  string         `json:"name,omitempty"`
+	NextContinuationToken string         `json:"next_continuation_token,omitempty"`
+	Prefix                string         `json:"prefix,omitempty"`
 }
 
 // ListObjectsOptions contains the listing parameters used at the repository boundary,

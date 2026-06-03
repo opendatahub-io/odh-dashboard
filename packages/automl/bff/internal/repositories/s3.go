@@ -24,8 +24,8 @@ var ErrS3Configuration = errors.New("S3 configuration error")
 var ErrCSVUploadValidation = errors.New("CSV upload validation error")
 
 const (
-	s3KeyResolutionTimeout         = 15 * time.Second
-	defaultMaxCollisionAttempts    = 10
+	s3KeyResolutionTimeout      = 15 * time.Second
+	defaultMaxCollisionAttempts = 10
 )
 
 // S3RequestContext captures the S3 access parameters available from an HTTP request.
@@ -379,8 +379,8 @@ func ValidateCsvUpload(contentType, filename string) (string, error) {
 // inlineAllowedTypes are the only content types served inline on GET responses.
 // All others get Content-Disposition: attachment to prevent XSS.
 var inlineAllowedTypes = map[string]bool{
-	"text/csv":          true,
-	"application/json":  true,
+	"text/csv":         true,
+	"application/json": true,
 }
 
 // SanitizeResponseContentType normalizes S3 metadata on GET. Only text/csv and

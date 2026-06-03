@@ -18,7 +18,7 @@ import (
 type mockPipelinesService struct {
 	discoverNamedPipelinesFn func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error)
 	ensurePipelineFn         func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error)
-	getAllPipelineRunsFn      func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
+	getAllPipelineRunsFn     func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
 	getPipelineRunWithSpecFn func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error)
 	createPipelineRunFn      func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error)
 	terminateRunFn           func(ctx context.Context, namespace, runID string) error
@@ -92,10 +92,10 @@ func testDiscovered() map[string]*pipelines.DiscoveredPipeline {
 
 func validRequest() models.CreateAutoRAGRunRequest {
 	return models.CreateAutoRAGRunRequest{
-		DisplayName:        "my-rag-run",
-		TestDataSecretName: "test-secret",
-		TestDataBucketName: "test-bucket",
-		TestDataKey:        "test.jsonl",
+		DisplayName:         "my-rag-run",
+		TestDataSecretName:  "test-secret",
+		TestDataBucketName:  "test-bucket",
+		TestDataKey:         "test.jsonl",
 		InputDataSecretName: "input-secret",
 		InputDataBucketName: "input-bucket",
 		InputDataKey:        "docs/",

@@ -12,16 +12,16 @@ import (
 
 // mockPipelineClient implements Client for service tests.
 type mockPipelineClient struct {
-	createPipelineRunFn    func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
-	getPipelineRunFn       func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
-	listPipelineRunsFn     func(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error)
-	terminateRunFn         func(ctx context.Context, baseURL string, runID string) error
-	retryRunFn             func(ctx context.Context, baseURL string, runID string) error
-	deleteRunFn            func(ctx context.Context, baseURL string, runID string) error
-	listPipelinesFn        func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error)
-	getPipelineVersionFn   func(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error)
-	listPipelineVersionsFn func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error)
-	createPipelineFn       func(ctx context.Context, baseURL string, name string) (*Pipeline, error)
+	createPipelineRunFn     func(ctx context.Context, baseURL string, input *CreatePipelineRunInput) (*PipelineRun, error)
+	getPipelineRunFn        func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error)
+	listPipelineRunsFn      func(ctx context.Context, baseURL string, params *ListRunsParams) (*PipelineRunResponse, error)
+	terminateRunFn          func(ctx context.Context, baseURL string, runID string) error
+	retryRunFn              func(ctx context.Context, baseURL string, runID string) error
+	deleteRunFn             func(ctx context.Context, baseURL string, runID string) error
+	listPipelinesFn         func(ctx context.Context, baseURL string, filter string) (*PipelinesResponse, error)
+	getPipelineVersionFn    func(ctx context.Context, baseURL string, pipelineID, versionID string) (*PipelineVersion, error)
+	listPipelineVersionsFn  func(ctx context.Context, baseURL string, pipelineID string) (*PipelineVersionsResponse, error)
+	createPipelineFn        func(ctx context.Context, baseURL string, name string) (*Pipeline, error)
 	uploadPipelineVersionFn func(ctx context.Context, baseURL string, pipelineID, versionName string, fileContent []byte) (*PipelineVersion, error)
 }
 
@@ -350,7 +350,7 @@ func TestService_GetPipelineRunWithSpec(t *testing.T) {
 		client := &mockPipelineClient{
 			getPipelineRunFn: func(ctx context.Context, baseURL string, runID string) (*PipelineRun, error) {
 				return &PipelineRun{
-					RunID: "r1",
+					RunID:                    "r1",
 					PipelineVersionReference: &PipelineVersionReference{PipelineID: "p1", PipelineVersionID: "v1"},
 				}, nil
 			},

@@ -144,9 +144,9 @@ func TestExtractExternalStorageSpec(t *testing.T) {
 
 	t.Run("non-standard port included in URL", func(t *testing.T) {
 		ext := map[string]any{
-			"scheme": "http",
-			"host":   "minio.local",
-			"port":   "9000",
+			"scheme":             "http",
+			"host":               "minio.local",
+			"port":               "9000",
 			"s3CredentialSecret": map[string]any{"secretName": "s"},
 		}
 		spec := extractExternalStorageSpec(ext)

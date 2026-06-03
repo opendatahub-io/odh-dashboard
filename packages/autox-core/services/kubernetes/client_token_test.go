@@ -19,13 +19,13 @@ import (
 )
 
 var testListKinds = map[schema.GroupVersionResource]string{
-	{Group: "project.openshift.io", Version: "v1", Resource: "projects"}:       "ProjectList",
-	{Group: "serving.kserve.io", Version: "v1", Resource: "inferenceservices"}: "InferenceServiceList",
-	{Group: "serving.kserve.io", Version: "v1beta1", Resource: "inferenceservices"}: "InferenceServiceList",
+	{Group: "project.openshift.io", Version: "v1", Resource: "projects"}:             "ProjectList",
+	{Group: "serving.kserve.io", Version: "v1", Resource: "inferenceservices"}:       "InferenceServiceList",
+	{Group: "serving.kserve.io", Version: "v1beta1", Resource: "inferenceservices"}:  "InferenceServiceList",
 	{Group: "serving.kserve.io", Version: "v1alpha1", Resource: "inferenceservices"}: "InferenceServiceList",
-	{Group: "apps", Version: "v1", Resource: "deployments"}:    "DeploymentList",
-	{Group: "apps", Version: "v1beta1", Resource: "deployments"}: "DeploymentList",
-	{Group: "", Version: "v1", Resource: "nodes"}:               "NodeList",
+	{Group: "apps", Version: "v1", Resource: "deployments"}:                          "DeploymentList",
+	{Group: "apps", Version: "v1beta1", Resource: "deployments"}:                     "DeploymentList",
+	{Group: "", Version: "v1", Resource: "nodes"}:                                    "NodeList",
 }
 
 func newTokenClientWithFakes(objects ...runtime.Object) (*tokenClient, *fake.Clientset, *dynamicfake.FakeDynamicClient) {

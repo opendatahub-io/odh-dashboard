@@ -18,7 +18,7 @@ import (
 type mockPipelinesService struct {
 	discoverNamedPipelinesFn func(ctx context.Context, namespace, defaultVersion string, definitions map[string]string) (map[string]*pipelines.DiscoveredPipeline, error)
 	ensurePipelineFn         func(ctx context.Context, namespace string, def pipelines.PipelineDefinition) (*pipelines.DiscoveredPipeline, error)
-	getAllPipelineRunsFn      func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
+	getAllPipelineRunsFn     func(ctx context.Context, namespace, pipelineID string) ([]pipelines.PipelineRun, error)
 	getPipelineRunWithSpecFn func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error)
 	createPipelineRunFn      func(ctx context.Context, namespace string, input *pipelines.CreatePipelineRunInput) (*pipelines.PipelineRun, error)
 	terminateRunFn           func(ctx context.Context, namespace, runID string) error
@@ -471,8 +471,8 @@ func TestGetManagedRun(t *testing.T) {
 		mock := &mockPipelinesService{
 			getPipelineRunWithSpecFn: func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error) {
 				return &pipelines.PipelineRun{
-					RunID: "r1",
-					State: "SUCCEEDED",
+					RunID:                    "r1",
+					State:                    "SUCCEEDED",
 					PipelineVersionReference: &pipelines.PipelineVersionReference{PipelineID: "tab-pid"},
 				}, nil
 			},
@@ -497,7 +497,7 @@ func TestGetManagedRun(t *testing.T) {
 		mock := &mockPipelinesService{
 			getPipelineRunWithSpecFn: func(ctx context.Context, namespace, runID string) (*pipelines.PipelineRun, error) {
 				return &pipelines.PipelineRun{
-					RunID: "r1",
+					RunID:                    "r1",
 					PipelineVersionReference: &pipelines.PipelineVersionReference{PipelineID: "foreign-pid"},
 				}, nil
 			},
