@@ -34,9 +34,7 @@ describe('DeleteSubscriptionModal', () => {
   });
 
   it('should fall back to name when displayName is not set', () => {
-    render(
-      <DeleteSubscriptionModal subscription={mockSubscription()} onClose={jest.fn()} />,
-    );
+    render(<DeleteSubscriptionModal subscription={mockSubscription()} onClose={jest.fn()} />);
 
     expect(screen.getByText('prod-api-access')).toBeInTheDocument();
   });

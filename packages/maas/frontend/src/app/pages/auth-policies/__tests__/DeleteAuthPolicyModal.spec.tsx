@@ -34,9 +34,7 @@ describe('DeleteAuthPolicyModal', () => {
   });
 
   it('should fall back to name when displayName is not set', () => {
-    render(
-      <DeleteAuthPolicyModal authPolicy={mockAuthPolicy()} onClose={jest.fn()} />,
-    );
+    render(<DeleteAuthPolicyModal authPolicy={mockAuthPolicy()} onClose={jest.fn()} />);
 
     expect(screen.getByText('prod-policy')).toBeInTheDocument();
   });
