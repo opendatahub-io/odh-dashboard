@@ -52,7 +52,7 @@ func queryClusterID(dynClient dynamic.Interface, logger *slog.Logger) string {
 		return ""
 	}
 
-	spec, ok := obj.Object["spec"].(map[string]interface{})
+	spec, ok := obj.Object["spec"].(map[string]any)
 	if !ok {
 		logger.Warn("ClusterVersion spec field missing or unexpected type")
 		return ""
