@@ -43,6 +43,7 @@ export type GuardrailsConfig = {
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  traceId?: string;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -125,6 +126,7 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  const sessionIdRef = React.useRef<string>(crypto.randomUUID());
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -395,6 +397,7 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          sessionId: sessionIdRef.current,
           onStreamData: (chunk: string, clearPrevious?: boolean) => {
             if (clearPrevious) {
               completeLines.length = 0;
@@ -472,8 +475,12 @@ const useChatbotMessages = ({
           ),
         );
 
-        // Add tool response and metrics if available from streaming response
-        if (streamingResponse.toolCallData || streamingResponse.metrics) {
+        // Add tool response, metrics, and trace ID if available from streaming response
+        if (
+          streamingResponse.toolCallData ||
+          streamingResponse.metrics ||
+          streamingResponse.traceId
+        ) {
           const toolResponse = streamingResponse.toolCallData
             ? createToolResponse(streamingResponse.toolCallData)
             : undefined;
@@ -484,6 +491,7 @@ const useChatbotMessages = ({
                     ...msg,
                     ...(toolResponse && { toolResponse }),
                     ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
+                    ...(streamingResponse.traceId && { traceId: streamingResponse.traceId }),
                   }
                 : msg,
             ),
@@ -497,6 +505,7 @@ const useChatbotMessages = ({
         // Handle non-streaming response
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
+          sessionId: sessionIdRef.current,
         });
 
         const toolResponse = response.toolCallData
@@ -526,6 +535,7 @@ const useChatbotMessages = ({
           ...(toolResponse && { toolResponse }),
           ...sourcesProps,
           ...(response.metrics && { metrics: response.metrics }),
+          ...(response.traceId && { traceId: response.traceId }),
         };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
         // Update last response metrics for pane header display

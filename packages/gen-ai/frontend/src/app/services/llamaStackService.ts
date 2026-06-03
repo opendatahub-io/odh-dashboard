@@ -195,6 +195,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
+    ...(backendResponse.metrics?.trace_id && { traceId: backendResponse.metrics.trace_id }),
   };
 };
 
@@ -216,9 +217,14 @@ const postCreateResponse = (
   hostPath: string,
   baseQueryParams: Record<string, unknown>,
   request: CreateResponseRequest,
-  opts?: APIOptions & { abortSignal?: AbortSignal },
+  opts?: APIOptions & { abortSignal?: AbortSignal; sessionId?: string },
 ): Promise<SimplifiedResponseData> => {
-  const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
+  const fetchOpts: APIOptions & { signal?: AbortSignal } = opts?.abortSignal
+    ? { ...opts, signal: opts.abortSignal }
+    : { ...opts };
+  if (opts?.sessionId) {
+    fetchOpts.headers = { ...fetchOpts.headers, 'X-Session-ID': opts.sessionId };
+  }
   return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
     hostPath,
     '/lsd/responses',
@@ -245,6 +251,7 @@ const streamCreateResponse = (
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean) => void,
   abortSignal?: AbortSignal,
+  sessionId?: string,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
     fetch(url, {
@@ -252,6 +259,7 @@ const streamCreateResponse = (
       headers: {
         'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...(sessionId && { 'X-Session-ID': sessionId }),
       },
       body: JSON.stringify(request),
       signal: abortSignal,
@@ -363,6 +371,7 @@ const streamCreateResponse = (
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(metricsData?.trace_id && { traceId: metricsData.trace_id }),
         });
       })
       .catch((error) => {
@@ -391,11 +400,12 @@ export const createResponse =
     opts: APIOptions & {
       onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
       abortSignal?: AbortSignal;
+      sessionId?: string;
     } = {},
   ): Promise<SimplifiedResponseData> => {
     if (data.stream && opts.onStreamData) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
-      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal);
+      return streamCreateResponse(url, data, opts.onStreamData, opts.abortSignal, opts.sessionId);
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };

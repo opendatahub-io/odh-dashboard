@@ -123,6 +123,7 @@ export type ResponseMetrics = {
   latency_ms: number;
   time_to_first_token_ms?: number; // Only present for streaming responses
   usage?: SimplifiedUsage;
+  trace_id?: string; // OTel trace ID for MLflow trace lookup
 };
 
 // File citation annotation from RAG responses
@@ -194,6 +195,7 @@ export type SimplifiedResponseData = {
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  traceId?: string; // OTel trace ID for MLflow trace view
 };
 
 export type FileError = {
@@ -621,6 +623,7 @@ type CreateResponse = (
   opts?: APIOptions & {
     onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
     abortSignal?: AbortSignal;
+    sessionId?: string;
   },
 ) => Promise<SimplifiedResponseData>;
 type ExportCode = ModArchRestCREATE<CodeExportData, CodeExportRequest>;

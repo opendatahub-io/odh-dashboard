@@ -181,6 +181,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={PLACEHOLDER_BOT_CONTENT}
+        namespace={namespace}
       />
     </MessageBox>
   );

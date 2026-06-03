@@ -18,6 +18,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	nemo "github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
 	"github.com/opendatahub-io/gen-ai/internal/models"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Supported streaming event types that we want to process for the Gen AI API
@@ -120,6 +122,7 @@ type ResponseMetrics struct {
 	LatencyMs          int64      `json:"latency_ms"`                       // Total response time in milliseconds
 	TimeToFirstTokenMs *int64     `json:"time_to_first_token_ms,omitempty"` // TTFT for streaming (nil for non-streaming)
 	Usage              *UsageData `json:"usage,omitempty"`                  // Token usage data
+	TraceID            string     `json:"trace_id,omitempty"`               // OTel trace ID for MLflow trace lookup
 }
 
 // UsageData contains token usage information from LlamaStack
@@ -377,6 +380,15 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	createRequest.Subscription = strings.TrimSpace(createRequest.Subscription)
 
+	// Set input on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		inputJSON, _ := json.Marshal([]map[string]string{{"role": "user", "content": createRequest.Input}})
+		span.SetAttributes(
+			attribute.String("mlflow.spanInputs", string(inputJSON)),
+			attribute.String("mlflow.spanType", "CHAIN"),
+		)
+	}
+
 	// Convert chat context format
 	var chatContext []llamastack.ChatContextMessage
 	for _, msg := range createRequest.ChatContext {
@@ -486,7 +498,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			}
 			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
 
-			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-input-check", inputMessages, guardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Input moderation check failed", "error", modErr)
 				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -494,6 +506,10 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "input blocked by safety guardrails"}})
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
 				return
 			}
@@ -643,6 +659,9 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			Usage:              usage,
 		},
 	}
+	if span := trace.SpanFromContext(ctx); span.SpanContext().HasTraceID() {
+		metricsEvent.Metrics.TraceID = span.SpanContext().TraceID().String()
+	}
 	eventData, err := json.Marshal(metricsEvent)
 	if err != nil {
 		app.logger.Error("failed to marshal metrics event", "error", err)
@@ -677,7 +696,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 		responseText := extractResponseText(&responseData)
 		if responseText != "" {
 			outputMessages := []nemo.Message{{Role: nemo.RoleAssistant, Content: responseText}}
-			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
+			result, modErr := app.checkModerationWithSpan(ctx, "guardrail-output-check", outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
 				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
@@ -685,6 +704,10 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			}
 			if result != nil && result.Flagged {
 				app.logger.Info("Output moderation flagged content", "reason", result.ViolationReason)
+				if span := trace.SpanFromContext(ctx); span.IsRecording() {
+					refusalJSON, _ := json.Marshal([]map[string]string{{"role": "assistant", "content": "output blocked by safety guardrails"}})
+					span.SetAttributes(attribute.String("mlflow.spanOutputs", string(refusalJSON)))
+				}
 				app.guardrailViolationResponse(w, r, constants.GuardrailOutputViolationCode, "output blocked by safety guardrails")
 				return
 			}
@@ -700,6 +723,17 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 	responseData.Metrics = &ResponseMetrics{
 		LatencyMs: latencyMs,
 		Usage:     extractUsage(llamaResponse),
+	}
+	if span := trace.SpanFromContext(ctx); span.SpanContext().HasTraceID() {
+		responseData.Metrics.TraceID = span.SpanContext().TraceID().String()
+	}
+
+	// Set output on the BFF root span for MLflow trace display
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		if len(responseData.Output) > 0 {
+			outputJSON, _ := json.Marshal(responseData.Output)
+			span.SetAttributes(attribute.String("mlflow.spanOutputs", string(outputJSON)))
+		}
 	}
 
 	apiResponse := llamastack.APIResponse{
