@@ -167,7 +167,7 @@ describe('Subscriptions Page', () => {
     ).as('deleteSubscription');
 
     subscriptionsPage.getRow('Premium Team Subscription').findKebabAction('Delete').click();
-    deleteSubscriptionModal.findInput().type('premium-team-sub');
+    deleteSubscriptionModal.findInput().type('Premium Team Subscription');
 
     cy.interceptOdh('GET /maas/api/v1/all-subscriptions', {
       data: mockSubscriptions().filter((subscription) => subscription.name !== 'premium-team-sub'),
