@@ -1,4 +1,9 @@
-import { DSPAMlflowIntegrationMode, DSPipelineAPIServerStore, DSPipelineKind } from '#~/k8sTypes';
+import {
+  DSPAMlflowIntegrationMode,
+  DSPipelineAPIServerStore,
+  DSPipelineKind,
+  DSPipelineManagedPipelinesKind,
+} from '#~/k8sTypes';
 
 type MockResourceConfigType = {
   name?: string;
@@ -11,12 +16,7 @@ type MockResourceConfigType = {
   pipelineStore?: DSPipelineAPIServerStore;
   cacheEnabled?: boolean;
   mlflowIntegrationMode?: DSPAMlflowIntegrationMode;
-  managedPipelines?: {
-    image: string;
-    pipelines?: Array<{ name: string }>;
-    volumeSizeLimit?: string;
-    resources?: Record<string, unknown>;
-  };
+  managedPipelines?: DSPipelineManagedPipelinesKind;
 };
 
 export const mockDataSciencePipelineApplicationK8sResource = ({

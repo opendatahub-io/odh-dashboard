@@ -733,6 +733,25 @@ export type DSPipelineMlflowKind = {
   integrationMode?: DSPAMlflowIntegrationMode;
 };
 
+/**
+ * Managed pipelines configuration.
+ *
+ * CURRENT (AutoML/AutoRAG pattern):
+ * - The UI sends an empty object {} to enable managed pipelines.
+ * - The operator injects the image and other fields.
+ *
+ * DEPRECATED (InstructLab pattern):
+ * - instructLab.state: Legacy pattern for single InstructLab pipeline management
+ * - Use the new pattern for all new implementations
+ */
+export type DSPipelineManagedPipelinesKind =
+  | Record<string, unknown>
+  | {
+      instructLab?: {
+        state: 'Removed' | 'Managed';
+      };
+    };
+
 export type DSPipelineKind = K8sResourceCommon & {
   metadata: {
     name: string;
@@ -749,24 +768,7 @@ export type DSPipelineKind = K8sResourceCommon & {
       }>;
       enableSamplePipeline: boolean;
       cacheEnabled: boolean;
-      /**
-       * Managed pipelines configuration.
-       *
-       * CURRENT (AutoML/AutoRAG pattern):
-       * - The UI sends an empty object {} to enable managed pipelines.
-       * - The operator injects the image and other fields.
-       *
-       * DEPRECATED (InstructLab pattern):
-       * - instructLab.state: Legacy pattern for single InstructLab pipeline management
-       * - Use the new pattern for all new implementations
-       */
-      managedPipelines?:
-        | Record<string, unknown>
-        | {
-            instructLab?: {
-              state: 'Removed' | 'Managed';
-            };
-          };
+      managedPipelines?: DSPipelineManagedPipelinesKind;
       pipelineStore?: DSPipelineAPIServerStore;
     }>;
     database?: Partial<{
