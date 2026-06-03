@@ -1,3 +1,4 @@
+// Package bffmocks provides mock implementations of bffclient interfaces for testing.
 package bffmocks
 
 import (
@@ -10,7 +11,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/bffclient"
 )
 
-// MockBFFClient provides a mock implementation of the BFFClientInterface for testing
+// MockBFFClient provides a mock implementation of the BFFClientInterface for testing.
 type MockBFFClient struct {
 	target    bffclient.BFFTarget
 	baseURL   string
@@ -18,10 +19,10 @@ type MockBFFClient struct {
 
 	// CallHandler allows customizing the mock response for specific calls
 	// If nil, default mock responses are used
-	CallHandler func(ctx context.Context, method, path string, body interface{}, response interface{}) error
+	CallHandler func(ctx context.Context, method, path string, body any, response any) error
 }
 
-// NewMockBFFClient creates a new mock BFF client
+// NewMockBFFClient creates a new mock BFF client.
 func NewMockBFFClient(target bffclient.BFFTarget) *MockBFFClient {
 	return &MockBFFClient{
 		target:    target,
@@ -33,7 +34,7 @@ func NewMockBFFClient(target bffclient.BFFTarget) *MockBFFClient {
 // Call returns mock responses based on the configured CallHandler.
 // Set CallHandler to customize responses for your target BFF's endpoints.
 // Without a CallHandler, returns a NOT_FOUND error for all calls.
-func (m *MockBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
+func (m *MockBFFClient) Call(ctx context.Context, method, path string, body any, response any) error {
 	if m.CallHandler != nil {
 		return m.CallHandler(ctx, method, path, body, response)
 	}
@@ -61,7 +62,7 @@ func (m *MockBFFClient) SetAvailable(available bool) {
 	m.available = available
 }
 
-// MockClientFactory creates mock BFF clients for testing
+// MockClientFactory creates mock BFF clients for testing.
 type MockClientFactory struct {
 	config    *bffclient.BFFClientConfig
 	clients   map[bffclient.BFFTarget]*MockBFFClient
@@ -69,7 +70,7 @@ type MockClientFactory struct {
 	logger    *slog.Logger
 }
 
-// NewMockClientFactory creates a new mock client factory
+// NewMockClientFactory creates a new mock client factory.
 func NewMockClientFactory(logger *slog.Logger) bffclient.BFFClientFactory {
 	config := bffclient.NewDefaultBFFClientConfig()
 	config.MockBFFClients = true
@@ -132,7 +133,7 @@ func (f *MockClientFactory) GetMockClient(target bffclient.BFFTarget) *MockBFFCl
 	return f.clients[target]
 }
 
-// NewMockClientFactoryWithConfig creates a new mock client factory with custom config
+// NewMockClientFactoryWithConfig creates a new mock client factory with custom config.
 func NewMockClientFactoryWithConfig(config *bffclient.BFFClientConfig, _ *x509.CertPool, _ bool, logger *slog.Logger) bffclient.BFFClientFactory {
 	return &MockClientFactory{
 		config:  config,

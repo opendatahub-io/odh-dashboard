@@ -28,7 +28,7 @@ func (app *App) GetNamespacesHandler(w http.ResponseWriter, r *http.Request, _ h
 		return
 	}
 
-	namespaces, err := app.repositories.Namespace.GetNamespaces(client, ctx, identity)
+	namespaces, err := app.repositories.Namespace.GetNamespaces(ctx, client, identity)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	authnv1 "k8s.io/api/authentication/v1"
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// TokenKubernetesClient implements KubernetesClientInterface using a user bearer token.
 type TokenKubernetesClient struct {
 	SharedClientLogic
 }
@@ -53,10 +54,8 @@ func (kc *TokenKubernetesClient) IsClusterAdmin(ctx context.Context, _ *RequestI
 }
 
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
-// This function is exported to allow downstream code to customize client creation
-// by setting TokenClientFactory.NewTokenKubernetesClientFn.
 func NewTokenKubernetesClient(token string, logger *slog.Logger) (KubernetesClientInterface, error) {
-	baseConfig, err := helper.GetKubeconfig()
+	baseConfig, err := helpers.GetKubeconfig()
 	if err != nil {
 		logger.Error("failed to get kubeconfig", "error", err)
 		return nil, fmt.Errorf("failed to get kubeconfig: %w", err)
