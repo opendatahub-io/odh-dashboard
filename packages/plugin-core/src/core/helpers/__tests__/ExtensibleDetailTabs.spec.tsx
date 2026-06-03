@@ -39,6 +39,21 @@ describe('ExtensibleDetailTabs', () => {
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
+  it('should render single extension tab content directly without tab bar', async () => {
+    const extensionTabs = [createMockTabExtension('deployments', 'Deployments')];
+
+    render(
+      <ExtensibleDetailTabs
+        activeKey="deployments"
+        onSelect={defaultOnSelect}
+        extensionTabs={extensionTabs}
+      />,
+    );
+
+    expect(await screen.findByTestId('mock-tab-content')).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
+
   it('should render tab bar with multiple static tabs', () => {
     render(
       <ExtensibleDetailTabs

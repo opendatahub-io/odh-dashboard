@@ -27,9 +27,8 @@ export const createMockTabExtension = (
     type: 'test.details/tab',
     properties,
     uid: `uid-${id}`,
-    pluginID: 'test-plugin',
     pluginName: 'test-plugin',
-  } as LoadedExtension<TestTabExtension>;
+  } satisfies LoadedExtension<TestTabExtension>;
 };
 
 export const createMockActionExtension = (
@@ -47,7 +46,6 @@ export const createMockActionExtension = (
     type: 'test.header/action',
     properties,
     uid: `uid-${id}`,
-    pluginID: 'test-plugin',
     pluginName: 'test-plugin',
-  } as LoadedExtension<TestActionExtension>;
+  } satisfies LoadedExtension<TestActionExtension>;
 };
