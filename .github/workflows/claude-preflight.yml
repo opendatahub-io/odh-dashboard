@@ -165,9 +165,6 @@ jobs:
       HEAD_REPO: ${{ matrix.head_repo }}
       ANTHROPIC_VERTEX_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CLOUD_ML_REGION: us-east5
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-      MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
       CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS: "30000"
 
     steps:
@@ -248,7 +245,8 @@ jobs:
                 "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
               },
               "hooks": {
-                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
               }
             }
           claude_args: >-
@@ -279,7 +277,8 @@ jobs:
                 "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
               },
               "hooks": {
-                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
               }
             }
           claude_args: >-
