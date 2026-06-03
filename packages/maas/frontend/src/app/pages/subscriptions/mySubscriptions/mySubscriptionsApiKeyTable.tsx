@@ -31,6 +31,7 @@ const subscriptionApiKeyColumns: ApiKeyColumn[] = [
 
 type MySubscriptionsApiKeyTableProps = {
   subscriptionId: string;
+  subscriptionDisplayName?: string;
   keyCount: number | undefined;
 };
 
@@ -64,6 +65,7 @@ const SubscriptionApiKeySkeletonRows: React.FC<{ rowCount: number }> = ({ rowCou
 
 const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
   subscriptionId,
+  subscriptionDisplayName,
   keyCount,
 }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -73,7 +75,6 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
     useSubscriptionApiKeysTableState(subscriptionId);
 
   const apiKeys = response.data;
-  const hasMore = response.has_more;
   const showTableLoading = !loaded || isPageLoading;
   const titleText = `API keys ${keyCount != null && keyCount > 0 ? `(${keyCount})` : ''}`;
 
@@ -82,6 +83,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {isModalOpen && (
         <CreateApiKeyModal
           initialSubscription={subscriptionId}
+          initialSubscriptionDisplayName={subscriptionDisplayName}
           lockSubscription
           onClose={(created) => {
             setIsModalOpen(false);
@@ -168,19 +170,23 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
 
       {loaded && (
         <Pagination
-          toggleTemplate={
-            hasMore
-              ? ({ firstIndex, lastIndex }) => (
-                  <>
-                    <b>
-                      {firstIndex} - {lastIndex}
-                    </b>{' '}
-                    of <b>{keyCount}</b>
-                  </>
-                )
-              : undefined
+          toggleTemplate={({ firstIndex, lastIndex }) =>
+            keyCount != null ? (
+              <>
+                <b>
+                  {firstIndex} - {lastIndex}
+                </b>{' '}
+                of <b>{keyCount}</b>
+              </>
+            ) : (
+              <b>
+                {firstIndex} - {lastIndex}
+              </b>
+            )
           }
-          itemCount={keyCount}
+          itemCount={
+            keyCount ?? (!response.has_more ? (page - 1) * perPage + apiKeys.length : undefined)
+          }
           perPage={perPage}
           page={page}
           onSetPage={(_e, newPage) => onSetPage(newPage)}

@@ -855,6 +855,12 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
       data: mockSubscriptionListItems(),
     }).as('getSubscriptions');
+
+    cy.intercept('GET', '/maas/api/v1/subscriptions/*', (req) => {
+      const id = req.url.split('/').pop();
+      const sub = mockSubscriptionListItems().find((s) => s.subscription_id_header === id);
+      req.reply(sub ? { data: sub } : { statusCode: 404, body: { error: 'not found' } });
+    }).as('getSubscriptionById');
   });
 
   it('should navigate to subscriptions tab', () => {
@@ -973,7 +979,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     mySubscriptionsPage.visit('premium-team-sub');
     mySubscriptionsPage.findCreateApiKeyButton().click();
     createApiKeyModal.findSubscriptionInput().should('have.value', 'Premium Team');
-    createApiKeyModal.findSubscriptionToggle().should('have.attr', 'disabled');
+    createApiKeyModal.findSubscriptionInput().should('be.disabled');
   });
   it('should revoke an api key from the my subscriptions view page', () => {
     mySubscriptionsPage.visit('premium-team-sub');

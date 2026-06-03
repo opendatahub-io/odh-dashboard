@@ -42,10 +42,15 @@ import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
+import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/api-keys/utils';
 import { createApiKey } from '~/app/api/api-keys';
-import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
-import { MaaSModelRefSummary, ModelSubscriptionRef } from '~/app/types/subscriptions';
+import { listUserSubscriptions } from '~/app/api/subscriptions';
+import {
+  MaaSModelRefSummary,
+  ModelSubscriptionRef,
+  UserSubscription,
+} from '~/app/types/subscriptions';
 import MaasModelsSection from '~/app/shared/MaasModelsSection';
 
 const EXPIRATION_OPTION_VALUES = ['30d', '60d', '90d', '180d', '1y', 'custom'] as const;
@@ -95,16 +100,25 @@ type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
   initialSubscription?: string;
+  initialSubscriptionDisplayName?: string;
   lockSubscription?: boolean;
 };
 
 const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   onClose,
   initialSubscription = '',
+  initialSubscriptionDisplayName,
   lockSubscription = false,
 }) => {
   const canLockSubscription = lockSubscription && Boolean(initialSubscription);
-  const [subscriptions, subscriptionsLoaded, subscriptionsError] = useUserSubscriptions();
+  const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
+    (opts) => (canLockSubscription ? Promise.resolve([]) : listUserSubscriptions()(opts)),
+    [canLockSubscription],
+  );
+  const [subscriptions, subscriptionsLoaded, subscriptionsError] = useFetchState(
+    subscriptionsCallback,
+    [],
+  );
   const [formData, setFormData] = React.useState<CreateApiKeyFormData>({
     name: '',
     description: '',
@@ -302,7 +316,8 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       <DescriptionListTerm>Subscription</DescriptionListTerm>
                       <DescriptionListDescription data-testid="api-key-display-subscription">
                         {selectedSubscription?.display_name ??
-                          selectedSubscription?.subscription_id_header}
+                          selectedSubscription?.subscription_id_header ??
+                          formData.subscription}
                       </DescriptionListDescription>
                     </DescriptionListGroup>
                     <DescriptionListGroup>
@@ -318,20 +333,23 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
           </Stack>
         ) : (
           <Stack hasGutter>
-            {subscriptionsLoaded && subscriptions.length === 0 && !subscriptionsError && (
-              <StackItem>
-                <Alert
-                  variant="warning"
-                  isInline
-                  title="No subscriptions available"
-                  data-testid="no-subscriptions-alert"
-                >
-                  You don&apos;t have access to any subscriptions. Ask your admin to add you to a
-                  subscription.
-                </Alert>
-              </StackItem>
-            )}
-            {subscriptionsError && (
+            {!canLockSubscription &&
+              subscriptionsLoaded &&
+              subscriptions.length === 0 &&
+              !subscriptionsError && (
+                <StackItem>
+                  <Alert
+                    variant="warning"
+                    isInline
+                    title="No subscriptions available"
+                    data-testid="no-subscriptions-alert"
+                  >
+                    You don&apos;t have access to any subscriptions. Ask your admin to add you to a
+                    subscription.
+                  </Alert>
+                </StackItem>
+              )}
+            {!canLockSubscription && subscriptionsError && (
               <StackItem>
                 <Alert
                   variant="danger"
@@ -387,23 +405,30 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
-                  <TypeaheadSelect
-                    id="api-key-subscription"
-                    selectOptions={subscriptionSelectOptions}
-                    selected={formData.subscription}
-                    onSelect={(_e, value) =>
-                      setFormData({ ...formData, subscription: String(value) })
-                    }
-                    isDisabled={
-                      canLockSubscription || !subscriptionsLoaded || subscriptions.length === 0
-                    }
-                    placeholder="Select a subscription"
-                    dataTestId="api-key-subscription-toggle"
-                    previewDescription={false}
-                    isRequired={false}
-                    popperProps={{ maxWidth: 'trigger' }}
-                    isScrollable
-                  />
+                  {canLockSubscription ? (
+                    <TextInput
+                      id="api-key-subscription"
+                      value={initialSubscriptionDisplayName ?? formData.subscription}
+                      isDisabled
+                      data-testid="api-key-subscription-toggle"
+                    />
+                  ) : (
+                    <TypeaheadSelect
+                      id="api-key-subscription"
+                      selectOptions={subscriptionSelectOptions}
+                      selected={formData.subscription}
+                      onSelect={(_e, value) =>
+                        setFormData({ ...formData, subscription: String(value) })
+                      }
+                      isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
+                      placeholder="Select a subscription"
+                      dataTestId="api-key-subscription-toggle"
+                      previewDescription={false}
+                      isRequired={false}
+                      popperProps={{ maxWidth: 'trigger' }}
+                      isScrollable
+                    />
+                  )}
                 </FormGroup>
 
                 {selectedSubscription && (
@@ -545,7 +570,9 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                 key="create"
                 variant="primary"
                 onClick={handleSubmit}
-                isDisabled={!isFormValid || isCreating || subscriptions.length === 0}
+                isDisabled={
+                  !isFormValid || isCreating || (!canLockSubscription && subscriptions.length === 0)
+                }
                 isLoading={isCreating}
                 data-testid="submit-create-api-key-button"
               >

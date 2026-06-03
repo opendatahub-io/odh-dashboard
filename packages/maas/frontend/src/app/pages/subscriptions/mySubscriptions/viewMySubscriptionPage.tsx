@@ -19,17 +19,16 @@ import {
 } from '@patternfly/react-core';
 import { URL_PREFIX } from '~/app/utilities/const';
 import SubscriptionModelsTable from '~/app/pages/api-keys/SubscriptionModelsTable';
-import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
+import { useGetUserSubscription } from '~/app/hooks/useGetUserSubscription';
 import MySubscriptionDetails from './mySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
 
 const ViewSubscriptionPage: React.FC = () => {
-  const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
+  const { subscriptionName = '' } = useParams<{ subscriptionName?: string }>();
   const [activeTab, setActiveTab] = React.useState<string | number>('details');
-  const [subscriptions, loaded, loadError] = useUserSubscriptions();
-  const subscription = subscriptions.find((sub) => sub.subscription_id_header === subscriptionName);
+  const [subscription, loaded, loadError] = useGetUserSubscription(subscriptionName);
   const displaySubscriptionName = subscription?.display_name?.trim() || subscriptionName;
-  const modelRefs = React.useMemo(() => subscription?.model_refs ?? [], [subscription?.model_refs]);
+  const modelRefs = subscription?.model_refs ?? [];
   const modelRefsCount = modelRefs.length;
 
   const breadcrumb = (
@@ -50,10 +49,11 @@ const ViewSubscriptionPage: React.FC = () => {
     <ApplicationsPage
       title={displaySubscriptionName}
       breadcrumb={breadcrumb}
-      empty={false}
+      empty={loaded && !subscription}
       loaded={loaded}
       loadError={loadError}
       errorMessage="Unable to load subscription details."
+      emptyMessage="Subscription not found."
     >
       {loaded && subscription && (
         <Tabs
@@ -110,6 +110,7 @@ const ViewSubscriptionPage: React.FC = () => {
                     <CardBody>
                       <MySubscriptionsApiKeyTable
                         subscriptionId={subscription.subscription_id_header}
+                        subscriptionDisplayName={subscription.display_name}
                         keyCount={subscription.key_count ?? undefined}
                       />
                     </CardBody>
