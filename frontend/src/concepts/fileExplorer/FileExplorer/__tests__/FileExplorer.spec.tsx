@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion -- TODO [Gustavo] Fix this */
-
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import * as React from 'react';
@@ -960,7 +958,7 @@ describe('FileExplorer', () => {
       expect(file1Item).toBeInTheDocument();
 
       // Eye icon should be present for file-1
-      const eyeIcon = within(file1Item!).getByTitle('Viewing details');
+      const eyeIcon = within(file1Item as HTMLElement).getByTitle('Viewing details');
       expect(eyeIcon).toBeInTheDocument();
     });
     it('should NOT show eye icon when only one file is selected', () => {
@@ -978,7 +976,7 @@ describe('FileExplorer', () => {
       expect(file1Item).toBeInTheDocument();
 
       // Eye icon should NOT be present when only one file selected
-      const eyeIcon = within(file1Item!).queryByTitle('Viewing details');
+      const eyeIcon = within(file1Item as HTMLElement).queryByTitle('Viewing details');
       expect(eyeIcon).not.toBeInTheDocument();
     });
     it('should move eye icon when viewing different file in multi-selection', () => {
@@ -1000,17 +998,23 @@ describe('FileExplorer', () => {
       const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
       const file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
       const file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
+      expect(file2Item).toBeInTheDocument();
 
       // Eye should be on file-1
-      expect(within(file1Item!).queryByTitle('Viewing details')).toBeInTheDocument();
-      expect(within(file2Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+      expect(within(file1Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(
+        within(file2Item as HTMLElement).queryByTitle('Viewing details'),
+      ).not.toBeInTheDocument();
 
       // Click on file-2 in selected files list to view its details
-      fireEvent.click(within(file2Item!).getByText('file-2.json'));
+      fireEvent.click(within(file2Item as HTMLElement).getByText('file-2.json'));
 
       // Eye should now be on file-2
-      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
-      expect(within(file2Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(
+        within(file1Item as HTMLElement).queryByTitle('Viewing details'),
+      ).not.toBeInTheDocument();
+      expect(within(file2Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
     });
     it('should remove eye icon when deselecting down to one file', () => {
       const files = mockFiles(3);
@@ -1030,16 +1034,20 @@ describe('FileExplorer', () => {
 
       const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
       let file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
 
       // Eye icon should be visible with 2 files selected
-      expect(within(file1Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(within(file1Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
 
       // Deselect file-2 (leaving only file-1 selected)
       fireEvent.click(within(row2).getByRole('checkbox'));
 
       // Eye icon should disappear when only 1 file remains selected
       file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
-      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
+      expect(file1Item).toBeInTheDocument();
+      expect(
+        within(file1Item as HTMLElement).queryByTitle('Viewing details'),
+      ).not.toBeInTheDocument();
     });
     it('should move eye icon to newly selected file', () => {
       const files = mockFiles(3);
@@ -1056,9 +1064,11 @@ describe('FileExplorer', () => {
       const selectedFilesList = screen.getByTestId('file-explorer-selected-files');
       let file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
       let file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
+      expect(file2Item).toBeInTheDocument();
 
       // Eye should be on file-2 (last selected)
-      expect(within(file2Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(within(file2Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
 
       // Select third file (selecting a file shows its details)
       fireEvent.click(within(row3).getByRole('checkbox'));
@@ -1066,11 +1076,18 @@ describe('FileExplorer', () => {
       file1Item = within(selectedFilesList).getByText('file-1.json').closest('li');
       file2Item = within(selectedFilesList).getByText('file-2.json').closest('li');
       const file3Item = within(selectedFilesList).getByText('file-3.json').closest('li');
+      expect(file1Item).toBeInTheDocument();
+      expect(file2Item).toBeInTheDocument();
+      expect(file3Item).toBeInTheDocument();
 
       // Eye should now be on file-3 (the newly selected file)
-      expect(within(file1Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
-      expect(within(file2Item!).queryByTitle('Viewing details')).not.toBeInTheDocument();
-      expect(within(file3Item!).queryByTitle('Viewing details')).toBeInTheDocument();
+      expect(
+        within(file1Item as HTMLElement).queryByTitle('Viewing details'),
+      ).not.toBeInTheDocument();
+      expect(
+        within(file2Item as HTMLElement).queryByTitle('Viewing details'),
+      ).not.toBeInTheDocument();
+      expect(within(file3Item as HTMLElement).queryByTitle('Viewing details')).toBeInTheDocument();
     });
   });
   describe('details panel interactions', () => {
