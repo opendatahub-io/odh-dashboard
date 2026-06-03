@@ -179,7 +179,10 @@ class AutomlConfigurePage {
     this.findBrowseBucketButton().click();
     this.findFileExplorerTable().should('be.visible');
     this.findFileExplorerSearch().type(uploadFileName);
-    this.findFileExplorerTable().contains('td', uploadFileName).should('be.visible').click();
+    // Wait for the 300ms debounced S3 search to complete before interacting with results
+    this.findFileExplorerTable().contains('td', uploadFileName).as('uploadedFileCell');
+    cy.get('@uploadedFileCell').should('be.visible');
+    cy.get('@uploadedFileCell').click();
     this.findFileExplorerSelectBtn().click();
   }
 
