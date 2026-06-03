@@ -168,14 +168,14 @@ func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.
 	return apiResponse, nil
 }
 
-func (c *MaasClient) GetSubscriptionForApiKeys(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
-	all, err := c.ListSubscriptionsForApiKeys(ctx)
+func (c *MaasClient) GetSingleUserSubscription(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
+	allSubscriptions, err := c.ListSubscriptionsForApiKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
-	for i := range all {
-		if all[i].SubscriptionIDHeader == id {
-			return &all[i], nil
+	for i := range allSubscriptions {
+		if allSubscriptions[i].SubscriptionIDHeader == id {
+			return &allSubscriptions[i], nil
 		}
 	}
 	return nil, nil

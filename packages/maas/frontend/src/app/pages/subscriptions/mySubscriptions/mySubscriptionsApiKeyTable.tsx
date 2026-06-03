@@ -93,7 +93,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           }}
         />
       )}
-      {revokeApiKey && revokeApiKey.name && (
+      {revokeApiKey && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}
           onClose={(revoked) => {

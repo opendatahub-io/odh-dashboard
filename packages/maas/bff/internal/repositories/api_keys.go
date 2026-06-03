@@ -78,10 +78,10 @@ func (r *APIKeysRepository) ListSubscriptionsForApiKeys(ctx context.Context) ([]
 
 // GetSubscriptionForApiKeys returns a single subscription by subscription_id_header for the authenticated user.
 // Returns nil, nil when the subscription does not exist or the user has no access.
-func (r *APIKeysRepository) GetSubscriptionForApiKeys(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
+func (r *APIKeysRepository) GetSingleUserSubscription(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
 	r.logger.Debug("Getting subscription for API key creation", slog.String("id", id))
 
-	item, err := r.maasClient.GetSubscriptionForApiKeys(ctx, id)
+	item, err := r.maasClient.GetSingleUserSubscription(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("get subscription via maas-api: %w", err)
 	}

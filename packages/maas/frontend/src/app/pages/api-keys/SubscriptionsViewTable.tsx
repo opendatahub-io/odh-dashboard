@@ -5,10 +5,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
-import SubscriptionModelsTable, {
-  ModelInfoPopover,
-  formatTokenLimit,
-} from './SubscriptionModelsTable';
+import SubscriptionModelsTable from './SubscriptionModelsTable';
 import EmptySubscriptionsTabState from './EmptySubscriptionsTabState';
 
 export type ModelGroupSubscription = {
@@ -25,8 +22,6 @@ export type ModelGroupEntry = {
   source?: string;
   subscriptions: ModelGroupSubscription[];
 };
-
-export { ModelInfoPopover, formatTokenLimit };
 
 const SubscriptionRow: React.FC<{
   subscription: UserSubscription;

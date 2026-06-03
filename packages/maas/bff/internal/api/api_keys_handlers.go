@@ -50,7 +50,7 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 	ctx := r.Context()
 	id := ps.ByName("id")
 
-	item, err := app.repositories.APIKeys.GetSubscriptionForApiKeys(ctx, id)
+	item, err := app.repositories.APIKeys.GetSingleUserSubscription(ctx, id)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

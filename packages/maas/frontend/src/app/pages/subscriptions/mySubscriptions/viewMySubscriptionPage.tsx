@@ -20,8 +20,8 @@ import {
 import { URL_PREFIX } from '~/app/utilities/const';
 import SubscriptionModelsTable from '~/app/pages/api-keys/SubscriptionModelsTable';
 import { useGetUserSubscription } from '~/app/hooks/useGetUserSubscription';
-import MySubscriptionDetails from './mySubscriptionDetails';
-import MySubscriptionsApiKeyTable from './mySubscriptionsApiKeyTable';
+import MySubscriptionDetails from './MySubscriptionDetails';
+import MySubscriptionsApiKeyTable from './MySubscriptionsApiKeyTable';
 
 const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName?: string }>();

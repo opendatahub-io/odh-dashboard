@@ -12,7 +12,7 @@ import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
-import ViewMySubscriptionPage from './pages/subscriptions/mySubscriptions/viewMySubscriptionPage';
+import ViewMySubscriptionPage from './pages/subscriptions/mySubscriptions/ViewMySubscriptionPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();

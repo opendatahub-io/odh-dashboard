@@ -45,7 +45,7 @@ export const useSubscriptionApiKeysTableState = (
     if (loaded) {
       setSettledRequestKey(searchRequestKey);
     }
-  }, [loaded, searchRequestKey, response]);
+  }, [loaded, searchRequestKey]);
 
   const isPageLoading = loaded && settledRequestKey !== searchRequestKey;
 
