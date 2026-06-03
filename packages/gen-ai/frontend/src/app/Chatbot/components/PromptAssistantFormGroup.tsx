@@ -2,6 +2,8 @@ import * as React from 'react';
 import {
   Button,
   Flex,
+  HelperText,
+  HelperTextItem,
   Label,
   Panel,
   Popover,
@@ -168,6 +170,11 @@ export default function PromptAssistantFormGroup({
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
           </Flex>
+          <HelperText>
+            <HelperTextItem>
+              {'Use {{ variable_name }} syntax to define variables in your prompt'}
+            </HelperTextItem>
+          </HelperText>
           <TextArea
             className={!editMode ? 'pf-m-readonly' : undefined}
             id="system-instructions-input"
