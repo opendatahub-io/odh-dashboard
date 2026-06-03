@@ -29,7 +29,7 @@ func (app *App) OGXModelsHandler(w http.ResponseWriter, r *http.Request, _ httpr
 		return
 	}
 
-	modelsData, err := app.repositories.OGXModels.GetOGXModels(ctx, namespace, secretName)
+	modelsData, err := app.repositories.OGX.GetOGXModels(ctx, namespace, secretName)
 	if err != nil {
 		app.handleOGXOrK8sError(w, r, err)
 		return

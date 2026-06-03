@@ -9,12 +9,11 @@ import (
 
 // Repositories struct is a single convenient container to hold and represent all our repositories.
 type Repositories struct {
-	HealthCheck     *HealthCheckRepository
-	Secret          *SecretRepository
-	Pipelines       *PipelinesRepository
-	S3              *S3Repository
-	OGXModels       *OGXModelsRepository
-	OGXVectorStores *OGXVectorStoresRepository
+	HealthCheck *HealthCheckRepository
+	Secret      *SecretRepository
+	Pipelines   *PipelinesRepository
+	S3          *S3Repository
+	OGX         *OGXRepository
 }
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
@@ -28,11 +27,10 @@ type RepositoriesConfig struct {
 
 func NewRepositories(cfg RepositoriesConfig) *Repositories {
 	return &Repositories{
-		HealthCheck:     NewHealthCheckRepository(),
-		Secret:          NewSecretRepository(),
-		Pipelines:       NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
-		S3:              NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
-		OGXModels:       NewOGXModelsRepository(cfg.OGXClient, cfg.K8sService),
-		OGXVectorStores: NewOGXVectorStoresRepository(cfg.OGXClient, cfg.K8sService),
+		HealthCheck: NewHealthCheckRepository(),
+		Secret:      NewSecretRepository(),
+		Pipelines:   NewPipelinesRepository(cfg.PipelinesService, cfg.PipelinesCfg),
+		S3:          NewS3Repository(cfg.S3Service, cfg.K8sService, cfg.PipelinesService),
+		OGX:         NewOGXRepository(cfg.OGXClient, cfg.K8sService),
 	}
 }

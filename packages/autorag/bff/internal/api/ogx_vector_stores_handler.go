@@ -30,7 +30,7 @@ func (app *App) OGXVectorStoresHandler(w http.ResponseWriter, r *http.Request, _
 		return
 	}
 
-	providersData, err := app.repositories.OGXVectorStores.GetOGXVectorStoreProviders(ctx, namespace, secretName)
+	providersData, err := app.repositories.OGX.GetOGXVectorStoreProviders(ctx, namespace, secretName)
 	if err != nil {
 		app.handleOGXOrK8sError(w, r, err)
 		return
