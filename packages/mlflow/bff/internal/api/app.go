@@ -26,14 +26,18 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/mlflow"
-	APIPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	StatusPath      = APIPathPrefix + "/status"
-	UserPath        = APIPathPrefix + "/user"
-	NamespacePath   = APIPathPrefix + "/namespaces"
-	ExperimentsPath = APIPathPrefix + "/experiments"
+	Version            = "1.0.0"
+	PathPrefix         = "/mlflow"
+	APIPathPrefix      = "/api/v1"
+	HealthCheckPath    = "/healthcheck"
+	StatusPath         = APIPathPrefix + "/status"
+	UserPath           = APIPathPrefix + "/user"
+	NamespacePath      = APIPathPrefix + "/namespaces"
+	ExperimentsPath    = APIPathPrefix + "/experiments"
+	PromptsPath        = APIPathPrefix + "/prompts"
+	PromptPath         = APIPathPrefix + "/prompts/:name"
+	PromptVersionsPath = APIPathPrefix + "/prompts/:name/versions"
+	PromptVersionPath  = APIPathPrefix + "/prompts/:name/versions/:version"
 )
 
 type App struct {
@@ -188,6 +192,14 @@ func (app *App) Routes() http.Handler {
 	// MLflow API routes
 	apiRouter.GET(StatusPath, app.RequireValidIdentity(app.StatusHandler))
 	apiRouter.GET(ExperimentsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListExperimentsHandler))))
+
+	// Prompt Registry routes
+	apiRouter.GET(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptsHandler))))
+	apiRouter.POST(PromptsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowRegisterPromptHandler))))
+	apiRouter.GET(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowLoadPromptHandler))))
+	apiRouter.DELETE(PromptPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptHandler))))
+	apiRouter.GET(PromptVersionsPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowListPromptVersionsHandler))))
+	apiRouter.DELETE(PromptVersionPath, app.AttachWorkspace(app.RequireValidIdentity(app.AttachMLflowClient(app.MLflowDeletePromptVersionHandler))))
 
 	// App Router
 	appMux := http.NewServeMux()
