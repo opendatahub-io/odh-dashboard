@@ -31,6 +31,19 @@ const mockCreateFeatureStoreResponse = jest.mocked(createFeatureStoreResponse);
 const TOKEN = 'test-token';
 const NAMESPACE = 'test-namespace';
 const CRD_NAME = 'banking';
+const PROJECT = 'my_project';
+
+const FEAST_API = {
+  FEATURES: 'api/v1/features',
+  LINEAGE: 'api/v1/lineage/complete',
+  PROJECTS: 'api/v1/projects',
+} as const;
+
+const REGISTRY_URL = {
+  FEATURES: `https://registry.local/${FEAST_API.FEATURES}`,
+  PROJECTS: `https://registry.local/${FEAST_API.PROJECTS}`,
+  BASE: 'https://registry.local',
+} as const;
 
 const MOCK_SERVICE = {
   serviceName: `feast-${CRD_NAME}-registry-rest`,
@@ -67,6 +80,19 @@ const createMockCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCR
   metadata: { name: CRD_NAME, namespace: NAMESPACE, ...overrides.metadata },
   ...overrides,
 });
+
+const createProxyReq = (feastPath: string) => ({
+  params: { namespace: NAMESPACE, name: CRD_NAME },
+  url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/${feastPath}`,
+  headers: {},
+});
+
+const setupSuccessfulProxyMocks = (registryUrl: string = REGISTRY_URL.FEATURES) => {
+  mockGetFeastFeatureStoreCRD.mockResolvedValue(createMockCRD());
+  mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
+  mockConstructRegistryProxyUrl.mockReturnValue(registryUrl);
+  mockMakeAuthenticatedHttpRequest.mockResolvedValue({ data: {}, statusCode: 200 });
+};
 
 describe('featureStores routes', () => {
   let mockFastify: ReturnType<typeof createMockFastify>;
@@ -133,7 +159,7 @@ describe('featureStores routes', () => {
       mockListFeastFeatureStoreCRDs.mockResolvedValue([createMockCRD()]);
       mockIsRegistryReady.mockReturnValue(true);
       mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
-      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/projects');
+      mockConstructRegistryProxyUrl.mockReturnValue(REGISTRY_URL.PROJECTS);
       mockMakeAuthenticatedHttpRequest.mockRejectedValue(new Error('connection refused'));
 
       await listHandler({ params: {}, headers: {} }, mockReply);
@@ -149,10 +175,10 @@ describe('featureStores routes', () => {
       mockListFeastFeatureStoreCRDs.mockResolvedValue([createMockCRD()]);
       mockIsRegistryReady.mockReturnValue(true);
       mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
-      // First call: registryUrl (api/v1/projects fetch), second call: baseRegistryUrl (empty path, trailing slash stripped)
+      // First call: registryUrl (api/v1/projects fetch), second call: baseRegistryUrl (trailing slash stripped)
       mockConstructRegistryProxyUrl
-        .mockReturnValueOnce('https://registry.local/api/v1/projects')
-        .mockReturnValueOnce('https://registry.local');
+        .mockReturnValueOnce(REGISTRY_URL.PROJECTS)
+        .mockReturnValueOnce(REGISTRY_URL.BASE);
       mockMakeAuthenticatedHttpRequest.mockResolvedValue({
         data: { projects: [{ name: CRD_NAME }] },
         statusCode: 200,
@@ -164,7 +190,7 @@ describe('featureStores routes', () => {
       expect(mockCreateFeatureStoreResponse).toHaveBeenCalledWith(
         CRD_NAME,
         CRD_NAME,
-        'https://registry.local',
+        REGISTRY_URL.BASE,
         'True',
         NAMESPACE,
       );
@@ -185,7 +211,8 @@ describe('featureStores routes', () => {
 
     it('should throw 400 for namespace with invalid DNS-1123 characters', async () => {
       const req = {
-        params: { namespace: 'INVALID_NS!', name: CRD_NAME, '*': 'api/v1/features' },
+        params: { namespace: 'INVALID_NS!', name: CRD_NAME },
+        url: `/api/featurestores/INVALID_NS!/${CRD_NAME}/${FEAST_API.FEATURES}`,
         headers: {},
       };
 
@@ -193,59 +220,61 @@ describe('featureStores routes', () => {
       expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
     });
 
-    it('should throw when no access token is present', async () => {
+    it('should throw 401 when no access token is present', async () => {
       mockGetAccessToken.mockReturnValue(null as any);
 
-      const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'api/v1/features' },
-        headers: {},
-      };
-
-      await expect(proxyHandler(req, mockReply)).rejects.toThrow();
+      await expect(proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply)).rejects.toThrow();
     });
 
     it('should throw 404 when CRD is not found', async () => {
       mockGetFeastFeatureStoreCRD.mockResolvedValue(null);
 
-      const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'api/v1/features' },
-        headers: {},
-      };
-
-      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 404 });
+      await expect(
+        proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply),
+      ).rejects.toMatchObject({ statusCode: 404 });
     });
 
     it('should proxy request and forward status code, content type, and data', async () => {
       const responseData = { features: [{ name: 'feature-1' }] };
-
       mockGetFeastFeatureStoreCRD.mockResolvedValue(createMockCRD());
       mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
-      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/features');
-      mockMakeAuthenticatedHttpRequest.mockResolvedValue({
-        data: responseData,
-        statusCode: 200,
-      });
+      mockConstructRegistryProxyUrl.mockReturnValue(REGISTRY_URL.FEATURES);
+      mockMakeAuthenticatedHttpRequest.mockResolvedValue({ data: responseData, statusCode: 200 });
 
-      const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'api/v1/features' },
-        headers: {},
-      };
-
-      await proxyHandler(req, mockReply);
+      await proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply);
 
       expect(mockReply.code).toHaveBeenCalledWith(200);
       expect(mockReply.type).toHaveBeenCalledWith('application/json');
       expect(mockReply.send).toHaveBeenCalledWith(responseData);
     });
 
-    it('should default path to api/v1/projects when wildcard does not start with api/v1/', async () => {
-      mockGetFeastFeatureStoreCRD.mockResolvedValue(createMockCRD());
-      mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
-      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/projects');
-      mockMakeAuthenticatedHttpRequest.mockResolvedValue({ data: {}, statusCode: 200 });
+    it.each([
+      [`${FEAST_API.LINEAGE}?project=${PROJECT}`, `${FEAST_API.LINEAGE}?project=${PROJECT}`],
+      [
+        `${FEAST_API.FEATURES}?project=${PROJECT}&include_relationships=true`,
+        `${FEAST_API.FEATURES}?project=${PROJECT}&include_relationships=true`,
+      ],
+    ])('should forward query string "%s" to the proxied path', async (feastPath, expectedPath) => {
+      setupSuccessfulProxyMocks(`https://registry.local/${expectedPath}`);
+
+      await proxyHandler(createProxyReq(feastPath), mockReply);
+
+      expect(mockConstructRegistryProxyUrl).toHaveBeenCalledWith(
+        MOCK_SERVICE.serviceName,
+        NAMESPACE,
+        expectedPath,
+        true,
+        MOCK_SERVICE.protocol,
+        MOCK_SERVICE.port,
+      );
+    });
+
+    it('should default path to api/v1/projects when url does not contain /api/v1/', async () => {
+      setupSuccessfulProxyMocks(REGISTRY_URL.PROJECTS);
 
       const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME, '*': '' },
+        params: { namespace: NAMESPACE, name: CRD_NAME },
+        url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}`,
         headers: {},
       };
 
@@ -254,7 +283,7 @@ describe('featureStores routes', () => {
       expect(mockConstructRegistryProxyUrl).toHaveBeenCalledWith(
         MOCK_SERVICE.serviceName,
         NAMESPACE,
-        'api/v1/projects',
+        FEAST_API.PROJECTS,
         true,
         MOCK_SERVICE.protocol,
         MOCK_SERVICE.port,
@@ -264,15 +293,12 @@ describe('featureStores routes', () => {
     it('should throw 500 when registry request fails', async () => {
       mockGetFeastFeatureStoreCRD.mockResolvedValue(createMockCRD());
       mockGetServiceFromCRD.mockReturnValue(MOCK_SERVICE);
-      mockConstructRegistryProxyUrl.mockReturnValue('https://registry.local/api/v1/features');
+      mockConstructRegistryProxyUrl.mockReturnValue(REGISTRY_URL.FEATURES);
       mockMakeAuthenticatedHttpRequest.mockRejectedValue(new Error('timeout'));
 
-      const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'api/v1/features' },
-        headers: {},
-      };
-
-      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 500 });
+      await expect(
+        proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply),
+      ).rejects.toMatchObject({ statusCode: 500 });
       expect(mockHandleError).toHaveBeenCalledWith(
         mockFastify,
         expect.any(Error),

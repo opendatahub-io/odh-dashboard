@@ -180,13 +180,13 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/:namespace/:name/*',
     async (
       req: OauthFastifyRequest<{
-        Params: { namespace: string; name: string; '*': string };
+        Params: { namespace: string; name: string };
       }>,
       reply: FastifyReply,
     ) => {
-      const { namespace, name, '*': wildcardPath } = req.params;
-      const path =
-        wildcardPath && wildcardPath.startsWith('api/v1/') ? wildcardPath : 'api/v1/projects';
+      const { namespace, name } = req.params;
+      const apiV1Index = req.url.indexOf('/api/v1/');
+      const path = apiV1Index !== -1 ? req.url.substring(apiV1Index + 1) : 'api/v1/projects';
 
       const DNS1123_REGEX = /^[a-z0-9]([a-z0-9-]{0,251}[a-z0-9])?$/;
       if (!DNS1123_REGEX.test(namespace) || !DNS1123_REGEX.test(name)) {
