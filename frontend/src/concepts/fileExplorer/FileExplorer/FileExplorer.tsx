@@ -1111,7 +1111,11 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
-    // eslint-disable-next-line no-restricted-syntax -- TODO [ Gustavo ] Disabling for now in the initial move from autox->frontend. Need to identify impact with complying
+    // FileExplorer is a pure UI component — no data fetching, no side effects on mount.
+    // Business logic and fetching live in wrapper components (e.g. S3FileExplorer), which
+    // gate all API calls behind `isOpen` checks, so always-mounted usage is safe.
+    // See: S3FileExplorer.tsx fetchPath effect for the isOpen guard.
+    // eslint-disable-next-line no-restricted-syntax
     <Modal
       elementToFocus={`#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`}
       id={id}
