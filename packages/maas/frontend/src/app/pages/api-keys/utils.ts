@@ -1,3 +1,8 @@
+export enum ModelSource {
+  Internal = 'Internal',
+  External = 'External',
+}
+
 const DEFAULT_API_KEY_VISIBLE_PREFIX_LENGTH = 7;
 
 /** First characters of the key stay readable; the remainder is shown as bullets (matches CreateApiKeyModal). */
@@ -18,3 +23,6 @@ export const formatApiKeyError = (message: string): string => {
   }
   return message.charAt(0).toUpperCase() + message.slice(1);
 };
+
+export const getSourceLabelColor = (source: string): 'blue' | 'purple' =>
+  source.toLowerCase() === ModelSource.Internal.toLowerCase() ? 'blue' : 'purple';

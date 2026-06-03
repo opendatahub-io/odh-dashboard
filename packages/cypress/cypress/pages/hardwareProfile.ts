@@ -146,8 +146,8 @@ class HardwareProfile {
     return new HardwareProfileWarningBanner(() => this.findHardwareProfileDisabledBanner());
   }
 
-  findTable() {
-    return cy.findByTestId('hardware-profile-table');
+  findTable(options?: { timeout?: number }) {
+    return cy.findByTestId('hardware-profile-table', options);
   }
 
   findUniqueTable() {

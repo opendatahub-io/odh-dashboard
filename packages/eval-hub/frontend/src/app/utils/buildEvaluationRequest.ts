@@ -1,4 +1,10 @@
-import { Collection, CreateEvaluationJobRequest, FlatBenchmark } from '~/app/types';
+import {
+  Collection,
+  CreateEvaluationJobRequest,
+  FlatBenchmark,
+  JobPassCriteria,
+  JobPrimaryScore,
+} from '~/app/types';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
@@ -14,6 +20,8 @@ type BuildEvaluationRequestParams = {
   additionalArgs: Record<string, unknown>;
   experimentName?: string;
   experimentTags?: { key: string; value: string }[];
+  passCriteriaOverride?: JobPassCriteria;
+  primaryScoreOverride?: JobPrimaryScore;
 };
 
 const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass_criteria']);
@@ -32,6 +40,8 @@ const buildEvaluationRequest = ({
   additionalArgs,
   experimentName,
   experimentTags,
+  passCriteriaOverride,
+  primaryScoreOverride,
 }: BuildEvaluationRequestParams): CreateEvaluationJobRequest => {
   const topLevelOverrides: Record<string, unknown> = {};
   const benchmarkParams: Record<string, unknown> = {};
@@ -68,9 +78,9 @@ const buildEvaluationRequest = ({
       // eslint-disable-next-line camelcase
       provider_id: benchmark.providerId,
       // eslint-disable-next-line camelcase
-      primary_score: benchmark.primary_score,
+      primary_score: primaryScoreOverride ?? benchmark.primary_score,
       // eslint-disable-next-line camelcase
-      pass_criteria: benchmark.pass_criteria,
+      pass_criteria: passCriteriaOverride ?? benchmark.pass_criteria,
       ...(hasParams ? { parameters: benchmarkParams } : {}),
       ...prerecordedDataRef,
     });
@@ -108,6 +118,8 @@ const buildEvaluationRequest = ({
       // eslint-disable-next-line camelcase
       ...(resolvedAuth ? { auth: { secret_ref: resolvedAuth } } : {}),
     },
+    // eslint-disable-next-line camelcase
+    ...(passCriteriaOverride && isCollectionFlow ? { pass_criteria: passCriteriaOverride } : {}),
     ...(isCollectionFlow
       ? {
           collection: {

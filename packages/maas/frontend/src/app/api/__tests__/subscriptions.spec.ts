@@ -63,7 +63,7 @@ describe('getSubscriptionInfo', () => {
   });
 
   it('should resolve with subscription info for a valid response', async () => {
-    mockRestGET.mockResolvedValue(validSubscriptionInfoResponse);
+    mockRestGET.mockResolvedValue({ data: validSubscriptionInfoResponse });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result).toStrictEqual(validSubscriptionInfoResponse);
@@ -104,7 +104,7 @@ describe('getSubscriptionInfo', () => {
 
   it('should accept an empty authPolicies array', async () => {
     const emptyPolicies = { ...validSubscriptionInfoResponse, authPolicies: [] };
-    mockRestGET.mockResolvedValue(emptyPolicies);
+    mockRestGET.mockResolvedValue({ data: emptyPolicies });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.authPolicies).toHaveLength(0);
@@ -134,7 +134,7 @@ describe('getSubscriptionInfo', () => {
         description: 'High-priority subscription for the premium team.',
       },
     };
-    mockRestGET.mockResolvedValue(withAnnotations);
+    mockRestGET.mockResolvedValue({ data: withAnnotations });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.subscription.displayName).toBe('Premium Team Subscription');
@@ -154,7 +154,7 @@ describe('getSubscriptionInfo', () => {
         },
       ],
     };
-    mockRestGET.mockResolvedValue(noOptionals);
+    mockRestGET.mockResolvedValue({ data: noOptionals });
 
     const result = await getSubscriptionInfo('test-sub')({} as never);
     expect(result.modelRefs[0].phase).toBeUndefined();

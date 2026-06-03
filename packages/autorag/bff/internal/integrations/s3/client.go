@@ -252,8 +252,15 @@ func (c *RealS3Client) ListObjects(ctx context.Context, bucket string, options L
 	}
 
 	for _, obj := range output.Contents {
+		key := aws.ToString(obj.Key)
+		// Skip zero-byte folder markers: objects whose key ends with "/"
+		// and size is 0. These are S3 placeholders for "folders" and
+		// should never appear as browsable files in the UI.
+		if strings.HasSuffix(key, "/") && aws.ToInt64(obj.Size) == 0 {
+			continue
+		}
 		info := models.S3ObjectInfo{
-			Key:          aws.ToString(obj.Key),
+			Key:          key,
 			Size:         aws.ToInt64(obj.Size),
 			ETag:         aws.ToString(obj.ETag),
 			StorageClass: string(obj.StorageClass),

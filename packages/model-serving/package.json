@@ -14,6 +14,7 @@
   "exports": {
     "./extensions": "./extensions/index.ts",
     "./extension-points": "./extension-points/index.ts",
+    "./extension-points/deployment-wizard": "./extension-points/deployment-wizard.ts",
     "./components/*": [
       "./src/components/*",
       "./src/components/*.ts",

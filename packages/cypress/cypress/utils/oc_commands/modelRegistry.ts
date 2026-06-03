@@ -12,6 +12,12 @@ import { maskSensitiveInfo } from '../maskSensitiveInfo';
  * @returns The appropriate namespace for model registries
  */
 export const getModelRegistryNamespace = (): string => {
+  // Allow test-specific override (e.g., for clusters with non-standard namespace setup)
+  const override = Cypress.env('MODEL_REGISTRY_NAMESPACE_OVERRIDE');
+  if (override) {
+    return override;
+  }
+
   const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
 
   // For RHOAI use rhoai-model-registries, for ODH use odh-model-registries
