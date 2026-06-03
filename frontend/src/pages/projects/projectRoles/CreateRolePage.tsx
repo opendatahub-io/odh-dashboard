@@ -6,6 +6,7 @@ import {
   Button,
   PageSection,
   Spinner,
+  getUniqueId,
 } from '@patternfly/react-core';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
@@ -16,6 +17,7 @@ import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescripti
 import { RoleKind } from '#~/k8sTypes';
 import CreateRoleForm from './CreateRoleForm';
 import CreateRoleFooter from './CreateRoleFooter';
+import type { LabelEntry } from './types';
 
 type CreateRolePageProps = {
   existingRole?: RoleKind;
@@ -40,22 +42,29 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const [description, setDescription] = React.useState(
     () => existingRole?.metadata.annotations?.['openshift.io/description'] ?? '',
   );
-  const [labels, setLabels] = React.useState<{ key: string; value: string }[]>(() => {
+  const [labels, setLabels] = React.useState<LabelEntry[]>(() => {
     if (!existingRole?.metadata.labels) {
       return [];
     }
-    return Object.entries(existingRole.metadata.labels).map(([key, value]) => ({ key, value }));
+    return Object.entries(existingRole.metadata.labels).map(([key, value]) => ({
+      id: getUniqueId('label'),
+      key,
+      value,
+    }));
   });
 
   const handleDescriptionChange = React.useCallback((value: string) => {
     setDescription(value);
   }, []);
 
-  const handleLabelsChange = React.useCallback((newLabels: { key: string; value: string }[]) => {
+  const handleLabelsChange = React.useCallback((newLabels: LabelEntry[]) => {
     setLabels(newLabels);
   }, []);
 
-  const hasDuplicateLabelKeys = new Set(labels.map((l) => l.key)).size !== labels.length;
+  const hasDuplicateLabelKeys = React.useMemo(
+    () => new Set(labels.map((l) => l.key)).size !== labels.length,
+    [labels],
+  );
 
   const hasInvalidLabels =
     labels.some(
@@ -80,7 +89,7 @@ const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
     return <Navigate to={`/projects/${namespace}?section=roles`} replace />;
   }
 
-  const pageTitle = isEdit ? 'Edit custom role' : 'Create custom roles';
+  const pageTitle = isEdit ? 'Edit custom role' : 'Create custom role';
 
   return (
     <ApplicationsPage

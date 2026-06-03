@@ -14,11 +14,7 @@ import K8sNameDescriptionField from '#~/concepts/k8s/K8sNameDescriptionField/K8s
 import FieldGroupHelpLabelIcon from '#~/components/FieldGroupHelpLabelIcon';
 import { UseK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/types';
 import RoleLabelsSection from './RoleLabelsSection';
-
-type LabelEntry = {
-  key: string;
-  value: string;
-};
+import type { LabelEntry } from './types';
 
 type CreateRoleFormProps = {
   nameDescriptionData: UseK8sNameDescriptionFieldData;
@@ -80,7 +76,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
       </Title>
       <Content component="p">Define the permissions that this role grants by adding rules.</Content>
       <Content component="p" data-testid="permissions-empty-state">
-        <i>No permissions set for this rule.</i>
+        <em>No permissions set for this role.</em>
       </Content>
       <Flex>
         <FlexItem>

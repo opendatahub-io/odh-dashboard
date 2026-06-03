@@ -20,8 +20,8 @@ describe('RoleLabelsSection', () => {
 
     it('should render existing label rows', () => {
       const labels = [
-        { key: 'team', value: 'platform' },
-        { key: 'env', value: 'production' },
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'production' },
       ];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
@@ -46,18 +46,20 @@ describe('RoleLabelsSection', () => {
 
       fireEvent.click(screen.getByTestId('role-add-label'));
 
-      expect(mockOnLabelsChange).toHaveBeenCalledWith([{ key: '', value: '' }]);
+      expect(mockOnLabelsChange).toHaveBeenCalledWith([
+        expect.objectContaining({ key: '', value: '' }),
+      ]);
     });
 
     it('should append to existing labels when Add label is clicked', () => {
-      const labels = [{ key: 'team', value: 'platform' }];
+      const labels = [{ id: 'l-1', key: 'team', value: 'platform' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.click(screen.getByTestId('role-add-label'));
 
       expect(mockOnLabelsChange).toHaveBeenCalledWith([
-        { key: 'team', value: 'platform' },
-        { key: '', value: '' },
+        { id: 'l-1', key: 'team', value: 'platform' },
+        expect.objectContaining({ key: '', value: '' }),
       ]);
     });
   });
@@ -65,18 +67,20 @@ describe('RoleLabelsSection', () => {
   describe('removing labels', () => {
     it('should remove the correct label row', () => {
       const labels = [
-        { key: 'team', value: 'platform' },
-        { key: 'env', value: 'production' },
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'production' },
       ];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.click(screen.getByTestId('role-label-remove-0'));
 
-      expect(mockOnLabelsChange).toHaveBeenCalledWith([{ key: 'env', value: 'production' }]);
+      expect(mockOnLabelsChange).toHaveBeenCalledWith([
+        { id: 'l-2', key: 'env', value: 'production' },
+      ]);
     });
 
     it('should remove the last remaining label', () => {
-      const labels = [{ key: 'team', value: 'platform' }];
+      const labels = [{ id: 'l-1', key: 'team', value: 'platform' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.click(screen.getByTestId('role-label-remove-0'));
@@ -87,29 +91,31 @@ describe('RoleLabelsSection', () => {
 
   describe('editing labels', () => {
     it('should update the key of a label', () => {
-      const labels = [{ key: '', value: '' }];
+      const labels = [{ id: 'l-1', key: '', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.change(screen.getByTestId('role-label-key-0'), { target: { value: 'team' } });
 
-      expect(mockOnLabelsChange).toHaveBeenCalledWith([{ key: 'team', value: '' }]);
+      expect(mockOnLabelsChange).toHaveBeenCalledWith([{ id: 'l-1', key: 'team', value: '' }]);
     });
 
     it('should update the value of a label', () => {
-      const labels = [{ key: 'team', value: '' }];
+      const labels = [{ id: 'l-1', key: 'team', value: '' }];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
       fireEvent.change(screen.getByTestId('role-label-value-0'), {
         target: { value: 'platform' },
       });
 
-      expect(mockOnLabelsChange).toHaveBeenCalledWith([{ key: 'team', value: 'platform' }]);
+      expect(mockOnLabelsChange).toHaveBeenCalledWith([
+        { id: 'l-1', key: 'team', value: 'platform' },
+      ]);
     });
 
     it('should only update the targeted label row', () => {
       const labels = [
-        { key: 'team', value: 'platform' },
-        { key: 'env', value: 'prod' },
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'prod' },
       ];
       render(<RoleLabelsSection labels={labels} onLabelsChange={mockOnLabelsChange} />);
 
@@ -118,8 +124,8 @@ describe('RoleLabelsSection', () => {
       });
 
       expect(mockOnLabelsChange).toHaveBeenCalledWith([
-        { key: 'team', value: 'platform' },
-        { key: 'env', value: 'staging' },
+        { id: 'l-1', key: 'team', value: 'platform' },
+        { id: 'l-2', key: 'env', value: 'staging' },
       ]);
     });
   });

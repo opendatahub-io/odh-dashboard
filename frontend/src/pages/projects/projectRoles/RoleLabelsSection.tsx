@@ -1,11 +1,15 @@
 import * as React from 'react';
-import { Button, Content, Flex, FlexItem, FormGroup, TextInput } from '@patternfly/react-core';
+import {
+  Button,
+  Content,
+  Flex,
+  FlexItem,
+  FormGroup,
+  TextInput,
+  getUniqueId,
+} from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
-
-type LabelEntry = {
-  key: string;
-  value: string;
-};
+import type { LabelEntry } from './types';
 
 type RoleLabelsSectionProps = {
   labels: LabelEntry[];
@@ -24,7 +28,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
   );
 
   const handleAddLabel = React.useCallback(() => {
-    onLabelsChange([...labels, { key: '', value: '' }]);
+    onLabelsChange([...labels, { id: getUniqueId('label'), key: '', value: '' }]);
   }, [labels, onLabelsChange]);
 
   const handleRemoveLabel = React.useCallback(
@@ -42,7 +46,7 @@ const RoleLabelsSection: React.FC<RoleLabelsSectionProps> = ({ labels, onLabelsC
       </Content>
       {labels.map((label, index) => (
         <Flex
-          key={index}
+          key={label.id}
           spaceItems={{ default: 'spaceItemsSm' }}
           className="pf-v6-u-mb-sm"
           data-testid={`role-label-${index}`}
