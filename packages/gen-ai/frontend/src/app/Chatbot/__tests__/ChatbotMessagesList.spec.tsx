@@ -111,7 +111,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -147,7 +147,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -179,7 +179,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -209,7 +209,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -245,7 +245,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -278,7 +278,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -319,7 +319,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -355,7 +355,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -386,7 +386,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -412,7 +412,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -446,7 +446,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -468,7 +468,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -502,7 +502,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -535,7 +535,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -567,7 +567,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -623,7 +623,7 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading={false}
-          isStreamingWithoutContent={false}
+
         />,
       );
 
@@ -632,7 +632,7 @@ describe('ChatbotMessages', () => {
       expect(screen.getByTestId('chatbot-error-alert-msg-3')).toBeInTheDocument();
     });
 
-    it('should render loading message when isLoading is true', () => {
+    it('should not render standalone loading dots (placeholder message handles loading state)', () => {
       const messages: ChatbotMessageProps[] = [];
 
       render(
@@ -640,28 +640,11 @@ describe('ChatbotMessages', () => {
           messageList={messages}
           scrollRef={scrollRef}
           isLoading
-          isStreamingWithoutContent={false}
           modelDisplayName="Test Model"
         />,
       );
 
-      // Loading message is rendered by Message component
-      expect(screen.getByTestId('chatbot-message-bot')).toBeInTheDocument();
-    });
-
-    it('should not render loading message when streaming without content', () => {
-      const messages: ChatbotMessageProps[] = [];
-
-      render(
-        <ChatbotMessages
-          messageList={messages}
-          scrollRef={scrollRef}
-          isLoading
-          isStreamingWithoutContent
-        />,
-      );
-
-      // Loading dots should not be shown during streaming
+      // No standalone loading dots — the placeholder bot message in messageList handles isLoading
       const loadingMessages = screen.queryAllByTestId('chatbot-message-bot');
       expect(loadingMessages).toHaveLength(0);
     });
