@@ -20,7 +20,7 @@ spec:
         components.platform.opendatahub.io/managed-by: opendatahub-operator
     spec:
       automountServiceAccountToken: false
-      serviceAccountName: odh-dashboard-modules
+      serviceAccountName: odh-dashboard-model-registry
       securityContext:
         seccompProfile:
           type: RuntimeDefault

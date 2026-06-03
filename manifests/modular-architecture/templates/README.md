@@ -10,7 +10,7 @@ Files in this directory are **templates**. They are not valid Kubernetes objects
 | [service.yaml](service.yaml) | Service | ClusterIP Service with serving cert |
 | [networkpolicy.yaml](networkpolicy.yaml) | NetworkPolicy | Module port ingress and standard egress |
 
-Optional `serviceaccount.yaml` is **not** part of the default template. Modules use the shared `odh-dashboard-modules` ServiceAccount unless a module profile requests a dedicated account.
+Each module directory includes dedicated RBAC (`service-account.yaml`, `cluster-role.yaml`, `cluster-role-binding.yaml`) using `odh-dashboard-<MODULE_NAME>`. The sidecar deployment path still uses the shared `odh-dashboard-modules` ServiceAccount in the parent overlay until that overlay is removed.
 
 ---
 
@@ -27,7 +27,7 @@ Replace every `<PLACEHOLDER>` (angle brackets) with concrete values. The control
 | `<MODULE_PORT_NAME>` | Short name for the container port and Service `ports[].name` (e.g. `mr-ui`) |
 | `<MODULE_IMAGE>` | Container image reference |
 | `<REPLICA_COUNT>` | Deployment `spec.replicas` (typically `2`) |
-| `<MODULE_SERVICE_ACCOUNT_NAME>` | Pod `serviceAccountName` (default `odh-dashboard-modules`) |
+| `<MODULE_SERVICE_ACCOUNT_NAME>` | Pod `serviceAccountName` (default `odh-dashboard-<MODULE_NAME>`) |
 | `<TLS_SECRET_NAME>` | Per-module TLS secret for `proxy-tls` volume and Service serving-cert annotation (default `<MODULE_NAME>-proxy-tls`, e.g. `model-registry-proxy-tls`) |
 | `<PART_OF_LABEL>` | Value for `app.kubernetes.io/part-of` (e.g. `odh-dashboard`) |
 | `<MODULE_EXTRA_ARGS>` | Optional: additional container `args` after the standard auth/TLS entries |
@@ -35,10 +35,7 @@ Replace every `<PLACEHOLDER>` (angle brackets) with concrete values. The control
 | `<MODULE_EXTRA_INGRESS>` | Optional: additional NetworkPolicy ingress peers for in-cluster callers (e.g. MaaS accepts gen-ai) |
 | `<MODULE_EXTRA_EGRESS>` | Optional: additional NetworkPolicy egress rules for in-cluster dependencies and API/external access |
 
-Shared namespace resources (not in the template) are defined alongside other dashboard manifests:
-
-- `modules-service-account.yaml` — ServiceAccount
-- `modules-cluster-role.yaml` / `modules-cluster-role-binding.yaml` — RBAC
+Standalone module Deployments use per-module ServiceAccount and RBAC in each `modules/<slug>/` directory. The parent overlay still defines shared `modules-service-account.yaml`, `modules-cluster-role.yaml`, and `modules-cluster-role-binding.yaml` for the sidecar deployment path.
 
 The sidecar deployment still references `modules-sa-token-secret.yaml` for legacy compatibility; standalone module Deployments use a projected `serviceAccountToken` volume instead.
 
@@ -49,7 +46,7 @@ The sidecar deployment still references `modules-sa-token-secret.yaml` for legac
 The Deployment template encodes the BFF container contract:
 
 - **Identity:** labels `app.kubernetes.io/name`, `app.kubernetes.io/part-of`, `components.platform.opendatahub.io/managed-by`, and pod/template label `deployment: <MODULE_NAME>`.
-- **Service account:** `automountServiceAccountToken: false`, shared modules ServiceAccount, projected `modules-sa-token` volume with bounded `serviceAccountToken` (not a legacy SA-token Secret).
+- **Service account:** `automountServiceAccountToken: false`, dedicated `odh-dashboard-<MODULE_NAME>` ServiceAccount, projected `modules-sa-token` volume with bounded `serviceAccountToken` (not a legacy SA-token Secret).
 - **TLS:** per-module `proxy-tls` volume (`<MODULE_NAME>-proxy-tls`) and mounts under `/etc/tls/private`; OpenShift serving cert is issued via the Service annotation (see Service template).
 - **Trust bundles:** required `odh-trusted-ca-cert` and `odh-ca-cert` volumes from ConfigMap `odh-trusted-ca-bundle` (not optional — `subPath` mounts fail if the ConfigMap is absent).
 - **Auth args:** `--auth-method=user_token`, `--auth-token-header=x-forwarded-access-token`, `--auth-token-prefix=`.
@@ -87,11 +84,15 @@ When the controller (or install tooling) materializes a module, use one director
 
 ```text
 <module-name>/
+├── service-account.yaml
+├── cluster-role.yaml
+├── cluster-role-binding.yaml
 ├── deployment.yaml
 ├── service.yaml
 ├── networkpolicy.yaml
-├── serviceaccount.yaml   # only if not using the shared modules SA
-└── kustomization.yaml    # optional; local render/validation only — not for production overlay inheritance
+├── params.env
+├── params.yaml
+└── kustomization.yaml
 ```
 
 ---
@@ -123,20 +124,15 @@ Compare [modules/model-registry/deployment.yaml](../modules/model-registry/deplo
 3. **Render** — Copy the three template files, replace all placeholders, append `MODULE_EXTRA_ARGS` / `MODULE_EXTRA_ENV` when needed.
 4. **Validate** — Ensure the result is self-contained YAML; optional `kustomization.yaml` in the module directory for `kustomize build` checks only.
 5. **Register** — Wire the module into controller reconciliation so Deployment, Service, and NetworkPolicy are created/updated/deleted with the module lifecycle.
-6. **Shared resources** — Do not duplicate modules ServiceAccount/RBAC; reference the shared manifests at the parent directory unless security review requires a dedicated SA.
+6. **RBAC** — Add `service-account.yaml`, `cluster-role.yaml`, and `cluster-role-binding.yaml` with least-privilege rules for the module (see parent `modules-cluster-role.yaml` comments for rule scoping).
 
 ---
 
 ## Local validation (optional)
 
-Module manifests under `modules/` are rendered via [`modules/kustomization.yaml`](../modules/kustomization.yaml):
+Each module under `modules/` is independently buildable:
 
 ```bash
+kustomize build manifests/modular-architecture/modules/model-registry
 kustomize build manifests/modular-architecture/modules
-```
-
-Dry-run apply for a single module:
-
-```bash
-kubectl apply --dry-run=client -f manifests/modular-architecture/modules/model-registry/
 ```

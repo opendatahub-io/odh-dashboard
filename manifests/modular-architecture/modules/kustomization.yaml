@@ -1,98 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - rbac/service-account.yaml
-  - rbac/cluster-role.yaml
-  - rbac/cluster-role-binding.yaml
-  - model-registry/deployment.yaml
-  - model-registry/service.yaml
-  - model-registry/networkpolicy.yaml
-  - gen-ai/deployment.yaml
-  - gen-ai/service.yaml
-  - gen-ai/networkpolicy.yaml
-  - maas/deployment.yaml
-  - maas/service.yaml
-  - maas/networkpolicy.yaml
-  - mlflow/deployment.yaml
-  - mlflow/service.yaml
-  - mlflow/networkpolicy.yaml
-  - eval-hub/deployment.yaml
-  - eval-hub/service.yaml
-  - eval-hub/networkpolicy.yaml
-  - automl/deployment.yaml
-  - automl/service.yaml
-  - automl/networkpolicy.yaml
-  - autorag/deployment.yaml
-  - autorag/service.yaml
-  - autorag/networkpolicy.yaml
-configMapGenerator:
-  - name: modular-architecture-params
-    env: params.env
-generatorOptions:
-  disableNameSuffixHash: true
-vars:
-  - name: model-registry-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.model-registry-ui-image
-  - name: gen-ai-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.gen-ai-ui-image
-  - name: maas-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.maas-ui-image
-  - name: mlflow-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.mlflow-ui-image
-  - name: eval-hub-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.eval-hub-ui-image
-  - name: automl-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-ui-image
-  - name: automl-pipeline-runtime-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.automl-pipeline-runtime-image
-  - name: autorag-ui-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-ui-image
-  - name: autorag-pipeline-runtime-image
-    objref:
-      kind: ConfigMap
-      name: modular-architecture-params
-      apiVersion: v1
-    fieldref:
-      fieldpath: data.autorag-pipeline-runtime-image
-configurations:
-  - params.yaml
+  - model-registry
+  - gen-ai
+  - maas
+  - mlflow
+  - eval-hub
+  - automl
+  - autorag

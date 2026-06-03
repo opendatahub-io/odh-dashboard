@@ -1,10 +1,8 @@
-# Canonical copy: ../modules-cluster-role.yaml — keep in sync when RBAC changes.
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: odh-dashboard-modules
+  name: odh-dashboard-gen-ai
 rules:
-  # MLflow CR auto-discovery (mlflow-ui, gen-ai-ui)
   - apiGroups:
       - mlflow.opendatahub.io
     verbs:
@@ -13,7 +11,6 @@ rules:
       - watch
     resources:
       - mlflows
-  # Cluster domain discovery (gen-ai-ui, maas-ui)
   - apiGroups:
       - config.openshift.io
     verbs:
@@ -22,7 +19,6 @@ rules:
       - watch
     resources:
       - ingresses
-  # SubjectAccessReview for namespace access checks
   - apiGroups:
       - authorization.k8s.io
     verbs:
