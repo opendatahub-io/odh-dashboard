@@ -35,6 +35,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
+      '#~': path.resolve(PROJECT_ROOT, 'src'),
       '~': path.resolve(PROJECT_ROOT, 'src'),
     },
   },

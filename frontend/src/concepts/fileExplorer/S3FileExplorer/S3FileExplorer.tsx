@@ -1,9 +1,7 @@
 // Modules -------------------------------------------------------------------->
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Timestamp, TimestampTooltipVariant } from '@patternfly/react-core';
 import { debounce } from 'lodash-es';
-import { relativeTime } from '#~/utilities/time';
 import FileExplorer, { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer.tsx';
 import type {
   Files,
@@ -16,115 +14,11 @@ import type {
   S3ListObjectsResponse,
 } from '#~/concepts/fileExplorer/types.ts';
 import { getFiles, type GetFilesOptions } from '#~/concepts/fileExplorer/api/s3.ts';
+import { mapResultToItems } from '#~/concepts/fileExplorer/utils.tsx';
 
 // Globals -------------------------------------------------------------------->
 
 const DEFAULT_PER_PAGE = 10;
-
-export const formatBytes = (bytes: number): string => {
-  if (!Number.isFinite(bytes) || bytes <= 0) {
-    return '0 B';
-  }
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-};
-
-/** Maps an S3ListObjectsResponse to FileExplorer-compatible items. */
-export const mapResultToItems = (
-  result: S3ListObjectsResponse,
-  options?: { allowFolderSelection?: boolean; selectableExtensions?: string[] },
-): Files => {
-  const items: Files = [];
-
-  if (Array.isArray(result.common_prefixes)) {
-    for (const cp of result.common_prefixes) {
-      // Mark root folders markers as hidden — "/" and "" are the bucket root
-      const isRoot = cp.prefix === '/' || cp.prefix === '';
-      const prefixPath = `/${cp.prefix.replace(/\/$/, '')}`;
-      const name = prefixPath.split('/').filter(Boolean).pop() ?? prefixPath;
-      const folder: Folder = {
-        name,
-        path: prefixPath,
-        type: 'folder',
-        selectable: options?.allowFolderSelection,
-        items: 0,
-        ...(isRoot && { hidden: true }),
-        details: {
-          ...{ Type: 'Folder' },
-        },
-      };
-      items.push(folder);
-    }
-  }
-
-  if (Array.isArray(result.contents)) {
-    for (const obj of result.contents) {
-      // Mark root folder markers as hidden
-      if (obj.key === '/' || obj.key === '') {
-        items.push({
-          name: '/',
-          path: '/',
-          type: 'folder',
-          selectable: options?.allowFolderSelection,
-          items: 0,
-          hidden: true,
-        });
-        continue;
-      }
-      // Skip keys that end with / (folder markers)
-      if (obj.key.endsWith('/')) {
-        const dirPath = `/${obj.key.replace(/\/$/, '')}`;
-        const name = dirPath.split('/').filter(Boolean).pop() ?? dirPath;
-        items.push({
-          name,
-          path: dirPath,
-          type: 'folder',
-          selectable: options?.allowFolderSelection,
-          items: 0,
-        });
-        continue;
-      }
-
-      const fullPath = `/${obj.key}`;
-      const segments = obj.key.split('/');
-      const fileName = segments.pop() ?? obj.key;
-      const ext = fileName.includes('.') ? fileName.split('.').pop() ?? '' : '';
-
-      const sizeToRender = formatBytes(obj.size);
-      const fileTypeToRender = ext.toLocaleUpperCase() || 'File';
-
-      items.push({
-        name: fileName,
-        path: fullPath,
-        type: fileTypeToRender,
-        size: sizeToRender,
-        selectable:
-          !options?.selectableExtensions ||
-          options.selectableExtensions.some((se) => se.toLowerCase() === ext.toLowerCase()),
-        forceShowAsSelected: false,
-        details: {
-          ...(obj.last_modified && {
-            'Last Modified': (
-              <Timestamp
-                date={new Date(obj.last_modified)}
-                tooltip={{
-                  variant: TimestampTooltipVariant.default,
-                }}
-              >
-                {relativeTime(Date.now(), new Date(obj.last_modified).getTime())}
-              </Timestamp>
-            ),
-          }),
-          ...{ Size: sizeToRender },
-          ...{ Type: fileTypeToRender },
-        },
-      });
-    }
-  }
-
-  return items.toSorted((a, b) => a.name.localeCompare(b.name));
-};
 
 /** Builds the ordered breadcrumb trail from root to the given path. */
 export const getBreadcrumbTrail = (targetPath: string): Folder[] => {
@@ -356,21 +250,8 @@ const S3FileExplorer: React.FC<S3FileExplorerProps> = ({
     if (connectionKeyRef.current === connectionKey) {
       return;
     }
+    resetState();
     connectionKeyRef.current = connectionKey;
-
-    // Reset state for the new connection
-    setFilesToRender([]);
-    setFoldersToRender([]);
-    setFetchError(null);
-    setHasNextPage(false);
-    setLoadingToRender(false);
-    setSelectedFolder(null);
-    setCurrentPath('/');
-    setPageToRender(1);
-    setPerPageToRender(DEFAULT_PER_PAGE);
-    continuationTokensRef.current = new Map();
-    lastResultRef.current = null;
-    appliedSearchRef.current = '';
 
     fetchPath('/', DEFAULT_PER_PAGE, 1);
   }, [isOpen, secretName, namespace, bucket, fetchPath, resetState]);

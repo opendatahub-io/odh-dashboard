@@ -881,7 +881,7 @@ interface FileExplorerProps {
   isOpen: boolean;
 
   /** Callback fired when the modal is closed via dismiss or cancel. */
-  onClose: (_event: KeyboardEvent | React.MouseEvent) => void;
+  onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
 
   /** List of available sources to choose from when no single source is pre-selected. */
   sources?: Sources;
@@ -1111,8 +1111,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   const shouldRenderDetails = shouldDetailsPanelRender({ filesToView, selectedFiles });
 
   return (
-    // TODO [ Gustavo ] Disabling for now in the initial move from autox->frontend. Need to identify impact with complying
-    // eslint-disable-next-line no-restricted-syntax
+    // eslint-disable-next-line no-restricted-syntax -- TODO [ Gustavo ] Disabling for now in the initial move from autox->frontend. Need to identify impact with complying
     <Modal
       elementToFocus={`#${CSS.escape(`${rootId}-FileExplorer-search-input`)}`}
       id={id}

@@ -21,6 +21,7 @@ import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
 
+// TODO [ Gustavo ] Initial move from autox->frontend: Existing autorag-specific env var names are kept but should be renamed
 const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
 const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
 const AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =

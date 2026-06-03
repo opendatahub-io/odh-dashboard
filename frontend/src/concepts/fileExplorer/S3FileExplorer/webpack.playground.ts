@@ -16,7 +16,6 @@
 // Modules -------------------------------------------------------------------->
 
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -27,8 +26,7 @@ import type { Configuration as DevServerConfiguration } from 'webpack-dev-server
 
 // Globals -------------------------------------------------------------------->
 
-const currentFile = fileURLToPath(import.meta.url);
-const currentDir = path.dirname(currentFile);
+const currentDir = __dirname;
 
 const PROJECT_ROOT = path.resolve(currentDir, '../../../../');
 const ODH_ROOT = path.resolve(PROJECT_ROOT, '../../../');
@@ -47,7 +45,6 @@ const getProxyHeaders = () => {
       `Failed to get Kubernetes token. Ensure you are logged in with \`oc login\`. Cause: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`,
-      { cause: error },
     );
   }
 };
@@ -121,6 +118,7 @@ const config: Configuration & { devServer?: DevServerConfiguration } = {
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
     alias: {
+      '#~': path.resolve(PROJECT_ROOT, 'src'),
       '~': path.resolve(PROJECT_ROOT, 'src'),
     },
   },

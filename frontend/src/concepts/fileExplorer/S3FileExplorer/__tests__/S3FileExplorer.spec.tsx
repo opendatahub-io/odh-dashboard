@@ -3,10 +3,9 @@ import * as React from 'react';
 import { render, screen, waitFor, fireEvent, act, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import S3FileExplorer, {
-  formatBytes,
-  mapResultToItems,
   getBreadcrumbTrail,
 } from '#~/concepts/fileExplorer/S3FileExplorer/S3FileExplorer';
+import { formatBytes, mapResultToItems } from '#~/concepts/fileExplorer/utils';
 import { isFolder } from '#~/concepts/fileExplorer/FileExplorer/FileExplorer';
 import { mockStorageSecret } from '#~/concepts/fileExplorer/__mocks__/mockSecretListItem';
 import {
@@ -789,7 +788,7 @@ describe('S3FileExplorer', () => {
 
     it('should ignore stale fetch results when a newer fetch has started', async () => {
       // Create a controllable promise for the initial fetch
-      let resolveStale: (value: ReturnType<typeof mockS3ListObjectsResponse>) => void;
+      let resolveStale!: (value: ReturnType<typeof mockS3ListObjectsResponse>) => void;
       const staleFetchPromise = new Promise<ReturnType<typeof mockS3ListObjectsResponse>>(
         (resolve) => {
           resolveStale = resolve;
@@ -833,8 +832,7 @@ describe('S3FileExplorer', () => {
 
       // Now resolve the stale first fetch — its result should be ignored (line 293-294)
       await act(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        resolveStale!(mockS3ListObjectsResponse());
+        resolveStale(mockS3ListObjectsResponse());
       });
 
       // The UI should still show the second fetch's results, not the stale first fetch's
@@ -845,7 +843,7 @@ describe('S3FileExplorer', () => {
 
     it('should ignore errors from a stale fetch', async () => {
       // Create a controllable promise for the initial fetch that will reject
-      let rejectStale: (error: Error) => void;
+      let rejectStale!: (error: Error) => void;
       const staleFetchPromise = new Promise<ReturnType<typeof mockS3ListObjectsResponse>>(
         (_resolve, reject) => {
           rejectStale = reject;
@@ -887,8 +885,7 @@ describe('S3FileExplorer', () => {
 
       // Now reject the stale first fetch — its error should be ignored (line 310-311)
       await act(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        rejectStale!(new Error('network timeout'));
+        rejectStale(new Error('network timeout'));
       });
 
       // The UI should still show the successful result, not an error
