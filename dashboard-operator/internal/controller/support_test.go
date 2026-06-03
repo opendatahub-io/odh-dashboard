@@ -32,6 +32,11 @@ func TestDefaultManifestInfo(t *testing.T) {
 			assert.Equal(t, tt.wantSource, info.SourcePath)
 		})
 	}
+
+	t.Run("unknown platform falls back to ODH", func(t *testing.T) {
+		info := defaultManifestInfo("/base", cluster.XKS)
+		assert.Equal(t, "/odh", info.SourcePath)
+	})
 }
 
 func TestComputeKustomizeVariables(t *testing.T) {

@@ -38,10 +38,15 @@ var imagesMap = map[string]string{
 }
 
 func defaultManifestInfo(basePath string, platform cluster.Platform) render.ManifestInfo {
+	sourcePath, ok := overlaysSourcePaths[platform]
+	if !ok {
+		sourcePath = overlaysSourcePaths[cluster.OpenDataHub]
+	}
+
 	return render.ManifestInfo{
 		Path:       basePath,
 		ContextDir: "",
-		SourcePath: overlaysSourcePaths[platform],
+		SourcePath: sourcePath,
 	}
 }
 

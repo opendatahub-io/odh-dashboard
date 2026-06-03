@@ -72,19 +72,28 @@ func TestExtractDashboardURL(t *testing.T) {
 
 	tests := []struct {
 		name      string
+		platform  cluster.Platform
 		routes    []routev1.Route
 		wantURL   string
 		wantErr   error
 		wantErrIs bool
 	}{
 		{
+			name:      "xKS platform returns not ready",
+			platform:  cluster.XKS,
+			wantErr:   ErrDashboardRouteNotReady,
+			wantErrIs: true,
+		},
+		{
 			name:      "no routes",
+			platform:  cluster.OpenDataHub,
 			routes:    nil,
 			wantErr:   ErrDashboardRouteNotReady,
 			wantErrIs: true,
 		},
 		{
-			name: "route without ingress",
+			name:     "route without ingress",
+			platform: cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -94,7 +103,8 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantErrIs: true,
 		},
 		{
-			name: "route with admitted ingress",
+			name:     "route with admitted ingress",
+			platform: cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -113,7 +123,8 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantURL: "https://dashboard.apps.example.com",
 		},
 		{
-			name: "route with non-admitted ingress",
+			name:     "route with non-admitted ingress",
+			platform: cluster.SelfManagedRhoai,
 			routes: []routev1.Route{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "dashboard", Namespace: namespace, Labels: partOfLabel},
@@ -133,7 +144,8 @@ func TestExtractDashboardURL(t *testing.T) {
 			wantErrIs: true,
 		},
 		{
-			name: "multiple routes",
+			name:     "multiple routes",
+			platform: cluster.OpenDataHub,
 			routes: []routev1.Route{
 				{ObjectMeta: metav1.ObjectMeta{Name: "r1", Namespace: namespace, Labels: partOfLabel}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "r2", Namespace: namespace, Labels: partOfLabel}},
@@ -155,7 +167,7 @@ func TestExtractDashboardURL(t *testing.T) {
 				WithRuntimeObjects(objs...).
 				Build()
 
-			url, err := extractDashboardURL(context.Background(), cli, namespace)
+			url, err := extractDashboardURL(context.Background(), cli, namespace, tt.platform)
 			if tt.wantErrIs {
 				assert.ErrorIs(t, err, tt.wantErr)
 				assert.Empty(t, url)

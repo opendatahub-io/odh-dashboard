@@ -91,11 +91,12 @@ func TestReconcile_NotFound(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(s).Build()
 
 	r := &ctrlpkg.DashboardReconciler{
-		Client:            cli,
-		Scheme:            s,
-		ManifestsBasePath: t.TempDir(),
-		Platform:          cluster.OpenDataHub,
-		Namespace:         testNamespace,
+		Client:                cli,
+		Scheme:                s,
+		ManifestsBasePath:     t.TempDir(),
+		Platform:              cluster.OpenDataHub,
+		Namespace:             testNamespace,
+		ApplicationsNamespace: testNamespace,
 	}
 
 	result, err := r.Reconcile(context.Background(), ctrl.Request{
@@ -195,11 +196,12 @@ func TestReconcile(t *testing.T) {
 			cli := builder.Build()
 
 			r := &ctrlpkg.DashboardReconciler{
-				Client:            cli,
-				Scheme:            s,
-				ManifestsBasePath: tt.manifestsBase(t),
-				Platform:          cluster.OpenDataHub,
-				Namespace:         testNamespace,
+				Client:                cli,
+				Scheme:                s,
+				ManifestsBasePath:     tt.manifestsBase(t),
+				Platform:              cluster.OpenDataHub,
+				Namespace:             testNamespace,
+				ApplicationsNamespace: testNamespace,
 			}
 
 			result, err := r.Reconcile(context.Background(), ctrl.Request{

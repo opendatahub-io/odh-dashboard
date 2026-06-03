@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/opendatahub-io/odh-platform-utilities/api/common"
@@ -24,23 +25,27 @@ import (
 	v1alpha1 "github.com/opendatahub-io/odh-dashboard/dashboard-operator/api/v1alpha1"
 )
 
+const dashboardFinalizer = "components.platform.opendatahub.io/cleanup"
+
 // Version is set at build time via -ldflags.
 var Version = "unknown"
 
 // Options configures the dashboard controller.
 type Options struct {
-	ManifestsBasePath string
-	Platform          cluster.Platform
-	Namespace         string
+	ManifestsBasePath     string
+	Platform              cluster.Platform
+	Namespace             string
+	ApplicationsNamespace string
 }
 
 // DashboardReconciler reconciles a Dashboard object.
 type DashboardReconciler struct {
 	client.Client
-	Scheme            *runtime.Scheme
-	ManifestsBasePath string
-	Platform          cluster.Platform
-	Namespace         string
+	Scheme                *runtime.Scheme
+	ManifestsBasePath     string
+	Platform              cluster.Platform
+	Namespace             string
+	ApplicationsNamespace string
 }
 
 func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -56,6 +61,28 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	logger.Info("Reconciling Dashboard", "name", dashboard.Name)
+
+	if !dashboard.DeletionTimestamp.IsZero() {
+		if controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+			if err := r.cleanupCrossNamespaceResources(ctx, dashboard); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to cleanup cross-namespace resources: %w", err)
+			}
+
+			controllerutil.RemoveFinalizer(dashboard, dashboardFinalizer)
+			if err := r.Update(ctx, dashboard); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
+			}
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	if !controllerutil.ContainsFinalizer(dashboard, dashboardFinalizer) {
+		controllerutil.AddFinalizer(dashboard, dashboardFinalizer)
+		if err := r.Update(ctx, dashboard); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %w", err)
+		}
+	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
 
@@ -114,7 +141,7 @@ func (r *DashboardReconciler) reconcile(
 
 	var allResources []unstructured.Unstructured
 	for _, m := range manifests {
-		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.Namespace))
+		rendered, err := engine.Render(m.String(), kustomize.WithNamespace(r.ApplicationsNamespace))
 		if err != nil {
 			cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
 				conditions.WithReason("RenderFailed"),
@@ -149,7 +176,7 @@ func (r *DashboardReconciler) reconcile(
 		conditions.WithReason("ResourcesApplied"),
 		conditions.WithMessage("Dashboard manifests applied successfully"))
 
-	url, err := extractDashboardURL(ctx, r.Client, r.Namespace)
+	url, err := extractDashboardURL(ctx, r.Client, r.ApplicationsNamespace, r.Platform)
 
 	var requeueAfter time.Duration
 
@@ -190,14 +217,22 @@ func (r *DashboardReconciler) reconcile(
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, _ *v1alpha1.Dashboard) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Cleaning up cross-namespace resources")
+
+	return nil
+}
+
 // SetupWithManager registers the dashboard controller with the manager.
 func SetupWithManager(mgr ctrl.Manager, opts Options) error {
 	r := &DashboardReconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		ManifestsBasePath: opts.ManifestsBasePath,
-		Platform:          opts.Platform,
-		Namespace:         opts.Namespace,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		ManifestsBasePath:     opts.ManifestsBasePath,
+		Platform:              opts.Platform,
+		Namespace:             opts.Namespace,
+		ApplicationsNamespace: opts.ApplicationsNamespace,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
