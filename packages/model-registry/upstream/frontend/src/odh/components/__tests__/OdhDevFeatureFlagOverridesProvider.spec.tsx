@@ -41,26 +41,10 @@ describe('OdhDevFeatureFlagOverridesProvider', () => {
     });
   });
 
-  it('should map toolCalling CRD flag from session storage', () => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ toolCalling: true }));
-    render(
-      <OdhDevFeatureFlagOverridesProvider>
-        <OverridesConsumer />
-      </OdhDevFeatureFlagOverridesProvider>,
-    );
-    const overrides = JSON.parse(screen.getByTestId('overrides').textContent!);
-    expect(overrides).toEqual({
-      tempDevToolCallingConfigurationFeatureAvailable: true,
-    });
-  });
-
-  it('should map multiple dev flags from session storage', () => {
+  it('should map HuggingFace API Key dev flag as false from session storage', () => {
     sessionStorage.setItem(
       SESSION_KEY,
-      JSON.stringify({
-        'KF MR Upstream: Catalog HuggingFace API Key': false,
-        toolCalling: true,
-      }),
+      JSON.stringify({ 'KF MR Upstream: Catalog HuggingFace API Key': false }),
     );
     render(
       <OdhDevFeatureFlagOverridesProvider>
@@ -70,7 +54,6 @@ describe('OdhDevFeatureFlagOverridesProvider', () => {
     const overrides = JSON.parse(screen.getByTestId('overrides').textContent!);
     expect(overrides).toEqual({
       tempDevCatalogHuggingFaceApiKeyFeatureAvailable: false,
-      tempDevToolCallingConfigurationFeatureAvailable: true,
     });
   });
 
@@ -86,28 +69,31 @@ describe('OdhDevFeatureFlagOverridesProvider', () => {
   it('should apply CRD overrides when provided', () => {
     render(
       <OdhDevFeatureFlagOverridesProvider
-        crdOverrides={{ tempDevToolCallingConfigurationFeatureAvailable: true }}
+        crdOverrides={{ tempDevCatalogHuggingFaceApiKeyFeatureAvailable: true }}
       >
         <OverridesConsumer />
       </OdhDevFeatureFlagOverridesProvider>,
     );
     const overrides = JSON.parse(screen.getByTestId('overrides').textContent!);
     expect(overrides).toEqual({
-      tempDevToolCallingConfigurationFeatureAvailable: true,
+      tempDevCatalogHuggingFaceApiKeyFeatureAvailable: true,
     });
   });
 
   it('should give session storage dev flags higher priority than CRD overrides', () => {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ toolCalling: false }));
+    sessionStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({ 'KF MR Upstream: Catalog HuggingFace API Key': false }),
+    );
     render(
       <OdhDevFeatureFlagOverridesProvider
-        crdOverrides={{ tempDevToolCallingConfigurationFeatureAvailable: true }}
+        crdOverrides={{ tempDevCatalogHuggingFaceApiKeyFeatureAvailable: true }}
       >
         <OverridesConsumer />
       </OdhDevFeatureFlagOverridesProvider>,
     );
     const overrides = JSON.parse(screen.getByTestId('overrides').textContent!);
-    expect(overrides.tempDevToolCallingConfigurationFeatureAvailable).toBe(false);
+    expect(overrides.tempDevCatalogHuggingFaceApiKeyFeatureAvailable).toBe(false);
   });
 
   it('should ignore unmapped session storage keys', () => {
@@ -129,13 +115,16 @@ describe('OdhDevFeatureFlagOverridesProvider', () => {
     expect(screen.getByTestId('overrides')).toHaveTextContent('null');
 
     act(() => {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ toolCalling: true }));
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({ 'KF MR Upstream: Catalog HuggingFace API Key': true }),
+      );
       window.dispatchEvent(new CustomEvent('odh-dev-flags-changed'));
     });
 
     const overrides = JSON.parse(screen.getByTestId('overrides').textContent!);
     expect(overrides).toEqual({
-      tempDevToolCallingConfigurationFeatureAvailable: true,
+      tempDevCatalogHuggingFaceApiKeyFeatureAvailable: true,
     });
   });
 });
