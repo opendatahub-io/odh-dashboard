@@ -51,24 +51,24 @@ const getProxyHeaders = () => {
 
 const ENV_TO_INCLUDE = [
   /**
-   * `AUTORAG_PLAYGROUND_S3_NAMESPACE`: The openshift namespace the playground should make calls against.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE`: The openshift namespace the playground should make calls against.
    */
-  'AUTORAG_PLAYGROUND_S3_NAMESPACE',
+  'S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME`: The odh secret name that should be used when fetching S3 Files (secret should be a valid S3-compatible connection secret).
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME`: The odh secret name that should be used when fetching S3 Files (secret should be a valid S3-compatible connection secret).
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with no provided bucket.
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET',
 
   /**
-   * `AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with http as the url scheme.
+   * `S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP`: The odh secret name that should be used when rendering the error state for an S3-compatible connection secret with http as the url scheme.
    */
-  'AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP',
+  'S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP',
 ];
 const ENV_STUB_FALSE = [
   'APP_ENV',

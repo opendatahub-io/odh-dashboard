@@ -21,13 +21,14 @@ import S3FileExplorer from './S3FileExplorer.tsx';
 
 // Environment ---------------------------------------------------------------->
 
-// TODO [ Gustavo ] Initial move from autox->frontend: Existing autorag-specific env var names are kept but should be renamed
-const AUTORAG_PLAYGROUND_S3_NAMESPACE = process.env.AUTORAG_PLAYGROUND_S3_NAMESPACE ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME = process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
-  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
-const AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP =
-  process.env.AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET ?? '';
+const S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP =
+  process.env.S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP ?? '';
 
 // Mocks ---------------------------------------------------------------------->
 
@@ -43,10 +44,10 @@ const scenarioGroups: Record<string, Scenario[]> = {
   Basic: [
     {
       label: 'From env configuration',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
       s3Secret: {
         uuid: 'env-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
+        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
         type: 'storage',
         data: {},
       },
@@ -55,7 +56,7 @@ const scenarioGroups: Record<string, Scenario[]> = {
   Errors: [
     {
       label: 'Invalid secret (not found)',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
       s3Secret: {
         uuid: 'fake-secret-uuid',
         name: 'non-existent-secret',
@@ -65,30 +66,30 @@ const scenarioGroups: Record<string, Scenario[]> = {
     },
     {
       label: 'No bucket configured',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
       s3Secret: {
         uuid: 'no-bucket-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
+        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET,
         type: 'storage',
         data: {},
       },
     },
     {
       label: 'Connection using HTTP',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
       s3Secret: {
         uuid: 'http-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP,
+        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP,
         type: 'storage',
         data: {},
       },
     },
     {
       label: 'Generic error',
-      namespace: AUTORAG_PLAYGROUND_S3_NAMESPACE,
+      namespace: S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE,
       s3Secret: {
         uuid: 'env-secret-uuid',
-        name: AUTORAG_PLAYGROUND_S3_SECRET_NAME,
+        name: S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME,
         type: 'storage',
         data: {},
       },
@@ -143,42 +144,42 @@ const App: React.FC = () => {
           <CardBody>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_NAMESPACE
+                S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_NAMESPACE || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_NAMESPACE || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_NO_BUCKET || <em>not set</em>}
               </span>
             </p>
             <p className="pf-v6-u-font-family-monospace">
               <span className="pf-v6-u-text-color-status-danger">
-                AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP
+                S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP
               </span>
               :
               <span className="pf-v6-u-text-color-status-success">
                 &nbsp;
-                {AUTORAG_PLAYGROUND_S3_SECRET_NAME_HTTP || <em>not set</em>}
+                {S3FILEEXPLORER_PLAYGROUND_S3_SECRET_NAME_HTTP || <em>not set</em>}
               </span>
             </p>
           </CardBody>
