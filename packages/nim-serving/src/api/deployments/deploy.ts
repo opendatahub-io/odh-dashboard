@@ -33,6 +33,7 @@ export const assembleNIMDeployment = (
       replicas: wizardData.state.numReplicas.data,
       externalRoute: wizardData.state.externalRoute.data,
       tokenAuth,
+      runtimeArgs: wizardData.state.runtimeArgs.data,
       environmentVariables: wizardData.state.environmentVariables.data,
       hardwareProfile: wizardData.state.hardwareProfileConfig.formData,
     },

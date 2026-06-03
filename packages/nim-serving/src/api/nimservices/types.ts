@@ -25,6 +25,8 @@ export type NIMServiceKind = K8sResourceCommon & {
   };
   spec: {
     inferencePlatform?: string;
+    command?: string[];
+    args?: string[];
     image: {
       repository: string;
       tag?: string;

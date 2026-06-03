@@ -62,6 +62,11 @@ export enum KServeVisibility {
   ClusterLocal = 'cluster-local',
 }
 
+export enum KServeDeploymentMode {
+  RawDeployment = 'RawDeployment',
+  Standard = 'Standard',
+}
+
 const is404 = (error: unknown): boolean => {
   return getGenericErrorCode(error) === 404;
 };

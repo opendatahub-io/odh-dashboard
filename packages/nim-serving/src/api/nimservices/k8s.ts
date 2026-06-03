@@ -7,13 +7,17 @@ import {
 } from '@openshift/dynamic-plugin-sdk-utils';
 import { applyK8sAPIOptions } from '@odh-dashboard/internal/api/apiMergeUtils';
 import { createPatchesFromDiff } from '@odh-dashboard/internal/api/k8sUtils';
-import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/types/form-data';
+import type {
+  EnvironmentVariablesFieldData,
+  RuntimeArgsFieldData,
+} from '@odh-dashboard/model-serving/types/form-data';
 import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/useHardwareProfileConfig';
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import {
   KSERVE_AUTH_ANNOTATION,
   KSERVE_DEPLOYMENT_MODE_ANNOTATION,
   KSERVE_VISIBILITY_LABEL,
+  KServeDeploymentMode,
   KServeVisibility,
 } from '@odh-dashboard/kserve/deployUtils';
 import { NIMServiceModel, type NIMServiceKind } from './types';
@@ -108,6 +112,7 @@ type AssembleNIMServiceParams = {
   replicas?: number;
   externalRoute?: boolean;
   tokenAuth?: boolean;
+  runtimeArgs?: RuntimeArgsFieldData;
   environmentVariables?: EnvironmentVariablesFieldData;
   hardwareProfile: HardwareProfileConfig;
   authSecret?: string;
@@ -126,6 +131,7 @@ export const assembleNIMService = (
     replicas = 1,
     externalRoute,
     tokenAuth,
+    runtimeArgs,
     environmentVariables,
     hardwareProfile,
     authSecret,
@@ -171,7 +177,7 @@ export const assembleNIMService = (
   if (!nimService.spec.annotations) {
     nimService.spec.annotations = {};
   }
-  nimService.spec.annotations[KSERVE_DEPLOYMENT_MODE_ANNOTATION] = 'Standard';
+  nimService.spec.annotations[KSERVE_DEPLOYMENT_MODE_ANNOTATION] = KServeDeploymentMode.Standard;
   nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
 
   if (environmentVariables?.enabled) {
@@ -181,6 +187,12 @@ export const assembleNIMService = (
     }));
   } else {
     delete nimService.spec.env;
+  }
+
+  if (runtimeArgs?.enabled && runtimeArgs.args.length > 0) {
+    nimService.spec.args = runtimeArgs.args;
+  } else {
+    delete nimService.spec.args;
   }
 
   if (authSecret) {
