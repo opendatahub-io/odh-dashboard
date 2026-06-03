@@ -173,9 +173,13 @@ jobs:
           sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           echo "Updated manifests/modular-architecture/params.env"
+
+          # Keep modules/ overlay params.env in sync (kustomize load restrictions require a local copy)
+          cp manifests/modular-architecture/params.env manifests/modular-architecture/modules/params.env
+          echo "Synced manifests/modular-architecture/modules/params.env"
           
           # Commit version bump
-          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env
+          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env manifests/modular-architecture/modules/params.env
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
@@ -203,6 +207,7 @@ jobs:
           - \`frontend/.env\`
           - \`manifests/odh/params.env\`
           - \`manifests/modular-architecture/params.env\`
+          - \`manifests/modular-architecture/modules/params.env\`
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"

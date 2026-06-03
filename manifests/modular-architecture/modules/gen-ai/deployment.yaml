@@ -150,6 +150,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: BFF_MAAS_SERVICE_NAME
+              # Standalone Service DNS name (sidecar mode uses "odh-dashboard" on the shared Service).
               value: "odh-dashboard-maas-ui"
             - name: BFF_MAAS_SERVICE_PORT
               value: "8243"

@@ -1,6 +1,6 @@
 # BFF module manifests (ODH)
 
-Filled-in [templates](../templates/) for each federated BFF module. For local standalone-module testing, use this directory's [`kustomization.yaml`](kustomization.yaml) (`kustomize build manifests/modular-architecture/modules`). The shared [`kustomization.yaml`](../kustomization.yaml) does not include these resources, so `kustomize build manifests/odh` applies only sidecar BFF patches.
+Filled-in [templates](../templates/) for each federated BFF module. For local standalone-module testing, use this directory's [`kustomization.yaml`](kustomization.yaml) (`kustomize build manifests/modular-architecture/modules`). The overlay is **self-contained**: it includes shared RBAC (`odh-dashboard-modules` ServiceAccount, ClusterRole, and ClusterRoleBinding) plus all seven module Deployments, Services, and NetworkPolicies. The shared [`kustomization.yaml`](../kustomization.yaml) does not include these per-module resources, so `kustomize build manifests/odh` applies only sidecar BFF patches.
 
 | Module | Port | Service name | Directory |
 |--------|------|--------------|-----------|
@@ -20,6 +20,8 @@ Filled-in [templates](../templates/) for each federated BFF module. For local st
 
 **NetworkPolicy:** Ingress is limited to the OpenShift ingress controller unless a module accepts in-cluster callers (MaaS allows `deployment: gen-ai`). Egress includes DNS, K8s API (6443), and external HTTPS (80/443) plus module-specific peers (gen-ai → MaaS on 8243).
 
-**params.env:** [`params.env`](params.env) mirrors [`../params.env`](../params.env) for kustomize load restrictions when building this overlay; keep both files in sync when changing module images.
+**RBAC:** Shared [`rbac/`](rbac/) resources (`odh-dashboard-modules` ServiceAccount, ClusterRole, ClusterRoleBinding) are included in this overlay so `kustomize build manifests/modular-architecture/modules` is self-contained. Canonical definitions live in the parent overlay ([`modules-service-account.yaml`](../modules-service-account.yaml), etc.); update both when RBAC rules change.
+
+**params.env:** [`params.env`](params.env) must stay identical to [`../params.env`](../params.env). Kustomize load restrictions require a local copy in this overlay; the release workflow syncs it when bumping module image tags.
 
 **Avoid duplicates:** Apply this overlay only when testing split deployments. The parent overlay still patches BFF containers onto the shared `odh-dashboard` Deployment; applying both overlays runs two copies of each BFF.
