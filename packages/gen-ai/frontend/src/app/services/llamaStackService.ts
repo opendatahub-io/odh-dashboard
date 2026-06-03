@@ -12,6 +12,7 @@ import {
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
+  ContentAnnotation,
   CreateResponseRequest,
   FileCitationAnnotation,
   FileUploadJobResponse,
@@ -94,76 +95,17 @@ const getMessageFromError = (error: unknown): string | undefined => {
   return undefined;
 };
 
-/**
- * Regex pattern to match file citation tokens in the format <|file-{id}|>
- */
-const FILE_CITATION_PATTERN = /<\|file-([a-f0-9]+)\|>/g;
+const isFileCitation = (annotation: ContentAnnotation): annotation is FileCitationAnnotation =>
+  annotation.type === 'file_citation' &&
+  'file_id' in annotation &&
+  typeof annotation.file_id === 'string' &&
+  'filename' in annotation &&
+  typeof annotation.filename === 'string';
 
 /**
- * Result of processing file citations from content and annotations
- */
-type ProcessedContentResult = {
-  content: string;
-  sources: SourceItem[];
-};
-
-/**
- * Processes file citation tokens and annotations - removes inline tokens from text
- * and extracts unique source filenames for the PatternFly SourcesCard component.
- * @param content - The text content that may contain file citation tokens
- * @param annotations - Array of file citation annotations with file_id to filename mappings
- * @returns ProcessedContentResult - Content with tokens removed and sources array
- */
-const processFileCitations = (
-  content: string,
-  annotations: FileCitationAnnotation[],
-): ProcessedContentResult => {
-  // Remove all file citation tokens from the content (if any exist)
-  const processedContent = content.replace(FILE_CITATION_PATTERN, '').trim();
-
-  if (annotations.length === 0) {
-    return { content: processedContent, sources: [] };
-  }
-
-  // Collect unique filenames from annotations
-  const allFilenames = new Set<string>();
-  for (const annotation of annotations) {
-    if (annotation.filename) {
-      allFilenames.add(annotation.filename);
-    }
-  }
-
-  // Convert to SourceItem array for PatternFly SourcesCard
-  const sources: SourceItem[] = Array.from(allFilenames).map((filename) => ({
-    title: filename,
-    link: '#', // Placeholder link (onClick prevents navigation)
-    hasShowMore: false,
-  }));
-
-  return { content: processedContent, sources };
-};
-
-/**
- * Type guard to check if an annotation is a file citation
- */
-function isFileCitationAnnotation(annotation: unknown): annotation is FileCitationAnnotation {
-  if (typeof annotation !== 'object' || annotation === null) {
-    return false;
-  }
-  return (
-    'type' in annotation &&
-    annotation.type === 'file_citation' &&
-    'file_id' in annotation &&
-    typeof annotation.file_id === 'string' &&
-    'filename' in annotation &&
-    typeof annotation.filename === 'string'
-  );
-}
-
-/**
- * Extracts file citation annotations from the backend response output array
- * @param output - Array of output items from backend response
- * @returns FileCitationAnnotation[] - Array of file citation annotations
+ * Extracts file citation annotations from BFF-processed response output.
+ * The BFF handles citation marker extraction and filename resolution,
+ * so annotations are already populated on output_text content items.
  */
 const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnotation[] => {
   if (!output || output.length === 0) {
@@ -171,12 +113,13 @@ const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnota
   }
 
   const annotations: FileCitationAnnotation[] = [];
+
   for (const item of output) {
     if (item.content && Array.isArray(item.content)) {
       for (const contentItem of item.content) {
         if (contentItem.annotations && Array.isArray(contentItem.annotations)) {
           for (const annotation of contentItem.annotations) {
-            if (isFileCitationAnnotation(annotation)) {
+            if (isFileCitation(annotation)) {
               annotations.push(annotation);
             }
           }
@@ -186,6 +129,23 @@ const extractAnnotationsFromOutput = (output?: OutputItem[]): FileCitationAnnota
   }
 
   return annotations;
+};
+
+/**
+ * Builds sources array from BFF-provided annotations (already resolved to filenames).
+ */
+const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): SourceItem[] => {
+  const uniqueFilenames = new Set<string>();
+  for (const annotation of annotations) {
+    if (annotation.filename) {
+      uniqueFilenames.add(annotation.filename);
+    }
+  }
+  return Array.from(uniqueFilenames).map((filename) => ({
+    title: filename,
+    link: '#',
+    hasShowMore: false,
+  }));
 };
 
 /**
@@ -221,9 +181,9 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  const rawContent = extractContentFromOutput(backendResponse.output);
+  const content = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
-  const { content, sources } = processFileCitations(rawContent, annotations);
+  const sources = buildSourcesFromAnnotations(annotations);
 
   return {
     id: backendResponse.id,
@@ -385,21 +345,21 @@ const streamCreateResponse = (
           ? extractMCPToolCallData(completeResponseData.output)
           : undefined;
 
-        // Extract annotations and process file citations
+        // BFF processes citations in response.completed -- annotations are ready to use
         const annotations = completeResponseData?.output
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
-        const { content: processedContent, sources } = processFileCitations(
-          fullContent,
-          annotations,
-        );
+        const sources = buildSourcesFromAnnotations(annotations);
+        const finalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
 
         resolve({
           id: completeResponseData?.id || 'streaming-response',
           model: completeResponseData?.model || request.model,
           status: completeResponseData?.status || 'completed',
           created_at: completeResponseData?.created_at || Date.now(),
-          content: processedContent,
+          content: finalContent,
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),

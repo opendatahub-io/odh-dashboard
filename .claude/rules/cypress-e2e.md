@@ -2,6 +2,8 @@
 description: Cypress E2E test creation and maintenance guidelines for live cluster testing
 globs: "packages/cypress/cypress/tests/e2e/**"
 alwaysApply: false
+paths:
+  - "packages/cypress/cypress/tests/e2e/**"
 ---
 
 # Cypress E2E Test Rules
@@ -625,6 +627,26 @@ formField.type('mlmduser');
 
 // GOOD
 formField.type(testData.mysqlUsername);
+```
+
+- **No hardcoded Kubernetes role names** in OC command validations. Store role mappings in fixtures:
+
+```typescript
+// BAD - hardcoded role name
+checkProjectRoleBinding(projectName, username, 'edit').should('be.true');
+
+// GOOD - fixture-driven
+checkProjectRoleBinding(projectName, username, testData.contributorK8sRoleName).should('be.true');
+```
+
+- **Always mask usernames and sensitive data in OC command logs**. Use `'***'` instead of actual values:
+
+```typescript
+// BAD - exposes username in logs
+cy.log(`Checking role binding for user '${username}' in namespace '${namespace}'`);
+
+// GOOD - masked username
+cy.log(`Checking role binding for user '***' in namespace '${namespace}'`);
 ```
 
 ### Adding `data-testid` to Source Components

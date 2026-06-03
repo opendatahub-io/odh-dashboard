@@ -254,7 +254,7 @@ const getStatusSections = (
         {
           key: 'modelServer',
           label: 'Deployment resource',
-          comp: (state) => state.modelServer.data?.selection?.label || 'Auto-selected',
+          comp: (state) => state.modelServer?.data?.selection?.label || 'Auto-selected',
         },
         {
           key: 'numReplicas',

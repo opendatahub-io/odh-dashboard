@@ -61,6 +61,8 @@ const ChatbotMain: React.FunctionComponent = () => {
 
   // Ref to clear all chat messages (will be set by ChatbotPlayground)
   const clearAllMessagesRef = React.useRef<(() => void) | null>(null);
+  // Ref to check whether any pane has user messages (beyond the initial welcome)
+  const hasConversationMessagesRef = React.useRef<(() => boolean) | null>(null);
 
   // Derive compare mode from Zustand store (configIds.length > 1)
   const configIds = useChatbotConfigStore(selectConfigIds);
@@ -174,7 +176,12 @@ const ChatbotMain: React.FunctionComponent = () => {
                 fireSimpleTrackingEvent('Playground New Chat Selected');
               }}
               onCompareChat={() => {
-                setIsCompareChatModalOpen(true);
+                const hasMessages = hasConversationMessagesRef.current?.();
+                if (hasMessages) {
+                  setIsCompareChatModalOpen(true);
+                } else {
+                  handleCompareConfirm();
+                }
               }}
               onSettingsClick={() => setIsDrawerExpanded((prev) => !prev)}
               isSettingsOpen={isDrawerExpanded}
@@ -230,6 +237,7 @@ const ChatbotMain: React.FunctionComponent = () => {
               setActivePaneConfigId={setActivePaneConfigId}
               onClosePane={handleClosePane}
               clearAllMessagesRef={clearAllMessagesRef}
+              hasConversationMessagesRef={hasConversationMessagesRef}
               isDrawerExpanded={isDrawerExpanded}
               setIsDrawerExpanded={setIsDrawerExpanded}
             />

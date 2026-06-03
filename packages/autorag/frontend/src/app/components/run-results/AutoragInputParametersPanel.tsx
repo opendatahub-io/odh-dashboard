@@ -1,28 +1,35 @@
 import React from 'react';
 import {
+  Button,
+  ClipboardCopy,
+  Content,
+  ContentVariants,
+  DescriptionList,
+  DescriptionListDescription,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  Divider,
   DrawerActions,
   DrawerCloseButton,
   DrawerHead,
   DrawerPanelBody,
   DrawerPanelContent,
-  DescriptionList,
-  DescriptionListDescription,
-  DescriptionListGroup,
-  DescriptionListTerm,
-  Content,
-  Divider,
   Skeleton,
+  Spinner,
   Stack,
   StackItem,
   Title,
   Tooltip,
 } from '@patternfly/react-core';
+import { Link, useParams } from 'react-router';
 import type { ConfigureSchema } from '~/app/schemas/configure.schema';
+import { useAutoragResultsContext } from '~/app/context/AutoragResultsContext';
 import { OPTIMIZATION_METRIC_LABELS } from '~/app/utilities/const';
 import './AutoragInputParametersPanel.scss';
+import { isRunCompleted, isRunInTerminalState } from '~/app/utilities/utils';
 
 /** Keys that are handled by the special "Model configuration" entry. */
-const MODEL_KEYS = new Set(['generation_models', 'embeddings_models']);
+const MODEL_KEYS = new Set(['generation_models', 'embedding_models']);
 
 /** Keys excluded from the drawer because they are already shown elsewhere on the page. */
 const EXCLUDED_KEYS = new Set([
@@ -40,11 +47,11 @@ const EXCLUDED_KEYS = new Set([
 /* eslint-disable camelcase */
 const PANEL_PARAMETERS: { key: string; label: string }[] = [
   { key: 'description', label: 'Description' },
-  { key: 'llama_stack_secret_name', label: 'Llama Stack connection' },
+  { key: 'ogx_secret_name', label: 'Open GenAI Stack connection' },
   { key: 'input_data_secret_name', label: 'S3 connection' },
   { key: 'input_data_bucket_name', label: 'S3 connection bucket' },
   { key: 'input_data_key', label: 'Selected files and folders' },
-  { key: 'llama_stack_vector_io_provider_id', label: 'Vector I/O provider' },
+  { key: 'vector_io_provider_id', label: 'Vector I/O provider' },
   { key: 'test_data_key', label: 'Evaluation dataset' },
   { key: 'optimization_metric', label: 'Optimization metric' },
   { key: 'optimization_max_rag_patterns', label: 'Maximum RAG patterns' },
@@ -107,11 +114,7 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
   if (generationModels.length > 0) {
     parts.push(
       <Tooltip key="generation" content={generationModels.join(', ')}>
-        <span
-          className="odh-autorag-input-parameters-panel__tooltip-text"
-          tabIndex={0}
-          role="button"
-        >
+        <span className="odh-autorag-input-parameters-panel__tooltip-text">
           {generationModels.length} foundation model{generationModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
@@ -124,11 +127,7 @@ const ModelConfigurationValue: React.FC<ModelConfigurationValueProps> = ({
     }
     parts.push(
       <Tooltip key="embeddings" content={embeddingsModels.join(', ')}>
-        <span
-          className="odh-autorag-input-parameters-panel__tooltip-text"
-          tabIndex={0}
-          role="button"
-        >
+        <span className="odh-autorag-input-parameters-panel__tooltip-text">
           {embeddingsModels.length} embedding model{embeddingsModels.length !== 1 ? 's' : ''}
         </span>
       </Tooltip>,
@@ -153,6 +152,10 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
   parameters,
   isLoading,
 }) => {
+  const { namespace } = useParams();
+  const { pipelineRun, patternsLoading, ragPatternsBasePath } = useAutoragResultsContext();
+  const pipelineRef = pipelineRun?.pipeline_version_reference;
+
   const entries: [string, unknown][] = React.useMemo(() => {
     if (!parameters) {
       return [];
@@ -173,9 +176,23 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
     return [...knownEntries, ...unknownEntries];
   }, [parameters]);
 
-  const generationModels = parameters?.generation_models;
-  const embeddingsModels = parameters?.embeddings_models;
-  const hasModelConfig = (generationModels?.length ?? 0) > 0 || (embeddingsModels?.length ?? 0) > 0;
+  let pipelineServerOutputDirVariant: 'loading' | 'waiting' | 'available' | 'unavailable' =
+    'unavailable';
+  if (ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'available';
+  } else if (isRunCompleted(pipelineRun?.state) && !ragPatternsBasePath) {
+    pipelineServerOutputDirVariant = 'loading';
+  } else if (patternsLoading || !pipelineRun?.state || !isRunInTerminalState(pipelineRun.state)) {
+    pipelineServerOutputDirVariant = 'waiting';
+  }
+
+  const generationModels = Array.isArray(parameters?.generation_models)
+    ? parameters.generation_models
+    : [];
+  const embeddingModels = Array.isArray(parameters?.embedding_models)
+    ? parameters.embedding_models
+    : [];
+  const hasModelConfig = generationModels.length > 0 || embeddingModels.length > 0;
 
   return (
     <DrawerPanelContent minSize="320px" data-testid="run-details-drawer-panel">
@@ -196,11 +213,65 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
             ))}
           </Stack>
         ) : (
-          <DescriptionList>
-            {entries.map(([key, value], index) => (
-              <React.Fragment key={key}>
-                {index > 0 && <Divider />}
-                <DescriptionListGroup data-testid={`parameter-${key}`}>
+          <>
+            <DescriptionList>
+              {pipelineRun?.run_id && (
+                <>
+                  <DescriptionListGroup data-testid="parameter-run-id">
+                    <DescriptionListTerm>Pipeline run ID</DescriptionListTerm>
+                    <DescriptionListDescription>
+                      <ClipboardCopy
+                        isReadOnly
+                        hoverTip="Copy"
+                        clickTip="Copied"
+                        data-testid="clipboard-run-id"
+                      >
+                        {pipelineRun.run_id}
+                      </ClipboardCopy>
+                    </DescriptionListDescription>
+                  </DescriptionListGroup>
+                  <Divider />
+                </>
+              )}
+              <DescriptionListGroup data-testid="parameter-output-directory">
+                <DescriptionListTerm>Pipeline Server output directory</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {pipelineServerOutputDirVariant === 'loading' && (
+                    <Skeleton width="100%" height="var(--pf-t--global--font--size--4xl)" />
+                  )}
+                  {pipelineServerOutputDirVariant === 'waiting' && (
+                    <Content component={ContentVariants.p} aria-live="polite" role="status">
+                      <span className="pf-v6-u-pr-sm">
+                        The output directory will be available once evaluation is complete.
+                      </span>
+                      <Spinner
+                        isInline
+                        size="sm"
+                        aria-label="Spinner for the parameter output directory"
+                      />
+                    </Content>
+                  )}
+                  {pipelineServerOutputDirVariant === 'available' && ragPatternsBasePath && (
+                    <ClipboardCopy
+                      isReadOnly
+                      hoverTip="Copy"
+                      clickTip="Copied"
+                      data-testid="clipboard-output-directory"
+                    >
+                      {ragPatternsBasePath}
+                    </ClipboardCopy>
+                  )}
+                  {pipelineServerOutputDirVariant === 'unavailable' && 'Not available'}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+            <Divider className="pf-v6-u-mt-lg" />
+            <Title headingLevel="h3" size="xl" className="pf-v6-u-mt-lg pf-v6-u-mb-md">
+              Input parameters
+            </Title>
+            <DescriptionList>
+              {entries.map(([key, value]) => (
+                <DescriptionListGroup key={key} data-testid={`parameter-${key}`}>
                   <DescriptionListTerm>{getParameterLabel(key)}</DescriptionListTerm>
                   <DescriptionListDescription>
                     <Content component="p" className="odh-autorag-input-parameters-panel__value">
@@ -208,23 +279,62 @@ const AutoragInputParametersPanel: React.FC<AutoragInputParametersPanelProps> = 
                     </Content>
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              </React.Fragment>
-            ))}
-            {hasModelConfig && (
-              <>
-                {entries.length > 0 && <Divider />}
+              ))}
+              {hasModelConfig && (
                 <DescriptionListGroup data-testid="parameter-model-configuration">
                   <DescriptionListTerm>Model configuration</DescriptionListTerm>
                   <DescriptionListDescription className="odh-autorag-input-parameters-panel__value">
                     <ModelConfigurationValue
                       generationModels={generationModels}
-                      embeddingsModels={embeddingsModels}
+                      embeddingsModels={embeddingModels}
                     />
                   </DescriptionListDescription>
                 </DescriptionListGroup>
-              </>
+              )}
+            </DescriptionList>
+            {(pipelineRef || pipelineRun?.run_id) && (
+              <div>
+                <Divider className="pf-v6-u-mt-lg pf-v6-u-mb-lg" />
+                <Stack hasGutter>
+                  {pipelineRef && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-definition"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/definitions/${namespace}/${pipelineRef.pipeline_id}/${pipelineRef.pipeline_version_id}/view`}
+                          />
+                        )}
+                      >
+                        View pipeline definition
+                      </Button>
+                    </StackItem>
+                  )}
+                  {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+                  {pipelineRun?.run_id && (
+                    <StackItem>
+                      <Button
+                        variant="link"
+                        isInline
+                        data-testid="parameter-pipeline-run"
+                        component={(props) => (
+                          <Link
+                            {...props}
+                            to={`/develop-train/pipelines/runs/${namespace}/runs/${pipelineRun.run_id}`}
+                          />
+                        )}
+                      >
+                        View pipeline run
+                      </Button>
+                    </StackItem>
+                  )}
+                </Stack>
+              </div>
             )}
-          </DescriptionList>
+          </>
         )}
       </DrawerPanelBody>
     </DrawerPanelContent>

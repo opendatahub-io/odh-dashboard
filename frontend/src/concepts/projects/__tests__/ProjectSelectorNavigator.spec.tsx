@@ -34,13 +34,20 @@ jest.mock('#~/concepts/projects/ProjectSelector', () => {
         >
           select project
         </button>
+        <button
+          type="button"
+          data-testid="select-current-project"
+          onClick={() => props.onSelection(props.namespace)}
+        >
+          select current project
+        </button>
       </div>
     );
   }
   return MockProjectSelector;
 });
 
-const renderComponent = () =>
+const renderComponent = (onProjectChange?: (projectName: string) => void) =>
   render(
     <ProjectsContext.Provider
       value={{
@@ -54,7 +61,10 @@ const renderComponent = () =>
         waitForProject: () => Promise.resolve(),
       }}
     >
-      <ProjectSelectorNavigator getRedirectPath={(namespace) => `/projects/${namespace}`} />
+      <ProjectSelectorNavigator
+        getRedirectPath={(namespace) => `/projects/${namespace}`}
+        onProjectChange={onProjectChange}
+      />
     </ProjectsContext.Provider>,
   );
 
@@ -106,5 +116,28 @@ describe('ProjectSelectorNavigator', () => {
   it('should provide href-capable selection links', () => {
     renderComponent();
     expect(screen.getByTestId('project-link')).toHaveAttribute('href', '/projects/beta');
+  });
+
+  it('should call onProjectChange when a different project is selected', () => {
+    const onProjectChangeMock = jest.fn();
+    renderComponent(onProjectChangeMock);
+
+    fireEvent.click(screen.getByTestId('select-project'));
+
+    expect(onProjectChangeMock).toHaveBeenCalledWith('beta');
+  });
+
+  it('should not call onProjectChange when current project is reselected', () => {
+    const onProjectChangeMock = jest.fn();
+    renderComponent(onProjectChangeMock);
+
+    fireEvent.click(screen.getByTestId('select-current-project'));
+
+    expect(onProjectChangeMock).not.toHaveBeenCalled();
+  });
+
+  it('should not fail when onProjectChange is not provided', () => {
+    renderComponent();
+    expect(() => fireEvent.click(screen.getByTestId('select-project'))).not.toThrow();
   });
 });

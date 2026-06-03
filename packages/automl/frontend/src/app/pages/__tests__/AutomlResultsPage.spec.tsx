@@ -243,6 +243,7 @@ describe('AutomlResultsPage', () => {
       failedModels: [],
       isLoading: false,
       isError: false,
+      modelsBasePath: undefined,
       error: undefined,
       refetch: jest.fn(),
     });
@@ -304,6 +305,7 @@ describe('AutomlResultsPage', () => {
         failedModels: [],
         isLoading: false,
         isError: false,
+        modelsBasePath: 's3://bucket/models',
       });
 
       renderPage();
@@ -314,6 +316,7 @@ describe('AutomlResultsPage', () => {
         models: mockModels,
         pipelineRunLoading: false,
         modelsLoading: false,
+        modelsBasePath: 's3://bucket/models',
         parameters: {
           task_type: 'binary',
           train_data_secret_name: 'my-secret',
@@ -375,6 +378,7 @@ describe('AutomlResultsPage', () => {
         failedModels: [],
         isLoading: true,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       renderPage();
@@ -454,6 +458,7 @@ describe('AutomlResultsPage', () => {
         failedModels: [],
         isLoading: false,
         isError: false,
+        modelsBasePath: undefined,
       });
 
       renderPage();
@@ -682,7 +687,7 @@ describe('AutomlResultsPage', () => {
   });
 
   describe('stop and retry actions', () => {
-    const setupWithRunState = (state: string) => {
+    const setupWithRunState = (state: PipelineRun['state']) => {
       const mockPipelineRun = createMockPipelineRun({ state });
 
       mockUsePipelineRunQuery.mockReturnValue({
@@ -844,15 +849,35 @@ describe('AutomlResultsPage', () => {
     it('should disable modal buttons while termination is pending', async () => {
       setupWithRunState('RUNNING');
       const { useTerminatePipelineRunMutation } = jest.requireMock('~/app/hooks/mutations');
+      // Start with isPending: false so the Stop button is clickable
+      useTerminatePipelineRunMutation.mockReturnValue({
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
+        isPending: false,
+      });
+
+      const { rerender } = render(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
+
+      // Open the modal
+      await userEvent.click(screen.getByTestId('stop-run-button'));
+      expect(screen.getByTestId('stop-run-modal')).toBeInTheDocument();
+
+      // Now set isPending: true to simulate in-progress termination
       useTerminatePipelineRunMutation.mockReturnValue({
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         mutateAsync: jest.fn().mockReturnValue(new Promise(() => {})),
         isPending: true,
       });
 
-      renderPage();
-
-      await userEvent.click(screen.getByTestId('stop-run-button'));
+      rerender(
+        <QueryClientProvider client={createTestQueryClient()}>
+          <AutomlResultsPage />
+        </QueryClientProvider>,
+      );
 
       expect(screen.getByTestId('confirm-stop-run-button')).toBeDisabled();
       expect(screen.getByTestId('cancel-stop-run-button')).toBeDisabled();

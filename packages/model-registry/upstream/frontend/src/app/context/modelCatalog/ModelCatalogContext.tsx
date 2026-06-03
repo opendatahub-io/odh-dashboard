@@ -92,7 +92,9 @@ export const ModelCatalogContext = React.createContext<ModelCatalogContextType>(
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
     [ModelCatalogStringFilterKey.USE_CASE]: [],
     [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
   },
   updateSelectedSource: () => undefined,
   selectedSourceLabel: undefined,
@@ -138,7 +140,9 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
     [ModelCatalogStringFilterKey.USE_CASE]: [],
     [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
   });
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useCatalogFilterOptionList(apiState);
@@ -202,6 +206,7 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
     baseSetFilterData(ModelCatalogStringFilterKey.LICENSE, []);
     baseSetFilterData(ModelCatalogStringFilterKey.LANGUAGE, []);
     baseSetFilterData(ModelCatalogStringFilterKey.TENSOR_TYPE, []);
+    baseSetFilterData(ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION, []);
   }, [baseSetFilterData]);
 
   /**

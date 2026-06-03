@@ -2321,11 +2321,46 @@ components:
         libraryName:
           type: string
           example: transformers
+        validatedTasks:
+          type: array
+          description: >-
+            List of tasks that have been validated end-to-end for this model.
+            Follows the same naming convention as `tasks`.
+          items:
+            type: string
+          example:
+            - tool-calling
+        servingConfig:
+          $ref: "#/components/schemas/ServingConfig"
         customProperties:
           description: User provided custom properties which are not defined by its type.
           type: object
           additionalProperties:
             $ref: "#/components/schemas/MetadataValue"
+    ServingConfig:
+      description: Validated serving configurations for a model.
+      type: object
+      properties:
+        toolCalling:
+          $ref: "#/components/schemas/ToolCallingConfig"
+    ToolCallingConfig:
+      description: Tool calling configuration for vLLM serving runtime.
+      type: object
+      properties:
+        toolCallParser:
+          type: string
+          description: The tool-call parser identifier for the serving runtime.
+        chatTemplate:
+          type: string
+          description: Path to the chat template file packaged with the model.
+        enableAutoToolChoice:
+          type: boolean
+          description: Whether to enable automatic tool choice in the serving runtime.
+        requiredArgs:
+          type: array
+          items:
+            type: string
+          description: Additional CLI arguments required for tool calling.
     BaseResourceDates:
       description: Common timestamp fields for resources
       type: object

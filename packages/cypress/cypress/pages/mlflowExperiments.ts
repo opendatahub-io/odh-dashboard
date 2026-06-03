@@ -113,7 +113,10 @@ class MlflowExperiments {
   }
 
   findCreateExperimentButton() {
-    return cy.findByTestId('create-experiment-table-empty-state-button', { timeout: 30000 });
+    return cy.get(
+      '[data-testid="create-experiment-table-empty-state-button"], [data-testid="create-experiment-button"]',
+      { timeout: 30000 },
+    );
   }
 
   findExperimentInTable(name: string) {
@@ -181,7 +184,7 @@ class MlflowExperiments {
   }
 
   findCompareRunsHeading() {
-    return cy.contains('Comparing');
+    return cy.findByTestId('mlflow-breadcrumb-active');
   }
 
   findCompareRunsVisualizations() {

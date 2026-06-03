@@ -16,7 +16,10 @@ import {
   ModelRegistryFilterDataType,
   ModelRegistryVersionsFilterDataType,
 } from '~/app/pages/modelRegistry/screens/const';
-import { CatalogModelCustomPropertyKey } from '~/concepts/modelCatalog/const';
+import {
+  CatalogModelCustomPropertyKey,
+  DEPLOYMENT_RESOURCE_PREFIXES,
+} from '~/concepts/modelCatalog/const';
 
 export type ObjectStorageFields = {
   endpoint: string;
@@ -88,8 +91,7 @@ export const getProperties = <T extends ModelRegistryCustomProperties>(
 ): ModelRegistryEditableCustomProperties => {
   const initial: ModelRegistryEditableCustomProperties = {};
   return Object.keys(customProperties).reduce((acc, key) => {
-    // _lastModified is a property that is required to update the timestamp on the backend and we have a workaround for it. It should be resolved by
-    // backend team
+    // _lastModified was used by a previous workaround and may still exist on older models; filter it out so users don't see it
     if (
       key === '_lastModified' ||
       key === CatalogModelCustomPropertyKey.MODEL_TYPE ||
@@ -274,7 +276,10 @@ export const getLatestVersionForRegisteredModel = (
   return latestVersion;
 };
 
-export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+const isDeploymentResource = (entry: string): boolean =>
+  DEPLOYMENT_RESOURCE_PREFIXES.some((prefix) => entry.toLowerCase().startsWith(prefix));
+
+const getValidatedOnEntries = <T extends ModelRegistryCustomProperties>(
   customProperties: T | undefined,
 ): string[] => {
   if (!customProperties) {
@@ -303,3 +308,12 @@ export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>
     return [];
   }
 };
+
+export const getValidatedOnPlatforms = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] =>
+  getValidatedOnEntries(customProperties).filter((entry) => !isDeploymentResource(entry));
+
+export const getValidatedDeploymentResources = <T extends ModelRegistryCustomProperties>(
+  customProperties: T | undefined,
+): string[] => getValidatedOnEntries(customProperties).filter(isDeploymentResource);

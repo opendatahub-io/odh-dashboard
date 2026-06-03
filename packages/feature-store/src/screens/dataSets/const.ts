@@ -45,7 +45,7 @@ export const columns: SortableData<DataSet>[] = [
 ];
 
 export const dataSetTableFilterOptions: Record<string, string> = {
-  dataSet: 'Datasets',
+  dataSet: 'Dataset',
   project: 'Feature store',
   tag: 'Tags',
   featureServiceName: 'Feature service',

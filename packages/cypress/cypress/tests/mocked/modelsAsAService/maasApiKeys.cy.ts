@@ -15,6 +15,7 @@ import {
   copyApiKeyModal,
   createApiKeyModal,
   subscriptionPopover,
+  subscriptionsTab,
 } from '../../../pages/modelsAsAService';
 import {
   mockAPIKeys,
@@ -63,7 +64,7 @@ describe('API Keys Page', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -71,7 +72,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh(
       'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
-        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
         mockSubscriptionDetails,
       ),
     ).as('initialSearch');
@@ -82,7 +83,13 @@ describe('API Keys Page', () => {
     cy.wait('@initialSearch');
   });
 
-  it('should display the API keys table page with active keys on initial load', () => {
+  it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
+    apiKeysPage.findTitle().should('contain.text', 'API keys');
+    apiKeysPage.findSubscriptionsTab().should('not.exist');
+    apiKeysPage.findApiKeysTab().should('not.exist');
+  });
+
+  it('should display the API keys table page with active and expired keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
@@ -92,11 +99,11 @@ describe('API Keys Page', () => {
       );
 
     apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
-    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
 
     const developmentTestingRow = apiKeysPage.getRow('development-testing');
@@ -109,17 +116,25 @@ describe('API Keys Page', () => {
     developmentTestingRow.findExpirationDate().should('contain.text', 'Jan 15, 2026');
   });
 
-  it('should display an empty table with toolbar when user has no active keys', () => {
+  it('should display empty table with toolbar and disable revoke all when user has no active keys', () => {
+    const revokedKeys = mockAPIKeys().filter((k) => k.status === 'revoked');
     asProjectAdminUser();
     cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+
+    // Existence check (no status filter) returns the revoked key;
+    // filtered search (status: active) returns nothing.
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
+      const hasStatusFilter = req.body?.data?.filters?.status?.length > 0;
+      req.reply(hasStatusFilter ? mockSearchResponse([]) : mockSearchResponse(revokedKeys));
+    }).as('apiKeysSearch');
+
     apiKeysPage.visit();
-    cy.wait('@emptySearch');
+    cy.wait('@apiKeysSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findDescription().should('exist');
 
-    // Table renders empty with no results found message
+    // Table shows no results for the active filter since only revoked keys exist
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findEmptyTableState().should('exist');
     apiKeysPage.findEmptyTableState().should('contain.text', 'No results found');
@@ -131,12 +146,62 @@ describe('API Keys Page', () => {
     // Status filter defaults to Active
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
-    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
+    apiKeysPage.findStatusFilterToggle().click();
+
+    // Revoke all should be disabled when no active keys are present
+    apiKeysPage.findActionsToggle().click();
+    apiKeysPage.findRevokeAllAPIKeysActionButton().should('be.disabled');
+    apiKeysPage.findActionsToggle().click();
+
+    // Clearing filters reveals the revoked key
+    apiKeysPage.clearAllFilters();
+    cy.wait('@apiKeysSearch');
+    cy.wait('@apiKeysSearch');
+
+    apiKeysPage.findEmptyTableState().should('not.exist');
+    apiKeysPage.findRows().should('have.length', 1);
+    apiKeysPage.getRow('ci-pipeline').findStatus().should('contain.text', 'Revoked');
+  });
+
+  it('should display empty state when no keys are present', () => {
+    asProjectAdminUser();
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
+    apiKeysPage.visit();
+    cy.wait('@emptySearch');
+    cy.wait('@emptySearch');
+
+    apiKeysPage.findEmptyState().should('exist');
+    apiKeysPage.findEmptyState().should('contain.text', 'No API keys');
+    apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
+  });
+
+  it('should display a useful error state when the API keys search fails', () => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+        },
+      },
+    }).as('searchError');
+    apiKeysPage.visit();
+    cy.wait('@searchError');
+    apiKeysPage.findErrorState().should('exist');
+    apiKeysPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+      );
   });
 
   it('should display all API keys when the status filter is cleared', () => {
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'clearAllFilters',
     );
@@ -178,7 +243,7 @@ describe('API Keys Page', () => {
 
   it('should filter api keys by username', () => {
     const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
       'searchByUsername',
@@ -217,39 +282,31 @@ describe('API Keys Page', () => {
   });
 
   it('should filter api keys by status', () => {
-    const filteredKeys = mockAPIKeys().filter(
-      (k) => k.status === 'active' || k.status === 'expired',
-    );
-    apiKeysPage.findRows().should('have.length', 2);
+    const filteredKeys = mockAPIKeys().filter((k) => k.status === 'expired');
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(filteredKeys)).as(
       'filterByStatus',
     );
 
     apiKeysPage.findStatusFilterToggle().click();
-    apiKeysPage.findStatusFilterOption('Expired').click();
+    apiKeysPage.findStatusFilterOption('Active').click();
 
-    // Keys are filtered to show active by default so here we're looking for active and expired since active was pre-selected
+    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
     cy.wait('@filterByStatus').then((interception) => {
-      expect(interception.request.body.data.filters.status).to.deep.equal(['active', 'expired']);
+      expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
 
-    apiKeysPage.findRows().should('have.length', 3);
+    apiKeysPage.findRows().should('have.length', 1);
 
     const oldServiceKeyRow = apiKeysPage.getRow('old-service-key');
     oldServiceKeyRow.findStatus().should('contain.text', 'Expired');
-
-    const productionBackendRow = apiKeysPage.getRow('production-backend');
-    productionBackendRow.findStatus().should('contain.text', 'Active');
-
-    const developmentTestingRow = apiKeysPage.getRow('development-testing');
-    developmentTestingRow.findStatus().should('contain.text', 'Active');
   });
 
   it('should sort api keys by name', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortNameAsc',
@@ -280,7 +337,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by creation date', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     // Creation date is the default active sort (desc). First click toggles to asc.
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
@@ -311,7 +368,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by expiration date', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationAsc',
@@ -341,7 +398,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by last used', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortLastUsedAsc',
@@ -395,16 +452,6 @@ describe('API Keys Page', () => {
     cy.wait('@deleteAllApiKeys').then((interception) => {
       expect(interception.response?.statusCode).to.eq(200);
     });
-  });
-
-  it('should disable revoke all my API keys button when no active keys are present', () => {
-    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: false } });
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse([])).as('emptySearch');
-    apiKeysPage.visit();
-    cy.wait('@emptySearch');
-
-    apiKeysPage.findActionsToggle().click();
-    apiKeysPage.findRevokeAllAPIKeysActionButton().should('be.disabled');
   });
 
   it('should revoke a specific API key', () => {
@@ -683,7 +730,7 @@ describe('API Keys Page (Admin)', () => {
       'GET /api/dsc/status',
       mockDscStatus({
         components: {
-          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+          [DataScienceStackComponent.OGX_OPERATOR]: { managementState: 'Managed' },
         },
         conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
       }),
@@ -757,5 +804,140 @@ describe('API Keys Page (Admin)', () => {
 
     adminBulkRevokeAPIKeyModal.findNoKeysAlert().should('exist');
     adminBulkRevokeAPIKeyModal.findRevokeButton().should('be.disabled');
+  });
+});
+
+describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
+  beforeEach(() => {
+    asClusterAdminUser();
+    cy.interceptOdh(
+      'GET /api/config',
+      mockDashboardConfig({
+        modelAsService: true,
+        mySubscriptions: true,
+      }),
+    );
+
+    cy.interceptOdh('GET /maas/api/v1/user', {
+      data: { userId: 'test-user', clusterAdmin: false },
+    });
+    cy.interceptOdh('GET /maas/api/v1/is-maas-admin', { data: { allowed: true } });
+    cy.interceptOdh('GET /maas/api/v1/namespaces', { data: [] });
+
+    cy.interceptOdh(
+      'GET /api/dsc/status',
+      mockDscStatus({
+        components: {
+          [DataScienceStackComponent.LLAMA_STACK_OPERATOR]: { managementState: 'Managed' },
+        },
+        conditions: [{ type: 'ModelsAsServiceReady', status: 'True', reason: 'Ready' }],
+      }),
+    );
+    cy.interceptOdh(
+      'POST /maas/api/v1/api-keys/search',
+      mockSearchResponse(
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
+        mockSubscriptionDetails,
+      ),
+    ).as('initialSearch');
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', {
+      data: mockSubscriptionListItems(),
+    }).as('getSubscriptions');
+  });
+
+  it('should navigate to subscriptions tab', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findTitle().should('contain.text', 'API keys and subscriptions');
+    apiKeysPage
+      .findDescription()
+      .should('contain.text', 'Manage your API keys and view your subscription access');
+
+    apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
+    apiKeysPage.findTable().should('exist');
+    apiKeysPage.findRows().should('have.length', 3);
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.url().should('include', '/maas/keys-and-subs/subscriptions');
+    apiKeysPage.findSubscriptionsTab().should('have.attr', 'aria-selected', 'true');
+
+    cy.contains('Models available to you through your subscriptions, with token limits.').should(
+      'exist',
+    );
+  });
+
+  it('should display subscription view with search and source filter', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSubscriptionsTable().should('exist');
+
+    subscriptionsTab.findSubscriptionRows().should('have.length', 2);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
+
+    subscriptionsTab.findSearchInput().type('Premium');
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
+
+    subscriptionsTab.clearSearch();
+    subscriptionsTab.findSubscriptionRows().should('have.length', 2);
+
+    subscriptionsTab.selectSourceFilter('Internal');
+
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
+
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Granite 3 8B Instruct');
+  });
+
+  it('should display model view with search and source filter', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelsTable().should('exist');
+
+    subscriptionsTab.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.findSearchInput().type('Granite');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    subscriptionsTab.findModelsTable().should('not.contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.clearSearch();
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.selectSourceFilter('External');
+
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+    subscriptionsTab.findModelsTable().should('not.contain.text', 'Granite 3 8B Instruct');
+
+    subscriptionsTab.expandModelGroupRow(0);
+    subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show empty state when no subscriptions exist', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@emptySubscriptions');
+
+    subscriptionsTab.findEmptyState().should('exist');
+    subscriptionsTab.findSubscriptionsTable().should('not.exist');
+
+    subscriptionsTab.findSortByModelButton().click();
+    cy.findByTestId('empty-models').should('exist');
+    subscriptionsTab.findModelsTable().should('not.exist');
   });
 });

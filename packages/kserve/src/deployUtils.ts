@@ -40,10 +40,7 @@ import {
 } from '@odh-dashboard/internal/concepts/connectionTypes/utils';
 import { ModelLocationData } from '@odh-dashboard/model-serving/types/form-data';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
-import {
-  isValidModelType,
-  type ModelTypeFieldData,
-} from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
+import { type ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import type { ModelAvailabilityFieldsData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelAvailabilityFields';
 import type { RuntimeArgsFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/RuntimeArgsField';
 import type { EnvironmentVariablesFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/EnvironmentVariablesField';
@@ -372,19 +369,31 @@ export const extractModelType = (deployment: {
   model: InferenceServiceKind;
 }): ModelTypeFieldData | null => {
   const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
-  if (modelType && isValidModelType(modelType)) {
-    return {
-      type: modelType,
-      legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
-    };
+  if (!modelType) {
+    return null;
   }
-  return null;
+
+  return {
+    type: modelType,
+    legacyVLLM: modelType === ServingRuntimeModelType.GENERATIVE,
+  };
+};
+
+const isKnownServingRuntimeModelType = (type?: string): type is ServingRuntimeModelType => {
+  return type === ServingRuntimeModelType.PREDICTIVE || type === ServingRuntimeModelType.GENERATIVE;
 };
 
 export const applyModelType = (
   inferenceService: InferenceServiceKind,
-  modelType: ServingRuntimeModelType,
+  modelType: string,
 ): InferenceServiceKind => {
+  if (!isKnownServingRuntimeModelType(modelType)) {
+    console.error(
+      `Invalid model type for kserve deployment: ${modelType}. Skipping applyModelType.`,
+    );
+    return inferenceService;
+  }
+
   const result = structuredClone(inferenceService);
   result.metadata.annotations = {
     ...result.metadata.annotations,

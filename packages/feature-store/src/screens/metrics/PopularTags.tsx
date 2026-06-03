@@ -24,7 +24,8 @@ import { Link } from 'react-router-dom';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
 import { EMPTY_STATE_MESSAGES } from './const';
 import useMetricsPopularTags from '../../apiHooks/useMetricsPopularTags';
-import { featureViewRoute } from '../../routes';
+import { FeatureStoreObject } from '../../const';
+import { featureStoreRoute, featureViewRoute } from '../../routes';
 import { PopularTag } from '../../types/metrics';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 
@@ -76,7 +77,7 @@ const PopularTagCard = ({ tag }: { tag: PopularTag }) => {
       </CardBody>
       <CardFooter>
         <Link
-          to="/develop-train/feature-store/feature-views"
+          to={featureStoreRoute(FeatureStoreObject.FEATURE_VIEWS)}
           aria-label={`View all ${tag.total_feature_views} feature views for ${tag.tag_key}: ${tag.tag_value}`}
         >
           View all ({tag.total_feature_views})

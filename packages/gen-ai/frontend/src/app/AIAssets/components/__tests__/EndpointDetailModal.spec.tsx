@@ -237,12 +237,12 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
             {
               name: 'premium-subscription',
               displayName: 'Premium Subscription',
-              description: 'Premium tier',
+              description: 'Premium subscription',
             },
           ],
         });
@@ -261,7 +261,7 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
           ],
         });
@@ -279,7 +279,7 @@ describe('EndpointDetailModal', () => {
             {
               name: 'premium-subscription',
               displayName: 'Premium Subscription',
-              description: 'Premium tier',
+              description: 'Premium subscription',
             },
           ],
         });
@@ -307,12 +307,12 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
             {
               name: 'premium-subscription',
               displayName: 'Premium Subscription',
-              description: 'Premium tier',
+              description: 'Premium subscription',
             },
           ],
         });
@@ -347,12 +347,12 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
             {
               name: 'premium-subscription',
               displayName: 'Premium Subscription',
-              description: 'Premium tier',
+              description: 'Premium subscription',
             },
           ],
         });
@@ -372,12 +372,12 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
             {
               name: 'premium-subscription',
               displayName: 'Premium Subscription',
-              description: 'Premium tier',
+              description: 'Premium subscription',
             },
           ],
         });
@@ -408,7 +408,7 @@ describe('EndpointDetailModal', () => {
             {
               name: 'basic-subscription',
               displayName: 'Basic Subscription',
-              description: 'Basic tier',
+              description: 'Basic subscription',
             },
           ],
         });

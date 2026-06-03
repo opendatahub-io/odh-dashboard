@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router';
@@ -52,9 +52,9 @@ jest.mock('~/app/hooks/mutations', () => ({
 jest.mock('~/app/hooks/queries', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
-      { name: 'column1', type: 'string' },
-      { name: 'column2', type: 'int64' },
-      { name: 'column3', type: 'float64' },
+      { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },
+      { name: 'column2', type: 'int64', task_type: 'regression' },
+      { name: 'column3', type: 'float64', task_type: 'regression' },
     ],
     isLoading: false,
     isFetching: false,
@@ -425,6 +425,43 @@ describe('AutomlConfigurePage', () => {
       expect(nameInputAfterBack).toHaveValue('Preserved Name');
       expect(descriptionInputAfterBack).toHaveValue('Preserved Description');
     });
+
+    it('should hide file selection after back and returning to configure without reselecting S3', async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<AutomlConfigurePage />);
+
+      const nameInput = await screen.findByLabelText(/Name/i);
+      await user.type(nameInput, 'My Experiment');
+
+      const nextButton = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButton).toBeEnabled();
+      });
+      await user.click(nextButton);
+
+      const selectAwsSecretButton = await screen.findByTestId('aws-secret-selector-select-secret');
+      await user.click(selectAwsSecretButton);
+
+      expect(
+        await screen.findByRole('heading', { name: 'Select file from bucket' }),
+      ).toBeInTheDocument();
+
+      const backButton = await screen.findByRole('button', { name: 'Back' });
+      await user.click(backButton);
+
+      const nextButtonAgain = await screen.findByRole('button', { name: 'Next' });
+      await waitFor(() => {
+        expect(nextButtonAgain).toBeEnabled();
+      });
+      await user.click(nextButtonAgain);
+
+      expect(
+        screen.queryByRole('heading', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Select file from bucket' }),
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Configure step - Create run', () => {
@@ -457,18 +494,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
-      // Select the first column option
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
+
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Wait for form to be valid and Run button to be enabled
       const runButton = await screen.findByRole('button', {
@@ -516,17 +551,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
+
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -574,17 +608,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
+
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -633,17 +666,16 @@ describe('AutomlConfigurePage', () => {
       const fileSelectButton = await screen.findByTestId('file-explorer-select-file');
       await user.click(fileSelectButton);
 
-      // Select a prediction type (required before label column appears)
-      const binaryRadio = document.getElementById('task-type-binary');
-      expect(binaryRadio).not.toBeNull();
-      fireEvent.click(binaryRadio!);
-
-      // Select a label column
-      const labelColumnSelect = await screen.findByTestId('label_column-select');
-      await user.click(labelColumnSelect);
-
+      // Select a target column (required before prediction type cards appear)
+      const targetColumnSelect = await screen.findByTestId('target_column-select');
+      await user.click(targetColumnSelect);
       const columnOption = await screen.findByRole('option', { name: /column1/i });
       await user.click(columnOption);
+
+      // Select a prediction type
+      const binaryCard = screen.getByTestId('task-type-card-binary');
+      expect(binaryCard).toBeInTheDocument();
+      await user.click(binaryCard);
 
       // Click Create run button
       const runButton = await screen.findByRole('button', {
@@ -892,7 +924,7 @@ describe('AutomlConfigurePage', () => {
         train_data_bucket_name: 'test-bucket',
         train_data_file_key: 'my-data/train.csv',
         task_type: 'binary' as const,
-        label_column: 'column1',
+        target_column: 'column1',
         top_n: 7,
       };
       const tabularInitialSecret = {
@@ -981,7 +1013,7 @@ describe('AutomlConfigurePage', () => {
         expect(input).toHaveValue(7);
       });
 
-      it('should show label column fields for a tabular task type in the configure step', async () => {
+      it('should show target column fields for a tabular task type in the configure step', async () => {
         renderWithProviders(
           <AutomlConfigurePage
             initialValues={tabularInitialValues}
@@ -992,9 +1024,8 @@ describe('AutomlConfigurePage', () => {
 
         await navigateToConfigure();
 
-        expect(screen.getByText('Label column')).toBeInTheDocument();
-        expect(screen.getByTestId('label_column-select')).toBeInTheDocument();
-        expect(screen.queryByText('Target column')).not.toBeInTheDocument();
+        expect(screen.getByText('Target column')).toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
       });
 
       it('should show timeseries fields when task_type is timeseries in the configure step', async () => {
@@ -1003,7 +1034,7 @@ describe('AutomlConfigurePage', () => {
             initialValues={{
               ...tabularInitialValues,
               task_type: 'timeseries',
-              target: 'sales',
+              target_column: 'column2',
               id_column: 'store_id',
               timestamp_column: 'date',
               prediction_length: 30,
@@ -1016,8 +1047,36 @@ describe('AutomlConfigurePage', () => {
 
         expect(screen.getByTestId('task-type-card-timeseries')).toHaveClass('pf-m-selected');
         expect(screen.getByText('Target column')).toBeInTheDocument();
-        expect(screen.getByTestId('target-select')).toBeInTheDocument();
-        expect(screen.queryByText('Label column')).not.toBeInTheDocument();
+        expect(screen.getByTestId('target_column-select')).toBeInTheDocument();
+      });
+
+      it('should retain configure-step fields after back and returning to configure', async () => {
+        renderWithProviders(
+          <AutomlConfigurePage
+            initialValues={tabularInitialValues}
+            initialInputDataSecret={tabularInitialSecret}
+            sourceRunId="run-1"
+          />,
+        );
+
+        const user = await navigateToConfigure();
+
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
+
+        await user.click(await screen.findByRole('button', { name: 'Back' }));
+
+        const nextButton = await screen.findByRole('button', { name: 'Next' });
+        await waitFor(() => {
+          expect(nextButton).toBeEnabled();
+        });
+        await user.click(nextButton);
+
+        expect(await screen.findByText('Documents')).toBeInTheDocument();
+        expect(screen.getByTestId('aws-secret-selector-value')).toHaveTextContent('aws-secret-1');
+        expect(screen.getByText('train.csv')).toBeInTheDocument();
+        expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
       });
     });
   });

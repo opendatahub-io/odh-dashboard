@@ -1,69 +1,58 @@
 import * as React from 'react';
-import {
-  Alert,
-  Button,
-  HelperText,
-  HelperTextItem,
-  Stack,
-  StackItem,
-} from '@patternfly/react-core';
+import { Stack, StackItem } from '@patternfly/react-core';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
-import { isGroupEmpty } from '#~/utilities/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import SettingSection from '#~/components/SettingSection';
-import { MultiSelection, SelectionOptions } from '#~/components/MultiSelection';
 import { useWatchGroups } from '#~/concepts/userConfigs/useWatchGroups';
+import { updateAuthGroups } from '#~/concepts/userConfigs/utils';
 import TitleWithIcon from '#~/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '#~/concepts/design/utils';
-import { GroupsConfigField, GroupStatus } from '#~/concepts/userConfigs/groupTypes';
-
-const newGroupMessage = (value: string): string => `Define new group: "${value}"`;
+import { GroupsConfig, GroupsConfigField } from '#~/concepts/userConfigs/groupTypes';
+import useNotification from '#~/utilities/useNotification';
+import GroupSettingsSection from './GroupSettingsSection';
 
 const GroupSettings: React.FC = () => {
-  const {
-    groupSettings,
-    loaded,
-    isLoading,
-    isGroupSettingsChanged,
-    loadError,
-    updateGroups,
-    setGroupSettings,
-    setIsGroupSettingsChanged,
-  } = useWatchGroups();
+  const { groupSettings, setGroupSettings, availableGroups, loaded, isLoading, loadError } =
+    useWatchGroups();
+  const notification = useNotification();
 
-  const adminDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} administrators.`;
-  const userDesc = `Select the groups that contain all ${ODH_PRODUCT_NAME} users.`;
+  const enabledAdminGroups = groupSettings.adminGroups.filter((g) => g.enabled).map((g) => g.name);
+  const enabledUserGroups = groupSettings.allowedGroups.filter((g) => g.enabled).map((g) => g.name);
 
-  const handleSaveButtonClicked = async () => {
-    if (isLoading) {
-      return;
-    }
-    updateGroups(groupSettings);
-  };
+  const saveSettings = React.useCallback(
+    async (newSettings: GroupsConfig): Promise<void> => {
+      const updated = await updateAuthGroups(newSettings, availableGroups);
+      setGroupSettings(updated);
+      notification.success('Group settings changes saved');
+    },
+    [availableGroups, setGroupSettings, notification],
+  );
 
-  const handleMenuItemSelection = (newState: SelectionOptions[], field: GroupsConfigField) => {
-    const processGroup = (opt: SelectionOptions): GroupStatus => ({
-      id: String(opt.id),
-      name: opt.name,
-      enabled: opt.selected || false,
-    });
+  const handleAdd = React.useCallback(
+    (name: string, field: GroupsConfigField): Promise<void> => {
+      const key = field === GroupsConfigField.ADMIN ? 'adminGroups' : 'allowedGroups';
+      const newSettings: GroupsConfig = {
+        ...groupSettings,
+        [key]: [
+          ...groupSettings[key].filter((g) => g.name !== name),
+          { id: name, name, enabled: true },
+        ],
+      };
+      return saveSettings(newSettings);
+    },
+    [groupSettings, saveSettings],
+  );
 
-    switch (field) {
-      case GroupsConfigField.ADMIN:
-        setGroupSettings({
-          ...groupSettings,
-          adminGroups: newState.map(processGroup),
-        });
-        break;
-      case GroupsConfigField.USER:
-        setGroupSettings({
-          ...groupSettings,
-          allowedGroups: newState.map(processGroup),
-        });
-        break;
-    }
-    setIsGroupSettingsChanged(true);
-  };
+  const handleRemove = React.useCallback(
+    (name: string, field: GroupsConfigField): Promise<void> => {
+      const key = field === GroupsConfigField.ADMIN ? 'adminGroups' : 'allowedGroups';
+      const newSettings: GroupsConfig = {
+        ...groupSettings,
+        [key]: groupSettings[key].map((g) => (g.name === name ? { ...g, enabled: false } : g)),
+      };
+      return saveSettings(newSettings);
+    },
+    [groupSettings, saveSettings],
+  );
 
   return (
     <ApplicationsPage
@@ -78,88 +67,26 @@ const GroupSettings: React.FC = () => {
     >
       <Stack hasGutter>
         <StackItem>
-          <SettingSection
-            title={`${ODH_PRODUCT_NAME} administrator groups`}
-            testId="data-science-administrator-groups"
-            description={adminDesc}
-            footer={
-              <Alert
-                data-testid="data-science-administrator-info"
-                variant="info"
-                isInline
-                isPlain
-                title={`All cluster admins are automatically assigned as ${ODH_PRODUCT_NAME} administrators.`}
-              />
-            }
-          >
-            <MultiSelection
-              ariaLabel={adminDesc}
-              toggleTestId="group-setting-select"
-              value={groupSettings.adminGroups.map((g) => ({
-                id: g.id,
-                name: g.name,
-                selected: g.enabled,
-              }))}
-              setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.ADMIN)}
-              selectionRequired
-              noSelectedOptionsMessage="One or more group must be selected"
-              popperProps={{ appendTo: document.body }}
-              isCreatable
-              createOptionMessage={newGroupMessage}
-              isCreateOptionOnTop
-            />
-            <HelperText>
-              <HelperTextItem>
-                Select from existing groups, or specify a new group name.
-              </HelperTextItem>
-            </HelperText>
-          </SettingSection>
-        </StackItem>
-        <StackItem>
-          <SettingSection
-            title={`${ODH_PRODUCT_NAME} user groups`}
-            description={userDesc}
-            testId="data-science-user-groups"
-          >
-            <MultiSelection
-              ariaLabel={userDesc}
-              toggleTestId="group-setting-select"
-              value={groupSettings.allowedGroups.map((g) => ({
-                id: g.id,
-                name: g.name,
-                selected: g.enabled,
-              }))}
-              setValue={(newState) => handleMenuItemSelection(newState, GroupsConfigField.USER)}
-              selectionRequired
-              noSelectedOptionsMessage="One or more group must be selected"
-              popperProps={{ appendTo: document.body }}
-              isCreatable
-              createOptionMessage={newGroupMessage}
-              isCreateOptionOnTop
-            />
-            <HelperText>
-              <HelperTextItem>
-                Select from existing groups, or specify a new group name.
-              </HelperTextItem>
-            </HelperText>
-          </SettingSection>
-        </StackItem>
-        <StackItem>
-          <Button
-            data-id="save-button"
-            data-testid="save-button"
-            isDisabled={
-              isLoading ||
-              !isGroupSettingsChanged ||
-              isGroupEmpty(groupSettings.adminGroups) ||
-              isGroupEmpty(groupSettings.allowedGroups)
-            }
-            variant="primary"
+          <GroupSettingsSection
+            roleLabel="administrator"
+            enabledGroupNames={enabledAdminGroups}
+            availableGroups={availableGroups}
+            onAdd={(name) => handleAdd(name, GroupsConfigField.ADMIN)}
+            onRemove={(name) => handleRemove(name, GroupsConfigField.ADMIN)}
             isLoading={isLoading}
-            onClick={handleSaveButtonClicked}
-          >
-            Save changes
-          </Button>
+            testId="data-science-administrator-groups"
+          />
+        </StackItem>
+        <StackItem>
+          <GroupSettingsSection
+            roleLabel="user"
+            enabledGroupNames={enabledUserGroups}
+            availableGroups={availableGroups}
+            onAdd={(name) => handleAdd(name, GroupsConfigField.USER)}
+            onRemove={(name) => handleRemove(name, GroupsConfigField.USER)}
+            isLoading={isLoading}
+            testId="data-science-user-groups"
+          />
         </StackItem>
       </Stack>
     </ApplicationsPage>

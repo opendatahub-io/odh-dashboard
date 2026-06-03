@@ -65,6 +65,7 @@ export enum SupportedArea {
   YAML_VIEWER = 'yaml-viewer',
   VLLM_ON_MAAS = 'vllm-on-maas',
   LLMD_GATEWAY_FIELD = 'llmd-gateway-field',
+  MY_SUBSCRIPTIONS = 'my-subscriptions',
 
   /* Distributed Workloads areas */
   DISTRIBUTED_WORKLOADS = 'distributed-workloads',
@@ -96,12 +97,18 @@ export enum SupportedArea {
   MODEL_TRAINING = 'model-training',
   RAY_JOBS = 'ray-jobs',
 
+  /* Agent Ops */
+  AGENT_OPS = 'agent-ops',
+
   /* MLflow */
   MLFLOW = 'mlflow',
   MLFLOW_PIPELINES = 'mlflow-pipelines',
 
   /* Project RBAC Settings */
   PROJECT_RBAC_SETTINGS = 'project-rbac-settings',
+
+  /* Role Management */
+  ROLE_MANAGEMENT = 'role-management',
 }
 
 export type SupportedAreaType = SupportedArea | string;
@@ -121,6 +128,7 @@ export enum DataScienceStackComponent {
   TRUSTY_AI = 'trustyai',
   WORKBENCHES = 'workbenches',
   LLAMA_STACK_OPERATOR = 'llamastackoperator',
+  OGX_OPERATOR = 'ogx',
   TRAINER = 'trainer',
   MLFLOW = 'mlflowoperator',
 }

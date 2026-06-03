@@ -38,6 +38,8 @@ import {
   getModelName,
   getCatalogModelTypePropertyForRegistration,
   getActiveSourceLabels,
+  hasValidatedToolCalling,
+  getToolCallingArgs,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { mockCatalogModelArtifact } from '~/__mocks__/mockCatalogModelArtifactList';
 import { ModelRegistryMetadataType } from '~/app/types';
@@ -53,6 +55,7 @@ describe('filtersToFilterQuery', () => {
     hardware_configuration = [],
     use_case = [],
     tensor_type = [],
+    validatedTasks = [],
     rps_mean = undefined,
     ttft_mean = undefined,
   }: {
@@ -65,6 +68,7 @@ describe('filtersToFilterQuery', () => {
     use_case?: UseCaseOptionValue[];
     rps_mean?: number;
     tensor_type?: ModelCatalogTensorType[];
+    validatedTasks?: string[];
     ttft_mean?: number;
   }): ModelCatalogFilterStates => ({
     [ModelCatalogStringFilterKey.TASK]: tasks,
@@ -75,7 +79,9 @@ describe('filtersToFilterQuery', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -169,6 +175,10 @@ describe('filtersToFilterQuery', () => {
           ModelCatalogTensorType.INT8,
           ModelCatalogTensorType.MXFP4,
         ],
+      },
+      [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: {
+        type: 'string',
+        values: ['tool-calling', 'text-generation', 'question-answering'],
       },
       [ModelCatalogStringFilterKey.HARDWARE_TYPE]: {
         type: 'string',
@@ -347,6 +357,38 @@ describe('filtersToFilterQuery', () => {
         ),
       ).toBe(
         "tasks='text-to-text' AND provider='Google' AND tensor_type.string_value IN ('FP16','INT8')",
+      );
+    });
+  });
+
+  describe('match-all (AND logic) filters', () => {
+    it('handles a single validated configuration value', () => {
+      expect(
+        filtersToFilterQuery(mockFormData({ validatedTasks: ['tool-calling'] }), mockFilterOptions),
+      ).toBe("validated_tasks='tool-calling'");
+    });
+
+    it('handles multiple validated configuration values with AND logic instead of IN', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({ validatedTasks: ['tool-calling', 'text-generation'] }),
+          mockFilterOptions,
+        ),
+      ).toBe("validated_tasks='tool-calling' AND validated_tasks='text-generation'");
+    });
+
+    it('handles validated configuration combined with other OR-logic filters', () => {
+      expect(
+        filtersToFilterQuery(
+          mockFormData({
+            tasks: [ModelCatalogTask.TEXT_TO_TEXT, ModelCatalogTask.IMAGE_TO_TEXT],
+            validatedTasks: ['tool-calling', 'text-generation'],
+            provider: [ModelCatalogProvider.GOOGLE],
+          }),
+          mockFilterOptions,
+        ),
+      ).toBe(
+        "tasks IN ('text-to-text','image-to-text') AND provider='Google' AND validated_tasks='tool-calling' AND validated_tasks='text-generation'",
       );
     });
   });
@@ -802,6 +844,7 @@ describe('hasFiltersApplied', () => {
     use_case = [],
     tensor_type = [],
     rps_mean = undefined,
+    validatedTasks = [],
     ttft_mean = undefined,
   }: {
     tasks?: ModelCatalogTask[];
@@ -812,6 +855,7 @@ describe('hasFiltersApplied', () => {
     hardware_configuration?: string[];
     use_case?: UseCaseOptionValue[];
     tensor_type?: ModelCatalogTensorType[];
+    validatedTasks?: string[];
     rps_mean?: number;
     ttft_mean?: number;
   }): ModelCatalogFilterStates => ({
@@ -823,7 +867,9 @@ describe('hasFiltersApplied', () => {
     [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: hardware_configuration,
     [ModelCatalogStringFilterKey.USE_CASE]: use_case,
     [ModelCatalogNumberFilterKey.MAX_RPS]: rps_mean,
+    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
     [ModelCatalogStringFilterKey.TENSOR_TYPE]: tensor_type,
+    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: validatedTasks,
     'artifacts.ttft_mean.double_value': ttft_mean,
   });
 
@@ -1423,9 +1469,15 @@ describe('getCatalogModelTypePropertyForRegistration', () => {
     });
   });
 
-  it('returns empty object when model_type is absent or not a recognized value', () => {
-    expect(getCatalogModelTypePropertyForRegistration(undefined)).toEqual({});
-    expect(getCatalogModelTypePropertyForRegistration({})).toEqual({});
+  it('defaults to unknown when model_type is absent or not a recognized value', () => {
+    const expectedUnknown = {
+      [CatalogModelCustomPropertyKey.MODEL_TYPE]: {
+        metadataType: ModelRegistryMetadataType.STRING,
+        string_value: ModelType.UNKNOWN,
+      },
+    };
+    expect(getCatalogModelTypePropertyForRegistration(undefined)).toEqual(expectedUnknown);
+    expect(getCatalogModelTypePropertyForRegistration({})).toEqual(expectedUnknown);
   });
 });
 
@@ -1652,5 +1704,116 @@ describe('getActiveSourceLabels', () => {
 
     const result = getActiveSourceLabels(sources, catalogLabels);
     expect(result).toEqual(['Red Hat', 'Partner', 'Community']);
+  });
+});
+
+describe('hasValidatedToolCalling', () => {
+  it('should return true when model has tool-calling in validatedTasks and toolCallParser', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when validatedTasks is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when validatedTasks does not include tool-calling', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: ['text-generation'],
+        servingConfig: { toolCalling: { toolCallParser: 'granite' } },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig.toolCalling is missing', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: {},
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when servingConfig.toolCalling exists but has no toolCallParser', () => {
+    expect(
+      hasValidatedToolCalling({
+        name: 'test-model',
+        validatedTasks: [ModelCatalogTask.TOOL_CALLING],
+        servingConfig: { toolCalling: {} },
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when both validatedTasks and servingConfig are missing', () => {
+    expect(hasValidatedToolCalling({ name: 'test-model' })).toBe(false);
+  });
+});
+
+describe('getToolCallingArgs', () => {
+  it('should return empty string when config is undefined', () => {
+    expect(getToolCallingArgs(undefined)).toBe('');
+  });
+
+  it('should return empty string when config has no fields', () => {
+    expect(getToolCallingArgs({})).toBe('');
+  });
+
+  it('should build args from structured fields', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      chatTemplate: 'opt/app-root/template/tool_chat_template_granite.jinja',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toContain('--enable-auto-tool-choice');
+    expect(result).toContain('--tool-call-parser granite');
+    expect(result).toContain(
+      '--chat-template opt/app-root/template/tool_chat_template_granite.jinja',
+    );
+  });
+
+  it('should include requiredArgs in output', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+      requiredArgs: ['--config_format granite'],
+    });
+    expect(result).toContain('--config_format granite');
+  });
+
+  it('should join parts with backslash-newline separator', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'granite',
+      enableAutoToolChoice: true,
+    });
+    expect(result).toBe('--enable-auto-tool-choice \\\n--tool-call-parser granite');
+  });
+
+  it('should handle only toolCallParser without enableAutoToolChoice', () => {
+    const result = getToolCallingArgs({
+      toolCallParser: 'mistral',
+    });
+    expect(result).toBe('--tool-call-parser mistral');
   });
 });

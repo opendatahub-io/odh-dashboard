@@ -117,6 +117,10 @@ jobs:
           SECONDARY_SERVER: ${{ secrets.OC_SERVER }}
           SECONDARY_DASHBOARD: ${{ secrets.ODH_DASHBOARD_URL }}
         run: |
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f ~/.kube/config 2>/dev/null || true
+
           # Extract credentials from test-variables.yml
           TEST_VARS_FILE="/tmp/test-variables.yml"
           OC_USERNAME=$(grep -A 10 "^OCP_ADMIN_USER:" "$TEST_VARS_FILE" | grep "USERNAME:" | head -1 | sed 's/.*USERNAME: //' | tr -d ' ')
@@ -242,13 +246,13 @@ jobs:
       bff_packages: ${{ steps.detect.outputs.bff_packages }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -289,7 +293,7 @@ jobs:
           # =================================================================
           # Smart Test Selection: Detect changed areas and resolve CI tags
           #
-          # Layer 1: Turbo detects changed packages (including frontend "//" workspace)
+          # Layer 1: Turbo detects changed packages (including frontend workspace)
           #          → reads e2eCiTags from each package.json (self-service, teams opt in)
           # Layer 2: For frontend changes detected by Layer 1, git diff identifies
           #          sub-areas → .github/frontend-ci-tags.json mapping resolves CI tags
@@ -340,8 +344,8 @@ jobs:
           # --- Layer 2: Frontend sub-area detection ---
           # Turbo sees the entire frontend as one workspace. When it changes,
           # use git diff to identify which sub-areas were modified.
-          # Note: Turbo reports the root/frontend workspace as "//"
-          if echo "$CHANGED_PACKAGES" | grep -qx "//"; then
+          # Turbo may report the frontend workspace as "//" or "odh-dashboard-frontend"
+          if echo "$CHANGED_PACKAGES" | grep -qxE "//|odh-dashboard-frontend"; then
             echo ""
             echo "🔍 Frontend changed — detecting sub-areas via git diff..."
 
@@ -847,8 +851,8 @@ jobs:
           # Clean old webpack logs (>2 days old)
           find /tmp -name "webpack_*.log" -type f -mtime +2 -delete 2>/dev/null || true
           
-          # Note: ~/.cache/Cypress is managed by actions/cache and should not be cleaned here
-          # to avoid removing the Cypress binary on shared self-hosted runners
+          # Note: .cache/Cypress is managed by actions/cache (workspace-local via CYPRESS_CACHE_FOLDER)
+          # and should not be cleaned here to avoid removing the Cypress binary mid-run
           
           # Clean old temporary yaml files (>2 days old)
           find /tmp -name "cypress-yaml-*.yaml" -type f -mtime +2 -delete 2>/dev/null || true
@@ -865,7 +869,7 @@ jobs:
           echo "✅ Cleanup complete (non-critical, continued on any errors)"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
@@ -876,12 +880,12 @@ jobs:
           include-modules: 'true'
 
       - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@v4.3.0
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore OpenShift CLI tarball cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         id: oc-cache
         with:
           path: ${{ runner.temp }}/oc.tar.gz
@@ -930,6 +934,10 @@ jobs:
             echo "Check that OC_SERVER_PRIMARY/OC_SERVER secrets are configured" >&2
             exit 1
           fi
+
+          # Prevent stale/corrupt kubeconfig from blocking oc login
+          echo "🧹 Removing stale kubeconfig to prevent corrupt config blocking login..."
+          rm -f "$HOME/.kube/config" 2>/dev/null || true
 
           echo "Logging in to OpenShift cluster ($CLUSTER_NAME)..."
           oc login -u "$OC_USERNAME" -p "$OC_PASSWORD" --server="$CLUSTER_URL" --insecure-skip-tls-verify > /dev/null 2>&1
@@ -1108,9 +1116,9 @@ jobs:
 
       - name: Setup Go for BFF builds
         if: needs.get-test-tags.outputs.bff_packages != '[]'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: '1.24'
+          go-version: '1.26'
           cache: false
 
       - name: Start BFF Services
@@ -1125,7 +1133,7 @@ jobs:
 
           # Allowlists to prevent command injection from PR code (CWE-94)
           ALLOWED_COMMANDS=("make dev-bff-e2e-mock" "make dev-bff-e2e-cluster" "make -C upstream dev-bff-e2e-mock" "make -C upstream dev-bff-e2e-cluster")
-          ALLOWED_DIRS=("automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
+          ALLOWED_DIRS=("agent-ops" "automl" "autorag" "eval-hub" "gen-ai" "maas" "mlflow" "model-registry")
 
           # Parse BFF packages JSON and start each one
           echo "$BFF_PACKAGES" | jq -c '.[]' | while read -r bff_config; do
@@ -1279,7 +1287,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: e2e-results-${{ matrix.tag }}
           path: |

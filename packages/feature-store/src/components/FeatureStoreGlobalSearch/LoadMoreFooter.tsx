@@ -7,6 +7,7 @@ interface LoadMoreFooterProps {
   currentCount: number;
   totalCount: number;
   onLoadMore: () => Promise<void>;
+  'data-testid'?: string;
 }
 
 const LoadMoreFooter: React.FC<LoadMoreFooterProps> = ({
@@ -15,6 +16,7 @@ const LoadMoreFooter: React.FC<LoadMoreFooterProps> = ({
   currentCount,
   totalCount,
   onLoadMore,
+  'data-testid': dataTestId,
 }) => {
   if (!hasMorePages) {
     return null;
@@ -29,6 +31,7 @@ const LoadMoreFooter: React.FC<LoadMoreFooterProps> = ({
   return (
     <MenuItem component="div">
       <div
+        data-testid={dataTestId}
         style={{
           textAlign: 'center',
           padding: '1rem',

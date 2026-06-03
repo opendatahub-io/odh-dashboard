@@ -2,11 +2,60 @@ import type {
   AreaExtension,
   ProjectDetailsSettingsCardExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
+import type {
+  DeployedModelServingDetails,
+  ModelServingExcludeDeploymentExtension,
+  ModelServingPlatformWatchDeploymentsExtension,
+} from '@odh-dashboard/model-serving/extension-points';
+import type {
+  DeploymentWizardFieldOverrideExtension,
+  WizardFieldExtension,
+} from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 // Allow this import as it consists of types and enums only.
 // eslint-disable-next-line no-restricted-syntax
 import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
+import type { NIMDeployment } from './src/api/deployments/useWatchDeployments';
+import type { NIMImageFieldType } from './src/pages/deploymentWizard/fields/NIMImageField';
+import type { NIMPVCFieldType } from './src/pages/deploymentWizard/fields/NIMPVCField';
 
-const extensions: (AreaExtension | ProjectDetailsSettingsCardExtension)[] = [
+export const NIM_ID = 'nvidia-nim';
+
+const nimImageFieldExtension: WizardFieldExtension<NIMImageFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import('./src/pages/deploymentWizard/fields/NIMImageField').then(
+        (m) => m.NIMImageFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
+const nimPVCFieldExtension: WizardFieldExtension<NIMPVCFieldType> = {
+  type: 'model-serving.deployment/wizard-field',
+  properties: {
+    field: () =>
+      import('./src/pages/deploymentWizard/fields/NIMPVCField').then(
+        (m) => m.NIMPVCFieldWizardField,
+      ),
+  },
+  flags: {
+    required: [SupportedArea.NIM_WIZARD],
+  },
+};
+
+const extensions: (
+  | AreaExtension
+  | ProjectDetailsSettingsCardExtension
+  | ModelServingPlatformWatchDeploymentsExtension<NIMDeployment>
+  | DeployedModelServingDetails<NIMDeployment>
+  | ModelServingExcludeDeploymentExtension
+  | DeploymentWizardFieldOverrideExtension
+  | WizardFieldExtension<NIMImageFieldType>
+  | WizardFieldExtension<NIMPVCFieldType>
+)[] = [
   {
     type: 'app.area',
     properties: {
@@ -26,6 +75,50 @@ const extensions: (AreaExtension | ProjectDetailsSettingsCardExtension)[] = [
       required: [SupportedArea.NIM_WIZARD],
     },
   },
+  {
+    type: 'model-serving.platform/watch-deployments',
+    properties: {
+      platform: NIM_ID,
+      watch: () =>
+        import('./src/api/deployments/useWatchDeployments').then((m) => m.useWatchDeployments),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployed-model/serving-runtime',
+    properties: {
+      platform: NIM_ID,
+      ServingDetailsComponent: () => import('./src/pages/deployments/NIMServingDetails'),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.platform/exclude-deployment',
+    properties: {
+      platform: NIM_ID,
+      excludeFromPlatform: 'kserve',
+      filter: () => import('./src/nimOwnership').then((m) => m.isNIMOwned),
+    },
+    flags: {
+      required: [SupportedArea.NIM_WIZARD],
+    },
+  },
+  {
+    type: 'model-serving.deployment/wizard-field-override',
+    properties: {
+      platform: 'nim-wizard',
+      field: () =>
+        import('./src/wizardFields/overrides/NIMModelTypeOverride').then(
+          (m) => m.NIMModelTypeOverride,
+        ),
+    },
+  },
+  nimImageFieldExtension,
+  nimPVCFieldExtension,
 ];
 
 export default extensions;
