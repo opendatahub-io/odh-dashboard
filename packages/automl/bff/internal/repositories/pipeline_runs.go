@@ -680,8 +680,13 @@ func (r *PipelineRunsRepository) GetPipelineRun(
 				"pipelineID", ref.PipelineID,
 				"versionID", ref.PipelineVersionID,
 				"error", vErr)
-		} else if version != nil && len(version.PipelineSpec) > 0 {
-			run.PipelineSpec = version.PipelineSpec
+		} else if version != nil {
+			if len(version.PipelineSpec) > 0 {
+				run.PipelineSpec = version.PipelineSpec
+			}
+			if version.DisplayName != "" {
+				run.PipelineVersionName = version.DisplayName
+			}
 		}
 	}
 

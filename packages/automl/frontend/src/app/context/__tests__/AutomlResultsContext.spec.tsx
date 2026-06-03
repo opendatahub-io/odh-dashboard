@@ -62,6 +62,7 @@ describe('getAutomlContext', () => {
         models,
         modelsLoading: false,
         modelsBasePath: undefined,
+        pipelineVersion: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
@@ -93,6 +94,7 @@ describe('getAutomlContext', () => {
         models: mockModels,
         modelsLoading: undefined,
         modelsBasePath: undefined,
+        pipelineVersion: undefined,
         parameters: {
           display_name: expect.any(String), // Dynamic timestamp
           description: '',
