@@ -16,34 +16,38 @@ export const createMockTabExtension = (
   id: string,
   title: string,
   overrides?: Partial<DetailTabProperties>,
-): LoadedExtension<TestTabExtension> =>
-  ({
+): LoadedExtension<TestTabExtension> => {
+  const properties: DetailTabProperties = {
+    id,
+    title,
+    component: () => Promise.resolve({ default: MockTabContent }),
+    ...overrides,
+  };
+  return {
     type: 'test.details/tab',
-    properties: {
-      id,
-      title,
-      component: () => Promise.resolve({ default: MockTabContent }),
-      ...overrides,
-    },
+    properties,
     uid: `uid-${id}`,
     pluginID: 'test-plugin',
     pluginName: 'test-plugin',
-  } as unknown as LoadedExtension<TestTabExtension>);
+  } as LoadedExtension<TestTabExtension>;
+};
 
 export const createMockActionExtension = (
   id: string,
   label: string,
   overrides?: Partial<ActionProperties>,
-): LoadedExtension<TestActionExtension> =>
-  ({
+): LoadedExtension<TestActionExtension> => {
+  const properties: ActionProperties = {
+    id,
+    label,
+    component: () => Promise.resolve({ default: MockActionComponent }),
+    ...overrides,
+  };
+  return {
     type: 'test.header/action',
-    properties: {
-      id,
-      label,
-      component: () => Promise.resolve({ default: MockActionComponent }),
-      ...overrides,
-    },
+    properties,
     uid: `uid-${id}`,
     pluginID: 'test-plugin',
     pluginName: 'test-plugin',
-  } as unknown as LoadedExtension<TestActionExtension>);
+  } as LoadedExtension<TestActionExtension>;
+};

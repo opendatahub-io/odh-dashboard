@@ -16,8 +16,9 @@ describe('ExtensibleActions', () => {
 
     render(<ExtensibleActions actions={actions} />);
 
-    expect(await screen.findByTestId('action-deploy')).toBeInTheDocument();
-    expect(screen.getByTestId('action-deploy').className).toContain('pf-v6-c-menu__list-item');
+    const element = await screen.findByTestId('action-deploy');
+    expect(element).toBeInTheDocument();
+    expect(element).toHaveClass('pf-v6-c-menu__list-item');
   });
 
   it('should render multiple actions as DropdownItems', async () => {

@@ -3,7 +3,7 @@ import { Badge, Tab, Tabs, TabTitleText, PageSection } from '@patternfly/react-c
 import type { Extension, LoadedExtension } from '@openshift/dynamic-plugin-sdk';
 import { LazyCodeRefComponent } from './LazyCodeRefComponent';
 import type { DetailTabProperties } from '../../extension-points/detail-tabs';
-import { sortExtensionsByGroup } from '../../extension-points/utils';
+import { isValidExtensionId, sortExtensionsByGroup } from '../../extension-points/utils';
 
 const DEFAULT_GROUP = '5_default';
 
@@ -59,7 +59,9 @@ export const ExtensibleDetailTabs = <TExtension extends Extension<string, Detail
   const filteredExtensions = React.useMemo(
     () =>
       sortExtensionsByGroup(
-        filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs,
+        (filterExtension ? extensionTabs.filter(filterExtension) : extensionTabs).filter((ext) =>
+          isValidExtensionId(ext.properties.id),
+        ),
         DEFAULT_GROUP,
       ),
     [extensionTabs, filterExtension],
