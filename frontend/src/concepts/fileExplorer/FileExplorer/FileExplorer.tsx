@@ -881,7 +881,7 @@ interface FileExplorerProps {
   isOpen: boolean;
 
   /** Callback fired when the modal is closed via dismiss or cancel. */
-  onClose: (_event: KeyboardEvent | React.MouseEvent | void) => void;
+  onClose: (_event?: KeyboardEvent | React.MouseEvent) => void;
 
   /** List of available sources to choose from when no single source is pre-selected. */
   sources?: Sources;
