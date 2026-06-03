@@ -15,6 +15,7 @@ import {
   copyApiKeyModal,
   createApiKeyModal,
   subscriptionPopover,
+  subscriptionsTab,
 } from '../../../pages/modelsAsAService';
 import {
   mockAPIKeys,
@@ -175,6 +176,28 @@ describe('API Keys Page', () => {
     apiKeysPage.findEmptyState().should('exist');
     apiKeysPage.findEmptyState().should('contain.text', 'No API keys');
     apiKeysPage.findCreateApiKeyButton().should('exist').and('be.enabled');
+  });
+
+  it('should display a useful error state when the API keys search fails', () => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', {
+      statusCode: 500,
+      body: {
+        error: {
+          code: '500',
+          message:
+            'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+        },
+      },
+    }).as('searchError');
+    apiKeysPage.visit();
+    cy.wait('@searchError');
+    apiKeysPage.findErrorState().should('exist');
+    apiKeysPage
+      .findErrorState()
+      .should(
+        'contain.text',
+        'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
+      );
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -850,5 +873,79 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     cy.contains('Models available to you through your subscriptions, with token limits.').should(
       'exist',
     );
+  });
+
+  it('should display subscription view with search and source filter', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSubscriptionsTable().should('exist');
+
+    subscriptionsTab.findSubscriptionRows().should('have.length', 2);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Basic Team');
+
+    subscriptionsTab.findSearchInput().type('Premium');
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
+
+    subscriptionsTab.clearSearch();
+    subscriptionsTab.findSubscriptionRows().should('have.length', 2);
+
+    subscriptionsTab.selectSourceFilter('Internal');
+
+    subscriptionsTab.findSubscriptionRows().should('have.length', 1);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findSubscriptionsTable().should('not.contain.text', 'Basic Team');
+
+    subscriptionsTab.expandSubscriptionRow(0);
+    subscriptionsTab.findSubscriptionsTable().should('contain.text', 'Granite 3 8B Instruct');
+  });
+
+  it('should display model view with search and source filter', () => {
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    subscriptionsTab.findSortByModelButton().click();
+    subscriptionsTab.findModelsTable().should('exist');
+
+    subscriptionsTab.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.findSearchInput().type('Granite');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Granite 3 8B Instruct');
+    subscriptionsTab.findModelsTable().should('not.contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.clearSearch();
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+
+    subscriptionsTab.selectSourceFilter('External');
+
+    subscriptionsTab.findModelsTable().should('contain.text', 'Flan T5 Small');
+    subscriptionsTab.findModelsTable().should('not.contain.text', 'Granite 3 8B Instruct');
+
+    subscriptionsTab.expandModelGroupRow(0);
+    subscriptionsTab.findModelsTable().should('contain.text', 'Premium Team');
+    subscriptionsTab.findModelsTable().should('contain.text', 'Basic Team');
+  });
+
+  it('should show empty state when no subscriptions exist', () => {
+    cy.interceptOdh('GET /maas/api/v1/subscriptions', { data: [] }).as('emptySubscriptions');
+
+    apiKeysPage.visitKeysAndSubs();
+    cy.wait('@initialSearch');
+
+    apiKeysPage.findSubscriptionsTab().click();
+    cy.wait('@emptySubscriptions');
+
+    subscriptionsTab.findEmptyState().should('exist');
+    subscriptionsTab.findSubscriptionsTable().should('not.exist');
+
+    subscriptionsTab.findSortByModelButton().click();
+    cy.findByTestId('empty-models').should('exist');
+    subscriptionsTab.findModelsTable().should('not.exist');
   });
 });
