@@ -9,10 +9,14 @@ import (
 type BFFTarget string
 
 const (
-	BFFTargetMaaS          BFFTarget = "maas"
-	BFFTargetGenAI         BFFTarget = "gen-ai"
+	// BFFTargetMaaS represents the MaaS BFF service.
+	BFFTargetMaaS BFFTarget = "maas"
+	// BFFTargetGenAI represents the Gen AI BFF service.
+	BFFTargetGenAI BFFTarget = "gen-ai"
+	// BFFTargetModelRegistry represents the Model Registry BFF service.
 	BFFTargetModelRegistry BFFTarget = "model-registry"
-	BFFTargetMLflow        BFFTarget = "mlflow"
+	// BFFTargetMLflow represents the MLflow BFF service.
+	BFFTargetMLflow BFFTarget = "mlflow"
 )
 
 // BFFServiceConfig holds configuration for connecting to a BFF service

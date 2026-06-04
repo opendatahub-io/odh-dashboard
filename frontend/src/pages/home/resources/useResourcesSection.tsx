@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Button,
   EmptyState,
@@ -26,7 +26,6 @@ const includedCards = [
 ];
 
 export const useResourcesSection = (): React.ReactNode => {
-  const navigate = useNavigate();
   const { docs, loaded, loadError } = useSpecifiedResources(includedCards);
   const [resourcesOpen, setResourcesOpen] = useBrowserStorage<boolean>(
     'odh.home.learning-resources.open',
@@ -78,10 +77,9 @@ export const useResourcesSection = (): React.ReactNode => {
           <StackItem>
             <Button
               data-testid="goto-learning-resources-link"
-              // Should not use component="a" due to no href
               isInline
               variant="link"
-              onClick={() => navigate('/learning-resources')}
+              component={(props) => <Link {...props} to="/learning-resources" />}
             >
               Go to <b>Learning resources</b>
             </Button>
