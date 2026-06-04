@@ -27,6 +27,8 @@ import (
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack"
 	"github.com/opendatahub-io/gen-ai/internal/integrations/llamastack/lsmocks"
 	maasmocks "github.com/opendatahub-io/gen-ai/internal/integrations/maas/maasmocks"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo"
+	"github.com/opendatahub-io/gen-ai/internal/integrations/nemo/nemomocks"
 	"github.com/opendatahub-io/gen-ai/internal/models"
 	"github.com/opendatahub-io/gen-ai/internal/repositories"
 	"github.com/opendatahub-io/gen-ai/internal/testutil"
@@ -69,7 +71,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should create response with required parameters only", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello, how are you?",
+			Input: llamastack.InputUnion{Text: "Hello, how are you?"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -115,11 +117,11 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		temperature := 0.7
 
 		payload := CreateResponseRequest{
-			Input: "Tell me about AI",
+			Input: llamastack.InputUnion{Text: "Tell me about AI"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "What is machine learning?"},
-				{Role: "assistant", Content: "Machine learning is a subset of AI."},
+				{Role: "user", Content: llamastack.InputUnion{Text: "What is machine learning?"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Machine learning is a subset of AI."}},
 			},
 			Temperature:  &temperature,
 			Instructions: "You are a helpful AI assistant.",
@@ -153,7 +155,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should accept subscription field without affecting non-MaaS response", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:        "Hello from MaaS",
+			Input:        llamastack.InputUnion{Text: "Hello from MaaS"},
 			Model:        testutil.GetTestLlamaStackModel(),
 			Subscription: "premium-subscription",
 		}
@@ -212,7 +214,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should return error when model is missing", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello, world!",
+			Input: llamastack.InputUnion{Text: "Hello, world!"},
 		}
 
 		req, err := createJSONRequest(payload)
@@ -238,7 +240,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should return error when allowed_tools contains empty string", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP with allowed_tools validation",
+			Input: llamastack.InputUnion{Text: "Test MCP with allowed_tools validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -274,12 +276,12 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle chat context correctly", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Continue the conversation",
+			Input: llamastack.InputUnion{Text: "Continue the conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "Hello"},
-				{Role: "assistant", Content: "Hi there! How can I help you?"},
-				{Role: "user", Content: "Tell me about AI"},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Hello"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Hi there! How can I help you?"}},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Tell me about AI"}},
 			},
 		}
 
@@ -314,7 +316,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.NotNil(t, app.repositories.Responses)
 
 		payload := CreateResponseRequest{
-			Input: "Test unified repository",
+			Input: llamastack.InputUnion{Text: "Test unified repository"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -374,7 +376,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should validate MCP server parameters in request", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP server integration",
+			Input: llamastack.InputUnion{Text: "Test MCP server integration"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -402,7 +404,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle MCP server validation errors", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP validation",
+			Input: llamastack.InputUnion{Text: "Test MCP validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -434,7 +436,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle missing MCP server URL validation", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Test MCP validation",
+			Input: llamastack.InputUnion{Text: "Test MCP validation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			MCPServers: []MCPServer{
 				{
@@ -466,7 +468,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should create response with previous response ID", func() {
 		t := GinkgoT()
 		firstPayload := CreateResponseRequest{
-			Input: "First message in conversation",
+			Input: llamastack.InputUnion{Text: "First message in conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -492,7 +494,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		require.True(t, ok, "expected id to be a string")
 
 		payload := CreateResponseRequest{
-			Input:              "Continue our conversation",
+			Input:              llamastack.InputUnion{Text: "Continue our conversation"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: prevResponseID,
 		}
@@ -524,7 +526,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should reject invalid previous response ID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:              "Continue our conversation",
+			Input:              llamastack.InputUnion{Text: "Continue our conversation"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: "invalid-response-id-does-not-exist",
 		}
@@ -551,7 +553,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should handle empty previous response ID", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:              "Hello, how are you?",
+			Input:              llamastack.InputUnion{Text: "Hello, how are you?"},
 			Model:              testutil.GetTestLlamaStackModel(),
 			PreviousResponseID: "",
 		}
@@ -585,11 +587,11 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 	It("should reject request with both chat_context and previous_response_id", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Continue our conversation",
+			Input: llamastack.InputUnion{Text: "Continue our conversation"},
 			Model: testutil.GetTestLlamaStackModel(),
 			ChatContext: []ChatContextMessage{
-				{Role: "user", Content: "Hello"},
-				{Role: "assistant", Content: "Hi there!"},
+				{Role: "user", Content: llamastack.InputUnion{Text: "Hello"}},
+				{Role: "assistant", Content: llamastack.InputUnion{Text: "Hi there!"}},
 			},
 			PreviousResponseID: "prev-response-123",
 		}
@@ -620,7 +622,7 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
-			Input:          "What is machine learning?",
+			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
 			Model:          testutil.GetTestLlamaStackModel(),
 			VectorStoreIDs: []string{vsID},
 		}
@@ -651,6 +653,143 @@ var _ = Describe("LlamaStackCreateResponseHandler", func() {
 		assert.Equal(t, "completed", responseData["status"])
 		assert.NotNil(t, responseData["output"], "expected output from RAG response")
 	})
+
+	It("should create response with multimodal input (text + vision image)", func() {
+		t := GinkgoT()
+
+		lsClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+
+		// Upload a small PNG image to the OGX Files API with purpose "vision"
+		imgData := []byte{
+			0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
+			0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 pixel
+			0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, // RGB, 8-bit
+			0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, // IDAT chunk
+			0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00, // compressed
+			0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, // data
+			0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, // IEND chunk
+			0x44, 0xAE, 0x42, 0x60, 0x82,
+		}
+		uploadResult, err := lsClient.UploadFile(context.Background(), llamastack.UploadFileParams{
+			Reader:      bytes.NewReader(imgData),
+			Filename:    "test_pixel.png",
+			ContentType: "image/png",
+			Purpose:     "vision",
+		})
+		require.NoError(t, err, "vision file upload to OGX must succeed")
+		require.NotEmpty(t, uploadResult.FileID, "must get a file_id back")
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Parts: []llamastack.InputContentPart{
+				{Type: "input_text", Text: "What do you see in this image? Reply in one sentence."},
+				{Type: "input_image", FileID: uploadResult.FileID},
+			}},
+			Model: testutil.GetTestLlamaStackModel(),
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, lsClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Equal(t, http.StatusCreated, rr.Code, "multimodal response failed: %s", string(body))
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		responseData, ok := response["data"].(map[string]interface{})
+		require.True(t, ok, "expected data to be a map")
+		assert.NotEmpty(t, responseData["id"])
+		assert.Equal(t, "completed", responseData["status"])
+
+		output := responseData["output"].([]interface{})
+		require.Greater(t, len(output), 0, "expected at least one output item")
+		lastItem := output[len(output)-1].(map[string]interface{})
+		assert.Equal(t, "message", lastItem["type"])
+		assert.Equal(t, "assistant", lastItem["role"])
+
+		content := lastItem["content"].([]interface{})
+		require.Greater(t, len(content), 0, "expected content in response")
+		textPart := content[0].(map[string]interface{})
+		assert.Equal(t, "output_text", textPart["type"])
+		assert.NotEmpty(t, textPart["text"], "vision model should return text describing the image")
+	})
+
+	It("should create response with multimodal chat_context follow-up", func() {
+		t := GinkgoT()
+
+		lsClient := app.llamaStackClientFactory.CreateClient(testutil.GetTestLlamaStackURL(), "token_mock", false, nil, "/v1")
+
+		imgData := []byte{
+			0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+			0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+			0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+			0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+			0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+			0x54, 0x08, 0xD7, 0x63, 0xF8, 0xCF, 0xC0, 0x00,
+			0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC,
+			0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+			0x44, 0xAE, 0x42, 0x60, 0x82,
+		}
+		uploadResult, err := lsClient.UploadFile(context.Background(), llamastack.UploadFileParams{
+			Reader:      bytes.NewReader(imgData),
+			Filename:    "test_followup.png",
+			ContentType: "image/png",
+			Purpose:     "vision",
+		})
+		require.NoError(t, err)
+
+		payload := CreateResponseRequest{
+			Input: llamastack.InputUnion{Text: "What colors did you see? Reply in one sentence."},
+			Model: testutil.GetTestLlamaStackModel(),
+			ChatContext: []ChatContextMessage{
+				{
+					Role: "user",
+					Content: llamastack.ContentUnion{Parts: []llamastack.InputContentPart{
+						{Type: "input_text", Text: "Describe this image briefly."},
+						{Type: "input_image", FileID: uploadResult.FileID},
+					}},
+				},
+				{
+					Role:    "assistant",
+					Content: llamastack.ContentUnion{Text: "The image appears to be a small test image."},
+				},
+			},
+		}
+
+		req, err := createJSONRequest(payload)
+		assert.NoError(t, err)
+
+		ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, lsClient)
+		req = req.WithContext(ctx)
+
+		rr := httptest.NewRecorder()
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+
+		body, err := io.ReadAll(rr.Result().Body)
+		assert.NoError(t, err)
+		defer rr.Result().Body.Close()
+
+		assert.Equal(t, http.StatusCreated, rr.Code, "multimodal follow-up failed: %s", string(body))
+
+		var response map[string]interface{}
+		err = json.Unmarshal(body, &response)
+		assert.NoError(t, err)
+
+		responseData, ok := response["data"].(map[string]interface{})
+		require.True(t, ok)
+		assert.Equal(t, "completed", responseData["status"])
+	})
 })
 
 var _ = Describe("StreamingContextCancellation", func() {
@@ -672,7 +811,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 	It("should stop streaming when context is cancelled (simulating stop button)", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Tell me a long story",
+			Input:  llamastack.InputUnion{Text: "Tell me a long story"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -732,7 +871,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 	It("should handle immediate context cancellation (already cancelled)", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Hello",
+			Input:  llamastack.InputUnion{Text: "Hello"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -773,7 +912,7 @@ var _ = Describe("StreamingContextCancellation", func() {
 
 	It("should cleanup resources when context is cancelled", func() {
 		payload := CreateResponseRequest{
-			Input:  "Test cleanup",
+			Input:  llamastack.InputUnion{Text: "Test cleanup"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -860,7 +999,7 @@ var _ = Describe("ResponseMetrics", func() {
 	It("should include metrics with latency and usage in non-streaming response", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input: "Hello",
+			Input: llamastack.InputUnion{Text: "Hello"},
 			Model: testutil.GetTestLlamaStackModel(),
 		}
 
@@ -934,7 +1073,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 	It("should emit response.metrics event at end of stream", func() {
 		t := GinkgoT()
 		payload := CreateResponseRequest{
-			Input:  "Hello",
+			Input:  llamastack.InputUnion{Text: "Hello"},
 			Model:  testutil.GetTestLlamaStackModel(),
 			Stream: true,
 		}
@@ -1014,7 +1153,7 @@ var _ = Describe("StreamingResponseMetrics", func() {
 		require.NotEmpty(t, vsID, "SeedResult.VectorStoreID must be set by SeedData")
 
 		payload := CreateResponseRequest{
-			Input:          "What is machine learning?",
+			Input:          llamastack.InputUnion{Text: "What is machine learning?"},
 			Model:          testutil.GetTestLlamaStackModel(),
 			Stream:         true,
 			VectorStoreIDs: []string{vsID},
@@ -1978,7 +2117,7 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 	t.Run("non-streaming RAG strips markers and produces annotations", func(t *testing.T) {
 		params := llamastack.CreateResponseParams{
-			Input:          "What is AI?",
+			Input:          llamastack.InputUnion{Text: "What is AI?"},
 			Model:          "test-model",
 			VectorStoreIDs: []string{"vs_mock123"},
 		}
@@ -2013,7 +2152,7 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 
 	t.Run("streaming RAG strips markers and produces annotations in completed event", func(t *testing.T) {
 		params := llamastack.CreateResponseParams{
-			Input:          "What is AI?",
+			Input:          llamastack.InputUnion{Text: "What is AI?"},
 			Model:          "test-model",
 			VectorStoreIDs: []string{"vs_mock123"},
 		}
@@ -2056,4 +2195,502 @@ func TestMockRAGCitationPipeline(t *testing.T) {
 	})
 
 	_ = app // ensure app is referenced for future handler-level tests
+}
+
+// TestIsEventTypeSupported_ReasoningEvents verifies reasoning event types are supported
+func TestIsEventTypeSupported_ReasoningEvents(t *testing.T) {
+	t.Run("should support response.reasoning_text.delta", func(t *testing.T) {
+		assert.True(t, isEventTypeSupported("response.reasoning_text.delta"))
+	})
+
+	t.Run("should support response.reasoning_text.done", func(t *testing.T) {
+		assert.True(t, isEventTypeSupported("response.reasoning_text.done"))
+	})
+
+	t.Run("should still support existing event types", func(t *testing.T) {
+		assert.True(t, isEventTypeSupported("response.output_text.delta"))
+		assert.True(t, isEventTypeSupported("response.completed"))
+		assert.True(t, isEventTypeSupported("response.created"))
+	})
+
+	t.Run("should not support unknown event types", func(t *testing.T) {
+		assert.False(t, isEventTypeSupported("response.unknown"))
+		assert.False(t, isEventTypeSupported(""))
+	})
+}
+
+// TestConvertToStreamingEvent_ReasoningEvents verifies reasoning events are correctly converted
+func TestConvertToStreamingEvent_ReasoningEvents(t *testing.T) {
+	t.Run("should convert reasoning_text.delta with delta field", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":            "response.reasoning_text.delta",
+			"sequence_number": float64(5),
+			"item_id":         "msg_123",
+			"output_index":    float64(0),
+			"delta":           "Let me think",
+		}
+
+		result := convertToStreamingEvent(event)
+
+		require.NotNil(t, result, "reasoning delta should not be filtered out")
+		assert.Equal(t, "response.reasoning_text.delta", result.Type)
+		assert.Equal(t, "Let me think", result.Delta)
+		assert.Equal(t, "msg_123", result.ItemID)
+	})
+
+	t.Run("should convert reasoning_text.done with text field", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":            "response.reasoning_text.done",
+			"sequence_number": float64(10),
+			"item_id":         "msg_123",
+			"output_index":    float64(0),
+			"text":            "Let me think about this carefully.",
+		}
+
+		result := convertToStreamingEvent(event)
+
+		require.NotNil(t, result, "reasoning done should not be filtered out")
+		assert.Equal(t, "response.reasoning_text.done", result.Type)
+		assert.Equal(t, "Let me think about this carefully.", result.Text)
+		assert.Equal(t, "msg_123", result.ItemID)
+	})
+
+	t.Run("should still filter unsupported event types", func(t *testing.T) {
+		event := map[string]interface{}{
+			"type":            "response.unknown_event",
+			"sequence_number": float64(1),
+			"output_index":    float64(0),
+		}
+
+		result := convertToStreamingEvent(event)
+		assert.Nil(t, result, "unsupported event type should be filtered out")
+	})
+}
+
+// reasoningFirstClient is an inline mock that emits reasoning_text.delta events before
+// output_text.delta, used to verify TTFT fires only on the output delta.
+type reasoningFirstClient struct {
+	*lsmocks.MockLlamaStackClient
+}
+
+func (r *reasoningFirstClient) CreateResponseStream(_ context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	build := func(data map[string]interface{}) responses.ResponseStreamEventUnion {
+		b, _ := json.Marshal(data)
+		var ev responses.ResponseStreamEventUnion
+		_ = json.Unmarshal(b, &ev)
+		return ev
+	}
+
+	itemID := "msg_reasoning_first_test"
+	events := []responses.ResponseStreamEventUnion{
+		build(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_first", "model": params.Model,
+				"status": "in_progress", "created_at": 1234567890.0,
+			},
+		}),
+		// Reasoning delta arrives before any output text
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "I am thinking...",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"text":            "I am thinking...",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.content_part.added",
+			"sequence_number": 3,
+			"item_id":         itemID,
+			"output_index":    0,
+		}),
+		// First output text delta — this is when TTFT should be recorded
+		build(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": 4,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "The answer",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 5,
+			"output_index":    0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_first", "model": params.Model,
+				"status": "completed", "created_at": 1234567890.0,
+				"output": []interface{}{
+					map[string]interface{}{
+						"id": itemID, "type": "message", "role": "assistant",
+						"status": "completed",
+						"content": []interface{}{
+							map[string]interface{}{"type": "output_text", "text": "The answer"},
+						},
+					},
+				},
+			},
+		}),
+	}
+	return lsmocks.NewMockStreamIterator(events), nil
+}
+
+// TestTTFTFiresOnOutputDelta verifies that TTFT is recorded on the first output_text.delta
+// and NOT on reasoning_text.delta events that may precede it.
+func TestTTFTFiresOnOutputDelta(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config:                  config.EnvConfig{Port: 4000},
+		logger:                  logger,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		repositories:            repositories.NewRepositories(),
+	}
+
+	payload := CreateResponseRequest{
+		Input:  llamastack.InputUnion{Text: "Reason then answer"},
+		Model:  "test-model",
+		Stream: true,
+	}
+	jsonData, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Inject the custom client that emits reasoning before output
+	client := &reasoningFirstClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, client)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+	done := make(chan bool)
+	go func() {
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+		done <- true
+	}()
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("Handler did not complete in time")
+	}
+
+	events := parseSSEEvents(rr.Body.String())
+	var metricsEvent map[string]interface{}
+	for _, ev := range events {
+		if et, _ := ev["type"].(string); et == "response.metrics" {
+			metricsEvent = ev
+		}
+	}
+	require.NotNil(t, metricsEvent, "response.metrics event should be present")
+	metrics, ok := metricsEvent["metrics"].(map[string]interface{})
+	require.True(t, ok, "metrics field should be a map")
+	ttft, ok := metrics["time_to_first_token_ms"].(float64)
+	require.True(t, ok, "time_to_first_token_ms should be present")
+	assert.GreaterOrEqual(t, ttft, float64(0), "TTFT should be non-negative; fires on output_text.delta, not reasoning_text.delta")
+}
+
+// TestStreamingNoReasoningEvents verifies that no reasoning events appear in SSE output
+// when the model does not emit them.
+func TestStreamingNoReasoningEvents(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		logger:                  logger,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		repositories:            repositories.NewRepositories(),
+	}
+
+	payload := CreateResponseRequest{
+		Input:  llamastack.InputUnion{Text: "Hello"},
+		Model:  "test-model",
+		Stream: true,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, bytes.NewBuffer(jsonData))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	llamaStackClient := lsmocks.NewMockLlamaStackClient()
+	ctx := context.WithValue(req.Context(), constants.LlamaStackClientKey, llamaStackClient)
+	req = req.WithContext(ctx)
+
+	rr := httptest.NewRecorder()
+
+	done := make(chan bool)
+	go func() {
+		app.LlamaStackCreateResponseHandler(rr, req, nil)
+		done <- true
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(30 * time.Second):
+		t.Fatal("Handler did not complete in time")
+	}
+
+	body := rr.Body.String()
+	events := parseSSEEvents(body)
+
+	for _, event := range events {
+		eventType, _ := event["type"].(string)
+		assert.NotEqual(t, "response.reasoning_text.delta", eventType, "should not have reasoning events")
+		assert.NotEqual(t, "response.reasoning_text.done", eventType, "should not have reasoning events")
+	}
+
+	hasTextDelta := false
+	for _, event := range events {
+		if eventType, _ := event["type"].(string); eventType == "response.output_text.delta" {
+			hasTextDelta = true
+			break
+		}
+	}
+	assert.True(t, hasTextDelta, "should still have output_text.delta events")
+}
+
+// reasoningEmittingClient always emits reasoning_text.delta events before output text,
+// regardless of any request parameters.
+type reasoningEmittingClient struct {
+	*lsmocks.MockLlamaStackClient
+}
+
+func (r *reasoningEmittingClient) CreateResponseStream(_ context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	build := func(data map[string]interface{}) responses.ResponseStreamEventUnion {
+		b, _ := json.Marshal(data)
+		var ev responses.ResponseStreamEventUnion
+		_ = json.Unmarshal(b, &ev)
+		return ev
+	}
+
+	itemID := "msg_reasoning_emit_test"
+	reasoningText := "Let me reason about this."
+	events := []responses.ResponseStreamEventUnion{
+		build(map[string]interface{}{
+			"type":            "response.created",
+			"sequence_number": 0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_emit", "model": params.Model,
+				"status": "in_progress", "created_at": 1234567890.0,
+			},
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.delta",
+			"sequence_number": 1,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           reasoningText,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.reasoning_text.done",
+			"sequence_number": 2,
+			"item_id":         itemID,
+			"output_index":    0,
+			"text":            reasoningText,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.content_part.added",
+			"sequence_number": 3,
+			"item_id":         itemID,
+			"output_index":    0,
+		}),
+		build(map[string]interface{}{
+			"type":            "response.output_text.delta",
+			"sequence_number": 4,
+			"item_id":         itemID,
+			"output_index":    0,
+			"delta":           "The answer is here.",
+		}),
+		build(map[string]interface{}{
+			"type":            "response.completed",
+			"sequence_number": 5,
+			"output_index":    0,
+			"response": map[string]interface{}{
+				"id": "resp_reasoning_emit", "model": params.Model,
+				"status": "completed", "created_at": 1234567890.0,
+				"output": []interface{}{
+					map[string]interface{}{
+						"id": itemID, "type": "message", "role": "assistant",
+						"status": "completed",
+						"content": []interface{}{
+							map[string]interface{}{"type": "output_text", "text": "The answer is here."},
+						},
+					},
+				},
+			},
+		}),
+	}
+	return lsmocks.NewMockStreamIterator(events), nil
+}
+
+// TestAsyncModerationWithReasoning verifies reasoning events flow through the async
+// moderation pipeline and that reasoning_text.done is not silently dropped.
+func TestAsyncModerationWithReasoning(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	app := App{
+		config: config.EnvConfig{
+			Port: 4000,
+		},
+		logger:                  logger,
+		llamaStackClientFactory: lsmocks.NewMockClientFactory(),
+		repositories:            repositories.NewRepositories(),
+	}
+
+	guardrailOpts := buildInlineGuardrailOptions(
+		"http://mock-guardrail/v1",
+		"llama-guard-3",
+		"test-key",
+		"",
+		"Check output: {{ bot_response }}",
+	)
+
+	t.Run("should stream reasoning events through async moderation", func(t *testing.T) {
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+		nemoClient := nemomocks.NewMockNemoClient()
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+
+		params := llamastack.CreateResponseParams{
+			Input:         llamastack.InputUnion{Text: "Think step by step"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
+		}
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+
+		done := make(chan bool)
+		go func() {
+			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			done <- true
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			t.Fatal("handleStreamingResponseAsync did not complete in time")
+		}
+
+		body := rr.Body.String()
+		events := parseSSEEvents(body)
+		require.Greater(t, len(events), 0, "should have received events")
+
+		var eventTypes []string
+		for _, event := range events {
+			if et, ok := event["type"].(string); ok {
+				eventTypes = append(eventTypes, et)
+			}
+		}
+
+		assert.Contains(t, eventTypes, "response.output_text.delta", "output text deltas should still be present")
+		assert.Contains(t, eventTypes, "response.completed", "completed event should be present")
+		assert.Contains(t, eventTypes, "response.metrics", "metrics event should be emitted")
+	})
+
+	t.Run("should moderate reasoning content through guardrails", func(t *testing.T) {
+		llamaStackClient := lsmocks.NewMockLlamaStackClient()
+
+		var moderatedTexts []string
+		nemoClient := &nemomocks.MockNemoClient{
+			CheckGuardrailsFunc: func(_ context.Context, messages []nemo.Message, _ nemo.GuardrailsOptions) (*nemo.GuardrailCheckResponse, error) {
+				for _, msg := range messages {
+					if msg.Role == nemo.RoleAssistant {
+						moderatedTexts = append(moderatedTexts, msg.Content)
+					}
+				}
+				return &nemo.GuardrailCheckResponse{Status: nemo.StatusSuccess}, nil
+			},
+		}
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, llamaStackClient)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+
+		params := llamastack.CreateResponseParams{
+			Input:         llamastack.InputUnion{Text: "Think about safety"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
+		}
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+
+		done := make(chan bool)
+		go func() {
+			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			done <- true
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			t.Fatal("handleStreamingResponseAsync did not complete in time")
+		}
+
+		assert.Greater(t, len(moderatedTexts), 0, "guardrails should have been called with output text")
+
+		combinedModerated := strings.Join(moderatedTexts, " ")
+		assert.NotEmpty(t, combinedModerated, "moderated text should be non-empty")
+	})
+
+	t.Run("should forward reasoning_text.delta and reasoning_text.done through async moderation", func(t *testing.T) {
+		// reasoningEmittingClient always emits reasoning events unconditionally,
+		// verifying that the async moderation path correctly forwards them.
+		client := &reasoningEmittingClient{MockLlamaStackClient: lsmocks.NewMockLlamaStackClient()}
+		nemoClient := nemomocks.NewMockNemoClient()
+
+		ctx := context.Background()
+		ctx = context.WithValue(ctx, constants.LlamaStackClientKey, client)
+		ctx = context.WithValue(ctx, constants.NemoClientKey, nemoClient)
+
+		params := llamastack.CreateResponseParams{
+			Input:         llamastack.InputUnion{Text: "Think step by step"},
+			Model:         "thinking-model",
+			GuardrailOpts: guardrailOpts,
+		}
+
+		req, err := http.NewRequest(http.MethodPost, "/gen-ai/api/v1/responses?namespace="+testutil.TestNamespace, nil)
+		require.NoError(t, err)
+
+		rr := httptest.NewRecorder()
+		done := make(chan bool)
+		go func() {
+			app.handleStreamingResponseAsync(rr, req, ctx, params)
+			done <- true
+		}()
+		select {
+		case <-done:
+		case <-time.After(30 * time.Second):
+			t.Fatal("handleStreamingResponseAsync did not complete in time")
+		}
+
+		var eventTypes []string
+		for _, ev := range parseSSEEvents(rr.Body.String()) {
+			if et, ok := ev["type"].(string); ok {
+				eventTypes = append(eventTypes, et)
+			}
+		}
+
+		assert.Contains(t, eventTypes, "response.reasoning_text.delta", "reasoning_text.delta must pass through async moderation")
+		assert.Contains(t, eventTypes, "response.reasoning_text.done", "reasoning_text.done must not be dropped in async path")
+		assert.Contains(t, eventTypes, "response.output_text.delta", "output_text.delta should still be present")
+		assert.Contains(t, eventTypes, "response.metrics", "metrics event should be emitted")
+	})
 }

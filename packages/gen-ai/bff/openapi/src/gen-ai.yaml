@@ -1487,6 +1487,72 @@ paths:
       summary: Upload File to Vector Store
       description: Uploads a file and adds it to the specified vector store for RAG functionality. Supports custom chunking strategies for optimal document processing.
 
+  /gen-ai/api/v1/lsd/files/vision:
+    summary: Upload vision image file
+    description: >-
+      Synchronous proxy to OGX Files API for vision image uploads.
+      Accepts JPEG or PNG images up to 10MB. Returns the OGX file object
+      with a file_id that can be referenced in multimodal input.
+    post:
+      tags:
+        - Files
+      operationId: uploadVisionFile
+      summary: Upload Vision Image File
+      description: >-
+        Uploads an image file for use in multimodal (vision) conversations.
+        The response contains `data.id` (e.g. `file-cf63f9d8...`); pass this
+        value as `file_id` in an `input_image` content part.
+      parameters:
+        - name: namespace
+          in: query
+          description: Kubernetes namespace for vision file upload
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to upload (JPEG or PNG, max 10MB)
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        pattern: '^file-[a-f0-9]+$'
+                        description: OGX file ID
+                      object:
+                        type: string
+                        enum: [file]
+                      filename:
+                        type: string
+                      purpose:
+                        type: string
+                        enum: [vision]
+                      status:
+                        type: string
+                        enum: [processed]
+        '400':
+          description: Invalid file type or missing file
+        '413':
+          description: File size exceeds 10MB limit
+
   /gen-ai/api/v1/lsd/files/delete:
     summary: Delete file
     description: >-
@@ -2913,12 +2979,35 @@ components:
           example: 'user'
           description: Message role in conversation
         content:
-          type: string
+          oneOf:
+            - type: string
+              description: Text message content (backward compatible)
+            - type: array
+              items:
+                $ref: '#/components/schemas/InputContentPart'
+              description: Structured content parts for multimodal messages
           example: 'Hello, how are you?'
-          description: Message content
+          description: Message content (text string or structured content parts)
       example:
         role: 'assistant'
         content: "Hello! I'm doing well, thank you for asking. How can I help you today?"
+
+    InputContentPart:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [input_text, input_image]
+          description: Content part type
+        text:
+          type: string
+          description: Text content (required when type is input_text)
+        file_id:
+          type: string
+          pattern: '^file-[a-f0-9]+$'
+          description: OGX file ID reference (required when type is input_image)
 
     MCPServerRequestConfig:
       type: object
@@ -2968,10 +3057,16 @@ components:
       properties:
         # === REQUIRED PARAMETERS ===
         input:
-          type: string
-          minLength: 1
+          oneOf:
+            - type: string
+              minLength: 1
+              description: Text input for text-only messages (backward compatible)
+            - type: array
+              items:
+                $ref: '#/components/schemas/InputContentPart'
+              description: Structured content parts for multimodal messages
           example: 'Tell me about artificial intelligence'
-          description: Text input for AI response generation (required)
+          description: Text input or structured content parts for AI response generation (required)
         model:
           type: string
           example: 'ollama/llama3.2:3b'
@@ -3362,6 +3457,8 @@ components:
               response.output_text.delta,
               response.content_part.done,
               response.completed,
+              response.reasoning_text.delta,
+              response.reasoning_text.done,
             ]
           example: 'response.output_text.delta'
           description: Event type
@@ -3373,7 +3470,11 @@ components:
           type: string
           nullable: true
           example: 'Hello'
-          description: Token delta (only present for response.output_text.delta events)
+          description: Token delta (present for response.output_text.delta and response.reasoning_text.delta events)
+        text:
+          type: string
+          nullable: true
+          description: Full text content (present for response.reasoning_text.done and response.content_part.done events)
         item_id:
           type: string
           nullable: true

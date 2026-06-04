@@ -8,8 +8,10 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 )
 
+// UserRepository handles user-related operations.
 type UserRepository struct{}
 
+// NewUserRepository creates a new UserRepository instance.
 func NewUserRepository() *UserRepository {
 	return &UserRepository{}
 }

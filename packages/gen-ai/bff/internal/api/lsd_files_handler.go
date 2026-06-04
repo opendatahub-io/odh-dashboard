@@ -2,12 +2,14 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/gen-ai/internal/constants"
@@ -278,4 +280,98 @@ func (app *App) LlamaStackFileUploadStatusHandler(w http.ResponseWriter, r *http
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+const visionMaxFileSize = 10 << 20 // 10MB
+
+var allowedVisionMIMETypes = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+}
+
+// LlamaStackVisionFileUploadHandler handles POST /gen-ai/api/v1/lsd/files/vision.
+// Synchronous proxy to OGX Files API for vision image uploads.
+func (app *App) LlamaStackVisionFileUploadHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	start := time.Now()
+
+	r.Body = http.MaxBytesReader(w, r.Body, visionMaxFileSize)
+	if err := r.ParseMultipartForm(visionMaxFileSize); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": map[string]string{
+					"message": "file exceeds the 10MB limit for vision uploads",
+				},
+			})
+			return
+		}
+		app.badRequestResponse(w, r, fmt.Errorf("failed to parse multipart form: %w", err))
+		return
+	}
+	defer func() {
+		if r.MultipartForm != nil {
+			_ = r.MultipartForm.RemoveAll()
+		}
+	}()
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		app.badRequestResponse(w, r, errors.New("file is required"))
+		return
+	}
+	defer file.Close()
+
+	contentType := header.Header.Get("Content-Type")
+	if !allowedVisionMIMETypes[contentType] {
+		app.badRequestResponse(w, r, fmt.Errorf("invalid file type '%s'; only image/jpeg and image/png are accepted for vision uploads", contentType))
+		return
+	}
+
+	if header.Size > visionMaxFileSize {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusRequestEntityTooLarge)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": map[string]string{
+				"message": fmt.Sprintf("file size %d bytes exceeds the 10MB limit for vision uploads", header.Size),
+			},
+		})
+		return
+	}
+
+	app.logger.Info("Vision file upload started", "filename", header.Filename, "size", header.Size, "mime", contentType)
+
+	lsClient, ok := r.Context().Value(constants.LlamaStackClientKey).(llamastack.LlamaStackClientInterface)
+	if !ok || lsClient == nil {
+		app.serviceUnavailableResponse(w, r, errors.New("OGX client not available"))
+		return
+	}
+
+	result, err := lsClient.UploadFile(r.Context(), llamastack.UploadFileParams{
+		Reader:      file,
+		Filename:    header.Filename,
+		ContentType: contentType,
+		Purpose:     "vision",
+	})
+	elapsed := time.Since(start).Milliseconds()
+	if err != nil {
+		app.logger.Error("Vision file upload failed", "filename", header.Filename, "error", err, "duration_ms", elapsed)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to upload file to upstream service: %w", err))
+		return
+	}
+
+	app.logger.Info("Vision file upload complete", "filename", header.Filename, "file_id", result.FileID, "duration_ms", elapsed)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": map[string]interface{}{
+			"id":       result.FileID,
+			"object":   "file",
+			"filename": header.Filename,
+			"purpose":  "vision",
+			"status":   "processed",
+		},
+	})
 }

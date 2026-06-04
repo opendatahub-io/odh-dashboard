@@ -1,3 +1,4 @@
+// Package config defines environment-driven configuration for the BFF server.
 package config
 
 import (
@@ -67,16 +68,26 @@ func (d DeploymentMode) IsFederatedMode() bool {
 	return d == DeploymentModeFederated
 }
 
+// EnvConfig holds environment-driven configuration for the BFF server.
 type EnvConfig struct {
-	Port              int
-	MockK8Client      bool
-	MockHTTPClient    bool
-	DevMode           bool
-	DeploymentMode    DeploymentMode
+	// Port is the HTTP server port.
+	Port int
+	// MockK8Client enables mock Kubernetes client mode.
+	MockK8Client bool
+	// MockHTTPClient enables mock HTTP client mode.
+	MockHTTPClient bool
+	// DevMode enables development mode.
+	DevMode bool
+	// DeploymentMode specifies federated or standalone deployment.
+	DeploymentMode DeploymentMode
+	// DevModeClientPort is the frontend dev server port.
 	DevModeClientPort int
-	StaticAssetsDir   string
-	LogLevel          slog.Level
-	AllowedOrigins    []string
+	// StaticAssetsDir is the directory for serving static assets.
+	StaticAssetsDir string
+	// LogLevel is the logging level.
+	LogLevel slog.Level
+	// AllowedOrigins lists CORS allowed origins.
+	AllowedOrigins []string
 	// BundlePaths is a list of filesystem paths to PEM-encoded CA bundle files.
 	// If provided, the application will attempt to load these files and add the
 	// certificates to the HTTP client's Root CAs for outbound TLS connections.

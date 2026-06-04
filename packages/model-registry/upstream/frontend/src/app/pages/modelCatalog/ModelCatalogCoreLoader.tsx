@@ -11,7 +11,7 @@ import {
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
-import EmptyModelCatalogState from './EmptyModelCatalogState';
+import { EmptyCatalogState } from '~/app/shared/components/catalog';
 import { hasSourcesWithModels } from './utils/modelCatalogUtils';
 
 type ModelCatalogCoreLoaderProps = {
@@ -75,7 +75,7 @@ const ModelCatalogCoreLoader: React.FC<ModelCatalogCoreLoaderProps> = ({
         description="Discover models that are available for your organization to register, deploy, and customize."
         empty
         emptyStatePage={
-          <EmptyModelCatalogState
+          <EmptyCatalogState
             testid="empty-model-catalog-state"
             title={
               customEmptyStateTitle ??

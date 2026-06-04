@@ -31,9 +31,11 @@ test: fmt vet ## Run tests.
 
 ##@ Build
 
+SAFE_VERSION := $(shell git describe --tags --always --dirty 2>/dev/null | tr -cd '[:alnum:]_.-' || echo "unknown")
+
 .PHONY: build
 build: fmt vet ## Build manager binary.
-	go build -o bin/manager ./cmd/manager
+	go build -ldflags "-X github.com/opendatahub-io/odh-dashboard/dashboard-operator/internal/controller.Version=$(SAFE_VERSION)" -o bin/manager ./cmd/manager
 
 .PHONY: run
 run: fmt vet ## Run the controller from your host.
