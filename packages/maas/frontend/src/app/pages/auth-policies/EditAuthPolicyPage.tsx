@@ -28,7 +28,7 @@ const EditAuthPolicyPage: React.FC = () => {
           <BreadcrumbItem isActive>{displayName || authPolicyName}</BreadcrumbItem>
         </Breadcrumb>
       }
-      loaded={loaded}
+      loaded={loaded || !!loadError}
       empty={false}
       loadError={loadError}
       errorMessage="Unable to load policy."

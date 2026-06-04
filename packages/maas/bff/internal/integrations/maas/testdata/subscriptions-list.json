@@ -11,7 +11,7 @@
       {
         "name": "granite-3-8b-instruct",
         "display_name": "Granite 3 8B Instruct",
-        "source": "internal",
+        "source": "Internal",
         "description": "Granite 3 8B Instruct is a large language model that is used for advanced tasks.",
         "namespace": "maas-models",
         "token_rate_limits": [
@@ -21,7 +21,7 @@
       {
         "name": "flan-t5-small",
         "display_name": "Flan T5 Small",
-        "source": "external",
+        "source": "External",
         "description": "Flan T5 Small is a small language model that is used for basic tasks.",
         "namespace": "maas-models",
         "token_rate_limits": [
@@ -44,7 +44,7 @@
         "name": "flan-t5-small",
         "display_name": "Flan T5 Small",
         "description": "Flan T5 Small is a small language model that is used for basic tasks.",
-        "source": "external",
+        "source": "External",
         "namespace": "maas-models",
         "token_rate_limits": [
           { "limit": 10000, "window": "24h" }

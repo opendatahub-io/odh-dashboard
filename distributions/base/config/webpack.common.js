@@ -1,9 +1,15 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { ModuleFederationPlugin } = require('@module-federation/enhanced/webpack');
+const deps = require('../package.json').dependencies;
 
 const RELATIVE_DIRNAME = path.resolve(__dirname, '..');
 const SRC_DIR = path.resolve(RELATIVE_DIRNAME, 'src');
 const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
+const PLUGIN_CORE_DIR = path.resolve(RELATIVE_DIRNAME, '../../packages/plugin-core/src');
+// Allows the base shell to compile shared types/components from the main frontend source tree
+const INTERNAL_DIR = path.resolve(RELATIVE_DIRNAME, '../../frontend/src');
+
 module.exports = () => ({
   entry: {
     app: path.join(SRC_DIR, 'index.tsx'),
@@ -13,7 +19,7 @@ module.exports = () => ({
       {
         test: /\.(tsx|ts|jsx|js)?$/,
         exclude: /node_modules/,
-        include: [SRC_DIR],
+        include: [SRC_DIR, PLUGIN_CORE_DIR, INTERNAL_DIR],
         use: [{ loader: 'swc-loader' }],
       },
       {
@@ -25,7 +31,6 @@ module.exports = () => ({
         use: {
           loader: 'file-loader',
           options: {
-            limit: 5000,
             outputPath: 'fonts',
             name: '[name].[ext]',
           },
@@ -80,6 +85,30 @@ module.exports = () => ({
     new HtmlWebpackPlugin({
       template: path.join(SRC_DIR, 'index.html'),
       title: 'App Shell',
+    }),
+    new ModuleFederationPlugin({
+      name: 'host',
+      filename: 'remoteEntry.js',
+      shared: {
+        react: { singleton: true, requiredVersion: deps.react, eager: true },
+        'react-dom': { singleton: true, requiredVersion: deps['react-dom'], eager: true },
+        'react-router': { singleton: true, requiredVersion: deps['react-router'], eager: true },
+        'react-router-dom': {
+          singleton: true,
+          requiredVersion: deps['react-router-dom'],
+          eager: true,
+        },
+        '@patternfly/react-core': {
+          singleton: true,
+          requiredVersion: deps['@patternfly/react-core'],
+        },
+        '@openshift/dynamic-plugin-sdk': {
+          singleton: true,
+          requiredVersion: deps['@openshift/dynamic-plugin-sdk'],
+          eager: true,
+        },
+      },
+      exposes: {},
     }),
   ],
   resolve: {

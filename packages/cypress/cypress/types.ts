@@ -292,6 +292,7 @@ export type DataScienceProjectData = {
   connectionNameSuffix: string;
   adminRoleName: string;
   contributorRoleName: string;
+  contributorK8sRoleName: string;
   connectionDescription: string;
   userSubjectKind: string;
   groupSubjectKind: string;

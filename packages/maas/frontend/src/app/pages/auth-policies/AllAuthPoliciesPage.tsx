@@ -51,8 +51,9 @@ const AllAuthPoliciesPage: React.FC = () => {
       description="Authorization policies, in combination with subscriptions, enable users to consume model endpoints through the API gateway."
       empty={loaded && !error && authPolicies.length === 0}
       emptyStatePage={<EmptyAuthPoliciesPage />}
-      loaded={loaded}
+      loaded={loaded || !!error}
       loadError={error}
+      errorMessage="Error loading authorization policies"
     >
       {loaded && (
         <PageSection isFilled>

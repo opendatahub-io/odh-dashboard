@@ -9,16 +9,16 @@ metadata:
     pipelinesascode.tekton.dev/cancel-in-progress: "true"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: |
-      event == "pull_request" 
+      event == "pull_request"
       && target_branch == "main"
-      && ( "packages/autorag/**".pathChanged()
-            || ".tekton/odh-mod-arch-autorag-ci-pull-request.yaml".pathChanged() )
+      && ( "packages/automl/**".pathChanged()
+            || ".tekton/odh-mod-arch-automl-ci-pull-request.yaml".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: opendatahub-builds
-    appstudio.openshift.io/component: odh-mod-arch-autorag-ci
+    appstudio.openshift.io/component: odh-mod-arch-automl-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-autorag-ci-pull-request
+  name: odh-mod-arch-automl-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:
@@ -27,9 +27,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/opendatahub/odh-mod-arch-autorag:odh-pr
+    value: quay.io/opendatahub/odh-mod-arch-automl:odh-pr
   - name: dockerfile
-    value: packages/autorag/Dockerfile.workspace
+    value: packages/automl/Dockerfile.workspace
   - name: path-context
     value: .
   - name: pipeline-type
@@ -47,7 +47,7 @@ spec:
     - name: pathInRepo
       value: pipeline/multi-arch-container-build.yaml
   taskRunTemplate:
-    serviceAccountName: build-pipeline-odh-mod-arch-autorag-ci
+    serviceAccountName: build-pipeline-odh-mod-arch-automl-ci
   workspaces:
   - name: git-auth
     secret:
