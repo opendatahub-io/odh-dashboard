@@ -9,7 +9,7 @@ import {
 import { getFiles as getS3Files } from '~/app/api/s3.ts';
 import type { AutomlModel } from '~/app/context/AutomlResultsContext';
 import type { PipelineRun, S3ListObjectsResponse } from '~/app/types';
-import { isTabularRun } from '~/app/utilities/utils';
+import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
 
 /* eslint-disable camelcase */
 const METRIC_ALIASES: Record<string, string> = {
@@ -95,13 +95,7 @@ export function useAutomlResults(
 ): UseAutomlResultsReturn {
   // Step 1: Fetch S3 files when pipeline run is in SUCCEEDED state AND runId exists
   const shouldFetchS3Files = pipelineRun?.state === 'SUCCEEDED' && Boolean(runId);
-  const isTabular = isTabularRun(pipelineRun);
-  const rootDir = isTabular
-    ? `autogluon-tabular-training-pipeline`
-    : 'autogluon-timeseries-training-pipeline';
-  const modelGenerationDir = isTabular
-    ? 'autogluon-models-training'
-    : 'autogluon-timeseries-models-training';
+  const { rootDir, modelGenerationDir } = useAutomlOutputDir(pipelineRun);
   const candidateModelsPrefix = shouldFetchS3Files
     ? `${rootDir}/${runId}/${modelGenerationDir}`
     : undefined;
