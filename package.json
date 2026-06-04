@@ -120,6 +120,9 @@
     "redux": "^4.2.0",
     "form-data": "^4.0.4",
     "axios": "^1.15.0",
-    "shell-quote": ">=1.8.4"
+    "shell-quote": ">=1.8.4",
+    "ajv": {
+      "fast-uri": "^3.1.2"
+    }
   }
 }
