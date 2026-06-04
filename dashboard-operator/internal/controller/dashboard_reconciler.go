@@ -191,7 +191,6 @@ func (r *DashboardReconciler) reconcile(
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("RouteNotReady"),
 			conditions.WithMessage("Dashboard route is not yet admitted"))
-		dashboard.Status.URL = ""
 		logger.Info("Dashboard route not yet available, requeuing")
 		requeueAfter = 10 * time.Second
 	case err != nil:
@@ -202,7 +201,6 @@ func (r *DashboardReconciler) reconcile(
 		cm.MarkFalse(string(common.ConditionTypeReady),
 			conditions.WithReason("URLExtractionFailed"),
 			conditions.WithError(err))
-		dashboard.Status.URL = ""
 		logger.Error(err, "Failed to extract dashboard URL")
 
 		return ctrl.Result{}, fmt.Errorf("failed to extract dashboard URL: %w", err)
@@ -212,13 +210,14 @@ func (r *DashboardReconciler) reconcile(
 			conditions.WithMessage("All sub-modules healthy"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
 		dashboard.Status.URL = url
+		logger.Info("Dashboard reconciled successfully", "url", url)
 	}
-
-	logger.Info("Dashboard reconciled successfully", "url", url)
 
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 
+// TODO(RHOAIENG-59938): delete Perses monitoring resources in the observability namespace
+// and any SSA-adopted resources not covered by ownerReference GC.
 func (r *DashboardReconciler) cleanupCrossNamespaceResources(ctx context.Context, _ *v1alpha1.Dashboard) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Cleaning up cross-namespace resources")

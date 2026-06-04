@@ -75,7 +75,7 @@ func main() {
 		Metrics:                metricsserver.Options{BindAddress: metricsAddr},
 		HealthProbeBindAddress: healthProbeAddr,
 		LeaderElection:         leaderElect,
-		LeaderElectionID:       "components.platform.opendatahub.io",
+		LeaderElectionID:       "dashboard.components.platform.opendatahub.io",
 		WebhookServer:          ctrlwebhook.NewServer(ctrlwebhook.Options{Port: webhookPort}),
 	})
 	if err != nil {

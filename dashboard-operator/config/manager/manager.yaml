@@ -29,6 +29,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            # Override point: the ODH Operator sets this to the target
+            # namespace for operand resources (may differ from operator namespace).
             - name: APPLICATIONS_NAMESPACE
               valueFrom:
                 fieldRef:
