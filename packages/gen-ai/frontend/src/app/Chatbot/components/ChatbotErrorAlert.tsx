@@ -35,8 +35,6 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
   'data-testid': dataTestId = 'chatbot-error-alert',
 }) => {
   const { variant, title, description, details, isRetriable } = classifiedError;
-  const [copied, setCopied] = React.useState(false);
-  const copyTimeoutRef = React.useRef<number>();
 
   const handleCopy = async () => {
     const rawError = details.errorCode
@@ -44,23 +42,11 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
       : details.rawMessage;
     try {
       await navigator.clipboard.writeText(rawError);
-      setCopied(true);
-      copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
     } catch {
       // Silently fail - clipboard functionality is non-critical
       // navigator.clipboard.writeText is supported in all target browsers
     }
   };
-
-  // Cleanup timeout on unmount
-  React.useEffect(
-    () => () => {
-      if (copyTimeoutRef.current) {
-        clearTimeout(copyTimeoutRef.current);
-      }
-    },
-    [],
-  );
 
   // Action link for retry (single ReactNode, not array - matches prototype)
   const actionLinks = React.useMemo(() => {
@@ -79,22 +65,6 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
     ? `[${details.errorCode}] ${details.rawMessage}`
     : details.rawMessage;
 
-  const codeBlockRef = React.useRef<HTMLDivElement>(null);
-
-  // TODO: Remove when PatternFly fixes invalid lang attribute on CodeBlock.
-  // See https://github.com/patternfly/patternfly-react/issues/11272
-  // PatternFly v6 CodeBlock sets a lang attribute that isn't a valid ISO language code,
-  // causing accessibility violations. We remove it since error messages are plain text.
-  // This workaround is fragile and will break if PF changes its DOM structure.
-  React.useEffect(() => {
-    if (codeBlockRef.current) {
-      const codeBlockElement = codeBlockRef.current.querySelector('.pf-v6-c-code-block');
-      if (codeBlockElement && codeBlockElement.hasAttribute('lang')) {
-        codeBlockElement.removeAttribute('lang');
-      }
-    }
-  }, []);
-
   return (
     <Alert
       variant={variant}
@@ -108,7 +78,7 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
       <p>{description}</p>
 
       {/* Code block with error details */}
-      <div ref={codeBlockRef}>
+      <div>
         <CodeBlock
           actions={
             <CodeBlockAction>
@@ -117,9 +87,10 @@ const ChatbotErrorAlert: React.FC<ChatbotErrorAlertProps> = ({
                 textId="error-code"
                 aria-label="Copy error to clipboard"
                 onClick={handleCopy}
+                exitDelay={2000}
                 variant="plain"
               >
-                {copied ? 'Copied' : 'Copy'}
+                Copy
               </ClipboardCopyButton>
             </CodeBlockAction>
           }

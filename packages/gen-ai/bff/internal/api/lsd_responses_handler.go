@@ -609,12 +609,17 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 		// Intercept OGX error events (type: "error") before convertToStreamingEvent
 		// which would filter them out. These are top-level errors like "model not found".
-		// event.Code is an HTTP status string (e.g. "404", "500") — parse it so
-		// isRetriable can apply the 429/5xx fallback.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
 		if event.Type == "error" {
 			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
 			component := llamastack.ResolveComponent(event.Code)
-			statusCode, _ := strconv.Atoi(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
 			retriable := app.isRetriable(event.Code, statusCode)
 			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
 			flusher.Flush()

@@ -393,12 +393,17 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		event := stream.Current()
 
 		// Intercept OGX error events before convertToStreamingEvent filters them out.
-		// event.Code is an HTTP status string (e.g. "404", "500") — parse it so
-		// isRetriable can apply the 429/5xx fallback.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
 		if event.Type == "error" {
 			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
 			component := llamastack.ResolveComponent(event.Code)
-			statusCode, _ := strconv.Atoi(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
 			retriable := app.isRetriable(event.Code, statusCode)
 			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
 			return
@@ -569,12 +574,17 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 		event := stream.Current()
 
 		// Intercept OGX error events before convertToStreamingEvent filters them out.
-		// event.Code is an HTTP status string (e.g. "404", "500") — parse it so
-		// isRetriable can apply the 429/5xx fallback.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
 		if event.Type == "error" {
 			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
 			component := llamastack.ResolveComponent(event.Code)
-			statusCode, _ := strconv.Atoi(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
 			retriable := app.isRetriable(event.Code, statusCode)
 			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
 			return
