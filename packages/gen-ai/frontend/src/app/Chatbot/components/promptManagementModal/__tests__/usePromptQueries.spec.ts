@@ -226,6 +226,40 @@ describe('usePromptsList', () => {
     expect(result.prompts[0].latest_version).toBe(3);
   });
 
+  it('should fall back to original latest_version when response version is invalid', async () => {
+    const promptsFromList: MLflowPrompt[] = [
+      {
+        name: 'invalid-version-prompt',
+        description: 'A prompt where version response is malformed',
+        latest_version: 4,
+        tags: {},
+        creation_timestamp: '2024-01-15T10:00:00Z',
+      },
+    ];
+    mockListMLflowPrompts.mockResolvedValue({ prompts: promptsFromList });
+    mockGetMLflowPrompt.mockResolvedValue({ name: 'invalid-version-prompt', version: undefined });
+
+    mockUseInfiniteQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+      error: null,
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
+
+    testHook(usePromptsList)();
+
+    const queryOptions = mockUseInfiniteQuery.mock.calls[0][0] as unknown as {
+      queryFn: (context: { pageParam: string | undefined }) => Promise<{
+        prompts: MLflowPrompt[];
+      }>;
+    };
+    const result = await queryOptions.queryFn({ pageParam: undefined });
+
+    expect(result.prompts[0].latest_version).toBe(4);
+  });
+
   it('should fall back to original latest_version when getMLflowPrompt fails', async () => {
     const promptsFromList: MLflowPrompt[] = [
       {
@@ -258,6 +292,44 @@ describe('usePromptsList', () => {
     const result = await queryOptions.queryFn({ pageParam: undefined });
 
     expect(result.prompts[0].latest_version).toBe(5);
+  });
+
+  it('should batch version correction calls with concurrency limit', async () => {
+    const promptsFromList: MLflowPrompt[] = Array.from({ length: 7 }, (_, i) => ({
+      name: `prompt-${i}`,
+      description: `Prompt ${i}`,
+      latest_version: 10,
+      tags: {},
+      creation_timestamp: '2024-01-15T10:00:00Z',
+    }));
+    mockListMLflowPrompts.mockResolvedValue({ prompts: promptsFromList });
+    mockGetMLflowPrompt.mockImplementation(({ name }: { name: string }) =>
+      Promise.resolve({ name, version: 1 }),
+    );
+
+    mockUseInfiniteQuery.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isFetchingNextPage: false,
+      hasNextPage: false,
+      fetchNextPage: mockFetchNextPage,
+      error: null,
+    } as unknown as ReturnType<typeof useInfiniteQuery>);
+
+    testHook(usePromptsList)();
+
+    const queryOptions = mockUseInfiniteQuery.mock.calls[0][0] as unknown as {
+      queryFn: (context: { pageParam: string | undefined }) => Promise<{
+        prompts: MLflowPrompt[];
+      }>;
+    };
+    const result = await queryOptions.queryFn({ pageParam: undefined });
+
+    expect(mockGetMLflowPrompt).toHaveBeenCalledTimes(7);
+    expect(result.prompts).toHaveLength(7);
+    result.prompts.forEach((prompt) => {
+      expect(prompt.latest_version).toBe(1);
+    });
   });
 
   it('should expose pagination state', () => {
