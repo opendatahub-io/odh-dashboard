@@ -28,7 +28,7 @@ func NewTestApp( //nolint:unused
 	repos *repositories.Repositories,
 ) *App {
 	if repos == nil {
-		repos = repositories.NewRepositories(&agentsmock.Factory{Client: agentsmock.NewClient()})
+		repos = repositories.NewRepositories(&agentsmock.Factory{Client: agentsmock.NewDemoClient()})
 	}
 	return &App{
 		config:                  cfg,

@@ -50,6 +50,9 @@ func main() {
 	flag.BoolVar(&cfg.MockBFFClients, "mock-bff-clients",
 		getEnvAsBool("MOCK_BFF_CLIENTS", false),
 		"Enable mock BFF clients (no real HTTP calls to other BFFs)")
+	flag.BoolVar(&cfg.MockAgentClient, "mock-agent-client",
+		getEnvAsBool("MOCK_AGENT_CLIENT", false),
+		"Enable mock agent data client (demo data instead of Kubernetes)")
 
 	// Deprecated flags - kept for backward compatibility
 	flag.BoolVar(&cfg.StandaloneMode, "standalone-mode", false, "DEPRECATED: Use -deployment-mode=standalone instead")

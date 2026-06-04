@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"maps"
 	"sync"
 
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
@@ -71,7 +72,7 @@ func (c *Client) GetAgent(ctx context.Context, namespace, name string) (*agents.
 	if !ok {
 		return nil, agents.ErrNotFound
 	}
-	copy := detail
+	copy := cloneAgentDetail(detail)
 	return &copy, nil
 }
 
@@ -87,8 +88,45 @@ func (c *Client) GetAgentCard(ctx context.Context, namespace, name string) (*age
 	if !ok {
 		return nil, agents.ErrNotFound
 	}
-	copy := card
+	copy := cloneAgentCard(card)
 	return &copy, nil
+}
+
+func cloneAgentDetail(detail agents.AgentDetail) agents.AgentDetail {
+	copy := agents.AgentDetail{
+		Metadata:     cloneAgentMetadata(detail.Metadata),
+		Spec:         maps.Clone(detail.Spec),
+		Status:       maps.Clone(detail.Status),
+		WorkloadType: detail.WorkloadType,
+		ReadyStatus:  detail.ReadyStatus,
+	}
+	if detail.Service != nil {
+		service := *detail.Service
+		if len(detail.Service.Ports) > 0 {
+			service.Ports = append([]agents.AgentServicePort(nil), detail.Service.Ports...)
+		}
+		copy.Service = &service
+	}
+	return copy
+}
+
+func cloneAgentMetadata(metadata agents.AgentMetadata) agents.AgentMetadata {
+	copy := metadata
+	if len(metadata.Labels) > 0 {
+		copy.Labels = maps.Clone(metadata.Labels)
+	}
+	if len(metadata.Annotations) > 0 {
+		copy.Annotations = maps.Clone(metadata.Annotations)
+	}
+	return copy
+}
+
+func cloneAgentCard(card agents.AgentCard) agents.AgentCard {
+	copy := card
+	if len(card.Skills) > 0 {
+		copy.Skills = append([]agents.AgentSkill(nil), card.Skills...)
+	}
+	return copy
 }
 
 // Factory returns a ClientFactory that always yields this mock client.
