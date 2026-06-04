@@ -23,11 +23,12 @@ const (
 // truth for module metadata. The CR only carries override intent and
 // external dependency signals.
 type ModuleDefinition struct {
-	Name               string
-	Type               ModuleType
-	ContainerName      string
-	Port               int32
-	ImageEnvVar        string
+	Name          string
+	Type          ModuleType
+	ContainerName string
+	Port          int32
+	ImageEnvVar   string
+	// Empty means the module is always deployed (opt-in by default).
 	RequiredComponents []string
 	RequiredModules    []string
 }

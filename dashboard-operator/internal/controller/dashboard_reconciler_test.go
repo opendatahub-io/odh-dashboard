@@ -109,6 +109,8 @@ func TestReconcile_NotFound(t *testing.T) {
 }
 
 func TestReconcile(t *testing.T) {
+	registrySize := len(ctrlpkg.ModuleNames())
+
 	tests := []struct {
 		name             string
 		generation       int64
@@ -162,7 +164,7 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  2,
-			wantModuleCount: 9,
+			wantModuleCount: registrySize,
 		},
 		{
 			name:       "observed generation matches CR",
@@ -175,7 +177,7 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  42,
-			wantModuleCount: 9,
+			wantModuleCount: registrySize,
 		},
 		{
 			name:       "module statuses populated with components",
@@ -196,7 +198,7 @@ func TestReconcile(t *testing.T) {
 			wantProvisioned: boolPtr(true),
 			wantURL:         "https://dashboard.apps.example.com",
 			wantGeneration:  1,
-			wantModuleCount: 9,
+			wantModuleCount: registrySize,
 			wantModulePhases: map[string]v1alpha1.ModulePhase{
 				"modelRegistry":  v1alpha1.ModulePhaseDeployed,
 				"genAi":          v1alpha1.ModulePhaseDeployed,
@@ -231,7 +233,7 @@ func TestReconcile(t *testing.T) {
 			wantProvisioned: boolPtr(true),
 			wantURL:         "https://dashboard.apps.example.com",
 			wantGeneration:  1,
-			wantModuleCount: 9,
+			wantModuleCount: registrySize,
 		},
 	}
 

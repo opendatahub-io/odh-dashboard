@@ -47,7 +47,7 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 		if err != nil {
 			logger.Error(err, "Invalid reconcileInterval in operator config", "value", v)
 		} else if d < minReconcileInterval {
-			logger.Error(nil, "reconcileInterval below minimum; ignoring", "value", v, "min", minReconcileInterval)
+			logger.Info("reconcileInterval below minimum; ignoring", "value", v, "min", minReconcileInterval)
 		} else {
 			cfg.ReconcileInterval = d
 		}

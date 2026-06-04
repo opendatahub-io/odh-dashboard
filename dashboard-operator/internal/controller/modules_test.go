@@ -58,10 +58,11 @@ func TestIsComponentAvailable(t *testing.T) {
 
 func TestResolveModuleStatuses(t *testing.T) {
 	tests := []struct {
-		name       string
-		spec       v1alpha1.DashboardSpec
-		wantPhases map[string]v1alpha1.ModulePhase
-		wantReason map[string]string
+		name        string
+		spec        v1alpha1.DashboardSpec
+		wantPhases  map[string]v1alpha1.ModulePhase
+		wantReason  map[string]string
+		wantMessage map[string]string
 	}{
 		{
 			name: "all components available, observability enabled",
@@ -85,6 +86,9 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"automl":         v1alpha1.ModulePhaseDeployed,
 				"autorag":        v1alpha1.ModulePhaseDeployed,
 				"perses":         v1alpha1.ModulePhaseDeployed,
+			},
+			wantMessage: map[string]string{
+				"perses": "Proxying to perses.monitoring:8080",
 			},
 		},
 		{
@@ -279,6 +283,10 @@ func TestResolveModuleStatuses(t *testing.T) {
 
 			for name, wantReason := range tt.wantReason {
 				assert.Equal(t, wantReason, got[name].Reason, "module %q reason", name)
+			}
+
+			for name, wantMsg := range tt.wantMessage {
+				assert.Equal(t, wantMsg, got[name].Message, "module %q message", name)
 			}
 		})
 	}
