@@ -1,21 +1,19 @@
 # Observability Setup
 
-This directory contains Kubernetes resources for setting up the Perses observability dashboards for development.
+This guide covers setting up the Perses observability dashboards for development, both on a RHOAI/ODH cluster and for local development (`start:dev` and `start:dev:ext`).
+
+> **Namespace note:** This guide uses `redhat-ods-applications` (RHOAI). Replace with `opendatahub` if running Open Data Hub, and use manifests from `manifests/observability/odh/` instead of `manifests/observability/rhoai/`.
 
 ## Prerequisites
 
-- OpenShift cluster with `oc` CLI configured
-- Access to the `opendatahub` namespace
+- OpenShift cluster with `oc` CLI configured and logged in
+- Red Hat OpenShift AI or Open Data Hub installed
 
-## 1. Install Cluster Observability Operator
+## 1. Install Required Operators
 
-First, install the Cluster Observability Operator from OperatorHub:
+The **Cluster Observability Operator** is required and may already be installed.
 
-1. In the OpenShift Console, navigate to **Operators → OperatorHub**
-2. Search for "Cluster Observability Operator"
-3. Click **Install** and follow the prompts
-
-Or install via CLI:
+### Cluster Observability Operator
 
 ```bash
 oc apply -f - <<EOF
@@ -32,89 +30,72 @@ spec:
 EOF
 ```
 
-## 2. (Optional) Install UI Plugin
-
-Optionally install the Monitoring UI Plugin to enable Perses dashboards in the OpenShift Console:
+Verify it is installed:
 
 ```bash
-oc apply -f - <<EOF
-apiVersion: observability.openshift.io/v1alpha1
-kind: UIPlugin
-metadata:
-  name: monitoring
-spec:
-  type: Monitoring
-  monitoring:
-    perses:
-      enabled: true
-EOF
+oc get csv -n openshift-operators | grep observability
 ```
 
-## 3. Configure Monitoring (Cluster with Observability Stack)
+It should show `Succeeded`.
 
-If running against a cluster with the observability stack, ensure that monitoring is enabled in the DSCInitialization with the following spec update:
+## 2. Enable the Observability Stack in DSCI
+
+Patch the `DataScienceClusterInitialization` to enable monitoring with metrics and alerting. Apply via the OpenShift Console YAML editor or `oc edit dsci default-dsci`:
 
 ```yaml
+spec:
   monitoring:
     managementState: Managed
+    alerting: {}
     metrics:
+      replicas: 1
       storage:
-        retention: 90d
         size: 5Gi
-    namespace: opendatahub
-    traces:
-      sampleRatio: '0.1'
-      storage:
-        backend: pv
-        retention: 2160h0m0s
-      tls:
-        enabled: true
+        retention: 90d
+      exporters: {}
 ```
 
-## 4. Apply Dashboard Resources
-
-Apply the dashboard resources to your cluster if not available:
+Wait for the observability stack pods to come up:
 
 ```bash
-oc apply -n opendatahub -f manifests/rhoai/shared/observability/perses-dashboard-cluster.yaml
-oc apply -n opendatahub -f manifests/rhoai/shared/observability/perses-dashboard-model.yaml
+oc get pods -n redhat-ods-monitoring -w
 ```
 
-**Note:** If running on a cluster that doesn't support the monitoring stack, you also need to apply the data source:
+Expected pods (all Running):
+
+```text
+alertmanager-data-science-monitoringstack-*    2/2  Running
+prometheus-data-science-monitoringstack-*      3/3  Running
+thanos-querier-data-science-thanos-querier-*   1/1  Running
+```
+
+## 3. Enable the Feature Flag
+
+The observability nav item is hidden by default behind the `observabilityDashboard` feature flag:
 
 ```bash
-oc apply -n opendatahub -f packages/observability/setup/prometheus-data-source.yaml
+oc patch odhdashboardconfig odh-dashboard-config \
+  -n redhat-ods-applications \
+  --type='merge' \
+  -p '{"spec":{"dashboardConfig":{"observabilityDashboard":true}}}'
 ```
 
-## 5. (Cluster with Monitoring) Network Policy for Dashboard Data
+---
 
-If running on a cluster with monitoring enabled and data isn't loading in the dashboards, you may need to create a network policy in the application namespace to allow the Perses operator to access the dashboards:
+## Local Development
 
-```bash
-oc apply -n opendatahub -f packages/observability/setup/network-policy-perses-operator-access.yaml
-```
+Both `start:dev` and `start:dev:ext` automatically handle Perses API proxying without requiring a manual `oc port-forward` in a separate terminal. The Perses proxy (`/perses/api`) requires special handling because the operator-managed `federation-config` ConfigMap does not include a perses entry, so the cluster dashboard backend cannot proxy Perses requests on its own.
 
-## 6. (Cluster with Monitoring) Update Federation Config for Perses Proxy
+### `start:dev` (frontend + backend)
 
-When the monitoring component is available, you need to update the `federation-config` ConfigMap to set up the proxy to the running Perses instance.
+When running `npm run start:dev`, the backend (Fastify) auto-spawns `oc port-forward` for any `proxyService` entries with a `localService` config whose cluster service actually exists. For observability, this forwards `svc/data-science-perses` to `localhost:9005`. The backend then proxies `/perses/api` requests to `localhost:9005`. Port-forwards auto-restart on connection drops and are cleaned up when the backend exits.
 
-Add the following entry to the JSON array in the ConfigMap:
+### `start:dev:ext` (frontend only, external cluster)
 
-```json
-{
-  "name": "perses",
-  "proxyService": [
-    {
-      "authorize": true,
-      "path": "/perses/api",
-      "pathRewrite": "",
-      "tls": false,
-      "service": {
-        "name": "data-science-perses",
-        "namespace": "opendatahub",
-        "port": 8080
-      }
-    }
-  ]
-}
-```
+When running `npm run start:dev:ext`, the webpack dev server handles port-forwarding directly:
+
+1. **Auto port-forward** -- At startup, `webpack.dev.js` checks whether `proxyService` entries with a `localService` config have their corresponding service deployed on the cluster. If so, it spawns `oc port-forward` as a child process, forwarding `svc/data-science-perses` to `localhost:9005`.
+
+2. **Local proxy routing** -- The webpack dev proxy creates a dedicated route for `/perses/api` targeting `https://localhost:9005` (with the prefix stripped), bypassing the cluster gateway entirely.
+
+If the Perses service is not deployed on the cluster, port-forwarding is skipped silently and the dev server starts normally.
