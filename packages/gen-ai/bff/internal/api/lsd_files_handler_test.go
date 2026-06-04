@@ -14,6 +14,7 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/openai/openai-go/v2"
@@ -947,3 +948,50 @@ var _ = Describe("LlamaStackVisionFileUploadHandler", func() {
 		assert.Equal(t, http.StatusServiceUnavailable, rr.Code)
 	})
 })
+
+func TestLlamaStackUploadFileHandler_PayloadTooLarge(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config: config.EnvConfig{
+			APIPathPrefix: "/api/v1",
+			AuthMethod:    config.AuthMethodDisabled,
+		},
+		logger: logger,
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app.LlamaStackUploadFileHandler(w, r, nil)
+	})
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+	part, err := writer.CreateFormFile("file", "large_doc.txt")
+	require.NoError(t, err)
+
+	oversizedContent := make([]byte, constants.FileUploadMaxBodySize+1)
+	for i := range oversizedContent {
+		oversizedContent[i] = 'x'
+	}
+	_, err = part.Write(oversizedContent)
+	require.NoError(t, err)
+
+	err = writer.WriteField("vector_store_id", "vs_test123")
+	require.NoError(t, err)
+	writer.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/files/upload", &buf)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+
+	var envelope map[string]interface{}
+	err = json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	errorObj, ok := envelope["error"].(map[string]interface{})
+	assert.True(t, ok, "response should contain 'error' object")
+	assert.Equal(t, "413", errorObj["code"])
+	assert.Contains(t, errorObj["message"], "10MB")
+}

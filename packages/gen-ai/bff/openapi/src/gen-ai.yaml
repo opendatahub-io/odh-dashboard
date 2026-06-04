@@ -1481,6 +1481,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File size exceeds 10MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: uploadFile
@@ -1787,6 +1793,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Request body exceeds 20MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/InternalServerError'
       operationId: createResponse
@@ -2057,6 +2069,21 @@ components:
         type: string
         example: 'demo'
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: HTTP status code as string
+              example: '413'
+            message:
+              type: string
+              description: Human-readable error message
+              example: 'request body exceeds the 20MB limit'
+
     HealthCheckModel:
       type: object
       required:
@@ -2707,7 +2734,7 @@ components:
         file:
           type: string
           format: binary
-          description: File to upload (max 512MB, supports PDF, TXT, CSV)
+          description: File to upload (max 10MB, supports PDF, TXT, CSV)
         vector_store_id:
           type: string
           example: 'vs_abc123-def456'

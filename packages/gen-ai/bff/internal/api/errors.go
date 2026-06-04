@@ -80,19 +80,6 @@ func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *ht
 	}
 }
 
-func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
-	app.LogError(r, err)
-
-	httpError := &integrations.HTTPError{
-		StatusCode: http.StatusServiceUnavailable,
-		ErrorResponse: integrations.ErrorResponse{
-			Code:    constants.GuardrailServiceUnavailableCode,
-			Message: err.Error(),
-		},
-	}
-	app.errorResponse(w, r, httpError)
-}
-
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnauthorized,
@@ -139,6 +126,32 @@ func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, error *int
 		app.LogError(r, err)
 		w.WriteHeader(error.StatusCode)
 	}
+}
+
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    constants.GuardrailServiceUnavailableCode,
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
+func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, limit int64) {
+	limitMB := float64(limit) / (1 << 20)
+	app.LogError(r, fmt.Errorf("request body exceeds the %.0fMB limit", limitMB))
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: fmt.Sprintf("request body exceeds the %.0fMB limit", limitMB),
+		},
+	}
+	app.errorResponse(w, r, httpError)
 }
 
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
