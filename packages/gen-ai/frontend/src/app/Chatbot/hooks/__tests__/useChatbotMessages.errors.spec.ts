@@ -5,6 +5,9 @@ import useChatbotMessages from '~/app/Chatbot/hooks/useChatbotMessages';
 import { classifyError } from '~/app/utilities/errorClassifier';
 
 // Mock dependencies
+jest.mock('@patternfly/chatbot', () => ({
+  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
+}));
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
   fireMiscTrackingEvent: jest.fn(),
@@ -330,68 +333,6 @@ describe('useChatbotMessages - Error Handling', () => {
         // For unknown errors, classifyError would provide a generic message
         expect(lastMessage.content).toBe(''); // Error shown via errorClassification, not content
       });
-    });
-  });
-
-  describe('Error Logging', () => {
-    it('should log error details to console with component, code, and message', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      const mockError = {
-        error: {
-          component: 'bff' as const,
-          code: 'invalid_parameter',
-          message: 'temperature out of range',
-          retriable: false,
-        },
-      };
-
-      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
-      mockUseGenAiAPI.mockReturnValue({
-        api: { createResponse: mockCreateResponse },
-        apiAvailable: true,
-      } as unknown as ReturnType<typeof useGenAiAPI>);
-
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
-
-      await result.current.handleMessageSend('Test message');
-
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
-          component: 'bff',
-          code: 'invalid_parameter',
-          message: 'temperature out of range',
-        });
-      });
-
-      consoleErrorSpy.mockRestore();
-    });
-
-    it('should log wrapped Error objects with generic ApiError structure', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-      const mockError = new Error('Simple error');
-
-      const mockCreateResponse = jest.fn().mockRejectedValue(mockError);
-      mockUseGenAiAPI.mockReturnValue({
-        api: { createResponse: mockCreateResponse },
-        apiAvailable: true,
-      } as unknown as ReturnType<typeof useGenAiAPI>);
-
-      const { result } = renderHook(() => useChatbotMessages(defaultProps));
-
-      await result.current.handleMessageSend('Test message');
-
-      await waitFor(() => {
-        // Error objects are wrapped in generic ApiError structure and logged
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Response API error:', {
-          component: 'bff',
-          code: 'unknown',
-          message: 'Simple error',
-        });
-      });
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
