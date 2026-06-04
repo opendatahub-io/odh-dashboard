@@ -78,9 +78,13 @@ export enum ChatMessageRole {
   ASSISTANT = 'assistant',
 }
 
+export type InputContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; file_id: string };
+
 export type ChatContextMessage = {
   role: ChatMessageRole;
-  content: string;
+  content: string | InputContentPart[];
 };
 
 export type MCPServerConfig = {
@@ -99,7 +103,7 @@ export type GuardrailInlineConfig = {
 };
 
 export type CreateResponseRequest = {
-  input: string;
+  input: string | InputContentPart[];
   model: string;
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];

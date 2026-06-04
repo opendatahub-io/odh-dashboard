@@ -9,35 +9,25 @@
       "messages": [
         {
           "role": "user",
-          "content": "What is machine learning?"
+          "content": [
+            {
+              "type": "text",
+              "text": "What do you see in this image? Reply in one sentence."
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4z8AAAAACAAHiIbwzAAAAAElFTkSuQmCC",
+                "detail": "auto"
+              }
+            }
+          ]
         }
       ],
-      "parallel_tool_calls": true,
       "stream": true,
       "stream_options": {
         "include_usage": true
-      },
-      "tools": [
-        {
-          "type": "function",
-          "function": {
-            "name": "file_search",
-            "description": "Search files for relevant information",
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "query": {
-                  "type": "string",
-                  "description": "The search query"
-                }
-              },
-              "required": [
-                "query"
-              ]
-            }
-          }
-        }
-      ]
+      }
     },
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
@@ -50,27 +40,17 @@
       {
         "__type__": "openai.types.chat.chat_completion_chunk.ChatCompletionChunk",
         "__data__": {
-          "id": "rec-601d683b642f",
+          "id": "rec-870ff54bf209",
           "choices": [
             {
               "delta": {
-                "content": null,
+                "content": "I see a solid red rectangle.",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
-                "tool_calls": [
-                  {
-                    "index": null,
-                    "id": "function-call-15489403476799222780",
-                    "function": {
-                      "arguments": "{\"query\":\"machine learning\"}",
-                      "name": "file_search"
-                    },
-                    "type": "function"
-                  }
-                ]
+                "tool_calls": null
               },
-              "finish_reason": "tool_calls",
+              "finish_reason": "stop",
               "index": 0,
               "logprobs": null
             }
@@ -81,9 +61,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 16,
-            "prompt_tokens": 45,
-            "total_tokens": 126,
+            "completion_tokens": 7,
+            "prompt_tokens": 272,
+            "total_tokens": 300,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
