@@ -28,7 +28,6 @@ import {
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { classifyError } from '~/app/utilities/errorClassifier';
-import { findMockScenario } from '~/app/utilities/mockErrors';
 
 import {
   ToolResponseCardTitle,
@@ -550,30 +549,6 @@ const useChatbotMessages = ({
           );
         };
 
-        // Check for mock error scenarios (MOCK: prefix required) - DEVELOPMENT ONLY
-        // Example: type "MOCK:timeout" to trigger a timeout error
-        if (process.env.NODE_ENV === 'development') {
-          const mockScenario = findMockScenario(message);
-          if (mockScenario) {
-            // Simulate partial response if provided
-            if (mockScenario.partialResponse) {
-              // Simulate streaming of partial response
-              await new Promise((resolve) => {
-                setTimeout(() => {
-                  completeLines.push(mockScenario.partialResponse!);
-                  updateMessage(true, true);
-                  // Mark that streaming content was received for error classification
-                  streamingReceivedRef.current = true;
-                  resolve(undefined);
-                }, 500);
-              });
-            }
-
-            // Throw the mock error after partial response (or immediately if no partial)
-            throw mockScenario.apiError;
-          }
-        }
-
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
           onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
@@ -712,18 +687,6 @@ const useChatbotMessages = ({
         }
       } else {
         // Handle non-streaming response
-
-        // Check for mock error scenarios (MOCK: prefix required) - DEVELOPMENT ONLY
-        // Example: type "MOCK:timeout" to trigger a timeout error
-        if (process.env.NODE_ENV === 'development') {
-          const mockScenario = findMockScenario(message);
-          if (mockScenario) {
-            // For non-streaming, we don't support partial responses
-            // Just throw the error immediately
-            throw mockScenario.apiError;
-          }
-        }
-
         const response = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
         });
