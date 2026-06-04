@@ -31,11 +31,13 @@ var supportedEventTypes = map[string]bool{
 	// streaming. These are ephemeral display-only tokens; the final cleaned
 	// text and annotations are sent via the response.completed event, which
 	// the frontend uses for the definitive render.
-	"response.output_text.delta": true, // Text delta/chunk for streaming text
-	"response.content_part.done": true, // Content part completed
-	"response.completed":         true, // Response generation completed
-	"response.refusal.delta":     true, // Refusal text
-	"response.refusal.done":      true, // Refusal text completed
+	"response.output_text.delta":    true, // Text delta/chunk for streaming text
+	"response.content_part.done":    true, // Content part completed
+	"response.completed":            true, // Response generation completed
+	"response.refusal.delta":        true, // Refusal text
+	"response.refusal.done":         true, // Refusal text completed
+	"response.reasoning_text.delta": true, // Reasoning/thinking text delta
+	"response.reasoning_text.done":  true, // Reasoning/thinking text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -45,13 +47,14 @@ func isEventTypeSupported(eventType string) bool {
 
 // ChatContextMessage represents a message in chat context history
 type ChatContextMessage struct {
-	Role    string `json:"role"`    // "user" or "assistant"
-	Content string `json:"content"` // Message content
+	Role    string                  `json:"role"`    // "user" or "assistant"
+	Content llamastack.ContentUnion `json:"content"` // String or multimodal content parts
 }
 
 // StreamingEvent represents a streaming event
 type StreamingEvent struct {
 	Delta          string        `json:"delta,omitempty"`
+	Text           string        `json:"text,omitempty"`    // For reasoning_text.done and content_part.done events
 	Refusal        string        `json:"refusal,omitempty"` // For response.refusal.done events (OpenAI standard)
 	SequenceNumber int64         `json:"sequence_number"`
 	Type           string        `json:"type"`
@@ -145,8 +148,8 @@ type MCPServer struct {
 
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
-	Input string `json:"input"`
-	Model string `json:"model"`
+	Input llamastack.InputUnion `json:"input"`
+	Model string                `json:"model"`
 
 	VectorStoreIDs     []string                      `json:"vector_store_ids,omitempty"`     // Enables RAG
 	ChatContext        []ChatContextMessage          `json:"chat_context,omitempty"`         // Conversation history
@@ -366,12 +369,29 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 	}
 
 	// Validate required fields
-	if createRequest.Input == "" {
+	if createRequest.Input.IsMultimodal() {
+		if err := llamastack.ValidateInputParts(createRequest.Input.Parts); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	} else if createRequest.Input.Text == "" {
 		app.badRequestResponse(w, r, errors.New("input is required"))
 		return
 	}
 	if createRequest.Model == "" {
 		app.badRequestResponse(w, r, errors.New("model is required"))
+		return
+	}
+
+	// Enforce one-image-per-conversation limit across input and chat history
+	if llamastack.CountImageParts(createRequest.Input, func() []llamastack.ChatContextMessage {
+		result := make([]llamastack.ChatContextMessage, len(createRequest.ChatContext))
+		for i, msg := range createRequest.ChatContext {
+			result[i] = llamastack.ChatContextMessage{Role: msg.Role, Content: msg.Content}
+		}
+		return result
+	}()) > 1 {
+		app.badRequestResponse(w, r, errors.New("only one image per conversation is allowed; remove the existing image before adding a new one"))
 		return
 	}
 
@@ -481,10 +501,10 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			inputMessages := make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
 			for _, msg := range createRequest.ChatContext {
 				if msg.Role == "user" {
-					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content})
+					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content.TextContent()})
 				}
 			}
-			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input.TextContent()})
 
 			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
 			if modErr != nil {
@@ -585,7 +605,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
-		// Track TTFT on first text delta event
+		// Track TTFT on first answer token only — reasoning tokens are excluded
 		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 			now := time.Now()
 			firstTokenTime = &now
