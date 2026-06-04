@@ -118,6 +118,19 @@ func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Reques
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) payloadTooLargeResponse(w http.ResponseWriter, r *http.Request, limit int64) {
+	limitMB := float64(limit) / (1 << 20)
+	app.LogError(r, fmt.Errorf("request body exceeds the %.0fMB limit", limitMB))
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusRequestEntityTooLarge,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    strconv.Itoa(http.StatusRequestEntityTooLarge),
+			Message: fmt.Sprintf("request body exceeds the %.0fMB limit", limitMB),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.LogError(r, err)
 

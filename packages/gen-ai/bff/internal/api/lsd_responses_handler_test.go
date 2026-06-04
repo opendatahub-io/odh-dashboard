@@ -2694,3 +2694,48 @@ func TestAsyncModerationWithReasoning(t *testing.T) {
 		assert.Contains(t, eventTypes, "response.metrics", "metrics event should be emitted")
 	})
 }
+
+func TestLlamaStackCreateResponseHandler_PayloadTooLarge(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	app := &App{
+		config: config.EnvConfig{
+			APIPathPrefix: "/api/v1",
+			AuthMethod:    config.AuthMethodDisabled,
+		},
+		logger: logger,
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		app.LlamaStackCreateResponseHandler(w, r, nil)
+	})
+
+	// Build a JSON body that forces the decoder to read past the limit.
+	// Wrapping in a JSON string ensures the decoder keeps reading.
+	prefix := []byte(`{"input":"`)
+	suffix := []byte(`"}`)
+	fillLen := constants.ResponsesMaxBodySize + 1 - len(prefix) - len(suffix)
+	fill := make([]byte, fillLen)
+	for i := range fill {
+		fill[i] = 'a'
+	}
+	oversizedBody := make([]byte, 0, constants.ResponsesMaxBodySize+1)
+	oversizedBody = append(oversizedBody, prefix...)
+	oversizedBody = append(oversizedBody, fill...)
+	oversizedBody = append(oversizedBody, suffix...)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/lsd/responses", bytes.NewReader(oversizedBody))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rr.Code)
+
+	var envelope map[string]interface{}
+	err := json.Unmarshal(rr.Body.Bytes(), &envelope)
+	assert.NoError(t, err)
+	errorObj, ok := envelope["error"].(map[string]interface{})
+	assert.True(t, ok, "response should contain 'error' object")
+	assert.Equal(t, "413", errorObj["code"])
+	assert.Contains(t, errorObj["message"], "20MB")
+}

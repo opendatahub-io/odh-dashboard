@@ -60,7 +60,7 @@ class EvaluationsPage {
   }
 
   findEmptyFilterState() {
-    return cy.findByTestId('evaluations-empty-filter-state');
+    return cy.findByTestId('dashboard-empty-table-state');
   }
 
   findClearFiltersButton() {

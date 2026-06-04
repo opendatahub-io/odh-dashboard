@@ -361,9 +361,16 @@ func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
 func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
+	r.Body = http.MaxBytesReader(w, r.Body, constants.ResponsesMaxBodySize)
+
 	// Parse the request body
 	var createRequest CreateResponseRequest
 	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
+			return
+		}
 		app.badRequestResponse(w, r, err)
 		return
 	}
