@@ -198,6 +198,7 @@ export type SimplifiedResponseData = {
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
 };
 
 export type FileError = {
@@ -623,7 +624,7 @@ type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & {
-    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
     abortSignal?: AbortSignal;
   },
 ) => Promise<SimplifiedResponseData>;

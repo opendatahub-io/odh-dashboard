@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { MessageProps, ToolResponseProps } from '@patternfly/chatbot';
+import { FileDetailsLabel, MessageProps, ToolResponseProps } from '@patternfly/chatbot';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
@@ -9,6 +9,7 @@ import {
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailInlineConfig,
+  InputContentPart,
   MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
@@ -31,6 +32,7 @@ import {
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
+import { StreamingThinkingSection } from '~/app/Chatbot/components/StreamingThinkingSection';
 
 export type GuardrailsConfig = {
   enabled: boolean;
@@ -50,7 +52,13 @@ export interface UseChatbotMessagesReturn {
   isMessageSendButtonDisabled: boolean;
   isLoading: boolean;
   isStreamingWithoutContent: boolean;
-  handleMessageSend: (message: string, compareID?: string) => Promise<void>;
+  handleMessageSend: (
+    message: string,
+    compareID?: string,
+    fileId?: string,
+    imagePreview?: { previewUrl: string; fileName: string },
+    docAttachments?: string[],
+  ) => Promise<void>;
   handleStopStreaming: () => void;
   clearConversation: () => void;
   scrollToBottomRef: React.RefObject<HTMLDivElement>;
@@ -125,6 +133,10 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
+  const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
+    new Map(),
+  );
   const { api, apiAvailable } = useGenAiAPI();
   const { aiModels } = React.useContext(ChatbotContext);
 
@@ -220,6 +232,13 @@ const useChatbotMessages = ({
     [],
   );
 
+  // Create a collapsible thinking section (no Card wrapper) to display reasoning content
+  const createThinkingCollapsible = React.useCallback(
+    (reasoningText: string): React.ReactNode =>
+      React.createElement(StreamingThinkingSection, { reasoningText, isComplete: true }),
+    [],
+  );
+
   const handleStopStreaming = React.useCallback(() => {
     if (abortControllerRef.current) {
       isStoppingStreamRef.current = true;
@@ -262,6 +281,9 @@ const useChatbotMessages = ({
     setIsStreamingWithoutContent(false);
     setLastResponseMetrics(null);
     isStoppingStreamRef.current = false;
+    multimodalContentRef.current.clear();
+    imagePreviewRef.current.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    imagePreviewRef.current.clear();
 
     // Reset clearing flag after state updates complete
     // Use setTimeout to ensure this runs after React finishes all state updates
@@ -270,7 +292,45 @@ const useChatbotMessages = ({
     }, 0);
   }, []);
 
-  const handleMessageSend = async (message: string, compareID?: string) => {
+  const handleMessageSend = async (
+    message: string,
+    compareID?: string,
+    fileId?: string,
+    imagePreview?: { previewUrl: string; fileName: string },
+    docAttachments?: string[],
+  ) => {
+    const extraContent: Record<string, React.ReactNode> = {};
+    if (imagePreview) {
+      extraContent.beforeMainContent = React.createElement('img', {
+        src: imagePreview.previewUrl,
+        alt: imagePreview.fileName,
+        className: 'chatbot-inline-image',
+        style: {
+          maxWidth: '300px',
+          maxHeight: '300px',
+          width: 'auto',
+          height: 'auto',
+          objectFit: 'contain' as const,
+          borderRadius: 'var(--pf-t--global--border--radius--medium)',
+          display: 'block',
+          marginBottom: 'var(--pf-t--global--spacer--sm)',
+        },
+      });
+    }
+    if (docAttachments?.length) {
+      extraContent.afterMainContent = React.createElement(
+        'div',
+        { style: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' } },
+        ...docAttachments.map((fileName, index) =>
+          React.createElement(FileDetailsLabel, {
+            key: `${fileName}-${index}`,
+            fileName,
+            hasTruncation: true,
+          }),
+        ),
+      );
+    }
+
     const userMessage: MessageProps = {
       id: getId(),
       role: 'user',
@@ -278,7 +338,25 @@ const useChatbotMessages = ({
       name: username || 'User',
       avatar: userAvatar,
       timestamp: new Date().toLocaleString(),
+      ...(Object.keys(extraContent).length > 0 && { extraContent }),
     };
+
+    // Track blob URL for cleanup on unmount/clearConversation
+    if (imagePreview) {
+      imagePreviewRef.current.set(userMessage.id!, imagePreview);
+    }
+
+    // Build multimodal input when a vision file_id is provided
+    let input: string | InputContentPart[] = message;
+    if (fileId) {
+      const parts: InputContentPart[] = [];
+      if (message.trim()) {
+        parts.push({ type: 'input_text', text: message });
+      }
+      parts.push({ type: 'input_image', file_id: fileId });
+      input = parts;
+      multimodalContentRef.current.set(userMessage.id!, parts);
+    }
 
     setMessages((prev) => [...prev, userMessage]);
     setIsMessageSendButtonDisabled(true);
@@ -307,7 +385,7 @@ const useChatbotMessages = ({
       const selectedModel = aiModels.find((model) => model.model_id === baseModelId);
 
       const responsesPayload: CreateResponseRequest = {
-        input: message,
+        input,
         model: modelId,
         ...(isRagEnabled &&
           currentVectorStoreId && {
@@ -317,7 +395,7 @@ const useChatbotMessages = ({
           .map((msg) => ({
             role:
               msg.role === ChatMessageRole.USER ? ChatMessageRole.USER : ChatMessageRole.ASSISTANT,
-            content: msg.content || '',
+            content: multimodalContentRef.current.get(msg.id!) || msg.content || '',
           }))
           .filter((msg) => msg.content),
         instructions: systemInstruction,
@@ -371,6 +449,39 @@ const useChatbotMessages = ({
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
+        let isInReasoningPhase = false;
+
+        // Separate accumulators for reasoning content (streamed inside collapsible)
+        const reasoningLines: string[] = [];
+        let reasoningPartialLine = '';
+        let finalReasoningText = '';
+
+        const updateReasoningDisplay = () => {
+          const reasoningDisplay =
+            reasoningLines.join('\n') +
+            (reasoningPartialLine
+              ? (reasoningLines.length > 0 ? '\n' : '') + reasoningPartialLine
+              : '');
+
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) =>
+              msg.id === botMessageId
+                ? {
+                    ...msg,
+                    content: '',
+                    isLoading: false,
+                    extraContent: {
+                      ...msg.extraContent,
+                      beforeMainContent: React.createElement(StreamingThinkingSection, {
+                        reasoningText: reasoningDisplay,
+                        isComplete: false,
+                      }),
+                    },
+                  }
+                : msg,
+            ),
+          );
+        };
 
         const updateMessage = (showPartialLine = true, hasContent = false) => {
           // Combine complete lines with current partial line for display
@@ -380,13 +491,25 @@ const useChatbotMessages = ({
               ? (completeLines.length > 0 ? '\n' : '') + currentPartialLine
               : '');
 
+          const thinkingExtra = finalReasoningText
+            ? {
+                extraContent: {
+                  beforeMainContent: React.createElement(StreamingThinkingSection, {
+                    reasoningText: finalReasoningText,
+                    isComplete: true,
+                  }),
+                },
+              }
+            : {};
+
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
               msg.id === botMessageId
                 ? {
                     ...msg,
                     content: displayContent,
-                    isLoading: !hasContent, // Hide loading dots once we have content
+                    isLoading: !hasContent,
+                    ...thinkingExtra,
                   }
                 : msg,
             ),
@@ -395,8 +518,43 @@ const useChatbotMessages = ({
 
         const streamingResponse = await api.createResponse(responsesPayload, {
           abortSignal: abortControllerRef.current.signal,
-          onStreamData: (chunk: string, clearPrevious?: boolean) => {
+          onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => {
             if (clearPrevious) {
+              completeLines.length = 0;
+              currentPartialLine = '';
+            }
+
+            // Handle reasoning tokens: stream live inside the collapsible
+            if (isReasoning) {
+              isInReasoningPhase = true;
+
+              if (chunk && isStreamingWithoutContent) {
+                setIsStreamingWithoutContent(false);
+              }
+
+              reasoningPartialLine += chunk;
+              const lines = reasoningPartialLine.split('\n');
+              if (lines.length > 1) {
+                reasoningLines.push(...lines.slice(0, -1));
+                reasoningPartialLine = lines[lines.length - 1];
+                updateReasoningDisplay();
+              } else if (!isStoppingStreamRef.current) {
+                if (timeoutRef.current) {
+                  clearTimeout(timeoutRef.current);
+                }
+                timeoutRef.current = setTimeout(() => updateReasoningDisplay(), 50);
+              }
+              return;
+            }
+
+            // First answer token: save reasoning, auto-collapse thinking section
+            if (isInReasoningPhase) {
+              isInReasoningPhase = false;
+              finalReasoningText =
+                reasoningLines.join('\n') +
+                (reasoningPartialLine
+                  ? (reasoningLines.length > 0 ? '\n' : '') + reasoningPartialLine
+                  : '');
               completeLines.length = 0;
               currentPartialLine = '';
             }
@@ -458,7 +616,16 @@ const useChatbotMessages = ({
             }
           : {};
 
-        // Use the processed content from the response which has file citation tokens replaced
+        // Finalize message in a single update to avoid flicker
+        const toolResponse = streamingResponse.toolCallData
+          ? createToolResponse(streamingResponse.toolCallData)
+          : undefined;
+        const thinkingCollapsible =
+          typeof streamingResponse.reasoningContent === 'string' &&
+          streamingResponse.reasoningContent
+            ? createThinkingCollapsible(streamingResponse.reasoningContent)
+            : undefined;
+
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === botMessageId
@@ -467,31 +634,18 @@ const useChatbotMessages = ({
                   content: streamingResponse.content,
                   isLoading: false,
                   ...sourcesProps,
+                  ...(toolResponse && { toolResponse }),
+                  ...(thinkingCollapsible && {
+                    extraContent: { ...msg.extraContent, beforeMainContent: thinkingCollapsible },
+                  }),
+                  ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
                 }
               : msg,
           ),
         );
 
-        // Add tool response and metrics if available from streaming response
-        if (streamingResponse.toolCallData || streamingResponse.metrics) {
-          const toolResponse = streamingResponse.toolCallData
-            ? createToolResponse(streamingResponse.toolCallData)
-            : undefined;
-          setMessages((prevMessages) =>
-            prevMessages.map((msg) =>
-              msg.id === botMessageId
-                ? {
-                    ...msg,
-                    ...(toolResponse && { toolResponse }),
-                    ...(streamingResponse.metrics && { metrics: streamingResponse.metrics }),
-                  }
-                : msg,
-            ),
-          );
-          // Update last response metrics for pane header display
-          if (streamingResponse.metrics) {
-            setLastResponseMetrics(streamingResponse.metrics);
-          }
+        if (streamingResponse.metrics) {
+          setLastResponseMetrics(streamingResponse.metrics);
         }
       } else {
         // Handle non-streaming response
@@ -516,6 +670,11 @@ const useChatbotMessages = ({
             }
           : {};
 
+        const thinkingCollapsible =
+          typeof response.reasoningContent === 'string' && response.reasoningContent
+            ? createThinkingCollapsible(response.reasoningContent)
+            : undefined;
+
         const botMessage: ChatbotMessageProps = {
           id: getId(),
           role: 'bot',
@@ -524,6 +683,9 @@ const useChatbotMessages = ({
           avatar: botAvatar,
           timestamp: new Date().toLocaleString(),
           ...(toolResponse && { toolResponse }),
+          ...(thinkingCollapsible && {
+            extraContent: { beforeMainContent: thinkingCollapsible },
+          }),
           ...sourcesProps,
           ...(response.metrics && { metrics: response.metrics }),
         };
@@ -613,6 +775,19 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
   };
+
+  React.useEffect(
+    () => () => {
+      imagePreviewRef.current.forEach(({ previewUrl }) => {
+        try {
+          URL.revokeObjectURL(previewUrl);
+        } catch {
+          // URL.revokeObjectURL may be unavailable in test environments
+        }
+      });
+    },
+    [],
+  );
 
   return {
     messages,
