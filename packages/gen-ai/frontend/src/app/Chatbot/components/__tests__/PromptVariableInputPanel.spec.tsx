@@ -115,7 +115,7 @@ describe('PromptVariableInputPanel', () => {
   it('should show placeholder text with variable name', () => {
     render(<PromptVariableInputPanel {...defaultProps} />);
 
-    expect(screen.getByPlaceholderText('Enter value for {{role}}')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Enter value for {{topic}}')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter value for role')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter value for topic')).toBeInTheDocument();
   });
 });

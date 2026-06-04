@@ -167,7 +167,18 @@ export default function PromptAssistantFormGroup({
             <span>Instructions</span>
             <Popover
               headerContent="System instructions"
-              bodyContent="The instructions field is used as a system instruction when chatting with the model in the playground. It guides the model's behavior and response style."
+              bodyContent={
+                <>
+                  <p>
+                    The instructions field is used as a system instruction when chatting with the
+                    model in the playground. It guides the model&apos;s behavior and response style.
+                  </p>
+                  <p style={{ marginTop: 'var(--pf-t--global--spacer--sm)' }}>
+                    Wrap variables with double curly braces, e.g. {'{{ name }}'}. Variable slots
+                    appear below the instructions when placeholders are detected.
+                  </p>
+                </>
+              }
             >
               <OutlinedQuestionCircleIcon className="pf-v6-u-color-200" />
             </Popover>
@@ -183,11 +194,6 @@ export default function PromptAssistantFormGroup({
             aria-label="Prompt instructions input"
             rows={18}
             data-testid="system-instructions-input"
-          />
-          <PromptVariableInputPanel
-            systemInstruction={systemInstruction}
-            variableValues={variableValues}
-            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
           />
           {!editMode && (
             <Flex>
@@ -285,6 +291,11 @@ export default function PromptAssistantFormGroup({
               )}
             </Flex>
           )}
+          <PromptVariableInputPanel
+            systemInstruction={systemInstruction}
+            variableValues={variableValues}
+            onVariableValuesChange={(values) => updateVariableValues(configId, values)}
+          />
         </Stack>
       </Panel>
     </>

@@ -45,7 +45,7 @@ export default function PromptVariableInputPanel({
               value={variableValues[name] ?? ''}
               onChange={(_event, value) => handleValueChange(name, value)}
               aria-label={`Value for variable ${name}`}
-              placeholder={`Enter value for {{${name}}}`}
+              placeholder={`Enter value for ${name}`}
             />
           </FormGroup>
         </StackItem>
