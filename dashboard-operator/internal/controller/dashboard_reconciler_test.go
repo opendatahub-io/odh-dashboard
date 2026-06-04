@@ -181,6 +181,7 @@ func TestReconcile(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       v1alpha1.DashboardInstanceName,
 					Generation: tt.generation,
+					Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 				},
 			}
 
@@ -301,6 +302,7 @@ func TestReconcile_DistinctNamespaces(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       v1alpha1.DashboardInstanceName,
 			Generation: 1,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 	}
 

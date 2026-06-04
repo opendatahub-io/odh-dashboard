@@ -82,6 +82,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if err := r.Update(ctx, dashboard); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to add finalizer: %w", err)
 		}
+
+		return ctrl.Result{}, nil
 	}
 
 	dashboard.Status.ObservedGeneration = dashboard.Generation
