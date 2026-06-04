@@ -72,7 +72,8 @@ type App struct {
 	// rootCAs used for outbound TLS connections to Client Service
 	rootCAs *x509.CertPool
 	// bffClientFactory creates clients for inter-BFF communication
-	bffClientFactory bffclient.BFFClientFactory
+	bffClientFactory      bffclient.BFFClientFactory
+	agentBackendAvailable bool
 }
 
 func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
@@ -165,12 +166,15 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 	}
 
 	var agentSourceFactory agents.ClientFactory
+	var agentBackendAvailable bool
 	if cfg.MockAgentClient {
 		logger.Info("Using mock agent data client")
 		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+		agentBackendAvailable = true
 	} else {
-		logger.Info("Using real agent data client")
+		logger.Info("Agent backend unavailable, agent routes will be disabled")
 		agentSourceFactory = agents.NewUnavailableFactory()
+		agentBackendAvailable = false
 	}
 
 	app := &App{
@@ -181,6 +185,7 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		testEnv:                 testEnv,
 		rootCAs:                 rootCAs,
 		bffClientFactory:        bffFactory,
+		agentBackendAvailable:   agentBackendAvailable,
 	}
 	return app, nil
 }
@@ -209,9 +214,13 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(NamespacePath, app.handlerWithOverride(HandlerNamespacesID, func() httprouter.Handle {
 		return app.GetNamespacesHandler
 	}))
-	apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
-	apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
-	apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
+
+	// Agent endpoints - only register when agent backend is available
+	if app.agentBackendAvailable {
+		apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
+		apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
+		apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
+	}
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.
 	// Example:

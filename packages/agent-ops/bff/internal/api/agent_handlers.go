@@ -24,7 +24,7 @@ func isValidDNS1123Subdomain(name string) bool {
 }
 
 func validateAgentPathParams(namespace, name string) error {
-	if !isValidDNS1123Subdomain(namespace) {
+	if !isValidDNS1123Label(namespace) {
 		return fmt.Errorf("invalid namespace %q", namespace)
 	}
 	if !isValidDNS1123Label(name) {

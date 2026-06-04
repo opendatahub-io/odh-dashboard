@@ -20,6 +20,7 @@ func TestValidateAgentPathParams(t *testing.T) {
 		{name: "uppercase namespace", namespace: "Agent-Ops", agentName: "sample-support-agent", wantErr: true},
 		{name: "uppercase name", namespace: "agent-ops-demo", agentName: "Sample-Agent", wantErr: true},
 		{name: "name too long", namespace: "agent-ops-demo", agentName: strings.Repeat("a", 64), wantErr: true},
+		{name: "dotted namespace", namespace: "team.alpha", agentName: "sample-support-agent", wantErr: true},
 	}
 
 	for _, tt := range tests {

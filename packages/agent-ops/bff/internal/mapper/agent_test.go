@@ -77,4 +77,94 @@ func TestParseTime(t *testing.T) {
 	tm := ParseTime("2026-05-12T16:00:03.214610Z")
 	assert.Equal(t, 2026, tm.Year())
 	assert.True(t, ParseTime("").IsZero())
+
+	// Test RFC3339 without nanoseconds
+	tm2 := ParseTime("2026-05-12T16:00:03Z")
+	assert.Equal(t, 2026, tm2.Year())
+
+	// Test invalid format returns zero time
+	assert.True(t, ParseTime("invalid-date").IsZero())
+	assert.True(t, ParseTime("2026-13-45").IsZero())
+}
+
+func TestAgentDetailToRuntimeDetail_NilService(t *testing.T) {
+	detail := &agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:              "test-agent",
+			Namespace:         "test-ns",
+			Labels:            map[string]string{agents.LabelAgentType: "agent"},
+			CreationTimestamp: "2026-05-12T16:00:03Z",
+		},
+		ReadyStatus: "Ready",
+		Status:      map[string]any{},
+		Service:     nil, // No service
+	}
+
+	result := AgentDetailToRuntimeDetail(detail)
+	require.NotNil(t, result)
+	assert.Empty(t, result.ServiceEndpoints)
+	assert.Equal(t, "", result.Runtime.EndpointURL)
+}
+
+func TestAgentDetailToRuntimeDetail_EmptyPorts(t *testing.T) {
+	detail := &agents.AgentDetail{
+		Metadata: agents.AgentMetadata{
+			Name:              "test-agent",
+			Namespace:         "test-ns",
+			Labels:            map[string]string{agents.LabelAgentType: "agent"},
+			CreationTimestamp: "2026-05-12T16:00:03Z",
+		},
+		ReadyStatus: "Ready",
+		Status:      map[string]any{},
+		Service: &agents.AgentService{
+			Name:  "test-agent",
+			Ports: []agents.AgentServicePort{}, // Empty ports
+		},
+	}
+
+	result := AgentDetailToRuntimeDetail(detail)
+	require.NotNil(t, result)
+	assert.Empty(t, result.ServiceEndpoints)
+	assert.Equal(t, "http://test-agent.test-ns.svc.cluster.local:8000", result.Runtime.EndpointURL)
+}
+
+func TestMapWorkloadConditions_EmptyConditions(t *testing.T) {
+	// Empty conditions array
+	result := MapWorkloadConditions(map[string]any{"conditions": []any{}})
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestMapWorkloadConditions_MalformedConditions(t *testing.T) {
+	// Malformed condition (not a map)
+	result := MapWorkloadConditions(map[string]any{"conditions": []any{"not-a-map", 123}})
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestMapWorkloadConditions_IncorrectType(t *testing.T) {
+	// Conditions field is not an array
+	result := MapWorkloadConditions(map[string]any{"conditions": "not-an-array"})
+	assert.Nil(t, result)
+}
+
+func TestMapWorkloadConditions_MissingField(t *testing.T) {
+	// No conditions field
+	result := MapWorkloadConditions(map[string]any{})
+	assert.Nil(t, result)
+}
+
+func TestSelectHTTPPort_EmptySlice(t *testing.T) {
+	port := SelectHTTPPort([]agents.AgentServicePort{})
+	assert.Equal(t, defaultInClusterPort, port)
+}
+
+func TestSelectHTTPPort_ZeroPort(t *testing.T) {
+	port := SelectHTTPPort([]agents.AgentServicePort{{Name: "http", Port: 0}})
+	assert.Equal(t, defaultInClusterPort, port)
+}
+
+func TestSelectHTTPPort_NegativePort(t *testing.T) {
+	port := SelectHTTPPort([]agents.AgentServicePort{{Name: "http", Port: -1}})
+	assert.Equal(t, defaultInClusterPort, port)
 }
