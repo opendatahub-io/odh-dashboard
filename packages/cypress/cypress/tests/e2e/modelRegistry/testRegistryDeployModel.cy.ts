@@ -117,7 +117,7 @@ describe('Verify models can be deployed from model registry', () => {
       tags: [
         '@Dashboard',
         '@ModelRegistry',
-        'testRegistryDeployModel',
+        '@testRegistryDeployModel',
         '@NonConcurrent',
         '@Sanity',
         '@SanitySet4',
