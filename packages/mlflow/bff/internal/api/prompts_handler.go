@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ func (app *App) MLflowListPromptsHandler(w http.ResponseWriter, r *http.Request,
 	ctx := r.Context()
 
 	nameFilter := r.URL.Query().Get("filter_name")
-	workspace := r.URL.Query().Get("workspace")
+	workspace, _ := ctx.Value(constants.WorkspaceQueryParameterKey).(string)
 	globalNamespaces := app.getGlobalNamespaces()
 
 	app.logger.Debug("listing prompts",
@@ -201,6 +202,14 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		app.badRequestResponse(w, r, errors.New("cannot specify both messages and template"))
 		return
 	}
+	if hasMessages {
+		for i, m := range req.Messages {
+			if strings.TrimSpace(m.Role) == "" || strings.TrimSpace(m.Content) == "" {
+				app.badRequestResponse(w, r, fmt.Errorf("messages[%d]: role and content are required", i))
+				return
+			}
+		}
+	}
 
 	// TOCTOU: not atomic, but MLflow's RegisterPrompt is idempotent (worst case
 	// is a duplicate version, not corruption). Atomic create requires server support.
@@ -222,9 +231,13 @@ func (app *App) MLflowRegisterPromptHandler(w http.ResponseWriter, r *http.Reque
 		app.handleMLflowClientError(w, r, err)
 		return
 	}
+	if result == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("RegisterPrompt returned nil for %q", req.Name))
+		return
+	}
 
 	response := PromptVersionEnvelope{Data: *result}
-	workspace := r.URL.Query().Get("workspace")
+	workspace, _ := r.Context().Value(constants.WorkspaceQueryParameterKey).(string)
 	headers := http.Header{
 		"Location": {fmt.Sprintf("%s/%s?workspace=%s&version=%d", PromptsPath, url.PathEscape(result.Name), url.QueryEscape(workspace), result.Version)},
 	}
@@ -260,6 +273,10 @@ func (app *App) MLflowLoadPromptHandler(w http.ResponseWriter, r *http.Request, 
 	result, err := app.repositories.Prompts.LoadPrompt(ctx, name, version)
 	if err != nil {
 		app.handleMLflowClientError(w, r, err)
+		return
+	}
+	if result == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("LoadPrompt returned nil for %q", name))
 		return
 	}
 

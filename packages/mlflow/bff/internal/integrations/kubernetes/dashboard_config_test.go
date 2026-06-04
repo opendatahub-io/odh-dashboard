@@ -107,6 +107,24 @@ func TestParseGlobalNamespaces(t *testing.T) {
 			},
 			want: []string{"ns-a", "ns-b"},
 		},
+		{
+			name: "duplicates are removed",
+			obj: map[string]any{
+				"spec": map[string]any{
+					"globalMLflowNamespaces": []any{"ns-a", "ns-b", "ns-a", "ns-b", "ns-c"},
+				},
+			},
+			want: []string{"ns-a", "ns-b", "ns-c"},
+		},
+		{
+			name: "duplicates after trimming are removed",
+			obj: map[string]any{
+				"spec": map[string]any{
+					"globalMLflowNamespaces": []any{"ns-a", "  ns-a  "},
+				},
+			},
+			want: []string{"ns-a"},
+		},
 	}
 
 	for _, tc := range tests {
