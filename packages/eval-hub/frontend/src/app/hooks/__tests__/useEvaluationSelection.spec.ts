@@ -30,6 +30,8 @@ const setupLocationState = (state: Record<string, unknown> | null) => {
     hash: '',
     state,
     key: 'default',
+    // eslint-disable-next-line camelcase
+    unstable_mask: undefined,
   });
 };
 

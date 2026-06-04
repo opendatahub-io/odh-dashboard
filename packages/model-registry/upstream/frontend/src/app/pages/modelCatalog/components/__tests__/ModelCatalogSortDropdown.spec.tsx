@@ -32,7 +32,8 @@ jest.mock('mod-arch-core', () => {
 });
 
 jest.mock('react-router-dom', () => ({
-  useLocation: jest.fn(() => ({ pathname: '/model-catalog' })),
+  // eslint-disable-next-line camelcase
+  useLocation: jest.fn(() => ({ pathname: '/model-catalog', unstable_mask: undefined })),
 }));
 
 jest.mock('~/app/hooks/modelCatalog/useCatalogSources', () => ({

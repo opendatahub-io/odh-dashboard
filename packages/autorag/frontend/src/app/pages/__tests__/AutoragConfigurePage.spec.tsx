@@ -26,7 +26,8 @@ jest.mock('react-router', () => ({
   ...jest.requireActual('react-router'),
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
-  useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '' }),
+  // eslint-disable-next-line camelcase
+  useLocation: () => ({ state: mockLocationState, pathname: '', search: '', hash: '', key: '', unstable_mask: undefined }),
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
     <a href={to}>{children}</a>
   ),

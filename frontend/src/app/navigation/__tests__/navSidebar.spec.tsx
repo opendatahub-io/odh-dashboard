@@ -22,7 +22,8 @@ jest.mock('#~/utilities/useAccessReviewExtensions', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useLocation: () => ({ pathname: '/' }),
+  // eslint-disable-next-line camelcase
+  useLocation: () => ({ pathname: '/', unstable_mask: undefined }),
   matchPath: jest.fn(),
 }));
 
