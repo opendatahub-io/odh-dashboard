@@ -38,6 +38,7 @@ interface ChatbotConfigInstanceProps {
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  hasImagesInConversation?: boolean;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -54,6 +55,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   onMessagesHookReady,
   configIndex,
   isCompareMode,
+  hasImagesInConversation,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const temperature = useChatbotConfigStore(selectTemperature(configId));
@@ -181,6 +183,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={PLACEHOLDER_BOT_CONTENT}
+        hasImagesInConversation={hasImagesInConversation}
       />
     </MessageBox>
   );

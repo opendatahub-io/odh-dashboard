@@ -72,13 +72,13 @@ func TestQueryClusterBranding_MissingConfigKey(t *testing.T) {
 
 func TestQueryClusterID_Success(t *testing.T) {
 	cv := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "config.openshift.io/v1",
 			"kind":       "ClusterVersion",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": clusterVersionName,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"clusterID": "test-cluster-id-123",
 			},
 		},
@@ -129,13 +129,13 @@ func TestQueryClusterInfo_BothSucceed(t *testing.T) {
 	typedClient := k8sfake.NewSimpleClientset(cm)
 
 	cv := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "config.openshift.io/v1",
 			"kind":       "ClusterVersion",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name": clusterVersionName,
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"clusterID": "abc-def-ghi",
 			},
 		},

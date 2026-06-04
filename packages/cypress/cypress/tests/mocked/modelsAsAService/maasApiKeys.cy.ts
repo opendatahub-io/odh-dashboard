@@ -72,7 +72,7 @@ describe('API Keys Page', () => {
     cy.interceptOdh(
       'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
-        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
         mockSubscriptionDetails,
       ),
     ).as('initialSearch');
@@ -89,7 +89,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findApiKeysTab().should('not.exist');
   });
 
-  it('should display the API keys table page with active keys on initial load', () => {
+  it('should display the API keys table page with active and expired keys on initial load', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
@@ -99,11 +99,11 @@ describe('API Keys Page', () => {
       );
 
     apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
-    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
 
     const developmentTestingRow = apiKeysPage.getRow('development-testing');
@@ -146,7 +146,7 @@ describe('API Keys Page', () => {
     // Status filter defaults to Active
     apiKeysPage.findStatusFilterToggle().click();
     apiKeysPage.findStatusFilterOptionCheckbox('Active').should('be.checked');
-    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('not.be.checked');
+    apiKeysPage.findStatusFilterOptionCheckbox('Expired').should('be.checked');
     apiKeysPage.findStatusFilterOptionCheckbox('Revoked').should('not.be.checked');
     apiKeysPage.findStatusFilterToggle().click();
 
@@ -201,7 +201,7 @@ describe('API Keys Page', () => {
   });
 
   it('should display all API keys when the status filter is cleared', () => {
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(mockAPIKeys())).as(
       'clearAllFilters',
     );
@@ -243,7 +243,7 @@ describe('API Keys Page', () => {
 
   it('should filter api keys by username', () => {
     const aliceKeys = mockAPIKeys().filter((k) => k.username === 'alice');
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(aliceKeys)).as(
       'searchByUsername',
@@ -282,39 +282,31 @@ describe('API Keys Page', () => {
   });
 
   it('should filter api keys by status', () => {
-    const filteredKeys = mockAPIKeys().filter(
-      (k) => k.status === 'active' || k.status === 'expired',
-    );
-    apiKeysPage.findRows().should('have.length', 2);
+    const filteredKeys = mockAPIKeys().filter((k) => k.status === 'expired');
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(filteredKeys)).as(
       'filterByStatus',
     );
 
     apiKeysPage.findStatusFilterToggle().click();
-    apiKeysPage.findStatusFilterOption('Expired').click();
+    apiKeysPage.findStatusFilterOption('Active').click();
 
-    // Keys are filtered to show active by default so here we're looking for active and expired since active was pre-selected
+    // Keys are filtered to show active and expired by default so here we're looking for just expired since active was pre-selected
     cy.wait('@filterByStatus').then((interception) => {
-      expect(interception.request.body.data.filters.status).to.deep.equal(['active', 'expired']);
+      expect(interception.request.body.data.filters.status).to.deep.equal(['expired']);
     });
 
-    apiKeysPage.findRows().should('have.length', 3);
+    apiKeysPage.findRows().should('have.length', 1);
 
     const oldServiceKeyRow = apiKeysPage.getRow('old-service-key');
     oldServiceKeyRow.findStatus().should('contain.text', 'Expired');
-
-    const productionBackendRow = apiKeysPage.getRow('production-backend');
-    productionBackendRow.findStatus().should('contain.text', 'Active');
-
-    const developmentTestingRow = apiKeysPage.getRow('development-testing');
-    developmentTestingRow.findStatus().should('contain.text', 'Active');
   });
 
   it('should sort api keys by name', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortNameAsc',
@@ -345,7 +337,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by creation date', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     // Creation date is the default active sort (desc). First click toggles to asc.
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
@@ -376,7 +368,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by expiration date', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortExpirationAsc',
@@ -406,7 +398,7 @@ describe('API Keys Page', () => {
   it('should sort api keys by last used', () => {
     const keys = mockAPIKeys();
 
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     cy.interceptOdh('POST /maas/api/v1/api-keys/search', mockSearchResponse(keys)).as(
       'sortLastUsedAsc',
@@ -844,7 +836,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
     cy.interceptOdh(
       'POST /maas/api/v1/api-keys/search',
       mockSearchResponse(
-        mockAPIKeys().filter((k) => k.status === 'active'),
+        mockAPIKeys().filter((k) => k.status === 'active' || k.status === 'expired'),
         mockSubscriptionDetails,
       ),
     ).as('initialSearch');
@@ -864,7 +856,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
 
     apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
     apiKeysPage.findTable().should('exist');
-    apiKeysPage.findRows().should('have.length', 2);
+    apiKeysPage.findRows().should('have.length', 3);
 
     apiKeysPage.findSubscriptionsTab().click();
     cy.url().should('include', '/maas/keys-and-subs/subscriptions');

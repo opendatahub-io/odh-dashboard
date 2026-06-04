@@ -1,14 +1,19 @@
+// Package constants defines context keys and path constants used across the BFF.
 package constants
 
 type contextKey string
 
 const (
+	// NamespaceHeaderParameterKey is the context key for namespace header parameter.
 	NamespaceHeaderParameterKey contextKey = "namespace"
 
 	// The following keys are used to store the user access token in the context
+	// RequestIdentityKey is the context key for storing request identity information.
 	RequestIdentityKey contextKey = "requestIdentityKey"
 
-	TraceIdKey     contextKey = "TraceIdKey"
+	// TraceIDKey is the context key for storing trace IDs.
+	TraceIDKey contextKey = "TraceIDKey"
+	// TraceLoggerKey is the context key for storing trace loggers.
 	TraceLoggerKey contextKey = "TraceLoggerKey"
 )
 
