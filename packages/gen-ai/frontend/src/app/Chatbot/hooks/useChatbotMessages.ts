@@ -6,14 +6,17 @@ import userAvatar from '~/app/bgimages/user_avatar.svg';
 import botAvatar from '~/app/bgimages/bot_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
 import {
+  ApiError,
   ChatMessageRole,
   CreateResponseRequest,
   GuardrailInlineConfig,
+  isApiError,
   InputContentPart,
   MCPToolCallData,
   MCPServerFromAPI,
   ResponseMetrics,
   TokenInfo,
+  ClassifiedError,
 } from '~/app/types';
 import {
   ERROR_MESSAGES,
@@ -24,6 +27,7 @@ import {
 } from '~/app/Chatbot/const';
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
+import { classifyError } from '~/app/utilities/errorClassifier';
 
 import {
   ToolResponseCardTitle,
@@ -45,6 +49,8 @@ export type GuardrailsConfig = {
 // Extended message type that includes metrics data for display
 export type ChatbotMessageProps = MessageProps & {
   metrics?: ResponseMetrics;
+  errorClassification?: ClassifiedError;
+  onRetryError?: () => void;
 };
 
 export interface UseChatbotMessagesReturn {
@@ -124,6 +130,9 @@ const useChatbotMessages = ({
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Track whether streaming content has been received (avoids stale messages in error handler)
+  const streamingReceivedRef = React.useRef(false);
   const [isStreamingWithoutContent, setIsStreamingWithoutContent] = React.useState(false);
   const [lastResponseMetrics, setLastResponseMetrics] = React.useState<ResponseMetrics | null>(
     null,
@@ -133,6 +142,14 @@ const useChatbotMessages = ({
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const isStoppingStreamRef = React.useRef<boolean>(false);
   const isClearingRef = React.useRef<boolean>(false);
+  // Keep messages in a ref for handleRetry to access latest state
+  const messagesRef = React.useRef<ChatbotMessageProps[]>(messages);
+  // Keep handleMessageSend in a ref for handleRetry to access latest function
+  const handleMessageSendRef = React.useRef<
+    ((message: string, compareID?: string) => Promise<void>) | null
+  >(null);
+  // Keep bot message ID in a ref for handleRetry to access latest value
+  const botMessageIdRef = React.useRef<string | undefined>(undefined);
   const multimodalContentRef = React.useRef<Map<string, InputContentPart[]>>(new Map());
   const imagePreviewRef = React.useRef<Map<string, { previewUrl: string; fileName: string }>>(
     new Map(),
@@ -207,6 +224,20 @@ const useChatbotMessages = ({
     },
     [],
   );
+
+  // Sync messagesRef with messages state for handleRetry
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Update initial message name with the initially selected model (runs once on mount)
+  React.useEffect(() => {
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].role === 'bot' && prev[0].name !== modelDisplayName
+        ? [{ ...prev[0], name: modelDisplayName }]
+        : prev,
+    );
+  }, [modelDisplayName]);
 
   // Auto-scroll to bottom when messages change
   React.useEffect(() => {
@@ -299,6 +330,9 @@ const useChatbotMessages = ({
     imagePreview?: { previewUrl: string; fileName: string },
     docAttachments?: string[],
   ) => {
+    // Reset streaming content tracker for new message
+    streamingReceivedRef.current = false;
+
     const extraContent: Record<string, React.ReactNode> = {};
     if (imagePreview) {
       extraContent.beforeMainContent = React.createElement('img', {
@@ -367,9 +401,21 @@ const useChatbotMessages = ({
       setIsStreamingWithoutContent(true);
     }
 
-    let botMessageId: string | undefined;
-
     try {
+      // Create placeholder bot message FIRST (before any validation that could throw)
+      // This ensures error handling can update the message consistently
+      botMessageIdRef.current = getId();
+      const placeholderBotMessage: MessageProps = {
+        id: botMessageIdRef.current,
+        role: 'bot',
+        content: '',
+        name: modelDisplayName,
+        avatar: botAvatar,
+        isLoading: true,
+        timestamp: new Date().toLocaleString(),
+      };
+      setMessages((prevMessages) => [...prevMessages, placeholderBotMessage]);
+
       if (!modelId) {
         throw new Error(ERROR_MESSAGES.NO_MODEL_OR_SOURCE);
       }
@@ -433,19 +479,6 @@ const useChatbotMessages = ({
       abortControllerRef.current = new AbortController();
 
       if (isStreamingEnabled) {
-        // Create initial bot message for streaming with loading state
-        botMessageId = getId();
-        const streamingBotMessage: MessageProps = {
-          id: botMessageId,
-          role: 'bot',
-          content: '',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          isLoading: true, // Show loading dots until first content
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, streamingBotMessage]);
-
         // Handle streaming response with line-by-line display like ChatGPT
         const completeLines: string[] = [];
         let currentPartialLine = '';
@@ -465,7 +498,7 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageId
+              msg.id === botMessageIdRef.current
                 ? {
                     ...msg,
                     content: '',
@@ -504,7 +537,7 @@ const useChatbotMessages = ({
 
           setMessages((prevMessages) =>
             prevMessages.map((msg) =>
-              msg.id === botMessageId
+              msg.id === botMessageIdRef.current
                 ? {
                     ...msg,
                     content: displayContent,
@@ -571,6 +604,11 @@ const useChatbotMessages = ({
             // Add chunk to current partial line
             currentPartialLine += chunk;
 
+            // Mark that we've received streaming content (any non-empty chunk counts)
+            if (chunk) {
+              streamingReceivedRef.current = true;
+            }
+
             // Check if we have complete lines (ending with newline characters)
             const lines = currentPartialLine.split('\n');
 
@@ -628,7 +666,7 @@ const useChatbotMessages = ({
 
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
-            msg.id === botMessageId
+            msg.id === botMessageIdRef.current
               ? {
                   ...msg,
                   content: streamingResponse.content,
@@ -675,60 +713,74 @@ const useChatbotMessages = ({
             ? createThinkingCollapsible(response.reasoningContent)
             : undefined;
 
-        const botMessage: ChatbotMessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: response.content || 'No response received',
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-          ...(toolResponse && { toolResponse }),
-          ...(thinkingCollapsible && {
-            extraContent: { beforeMainContent: thinkingCollapsible },
-          }),
-          ...sourcesProps,
-          ...(response.metrics && { metrics: response.metrics }),
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        // Update the placeholder message with the full response
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageIdRef.current
+              ? {
+                  ...msg,
+                  content: response.content || 'No response received',
+                  name: modelDisplayName,
+                  avatar: botAvatar,
+                  timestamp: new Date().toLocaleString(),
+                  isLoading: false,
+                  ...(toolResponse && { toolResponse }),
+                  ...(thinkingCollapsible && {
+                    extraContent: { beforeMainContent: thinkingCollapsible },
+                  }),
+                  ...sourcesProps,
+                  ...(response.metrics && { metrics: response.metrics }),
+                }
+              : msg,
+          ),
+        );
+
         // Update last response metrics for pane header display
         if (response.metrics) {
           setLastResponseMetrics(response.metrics);
         }
       }
     } catch (error) {
-      // Check if this is an abort error
-      const isAbortError =
-        error instanceof Error &&
-        (error.name === 'AbortError' ||
-          error.message.includes('aborted') ||
-          error.message === 'Response stopped by user');
-
       // If we're clearing the conversation, silently ignore all errors
       // Messages are already reset to initial state
       if (isClearingRef.current) {
         return;
       }
 
-      const rawErrorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Sorry, I encountered an error while processing your request. Please try again.';
+      // BFF returns structured ApiError - if not, create a generic one
+      const apiError: ApiError = isApiError(error)
+        ? error
+        : {
+            error: {
+              component: 'bff',
+              code: 'unknown',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Sorry, I encountered an error while processing your request. Please try again.',
+              retriable: false,
+            },
+          };
 
-      const errorCode =
-        error instanceof Error && 'code' in error && typeof error.code === 'string'
-          ? error.code
-          : undefined;
+      // Check if this is an abort error (from user stopping or clearing)
+      const isAbortError =
+        error instanceof Error &&
+        (error.name === 'AbortError' ||
+          error.message.includes('aborted') ||
+          error.message === 'Response stopped by user');
+
+      // Handle guardrail violations with custom messages
       const errorMessage = (() => {
-        if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
           return GUARDRAIL_MESSAGES.INPUT_VIOLATION;
         }
-        if (errorCode === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
           return GUARDRAIL_MESSAGES.OUTPUT_VIOLATION;
         }
-        return rawErrorMessage;
+        return apiError.error.message;
       })();
 
-      if (errorCode === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+      if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
       }
 
@@ -737,35 +789,128 @@ const useChatbotMessages = ({
         isStoppingStreamRef.current &&
         (isAbortError || errorMessage === 'Response stopped by user');
 
-      if (isStreamingEnabled && botMessageId) {
-        // For streaming, update existing bot message
-        setMessages((prevMessages) =>
-          prevMessages.map((msg) => {
-            if (msg.id === botMessageId) {
-              if (wasUserStopped) {
-                // Append "You stopped this message" to existing content
+      // Handle user-stopped messages (not errors, just user action)
+      if (wasUserStopped) {
+        if (isStreamingEnabled && botMessageIdRef.current) {
+          // For streaming, append "You stopped this message" to existing content
+          setMessages((prevMessages) =>
+            prevMessages.map((msg) => {
+              if (msg.id === botMessageIdRef.current) {
                 const stoppedContent = msg.content
                   ? `${msg.content}\n\n*You stopped this message*`
                   : '*You stopped this message*';
                 return { ...msg, content: stoppedContent, isLoading: false };
               }
-              // For other errors, replace content with error message
-              return { ...msg, content: errorMessage, isLoading: false };
+              return msg;
+            }),
+          );
+        } else {
+          // For non-streaming, add stop message as new message
+          const botStopMessage: MessageProps = {
+            id: getId(),
+            role: 'bot',
+            content: '*You stopped this message*',
+            name: modelDisplayName,
+            avatar: botAvatar,
+            timestamp: new Date().toLocaleString(),
+          };
+          setMessages((prevMessages) => [...prevMessages, botStopMessage]);
+        }
+        return; // Exit early - this is not an error to classify
+      }
+
+      // Use ref to track streaming content (avoids stale messages snapshot)
+      const hadPartialContent = streamingReceivedRef.current;
+
+      // Classify the error for UI rendering - error is already in ApiError format
+      const errorClassification = classifyError(apiError, {
+        modelName: modelDisplayName,
+        wasStreamStarted: isStreamingEnabled,
+        wasResponseGenerated: hadPartialContent,
+        // TODO: Add maxTokens from model config when available
+        // TODO: Add toolName if error is from MCP tool call
+      });
+
+      // Retry handler - resends the same prompt (uses refs to avoid stale closure)
+      // botMessageIdRef.current is set before errors can occur, so it's always available when retry is called
+      const handleRetry = () => {
+        // Read latest messages from ref (avoid stale closure)
+        const currentMessages = messagesRef.current;
+        const lastUserMessage = currentMessages
+          .slice()
+          .reverse()
+          .find((msg) => msg.role === 'user');
+
+        if (!lastUserMessage?.content) {
+          return; // No user message to retry
+        }
+
+        const userContent = lastUserMessage.content;
+
+        // Remove the error message (pure state update)
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg.id !== botMessageIdRef.current),
+        );
+
+        // Schedule retry outside the updater, with guard against clearing
+        setTimeout(() => {
+          if (!isClearingRef.current) {
+            // Verify messages still exist and include the user message (read from ref)
+            const stillHasUserMessage = messagesRef.current.some(
+              (msg) => msg.id === lastUserMessage.id && msg.role === 'user',
+            );
+            // Call latest handleMessageSend from ref
+            if (stillHasUserMessage && handleMessageSendRef.current) {
+              handleMessageSendRef.current(userContent);
+            }
+          }
+        }, 0);
+      };
+
+      if (isStreamingEnabled && botMessageIdRef.current) {
+        // For streaming errors, update existing bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) => {
+            if (msg.id === botMessageIdRef.current) {
+              // Determine if this is a streaming interruption (had some content)
+              const hadContent = msg.content && msg.content.length > 0;
+
+              const updatedMessage = hadContent
+                ? {
+                    ...msg,
+                    content: `${msg.content}...`, // Append ellipsis to signal cutoff
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  }
+                : {
+                    ...msg,
+                    content: '', // Clear loading dots
+                    isLoading: false,
+                    errorClassification,
+                    onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                  };
+
+              return updatedMessage;
             }
             return msg;
           }),
         );
       } else {
-        // For non-streaming, add error/stop message as new message
-        const botErrorMessage: MessageProps = {
-          id: getId(),
-          role: 'bot',
-          content: wasUserStopped ? '*You stopped this message*' : errorMessage,
-          name: modelDisplayName,
-          avatar: botAvatar,
-          timestamp: new Date().toLocaleString(),
-        };
-        setMessages((prevMessages) => [...prevMessages, botErrorMessage]);
+        // For non-streaming, update the placeholder bot message with error classification
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === botMessageIdRef.current
+              ? {
+                  ...msg,
+                  content: '', // No content, error alert will be shown
+                  isLoading: false,
+                  errorClassification,
+                  onRetryError: errorClassification.isRetriable ? handleRetry : undefined,
+                }
+              : msg,
+          ),
+        );
       }
     } finally {
       setIsMessageSendButtonDisabled(false);
@@ -775,6 +920,9 @@ const useChatbotMessages = ({
       abortControllerRef.current = null;
     }
   };
+
+  // Keep ref in sync so handleRetry can call the latest version
+  handleMessageSendRef.current = handleMessageSend;
 
   React.useEffect(
     () => () => {
