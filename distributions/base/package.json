@@ -4,6 +4,10 @@
   "description": "Base app shell distribution framework",
   "license": "Apache-2.0",
   "private": true,
+  "main": "./src/lib.ts",
+  "exports": {
+    ".": "./src/lib.ts"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
@@ -28,7 +32,6 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.18.0",
     "@odh-dashboard/eslint-config": "*",
     "@odh-dashboard/tsconfig": "*",
     "@swc/core": "^1.13.3",
