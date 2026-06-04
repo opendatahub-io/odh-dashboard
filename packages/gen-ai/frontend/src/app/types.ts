@@ -78,9 +78,13 @@ export enum ChatMessageRole {
   ASSISTANT = 'assistant',
 }
 
+export type InputContentPart =
+  | { type: 'input_text'; text: string }
+  | { type: 'input_image'; file_id: string };
+
 export type ChatContextMessage = {
   role: ChatMessageRole;
-  content: string;
+  content: string | InputContentPart[];
 };
 
 export type MCPServerConfig = {
@@ -99,7 +103,7 @@ export type GuardrailInlineConfig = {
 };
 
 export type CreateResponseRequest = {
-  input: string;
+  input: string | InputContentPart[];
   model: string;
   vector_store_ids?: string[];
   chat_context?: ChatContextMessage[];
@@ -194,6 +198,7 @@ export type SimplifiedResponseData = {
   toolCallData?: MCPToolCallData; // Optional - only present when MCP tool calls exist
   sources?: SourceItem[]; // Optional - file sources from RAG annotations
   metrics?: ResponseMetrics; // Optional - response metrics (latency, TTFT, usage)
+  reasoningContent?: string; // Optional - accumulated reasoning/thinking text from thinking models
 };
 
 export type FileError = {
@@ -619,7 +624,7 @@ type GetFileUploadStatus = ModArchRestGET<FileUploadStatusResponse>;
 type CreateResponse = (
   data: CreateResponseRequest,
   opts?: APIOptions & {
-    onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+    onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
     abortSignal?: AbortSignal;
   },
 ) => Promise<SimplifiedResponseData>;

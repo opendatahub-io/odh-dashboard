@@ -14,6 +14,7 @@ import {
   getMCPServers,
   getMCPServerStatus,
   getMCPServerTools,
+  uploadVisionFile,
 } from '~/app/services/llamaStackService';
 import { URL_PREFIX } from '~/app/utilities';
 import { mockLlamaModels } from '~/__mocks__/mockLlamaStackModels';
@@ -322,6 +323,97 @@ describe('llamaStackService', () => {
         await expect(
           createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(mockCreateResponseRequest),
         ).rejects.toThrow();
+      });
+
+      describe('think-tag stripping', () => {
+        it('extracts reasoning from <think>...</think> and returns remaining content', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '<think>I need to reason about this</think>Here is the answer',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Here is the answer');
+          expect(result.reasoningContent).toBe('I need to reason about this');
+        });
+
+        it('extracts bare reasoning before </think> (no opening tag)', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Some reasoning here</think>Actual answer',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Actual answer');
+          expect(result.reasoningContent).toBe('Some reasoning here');
+        });
+
+        it('returns content as-is when no think tags present', async () => {
+          mockedRestCREATE.mockResolvedValueOnce({ data: mockBackendResponse });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('This is a test response');
+          expect(result.reasoningContent).toBeUndefined();
+        });
+
+        it('handles empty think tag and returns content only', async () => {
+          const response = {
+            ...mockBackendResponse,
+            output: [
+              {
+                id: 'out-1',
+                type: 'completion_message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: '<think></think>Direct answer without reasoning',
+                  },
+                ],
+              },
+            ],
+          };
+          mockedRestCREATE.mockResolvedValueOnce({ data: response });
+
+          const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+            mockCreateResponseRequest,
+          );
+
+          expect(result.content).toBe('Direct answer without reasoning');
+          expect(result.reasoningContent).toBeUndefined();
+        });
       });
     });
 
@@ -653,6 +745,117 @@ describe('llamaStackService', () => {
             body: JSON.stringify(mockStreamingRequest),
           },
         );
+      });
+    });
+
+    describe('reasoning streaming', () => {
+      // Wiring smoke tests: verify streamCreateResponse correctly calls onStreamData
+      // and populates result.reasoningContent. Chunk-level edge cases live in
+      // packages/gen-ai/frontend/src/app/services/__tests__/thinkTagParser.spec.ts
+
+      it('accumulates reasoning from reasoning_text.delta and wires onStreamData', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Let me think", "type": "response.reasoning_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": " step by step", "type": "response.reasoning_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "The answer is 42", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBe('Let me think step by step');
+        expect(result.content).toBe('The answer is 42');
+        expect(mockStreamData).toHaveBeenCalledWith('Let me think', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith(' step by step', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith('The answer is 42');
+      });
+
+      it('no reasoningContent when no reasoning events are present', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "Hello", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBeUndefined();
+        expect(result.content).toBe('Hello');
+        expect(mockStreamData).not.toHaveBeenCalledWith(expect.anything(), false, true);
+      });
+
+      it('wires embedded <think> tags — splits reasoning and content via onStreamData', async () => {
+        const mockStreamData = jest.fn();
+
+        const mockReader = {
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": "<think>Let me reason", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({
+              done: false,
+              value: new TextEncoder().encode(
+                'data: {"delta": " about this</think>The answer", "type": "response.output_text.delta"}\n',
+              ),
+            })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: jest.fn(),
+        };
+
+        mockFetch.mockResolvedValueOnce({ ok: true, body: { getReader: () => mockReader } });
+
+        const result = await createResponse(URL_PREFIX, { namespace: TEST_NAMESPACE })(
+          mockStreamingRequest,
+          { onStreamData: mockStreamData },
+        );
+
+        expect(result.reasoningContent).toBe('Let me reason about this');
+        expect(result.content).toBe('The answer');
+        expect(mockStreamData).toHaveBeenCalledWith('Let me reason', false, true);
+        expect(mockStreamData).toHaveBeenCalledWith('The answer');
       });
     });
   });
@@ -1168,6 +1371,141 @@ describe('llamaStackService', () => {
         expect.objectContaining({ namespace: TEST_NAMESPACE }),
         {},
       );
+    });
+  });
+
+  describe('uploadVisionFile', () => {
+    let mockXhr: {
+      open: jest.Mock;
+      send: jest.Mock;
+      abort: jest.Mock;
+      status: number;
+      statusText: string;
+      responseText: string;
+      onload: (() => void) | null;
+      onerror: (() => void) | null;
+      onabort: (() => void) | null;
+      upload: { onprogress: ((e: Partial<ProgressEvent>) => void) | null };
+    };
+
+    beforeEach(() => {
+      mockXhr = {
+        open: jest.fn(),
+        send: jest.fn(),
+        abort: jest.fn(),
+        status: 200,
+        statusText: 'OK',
+        responseText: '{"data":{"id":"file-abc123"}}',
+        onload: null,
+        onerror: null,
+        onabort: null,
+        upload: { onprogress: null },
+      };
+      jest
+        .spyOn(window, 'XMLHttpRequest')
+        .mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should upload a file and return the file id', async () => {
+      const file = new File(['image-data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadVisionFile('/api/upload', file);
+
+      expect(mockXhr.open).toHaveBeenCalledWith('POST', '/api/upload');
+      expect(mockXhr.send).toHaveBeenCalled();
+
+      const sentFormData = mockXhr.send.mock.calls[0][0] as FormData;
+      expect(sentFormData.get('file')).toBe(file);
+
+      mockXhr.onload!();
+
+      const result = await promise;
+      expect(result).toEqual({ data: { id: 'file-abc123' } });
+    });
+
+    it('should call onProgress with percentage', async () => {
+      const onProgress = jest.fn();
+      const file = new File(['image-data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadVisionFile('/api/upload', file, onProgress);
+
+      mockXhr.upload.onprogress!({ lengthComputable: true, loaded: 50, total: 100 });
+      expect(onProgress).toHaveBeenCalledWith(50);
+
+      mockXhr.upload.onprogress!({ lengthComputable: true, loaded: 100, total: 100 });
+      expect(onProgress).toHaveBeenCalledWith(100);
+
+      mockXhr.onload!();
+      await promise;
+    });
+
+    it('should not call onProgress when lengthComputable is false', async () => {
+      const onProgress = jest.fn();
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadVisionFile('/api/upload', file, onProgress);
+
+      mockXhr.upload.onprogress!({ lengthComputable: false, loaded: 0, total: 0 });
+      expect(onProgress).not.toHaveBeenCalled();
+
+      mockXhr.onload!();
+      await promise;
+    });
+
+    it('should reject on HTTP error status', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.status = 413;
+      mockXhr.statusText = 'Payload Too Large';
+
+      const { promise } = uploadVisionFile('/api/upload', file);
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Upload failed: 413 Payload Too Large');
+    });
+
+    it('should reject on invalid JSON response', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.responseText = 'not json';
+
+      const { promise } = uploadVisionFile('/api/upload', file);
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Invalid response from server');
+    });
+
+    it('should reject on malformed response shape', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      mockXhr.responseText = JSON.stringify({ result: 'ok' });
+
+      const { promise } = uploadVisionFile('/api/upload', file);
+      mockXhr.onload!();
+
+      await expect(promise).rejects.toThrow('Invalid response shape: missing data.id');
+    });
+
+    it('should reject on network error', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadVisionFile('/api/upload', file);
+      mockXhr.onerror!();
+
+      await expect(promise).rejects.toThrow('Network error during upload');
+    });
+
+    it('should reject on abort', async () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { promise } = uploadVisionFile('/api/upload', file);
+      mockXhr.onabort!();
+
+      await expect(promise).rejects.toThrow('Upload aborted');
+    });
+
+    it('should return an xhr object that can be aborted', () => {
+      const file = new File(['data'], 'test.png', { type: 'image/png' });
+      const { xhr } = uploadVisionFile('/api/upload', file);
+
+      xhr.abort();
+      expect(mockXhr.abort).toHaveBeenCalled();
     });
   });
 });

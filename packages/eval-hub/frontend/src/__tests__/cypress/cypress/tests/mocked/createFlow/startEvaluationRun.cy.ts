@@ -80,7 +80,7 @@ const navigateToBenchmarkStart = () => {
   chooseBenchmarkPage.visit(NAMESPACE);
   chooseBenchmarkPage
     .findBenchmarkCard('test-provider', 'bench-alpha')
-    .findByText('Select benchmark')
+    .findByTestId('select-benchmark-button')
     .click();
 
   startEvaluationRunPage.findForm().should('exist');
