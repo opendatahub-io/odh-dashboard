@@ -31,10 +31,6 @@ module.exports = merge(webpackCommon(), {
         target: `ws://localhost:${BFF_PORT}`,
         ws: true,
       },
-      {
-        context: ['/_mf'],
-        target: `http://localhost:${BFF_PORT}`,
-      },
     ],
     client: {
       overlay: false,
