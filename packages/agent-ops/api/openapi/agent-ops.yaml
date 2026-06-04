@@ -100,6 +100,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/AgentRuntimeDetailResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -121,6 +123,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/AgentCardResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -486,6 +490,21 @@ components:
                 description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentRuntimesList"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtimes-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  runtimes:
+                    - name: sample-support-agent
+                      namespace: agent-ops-demo
+                      status: Ready
+                      type: agent
+                      endpointUrl: ""
+                      lastSyncTime: "2026-05-12T16:00:03.214610Z"
       description: A response containing deployed agent runtimes.
     AgentRuntimeDetailResponse:
       content:
@@ -498,6 +517,36 @@ components:
                 description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentRuntimeDetail"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-runtime-detail-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  name: sample-support-agent
+                  namespace: agent-ops-demo
+                  description: Customer support agent that triages tickets and drafts responses.
+                  runtime:
+                    name: sample-support-agent
+                    namespace: agent-ops-demo
+                    status: Ready
+                    type: agent
+                    endpointUrl: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                    lastSyncTime: "2026-05-12T16:00:03.214610Z"
+                  workloadStatus: Ready
+                  serviceEndpoints:
+                    - name: http
+                      url: http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
+                      port: 8080
+                  podCount: 2
+                  conditions:
+                    - type: Available
+                      status: "True"
+                      reason: MinimumReplicasAvailable
+                      message: Deployment has minimum availability.
+                      lastTransitionTime: "2026-05-12T16:00:03.214610Z"
       description: A response containing full agent runtime detail.
     AgentCardResponse:
       content:
@@ -510,6 +559,36 @@ components:
                 description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentCard"
+          examples:
+            default:
+              value:
+                metadata:
+                  requestId: req-agent-card-001
+                  status: ok
+                  timestamp: "2026-05-12T16:00:03.214610Z"
+                data:
+                  name: sample-support-agent
+                  namespace: agent-ops-demo
+                  description: Customer support agent that triages tickets and drafts responses.
+                  version: "1.2.0"
+                  skills:
+                    - id: ticket-triage
+                      name: Ticket triage
+                      description: Classifies incoming support tickets by priority and topic.
+                    - id: response-draft
+                      name: Response drafting
+                      description: Drafts customer-facing replies from ticket context and knowledge base snippets.
+                  capabilities:
+                    streaming: true
+                    pushNotifications: false
+                  provider:
+                    name: opendatahub
+                    displayName: Open Data Hub
+                    url: https://opendatahub.io
+                  supportedInputModes:
+                    - text
+                  supportedOutputModes:
+                    - text
       description: A response containing an agent discovery card.
     ConflictResponse:
       content:

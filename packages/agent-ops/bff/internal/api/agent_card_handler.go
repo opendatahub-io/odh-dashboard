@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -32,11 +33,21 @@ func (app *App) GetAgentCardHandler(w http.ResponseWriter, r *http.Request, ps h
 		app.handleAgentRepositoryError(w, r, err)
 		return
 	}
+	if result == nil {
+		err = fmt.Errorf("agent card repository returned nil result without error for namespace=%q name=%q", namespace, name)
+		logger.Error("Invalid repository contract",
+			slog.String("namespace", namespace),
+			slog.String("name", name),
+			slog.Any("error", err))
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
+	version := result.Version
 	logger.Info("Agent card retrieved successfully",
 		slog.String("namespace", namespace),
 		slog.String("name", name),
-		slog.String("version", result.Version))
+		slog.String("version", version))
 
 	envelope := AgentCardEnvelope{
 		Data: result,
