@@ -687,7 +687,7 @@ export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
 /**
  * Display names for error components shown in the UI.
  */
-export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<ErrorComponent, string>> = {
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
   [ERROR_COMPONENTS.RAG]: 'RAG',
   [ERROR_COMPONENTS.MCP]: 'MCP',

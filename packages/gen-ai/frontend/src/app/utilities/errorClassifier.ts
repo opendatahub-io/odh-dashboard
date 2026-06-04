@@ -81,7 +81,8 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   const microcopy = getMicrocopy(templateKey, effectiveContext);
   const isRetriable = resolveRetriable(error);
 
-  const displayComponent = ERROR_COMPONENT_DISPLAY_NAMES[component];
+  // Fallback to raw component string for unknown/future components not in the enum
+  const displayComponent = ERROR_COMPONENT_DISPLAY_NAMES[component] ?? component;
   const componentLabel =
     component === ERROR_COMPONENTS.MCP && effectiveContext.toolName
       ? `MCP: ${effectiveContext.toolName}`
