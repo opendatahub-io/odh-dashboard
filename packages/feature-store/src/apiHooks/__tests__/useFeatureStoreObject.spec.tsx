@@ -47,6 +47,8 @@ describe('useFeatureStoreObject', () => {
       hash: '',
       state: null,
       key: 'test',
+      // eslint-disable-next-line camelcase
+      unstable_mask: undefined,
     });
 
     const renderResult = testHook(useFeatureStoreObject)();
@@ -62,6 +64,8 @@ describe('useFeatureStoreObject', () => {
       hash: '',
       state: null,
       key: 'test',
+      // eslint-disable-next-line camelcase
+      unstable_mask: undefined,
     });
 
     const renderResult = testHook(useFeatureStoreObject)();
@@ -77,6 +81,8 @@ describe('useFeatureStoreObject', () => {
       hash: '',
       state: null,
       key: 'test',
+      // eslint-disable-next-line camelcase
+      unstable_mask: undefined,
     });
 
     const renderResult = testHook(useFeatureStoreObject)();
@@ -90,6 +96,8 @@ describe('useFeatureStoreObject', () => {
       hash: '',
       state: null,
       key: 'test2',
+      // eslint-disable-next-line camelcase
+      unstable_mask: undefined,
     });
 
     renderResult.rerender();
@@ -105,6 +113,8 @@ describe('useFeatureStoreObject', () => {
       hash: '',
       state: null,
       key: 'test',
+      // eslint-disable-next-line camelcase
+      unstable_mask: undefined,
     };
 
     useLocationMock.mockReturnValue(location);
