@@ -15,9 +15,7 @@ import type { HardwareProfileConfig } from '@odh-dashboard/internal/concepts/har
 import { applyHardwareProfileConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/utils';
 import {
   KSERVE_AUTH_ANNOTATION,
-  KSERVE_DEPLOYMENT_MODE_ANNOTATION,
   KSERVE_VISIBILITY_LABEL,
-  KServeDeploymentMode,
   KServeVisibility,
 } from '@odh-dashboard/kserve/deployUtils';
 import { NIMServiceModel, type NIMServiceKind } from './types';
@@ -177,7 +175,6 @@ export const assembleNIMService = (
   if (!nimService.spec.annotations) {
     nimService.spec.annotations = {};
   }
-  nimService.spec.annotations[KSERVE_DEPLOYMENT_MODE_ANNOTATION] = KServeDeploymentMode.Standard;
   nimService.spec.annotations[KSERVE_AUTH_ANNOTATION] = tokenAuth ? 'true' : 'false';
 
   if (environmentVariables?.enabled) {

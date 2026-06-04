@@ -20,9 +20,8 @@ export const assembleNIMDeployment = (
   applyFieldData?: DeploymentAssemblyFn<NIMDeployment>,
 ): NIMDeployment => {
   const tokenAuth =
-    (wizardData.state.tokenAuthentication.data &&
-      wizardData.state.tokenAuthentication.data.length > 0) ??
-    false;
+    Array.isArray(wizardData.state.tokenAuthentication.data) &&
+    wizardData.state.tokenAuthentication.data.length > 0;
 
   const nimService = assembleNIMService(
     {

@@ -56,6 +56,11 @@ describe('applyNIMPVCFieldData', () => {
     expect(result.model.spec.storage?.pvc?.subPath).toBe('models/llama');
   });
 
+  it('should strip multiple leading slashes from subPath', () => {
+    const result = applyNIMPVCFieldData(makeDeployment(), makeFieldValue({ subPath: '//models' }));
+    expect(result.model.spec.storage?.pvc?.subPath).toBe('models');
+  });
+
   it('should keep relative subPath as-is', () => {
     const result = applyNIMPVCFieldData(
       makeDeployment(),
@@ -85,6 +90,27 @@ describe('extractNIMPVCFieldData', () => {
 
   it('should return undefined when no PVC is configured', () => {
     expect(extractNIMPVCFieldData(makeDeployment())).toBeUndefined();
+  });
+
+  it('should parse size with Gi unit', () => {
+    const deployment = makeDeployment('my-pvc');
+    deployment.model.spec.storage = { pvc: { name: 'my-pvc', size: '64Gi' } };
+    const result = extractNIMPVCFieldData(deployment);
+    expect(result?.storageSizeGi).toBe(64);
+  });
+
+  it('should treat plain number as GiB', () => {
+    const deployment = makeDeployment('my-pvc');
+    deployment.model.spec.storage = { pvc: { name: 'my-pvc', size: '100' } };
+    const result = extractNIMPVCFieldData(deployment);
+    expect(result?.storageSizeGi).toBe(100);
+  });
+
+  it('should fall back to default for malformed size', () => {
+    const deployment = makeDeployment('my-pvc');
+    deployment.model.spec.storage = { pvc: { name: 'my-pvc', size: 'abc' } };
+    const result = extractNIMPVCFieldData(deployment);
+    expect(result?.storageSizeGi).toBe(50);
   });
 
   it('should default subPath to empty string when not set', () => {
