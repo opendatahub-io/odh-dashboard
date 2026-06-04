@@ -1,0 +1,1308 @@
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-shadow, react/no-unused-prop-types */
+import * as React from 'react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+
+// ───────────────────── Mock functions ─────────────────────
+
+const mockHandleSourceDrop = jest.fn().mockResolvedValue(undefined);
+const mockRemoveUploadedSource = jest.fn();
+const mockDeleteFileById = jest.fn().mockResolvedValue(undefined);
+const mockRefreshFiles = jest.fn().mockResolvedValue(undefined);
+const mockOnShowErrorAlert = jest.fn();
+const mockHandleMessageSend = jest.fn().mockResolvedValue(undefined);
+
+let mockFilesWithSettings: Array<{
+  id: string;
+  file: File;
+  settings: null;
+  status: string;
+}> = [];
+let mockFileManagementFiles: Array<{ id: string; filename: string }> = [];
+
+// ───────────────────── Module mocks ─────────────────────
+
+jest.mock('~/app/Chatbot/hooks/useSourceManagement', () => ({
+  __esModule: true,
+  default: () => ({
+    selectedSourceSettings: null,
+    isSourceSettingsOpen: false,
+    autoEnableRag: false,
+    get filesWithSettings() {
+      return mockFilesWithSettings;
+    },
+    currentFileForSettings: null,
+    pendingFiles: [],
+    isUploading: false,
+    uploadProgress: { current: 0, total: 0 },
+    setAutoEnableRag: jest.fn(),
+    handleSourceDrop: mockHandleSourceDrop,
+    removeUploadedSource: mockRemoveUploadedSource,
+    handleSourceSettingsSubmit: jest.fn(),
+    handleModalClose: jest.fn(),
+    setIsSourceSettingsOpen: jest.fn(),
+    setSelectedSourceSettings: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/Chatbot/hooks/useFileManagement', () => ({
+  __esModule: true,
+  default: () => ({
+    get files() {
+      return mockFileManagementFiles;
+    },
+    isLoading: false,
+    error: null,
+    refreshFiles: mockRefreshFiles,
+    deleteFileById: mockDeleteFileById,
+    isDeleting: false,
+    currentVectorStoreId: 'vs-test-123',
+  }),
+}));
+
+jest.mock('~/app/Chatbot/hooks/useAlertManagement', () => ({
+  __esModule: true,
+  default: () => ({
+    showUploadSuccessAlert: false,
+    showDeleteSuccessAlert: false,
+    showErrorAlert: false,
+    errorAlertKey: 0,
+    errorMessage: '',
+    errorTitle: '',
+    onShowUploadSuccessAlert: jest.fn(),
+    onShowDeleteSuccessAlert: jest.fn(),
+    onShowErrorAlert: mockOnShowErrorAlert,
+    onHideUploadSuccessAlert: jest.fn(),
+    onHideDeleteSuccessAlert: jest.fn(),
+    onHideErrorAlert: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/Chatbot/hooks/useChatbotMessages', () => ({
+  __esModule: true,
+  default: () => ({
+    messages: [],
+    isLoading: false,
+    isStreamingWithoutContent: false,
+    isMessageSendButtonDisabled: false,
+    modelDisplayName: 'Test Model',
+    scrollToBottomRef: { current: null },
+    handleMessageSend: mockHandleMessageSend,
+    handleStopStreaming: jest.fn(),
+    clearConversation: jest.fn(),
+    lastResponseMetrics: null,
+  }),
+}));
+
+jest.mock('~/app/Chatbot/hooks/useDarkMode', () => ({
+  __esModule: true,
+  default: () => false,
+}));
+
+jest.mock('~/app/hooks/useFetchBFFConfig', () => ({
+  __esModule: true,
+  default: () => ({ data: null, isLoading: false }),
+}));
+
+jest.mock('~/app/hooks/useFetchMCPServers', () => ({
+  __esModule: true,
+  default: () => ({ data: [], loaded: true, error: undefined }),
+}));
+
+jest.mock('~/app/hooks/useMCPServerStatuses', () => ({
+  __esModule: true,
+  default: () => ({
+    serverStatuses: new Map(),
+    checkServerStatus: jest.fn(),
+  }),
+}));
+
+jest.mock('~/app/services/llamaStackService', () => ({
+  uploadVisionFile: jest.fn(),
+}));
+
+jest.mock('~/app/context/UserContext', () => ({
+  useUserContext: () => ({
+    username: 'test-user',
+    userAvatar: '',
+  }),
+}));
+
+jest.mock('~/app/context/ChatbotContext', () => {
+  const { createContext } = require('react');
+  return {
+    ChatbotContext: createContext({
+      models: [{ id: 'test-model', name: 'Test Model' }],
+      modelsLoaded: true,
+      aiModels: [],
+      maasModels: [],
+      lastInput: '',
+      setLastInput: jest.fn(),
+      lsdStatus: null,
+      lsdStatusLoaded: true,
+      aiModelsLoaded: true,
+      maasModelsLoaded: true,
+      modelsError: undefined,
+      lsdStatusError: undefined,
+      aiModelsError: undefined,
+      maasModelsError: undefined,
+      nemoGuardrailsStatus: null,
+      nemoGuardrailsStatusLoaded: true,
+      nemoGuardrailsStatusError: undefined,
+      refresh: jest.fn(),
+    }),
+  };
+});
+
+jest.mock('~/app/context/GenAiContext', () => {
+  const { createContext } = require('react');
+  return {
+    GenAiContext: createContext({
+      namespace: { name: 'test-ns' },
+      apiState: { apiAvailable: true, api: {} },
+      refreshAPIState: jest.fn(),
+    }),
+  };
+});
+
+jest.mock('~/app/utilities', () => ({
+  isLlamaModelEnabled: jest.fn(() => true),
+  URL_PREFIX: '/gen-ai',
+}));
+
+jest.mock('~/app/utilities/utils', () => ({
+  getId: jest.fn(() => 'mock-compare-id'),
+  getLlamaModelDisplayName: jest.fn((id: string) => id),
+  splitLlamaModelId: jest.fn((id: string) => ({ providerId: 'p', id })),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
+  fireMiscTrackingEvent: jest.fn(),
+  fireFormTrackingEvent: jest.fn(),
+}));
+
+jest.mock('@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({
+      onSubmit,
+      onCancel,
+      submitLabel,
+    }: {
+      onSubmit: () => void;
+      onCancel: () => void;
+      submitLabel?: string;
+    }) =>
+      React.createElement(
+        'div',
+        { 'data-testid': 'modal-footer' },
+        React.createElement(
+          'button',
+          { 'data-testid': 'modal-submit', onClick: onSubmit, type: 'button' },
+          submitLabel || 'Submit',
+        ),
+        React.createElement(
+          'button',
+          { 'data-testid': 'modal-cancel', onClick: onCancel, type: 'button' },
+          'Cancel',
+        ),
+      ),
+  };
+});
+
+jest.mock('@patternfly/chatbot', () => {
+  const React = require('react');
+  return {
+    Chatbot: ({ children }: { children: unknown }) => React.createElement('div', null, children),
+    ChatbotContent: ({ children }: { children: unknown }) =>
+      React.createElement('div', null, children),
+    ChatbotDisplayMode: { embedded: 'embedded' },
+    MessageBox: ({ children }: { children: unknown }) => React.createElement('div', null, children),
+    ChatbotWelcomePrompt: () => React.createElement('div', null, 'Welcome'),
+    FileDetailsLabel: (props: {
+      fileName: string;
+      isLoading?: boolean;
+      onClose?: (e: unknown) => void;
+      'data-testid'?: string;
+      hasTruncation?: boolean;
+    }) =>
+      React.createElement(
+        'div',
+        { 'data-testid': props['data-testid'] || `file-label-${props.fileName}` },
+        React.createElement('span', { 'data-testid': 'chip-file-name' }, props.fileName),
+        props.isLoading
+          ? React.createElement('span', { 'data-testid': 'chip-loading' }, 'Loading')
+          : null,
+        !props.isLoading && props.onClose
+          ? React.createElement(
+              'button',
+              {
+                'data-testid': 'chip-close',
+                onClick: (e: unknown) => props.onClose!(e),
+                type: 'button',
+              },
+              '×',
+            )
+          : null,
+      ),
+    MessageBar: (props: {
+      onSendMessage: (msg: string) => void;
+      isSendButtonDisabled: boolean;
+      hasAttachButton: boolean;
+      hasStopButton?: boolean;
+      handleStopButton?: () => void;
+      alwayShowSendButton?: boolean;
+      attachMenuProps?: {
+        isAttachMenuOpen: boolean;
+        setIsAttachMenuOpen: (v: boolean) => void;
+        attachMenuItems: unknown;
+        onAttachMenuToggleClick: () => void;
+      };
+      'data-testid'?: string;
+      buttonProps?: unknown;
+    }) =>
+      React.createElement(
+        'div',
+        {
+          'data-testid': 'chatbot-message-bar',
+          'data-always-show-send': props.alwayShowSendButton ? 'true' : 'false',
+        },
+        React.createElement(
+          'button',
+          {
+            'data-testid': 'send-button',
+            disabled: props.isSendButtonDisabled,
+            onClick: () => props.onSendMessage('test msg'),
+            type: 'button',
+          },
+          'Send',
+        ),
+        React.createElement(
+          'button',
+          {
+            'data-testid': 'send-empty-button',
+            disabled: props.isSendButtonDisabled,
+            onClick: () => props.onSendMessage(''),
+            type: 'button',
+          },
+          'Send Empty',
+        ),
+        props.hasAttachButton && props.attachMenuProps
+          ? React.createElement(
+              'button',
+              {
+                'data-testid': 'attach-toggle',
+                onClick: props.attachMenuProps.onAttachMenuToggleClick,
+                type: 'button',
+              },
+              'Attach',
+            )
+          : null,
+        props.hasAttachButton && props.attachMenuProps?.isAttachMenuOpen
+          ? React.createElement(
+              'div',
+              { 'data-testid': 'attach-menu' },
+              props.attachMenuProps.attachMenuItems,
+            )
+          : null,
+      ),
+    ChatbotFootnote: () => null,
+  };
+});
+
+jest.mock('@patternfly/react-core', () => {
+  const React = require('react');
+  const actual = jest.requireActual('@patternfly/react-core');
+  return {
+    ...actual,
+    Modal: ({
+      children,
+      isOpen,
+      'data-testid': testId,
+    }: {
+      children: unknown;
+      isOpen?: boolean;
+      'data-testid'?: string;
+    }) =>
+      isOpen ? React.createElement('div', { 'data-testid': testId || 'modal' }, children) : null,
+    ModalHeader: ({ title }: { title: string }) => React.createElement('div', null, title),
+    ModalBody: ({ children }: { children: unknown }) => React.createElement('div', null, children),
+    ModalFooter: ({ children }: { children: unknown }) =>
+      React.createElement('div', null, children),
+    MenuItem: ({
+      children,
+      onClick,
+      isDisabled,
+    }: {
+      children: string;
+      onClick?: () => void;
+      isDisabled?: boolean;
+      icon?: unknown;
+    }) => {
+      const label = typeof children === 'string' ? children : 'item';
+      return React.createElement(
+        'button',
+        {
+          'data-testid': `menu-item-${label.replace(/\s+/g, '-').toLowerCase()}`,
+          onClick: isDisabled ? undefined : onClick,
+          disabled: isDisabled,
+          type: 'button',
+        },
+        children,
+      );
+    },
+    MenuList: ({ children }: { children: unknown }) => React.createElement('div', null, children),
+  };
+});
+
+jest.mock('@patternfly/react-icons', () => {
+  const React = require('react');
+  return {
+    OutlinedFileImageIcon: () => React.createElement('span'),
+    VolumeUpIcon: () => React.createElement('span'),
+    OutlinedFileAltIcon: () => React.createElement('span'),
+  };
+});
+
+jest.mock('~/app/Chatbot/sourceUpload/ChatbotSourceSettingsModal', () => ({
+  ChatbotSourceSettingsModal: () => null,
+}));
+
+jest.mock('~/app/Chatbot/components/ChatbotSettingsPanel', () => {
+  const React = require('react');
+  return {
+    ChatbotSettingsPanel: () => React.createElement('div', { 'data-testid': 'settings-panel' }),
+  };
+});
+
+jest.mock('~/app/Chatbot/components/ChatbotPaneHeader', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: () => React.createElement('div', { 'data-testid': 'pane-header' }),
+  };
+});
+
+jest.mock('~/app/Chatbot/components/ViewCodeModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/components/ChatModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/ChatbotPane', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ children }: { children: unknown }) => React.createElement('div', null, children),
+  };
+});
+
+jest.mock('~/app/Chatbot/components/CloseChatCompareModal', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/ChatbotConfigInstance', () => {
+  const React = require('react');
+  return {
+    ChatbotConfigInstance: () => React.createElement('div', { 'data-testid': 'config-instance' }),
+  };
+});
+
+jest.mock('~/app/Chatbot/components/alerts/SourceUploadErrorAlert', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/components/alerts/SourceUploadSuccessAlert', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+jest.mock('~/app/Chatbot/components/alerts/SourceDeleteSuccessAlert', () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
+// Mock crypto.randomUUID
+let uuidCounter = 0;
+Object.defineProperty(globalThis, 'crypto', {
+  value: {
+    randomUUID: jest.fn(() => `uuid-${++uuidCounter}`),
+  },
+  writable: true,
+});
+
+// Mock URL.createObjectURL / revokeObjectURL (not available in JSDOM)
+global.URL.createObjectURL = jest.fn(() => 'blob:mock-preview-url');
+global.URL.revokeObjectURL = jest.fn();
+
+// ───────────────────── Import after mocks ─────────────────────
+
+import ChatbotPlayground from '~/app/Chatbot/ChatbotPlayground';
+import { useChatbotConfigStore } from '~/app/Chatbot/store/useChatbotConfigStore';
+import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
+import { DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
+import { ChatbotContext } from '~/app/context/ChatbotContext';
+
+// Access the setLastInput mock from the mocked context default value
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockSetLastInput = (ChatbotContext as any)._currentValue.setLastInput as jest.Mock;
+
+// ───────────────────── Helpers ─────────────────────
+
+const renderPlayground = () =>
+  render(
+    <MemoryRouter initialEntries={['/gen-ai-studio/playground/test-ns']}>
+      <ChatbotPlayground
+        isViewCodeModalOpen={false}
+        setIsViewCodeModalOpen={jest.fn()}
+        isNewChatModalOpen={false}
+        setIsNewChatModalOpen={jest.fn()}
+      />
+    </MemoryRouter>,
+  );
+
+const createFile = (name: string, type = 'text/plain', size = 100): File =>
+  new File(['x'.repeat(size)], name, { type });
+
+/**
+ * Create a mock FileList from an array of Files.
+ */
+const createFileList = (files: File[]): FileList => {
+  const list = {
+    length: files.length,
+    item: (i: number) => files[i] || null,
+    *[Symbol.iterator]() {
+      for (const f of files) {
+        yield f;
+      }
+    },
+  } as unknown as FileList;
+  files.forEach((f, i) => {
+    Object.defineProperty(list, i, { value: f, enumerable: true });
+  });
+  return list;
+};
+
+/**
+ * Trigger document file upload by programmatically setting files on the hidden
+ * input and firing a change event — mirrors what the browser does.
+ */
+const triggerDocumentUpload = async (files: File[]) => {
+  const input = screen.getByTestId('document-file-input') as HTMLInputElement;
+  Object.defineProperty(input, 'files', { value: createFileList(files), configurable: true });
+
+  await act(async () => {
+    fireEvent.change(input);
+  });
+};
+
+// ───────────────────── Tests ─────────────────────
+
+describe('ChatbotPlayground — inline document chips', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    uuidCounter = 0;
+    mockFilesWithSettings = [];
+    mockFileManagementFiles = [];
+
+    act(() => {
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: {
+            ...DEFAULT_CONFIGURATION,
+            selectedModel: 'test-model',
+          },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
+    });
+  });
+
+  describe('handleAttach — inline doc chip creation', () => {
+    it('creates chips immediately on file selection with uploading status', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('doc-a.txt'), createFile('doc-b.txt')]);
+
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+      expect(screen.getByTestId('doc-chip-uuid-2')).toBeInTheDocument();
+    });
+
+    it('chips have unique IDs from crypto.randomUUID', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('a.txt'), createFile('b.txt')]);
+
+      // UUIDs are sequential: uuid-1, uuid-2
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+      expect(screen.getByTestId('doc-chip-uuid-2')).toBeInTheDocument();
+    });
+
+    it('chip fileName matches the File name', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('report-2024.txt')]);
+
+      const chip = screen.getByTestId('doc-chip-uuid-1');
+      expect(chip.querySelector('[data-testid="chip-file-name"]')).toHaveTextContent(
+        'report-2024.txt',
+      );
+    });
+
+    it('calls sourceManagement.handleSourceDrop with the files', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('x.txt'), createFile('y.txt')]);
+
+      expect(mockHandleSourceDrop).toHaveBeenCalledTimes(1);
+      const [, filesArg] = mockHandleSourceDrop.mock.calls[0];
+      expect(filesArg).toHaveLength(2);
+      expect(filesArg[0].name).toBe('x.txt');
+      expect(filesArg[1].name).toBe('y.txt');
+    });
+
+    it('shows error alert on handleSourceDrop failure', async () => {
+      mockHandleSourceDrop.mockRejectedValueOnce(new Error('Upload API failed'));
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('fail.txt')]);
+
+      await waitFor(() => {
+        expect(mockOnShowErrorAlert).toHaveBeenCalledWith(
+          expect.stringContaining('Upload API failed'),
+          'File Upload Error',
+        );
+      });
+    });
+
+    it('appends to existing chips without replacing', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('first.txt')]);
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+
+      await triggerDocumentUpload([createFile('second.txt')]);
+      // Both chips should exist
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+      expect(screen.getByTestId('doc-chip-uuid-2')).toBeInTheDocument();
+    });
+
+    it('chips show loading spinner while uploading (no close button)', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('loading.txt')]);
+
+      const chip = screen.getByTestId('doc-chip-uuid-1');
+      expect(chip.querySelector('[data-testid="chip-loading"]')).toBeInTheDocument();
+      expect(chip.querySelector('[data-testid="chip-close"]')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('useEffect — chip status sync with filesWithSettings', () => {
+    it('updates chip to uploaded when filesWithSettings transitions', async () => {
+      const file = createFile('sync-test.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file]);
+
+      // Initially uploading
+      let chip = screen.getByTestId('doc-chip-uuid-1');
+      expect(chip.querySelector('[data-testid="chip-loading"]')).toBeInTheDocument();
+
+      // Simulate filesWithSettings transition to uploaded
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-1', file, settings: null, status: 'uploaded' }];
+        // Trigger re-render by poking the store
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        chip = screen.getByTestId('doc-chip-uuid-1');
+        expect(chip.querySelector('[data-testid="chip-close"]')).toBeInTheDocument();
+        expect(chip.querySelector('[data-testid="chip-loading"]')).not.toBeInTheDocument();
+      });
+    });
+
+    it('updates chip to failed when filesWithSettings transitions to failed', async () => {
+      const file = createFile('fail-test.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file]);
+
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-f', file, settings: null, status: 'failed' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        const chip = screen.getByTestId('doc-chip-uuid-1');
+        // Failed chips show close button (not loading)
+        expect(chip.querySelector('[data-testid="chip-close"]')).toBeInTheDocument();
+        expect(chip.querySelector('[data-testid="chip-loading"]')).not.toBeInTheDocument();
+      });
+    });
+
+    it('handles both files transitioning to uploaded', async () => {
+      const file1 = createFile('multi-a.txt');
+      const file2 = createFile('multi-b.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file1, file2]);
+
+      await act(async () => {
+        mockFilesWithSettings = [
+          { id: 'fws-a', file: file1, settings: null, status: 'uploaded' },
+          { id: 'fws-b', file: file2, settings: null, status: 'uploaded' },
+        ];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        const chip1 = screen.getByTestId('doc-chip-uuid-1');
+        const chip2 = screen.getByTestId('doc-chip-uuid-2');
+        expect(chip1.querySelector('[data-testid="chip-close"]')).toBeInTheDocument();
+        expect(chip2.querySelector('[data-testid="chip-close"]')).toBeInTheDocument();
+      });
+    });
+
+    it('removes chip when file disappears from filesWithSettings (modal cancelled)', async () => {
+      const file = createFile('cancel-test.txt');
+      mockFilesWithSettings = [{ id: 'fws-c', file, settings: null, status: 'pending' }];
+
+      renderPlayground();
+      await triggerDocumentUpload([file]);
+
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+
+      // File removed from filesWithSettings (modal cancelled)
+      await act(async () => {
+        mockFilesWithSettings = [];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+      });
+    });
+
+    it('retains uploaded chips even if removed from filesWithSettings', async () => {
+      const file = createFile('retain.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file]);
+
+      // Transition to uploaded
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-r', file, settings: null, status: 'uploaded' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('doc-chip-uuid-1').querySelector('[data-testid="chip-close"]'),
+        ).toBeInTheDocument();
+      });
+
+      // Remove from filesWithSettings (auto-dismiss)
+      await act(async () => {
+        mockFilesWithSettings = [];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      // Uploaded chip is retained
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+    });
+
+    it('retains failed chips even if removed from filesWithSettings', async () => {
+      const file = createFile('failed-retain.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file]);
+
+      // Transition to failed
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-fr', file, settings: null, status: 'failed' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('doc-chip-uuid-1').querySelector('[data-testid="chip-close"]'),
+        ).toBeInTheDocument();
+      });
+
+      // Remove from filesWithSettings
+      await act(async () => {
+        mockFilesWithSettings = [];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      // Failed chip is retained
+      expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+    });
+  });
+
+  describe('handleRemoveDocChip', () => {
+    const uploadAndTransition = async (file: File) => {
+      await triggerDocumentUpload([file]);
+
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-x', file, settings: null, status: 'uploaded' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('doc-chip-uuid-1').querySelector('[data-testid="chip-close"]'),
+        ).toBeInTheDocument();
+      });
+    };
+
+    it('removes uploaded chip and calls deleteFileById', async () => {
+      const user = userEvent.setup();
+      const file = createFile('remove-me.txt');
+      mockFileManagementFiles = [{ id: 'file-id-1', filename: 'remove-me.txt' }];
+
+      renderPlayground();
+      await uploadAndTransition(file);
+
+      const closeBtn = screen
+        .getByTestId('doc-chip-uuid-1')
+        .querySelector('[data-testid="chip-close"]') as HTMLElement;
+      await user.click(closeBtn);
+
+      expect(mockDeleteFileById).toHaveBeenCalledWith('file-id-1');
+      expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+    });
+
+    it('always calls removeUploadedSource regardless of status', async () => {
+      const user = userEvent.setup();
+      const file = createFile('any-status.txt');
+      mockFileManagementFiles = [{ id: 'file-id-2', filename: 'any-status.txt' }];
+
+      renderPlayground();
+      await uploadAndTransition(file);
+
+      const closeBtn = screen
+        .getByTestId('doc-chip-uuid-1')
+        .querySelector('[data-testid="chip-close"]') as HTMLElement;
+      await user.click(closeBtn);
+
+      expect(mockRemoveUploadedSource).toHaveBeenCalledWith('any-status.txt');
+    });
+
+    it('removes chip from state after clicking close', async () => {
+      const user = userEvent.setup();
+      const file = createFile('gone.txt');
+      mockFileManagementFiles = [{ id: 'file-id-3', filename: 'gone.txt' }];
+
+      renderPlayground();
+      await uploadAndTransition(file);
+
+      const closeBtn = screen
+        .getByTestId('doc-chip-uuid-1')
+        .querySelector('[data-testid="chip-close"]') as HTMLElement;
+      await user.click(closeBtn);
+
+      expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+    });
+
+    it('does not call deleteFileById when filename not found in fileManagement.files', async () => {
+      const user = userEvent.setup();
+      const file = createFile('orphan.txt');
+      mockFileManagementFiles = []; // No matching file
+
+      renderPlayground();
+      await uploadAndTransition(file);
+
+      const closeBtn = screen
+        .getByTestId('doc-chip-uuid-1')
+        .querySelector('[data-testid="chip-close"]') as HTMLElement;
+      await user.click(closeBtn);
+
+      expect(mockDeleteFileById).not.toHaveBeenCalled();
+      expect(mockRemoveUploadedSource).toHaveBeenCalledWith('orphan.txt');
+      expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('handleSendMessage — docAttachments filtering and clearing', () => {
+    it('filters only uploaded chip fileNames for docAttachments (send disabled while one uploading)', async () => {
+      const uploadedFile = createFile('ready.txt');
+      const uploadingFile = createFile('pending.txt');
+
+      renderPlayground();
+      await triggerDocumentUpload([uploadedFile, uploadingFile]);
+
+      // Both files present in filesWithSettings: one uploaded, one still processing
+      await act(async () => {
+        mockFilesWithSettings = [
+          { id: 'fws-ready', file: uploadedFile, settings: null, status: 'uploaded' },
+          { id: 'fws-pend', file: uploadingFile, settings: null, status: 'pending' },
+        ];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      // Verify one chip is uploaded (close button) and one is still uploading (loading)
+      await waitFor(() => {
+        const chip1 = screen.getByTestId('doc-chip-uuid-1');
+        expect(chip1.querySelector('[data-testid="chip-close"]')).toBeInTheDocument();
+        const chip2 = screen.getByTestId('doc-chip-uuid-2');
+        expect(chip2.querySelector('[data-testid="chip-loading"]')).toBeInTheDocument();
+      });
+
+      // Send is disabled because second chip is still uploading
+      expect(screen.getByTestId('send-button')).toBeDisabled();
+    });
+
+    it('send is enabled and chips clear after all uploaded and send clicked', async () => {
+      const file = createFile('will-clear.txt');
+
+      renderPlayground();
+      await triggerDocumentUpload([file]);
+
+      // Transition to uploaded so send is enabled
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-clr', file, settings: null, status: 'uploaded' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('doc-chip-uuid-1')).toBeInTheDocument();
+        expect(screen.getByTestId('send-button')).not.toBeDisabled();
+      });
+
+      // Click send using fireEvent for synchronous behavior
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-button'));
+      });
+
+      // Chips should be cleared after send
+      await waitFor(() => {
+        expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+      });
+    });
+
+    it('send handler runs successfully (no chips to clear scenario)', async () => {
+      renderPlayground();
+
+      // Verify send is enabled (model is auto-selected, no uploading chips)
+      await waitFor(() => {
+        expect(screen.getByTestId('send-button')).not.toBeDisabled();
+      });
+
+      // Click should not throw — verifies the full send handler executes without error
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-button'));
+      });
+
+      // No chips exist, so nothing to assert about chip clearing;
+      // the test passes if no runtime error occurs in the handler
+      expect(screen.queryByTestId('doc-chip-uuid-1')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('isSendDisabled — upload gating', () => {
+    it('send button disabled while any chip is uploading', async () => {
+      renderPlayground();
+
+      await triggerDocumentUpload([createFile('blocking.txt')]);
+
+      expect(screen.getByTestId('send-button')).toBeDisabled();
+    });
+
+    it('send button enabled when all chips are uploaded', async () => {
+      const file = createFile('done.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file]);
+
+      // Initially disabled
+      expect(screen.getByTestId('send-button')).toBeDisabled();
+
+      // Transition to uploaded
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-done', file, settings: null, status: 'uploaded' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('send-button')).not.toBeDisabled();
+      });
+    });
+
+    it('send button becomes disabled again when new uploading chip is added after all were uploaded', async () => {
+      const file1 = createFile('first-done.txt');
+      renderPlayground();
+
+      await triggerDocumentUpload([file1]);
+
+      // Transition to uploaded
+      await act(async () => {
+        mockFilesWithSettings = [{ id: 'fws-fd', file: file1, settings: null, status: 'uploaded' }];
+        useChatbotConfigStore.setState({
+          configurations: {
+            [DEFAULT_CONFIG_ID]: {
+              ...DEFAULT_CONFIGURATION,
+              selectedModel: 'test-model',
+            },
+          },
+          configIds: [DEFAULT_CONFIG_ID],
+        });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('send-button')).not.toBeDisabled();
+      });
+
+      // Add another file that's still uploading
+      await triggerDocumentUpload([createFile('second-pending.txt')]);
+
+      // Send should be disabled again
+      expect(screen.getByTestId('send-button')).toBeDisabled();
+    });
+  });
+
+  describe('default message injection and alwaysShowSendButton', () => {
+    const triggerImageUpload = async () => {
+      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
+        uploadVisionFile: jest.Mock;
+      };
+      uploadVisionFile.mockReturnValue({
+        promise: Promise.resolve({ data: { id: 'img-file-123' } }),
+        xhr: { abort: jest.fn() },
+      });
+
+      const input = screen.getByTestId('vision-file-input') as HTMLInputElement;
+      const imageFile = new File(['pixels'], 'photo.png', { type: 'image/png' });
+      Object.defineProperty(input, 'files', {
+        value: createFileList([imageFile]),
+        configurable: true,
+      });
+
+      await act(async () => {
+        fireEvent.change(input);
+      });
+
+      // Wait for upload to complete and state to settle
+      await waitFor(() => {
+        expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+          'data-always-show-send',
+          'true',
+        );
+      });
+    };
+
+    it('sets alwaysShowSendButton=true when image is uploaded', async () => {
+      renderPlayground();
+      await triggerImageUpload();
+
+      expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+        'data-always-show-send',
+        'true',
+      );
+    });
+
+    it('sets alwaysShowSendButton=true when doc chips are uploaded', async () => {
+      renderPlayground();
+
+      mockFilesWithSettings = [
+        { id: 'fws-1', file: createFile('report.pdf'), settings: null, status: 'uploaded' },
+      ];
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION, selectedModel: 'test-model' },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
+
+      await triggerDocumentUpload([createFile('report.pdf')]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+          'data-always-show-send',
+          'true',
+        );
+      });
+    });
+
+    it('injects "Describe the image" when send is clicked with empty text and image only', async () => {
+      renderPlayground();
+      await triggerImageUpload();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-empty-button'));
+      });
+
+      expect(mockSetLastInput).toHaveBeenCalledWith('Describe the image');
+    });
+
+    it('injects "Summarize the attached documents" when send is clicked with empty text and docs only', async () => {
+      renderPlayground();
+
+      mockFilesWithSettings = [
+        { id: 'fws-1', file: createFile('report.pdf'), settings: null, status: 'uploaded' },
+      ];
+      useChatbotConfigStore.setState({
+        configurations: {
+          [DEFAULT_CONFIG_ID]: { ...DEFAULT_CONFIGURATION, selectedModel: 'test-model' },
+        },
+        configIds: [DEFAULT_CONFIG_ID],
+      });
+
+      await triggerDocumentUpload([createFile('report.pdf')]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+          'data-always-show-send',
+          'true',
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-empty-button'));
+      });
+
+      expect(mockSetLastInput).toHaveBeenCalledWith('Summarize the attached documents');
+    });
+
+    it('injects combined message when send is clicked with empty text and both image + docs', async () => {
+      renderPlayground();
+      await triggerImageUpload();
+
+      mockFilesWithSettings = [
+        { id: 'fws-1', file: createFile('report.pdf'), settings: null, status: 'uploaded' },
+      ];
+
+      await triggerDocumentUpload([createFile('report.pdf')]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+          'data-always-show-send',
+          'true',
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-empty-button'));
+      });
+
+      expect(mockSetLastInput).toHaveBeenCalledWith(
+        'Describe the image and summarize the attached documents',
+      );
+    });
+
+    it('does NOT inject default message when user typed text', async () => {
+      renderPlayground();
+      await triggerImageUpload();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('send-button'));
+      });
+
+      expect(mockSetLastInput).toHaveBeenCalledWith('test msg');
+    });
+
+    it('alwaysShowSendButton is false when no attachments', () => {
+      renderPlayground();
+      expect(screen.getByTestId('chatbot-message-bar')).toHaveAttribute(
+        'data-always-show-send',
+        'false',
+      );
+    });
+  });
+
+  describe('replace media modal', () => {
+    const setupImageUpload = () => {
+      const { uploadVisionFile } = require('~/app/services/llamaStackService') as {
+        uploadVisionFile: jest.Mock;
+      };
+      uploadVisionFile.mockReturnValue({
+        promise: Promise.resolve({ data: { id: 'img-file-1' } }),
+        xhr: { abort: jest.fn() },
+      });
+      return uploadVisionFile;
+    };
+
+    const triggerImageFileChange = async (fileName = 'photo.png') => {
+      const input = screen.getByTestId('vision-file-input') as HTMLInputElement;
+      const imageFile = new File(['pixels'], fileName, { type: 'image/png' });
+      Object.defineProperty(input, 'files', {
+        value: createFileList([imageFile]),
+        configurable: true,
+      });
+      await act(async () => {
+        fireEvent.change(input);
+      });
+    };
+
+    it('opens replace-media modal when uploading a second image before sending', async () => {
+      const uploadVisionFile = setupImageUpload();
+      renderPlayground();
+
+      // First upload
+      await triggerImageFileChange('first.png');
+      await waitFor(() => {
+        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      });
+
+      // Second upload triggers the modal instead of uploading
+      await triggerImageFileChange('second.png');
+      expect(screen.getByTestId('replace-media-modal')).toBeInTheDocument();
+      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+    });
+
+    it('confirm replaces image and revokes old blob', async () => {
+      const uploadVisionFile = setupImageUpload();
+      renderPlayground();
+
+      await triggerImageFileChange('first.png');
+      await waitFor(() => {
+        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      });
+
+      // Trigger replace modal
+      await triggerImageFileChange('second.png');
+      expect(screen.getByTestId('replace-media-modal')).toBeInTheDocument();
+
+      // Click Replace (submit)
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('modal-submit'));
+      });
+
+      // Modal closes and new upload starts
+      expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
+      expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-preview-url');
+      await waitFor(() => {
+        expect(uploadVisionFile).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('cancel closes modal without uploading', async () => {
+      const uploadVisionFile = setupImageUpload();
+      renderPlayground();
+
+      await triggerImageFileChange('first.png');
+      await waitFor(() => {
+        expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+      });
+
+      // Trigger replace modal
+      await triggerImageFileChange('second.png');
+      expect(screen.getByTestId('replace-media-modal')).toBeInTheDocument();
+
+      // Click Cancel
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('modal-cancel'));
+      });
+
+      // Modal closes, no new upload
+      expect(screen.queryByTestId('replace-media-modal')).not.toBeInTheDocument();
+      expect(uploadVisionFile).toHaveBeenCalledTimes(1);
+    });
+  });
+});

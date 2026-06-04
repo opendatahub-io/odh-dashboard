@@ -31,7 +31,7 @@ export const sampleWelcomePrompts: WelcomePrompt[] = [
   },
 ];
 
-// File upload constants
+// File upload constants (RAG / vector store documents)
 export const FILE_UPLOAD_CONFIG = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB in bytes
   MAX_FILES_IN_VECTOR_STORE: 10, // Maximum number of files allowed in vector store
@@ -41,6 +41,14 @@ export const FILE_UPLOAD_CONFIG = {
     'text/plain': ['.txt'],
   },
   ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
+} as const;
+
+// Vision image upload constants (separate from RAG documents)
+export const VISION_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = ['image/jpeg', 'image/png'];
+export const VISION_UPLOAD_CONFIG = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  ALLOWED_MIME_TYPES: VISION_UPLOAD_ALLOWED_MIME_TYPES,
+  ACCEPTED_EXTENSIONS: '.jpg,.jpeg,.png',
 } as const;
 
 // Job polling constants

@@ -13,6 +13,8 @@ type ChatbotMessagesListProps = {
   modelDisplayName?: string;
   /** Shown as a bot message when the conversation is empty and not loading */
   placeholderContent?: string;
+  /** Whether the conversation contains images in user messages (disables image stripping) */
+  hasImagesInConversation?: boolean;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -22,6 +24,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isStreamingWithoutContent = false,
   modelDisplayName = 'Bot',
   placeholderContent,
+  hasImagesInConversation = false,
 }) => {
   // Show loading dots only for non-streaming requests
   // During streaming, loading dots are handled within the bot message itself
@@ -41,21 +44,25 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
         />
       )}
       {messageList.map((message, index) => {
-        // Destructure metrics from message to avoid passing it to PatternFly Message component
-        const { metrics, ...messageProps } = message;
+        // Destructure metrics and extraContent from message to avoid passing raw to PatternFly
+        const { metrics, extraContent: messageExtraContent, ...messageProps } = message;
 
-        // Build extraContent with metrics if present (for bot messages)
-        const extraContent =
-          message.role === 'bot' && metrics
-            ? { endContent: <ChatbotMessagesMetrics metrics={metrics} /> }
-            : undefined;
+        // Merge message's own extraContent with metrics endContent
+        const extraContent = {
+          ...messageExtraContent,
+          ...(message.role === 'bot' &&
+            metrics && {
+              endContent: <ChatbotMessagesMetrics metrics={metrics} />,
+            }),
+        };
 
         return (
           <React.Fragment key={message.id}>
             <Message
               {...messageProps}
-              extraContent={extraContent}
+              extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
               data-testid={`chatbot-message-${message.role}`}
+              {...(hasImagesInConversation && { hasNoImagesInUserMessages: false })}
             />
             {index === messageList.length - 1 && <div ref={scrollRef} />}
           </React.Fragment>
