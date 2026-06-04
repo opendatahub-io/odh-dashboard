@@ -662,7 +662,8 @@ class CreateSpawnerPage {
   }
 
   selectHardwareProfile(name: string) {
-    this.findHardwareProfileSelect().click();
+    // Wait for hardware profile select to be enabled (it's disabled until notebook image is selected)
+    this.findHardwareProfileSelect().should('not.be.disabled').click();
     cy.findByRole('option', { name: new RegExp(name) }).click();
   }
 

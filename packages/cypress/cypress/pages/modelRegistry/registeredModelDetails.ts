@@ -64,42 +64,22 @@ class RegisteredModelDetails {
   }
 
   shouldHaveCustomProperty(key: string, value: string) {
-    // Wait for the expandable section to contain a visible table
-    // The table is conditionally rendered only when properties exist
+    // Validate the key and value are in the same row of the properties table
+    // Use generous timeout for CI environments where rendering and API calls may be slower
     this.findPropertiesExpandableSection().within(() => {
-      // Step 1: Wait for table to exist and be visible
-      cy.findByTestId('properties-table', { timeout: 10000 }).should('be.visible');
+      cy.findByTestId('properties-table', { timeout: 30000 }).should('be.visible');
 
-      // Step 2: Wait for table body rows to exist (structure is rendered)
-      cy.findByTestId('properties-table').find('tbody tr').should('have.length.at.least', 1);
-
-      // Step 3: Wait for the first table cell to be visible (ensures CSS rendering complete)
-      cy.findByTestId('properties-table').find('tbody tr td').first().should('be.visible');
-
-      // Step 4: Wait for property data to load from database and be visible in the table
-      // Use a custom retry mechanism that accounts for DB-to-UI propagation delays
-      // This is critical for CI environments where DB queries may be slower
+      // Find the row containing the key, then verify value is in the same row
+      // Cypress will automatically retry this entire chain until it succeeds or times out
       cy.findByTestId('properties-table')
-        .find('tbody')
-        .should(($tbody) => {
-          // Get all text content from the table body
-          const tableText = $tbody.text();
-          // Assert both key and value are present and visible in the table
-          // Cypress will retry this assertion until it passes or times out
-          expect(tableText).to.include(key);
-          expect(tableText).to.include(value);
+        .find('tbody tr')
+        .contains('td', key, { timeout: 30000 })
+        .should('be.visible')
+        .parent('tr')
+        .within(() => {
+          // Within the same row, verify the value exists and is visible
+          cy.contains('td', value).should('be.visible');
         });
-
-      // Step 5: Double-check that the specific elements containing key and value are visible
-      // This ensures the content isn't just in the DOM but actually rendered and visible
-      cy.findByTestId('properties-table')
-        .find('tbody')
-        .contains(key, { timeout: 10000 })
-        .should('be.visible');
-      cy.findByTestId('properties-table')
-        .find('tbody')
-        .contains(value, { timeout: 10000 })
-        .should('be.visible');
     });
     return this;
   }
