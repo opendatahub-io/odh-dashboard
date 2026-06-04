@@ -110,6 +110,7 @@ export const blankDashboardCR: DashboardConfig = {
       enabled: true,
     },
     templateOrder: [],
+    globalMLflowNamespaces: [],
     genAiStudioConfig: {
       aiAssetCustomEndpoints: {
         externalProviders: false,
