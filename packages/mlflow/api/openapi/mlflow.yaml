@@ -145,7 +145,7 @@ paths:
         Returns all prompts from the user's workspace and any configured global
         namespaces. Each prompt is annotated with a scope object indicating
         whether it is project-scoped or global. Pagination is not yet supported
-        on this endpoint — all prompts are returned in a single response.
+        on this endpoint, all prompts are returned in a single response.
     post:
       tags:
         - PromptOperation
@@ -842,7 +842,7 @@ components:
                 $ref: "#/components/schemas/MLflowPromptsResponse"
             required:
               - data
-      description: A response containing a paginated list of prompts.
+      description: A response containing the list of prompts.
     PromptVersionResponse:
       headers:
         Location:

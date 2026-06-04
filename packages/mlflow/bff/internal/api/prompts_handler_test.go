@@ -125,6 +125,7 @@ func TestRegisterChatPromptSuccess(t *testing.T) {
 	body := `{"name":"test-prompt","messages":[{"role":"user","content":"Hello"}]}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/prompts?workspace=my-ns", strings.NewReader(body))
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-ns")
 	rr := httptest.NewRecorder()
 
 	app.MLflowRegisterPromptHandler(rr, req, nil)
@@ -427,6 +428,7 @@ func TestListPromptsWithScopeAnnotation(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-project")
 	rr := httptest.NewRecorder()
 
 	app.MLflowListPromptsHandler(rr, req, nil)
@@ -468,6 +470,7 @@ func TestListPromptsWithGlobalNamespace(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
 	req = requestWithMLflowClient(req, userClient)
 	req = withIdentityToken(req, "test-token")
+	req = withWorkspace(req, "my-project")
 	rr := httptest.NewRecorder()
 
 	app.MLflowListPromptsHandler(rr, req, nil)
@@ -513,6 +516,7 @@ func TestListPromptsGlobalNamespaceFailsGracefully(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
 	req = requestWithMLflowClient(req, userClient)
 	req = withIdentityToken(req, "test-token")
+	req = withWorkspace(req, "my-project")
 	rr := httptest.NewRecorder()
 
 	app.MLflowListPromptsHandler(rr, req, nil)
@@ -545,6 +549,7 @@ func TestListPromptsNoGlobalNamespacesConfigured(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/prompts?workspace=my-project", nil)
 	req = requestWithMLflowClient(req, mockClient)
+	req = withWorkspace(req, "my-project")
 	rr := httptest.NewRecorder()
 
 	app.MLflowListPromptsHandler(rr, req, nil)

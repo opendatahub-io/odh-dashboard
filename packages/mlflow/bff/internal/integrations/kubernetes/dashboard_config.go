@@ -91,10 +91,15 @@ func parseGlobalNamespaces(cr *unstructured.Unstructured, logger *slog.Logger) [
 		return nil
 	}
 
+	seen := make(map[string]struct{}, len(arr))
 	namespaces := make([]string, 0, len(arr))
 	for _, item := range arr {
 		if s, ok := item.(string); ok && strings.TrimSpace(s) != "" {
-			namespaces = append(namespaces, strings.TrimSpace(s))
+			ns := strings.TrimSpace(s)
+			if _, dup := seen[ns]; !dup {
+				seen[ns] = struct{}{}
+				namespaces = append(namespaces, ns)
+			}
 		}
 	}
 
