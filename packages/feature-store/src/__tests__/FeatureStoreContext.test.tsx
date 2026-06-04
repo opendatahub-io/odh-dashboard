@@ -1,3 +1,6 @@
+/**
+ * @jest-environment jsdom
+ */
 import * as React from 'react';
 import { act } from 'react';
 import { renderHook } from '@testing-library/react';

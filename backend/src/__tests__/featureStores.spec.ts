@@ -143,7 +143,9 @@ describe('featureStores routes', () => {
     it('should throw when no access token is present', async () => {
       mockGetAccessToken.mockReturnValue(null as any);
 
-      await expect(listHandler({ params: {}, headers: {} }, mockReply)).rejects.toThrow();
+      await expect(listHandler({ params: {}, headers: {} }, mockReply)).rejects.toMatchObject({
+        statusCode: 401,
+      });
     });
 
     it('should return empty response when no namespaces are found', async () => {
@@ -233,10 +235,27 @@ describe('featureStores routes', () => {
       expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
     });
 
+    it('should throw 400 when wildcard path does not start with api/v1/', async () => {
+      const req = {
+        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'admin/reset' },
+        url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/admin/reset`,
+        raw: { url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/admin/reset` },
+        query: {},
+        headers: {},
+      };
+
+      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 400 });
+      expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
+    });
+
     it('should throw 401 when no access token is present', async () => {
       mockGetAccessToken.mockReturnValue(null as any);
 
-      await expect(proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply)).rejects.toThrow();
+      await expect(
+        proxyHandler(createProxyReq(FEAST_API.FEATURES), mockReply),
+      ).rejects.toMatchObject({
+        statusCode: 401,
+      });
     });
 
     it('should throw 404 when CRD is not found', async () => {
@@ -282,7 +301,7 @@ describe('featureStores routes', () => {
       );
     });
 
-    it('should default path to api/v1/projects when url does not contain /api/v1/', async () => {
+    it('should default path to api/v1/projects when wildcard path is empty', async () => {
       setupSuccessfulProxyMocks(REGISTRY_URL.PROJECTS);
 
       const req = {
