@@ -144,28 +144,36 @@ describe('extractNIMModelLocationData', () => {
   });
 });
 
-describe('extractNIMModelType', () => {
-  it('should extract model type from annotation', () => {
-    const deployment = makeDeployment(undefined, {
-      annotations: {
-        'opendatahub.io/model-type': 'generative_ai',
-      },
+describe('extractNIMRuntimeArgs', () => {
+  it('should extract runtime args from deployment', () => {
+    const deployment = makeDeployment({
+      args: ['--max-batch-size', '8', '--tensor-parallel-size', '2'],
     });
-    const result = extractNIMModelType(deployment);
-    expect(result).toEqual({ type: 'generative_ai', legacyVLLM: false });
+    const result = extractNIMRuntimeArgs(deployment);
+    expect(result).toEqual({
+      enabled: true,
+      args: ['--max-batch-size', '8', '--tensor-parallel-size', '2'],
+    });
   });
 
-  it('should return null when no model type annotation', () => {
+  it('should return null when no args', () => {
     const deployment = makeDeployment();
-    expect(extractNIMModelType(deployment)).toBeNull();
+    expect(extractNIMRuntimeArgs(deployment)).toBeNull();
+  });
+
+  it('should return null for empty args array', () => {
+    const deployment = makeDeployment({ args: [] });
+    expect(extractNIMRuntimeArgs(deployment)).toBeNull();
+  });
+});
+
+describe('extractNIMModelType', () => {
+  it('should always return NVIDIA NIM model type', () => {
+    expect(extractNIMModelType()).toEqual({ type: 'NVIDIA NIM', legacyVLLM: false });
   });
 });
 
 describe('null extractors', () => {
-  it('extractNIMRuntimeArgs should return null', () => {
-    expect(extractNIMRuntimeArgs()).toBeNull();
-  });
-
   it('extractNIMModelAvailabilityData should return null', () => {
     expect(extractNIMModelAvailabilityData()).toBeNull();
   });

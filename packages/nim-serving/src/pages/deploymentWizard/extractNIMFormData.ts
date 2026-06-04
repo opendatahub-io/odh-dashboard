@@ -61,19 +61,24 @@ export const extractNIMModelLocationData = (): ModelLocationData | null => ({
   additionalFields: {},
 });
 
-export const extractNIMRuntimeArgs = (): { enabled: boolean; args: string[] } | null => null;
+export const extractNIMRuntimeArgs = (
+  deployment: NIMDeployment,
+): { enabled: boolean; args: string[] } | null => {
+  const { args } = deployment.model.spec;
+  if (!args || args.length === 0) {
+    return null;
+  }
+  return { enabled: true, args };
+};
 
 export const extractNIMModelAvailabilityData = (): {
   saveAsAiAsset: boolean;
   useCase?: string;
 } | null => null;
 
-export const extractNIMModelType = (deployment: NIMDeployment): ModelTypeFieldData | null => {
-  const modelType = deployment.model.metadata.annotations?.['opendatahub.io/model-type'];
-  if (!modelType) {
-    return null;
-  }
-  return { type: modelType, legacyVLLM: false };
-};
+export const extractNIMModelType = (): ModelTypeFieldData => ({
+  type: 'NVIDIA NIM',
+  legacyVLLM: false,
+});
 
 export const extractNIMModelServerTemplate = (): null => null;
