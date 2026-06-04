@@ -13,7 +13,7 @@ import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { ModelRefInfo, TokenRateLimitInfo } from '~/app/types/subscriptions';
 import { formatWindow } from '~/app/utilities/rateLimits';
-import { getSourceLabelColor } from '../utils';
+import { getSourceLabelColor } from '~/app/pages/keys-and-subs/utils';
 
 export const formatTokenLimit = (limits?: TokenRateLimitInfo[]): string => {
   if (!limits || limits.length === 0) {

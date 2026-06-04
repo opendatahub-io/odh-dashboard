@@ -842,7 +842,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
       { data: mockSubscriptionInfo('premium-team-sub') },
     ).as('getSubscriptionInfo');
 
-    cy.interceptOdh('POST /maas/api/v1/api-keys/search', (req) => {
+    cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       const subscriptionFilter = req.body?.data?.filters?.subscription as string | undefined;
       const keys = mockAPIKeys().filter(
         (key) =>
