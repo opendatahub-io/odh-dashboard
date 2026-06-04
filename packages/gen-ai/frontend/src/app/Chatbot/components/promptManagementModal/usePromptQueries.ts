@@ -51,7 +51,26 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
           // eslint-disable-next-line camelcase -- MLflow API uses snake_case
           queryParams.page_token = pageParam;
         }
-        return api.listMLflowPrompts(queryParams);
+        const response = await api.listMLflowPrompts(queryParams);
+
+        // The MLflow server may return latest_version that is not scoped by
+        // workspace, causing prompts with the same name in different projects
+        // to show the wrong version. Fetch the actual latest version for each
+        // prompt in the current workspace to ensure correctness.
+        const correctedPrompts = await Promise.all(
+          response.prompts.map(async (prompt) => {
+            try {
+              const latest = await api.getMLflowPrompt({ name: prompt.name });
+              // eslint-disable-next-line camelcase -- MLflow API uses snake_case
+              return { ...prompt, latest_version: latest.version };
+            } catch {
+              // If fetching the latest version fails, fall back to the original value
+              return prompt;
+            }
+          }),
+        );
+
+        return { ...response, prompts: correctedPrompts };
       },
       initialPageParam: undefined,
       getNextPageParam: (lastPage) => lastPage.next_page_token,
@@ -161,6 +180,9 @@ export function useCreatePrompt(options: UseCreatePromptOptions = {}): UseCreate
       queryClient.invalidateQueries({ queryKey: [`${namespace?.name}_prompts`, 'list'] });
       queryClient.invalidateQueries({
         queryKey: [`${namespace?.name}_prompts`, data.name, 'versions'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`${namespace?.name}_prompts`, data.name, 'latest'],
       });
       onSuccess?.(data);
     },
