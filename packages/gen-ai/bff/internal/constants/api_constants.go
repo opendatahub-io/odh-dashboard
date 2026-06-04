@@ -22,6 +22,7 @@ const (
 	FilesUploadPath            = ApiPathPrefix + "/lsd/files/upload"
 	FilesUploadStatusPath      = ApiPathPrefix + "/lsd/files/upload/status"
 	FilesDeletePath            = ApiPathPrefix + "/lsd/files/delete"
+	VisionFilesUploadPath      = ApiPathPrefix + "/lsd/files/vision"
 	VectorStoreFilesListPath   = ApiPathPrefix + "/lsd/vectorstores/files"
 	VectorStoreFilesUploadPath = ApiPathPrefix + "/lsd/vectorstores/files/upload"
 	VectorStoreFilesDeletePath = ApiPathPrefix + "/lsd/vectorstores/files/delete"

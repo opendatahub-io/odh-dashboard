@@ -16,7 +16,7 @@ import {
 import type {
   CatalogFilterStringOption,
   CatalogFilterNumberOption,
-} from './shared/components/catalog';
+} from './shared/components/catalog/types/catalogFilterTypes';
 import {
   ModelRegistryCustomProperties,
   ModelRegistryCustomPropertyString,
@@ -30,6 +30,12 @@ import {
   McpToolList,
 } from './mcpServerCatalogTypes';
 
+export type HardwareConfiguration = {
+  hardware_type: string;
+  cold_start_load_time_seconds: number;
+  runtime_command: string;
+};
+
 export type CatalogSource = {
   id: string;
   name: string;
@@ -42,7 +48,10 @@ export type CatalogSource = {
 export type CatalogSourceList = PaginationParams & { items?: CatalogSource[] };
 
 export type ToolCallingConfig = {
-  args?: string;
+  toolCallParser?: string;
+  chatTemplate?: string;
+  enableAutoToolChoice?: boolean;
+  requiredArgs?: string[];
 };
 
 export type ServingConfig = {

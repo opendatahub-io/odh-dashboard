@@ -70,7 +70,7 @@ export type ApiKeyFilterDataType = {
 
 export const initialApiKeyFilterData: ApiKeyFilterDataType = {
   username: '',
-  statuses: ['active'],
+  statuses: ['active', 'expired'],
 };
 
 export const emptyApiKeyFilterData: ApiKeyFilterDataType = {

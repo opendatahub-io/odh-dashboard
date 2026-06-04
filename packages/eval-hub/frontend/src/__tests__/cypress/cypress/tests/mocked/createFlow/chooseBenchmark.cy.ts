@@ -141,7 +141,7 @@ describe('Choose Benchmark Page', () => {
 
     chooseBenchmarkPage
       .findBenchmarkCard('test-provider', 'bench-alpha')
-      .findByText('Select benchmark')
+      .findByTestId('select-benchmark-button')
       .click();
 
     cy.url().should('include', `${NAMESPACE}/create/start`);
