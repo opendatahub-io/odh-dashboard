@@ -5,9 +5,14 @@ import {
   isRegistryReady,
   getServiceFromCRD,
   listFeastNamespaces,
+  listUserOpenShiftProjects,
+  listFeastIntegrationNotebooks,
   listFeastFeatureStoreCRDs,
   getFeastFeatureStoreCRD,
+  extractPermissionLevel,
+  buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
+  type FeastIntegrationNotebook,
 } from '../routes/api/featurestores/featureStoreUtils';
 
 const NAMESPACE = {
@@ -442,6 +447,91 @@ describe('featureStoreUtils', () => {
     });
   });
 
+  describe('listUserOpenShiftProjects', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should return all user-accessible project names without a label filter', async () => {
+      mockApi.listClusterCustomObject.mockResolvedValue({
+        body: {
+          items: [{ metadata: { name: 'ds-project' } }, { metadata: { name: 'other-ns' } }],
+        },
+      });
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual(['ds-project', 'other-ns']);
+      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith(
+        'project.openshift.io',
+        'v1',
+        'projects',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
+    });
+  });
+
+  describe('listFeastIntegrationNotebooks', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should list notebooks with feast-integration label in namespace', async () => {
+      const notebook = {
+        metadata: {
+          name: 'test-notebook',
+          namespace: NAMESPACE.VIEWER,
+          annotations: { 'opendatahub.io/feast-config': 'banking' },
+        },
+      };
+
+      mockApi.listNamespacedCustomObject.mockResolvedValue({
+        body: { items: [notebook] },
+      });
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([notebook]);
+      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith(
+        'kubeflow.org',
+        'v1',
+        NAMESPACE.VIEWER,
+        'notebooks',
+        undefined,
+        undefined,
+        undefined,
+        'opendatahub.io/feast-integration=true',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
+    });
+  });
+
   describe('listFeastFeatureStoreCRDs', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
@@ -653,6 +743,111 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result.namespace).toBeUndefined();
+    });
+  });
+
+  describe('extractPermissionLevel', () => {
+    it('should union spec.actions across all permissions', () => {
+      const result = extractPermissionLevel({
+        permissions: [
+          { spec: { actions: ['read', 'describe'] } },
+          { spec: { actions: ['read', 'write'] } },
+        ],
+      });
+
+      expect(result).toEqual(expect.arrayContaining(['read', 'describe', 'write']));
+      expect(result).toHaveLength(3);
+    });
+
+    it('should return empty array when permissions are missing', () => {
+      expect(extractPermissionLevel({})).toEqual([]);
+      expect(extractPermissionLevel({ permissions: [] })).toEqual([]);
+    });
+
+    it('should skip permissions without actions', () => {
+      const result = extractPermissionLevel({
+        permissions: [{ spec: {} }, { spec: { actions: ['read'] } }],
+      });
+
+      expect(result).toEqual(['read']);
+    });
+  });
+
+  describe('buildWorkbenchesByFeastProjectMap', () => {
+    const createNotebook = (
+      overrides: Partial<FeastIntegrationNotebook> & {
+        name: string;
+        namespace: string;
+        feastConfig?: string;
+      },
+    ): FeastIntegrationNotebook => ({
+      metadata: {
+        name: overrides.name,
+        namespace: overrides.namespace,
+        annotations: overrides.feastConfig
+          ? { 'opendatahub.io/feast-config': overrides.feastConfig }
+          : overrides.metadata?.annotations,
+        ...overrides.metadata,
+      },
+    });
+
+    it('should map feast project names to connected workbenches', () => {
+      const notebooks = [
+        createNotebook({
+          name: 'wb-1',
+          namespace: 'ds-project',
+          feastConfig: 'banking, retail',
+        }),
+        createNotebook({
+          name: 'wb-2',
+          namespace: 'other-project',
+          feastConfig: 'banking',
+        }),
+      ];
+
+      const map = buildWorkbenchesByFeastProjectMap(notebooks);
+
+      expect(map.get('banking')).toEqual([
+        {
+          workbenchName: 'wb-1',
+          workbenchNamespace: 'ds-project',
+          projectName: 'ds-project',
+        },
+        {
+          workbenchName: 'wb-2',
+          workbenchNamespace: 'other-project',
+          projectName: 'other-project',
+        },
+      ]);
+      expect(map.get('retail')).toEqual([
+        {
+          workbenchName: 'wb-1',
+          workbenchNamespace: 'ds-project',
+          projectName: 'ds-project',
+        },
+      ]);
+    });
+
+    it('should trim whitespace in feast-config project names', () => {
+      const map = buildWorkbenchesByFeastProjectMap([
+        createNotebook({
+          name: 'wb-1',
+          namespace: 'ds-project',
+          feastConfig: ' banking , retail ',
+        }),
+      ]);
+
+      expect(map.has('banking')).toBe(true);
+      expect(map.has('retail')).toBe(true);
+      expect(map.has(' banking ')).toBe(false);
+    });
+
+    it('should skip notebooks without feast-config annotation', () => {
+      const map = buildWorkbenchesByFeastProjectMap([
+        createNotebook({ name: 'wb-1', namespace: 'ds-project' }),
+      ]);
+
+      expect(map.size).toBe(0);
     });
   });
 });
