@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 	"strings"
 
@@ -231,11 +232,18 @@ func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Requ
 	}
 }
 
+// validNamespaceRE matches a valid Kubernetes namespace name (RFC 1123 DNS label).
+var validNamespaceRE = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
 func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
 		if namespace == "" {
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
+			return
+		}
+		if !validNamespaceRE.MatchString(namespace) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace %q: must be a valid RFC 1123 DNS label", namespace))
 			return
 		}
 

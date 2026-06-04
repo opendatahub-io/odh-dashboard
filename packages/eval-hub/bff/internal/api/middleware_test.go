@@ -3,8 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/config"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
@@ -154,4 +157,56 @@ func TestEvalHubServiceURL_EnvOverrideBypassesCRDiscovery(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, crNotFound)
 	assert.Equal(t, "http://override:9090", serviceURL)
+}
+
+func TestAttachNamespace_ValidNamespace(t *testing.T) {
+	tests := []struct {
+		name      string
+		namespace string
+		wantCode  int
+	}{
+		{"simple name", "my-project", http.StatusOK},
+		{"single char", "a", http.StatusOK},
+		{"max length", "a234567890123456789012345678901234567890123456789012345678901ab", http.StatusOK},
+		{"with numbers", "ns-123-test", http.StatusOK},
+		{"empty", "", http.StatusBadRequest},
+		{"uppercase", "My-Project", http.StatusBadRequest},
+		{"starts with dash", "-invalid", http.StatusBadRequest},
+		{"ends with dash", "invalid-", http.StatusBadRequest},
+		{"has spaces", "my project", http.StatusBadRequest},
+		{"has dots", "my.project", http.StatusBadRequest},
+		{"has underscore", "my_project", http.StatusBadRequest},
+		{"too long", "a2345678901234567890123456789012345678901234567890123456789012345", http.StatusBadRequest},
+		{"path traversal attempt", "../etc/passwd", http.StatusBadRequest},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			app := &App{
+				config: config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal},
+				logger: testLogger,
+			}
+
+			called := false
+			handler := app.AttachNamespace(func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+				called = true
+				w.WriteHeader(http.StatusOK)
+			})
+
+			url := "/test"
+			if tt.namespace != "" {
+				url += "?namespace=" + tt.namespace
+			}
+			req, _ := http.NewRequest(http.MethodGet, url, http.NoBody)
+			rr := httptest.NewRecorder()
+			handler(rr, req, nil)
+
+			assert.Equal(t, tt.wantCode, rr.Code)
+			if tt.wantCode == http.StatusOK {
+				assert.True(t, called, "handler should have been called")
+			} else {
+				assert.False(t, called, "handler should not have been called")
+			}
+		})
+	}
 }
