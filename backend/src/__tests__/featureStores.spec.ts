@@ -81,11 +81,22 @@ const createMockCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCR
   ...overrides,
 });
 
-const createProxyReq = (feastPath: string) => ({
-  params: { namespace: NAMESPACE, name: CRD_NAME },
-  url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/${feastPath}`,
-  headers: {},
-});
+const createProxyReq = (feastPath: string) => {
+  const [pathPart, queryPart] = feastPath.split('?');
+  const query: Record<string, string> = {};
+  if (queryPart) {
+    queryPart.split('&').forEach((pair) => {
+      const [k, v] = pair.split('=');
+      query[decodeURIComponent(k)] = decodeURIComponent(v ?? '');
+    });
+  }
+  return {
+    params: { namespace: NAMESPACE, name: CRD_NAME, '*': pathPart },
+    url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/${feastPath}`,
+    query,
+    headers: {},
+  };
+};
 
 const setupSuccessfulProxyMocks = (registryUrl: string = REGISTRY_URL.FEATURES) => {
   mockGetFeastFeatureStoreCRD.mockResolvedValue(createMockCRD());
@@ -213,6 +224,8 @@ describe('featureStores routes', () => {
       const req = {
         params: { namespace: 'INVALID_NS!', name: CRD_NAME },
         url: `/api/featurestores/INVALID_NS!/${CRD_NAME}/${FEAST_API.FEATURES}`,
+        raw: { url: `/api/featurestores/INVALID_NS!/${CRD_NAME}/${FEAST_API.FEATURES}` },
+        query: {},
         headers: {},
       };
 
@@ -273,8 +286,10 @@ describe('featureStores routes', () => {
       setupSuccessfulProxyMocks(REGISTRY_URL.PROJECTS);
 
       const req = {
-        params: { namespace: NAMESPACE, name: CRD_NAME },
+        params: { namespace: NAMESPACE, name: CRD_NAME, '*': '' },
         url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}`,
+        raw: { url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}` },
+        query: {},
         headers: {},
       };
 

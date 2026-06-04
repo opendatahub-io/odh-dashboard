@@ -185,8 +185,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       reply: FastifyReply,
     ) => {
       const { namespace, name } = req.params;
-      const apiV1Index = req.url.indexOf('/api/v1/');
-      const path = apiV1Index !== -1 ? req.url.substring(apiV1Index + 1) : 'api/v1/projects';
+      const wildcardPath = (req.params as Record<string, string>)['*'] || '';
+      const query = req.query as Record<string, string>;
+      const qs = Object.keys(query)
+        .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
+        .join('&');
+      const path = wildcardPath ? (qs ? `${wildcardPath}?${qs}` : wildcardPath) : 'api/v1/projects';
 
       const DNS1123_REGEX = /^[a-z0-9]([a-z0-9-]{0,251}[a-z0-9])?$/;
       if (!DNS1123_REGEX.test(namespace) || !DNS1123_REGEX.test(name)) {
