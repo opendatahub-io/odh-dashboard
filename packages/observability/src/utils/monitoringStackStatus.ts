@@ -13,7 +13,7 @@ export const getMonitoringStatus = (
 ): MonitoringStatus => {
   const conditions = dsciStatus?.conditions;
   if (!Array.isArray(conditions) || conditions.length === 0) {
-    return { available: true };
+    return { available: false, reason: 'monitoring-not-ready' };
   }
 
   const byType = new Map<string, K8sCondition>();

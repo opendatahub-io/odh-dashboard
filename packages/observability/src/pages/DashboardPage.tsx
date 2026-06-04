@@ -7,8 +7,8 @@ import { usePersesDashboards } from '../api/usePersesDashboards';
 
 const PERSES_LOAD_ERROR_TITLE = 'Unable to reach observability dashboards';
 
-const NO_DASHBOARDS_HINT =
-  'No dashboard definitions were returned. If this is unexpected, verify Perses and the monitoring stack are configured.';
+const NO_DASHBOARDS_MESSAGE =
+  'No dashboards were found. Verify that the monitoring stack is configured correctly.';
 
 const DashboardPage: React.FC = () => {
   const { dashboards, loaded, error } = usePersesDashboards();
@@ -47,8 +47,7 @@ const DashboardPage: React.FC = () => {
       description={DASHBOARD_PAGE_DESCRIPTION}
       loaded
       empty
-      emptyMessage="No dashboards found."
-      subtext={NO_DASHBOARDS_HINT}
+      emptyMessage={NO_DASHBOARDS_MESSAGE}
     />
   );
 };

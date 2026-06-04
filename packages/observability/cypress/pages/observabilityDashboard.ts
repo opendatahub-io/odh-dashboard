@@ -14,7 +14,9 @@ class ObservabilityDashboardPage {
   }
 
   findEmptyState() {
-    return cy.findByText('No dashboards found.');
+    return cy.findByText(
+      'No dashboards were found. Verify that the monitoring stack is configured correctly.',
+    );
   }
 
   findPersesLoadErrorTitle() {

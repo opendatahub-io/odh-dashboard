@@ -2,18 +2,18 @@ import type { DataScienceClusterInitializationKindStatus } from '@odh-dashboard/
 import { isMonitoringStackAvailable, getMonitoringStatus } from '../monitoringStackStatus';
 
 describe('isMonitoringStackAvailable', () => {
-  it('should return true when DSCI status is null', () => {
-    expect(isMonitoringStackAvailable(null)).toBe(true);
+  it('should return false when DSCI status is null', () => {
+    expect(isMonitoringStackAvailable(null)).toBe(false);
   });
 
-  it('should return true when conditions field is undefined', () => {
+  it('should return false when conditions field is undefined', () => {
     const dsci = {} as DataScienceClusterInitializationKindStatus;
-    expect(isMonitoringStackAvailable(dsci)).toBe(true);
+    expect(isMonitoringStackAvailable(dsci)).toBe(false);
   });
 
-  it('should return true when conditions array is empty', () => {
+  it('should return false when conditions array is empty', () => {
     const dsci: DataScienceClusterInitializationKindStatus = { conditions: [] };
-    expect(isMonitoringStackAvailable(dsci)).toBe(true);
+    expect(isMonitoringStackAvailable(dsci)).toBe(false);
   });
 
   it('should return true when no blocking conditions are present (older operator)', () => {
@@ -163,13 +163,13 @@ describe('isMonitoringStackAvailable', () => {
 });
 
 describe('getMonitoringStatus', () => {
-  it('should return available when DSCI status is null', () => {
-    expect(getMonitoringStatus(null)).toEqual({ available: true });
+  it('should return monitoring-not-ready when DSCI status is null', () => {
+    expect(getMonitoringStatus(null)).toEqual({ available: false, reason: 'monitoring-not-ready' });
   });
 
-  it('should return available when conditions is undefined', () => {
+  it('should return monitoring-not-ready when conditions is undefined', () => {
     const dsci = {} as DataScienceClusterInitializationKindStatus;
-    expect(getMonitoringStatus(dsci)).toEqual({ available: true });
+    expect(getMonitoringStatus(dsci)).toEqual({ available: false, reason: 'monitoring-not-ready' });
   });
 
   it('should return monitoring-not-ready when MonitoringReady is False', () => {
