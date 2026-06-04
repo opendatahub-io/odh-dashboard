@@ -20,6 +20,12 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
   wizardState,
   externalData,
 }) => {
+  const modelDeploymentExtensionFields = React.useMemo(
+    () =>
+      wizardState.fields.filter((f) => f.step === 'modelDeployment' && !f.stateKey && !f.parentId),
+    [wizardState.fields],
+  );
+
   if (!wizardState.loaded.modelDeploymentLoaded) {
     return <Spinner data-testid="spinner" />;
   }
@@ -57,6 +63,15 @@ export const ModelDeploymentStepContent: React.FC<ModelDeploymentStepProps> = ({
           isEditing={wizardState.initialData?.isEditing}
         />
         <NumReplicasField replicaState={wizardState.state.numReplicas} />
+        {modelDeploymentExtensionFields.map((field) => (
+          <GenericFieldRenderer
+            key={field.id}
+            fieldId={field.id}
+            wizardState={wizardState}
+            externalData={externalData}
+            isEditing={wizardState.initialData?.isEditing}
+          />
+        ))}
       </FormSection>
     </Form>
   );

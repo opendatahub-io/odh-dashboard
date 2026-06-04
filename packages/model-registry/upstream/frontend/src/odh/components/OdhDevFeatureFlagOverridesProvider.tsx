@@ -12,7 +12,6 @@ const ODH_FEATURE_FLAGS_SESSION_KEY = 'odh-feature-flags';
 // or camelCase CRD flag names (for techPreviewFlags toggled via the dev flags modal).
 const DEV_FLAG_MAPPINGS: Record<string, string> = {
   'KF MR Upstream: Catalog HuggingFace API Key': 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  toolCalling: 'tempDevToolCallingConfigurationFeatureAvailable',
 };
 
 type OdhDevFeatureFlagOverridesProviderProps = {

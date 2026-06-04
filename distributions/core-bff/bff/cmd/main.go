@@ -17,6 +17,12 @@ import (
 	"time"
 )
 
+const defaultCABundlePaths = "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem," +
+	"/var/run/secrets/kubernetes.io/serviceaccount/ca.crt," +
+	"/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt," +
+	"/etc/pki/tls/certs/odh-ca-bundle.crt," +
+	"/etc/pki/tls/certs/odh-trusted-ca-bundle.crt"
+
 func main() {
 	var cfg config.EnvConfig
 	var certFile, keyFile string
@@ -37,9 +43,7 @@ func main() {
 	flag.StringVar(&cfg.StaticAssetsDir, "static-assets-dir", "./static", "Configure frontend static assets root directory")
 	flag.TextVar(&cfg.LogLevel, "log-level", parseLevel(getEnvAsString("LOG_LEVEL", "INFO")), "Sets server log level, possible values: error, warn, info, debug")
 	flag.Func("allowed-origins", "Sets allowed origins for CORS purposes, accepts a comma separated list of origins or * to allow all, default none", newOriginParser(&cfg.AllowedOrigins, getEnvAsString("ALLOWED_ORIGINS", "")))
-	// bundle-paths accepts a comma-separated list of CA bundle file paths to trust for outbound TLS.
-	// If not provided via flag, it can be set via BUNDLE_PATHS env var (comma-separated). Defaults to empty.
-	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", "")
+	defaultBundlePaths := getEnvAsString("BUNDLE_PATHS", defaultCABundlePaths)
 	flag.Func("bundle-paths", "Comma-separated list of PEM CA bundle file paths to trust for outbound TLS (optional)", newOriginParser(&cfg.BundlePaths, defaultBundlePaths))
 	flag.StringVar(&cfg.AuthMethod, "auth-method", getEnvAsString("AUTH_METHOD", "user_token"), "Authentication method (disabled or user_token)")
 	flag.StringVar(&cfg.AuthTokenHeader, "auth-token-header", getEnvAsString("AUTH_TOKEN_HEADER", config.DefaultAuthTokenHeader), "Header used to extract the token (default: x-forwarded-access-token)")
@@ -89,7 +93,7 @@ func main() {
 		Handler:      app.Routes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		WriteTimeout: 60 * time.Second,
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 

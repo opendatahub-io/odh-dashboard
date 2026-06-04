@@ -6,11 +6,11 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
-	helper "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/helpers"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 )
 
-// GetClient retrieves a BFF client from the context for the specified target
+// GetClient retrieves a BFF client from the context for the specified target.
 func GetClient(ctx context.Context, target BFFTarget) BFFClientInterface {
 	key := constants.BFFClientKey(constants.BFFTarget(target))
 	if client, ok := ctx.Value(key).(BFFClientInterface); ok {
@@ -21,7 +21,7 @@ func GetClient(ctx context.Context, target BFFTarget) BFFClientInterface {
 
 // attachBFFClientToContext creates a BFF client for the target and attaches it to the context.
 func attachBFFClientToContext(ctx context.Context, factory BFFClientFactory, target BFFTarget) context.Context {
-	logger := helper.GetContextLogger(ctx)
+	logger := helpers.GetContextLogger(ctx)
 
 	if !factory.IsTargetConfigured(target) {
 		logger.Debug("Target BFF not configured, attaching nil client", "target", target)
@@ -65,8 +65,7 @@ func AttachBFFClient(factory BFFClientFactory, target BFFTarget) func(next httpr
 	}
 }
 
-// AttachBFFClientFunc is a convenience wrapper that can be used with standard http.HandlerFunc
-// instead of httprouter.Handle
+// AttachBFFClientFunc is a convenience wrapper that can be used with standard http.HandlerFunc instead of httprouter.Handle.
 func AttachBFFClientFunc(factory BFFClientFactory, target BFFTarget) func(next http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {

@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -10,6 +12,8 @@ import noRelativeImportPathsPlugin from 'eslint-plugin-no-relative-import-paths'
 import prettierPlugin from 'eslint-plugin-prettier';
 import cypressPlugin from 'eslint-plugin-cypress/flat';
 import markdown from '@eslint/markdown';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
   // Global ignores
@@ -239,6 +243,7 @@ export default tseslint.config(
         {
           devDependencies: true,
           optionalDependencies: true,
+          packageDir: [__dirname, path.resolve(__dirname, '..')],
         },
       ],
 

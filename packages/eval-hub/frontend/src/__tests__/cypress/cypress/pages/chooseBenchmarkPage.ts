@@ -41,13 +41,13 @@ class ChooseBenchmarkPage {
     return cy.findByTestId('benchmarks-clear-filters');
   }
 
-  selectFilterOption(optionName: string) {
+  selectFilterOption(optionTestId: string) {
     this.findFilterDropdownToggle().click();
-    cy.findByText(optionName).click();
+    cy.findByTestId(`filter-toolbar-option-${optionTestId}`).click();
   }
 
   findNameFilterInput() {
-    return cy.findByPlaceholderText('Filter by name');
+    return cy.findByTestId('benchmarks-name-filter');
   }
 
   findNextPageButton() {

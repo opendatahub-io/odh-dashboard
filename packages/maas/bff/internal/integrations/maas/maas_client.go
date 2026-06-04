@@ -168,6 +168,19 @@ func (c *MaasClient) ListSubscriptionsForApiKeys(ctx context.Context) ([]models.
 	return apiResponse, nil
 }
 
+func (c *MaasClient) GetSingleUserSubscription(ctx context.Context, id string) (*models.SubscriptionListItem, error) {
+	allSubscriptions, err := c.ListSubscriptionsForApiKeys(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for i := range allSubscriptions {
+		if allSubscriptions[i].SubscriptionIDHeader == id {
+			return &allSubscriptions[i], nil
+		}
+	}
+	return nil, nil
+}
+
 func (c *MaasClient) sendRequest(ctx context.Context, method string, endpoint *url.URL, requestBody []byte, apiResponse any, headers http.Header) error {
 	var bodyReader io.Reader
 	if requestBody != nil {

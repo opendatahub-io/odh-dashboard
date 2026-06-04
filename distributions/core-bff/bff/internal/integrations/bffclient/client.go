@@ -1,3 +1,4 @@
+// Package bffclient provides HTTP client implementations for inter-BFF communication.
 package bffclient
 
 import (
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -20,7 +22,7 @@ type BFFClientInterface interface {
 	// path: API path (e.g., "/tokens")
 	// body: request body (will be JSON encoded, nil for no body)
 	// response: pointer to response struct (will be JSON decoded)
-	Call(ctx context.Context, method, path string, body interface{}, response interface{}) error
+	Call(ctx context.Context, method, path string, body any, response any) error
 
 	// IsAvailable checks if the target BFF is reachable (best effort health check)
 	IsAvailable(ctx context.Context) bool
@@ -32,7 +34,7 @@ type BFFClientInterface interface {
 	GetTarget() BFFTarget
 }
 
-// HTTPBFFClient implements BFFClientInterface using HTTP requests
+// HTTPBFFClient implements BFFClientInterface using HTTP requests.
 type HTTPBFFClient struct {
 	baseURL         string
 	target          BFFTarget
@@ -43,33 +45,56 @@ type HTTPBFFClient struct {
 	authTokenPrefix string // Prefix for auth token (e.g., "" or "Bearer ")
 }
 
-// NewHTTPBFFClient creates a new HTTP-based BFF client
+type clientConfig struct {
+	BaseURL            string
+	Target             BFFTarget
+	AuthToken          string
+	CustomHeaders      map[string]string
+	AuthTokenHeader    string
+	AuthTokenPrefix    string
+	InsecureSkipVerify bool
+	RootCAs            *x509.CertPool
+}
+
+// NewHTTPBFFClient creates a new HTTP-based BFF client.
 func NewHTTPBFFClient(baseURL string, target BFFTarget, authToken string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
-	return NewHTTPBFFClientWithConfig(baseURL, target, authToken, nil, "", "", insecureSkipVerify, rootCAs)
+	return newHTTPBFFClient(clientConfig{
+		BaseURL:            baseURL,
+		Target:             target,
+		AuthToken:          authToken,
+		InsecureSkipVerify: insecureSkipVerify,
+		RootCAs:            rootCAs,
+	})
 }
 
-// NewHTTPBFFClientWithHeaders creates a new HTTP-based BFF client with custom headers
+// NewHTTPBFFClientWithHeaders creates a new HTTP-based BFF client with custom headers.
 func NewHTTPBFFClientWithHeaders(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
-	return NewHTTPBFFClientWithConfig(baseURL, target, authToken, customHeaders, "", "", insecureSkipVerify, rootCAs)
+	return newHTTPBFFClient(clientConfig{
+		BaseURL:            baseURL,
+		Target:             target,
+		AuthToken:          authToken,
+		CustomHeaders:      customHeaders,
+		InsecureSkipVerify: insecureSkipVerify,
+		RootCAs:            rootCAs,
+	})
 }
 
-// NewHTTPBFFClientWithConfig creates a new HTTP-based BFF client with full auth configuration
-func NewHTTPBFFClientWithConfig(baseURL string, target BFFTarget, authToken string, customHeaders map[string]string, authTokenHeader string, authTokenPrefix string, insecureSkipVerify bool, rootCAs *x509.CertPool) *HTTPBFFClient {
+func newHTTPBFFClient(cfg clientConfig) *HTTPBFFClient {
 	tlsConfig := &tls.Config{
 		MinVersion:         tls.VersionTLS12,
-		InsecureSkipVerify: insecureSkipVerify, //nolint:gosec // G402: controlled by CLI flag, dev-only
+		InsecureSkipVerify: cfg.InsecureSkipVerify, //nolint:gosec // G402: controlled by CLI flag, dev-only
 	}
-	if rootCAs != nil {
-		tlsConfig.RootCAs = rootCAs
+	if cfg.RootCAs != nil {
+		tlsConfig.RootCAs = cfg.RootCAs
 	}
 
 	return &HTTPBFFClient{
-		baseURL:         baseURL,
-		target:          target,
-		authToken:       authToken,
-		customHeaders:   customHeaders,
-		authTokenHeader: authTokenHeader,
-		authTokenPrefix: authTokenPrefix,
+		baseURL:         cfg.BaseURL,
+		target:          cfg.Target,
+		authToken:       cfg.AuthToken,
+		customHeaders:   cfg.CustomHeaders,
+		authTokenHeader: cfg.AuthTokenHeader,
+		authTokenPrefix: cfg.AuthTokenPrefix,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
@@ -79,72 +104,24 @@ func NewHTTPBFFClientWithConfig(baseURL string, target BFFTarget, authToken stri
 	}
 }
 
-// Call makes a request to the target BFF
-func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body interface{}, response interface{}) error {
-	url := c.baseURL + path
-
-	var bodyReader io.Reader
-	if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			return NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to marshal request body: %v", err), c.target, 500)
-		}
-		bodyReader = bytes.NewBuffer(bodyBytes)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+// Call makes a request to the target BFF.
+func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body any, response any) error {
+	req, err := c.buildRequest(ctx, method, path, body)
 	if err != nil {
-		return NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to create request: %v", err), c.target, 500)
+		return err
 	}
 
-	// Set headers
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	req.Header.Set("Accept", "application/json")
-
-	// Forward auth token using configured header and prefix
-	if c.authToken != "" {
-		header := c.authTokenHeader
-		if header == "" {
-			header = "x-forwarded-access-token" // Default for ODH
-		}
-		req.Header.Set(header, c.authTokenPrefix+c.authToken)
-	}
-
-	// Set custom headers
-	for key, value := range c.customHeaders {
-		req.Header.Set(key, value)
-	}
-
-	resp, err := c.httpClient.Do(req)
+	statusCode, respBody, err := c.executeRequest(req)
 	if err != nil {
-		// Provide more specific error messages for common failure modes
-		if errors.Is(err, context.DeadlineExceeded) {
-			return NewConnectionError(c.target, fmt.Sprintf("request to %s BFF timed out", c.target))
-		}
-		if errors.Is(err, context.Canceled) {
-			return NewConnectionError(c.target, fmt.Sprintf("request to %s BFF was canceled", c.target))
-		}
-		return NewConnectionError(c.target, fmt.Sprintf("failed to connect to %s BFF: %v", c.target, err))
-	}
-	defer resp.Body.Close()
-
-	const maxResponseBodySize = 10 << 20 // 10 MB
-	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
-	if err != nil {
-		return NewInvalidResponseError(c.target, fmt.Sprintf("failed to read response body: %v", err))
+		return err
 	}
 
-	// Handle error status codes
-	if resp.StatusCode >= 400 {
-		return c.handleErrorResponse(resp.StatusCode, respBody)
+	if statusCode >= 400 {
+		return c.handleErrorResponse(statusCode, respBody)
 	}
 
-	// Decode response body if response pointer provided
 	if response != nil && len(respBody) > 0 {
 		if err := json.Unmarshal(respBody, response); err != nil {
-			// Include truncated body in error for debugging
 			bodyPreview := string(respBody)
 			if len(bodyPreview) > 200 {
 				bodyPreview = bodyPreview[:200] + "..."
@@ -154,6 +131,68 @@ func (c *HTTPBFFClient) Call(ctx context.Context, method, path string, body inte
 	}
 
 	return nil
+}
+
+func (c *HTTPBFFClient) buildRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
+	url := c.baseURL + path
+
+	var bodyReader io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to marshal request body: %v", err), c.target, 500)
+		}
+		bodyReader = bytes.NewBuffer(bodyBytes)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	if err != nil {
+		return nil, NewBFFClientErrorWithTarget(ErrCodeInternalError, fmt.Sprintf("failed to create request: %v", err), c.target, 500)
+	}
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Accept", "application/json")
+
+	authHeader := c.authTokenHeader
+	if authHeader == "" {
+		authHeader = "x-forwarded-access-token"
+	}
+	if c.authToken != "" {
+		req.Header.Set(authHeader, c.authTokenPrefix+c.authToken)
+	}
+
+	for key, value := range c.customHeaders {
+		if strings.EqualFold(key, authHeader) || strings.EqualFold(key, "Authorization") {
+			continue
+		}
+		req.Header.Set(key, value)
+	}
+
+	return req, nil
+}
+
+func (c *HTTPBFFClient) executeRequest(req *http.Request) (int, []byte, error) {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return 0, nil, NewConnectionError(c.target, fmt.Sprintf("request to %s BFF timed out", c.target))
+		}
+		if errors.Is(err, context.Canceled) {
+			return 0, nil, NewConnectionError(c.target, fmt.Sprintf("request to %s BFF was canceled", c.target))
+		}
+		return 0, nil, NewConnectionError(c.target, fmt.Sprintf("failed to connect to %s BFF: %v", c.target, err))
+	}
+	defer resp.Body.Close()
+
+	const maxResponseBodySize = 10 << 20 // 10 MB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize))
+	if err != nil {
+		return 0, nil, NewInvalidResponseError(c.target, fmt.Sprintf("failed to read response body: %v", err))
+	}
+
+	return resp.StatusCode, body, nil
 }
 
 // handleErrorResponse maps HTTP error codes to BFF client errors

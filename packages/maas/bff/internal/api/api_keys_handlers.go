@@ -21,6 +21,7 @@ func attachAPIKeyHandlers(apiRouter *httprouter.Router, app *App) {
 	apiRouter.GET(constants.APIKeyByIDPath, handlerWithApp(app, GetAPIKeyHandler))
 	apiRouter.DELETE(constants.APIKeyByIDPath, handlerWithApp(app, RevokeAPIKeyHandler))
 	apiRouter.GET(constants.SubscriptionsPassthroughPath, handlerWithApp(app, ListSubscriptionsPassthroughHandler))
+	apiRouter.GET(constants.SubscriptionByIDPassthroughPath, handlerWithApp(app, GetSubscriptionPassthroughHandler))
 }
 
 // ListSubscriptionsPassthroughHandler handles GET /api/v1/subscriptions
@@ -36,6 +37,31 @@ func ListSubscriptionsPassthroughHandler(app *App, w http.ResponseWriter, r *htt
 
 	response := Envelope[[]models.SubscriptionListItem, None]{
 		Data: subscriptions,
+	}
+
+	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+// GetSubscriptionPassthroughHandler handles GET /api/v1/subscriptions/:id
+// Returns the single subscription matching the subscription_id_header, or 404 if not found.
+func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := r.Context()
+	id := ps.ByName("id")
+
+	item, err := app.repositories.APIKeys.GetSingleUserSubscription(ctx, id)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if item == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	response := Envelope[*models.SubscriptionListItem, None]{
+		Data: item,
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
