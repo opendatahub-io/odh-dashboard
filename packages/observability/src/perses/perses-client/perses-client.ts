@@ -56,5 +56,5 @@ export const fetchPersesDashboard = async (
   )}/dashboards/${encodeURIComponent(dashboardName)}`;
   const persesURL = `${PERSES_PROXY_BASE_PATH}${getDashboardURL}`;
 
-  return odhPersesFetchJson<DashboardResource>(persesURL, signal ? { signal } : undefined);
+  return odhPersesFetchJson<DashboardResource>(persesURL, signal);
 };
