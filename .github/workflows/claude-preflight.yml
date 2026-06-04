@@ -23,7 +23,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  issues: write
+  issues: read
   checks: read
 
 jobs:
@@ -33,6 +33,11 @@ jobs:
   router:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      checks: read
     outputs:
       matrix: ${{ steps.comment.outputs.matrix || steps.cron.outputs.matrix || '[]' }}
 
