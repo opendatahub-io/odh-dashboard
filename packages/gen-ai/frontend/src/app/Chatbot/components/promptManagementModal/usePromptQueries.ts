@@ -53,10 +53,8 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
         }
         const response = await api.listMLflowPrompts(queryParams);
 
-        // The MLflow server may return latest_version that is not scoped by
-        // workspace, causing prompts with the same name in different projects
-        // to show the wrong version. Fetch the actual latest version for each
-        // prompt in the current workspace to ensure correctness.
+        // MLflow latest_version may not be workspace-scoped. Correct it by
+        // fetching the actual version per prompt. Bounded by page size (~10).
         const correctedPrompts = await Promise.all(
           response.prompts.map(async (prompt) => {
             try {
