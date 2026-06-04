@@ -12,7 +12,7 @@ name: ODH Dashboard Agent
 # Required Secrets:
 #   CLAUDE_APP_ID, CLAUDE_APP_PRIVATE_KEY, GCP_CREDENTIALS_JSON,
 #   GCP_PROJECT_ID, MLFLOW_TRACKING_URI, MLFLOW_TRACKING_TOKEN,
-#   MLFLOW_EXPERIMENT_NAME
+#   MLFLOW_EXPERIMENT_NAME, MLFLOW_WORKSPACE
 
 on:
   issue_comment:
@@ -165,10 +165,7 @@ jobs:
       HEAD_REPO: ${{ matrix.head_repo }}
       ANTHROPIC_VERTEX_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CLOUD_ML_REGION: us-east5
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
-      MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-      MLFLOW_CLAUDE_TRACING_ENABLED: "true"
+      CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS: "30000"
 
     steps:
       - name: Generate GitHub App token (managed)
@@ -231,41 +228,6 @@ jobs:
       - name: Install MLflow
         run: pip install "mlflow==3.12.0"
 
-      - name: Verify MLflow connection
-        continue-on-error: true
-        run: |
-          # Uses ajax-api because /api/2.0/ requires workspace headers that
-          # mlflow 3.12.0 doesn't support. ajax-api bypasses workspace auth.
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Bearer $MLFLOW_TRACKING_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"max_results": 1}' \
-            "$MLFLOW_TRACKING_URI/ajax-api/2.0/mlflow/experiments/search")
-          echo "MLflow API: HTTP $CODE"
-          if [ "$CODE" != "200" ]; then
-            echo "::warning::MLflow returned $CODE — tracing may not work"
-          fi
-
-      - name: Configure MLflow tracing
-        run: |
-          mkdir -p ~/.claude
-          cat > ~/.claude/settings.local.json << 'SETTINGS'
-          {
-            "env": { "MLFLOW_CLAUDE_TRACING_ENABLED": "true" },
-            "hooks": {
-              "Stop": [{
-                "matcher": "",
-                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
-              }],
-              "StopFailure": [{
-                "matcher": "",
-                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
-              }]
-            }
-          }
-          SETTINGS
-
       # ── Check (read-only) ──
       - name: Preflight check
         if: matrix.mode == 'check-only'
@@ -273,6 +235,20 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
+              },
+              "hooks": {
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+              }
+            }
           claude_args: >-
             --max-turns 120
             --model "claude-sonnet-4-6[1m]"
@@ -291,6 +267,20 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
+              },
+              "hooks": {
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+              }
+            }
           claude_args: >-
             --max-turns 200
             --model "claude-sonnet-4-6[1m]"

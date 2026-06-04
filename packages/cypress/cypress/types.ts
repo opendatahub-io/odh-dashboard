@@ -633,6 +633,32 @@ export type GenAiTestData = {
   servingRuntimesPath: string;
 };
 
+/** Shape of `packages/cypress/cypress/fixtures/e2e/eval-hub/testEvalHub.yaml` for Eval Hub E2E. */
+export type EvalHubTestData = {
+  projectNamePrefix: string;
+  evalHubCrName: string;
+  evalHubInstanceResourceYamlPath: string;
+  mlflowInstanceResourceYamlPath: string;
+  /** Title text on the benchmark card to select (must match provider catalog on the cluster). */
+  benchmarkCardTitle: string;
+  /** Model name sent to the inference API (matches vLLM `--served-model-name`). */
+  inferenceModelName: string;
+  /** Default experiment name pre-filled in the create-evaluation form. */
+  defaultExperimentName: string;
+  /** JSON object string merged into benchmark parameters (valid JSON object). */
+  additionalBenchmarkParams: string;
+  /** OCI URI for the model (e.g. `oci://quay.io/.../llama-3.2-1b-instruct`). */
+  modelOciUri: string;
+  /** Name of the InferenceService CR created in the tenant namespace. */
+  inferenceServiceName: string;
+  /** Fixture path for the vLLM ServingRuntime YAML applied to the tenant namespace. */
+  servingRuntimeYamlPath: string;
+  /** Fixture path for the HardwareProfile CR. */
+  hardwareProfileResourceYamlPath: string;
+  /** `metadata.name` of the HardwareProfile (used for cleanup). */
+  hardwareProfileName: string;
+};
+
 export type ModelCatalogSourceTestData = {
   sourceName: string;
   redhatAiSourceId: string;
