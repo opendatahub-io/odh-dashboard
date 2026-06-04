@@ -32,9 +32,7 @@ describe('Eval Hub E2E', () => {
   const uuid = Cypress.env('EVAL_HUB_UUID') || generateTestUUID();
   Cypress.env('EVAL_HUB_UUID', uuid);
   let evaluationTenantProject = '';
-  let evalHubCrCreatedByTest = false;
   let evalHubCrName = 'evalhub';
-  let mlflowCrCreatedByTest = false;
   let hardwareProfileName = '';
   let vllmEndpointUrl = '';
   let evalHubInstanceYamlPath = '';
@@ -62,14 +60,18 @@ describe('Eval Hub E2E', () => {
     cy.then(() => {
       cy.step('Ensure EvalHub CR is Ready');
       return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
-        evalHubCrCreatedByTest = created;
+        if (created) {
+          Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
+        }
       });
     });
 
     cy.then(() => {
       cy.step('Ensure MLflow CR is Available');
       return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
-        mlflowCrCreatedByTest = created;
+        if (created) {
+          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
+        }
       });
     });
 
@@ -106,13 +108,13 @@ describe('Eval Hub E2E', () => {
       cleanupHardwareProfiles(hardwareProfileName);
     }
 
-    if (evalHubCrCreatedByTest) {
+    if (Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST')) {
       cy.step(`Delete EvalHub CR ${evalHubCrName} created by this suite`);
       deleteEvalHubCr(evalHubCrName);
       deleteEvalHubE2eDatabaseSecret();
     }
 
-    if (mlflowCrCreatedByTest) {
+    if (Cypress.env('MLFLOW_CR_CREATED_BY_TEST')) {
       cy.step('Delete MLflow CR created by this suite');
       deleteMlflowCr();
     }
