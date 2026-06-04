@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -23,6 +24,15 @@ func (app *App) ListAgentRuntimesHandler(w http.ResponseWriter, r *http.Request,
 			slog.String("path", r.URL.Path),
 			slog.Any("error", err))
 		app.handleAgentRepositoryError(w, r, err)
+		return
+	}
+	if result == nil {
+		err = fmt.Errorf("agent runtimes repository returned nil result without error")
+		logger.Error("Invalid repository contract",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Any("error", err))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

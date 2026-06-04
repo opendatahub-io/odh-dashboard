@@ -92,6 +92,8 @@ func (c *Client) GetAgentCard(ctx context.Context, namespace, name string) (*age
 	return &copy, nil
 }
 
+// cloneAgentDetail returns a defensive copy of detail. Spec and Status use maps.Clone
+// (shallow copy only); nested maps and slices inside those values remain shared.
 func cloneAgentDetail(detail agents.AgentDetail) agents.AgentDetail {
 	copy := agents.AgentDetail{
 		Metadata:     cloneAgentMetadata(detail.Metadata),
