@@ -23,7 +23,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
-  issues: read
+  issues: write
   checks: read
 
 jobs:
@@ -47,6 +47,7 @@ jobs:
           ACTOR: ${{ github.triggering_actor }}
           IS_PR: ${{ github.event.issue.pull_request.url }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
           REPO: ${{ github.repository }}
         run: |
           if [[ "$ACTOR" == *"[bot]"* ]]; then
@@ -69,6 +70,8 @@ jobs:
           if [ -z "$MODE" ]; then
             echo "Skipping: no @odh-dashboard-agent command found"; exit 0
           fi
+
+          gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
 
           PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
