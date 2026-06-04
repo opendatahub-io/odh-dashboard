@@ -31,6 +31,9 @@ module.exports = merge(
   {
     mode: 'production',
     devtool: 'source-map',
+    output: {
+      filename: '[name].[contenthash].bundle.js',
+    },
     optimization: {
       minimizer: [
         new TerserJSPlugin({}),
