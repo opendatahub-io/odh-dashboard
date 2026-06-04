@@ -96,6 +96,12 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 
 	description := card.Description
 
+	// TODO: Wire input/output modes from agents.AgentCard when upstream fields are available.
+	// Add SupportedInputModes and SupportedOutputModes fields to agents.AgentCard and map them here.
+	// For now, fallback to ["text"] when upstream fields are missing or empty.
+	inputModes := []string{"text"}
+	outputModes := []string{"text"}
+
 	return &models.AgentCard{
 		Name:        card.Name,
 		Namespace:   namespace,
@@ -103,7 +109,10 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 		Version:     card.Version,
 		Skills:      skills,
 		Capabilities: models.AgentCapabilities{
-			Streaming:         card.Streaming,
+			Streaming: card.Streaming,
+			// TODO: Wire PushNotifications from agents.AgentCard when the upstream field is available.
+			// Currently hardcoded to false for MVP. Add PushNotifications field to agents.AgentCard
+			// and map it here: card.PushNotifications
 			PushNotifications: false,
 		},
 		Provider: models.AgentProvider{
@@ -111,8 +120,8 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 			DisplayName: defaultProviderLabel,
 			URL:         defaultProviderURL,
 		},
-		SupportedInputModes:  []string{"text"},
-		SupportedOutputModes: []string{"text"},
+		SupportedInputModes:  inputModes,
+		SupportedOutputModes: outputModes,
 	}
 }
 
