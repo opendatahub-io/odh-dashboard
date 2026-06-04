@@ -292,6 +292,20 @@ jobs:
             --allowedTools "Bash(bash *)"
           prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
 
+      # ── Evaluate trace ──
+      - name: Evaluate preflight trace
+        if: always()
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+        run: |
+          python3 .claude/skills/preflight/tests/test_skill.py \
+            .claude/skills/preflight/tests/configs/preflight_check.yaml \
+            --commit $(git rev-parse HEAD)
+
       # ── Report ──
       - name: Update check run (success)
         if: success() && steps.check-run.outputs.id
