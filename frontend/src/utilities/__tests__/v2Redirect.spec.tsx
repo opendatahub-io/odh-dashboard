@@ -26,6 +26,8 @@ const createMockLocation = (pathname: string, search = '', hash = ''): Location 
   hash,
   state: null,
   key: 'test-key',
+  // eslint-disable-next-line camelcase
+  unstable_mask: undefined,
 });
 
 describe('v2Redirect', () => {
