@@ -36,6 +36,7 @@ export enum KnownLabels {
   MODEL_VERSION_ID = 'modelregistry.opendatahub.io/model-version-id',
   MODEL_REGISTRY_NAME = 'modelregistry.opendatahub.io/name',
   KUEUE_MANAGED = 'kueue.openshift.io/managed',
+  GLOBAL_MLFLOW_WORKSPACE = 'opendatahub.io/global-mlflow-workspace',
 }
 
 export type ModelRegistry = {
@@ -1367,6 +1368,7 @@ export type DashboardConfigKind = K8sResourceCommon & {
       deploymentStrategy?: string;
       isLLMdDefault?: boolean;
     };
+    globalMLflowNamespaces?: string[];
     genAiStudioConfig?: {
       aiAssetCustomEndpoints?: {
         externalProviders?: boolean;
