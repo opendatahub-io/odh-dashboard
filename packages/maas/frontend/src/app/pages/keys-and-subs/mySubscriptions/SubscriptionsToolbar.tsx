@@ -15,8 +15,8 @@ import {
   ToolbarToggleGroup,
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
+import { ModelSource } from '~/app/pages/keys-and-subs/utils';
 import { SubscriptionSortField } from './SubscriptionsTab';
-import { ModelSource } from './utils';
 
 type SubscriptionsToolbarProps = {
   sourceFilters: string[];

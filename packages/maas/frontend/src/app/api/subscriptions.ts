@@ -292,3 +292,21 @@ export const listUserSubscriptions =
       }
       throw new Error('Invalid response format');
     });
+
+export const getUserSubscription =
+  (hostPath = '') =>
+  (id: string) =>
+  (opts: APIOptions): Promise<UserSubscription> =>
+    handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/subscriptions/${encodeURIComponent(id)}`,
+        {},
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<unknown>(response) && isUserSubscription(response.data)) {
+        return response.data;
+      }
+      throw new Error('Invalid response format');
+    });

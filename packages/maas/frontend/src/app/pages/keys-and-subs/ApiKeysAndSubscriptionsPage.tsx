@@ -6,8 +6,8 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
 import { URL_PREFIX } from '~/app/utilities/const';
-import ApiKeysTab from './ApiKeysTab';
-import SubscriptionsTab from './SubscriptionsTab';
+import ApiKeysTab from './apiKeys/ApiKeysTab';
+import SubscriptionsTab from './mySubscriptions/SubscriptionsTab';
 
 const API_KEYS_TAB = 'tokens';
 const SUBSCRIPTIONS_TAB = 'subscriptions';

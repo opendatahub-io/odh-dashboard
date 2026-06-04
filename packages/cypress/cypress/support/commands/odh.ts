@@ -1200,6 +1200,11 @@ declare global {
           type: 'DELETE /maas/api/v1/delete-policy/:name',
           options: { path: { name: string } },
           response: OdhResponse<{ data: { message: string } }>,
+        ) => Cypress.Chainable<null>) &
+        ((
+          type: 'GET /maas/api/v1/subscriptions/:id',
+          options: { path: { id: string } },
+          response: OdhResponse<{ data: UserSubscription }>,
         ) => Cypress.Chainable<null>);
     }
   }

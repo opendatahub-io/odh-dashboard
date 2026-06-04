@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { APIKey, APIKeyStatus, ApiKeyFilterDataType, STATUS_OPTIONS } from '~/app/types/api-key';
-import ApiKeysActions from '~/app/pages/api-keys/ApiKeysActions';
+import ApiKeysActions from '~/app/pages/keys-and-subs/apiKeys/ApiKeysActions';
 
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
