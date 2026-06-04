@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Content, ContentVariants, PageSection } from '@patternfly/react-core';
 
-const AgentDetailPage: React.FC = () => {
+const AgentDeploymentDetailPage: React.FC = () => {
   const { namespace, agentId } = useParams<{ namespace: string; agentId: string }>();
 
   return (
@@ -15,4 +15,4 @@ const AgentDetailPage: React.FC = () => {
   );
 };
 
-export default AgentDetailPage;
+export default AgentDeploymentDetailPage;
