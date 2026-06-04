@@ -132,7 +132,7 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       projectRoles.findSearchInput().type('nonexistent-role-xyz');
-      projectRoles.findRolesTable().contains('No results found').should('exist');
+      projectRoles.findEmptyFilterState().should('exist');
     });
 
     it('should restore all rows when search is cleared', () => {
@@ -153,7 +153,6 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebab().click();
       adminRow.findKebabAction('Edit role', false).should('have.attr', 'aria-disabled', 'true');
       adminRow
         .findKebabAction('Duplicate role', false)
@@ -166,7 +165,6 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const customRow = projectRoles.getRow('dashboard-custom');
-      customRow.findKebab().click();
       customRow.findKebabAction('Edit role').should('not.have.attr', 'aria-disabled');
       customRow.findKebabAction('Duplicate role').should('not.have.attr', 'aria-disabled');
     });
@@ -176,7 +174,6 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebab().click();
       adminRow.findKebabAction('Preview YAML').click();
 
       projectRoles.findPreviewYAMLModal().should('exist');
@@ -188,7 +185,6 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       const adminRow = projectRoles.getRow('Admin');
-      adminRow.findKebab().click();
       adminRow.findKebabAction('Preview YAML').click();
 
       projectRoles.findPreviewYAMLModal().should('exist');
@@ -220,7 +216,10 @@ describe('Roles tab table', () => {
       projectRoles.visit(NAMESPACE);
 
       projectRoles.findTableHeaderButton('Role name').click();
-      projectRoles.findTableHeaderButton('Role name').should('have.attr', 'aria-sort');
+      projectRoles
+        .findTableHeaderButton('Role name')
+        .parents('th')
+        .should('have.attr', 'aria-sort');
     });
   });
 });
