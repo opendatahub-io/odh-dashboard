@@ -24,7 +24,7 @@
     },
     "service": {
       "name": "odh-dashboard",
-      "port": 8043
+      "port": 8843
     }
   },
   "e2eCiTags": ["@AgentOpsCI"],
