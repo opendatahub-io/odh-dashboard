@@ -34,9 +34,6 @@ func validateAgentPathParams(namespace, name string) error {
 }
 
 func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
-	if err == nil {
-		return
-	}
 	if errors.Is(err, bfferrors.ErrNotFound) {
 		app.notFoundResponse(w, r)
 		return

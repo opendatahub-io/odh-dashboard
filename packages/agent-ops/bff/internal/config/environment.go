@@ -104,6 +104,10 @@ type EnvConfig struct {
 	// When true, BFF clients return mock responses instead of making real HTTP calls.
 	MockBFFClients bool
 
+	// MockAgentClient enables mock mode for the agent data source client.
+	// When true, agent APIs return built-in demo data instead of querying the cluster.
+	MockAgentClient bool
+
 	// ─── DEPRECATED ─────────────────────────────────────────────
 	// The following fields are deprecated and maintained for backward compatibility
 	// Use DeploymentMode instead

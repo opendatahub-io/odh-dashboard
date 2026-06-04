@@ -37,7 +37,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 
 	namespace := detail.Metadata.Namespace
 	name := detail.Metadata.Name
-	description := AgentDescription(detail.Metadata.Annotations, detail.Metadata.Labels)
+	description := AgentDescription(detail.Metadata.Annotations)
 	resourceType := strings.TrimSpace(detail.Metadata.Labels[agents.LabelAgentType])
 	readyStatus := strings.TrimSpace(detail.ReadyStatus)
 
@@ -95,9 +95,6 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 	}
 
 	description := card.Description
-	if description == "" {
-		description = ""
-	}
 
 	return &models.AgentCard{
 		Name:        card.Name,
@@ -119,8 +116,8 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 	}
 }
 
-// AgentDescription resolves a human-readable description from metadata.
-func AgentDescription(annotations, labels map[string]string) string {
+// AgentDescription resolves a human-readable description from metadata annotations.
+func AgentDescription(annotations map[string]string) string {
 	if annotations != nil {
 		if v := annotations[agents.AnnotationDescription]; v != "" {
 			return v
@@ -129,7 +126,6 @@ func AgentDescription(annotations, labels map[string]string) string {
 			return v
 		}
 	}
-	_ = labels
 	return ""
 }
 
@@ -282,6 +278,7 @@ func stringValue(values ...any) string {
 	return ""
 }
 
+// intFromAny coerces numeric values to int. float64 inputs are truncated toward zero (e.g. 2.9 -> 2).
 func intFromAny(value any) (int, bool) {
 	switch v := value.(type) {
 	case int:

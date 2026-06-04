@@ -25,7 +25,7 @@ func NewAgentRuntimesRepository(agentSourceFactory agents.ClientFactory) *AgentR
 func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context) (*models.AgentRuntimesResponse, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting agent source client: %w", err)
 	}
 
 	namespaces, err := client.ListNamespaces(ctx, true)
@@ -54,7 +54,7 @@ func (r *AgentRuntimesRepository) ListAgentRuntimes(ctx context.Context) (*model
 func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, namespace, name string) (*models.AgentRuntimeDetail, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting agent source client: %w", err)
 	}
 
 	detail, err := client.GetAgent(ctx, namespace, name)
@@ -69,7 +69,7 @@ func (r *AgentRuntimesRepository) GetAgentRuntimeDetail(ctx context.Context, nam
 func (r *AgentRuntimesRepository) GetAgentCard(ctx context.Context, namespace, name string) (*models.AgentCard, error) {
 	client, err := r.agentSourceFactory.GetClient(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting agent source client: %w", err)
 	}
 
 	card, err := client.GetAgentCard(ctx, namespace, name)

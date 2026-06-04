@@ -481,6 +481,9 @@ components:
           schema:
             type: object
             properties:
+              metadata:
+                type: object
+                description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentRuntimesList"
       description: A response containing deployed agent runtimes.
@@ -490,6 +493,9 @@ components:
           schema:
             type: object
             properties:
+              metadata:
+                type: object
+                description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentRuntimeDetail"
       description: A response containing full agent runtime detail.
@@ -499,6 +505,9 @@ components:
           schema:
             type: object
             properties:
+              metadata:
+                type: object
+                description: Metadata about the response
               data:
                 $ref: "#/components/schemas/AgentCard"
       description: A response containing an agent discovery card.

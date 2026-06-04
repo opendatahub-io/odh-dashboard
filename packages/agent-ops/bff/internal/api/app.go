@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents"
 	agentsmock "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/agents/mock"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/bffclient/bffmocks"
@@ -163,8 +164,14 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		bffFactory = bffclient.NewRealClientFactory(bffConfig, rootCAs, cfg.InsecureSkipVerify, logger)
 	}
 
-	logger.Info("Using mock agent data client")
-	agentSourceFactory := &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+	var agentSourceFactory agents.ClientFactory
+	if cfg.MockAgentClient {
+		logger.Info("Using mock agent data client")
+		agentSourceFactory = &agentsmock.Factory{Client: agentsmock.NewDemoClient()}
+	} else {
+		logger.Info("Using real agent data client")
+		agentSourceFactory = agents.NewUnavailableFactory()
+	}
 
 	app := &App{
 		config:                  cfg,
@@ -196,8 +203,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
 	// Minimal Kubernetes-backed starter endpoints
-	apiRouter.GET(UserPath, app.UserHandler)
-	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
+	apiRouter.GET(UserPath, app.handlerWithOverride(HandlerUserID, func() httprouter.Handle {
+		return app.UserHandler
+	}))
+	apiRouter.GET(NamespacePath, app.handlerWithOverride(HandlerNamespacesID, func() httprouter.Handle {
+		return app.GetNamespacesHandler
+	}))
 	apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
 	apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
 	apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
