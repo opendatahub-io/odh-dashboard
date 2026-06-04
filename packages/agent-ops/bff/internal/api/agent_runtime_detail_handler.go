@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -30,6 +31,15 @@ func (app *App) GetAgentRuntimeDetailHandler(w http.ResponseWriter, r *http.Requ
 			slog.String("name", name),
 			slog.Any("error", err))
 		app.handleAgentRepositoryError(w, r, err)
+		return
+	}
+	if result == nil {
+		err = fmt.Errorf("agent runtime detail repository returned nil result without error for namespace=%q name=%q", namespace, name)
+		logger.Error("Invalid repository contract",
+			slog.String("namespace", namespace),
+			slog.String("name", name),
+			slog.Any("error", err))
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 

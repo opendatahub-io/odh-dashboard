@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	bfferrors "github.com/opendatahub-io/mod-arch-library/bff/internal/errors"
-	k8svalidation "k8s.io/apimachinery/pkg/util/validation"
 )
 
 var dns1123LabelRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -17,10 +16,6 @@ func isValidDNS1123Label(label string) bool {
 		return false
 	}
 	return dns1123LabelRegex.MatchString(label)
-}
-
-func isValidDNS1123Subdomain(name string) bool {
-	return len(k8svalidation.IsDNS1123Subdomain(name)) == 0
 }
 
 func validateAgentPathParams(namespace, name string) error {
@@ -36,10 +31,6 @@ func validateAgentPathParams(namespace, name string) error {
 func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, bfferrors.ErrNotFound) {
 		app.notFoundResponse(w, r)
-		return
-	}
-	if errors.Is(err, bfferrors.ErrUpstreamUnavailable) {
-		app.serverErrorResponse(w, r, err)
 		return
 	}
 	app.serverErrorResponse(w, r, err)

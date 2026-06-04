@@ -81,6 +81,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/AgentRuntimesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalServerError"
       operationId: listAgentRuntimes
@@ -102,6 +104,8 @@ paths:
           $ref: "#/components/responses/AgentRuntimeDetailResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -125,6 +129,8 @@ paths:
           $ref: "#/components/responses/AgentCardResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
         "500":
@@ -503,7 +509,7 @@ components:
                       namespace: agent-ops-demo
                       status: Ready
                       type: agent
-                      endpointUrl: ""
+                      endpointUrl: https://sample-support-agent.agent-ops-demo.svc.cluster.local:8080
                       lastSyncTime: "2026-05-12T16:00:03.214610Z"
       description: A response containing deployed agent runtimes.
     AgentRuntimeDetailResponse:
