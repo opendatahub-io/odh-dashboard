@@ -21,7 +21,6 @@ import {
 import {
   mockAPIKeys,
   mockCreateAPIKeyResponse,
-  mockSubscriptionInfo,
   mockSubscriptionListItems,
 } from '../../../utils/maasUtils';
 
@@ -836,12 +835,6 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
       }),
     );
 
-    cy.interceptOdh(
-      'GET /maas/api/v1/subscription-info/:name',
-      { path: { name: 'premium-team-sub' } },
-      { data: mockSubscriptionInfo('premium-team-sub') },
-    ).as('getSubscriptionInfo');
-
     cy.intercept('POST', '/maas/api/v1/api-keys/search', (req) => {
       const subscriptionFilter = req.body?.data?.filters?.subscription as string | undefined;
       const keys = mockAPIKeys().filter(
@@ -849,7 +842,7 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
           (!subscriptionFilter || key.subscription === subscriptionFilter) &&
           (key.status === 'active' || key.status === 'expired'),
       );
-      return mockSearchResponse(keys, mockSubscriptionDetails);
+      req.reply(mockSearchResponse(keys));
     }).as('initialSearch');
 
     cy.interceptOdh('GET /maas/api/v1/subscriptions', {
@@ -961,25 +954,30 @@ describe('API keys and subscriptions (mySubscriptions feature flag)', () => {
 
   it('should show the correct data on the my subscriptions view page', () => {
     mySubscriptionsPage.visit('premium-team-sub');
-    mySubscriptionsPage.findTitle().should('contain.text', 'Premium Team Subscription');
+    cy.wait('@initialSearch');
+    mySubscriptionsPage.findTitle().should('contain.text', 'Premium Team');
     mySubscriptionsPage.findDetailsSection().should('exist');
     mySubscriptionsPage.findDetailsSection().should('contain.text', 'premium-team-sub');
     mySubscriptionsPage.findDetailsSection().should('contain.text', 'Premium Team');
+    mySubscriptionsPage.findDetailsSection().should('contain.text', 'Premium Team Subscription');
     mySubscriptionsPage.findModelsSection().should('contain.text', 'granite-3-8b-instruct');
     mySubscriptionsPage.findModelsSection().should('contain.text', 'flan-t5-small');
     mySubscriptionsPage.findModelsSection().should('contain.text', '100,000 / 24 hours');
     mySubscriptionsPage.findModelsSection().should('contain.text', '200,000 / 24 hours');
     mySubscriptionsPage.findApiKeysTable().should('exist');
     mySubscriptionsPage.findApiKeysTable().should('contain.text', 'production-backend');
-    mySubscriptionsPage.findApiKeysTable().should('contain.text', 'ci-pipeline');
+    mySubscriptionsPage.findApiKeysTable().should('not.contain.text', 'ci-pipeline');
     mySubscriptionsPage.findApiKeysTable().should('contain.text', 'old-service-key');
     mySubscriptionsPage.findApiKeysTable().should('not.contain.text', 'development-testing');
   });
   it('should prefill the api key form with the subscription details', () => {
     mySubscriptionsPage.visit('premium-team-sub');
     mySubscriptionsPage.findCreateApiKeyButton().click();
-    createApiKeyModal.findSubscriptionInput().should('have.value', 'Premium Team');
-    createApiKeyModal.findSubscriptionInput().should('be.disabled');
+    createApiKeyModal
+      .findSubscriptionToggle()
+      .find('[role="combobox"]')
+      .should('have.value', 'Premium Team');
+    createApiKeyModal.findSubscriptionToggle().should('have.attr', 'disabled');
   });
   it('should revoke an api key from the my subscriptions view page', () => {
     mySubscriptionsPage.visit('premium-team-sub');

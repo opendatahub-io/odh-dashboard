@@ -127,8 +127,6 @@ class APIKeysPage {
 class MySubscriptionsPage {
   visit(subName: string): void {
     cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
-    cy.wait('@getSubscriptionById');
-    cy.wait('@initialSearch');
     this.wait();
   }
 
@@ -291,17 +289,6 @@ class CreateApiKeyModal extends Modal {
 
   findSubscriptionToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('api-key-subscription-toggle');
-  }
-
-  findSubscriptionInput(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscriptionToggle().then(($el) => {
-      // When the subscription is locked, the toggle is the plain <input> itself.
-      // When unlocked, it is a TypeaheadSelect wrapper containing a [role="combobox"].
-      if ($el.is('input')) {
-        return cy.wrap($el);
-      }
-      return cy.wrap($el.find('[role="combobox"]'));
-    });
   }
 
   findSubscriptionOption(value: string): Cypress.Chainable<JQuery<HTMLElement>> {
