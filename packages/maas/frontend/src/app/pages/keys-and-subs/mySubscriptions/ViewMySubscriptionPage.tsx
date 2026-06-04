@@ -10,6 +10,7 @@ import {
   Flex,
   FlexItem,
   PageSection,
+  Skeleton,
   Stack,
   StackItem,
   Tab,
@@ -18,7 +19,7 @@ import {
   Title,
 } from '@patternfly/react-core';
 import { URL_PREFIX } from '~/app/utilities/const';
-import SubscriptionModelsTable from '~/app/pages/api-keys/SubscriptionModelsTable';
+import SubscriptionModelsTable from '~/app/pages/keys-and-subs/mySubscriptions/SubscriptionModelsTable';
 import { useGetUserSubscription } from '~/app/hooks/useGetUserSubscription';
 import MySubscriptionDetails from './MySubscriptionDetails';
 import MySubscriptionsApiKeyTable from './MySubscriptionsApiKeyTable';
@@ -38,16 +39,20 @@ const ViewSubscriptionPage: React.FC = () => {
           to={`${URL_PREFIX}/keys-and-subs/subscriptions`}
           data-testid="breadcrumb-my-subscriptions-link"
         >
-          Subscriptions
+          API keys & subscriptions
         </Link>
       </BreadcrumbItem>
-      <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
+      <BreadcrumbItem isActive>
+        {loaded ? displaySubscriptionName : <Skeleton width="150px" screenreaderText="Loading" />}
+      </BreadcrumbItem>
     </Breadcrumb>
   );
 
   return (
     <ApplicationsPage
-      title={displaySubscriptionName}
+      title={
+        loaded ? displaySubscriptionName : <Skeleton width="250px" screenreaderText="Loading" />
+      }
       breadcrumb={breadcrumb}
       empty={loaded && !subscription}
       loaded={loaded}
@@ -108,11 +113,7 @@ const ViewSubscriptionPage: React.FC = () => {
                 <StackItem>
                   <Card>
                     <CardBody>
-                      <MySubscriptionsApiKeyTable
-                        subscriptionId={subscription.subscription_id_header}
-                        subscriptionDisplayName={subscription.display_name}
-                        keyCount={subscription.key_count ?? undefined}
-                      />
+                      <MySubscriptionsApiKeyTable subscription={subscription} />
                     </CardBody>
                   </Card>
                 </StackItem>

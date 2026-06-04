@@ -43,7 +43,7 @@ import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/internal/hooks/useZodFormValidation';
 import TruncatedText from '@odh-dashboard/internal/components/TruncatedText';
 import { useFetchState, type FetchStateCallbackPromise } from 'mod-arch-core';
-import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/api-keys/utils';
+import { formatApiKeyError, formatApiKeyHiddenPreview } from '~/app/pages/keys-and-subs/utils';
 import { createApiKey } from '~/app/api/api-keys';
 import { listUserSubscriptions } from '~/app/api/subscriptions';
 import {
@@ -99,18 +99,11 @@ type CreateApiKeyFormData = z.infer<typeof createApiKeySchema>;
 
 type CreateApiKeyModalProps = {
   onClose: (created?: boolean) => void;
-  initialSubscription?: string;
-  initialSubscriptionDisplayName?: string;
-  lockSubscription?: boolean;
+  initialSubscription?: UserSubscription;
 };
 
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
-  onClose,
-  initialSubscription = '',
-  initialSubscriptionDisplayName,
-  lockSubscription = false,
-}) => {
-  const canLockSubscription = lockSubscription && Boolean(initialSubscription);
+const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({ onClose, initialSubscription }) => {
+  const canLockSubscription = Boolean(initialSubscription);
   const subscriptionsCallback = React.useCallback<FetchStateCallbackPromise<UserSubscription[]>>(
     (opts) => (canLockSubscription ? Promise.resolve([]) : listUserSubscriptions()(opts)),
     [canLockSubscription],
@@ -124,7 +117,7 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
     description: '',
     expirationOption: '30d',
     customDays: '',
-    subscription: initialSubscription,
+    subscription: initialSubscription?.subscription_id_header ?? '',
   });
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
   const [isCreating, setIsCreating] = React.useState(false);
@@ -132,27 +125,44 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
   const [createdToken, setCreatedToken] = React.useState<string | undefined>();
 
   const selectedSubscription = React.useMemo(
-    () => subscriptions.find((s) => s.subscription_id_header === formData.subscription),
-    [subscriptions, formData.subscription],
+    () =>
+      canLockSubscription
+        ? initialSubscription
+        : subscriptions.find((s) => s.subscription_id_header === formData.subscription),
+    [canLockSubscription, initialSubscription, subscriptions, formData.subscription],
   );
 
-  const subscriptionSelectOptions = React.useMemo(
-    () =>
-      subscriptions
-        .toSorted((a, b) => b.priority - a.priority)
-        .map<TypeaheadSelectOption>((sub) => ({
-          value: sub.subscription_id_header,
-          content: sub.display_name || sub.subscription_id_header,
-          description: (
-            <TruncatedText
-              maxLines={2}
-              content={`${sub.subscription_description} · ${sub.model_refs.length} ${sub.model_refs.length === 1 ? 'model' : 'models'}`}
-            />
+  const toDescriptionModelCount = (description: string, modelCount: number) =>
+    `${description} · ${modelCount} ${modelCount === 1 ? 'model' : 'models'}`;
+
+  const subscriptionSelectOptions = React.useMemo<TypeaheadSelectOption[]>(() => {
+    if (canLockSubscription && initialSubscription) {
+      return [
+        {
+          value: initialSubscription.subscription_id_header,
+          content: initialSubscription.display_name ?? initialSubscription.subscription_id_header,
+          'data-testid': `api-key-subscription-option-${initialSubscription.subscription_id_header}`,
+          description: toDescriptionModelCount(
+            initialSubscription.subscription_description,
+            initialSubscription.model_refs.length,
           ),
-          'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
-        })),
-    [subscriptions],
-  );
+        },
+      ];
+    }
+    return subscriptions
+      .toSorted((a, b) => b.priority - a.priority)
+      .map<TypeaheadSelectOption>((sub) => ({
+        value: sub.subscription_id_header,
+        content: sub.display_name || sub.subscription_id_header,
+        description: (
+          <TruncatedText
+            maxLines={2}
+            content={toDescriptionModelCount(sub.subscription_description, sub.model_refs.length)}
+          />
+        ),
+        'data-testid': `api-key-subscription-option-${sub.subscription_id_header}`,
+      }));
+  }, [canLockSubscription, initialSubscription, subscriptions]);
 
   const modelRefSummaries = React.useMemo<MaaSModelRefSummary[]>(
     () =>
@@ -405,30 +415,23 @@ const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
                       </HelperTextItem>
                     </HelperText>
                   </FormHelperText>
-                  {canLockSubscription ? (
-                    <TextInput
-                      id="api-key-subscription"
-                      value={initialSubscriptionDisplayName ?? formData.subscription}
-                      isDisabled
-                      data-testid="api-key-subscription-toggle"
-                    />
-                  ) : (
-                    <TypeaheadSelect
-                      id="api-key-subscription"
-                      selectOptions={subscriptionSelectOptions}
-                      selected={formData.subscription}
-                      onSelect={(_e, value) =>
-                        setFormData({ ...formData, subscription: String(value) })
-                      }
-                      isDisabled={!subscriptionsLoaded || subscriptions.length === 0}
-                      placeholder="Select a subscription"
-                      dataTestId="api-key-subscription-toggle"
-                      previewDescription={false}
-                      isRequired={false}
-                      popperProps={{ maxWidth: 'trigger' }}
-                      isScrollable
-                    />
-                  )}
+                  <TypeaheadSelect
+                    id="api-key-subscription"
+                    selectOptions={subscriptionSelectOptions}
+                    selected={formData.subscription}
+                    onSelect={(_e, value) =>
+                      setFormData({ ...formData, subscription: String(value) })
+                    }
+                    isDisabled={
+                      canLockSubscription || !subscriptionsLoaded || subscriptions.length === 0
+                    }
+                    placeholder="Select a subscription"
+                    dataTestId="api-key-subscription-toggle"
+                    previewDescription={false}
+                    isRequired={false}
+                    popperProps={{ maxWidth: 'trigger' }}
+                    isScrollable
+                  />
                 </FormGroup>
 
                 {selectedSubscription && (

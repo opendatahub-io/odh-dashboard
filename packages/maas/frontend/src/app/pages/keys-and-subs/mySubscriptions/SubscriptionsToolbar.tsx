@@ -16,7 +16,7 @@ import {
 } from '@patternfly/react-core';
 import { FilterIcon } from '@patternfly/react-icons';
 import { SubscriptionSortField } from './SubscriptionsTab';
-import { ModelSource } from './utils';
+import { ModelSource } from '../utils';
 
 type SubscriptionsToolbarProps = {
   sourceFilters: string[];

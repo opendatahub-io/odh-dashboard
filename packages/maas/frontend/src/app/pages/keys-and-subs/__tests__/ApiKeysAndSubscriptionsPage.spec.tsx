@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ApiKeysAndSubscriptionsPage from '~/app/pages/api-keys/ApiKeysAndSubscriptionsPage';
+import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 
 const mockNavigate = jest.fn();
 let mockTab: string | undefined;

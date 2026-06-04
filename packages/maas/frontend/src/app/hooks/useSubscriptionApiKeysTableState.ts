@@ -7,10 +7,11 @@ const DEFAULT_PER_PAGE = 5;
 type UseSubscriptionApiKeysTableStateReturn = {
   response: APIKeyListResponse;
   loaded: boolean;
+  error: Error | undefined;
   refresh: () => void;
   page: number;
   perPage: number;
-  isPageLoading: boolean;
+  isFetching: boolean;
   onSetPage: (newPage: number) => void;
   onPerPageSelect: (newPerPage: number, newPage: number) => void;
 };
@@ -20,7 +21,7 @@ export const useSubscriptionApiKeysTableState = (
 ): UseSubscriptionApiKeysTableStateReturn => {
   const [page, setPage] = React.useState(1);
   const [perPage, setPerPage] = React.useState(DEFAULT_PER_PAGE);
-  const [settledRequestKey, setSettledRequestKey] = React.useState('');
+  const [isFetching, setIsFetching] = React.useState(false);
 
   const searchRequest: APIKeySearchRequest = React.useMemo(
     () => ({
@@ -30,41 +31,38 @@ export const useSubscriptionApiKeysTableState = (
     [subscriptionId, page, perPage],
   );
 
-  const searchRequestKey = JSON.stringify(searchRequest);
-
-  const [response, loaded, , refresh] = useFetchApiKeys(
+  const [response, loaded, error, refresh] = useFetchApiKeys(
     subscriptionId ? searchRequest : { pagination: { limit: 0, offset: 0 } },
   );
 
   React.useEffect(() => {
     setPage(1);
-    setSettledRequestKey('');
+    setIsFetching(false);
   }, [subscriptionId]);
 
   React.useEffect(() => {
-    if (loaded) {
-      setSettledRequestKey(searchRequestKey);
-    }
-  }, [loaded, searchRequestKey]);
-
-  const isPageLoading = loaded && settledRequestKey !== searchRequestKey;
+    setIsFetching(false);
+  }, [response]);
 
   const onSetPage = React.useCallback((newPage: number) => {
     setPage(Math.max(1, newPage));
+    setIsFetching(true);
   }, []);
 
   const onPerPageSelect = React.useCallback((newPerPage: number, newPage: number) => {
     setPerPage(newPerPage);
     setPage(Math.max(1, newPage));
+    setIsFetching(true);
   }, []);
 
   return {
     response,
     loaded,
+    error,
     refresh,
     page,
     perPage,
-    isPageLoading,
+    isFetching,
     onSetPage,
     onPerPageSelect,
   };

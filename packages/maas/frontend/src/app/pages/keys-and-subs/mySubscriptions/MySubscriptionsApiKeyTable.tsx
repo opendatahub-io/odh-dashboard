@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+  Alert,
   Bullseye,
   Button,
   EmptyState,
@@ -15,11 +16,12 @@ import {
 } from '@patternfly/react-core';
 import { Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import { APIKey } from '~/app/types/api-key';
+import { UserSubscription } from '~/app/types/subscriptions';
 import { useSubscriptionApiKeysTableState } from '~/app/hooks/useSubscriptionApiKeysTableState';
-import ApiKeysTableRow from '~/app/pages/api-keys/allKeys/ApiKeysTableRow';
-import { ApiKeyColumn } from '~/app/pages/api-keys/allKeys/columns';
-import CreateApiKeyModal from '~/app/pages/api-keys/CreateApiKeyModal';
-import RevokeApiKeyModal from '~/app/pages/api-keys/RevokeApiKeyModal';
+import ApiKeysTableRow from '~/app/pages/keys-and-subs/apiKeys/allKeys/ApiKeysTableRow';
+import { ApiKeyColumn } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
+import CreateApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/CreateApiKeyModal';
+import RevokeApiKeyModal from '~/app/pages/keys-and-subs/apiKeys/RevokeApiKeyModal';
 
 const subscriptionApiKeyColumns: ApiKeyColumn[] = [
   { field: 'name', label: 'Name', width: 25, sortable: false },
@@ -30,9 +32,7 @@ const subscriptionApiKeyColumns: ApiKeyColumn[] = [
 ];
 
 type MySubscriptionsApiKeyTableProps = {
-  subscriptionId: string;
-  subscriptionDisplayName?: string;
-  keyCount: number | undefined;
+  subscription: UserSubscription;
 };
 
 const SubscriptionApiKeySkeletonRows: React.FC<{ rowCount: number }> = ({ rowCount }) =>
@@ -64,28 +64,33 @@ const SubscriptionApiKeySkeletonRows: React.FC<{ rowCount: number }> = ({ rowCou
   ));
 
 const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
-  subscriptionId,
-  subscriptionDisplayName,
-  keyCount,
+  subscription,
 }) => {
+  const subscriptionId = subscription.subscription_id_header;
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
-  const { response, loaded, refresh, page, perPage, isPageLoading, onSetPage, onPerPageSelect } =
-    useSubscriptionApiKeysTableState(subscriptionId);
+  const {
+    response,
+    loaded,
+    error,
+    refresh,
+    page,
+    perPage,
+    isFetching,
+    onSetPage,
+    onPerPageSelect,
+  } = useSubscriptionApiKeysTableState(subscriptionId);
 
   const apiKeys = response.data;
-  const showTableLoading = !loaded || isPageLoading;
-  const titleText = `API keys ${keyCount != null && keyCount > 0 ? `(${keyCount})` : ''}`;
+  const showTableLoading = !loaded || isFetching;
 
   return (
     <>
       {isModalOpen && (
         <CreateApiKeyModal
-          initialSubscription={subscriptionId}
-          initialSubscriptionDisplayName={subscriptionDisplayName}
-          lockSubscription
-          onClose={(created) => {
+          initialSubscription={subscription}
+          onClose={(created?: boolean) => {
             setIsModalOpen(false);
             if (created) {
               refresh();
@@ -96,7 +101,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {revokeApiKey && (
         <RevokeApiKeyModal
           apiKey={revokeApiKey}
-          onClose={(revoked) => {
+          onClose={(revoked?: boolean) => {
             setRevokeApiKey(undefined);
             if (revoked) {
               refresh();
@@ -109,7 +114,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         <ToolbarContent>
           <ToolbarItem>
             <Title headingLevel="h2" size="xl" data-testid="subscription-api-keys-title">
-              {titleText}
+              API keys
             </Title>
           </ToolbarItem>
           <ToolbarItem align={{ default: 'alignEnd' }}>
@@ -125,6 +130,16 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
         </ToolbarContent>
       </Toolbar>
 
+      {error && (
+        <Alert
+          variant="danger"
+          isInline
+          title="Failed to load API keys"
+          data-testid="subscription-api-keys-error"
+        >
+          {error.message}
+        </Alert>
+      )}
       <Table data-testid="subscription-api-keys-table" aria-label="Subscription API keys table">
         <Thead noWrap>
           <Tr>
@@ -137,7 +152,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
           </Tr>
         </Thead>
         <Tbody>
-          {showTableLoading ? (
+          {showTableLoading && !error ? (
             <SubscriptionApiKeySkeletonRows rowCount={perPage} />
           ) : apiKeys.length === 0 ? (
             <Tr>
@@ -171,22 +186,23 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       {loaded && (
         <Pagination
           toggleTemplate={({ firstIndex, lastIndex }) =>
-            keyCount != null ? (
+            response.has_more ? (
               <>
                 <b>
                   {firstIndex} - {lastIndex}
                 </b>{' '}
-                of <b>{keyCount}</b>
+                of <b>many</b>
               </>
             ) : (
-              <b>
-                {firstIndex} - {lastIndex}
-              </b>
+              <>
+                <b>
+                  {firstIndex} - {lastIndex}
+                </b>{' '}
+                of <b>{lastIndex}</b>
+              </>
             )
           }
-          itemCount={
-            keyCount ?? (!response.has_more ? (page - 1) * perPage + apiKeys.length : undefined)
-          }
+          itemCount={!response.has_more ? (page - 1) * perPage + apiKeys.length : undefined}
           perPage={perPage}
           page={page}
           onSetPage={(_e, newPage) => onSetPage(newPage)}
