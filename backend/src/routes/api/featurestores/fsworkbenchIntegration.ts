@@ -5,13 +5,9 @@ import { secureRoute } from '../../../utils/route-security';
 import {
   listFeastNamespaces,
   listFeastFeatureStoreCRDs,
-  constructRegistryProxyUrl,
-  makeAuthenticatedHttpRequest,
   handleError,
   isRegistryReady,
-  getServiceFromCRD,
-  type FeatureStoreCRD,
-  type FeastProjectsResponse,
+  hasAccessToFeastProject,
 } from './featureStoreUtils';
 
 interface WorkbenchFeatureStoreConfig {
@@ -25,43 +21,6 @@ interface WorkbenchResponse {
     namespace: string;
     clientConfigs: WorkbenchFeatureStoreConfig[];
   }>;
-}
-
-async function hasAccessToProject(
-  fastify: KubeFastifyInstance,
-  crd: FeatureStoreCRD,
-  token: string,
-): Promise<boolean> {
-  try {
-    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
-    const registryUrl = constructRegistryProxyUrl(
-      serviceName,
-      namespace,
-      'api/v1/projects',
-      true,
-      protocol,
-      port,
-    );
-    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
-      fastify,
-      registryUrl,
-      token,
-      {},
-    );
-    if (statusCode < 200 || statusCode >= 300) {
-      throw new Error(`Registry returned ${statusCode}`);
-    }
-    const projectName = crd.spec?.feastProject ?? crd.metadata.name;
-    const projects = data.projects || [];
-    return projects.some((p) => (p.spec?.name || p.name) === projectName);
-  } catch (error) {
-    fastify.log.info(
-      `Access check for ${crd.metadata.namespace}/${crd.metadata.name}: DENIED ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    );
-    return false;
-  }
 }
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -100,7 +59,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
             const configResults = await Promise.all(
               availableFeatureStores.map(async (crd) => {
                 const projectName = crd.spec?.feastProject ?? crd.metadata.name;
-                const hasAccess = await hasAccessToProject(fastify, crd, token);
+                const hasAccess = await hasAccessToFeastProject(fastify, crd, projectName, token);
                 return {
                   configName: crd.metadata.name,
                   projectName,
