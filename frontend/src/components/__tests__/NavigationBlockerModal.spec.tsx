@@ -20,6 +20,8 @@ describe('NavigationBlockerModal', () => {
     hash: '',
     state: null,
     key: 'default',
+    // eslint-disable-next-line camelcase
+    unstable_mask: undefined,
   };
 
   beforeEach(() => {
