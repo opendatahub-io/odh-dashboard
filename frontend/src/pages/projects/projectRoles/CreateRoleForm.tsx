@@ -76,7 +76,7 @@ const CreateRoleForm: React.FC<CreateRoleFormProps> = ({
       </Title>
       <Content component="p">Define the permissions that this role grants by adding rules.</Content>
       <Content component="p" data-testid="permissions-empty-state">
-        <em>No permissions set for this role.</em>
+        No permissions set for this role.
       </Content>
       <Flex>
         <FlexItem>
