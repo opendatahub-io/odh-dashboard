@@ -799,14 +799,6 @@ const useChatbotMessages = ({
             },
           };
 
-      // Log error details for debugging
-      // eslint-disable-next-line no-console
-      console.error('Response API error:', {
-        component: apiError.error.component,
-        code: apiError.error.code,
-        message: apiError.error.message,
-      });
-
       // Check if this is an abort error (from user stopping or clearing)
       const isAbortError =
         error instanceof Error &&

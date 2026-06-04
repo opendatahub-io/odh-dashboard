@@ -815,7 +815,8 @@ describe('useChatbotMessages', () => {
           content: 'This is a bot response',
         });
       } finally {
-        mockGetId.mockImplementation(() => 'mock-id');
+        let restoreCounter = 0;
+        mockGetId.mockImplementation(() => `mock-id-${restoreCounter++}`);
       }
     });
   });
