@@ -3,7 +3,7 @@ import { List, ListItem } from '@patternfly/react-core';
 import { SortableData } from '#~/components/table';
 import { getRoleDescription, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import { ODH_PRODUCT_NAME } from '#~/utilities/const';
-import { RoleListRow } from './types';
+import type { RoleListRow } from './types';
 
 export const ROLE_NAME_HELP = 'This is the name of the role in OpenShift.';
 

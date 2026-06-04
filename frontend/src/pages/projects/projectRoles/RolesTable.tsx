@@ -14,7 +14,7 @@ import Table from '#~/components/table/Table';
 import DashboardEmptyTableView from '#~/concepts/dashboard/DashboardEmptyTableView';
 import type { RoleRef } from '#~/concepts/permissions/types';
 import RoleDetailsModal from '#~/pages/projects/projectPermissions/roleDetails/RoleDetailsModal';
-import { RoleListRow } from './types';
+import type { RoleListRow } from './types';
 import { columns } from './columns';
 import RolesTableRow from './RolesTableRow';
 import PreviewYAMLModal from './PreviewYAMLModal';

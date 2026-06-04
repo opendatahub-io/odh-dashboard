@@ -3,7 +3,7 @@ import { ActionsColumn, Td, Tr } from '@patternfly/react-table';
 import { Button } from '@patternfly/react-core';
 import { getRoleDescription, getRoleDisplayName } from '#~/concepts/permissions/utils';
 import RoleLabel from '#~/pages/projects/projectPermissions/components/RoleLabel';
-import { RoleListRow } from './types';
+import type { RoleListRow } from './types';
 
 type RolesTableRowProps = {
   row: RoleListRow;

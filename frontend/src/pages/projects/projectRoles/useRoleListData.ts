@@ -7,7 +7,7 @@ import {
 } from '#~/concepts/permissions/utils';
 import { DEFAULT_CLUSTER_ROLE_NAMES } from '#~/concepts/permissions/const';
 import type { RoleRef } from '#~/concepts/permissions/types';
-import { RoleListRow } from './types';
+import type { RoleListRow } from './types';
 
 const toRoleListRow = (role: RoleKind | ClusterRoleKind): RoleListRow => {
   const kind = role.kind === 'ClusterRole' ? 'ClusterRole' : 'Role';
