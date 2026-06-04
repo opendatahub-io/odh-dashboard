@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	defaultInClusterPort = 8000
 	defaultProviderName  = "opendatahub"
 	defaultProviderLabel = "Open Data Hub"
 	defaultProviderURL   = "https://opendatahub.io"
@@ -54,7 +53,7 @@ func AgentDetailToRuntimeDetail(detail *agents.AgentDetail) *models.AgentRuntime
 	}
 
 	conditions := MapWorkloadConditions(detail.Status)
-	if synthetic := SyntheticReadyCondition(readyStatus); synthetic != nil {
+	if synthetic := SyntheticReadyCondition(readyStatus, lastSync); synthetic != nil {
 		if !hasConditionType(conditions, synthetic.Type) {
 			conditions = append(conditions, *synthetic)
 		}
@@ -138,23 +137,52 @@ func AgentDescription(annotations map[string]string) string {
 	return ""
 }
 
-// BuildPrimaryEndpointURL constructs the primary in-cluster HTTP URL for an agent Service.
+// BuildPrimaryEndpointURL constructs the primary in-cluster URL for an agent Service.
 func BuildPrimaryEndpointURL(serviceName, namespace string, ports []agents.AgentServicePort) string {
-	port := SelectHTTPPort(ports)
-	return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, namespace, port)
+	port, ok := SelectPrimaryPort(ports)
+	if !ok {
+		return ""
+	}
+	return buildInClusterServiceURL(serviceName, namespace, port)
 }
 
-// SelectHTTPPort picks the Service port used for the primary endpoint (prefers named port "http").
-func SelectHTTPPort(ports []agents.AgentServicePort) int {
+// SelectPrimaryPort picks the Service port used for the primary endpoint (prefers "http", then "https").
+func SelectPrimaryPort(ports []agents.AgentServicePort) (agents.AgentServicePort, bool) {
 	for _, p := range ports {
 		if p.Name == "http" && p.Port > 0 {
-			return p.Port
+			return p, true
+		}
+	}
+	for _, p := range ports {
+		if p.Name == "https" && p.Port > 0 {
+			return p, true
 		}
 	}
 	if len(ports) > 0 && ports[0].Port > 0 {
-		return ports[0].Port
+		return ports[0], true
 	}
-	return defaultInClusterPort
+	return agents.AgentServicePort{}, false
+}
+
+// SelectHTTPPort returns the port number selected by SelectPrimaryPort, or 0 when none is usable.
+func SelectHTTPPort(ports []agents.AgentServicePort) int {
+	port, ok := SelectPrimaryPort(ports)
+	if !ok {
+		return 0
+	}
+	return port.Port
+}
+
+func endpointScheme(port agents.AgentServicePort) string {
+	if strings.EqualFold(port.Name, "https") || port.Port == 443 {
+		return "https"
+	}
+	return "http"
+}
+
+func buildInClusterServiceURL(serviceName, namespace string, port agents.AgentServicePort) string {
+	scheme := endpointScheme(port)
+	return fmt.Sprintf("%s://%s.%s.svc.cluster.local:%d", scheme, serviceName, namespace, port.Port)
 }
 
 // MapServiceEndpoints maps Service ports to BFF endpoint records.
@@ -170,7 +198,7 @@ func MapServiceEndpoints(service *agents.AgentService, namespace string) []model
 		endpoints = append(endpoints, models.AgentServiceEndpoint{
 			Name: port.Name,
 			Port: port.Port,
-			URL:  fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", service.Name, namespace, port.Port),
+			URL:  buildInClusterServiceURL(service.Name, namespace, port),
 		})
 	}
 	return endpoints
@@ -234,7 +262,7 @@ func LatestConditionTime(status map[string]any) time.Time {
 }
 
 // SyntheticReadyCondition adds a Ready condition when upstream reports Ready but K8s conditions omit it.
-func SyntheticReadyCondition(readyStatus string) *models.AgentRuntimeCondition {
+func SyntheticReadyCondition(readyStatus string, lastTransitionTime time.Time) *models.AgentRuntimeCondition {
 	if strings.TrimSpace(readyStatus) != "Ready" {
 		return nil
 	}
@@ -243,7 +271,7 @@ func SyntheticReadyCondition(readyStatus string) *models.AgentRuntimeCondition {
 		Status:             "True",
 		Reason:             "MinimumReplicasAvailable",
 		Message:            "Deployment has minimum availability.",
-		LastTransitionTime: time.Now().UTC(),
+		LastTransitionTime: lastTransitionTime,
 	}
 }
 
