@@ -248,6 +248,19 @@ describe('featureStores routes', () => {
       expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
     });
 
+    it('should throw 400 when wildcard path contains path traversal sequences', async () => {
+      const req = {
+        params: { namespace: NAMESPACE, name: CRD_NAME, '*': 'api/v1/../../../sensitive' },
+        url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/api/v1/../../../sensitive`,
+        raw: { url: `/api/featurestores/${NAMESPACE}/${CRD_NAME}/api/v1/../../../sensitive` },
+        query: {},
+        headers: {},
+      };
+
+      await expect(proxyHandler(req, mockReply)).rejects.toMatchObject({ statusCode: 400 });
+      expect(mockGetFeastFeatureStoreCRD).not.toHaveBeenCalled();
+    });
+
     it('should throw 401 when no access token is present', async () => {
       mockGetAccessToken.mockReturnValue(null as any);
 

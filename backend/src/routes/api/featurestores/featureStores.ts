@@ -187,8 +187,12 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
       const { namespace, name } = req.params;
       const wildcardPath = (req.params as Record<string, string>)['*'] || '';
 
-      if (wildcardPath && !wildcardPath.startsWith('api/v1/')) {
-        throw createCustomError('Invalid path', 'Path must start with api/v1/', 400);
+      if (wildcardPath && (!wildcardPath.startsWith('api/v1/') || wildcardPath.includes('..'))) {
+        throw createCustomError(
+          'Invalid path',
+          'Path must start with api/v1/ and must not contain traversal sequences',
+          400,
+        );
       }
 
       const query = req.query as Record<string, string>;
