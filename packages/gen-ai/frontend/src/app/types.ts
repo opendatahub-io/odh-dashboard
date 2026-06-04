@@ -659,6 +659,43 @@ type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
 export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
 export type ErrorVariant = 'danger' | 'warning';
 
+/**
+ * Error component identifiers - single source of truth for error attribution.
+ * Maps to Component* constants in packages/gen-ai/bff/internal/integrations/llamastack/errors.go
+ */
+export const ERROR_COMPONENTS = {
+  GUARDRAILS: 'guardrails',
+  RAG: 'rag',
+  MCP: 'mcp',
+  MODEL: 'model',
+  OGX: 'ogx',
+  BFF: 'bff',
+} as const;
+
+export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
+
+/**
+ * Components that represent partial failures (warning state).
+ * Full failures from these components still render as danger alerts.
+ */
+export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
+  ERROR_COMPONENTS.GUARDRAILS,
+  ERROR_COMPONENTS.RAG,
+  ERROR_COMPONENTS.MCP,
+]);
+
+/**
+ * Display names for error components shown in the UI.
+ */
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<ErrorComponent, string>> = {
+  [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
+  [ERROR_COMPONENTS.RAG]: 'RAG',
+  [ERROR_COMPONENTS.MCP]: 'MCP',
+  [ERROR_COMPONENTS.MODEL]: 'Model',
+  [ERROR_COMPONENTS.OGX]: 'OGX',
+  [ERROR_COMPONENTS.BFF]: 'BFF',
+};
+
 export interface ErrorDetails {
   component: string;
   errorCode: string;
@@ -676,7 +713,7 @@ export interface ClassifiedError {
 
 export interface ApiError {
   error: {
-    component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'ogx' | 'bff';
+    component: ErrorComponent;
     code: string;
     message: string;
     tool_name?: string;

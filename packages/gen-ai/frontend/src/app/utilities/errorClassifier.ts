@@ -1,4 +1,10 @@
-import { ApiError, ClassifiedError } from '~/app/types';
+import {
+  ApiError,
+  ClassifiedError,
+  ERROR_COMPONENTS,
+  ERROR_COMPONENT_DISPLAY_NAMES,
+  PARTIAL_FAILURE_COMPONENTS,
+} from '~/app/types';
 import { getMicrocopy } from './microcopy';
 
 interface ClassifyContext {
@@ -8,17 +14,6 @@ interface ClassifyContext {
   wasStreamStarted?: boolean;
   wasResponseGenerated?: boolean;
 }
-
-const COMPONENT_DISPLAY_NAMES: Record<string, string> = {
-  guardrails: 'Guardrails',
-  rag: 'RAG',
-  mcp: 'MCP',
-  model: 'Model',
-  ogx: 'OGX',
-  bff: 'BFF',
-};
-
-const PARTIAL_COMPONENTS = new Set(['rag', 'guardrails', 'mcp']);
 
 // Map streaming error codes to template keys
 const STREAMING_ERROR_MAP: Record<string, string> = {
@@ -71,7 +66,7 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   const rawMessage = error.error.message || '';
   const normalizedCode = code.toLowerCase();
 
-  const isPartial = PARTIAL_COMPONENTS.has(component);
+  const isPartial = PARTIAL_FAILURE_COMPONENTS.has(component);
   const isStreamingError = Object.prototype.hasOwnProperty.call(
     STREAMING_ERROR_MAP,
     normalizedCode,
@@ -86,9 +81,9 @@ export function classifyError(error: ApiError, context: ClassifyContext = {}): C
   const microcopy = getMicrocopy(templateKey, effectiveContext);
   const isRetriable = resolveRetriable(error);
 
-  const displayComponent = COMPONENT_DISPLAY_NAMES[component] ?? component;
+  const displayComponent = ERROR_COMPONENT_DISPLAY_NAMES[component];
   const componentLabel =
-    component === 'mcp' && effectiveContext.toolName
+    component === ERROR_COMPONENTS.MCP && effectiveContext.toolName
       ? `MCP: ${effectiveContext.toolName}`
       : displayComponent;
 

@@ -15,6 +15,7 @@ import {
   CodeExportRequest,
   ContentAnnotation,
   CreateResponseRequest,
+  ERROR_COMPONENTS,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
@@ -233,27 +234,22 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{
-    data?: BackendResponseData;
-    error?: {
-      component: 'guardrails' | 'rag' | 'mcp' | 'model' | 'ogx' | 'bff';
-      code: string;
-      message: string;
-      tool_name?: string;
-      retriable: boolean;
-    };
-  }>(hostPath, '/lsd/responses', toCreateResponseRecord(request), baseQueryParams, fetchOpts).then(
-    (response) => {
-      if (response.error) {
-        // Preserve the full ApiError structure from BFF
-        throw new ApiErrorClass(response.error);
-      }
-      if (response.data) {
-        return transformBackendResponse(response.data);
-      }
-      throw new Error('Invalid response format');
-    },
-  );
+  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
+    hostPath,
+    '/lsd/responses',
+    toCreateResponseRecord(request),
+    baseQueryParams,
+    fetchOpts,
+  ).then((response) => {
+    if (response.error) {
+      // Preserve the full ApiError structure from BFF
+      throw new ApiErrorClass(response.error);
+    }
+    if (response.data) {
+      return transformBackendResponse(response.data);
+    }
+    throw new Error('Invalid response format');
+  });
 };
 
 // Streaming POST path via fetch (SSE text/event-stream)
@@ -290,7 +286,7 @@ const streamCreateResponse = (
 
           // Fallback: no structured error or parsing failed
           throw new ApiErrorClass({
-            component: 'bff' as const,
+            component: ERROR_COMPONENTS.BFF,
             code: `http_${response.status}`,
             message: `HTTP error! status: ${response.status}`,
             retriable: false,
