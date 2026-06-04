@@ -64,7 +64,7 @@ export function usePromptsList(options: UsePromptsListOptions = {}): UsePromptsL
               try {
                 const latest = await api.getMLflowPrompt({ name: prompt.name });
                 const safeLatestVersion =
-                  typeof latest?.version === 'number' && Number.isFinite(latest.version)
+                  typeof latest.version === 'number' && Number.isFinite(latest.version)
                     ? latest.version
                     : prompt.latest_version;
                 // eslint-disable-next-line camelcase -- MLflow API uses snake_case
