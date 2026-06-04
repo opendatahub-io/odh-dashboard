@@ -114,7 +114,14 @@ describe('Verify models can be deployed from model registry', () => {
   it(
     'Registers a model and deploys it via model registry',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Sanity', '@SanitySet4'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        'testRegistryDeployModel',
+        '@NonConcurrent',
+        '@Sanity',
+        '@SanitySet4',
+      ],
     },
     () => {
       cy.step('Log into the application');
