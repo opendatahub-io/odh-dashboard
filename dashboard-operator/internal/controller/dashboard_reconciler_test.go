@@ -162,6 +162,7 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  2,
+			wantModuleCount: 9,
 		},
 		{
 			name:       "observed generation matches CR",
@@ -174,6 +175,7 @@ func TestReconcile(t *testing.T) {
 			wantReady:       boolPtr(false),
 			wantProvisioned: boolPtr(true),
 			wantGeneration:  42,
+			wantModuleCount: 9,
 		},
 		{
 			name:       "module statuses populated with components",

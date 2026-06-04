@@ -126,8 +126,7 @@ The controller reads an optional `dashboard-operator-config` ConfigMap for inter
 
 | Key | Type | Default | Purpose |
 |-----|------|---------|---------|
-| `logLevel` | string | `""` | Controller log verbosity |
-| `reconcileInterval` | duration | `0` (no periodic requeue) | Override default requeue interval |
+| `reconcileInterval` | duration | `0` (no periodic requeue) | Override default requeue interval (minimum 5s) |
 
 A missing or malformed ConfigMap never blocks reconciliation.
 

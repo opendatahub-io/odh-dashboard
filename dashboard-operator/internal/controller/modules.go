@@ -186,7 +186,7 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 				}
 			}
 
-			if allMet && allDepsResolved(deps, result) {
+			if allMet {
 				result[name] = v1alpha1.ModuleStatus{
 					Phase:              v1alpha1.ModulePhaseDeployed,
 					Reason:             "DependenciesSatisfied",
@@ -253,16 +253,6 @@ func findMissingComponent(components map[string]v1alpha1.ComponentAvailability, 
 	}
 
 	return ""
-}
-
-func allDepsResolved(deps []string, result map[string]v1alpha1.ModuleStatus) bool {
-	for _, dep := range deps {
-		if _, ok := result[dep]; !ok {
-			return false
-		}
-	}
-
-	return true
 }
 
 // ModuleNames returns the sorted list of module names from the registry.

@@ -18,7 +18,6 @@ const minReconcileInterval = 5 * time.Second
 // A missing or malformed ConfigMap results in zero-value defaults and
 // never blocks reconciliation.
 type OperatorConfig struct {
-	LogLevel          string
 	ReconcileInterval time.Duration
 }
 
@@ -41,10 +40,6 @@ func readOperatorConfig(ctx context.Context, cli client.Client, namespace string
 
 	if cm.Data == nil {
 		return cfg
-	}
-
-	if v, ok := cm.Data["logLevel"]; ok {
-		cfg.LogLevel = v
 	}
 
 	if v, ok := cm.Data["reconcileInterval"]; ok {

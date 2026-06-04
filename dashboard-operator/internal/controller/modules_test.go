@@ -243,6 +243,25 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"mlflowEmbedded": "ModuleDependencyNotSatisfied",
 			},
 		},
+		{
+			name: "explicit enable with satisfied module deps deploys",
+			spec: v1alpha1.DashboardSpec{
+				Components: map[string]v1alpha1.ComponentAvailability{
+					"mlflowoperator": {ManagementState: "Managed"},
+				},
+				Modules: map[string]v1alpha1.ModuleOverride{
+					"mlflowEmbedded": {State: v1alpha1.ModuleEnabled},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"mlflow":         v1alpha1.ModulePhaseDeployed,
+				"mlflowEmbedded": v1alpha1.ModulePhaseDeployed,
+			},
+			wantReason: map[string]string{
+				"mlflow":         "DependenciesSatisfied",
+				"mlflowEmbedded": "DependenciesSatisfied",
+			},
+		},
 	}
 
 	for _, tt := range tests {

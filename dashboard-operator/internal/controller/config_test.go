@@ -28,13 +28,11 @@ func TestReadOperatorConfig(t *testing.T) {
 	tests := []struct {
 		name          string
 		configMap     *corev1.ConfigMap
-		wantLogLevel  string
 		wantReconcile time.Duration
 	}{
 		{
 			name:          "configmap does not exist",
 			configMap:     nil,
-			wantLogLevel:  "",
 			wantReconcile: 0,
 		},
 		{
@@ -42,11 +40,9 @@ func TestReadOperatorConfig(t *testing.T) {
 			configMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
 				Data: map[string]string{
-					"logLevel":          "debug",
 					"reconcileInterval": "30s",
 				},
 			},
-			wantLogLevel:  "debug",
 			wantReconcile: 30 * time.Second,
 		},
 		{
@@ -54,11 +50,9 @@ func TestReadOperatorConfig(t *testing.T) {
 			configMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
 				Data: map[string]string{
-					"logLevel":          "info",
 					"reconcileInterval": "not-a-duration",
 				},
 			},
-			wantLogLevel:  "info",
 			wantReconcile: 0,
 		},
 		{
@@ -67,18 +61,6 @@ func TestReadOperatorConfig(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
 				Data:       map[string]string{},
 			},
-			wantLogLevel:  "",
-			wantReconcile: 0,
-		},
-		{
-			name: "only logLevel set",
-			configMap: &corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
-				Data: map[string]string{
-					"logLevel": "error",
-				},
-			},
-			wantLogLevel:  "error",
 			wantReconcile: 0,
 		},
 		{
@@ -86,7 +68,6 @@ func TestReadOperatorConfig(t *testing.T) {
 			configMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
 			},
-			wantLogLevel:  "",
 			wantReconcile: 0,
 		},
 		{
@@ -97,8 +78,17 @@ func TestReadOperatorConfig(t *testing.T) {
 					"reconcileInterval": "1ms",
 				},
 			},
-			wantLogLevel:  "",
 			wantReconcile: 0,
+		},
+		{
+			name: "reconcile interval at exact minimum is accepted",
+			configMap: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{Name: operatorConfigMapName, Namespace: "test-ns"},
+				Data: map[string]string{
+					"reconcileInterval": "5s",
+				},
+			},
+			wantReconcile: 5 * time.Second,
 		},
 	}
 
@@ -114,7 +104,6 @@ func TestReadOperatorConfig(t *testing.T) {
 			cli := builder.Build()
 			cfg := readOperatorConfig(context.Background(), cli, "test-ns")
 
-			assert.Equal(t, tt.wantLogLevel, cfg.LogLevel)
 			assert.Equal(t, tt.wantReconcile, cfg.ReconcileInterval)
 		})
 	}
