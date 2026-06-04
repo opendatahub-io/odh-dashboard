@@ -3,7 +3,7 @@ import {
   mockNimServingRuntime,
 } from '@odh-dashboard/internal/__mocks__/mockLegacyNimResource';
 import { mockK8sResourceList } from '@odh-dashboard/internal/__mocks__';
-import { initInterceptsToEnableNim } from '../../../utils/nimUtils';
+import { initInterceptsToEnableNim } from '../../../utils/legacyNimUtils';
 import { InferenceServiceModel, ServingRuntimeModel } from '../../../utils/models';
 import { modelServingGlobal, modelServingSection } from '../../../pages/modelServing';
 

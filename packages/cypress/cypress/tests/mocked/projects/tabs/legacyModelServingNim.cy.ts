@@ -16,7 +16,7 @@ import {
   initInterceptsForDeleteModel,
   initInterceptsToDeployModel,
   initInterceptsToEnableNim,
-} from '../../../../utils/nimUtils';
+} from '../../../../utils/legacyNimUtils';
 import { deleteModal } from '../../../../pages/components/DeleteModal';
 
 describe('NIM Model Serving', () => {
