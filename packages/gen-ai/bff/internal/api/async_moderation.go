@@ -369,6 +369,11 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 	var currentChunk *ModerationChunk
 	var wordCount int
 
+	// TTFT and usage tracking
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
+
 	// Main streaming loop
 	for stream.Next() {
 		// Check if client disconnected or violation detected
@@ -427,8 +432,14 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			continue
 		}
 
-		// Handle output moderation for text delta events
-		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
+		// Handle output moderation for text and reasoning delta events
+		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && streamingEvent.Delta != "" {
+			// TTFT tracks first answer token only — reasoning tokens are excluded
+			if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+				now := time.Now()
+				firstTokenTime = &now
+			}
+
 			// Initialize chunk if needed
 			if currentChunk == nil {
 				currentChunk = modState.CreateChunk()
@@ -468,8 +479,8 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			continue
 		}
 
-		// For content_part.done and response.completed, wait for all pending moderation
-		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.completed" {
+		// For content_part.done, reasoning_text.done, and response.completed, wait for all pending moderation
+		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.reasoning_text.done" || streamingEvent.Type == "response.completed" {
 			// Wait for all pending chunks to be moderated and sent
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
@@ -482,8 +493,11 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			// NOTE: Async moderation chunks accumulated before this point contain
 			// raw citation markers (<|uuid|>). This is low-risk because markers are
 			// structured tokens that guardrail models won't misinterpret as harmful.
-			if streamingEvent.Type == "response.completed" && streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
+			if streamingEvent.Type == "response.completed" {
+				usage = extractUsageFromEvent(event)
+				if streamingEvent.Response != nil {
+					processResponseCitations(streamingEvent.Response)
+				}
 			}
 
 			// Now send the completion event
@@ -513,6 +527,23 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		message, code, component, retriable := app.extractStreamingError(err)
 		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
+
+	// Send metrics event after stream completes
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+		},
+	}
+	metricsData, err := json.Marshal(metricsEvent)
+	if err != nil {
+		app.logger.Error("failed to marshal metrics event", "error", err)
+		return
+	}
+	_ = sendEvent(metricsData)
 }
 
 // streamWithoutModeration handles streaming when moderation is disabled

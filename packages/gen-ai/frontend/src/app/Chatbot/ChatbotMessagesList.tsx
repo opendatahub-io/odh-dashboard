@@ -13,6 +13,8 @@ type ChatbotMessagesListProps = {
   modelDisplayName?: string;
   /** Shown as a bot message when the conversation is empty and not loading */
   placeholderContent?: string;
+  /** Whether the conversation contains images in user messages (disables image stripping) */
+  hasImagesInConversation?: boolean;
 };
 
 const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
@@ -21,6 +23,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
   isLoading = false,
   modelDisplayName = 'Bot',
   placeholderContent,
+  hasImagesInConversation = false,
 }) => (
   <>
     {messageList.length === 0 && !isLoading && placeholderContent && (
@@ -35,11 +38,17 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
       />
     )}
     {messageList.map((message, index) => {
-      // Destructure custom props from message to avoid passing them to PatternFly Message component
-      const { metrics, errorClassification, onRetryError, ...messageProps } = message;
+      // Destructure metrics and extraContent from message to avoid passing raw to PatternFly
+      const {
+        metrics,
+        extraContent: messageExtraContent,
+        errorClassification,
+        onRetryError,
+        ...messageProps
+      } = message;
 
       // Build extraContent with metrics and error alerts
-      const extraContent: PFMessageProps['extraContent'] = {};
+      const extraContent: PFMessageProps['extraContent'] = { ...messageExtraContent };
 
       // Full-failure errors: render as beforeMainContent (above empty content)
       if (
@@ -98,6 +107,7 @@ const ChatbotMessagesList: React.FC<ChatbotMessagesListProps> = ({
             {...messageProps}
             extraContent={Object.keys(extraContent).length > 0 ? extraContent : undefined}
             data-testid={`chatbot-message-${message.role}`}
+            {...(hasImagesInConversation && { hasNoImagesInUserMessages: false })}
           />
           {index === messageList.length - 1 && <div ref={scrollRef} />}
         </React.Fragment>

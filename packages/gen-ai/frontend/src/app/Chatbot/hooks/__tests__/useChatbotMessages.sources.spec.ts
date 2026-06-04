@@ -5,6 +5,9 @@ import { CreateResponseRequest, SimplifiedResponseData } from '~/app/types';
 import { mockModelId, mockSuccessResponse, mockNamespace, defaultMcpProps } from './consts';
 
 // Mock external dependencies
+jest.mock('@patternfly/chatbot', () => ({
+  FileDetailsLabel: jest.fn(({ fileName }: { fileName: string }) => fileName),
+}));
 jest.mock('~/app/services/llamaStackService');
 jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/utilities/utils', () => ({

@@ -80,6 +80,19 @@ func (app *App) guardrailServiceUnavailableResponse(w http.ResponseWriter, r *ht
 	}
 }
 
+func (app *App) serviceUnavailableResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.LogError(r, err)
+
+	httpError := &integrations.HTTPError{
+		StatusCode: http.StatusServiceUnavailable,
+		ErrorResponse: integrations.ErrorResponse{
+			Code:    constants.GuardrailServiceUnavailableCode,
+			Message: err.Error(),
+		},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	httpError := &integrations.HTTPError{
 		StatusCode: http.StatusUnauthorized,
