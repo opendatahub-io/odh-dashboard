@@ -85,6 +85,13 @@ jobs:
               ".tekton/"
               "manifests/modular-architecture/params.env"
               "manifests/odh/params.env"
+              "manifests/modular-architecture/modules/model-registry/params.env"
+              "manifests/modular-architecture/modules/gen-ai/params.env"
+              "manifests/modular-architecture/modules/maas/params.env"
+              "manifests/modular-architecture/modules/mlflow/params.env"
+              "manifests/modular-architecture/modules/eval-hub/params.env"
+              "manifests/modular-architecture/modules/automl/params.env"
+              "manifests/modular-architecture/modules/autorag/params.env"
             )
             
             # Get list of conflicted files
@@ -173,9 +180,23 @@ jobs:
           sed -i "s|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:.*|gen-ai-ui-image=quay.io/opendatahub/odh-mod-arch-gen-ai:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           sed -i "s|maas-ui-image=quay.io/opendatahub/mod-arch-maas:.*|maas-ui-image=quay.io/opendatahub/mod-arch-maas:${NEW_VERSION}-odh|" manifests/modular-architecture/params.env
           echo "Updated manifests/modular-architecture/params.env"
+
+          # Keep per-module params.env in sync (kustomize load restrictions require local copies)
+          PARENT=manifests/modular-architecture/params.env
+          for params_file in manifests/modular-architecture/modules/*/params.env; do
+            [[ -f "$params_file" ]] || continue
+            while IFS= read -r line || [[ -n "$line" ]]; do
+              [[ "$line" =~ ^# || -z "$line" ]] && continue
+              key="${line%%=*}"
+              parent_line=$(grep "^${key}=" "$PARENT" || true)
+              [[ -n "$parent_line" ]] || continue
+              sed -i "s|^${key}=.*|${parent_line}|" "$params_file"
+            done < "$params_file"
+            echo "Synced $params_file"
+          done
           
           # Commit version bump
-          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env
+          git add frontend/.env manifests/odh/params.env manifests/modular-architecture/params.env manifests/modular-architecture/modules/*/params.env
           git commit -m "Bump version to ${NEW_VERSION}"
           echo "Version bump committed"
 
@@ -203,6 +224,7 @@ jobs:
           - \`frontend/.env\`
           - \`manifests/odh/params.env\`
           - \`manifests/modular-architecture/params.env\`
+          - \`manifests/modular-architecture/modules/*/params.env\`
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"

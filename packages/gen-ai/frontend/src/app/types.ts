@@ -655,3 +655,107 @@ type VerifyExternalModel = ModArchRestCREATE<
   VerifyExternalModelRequest
 >;
 type DeleteExternalModel = ModArchRestDELETE<string, Record<string, never>>;
+
+export type ErrorPattern = 'full-failure' | 'partial-failure' | 'streaming-interruption';
+export type ErrorVariant = 'danger' | 'warning';
+
+/**
+ * Error component identifiers - single source of truth for error attribution.
+ * Maps to Component* constants in packages/gen-ai/bff/internal/integrations/llamastack/errors.go
+ */
+export const ERROR_COMPONENTS = {
+  GUARDRAILS: 'guardrails',
+  RAG: 'rag',
+  MCP: 'mcp',
+  MODEL: 'model',
+  OGX: 'ogx',
+  BFF: 'bff',
+} as const;
+
+export type ErrorComponent = (typeof ERROR_COMPONENTS)[keyof typeof ERROR_COMPONENTS];
+
+/**
+ * Components that represent partial failures (warning state).
+ * Full failures from these components still render as danger alerts.
+ */
+export const PARTIAL_FAILURE_COMPONENTS: ReadonlySet<ErrorComponent> = new Set([
+  ERROR_COMPONENTS.GUARDRAILS,
+  ERROR_COMPONENTS.RAG,
+  ERROR_COMPONENTS.MCP,
+]);
+
+/**
+ * Display names for error components shown in the UI.
+ */
+export const ERROR_COMPONENT_DISPLAY_NAMES: Readonly<Record<string, string>> = {
+  [ERROR_COMPONENTS.GUARDRAILS]: 'Guardrails',
+  [ERROR_COMPONENTS.RAG]: 'RAG',
+  [ERROR_COMPONENTS.MCP]: 'MCP',
+  [ERROR_COMPONENTS.MODEL]: 'Model',
+  [ERROR_COMPONENTS.OGX]: 'OGX',
+  [ERROR_COMPONENTS.BFF]: 'BFF',
+};
+
+export interface ErrorDetails {
+  component: string;
+  errorCode: string;
+  rawMessage: string;
+}
+
+export interface ClassifiedError {
+  pattern: ErrorPattern;
+  variant: ErrorVariant;
+  title: string;
+  description: string;
+  details: ErrorDetails;
+  isRetriable: boolean;
+}
+
+export interface ApiError {
+  error: {
+    component: ErrorComponent;
+    code: string;
+    message: string;
+    tool_name?: string;
+    retriable: boolean;
+  };
+}
+
+/**
+ * Custom error class that extends Error and carries structured API error payload.
+ * Preserves stack traces and works with instanceof checks while maintaining
+ * the ApiError structure for error handling logic.
+ */
+export class ApiErrorClass extends Error implements ApiError {
+  error: ApiError['error'];
+
+  constructor(error: ApiError['error']) {
+    super(error.message);
+    this.name = 'ApiError';
+    this.error = error;
+    // Maintains proper prototype chain for instanceof checks
+    Object.setPrototypeOf(this, ApiErrorClass.prototype);
+  }
+}
+
+/**
+ * Type guard to check if an error is an ApiError (class instance or plain object).
+ * Works with both ApiErrorClass instances and legacy plain object throws.
+ */
+export function isApiError(error: unknown): error is ApiError {
+  if (typeof error !== 'object' || error === null || !('error' in error)) {
+    return false;
+  }
+
+  const errorObj = error.error;
+  if (typeof errorObj !== 'object' || errorObj === null) {
+    return false;
+  }
+
+  return (
+    'component' in errorObj &&
+    'code' in errorObj &&
+    'message' in errorObj &&
+    'retriable' in errorObj
+  );
+}

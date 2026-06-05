@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -353,16 +354,15 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
+	// Ensure the result processor goroutine is cleaned up on all exit paths
+	// (error returns, guardrail violations, normal completion).
+	defer func() {
+		modState.Cancel()
+		<-done
+	}()
+
 	sendGuardrailViolation := func() {
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "output blocked by safety guardrails",
-				"code":    constants.GuardrailOutputViolationCode,
-			},
-		}
-		if eventData, err := json.Marshal(errorData); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
+		_ = sendEvent(buildStreamingErrorEvent(constants.GuardrailOutputViolationCode, "output blocked by safety guardrails", "guardrails", false))
 	}
 
 	// Current chunk being accumulated
@@ -392,10 +392,41 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 
 		event := stream.Current()
 
+		// Intercept OGX error events before convertToStreamingEvent filters them out.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			return
+		}
+
 		// Convert to clean streaming event
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
 			continue
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			_ = sendEvent(buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			return
 		}
 
 		// Send response.created immediately (not moderated)
@@ -495,21 +526,11 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Cancel the result processor and wait for it to finish
-	modState.Cancel()
-	<-done
-
-	// Check for stream errors
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
 
 	// Send metrics event after stream completes
@@ -551,9 +572,41 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 		}
 
 		event := stream.Current()
+
+		// Intercept OGX error events before convertToStreamingEvent filters them out.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			return
+		}
+
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
 			continue
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			_ = sendEvent(buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			return
 		}
 
 		eventData, err := json.Marshal(streamingEvent)
@@ -567,15 +620,10 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 		}
 	}
 
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
 }
