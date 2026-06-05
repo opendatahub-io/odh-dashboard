@@ -31,9 +31,28 @@ export const getTokenNames = (
   return { serviceAccountName, roleName, roleBindingName };
 };
 
+const AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getSpecAnnotation = (resource: any, key: string): string | undefined => {
+  const value = resource?.spec?.annotations?.[key];
+  return typeof value === 'string' ? value : undefined;
+};
+
 export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
-  const annotation = deployment.model.metadata.annotations?.['security.opendatahub.io/enable-auth'];
-  return annotation !== 'false';
+  const modelAnno = deployment.model.metadata.annotations?.[AUTH_ANNOTATION];
+  if (modelAnno !== undefined) {
+    return modelAnno !== 'false';
+  }
+  const specAnno = getSpecAnnotation(deployment.model, AUTH_ANNOTATION);
+  if (specAnno !== undefined) {
+    return specAnno !== 'false';
+  }
+  const serverAnno = deployment.server?.metadata.annotations?.[AUTH_ANNOTATION];
+  if (serverAnno !== undefined) {
+    return serverAnno !== 'false';
+  }
+  return false;
 };
 
 const useDeploymentSecrets = (
