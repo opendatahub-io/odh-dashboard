@@ -32,6 +32,21 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 }
 
+// ErrorDetail represents the nested error object expected by the frontend
+type ErrorDetail struct {
+	Component string `json:"component,omitempty"`
+	Code      string `json:"code,omitempty"`
+	Message   string `json:"message,omitempty"`
+	ToolName  string `json:"tool_name,omitempty"`
+	Retriable bool   `json:"retriable"`
+}
+
+// FrontendErrorResponse represents the error structure expected by the Gen AI frontend
+type FrontendErrorResponse struct {
+	StatusCode int          `json:"-"`
+	Error      *ErrorDetail `json:"error,omitempty"`
+}
+
 type HTTPError struct {
 	StatusCode int `json:"-"`
 	ErrorResponse

@@ -12,6 +12,7 @@
   },
   "exports": {
     ".": "./src/core/index.ts",
+    "./helpers/ui": "./src/core/helpers/ui.ts",
     "./extension-points": "./src/extension-points/index.ts",
     "./testing": "./src/testing/utils.ts"
   },

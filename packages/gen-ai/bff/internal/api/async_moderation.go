@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -353,21 +354,25 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		}
 	}()
 
+	// Ensure the result processor goroutine is cleaned up on all exit paths
+	// (error returns, guardrail violations, normal completion).
+	defer func() {
+		modState.Cancel()
+		<-done
+	}()
+
 	sendGuardrailViolation := func() {
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "output blocked by safety guardrails",
-				"code":    constants.GuardrailOutputViolationCode,
-			},
-		}
-		if eventData, err := json.Marshal(errorData); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
+		_ = sendEvent(buildStreamingErrorEvent(constants.GuardrailOutputViolationCode, "output blocked by safety guardrails", "guardrails", false))
 	}
 
 	// Current chunk being accumulated
 	var currentChunk *ModerationChunk
 	var wordCount int
+
+	// TTFT and usage tracking
+	startTime := time.Now()
+	var firstTokenTime *time.Time
+	var usage *UsageData
 
 	// Main streaming loop
 	for stream.Next() {
@@ -387,10 +392,41 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 
 		event := stream.Current()
 
+		// Intercept OGX error events before convertToStreamingEvent filters them out.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			return
+		}
+
 		// Convert to clean streaming event
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
 			continue
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			_ = sendEvent(buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			return
 		}
 
 		// Send response.created immediately (not moderated)
@@ -401,8 +437,14 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			continue
 		}
 
-		// Handle output moderation for text delta events
-		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
+		// Handle output moderation for text and reasoning delta events
+		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && streamingEvent.Delta != "" {
+			// TTFT tracks first answer token only — reasoning tokens are excluded
+			if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
+				now := time.Now()
+				firstTokenTime = &now
+			}
+
 			// Initialize chunk if needed
 			if currentChunk == nil {
 				currentChunk = modState.CreateChunk()
@@ -442,8 +484,8 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			continue
 		}
 
-		// For content_part.done and response.completed, wait for all pending moderation
-		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.completed" {
+		// For content_part.done, reasoning_text.done, and response.completed, wait for all pending moderation
+		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.reasoning_text.done" || streamingEvent.Type == "response.completed" {
 			// Wait for all pending chunks to be moderated and sent
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
@@ -456,8 +498,11 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 			// NOTE: Async moderation chunks accumulated before this point contain
 			// raw citation markers (<|uuid|>). This is low-risk because markers are
 			// structured tokens that guardrail models won't misinterpret as harmful.
-			if streamingEvent.Type == "response.completed" && streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
+			if streamingEvent.Type == "response.completed" {
+				usage = extractUsageFromEvent(event)
+				if streamingEvent.Response != nil {
+					processResponseCitations(streamingEvent.Response)
+				}
 			}
 
 			// Now send the completion event
@@ -481,22 +526,29 @@ func (app *App) handleStreamingResponseAsync(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Cancel the result processor and wait for it to finish
-	modState.Cancel()
-	<-done
-
-	// Check for stream errors
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
+
+	// Send metrics event after stream completes
+	latencyMs := time.Since(startTime).Milliseconds()
+	metricsEvent := MetricsEvent{
+		Type: "response.metrics",
+		Metrics: ResponseMetrics{
+			LatencyMs:          latencyMs,
+			TimeToFirstTokenMs: calculateTTFT(startTime, firstTokenTime),
+			Usage:              usage,
+		},
+	}
+	metricsData, err := json.Marshal(metricsEvent)
+	if err != nil {
+		app.logger.Error("failed to marshal metrics event", "error", err)
+		return
+	}
+	_ = sendEvent(metricsData)
 }
 
 // streamWithoutModeration handles streaming when moderation is disabled
@@ -520,9 +572,41 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 		}
 
 		event := stream.Current()
+
+		// Intercept OGX error events before convertToStreamingEvent filters them out.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			return
+		}
+
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
 			continue
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			_ = sendEvent(buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			return
 		}
 
 		eventData, err := json.Marshal(streamingEvent)
@@ -536,15 +620,10 @@ func (app *App) streamWithoutModeration(w http.ResponseWriter, flusher http.Flus
 		}
 	}
 
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
 }

@@ -1,0 +1,23 @@
+# Eval Hub E2E — the suite creates an ephemeral OpenShift project `eval-hub-e2e-<uuid>`,
+# deploys a vLLM model for inference, then runs an evaluation against it.
+# EvalHub CR + cluster MLflow CR are ensured when missing (see test `retryableBefore`).
+projectNamePrefix: eval-hub-e2e
+evalHubCrName: evalhub
+evalHubInstanceResourceYamlPath: resources/eval-hub/evalhub-instance.yaml
+mlflowInstanceResourceYamlPath: resources/mlflow/mlflow-instance-rhoai-ea2-minimal.yaml
+# vLLM model deployment
+modelOciUri: oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-1b-instruct
+inferenceServiceName: evalhub-llm
+servingRuntimeYamlPath: resources/modelServing/singleModel/vllm_cpu_amd64_runtime.yaml
+hardwareProfileResourceYamlPath: resources/hardwareProfile/gen_ai_hardware_profile.yaml
+hardwareProfileName: cypress-gen-ai-hardware-profile
+# Benchmark + evaluation config
+benchmarkCardTitle: Basic science Q&A
+inferenceModelName: evalhub-llm
+defaultExperimentName: EvalHub
+additionalBenchmarkParams: |
+  {
+    "num_examples": 10,
+    "limit": 5,
+    "tokenizer": "google/flan-t5-small"
+  }

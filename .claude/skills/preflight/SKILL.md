@@ -29,7 +29,7 @@ Flags:
   --fix                 Fix failing checks after reporting
   --local               Ignore PR even if one exists, run everything locally
   --review X,Y          Run specific reviewers without asking
-                        Options: coderabbit, claude, style, rbac
+                        Options: coderabbit, claude, style, rbac, jira-eval
   --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
   --ci                  Non-interactive CI mode: skip all prompts, post results
                         as a PR review when done
@@ -42,6 +42,8 @@ Examples:
   /preflight --review coderabbit,style,rbac    Run specific reviewers
   /preflight --skip-review coderabbit         Run all reviewers except CodeRabbit
   /preflight 1234 --review claude --fix       Check PR, run Claude review, fix issues
+  /preflight --review jira-eval,style         Run Jira eval and style reviewers
+  /preflight --skip-review jira-eval          Run all reviewers except Jira eval
 
 How it works:
   1. Gather    Detect PR, sync status, affected packages, Jira key
@@ -55,7 +57,7 @@ How it works:
 Parse these from `$ARGUMENTS` before processing:
 - `--fix` — after reporting, fix failing checks without asking
 - `--local` — ignore PR even if one exists, run everything locally
-- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
+- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`, `jira-eval`)
 - `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
 - `--ci` — non-interactive CI mode. Skips all interactive prompts (no `AskUserQuestion`). Posts the results as a PR review using the template in [references/ci-comment-template.md](references/ci-comment-template.md).
 - `--help` — print usage and stop
@@ -150,6 +152,7 @@ If `--review` flag was passed, use those reviewers directly. If `--skip-review` 
 - "Claude review" — invoke `/review` built-in skill
 - "Style review" — invoke `/style-review` for code style and pattern checks
 - "RBAC review" — invoke `/rbac-review` for Kubernetes RBAC permission enforcement checks
+- "Jira Eval review" — invoke `/jira-eval-review` to evaluate code changes against Jira acceptance criteria (requires Jira MCP; reports ➖ if no Jira key found, MCP unavailable, or no acceptance criteria)
 - "Skip review" — no review
 
 Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or errors), report the failure clearly — don't silently fall back to something else.

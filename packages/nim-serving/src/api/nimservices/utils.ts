@@ -1,5 +1,6 @@
 import type { InferenceServiceKind } from '@odh-dashboard/internal/k8sTypes';
 import type { Deployment } from '@odh-dashboard/model-serving/extension-points';
+import type { CrPathConfig } from '@odh-dashboard/internal/concepts/hardwareProfiles/types';
 import { NIMServiceModel, type NIMDeployment } from './types';
 import { NIM_ID } from '../../../extensions';
 
@@ -12,3 +13,9 @@ export const isNIMServiceRef = (ref: { kind: string; apiVersion: string }): bool
 
 export const isNIMOwned = (inferenceService: InferenceServiceKind): boolean =>
   inferenceService.metadata.ownerReferences?.some(isNIMServiceRef) ?? false;
+
+export const NIM_SERVICE_HARDWARE_PROFILE_PATHS: CrPathConfig = {
+  containerResourcesPath: 'spec.resources',
+  tolerationsPath: 'spec.tolerations',
+  nodeSelectorPath: 'spec.nodeSelector',
+};
