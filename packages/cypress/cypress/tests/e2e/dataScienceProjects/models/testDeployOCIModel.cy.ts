@@ -95,7 +95,6 @@ describe(
           '@SmokeSet3',
           '@Dashboard',
           '@ModelServing',
-          '@NonConcurrent',
           '@KServeCI',
           '@ModelServingCI',
         ],
