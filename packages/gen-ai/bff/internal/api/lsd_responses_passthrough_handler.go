@@ -63,113 +63,49 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 	}
 	defer stream.Close()
 
-	// Track start time for latency and TTFT calculation
 	startTime := time.Now()
 	var firstTokenTime *time.Time
 	var usage *UsageData
 
-	// Check if ResponseWriter supports streaming
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported by client", http.StatusNotImplemented)
 		return
 	}
 
-	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	// Stream events to client — reuse the same transformation pipeline as the regular handler
-	for stream.Next() {
-		// Check if client disconnected
-		select {
-		case <-ctx.Done():
-			logger.Info("Client disconnected, stopping passthrough stream",
-				"context_error", ctx.Err())
-			return
-		default:
-		}
-
-		event := stream.Current()
-
-		// Check for response.failed events before the standard filter.
-		// response.failed is NOT in supportedEventTypes — only the passthrough handler needs this.
-		if failedErr := extractResponseFailedError(event); failedErr != "" {
-			logger.Error("OGX upstream returned response.failed", "error", failedErr)
-			errorData := map[string]interface{}{
-				"error": map[string]interface{}{
-					"code":    "server_error",
-					"message": failedErr,
-				},
+	// Use unified streaming function with custom error handler for response.failed
+	app.streamSSEEvents(StreamConfig{
+		Stream:         stream,
+		Context:        ctx,
+		Logger:         logger,
+		Flusher:        flusher,
+		Writer:         w,
+		StartTime:      startTime,
+		FirstTokenTime: &firstTokenTime,
+		Usage:          &usage,
+		CustomErrorHandler: func(event responses.ResponseStreamEventUnion) (errorJSON []byte, shouldTerminate bool) {
+			if failedErr := extractResponseFailedError(event); failedErr != "" {
+				logger.Error("OGX upstream returned response.failed", "error", failedErr)
+				errorData := map[string]interface{}{
+					"error": map[string]interface{}{
+						"code":    "server_error",
+						"message": failedErr,
+					},
+				}
+				errorJSON, _ := json.Marshal(errorData)
+				return errorJSON, true
 			}
-			errorJSON, marshalErr := json.Marshal(errorData)
-			if marshalErr != nil {
-				logger.Error("Failed to marshal error event", "error", marshalErr)
-				fmt.Fprintf(w, "data: {\"error\":{\"message\":\"Internal error\"}}\n\n")
-			} else {
-				fmt.Fprintf(w, "data: %s\n\n", errorJSON)
-			}
-			flusher.Flush()
-			return // Terminate the stream immediately
-		}
+			return nil, false
+		},
+		UseAdvancedErrorLogic: false,
+	})
 
-		// Convert to clean streaming event (reuses existing filter + transform)
-		streamingEvent := convertToStreamingEvent(event)
-		if streamingEvent == nil {
-			continue
-		}
-
-		// Track TTFT on first text delta event
-		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
-			now := time.Now()
-			firstTokenTime = &now
-		}
-
-		// Extract usage and process citations from completed event
-		if streamingEvent.Type == "response.completed" {
-			usage = extractUsageFromEvent(event)
-			if streamingEvent.Response != nil {
-				processResponseCitations(streamingEvent.Response)
-			}
-		}
-
-		eventData, err := json.Marshal(streamingEvent)
-		if err != nil {
-			logger.Error("Failed to marshal passthrough streaming event",
-				"error", err,
-				"event_type", streamingEvent.Type)
-			continue
-		}
-
-		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
-		if err != nil {
-			logger.Error("Failed to write passthrough streaming event", "error", err)
-			return
-		}
-		flusher.Flush()
-	}
-
-	// Check for stream errors
-	if err = stream.Err(); err != nil {
-		logger.Error("Passthrough streaming error", "error", err)
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, marshalErr := json.Marshal(errorData)
-		if marshalErr != nil {
-			logger.Error("Failed to marshal error event", "error", marshalErr)
-			fmt.Fprintf(w, "data: {\"error\":{\"message\":\"Streaming error occurred\"}}\n\n")
-		} else {
-			fmt.Fprintf(w, "data: %s\n\n", errorJSON)
-		}
-	}
-
-	// Send metrics event after stream completes
+	// Send metrics event
 	latencyMs := time.Since(startTime).Milliseconds()
 	metricsEvent := MetricsEvent{
 		Type: "response.metrics",
@@ -179,11 +115,7 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 			Usage:              usage,
 		},
 	}
-	eventData, err := json.Marshal(metricsEvent)
-	if err != nil {
-		logger.Error("failed to marshal passthrough metrics event", "error", err)
-		return
-	}
+	eventData, _ := json.Marshal(metricsEvent)
 	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()
 }
