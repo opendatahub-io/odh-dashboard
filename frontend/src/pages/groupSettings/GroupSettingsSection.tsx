@@ -297,7 +297,6 @@ const GroupSettingsSection: React.FC<GroupSettingsSectionProps> = ({
         <ContentModal
           title={`Remove ${ODH_PRODUCT_NAME} ${roleLabel} group?`}
           titleIconVariant="warning"
-          variant="small"
           dataTestId="remove-group-modal"
           onClose={() => {
             setGroupToRemove(undefined);
