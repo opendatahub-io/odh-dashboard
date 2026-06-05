@@ -16,7 +16,7 @@ import {
   SelfSubjectAccessReviewModel,
   TemplateModel,
 } from '../../../../utils/models';
-import { asProjectAdminUser, asProjectEditUser } from '../../../../utils/mockUsers';
+import { asProjectEditUser } from '../../../../utils/mockUsers';
 
 const NIM_DENIED_RESOURCES = ['accounts', 'secrets'];
 
@@ -90,9 +90,9 @@ describe('NIM Settings Card RBAC', () => {
     projectDetailsSettingsTab.findTab('Settings').should('exist');
   });
 
-  describe('with full permissions', () => {
+  describe('with all project contributor permissions', () => {
     beforeEach(() => {
-      asProjectAdminUser();
+      asProjectEditUser();
     });
 
     it('NIM enable button should be clickable when user has permissions', () => {
@@ -117,7 +117,7 @@ describe('NIM Settings Card RBAC', () => {
 
   describe('without NIM permissions', () => {
     beforeEach(() => {
-      asProjectAdminUser();
+      asProjectEditUser();
     });
 
     it('NIM enable button should be disabled when user lacks permissions', () => {

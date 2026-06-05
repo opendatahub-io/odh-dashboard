@@ -395,14 +395,6 @@ class ProjectDetailsSettingsTab extends ProjectDetails {
   findNIMReplaceKeyButton() {
     return cy.findByTestId('nim-replace-key-button');
   }
-
-  findNIMPermissionsLoading() {
-    return cy.findByTestId('nim-permissions-loading');
-  }
-
-  findTrustyAIPermissionsLoading() {
-    return cy.findByTestId('trustyai-permissions-loading');
-  }
 }
 
 class ProjectDetailsOverviewTab extends ProjectDetails {

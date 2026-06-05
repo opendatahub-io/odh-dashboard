@@ -14,7 +14,7 @@ import {
   SelfSubjectAccessReviewModel,
   TrustyAIApplicationsModel,
 } from '../../../../utils/models';
-import { asProjectAdminUser } from '../../../../utils/mockUsers';
+import { asProjectEditUser } from '../../../../utils/mockUsers';
 
 const TRUSTY_DENIED_RESOURCES = ['trustyaiservices', 'secrets'];
 
@@ -63,9 +63,9 @@ const initIntercepts = ({
 };
 
 describe('TrustyAI Settings Card RBAC', () => {
-  describe('with full permissions', () => {
+  describe('with all project contributor permissions', () => {
     beforeEach(() => {
-      asProjectAdminUser();
+      asProjectEditUser();
     });
 
     it('Configure button should be clickable when user has permissions', () => {
@@ -87,7 +87,7 @@ describe('TrustyAI Settings Card RBAC', () => {
 
   describe('without TrustyAI permissions', () => {
     beforeEach(() => {
-      asProjectAdminUser();
+      asProjectEditUser();
     });
 
     it('Configure button should be disabled when user lacks permissions', () => {
