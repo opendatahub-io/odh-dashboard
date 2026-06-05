@@ -42,6 +42,30 @@ describe('predictionTypeUtils', () => {
       ).toBe('Target column contains non-numeric data. Regression requires numeric data.');
     });
 
+    it('should flag regression for boolean columns', () => {
+      expect(
+        getPredictionTypeHardIncompatibility('regression', {
+          name: 'is_active',
+          type: 'bool',
+          task_type: 'binary',
+          unique_count: 2,
+          values: [0, 1],
+        }),
+      ).toBe('Target column contains non-numeric data. Regression requires numeric data.');
+    });
+
+    it('should flag timeseries for boolean columns', () => {
+      expect(
+        getPredictionTypeHardIncompatibility('timeseries', {
+          name: 'is_active',
+          type: 'bool',
+          task_type: 'binary',
+          unique_count: 2,
+          values: [0, 1],
+        }),
+      ).toBe('Time series forecasting requires a numerical target column.');
+    });
+
     it('should flag multiclass when fewer than 3 unique values', () => {
       expect(
         getPredictionTypeHardIncompatibility('multiclass', {

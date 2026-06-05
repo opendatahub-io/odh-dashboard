@@ -59,14 +59,12 @@ export const getPredictionTypeHardIncompatibility = (
     return undefined;
   }
 
-  const isStringColumn = selectedColumn.type === 'string';
   const uniqueCount = getTargetColumnUniqueValueCount(selectedColumn);
+  const isNumeric = isNumericColumnType(selectedColumn.type);
 
   switch (taskType) {
     case TASK_TYPE_TIMESERIES:
-      return isStringColumn
-        ? 'Time series forecasting requires a numerical target column.'
-        : undefined;
+      return !isNumeric ? 'Time series forecasting requires a numerical target column.' : undefined;
     case TASK_TYPE_BINARY:
       if (uniqueCount == null) {
         return 'Binary classification requires a target column with at most 2 distinct values.';
@@ -81,7 +79,7 @@ export const getPredictionTypeHardIncompatibility = (
       }
       return undefined;
     case TASK_TYPE_REGRESSION:
-      return isStringColumn
+      return !isNumeric
         ? 'Target column contains non-numeric data. Regression requires numeric data.'
         : undefined;
     default:
