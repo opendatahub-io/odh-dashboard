@@ -62,6 +62,14 @@ func (app *App) serverErrorResponse(w http.ResponseWriter, r *http.Request, err 
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) conflictResponse(w http.ResponseWriter, r *http.Request, err error) {
+	httpError := &HTTPError{
+		StatusCode: http.StatusConflict,
+		Error:      ErrorPayload{Code: strconv.Itoa(http.StatusConflict), Message: err.Error()},
+	}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	httpError := &HTTPError{
 		StatusCode: http.StatusNotFound,
