@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -481,9 +482,18 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
+	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	if err != nil {
+		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
+		return
+	}
+
 	// Build inline guardrail options when the request includes a guardrail config.
 	// The BFF resolves the model endpoint URL and API key so the frontend never handles credentials.
 	var guardrailOpts nemo.GuardrailsOptions
+	var inputMessages []nemo.Message
 	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
 		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
@@ -507,34 +517,28 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		)
 
 		if createRequest.GuardrailConfig.InputPrompt != "" {
-			inputMessages := make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
+			inputMessages = make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
 			for _, msg := range createRequest.ChatContext {
 				if msg.Role == "user" {
 					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content.TextContent()})
 				}
 			}
 			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input.TextContent()})
+		}
 
-			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+		// For non-streaming requests, run input moderation now (HTTP error responses)
+		if !createRequest.Stream && len(inputMessages) > 0 {
+			flagged, _, modErr := app.checkInputModeration(ctx, inputMessages, guardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Input moderation check failed", "error", modErr)
 				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
-			if result != nil && result.Flagged {
-				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+			if flagged {
 				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
 				return
 			}
 		}
-	}
-
-	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
-	if err != nil {
-		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
-		return
 	}
 
 	params := llamastack.CreateResponseParams{
@@ -554,15 +558,31 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		// Use async moderation path when output moderation is configured
-		if hasOutputModeration(guardrailOpts) {
-			app.handleStreamingResponseAsync(w, r, ctx, params)
+		// Use moderation-aware path when any guardrails are configured (input, output, or both).
+		// Input moderation is deferred to after SSE heartbeat starts to prevent HAProxy timeouts.
+		if hasOutputModeration(guardrailOpts) || len(inputMessages) > 0 {
+			app.handleStreamingResponseWithModeration(w, r, ctx, params, inputMessages)
 		} else {
 			app.handleStreamingResponse(w, r, ctx, params)
 		}
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
+}
+
+// checkInputModeration runs input moderation and returns the result.
+// The caller decides how to report errors (HTTP response vs SSE event).
+func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (flagged bool, violationReason string, err error) {
+	result, modErr := app.checkModeration(ctx, messages, opts)
+	if modErr != nil {
+		app.logger.Error("Input moderation check failed", "error", modErr)
+		return false, "", modErr
+	}
+	if result != nil && result.Flagged {
+		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+		return true, result.ViolationReason, nil
+	}
+	return false, "", nil
 }
 
 // handleStreamingResponse handles streaming response creation
@@ -592,6 +612,13 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Cache-Control", "no-cache, no-transform")
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
+
+	// Heartbeat keeps the connection alive through proxies (e.g., OpenShift HAProxy
+	// 30s idle timeout) during slow inference, tool calls, or vector DB retrieval.
+	var writeMu sync.Mutex
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
 
 	// Stream events to client
 	for stream.Next() {
@@ -675,12 +702,15 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		}
 
 		// Write SSE format
+		writeMu.Lock()
 		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {
+			writeMu.Unlock()
 			app.logger.Error("Failed to write streaming event", "error", err)
 			return
 		}
 		flusher.Flush()
+		writeMu.Unlock()
 	}
 
 	// Check for stream errors (transport-level: connection drops, malformed SSE)
@@ -705,8 +735,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		app.logger.Error("failed to marshal metrics event", "error", err)
 		return
 	}
+	writeMu.Lock()
 	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()
+	writeMu.Unlock()
 }
 
 // handleNonStreamingResponse handles regular (non-streaming) response creation
