@@ -1,4 +1,5 @@
 import {
+  mock404Error,
   mockDashboardConfig,
   mockDscStatus,
   mockK8sResourceList,
@@ -56,7 +57,7 @@ const initIntercepts = ({
   } else {
     cy.interceptK8s(
       { model: TrustyAIApplicationsModel, ns: 'test-project', name: 'trustyai-service' },
-      { statusCode: 404, body: { kind: 'Status', code: 404, message: 'not found' } },
+      { statusCode: 404, body: mock404Error({}) },
     );
   }
 };
