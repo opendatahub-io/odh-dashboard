@@ -614,7 +614,7 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	defer hb.stop()
 
 	// Use unified streaming function (no delta handler = regular streaming)
-	app.streamSSEEvents(StreamConfig{
+	if err := app.streamSSEEvents(StreamConfig{
 		Stream:                stream,
 		Context:               ctx,
 		Logger:                app.logger,
@@ -625,7 +625,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		FirstTokenTime:        &firstTokenTime,
 		Usage:                 &usage,
 		UseAdvancedErrorLogic: true,
-	})
+	}); err != nil {
+		app.logger.Error("Streaming failed", "error", err)
+		return
+	}
 
 	// Send metrics event
 	latencyMs := time.Since(startTime).Milliseconds()

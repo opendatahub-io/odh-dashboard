@@ -79,7 +79,7 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 	w.Header().Set("X-Accel-Buffering", "no")
 
 	// Use unified streaming function with custom error handler for response.failed
-	app.streamSSEEvents(StreamConfig{
+	if err := app.streamSSEEvents(StreamConfig{
 		Stream:         stream,
 		Context:        ctx,
 		Logger:         logger,
@@ -103,7 +103,10 @@ func (app *App) LlamaStackPassthroughResponseHandler(w http.ResponseWriter, r *h
 			return nil, false
 		},
 		UseAdvancedErrorLogic: false,
-	})
+	}); err != nil {
+		logger.Error("Streaming failed", "error", err)
+		return
+	}
 
 	// Send metrics event
 	latencyMs := time.Since(startTime).Milliseconds()

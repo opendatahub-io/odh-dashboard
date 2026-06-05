@@ -341,7 +341,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 
 	// When no output moderation, use regular streaming (no delta buffering)
 	if !outputModeration {
-		app.streamSSEEvents(StreamConfig{
+		if err := app.streamSSEEvents(StreamConfig{
 			Stream:                stream,
 			Context:               ctx,
 			Logger:                app.logger,
@@ -352,7 +352,10 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			FirstTokenTime:        &firstTokenTime,
 			Usage:                 &usage,
 			UseAdvancedErrorLogic: true,
-		})
+		}); err != nil {
+			app.logger.Error("Streaming failed", "error", err)
+			return
+		}
 
 		latencyMs := time.Since(startTime).Milliseconds()
 		metricsEvent := MetricsEvent{
@@ -466,7 +469,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 	}
 
 	// Use unified streaming with delta buffering for async moderation
-	app.streamSSEEvents(StreamConfig{
+	if err := app.streamSSEEvents(StreamConfig{
 		Stream:                stream,
 		Context:               ctx,
 		Logger:                app.logger,
@@ -479,7 +482,10 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		OnDelta:               onDelta,
 		OnFlush:               onFlush,
 		UseAdvancedErrorLogic: true,
-	})
+	}); err != nil {
+		app.logger.Error("Streaming failed", "error", err)
+		return
+	}
 
 	// Flush any remaining chunk after stream completes
 	if currentChunk != nil && len(currentChunk.Events) > 0 {
