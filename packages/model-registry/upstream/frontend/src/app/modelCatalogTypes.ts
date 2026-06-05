@@ -430,6 +430,7 @@ export type DeleteCatalogSourceConfig = (opts: APIOptions, sourceId: string) => 
 // Preview types
 export type CatalogSourcePreviewRequest = {
   type: string;
+  enabled?: boolean;
   includedModels?: string[];
   excludedModels?: string[];
   properties?: Record<string, unknown>;
