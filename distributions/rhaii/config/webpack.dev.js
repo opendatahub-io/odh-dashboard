@@ -41,9 +41,13 @@ module.exports = merge(webpackCommon(), {
     onListening: (devServer) => {
       const addr = devServer?.server?.address();
       if (addr) {
-        console.log(
-          `\x1b[32m✓ RHAII distribution available at: \x1b[4mhttp://localhost:${addr.port}\x1b[0m`,
-        );
+        const green = '\x1b[32m';
+        const underline = '\x1b[4m';
+        const reset = '\x1b[0m';
+        const url = `http://localhost:${addr.port}`;
+        console.log(`${green}✓ RHAII distribution available at: ${underline}${url}${reset}`);
+      } else {
+        console.warn('RHAII dev server started but could not determine address');
       }
     },
   },

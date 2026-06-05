@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Content,
   Masthead,
   MastheadBrand,
   MastheadContent,
@@ -13,27 +12,13 @@ import {
   ToolbarItem,
   ToggleGroup,
   ToggleGroupItem,
-  Dropdown,
-  DropdownList,
-  DropdownItem,
-  MenuToggle,
-  Spinner,
-  Button,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- shell has no ContentModal wrapper
-  Modal,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-  ModalBody,
-  // eslint-disable-next-line @odh-dashboard/no-restricted-imports
-  ModalHeader,
 } from '@patternfly/react-core';
-import { MoonIcon, SunIcon, QuestionCircleIcon, UserIcon } from '@patternfly/react-icons';
+import { MoonIcon, SunIcon } from '@patternfly/react-icons';
 import { Link } from 'react-router-dom';
 import { LazyCodeRefComponent, useExtensions } from '@odh-dashboard/plugin-core';
 import {
   isMastheadBrandExtension,
   isMastheadToolbarItemExtension,
-  isMastheadUserMenuExtension,
-  isMastheadAboutExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
 import { useThemeContext } from './ThemeContext';
 import logoLight from './images/red-hat-ai-light.svg';
@@ -68,97 +53,6 @@ const ShellBrand: React.FC = () => {
         />
       </Link>
     </MastheadBrand>
-  );
-};
-
-const ShellAbout: React.FC = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const aboutExtensions = useExtensions(isMastheadAboutExtension);
-
-  return (
-    <>
-      <ToolbarItem>
-        <Button
-          aria-label="About"
-          variant="plain"
-          icon={<QuestionCircleIcon />}
-          onClick={() => setIsOpen(true)}
-        />
-      </ToolbarItem>
-      {isOpen ? (
-        aboutExtensions.length > 0 ? (
-          <LazyCodeRefComponent
-            component={aboutExtensions[0].properties.component}
-            props={{ onClose: () => setIsOpen(false) }}
-            fallback={<Spinner size="lg" />}
-          />
-        ) : (
-          <Modal
-            isOpen
-            onClose={() => setIsOpen(false)}
-            aria-label="About Red Hat AI"
-            variant="small"
-          >
-            <ModalHeader title="About" />
-            <ModalBody>
-              <Content>
-                <p>No product information available.</p>
-              </Content>
-            </ModalBody>
-          </Modal>
-        )
-      ) : null}
-    </>
-  );
-};
-
-const ShellUserMenu: React.FC = () => {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const userMenuExtensions = useExtensions(isMastheadUserMenuExtension);
-
-  if (userMenuExtensions.length === 0) {
-    return (
-      <ToolbarItem>
-        <MenuToggle aria-label="User menu" isDisabled>
-          No user authenticated
-        </MenuToggle>
-      </ToolbarItem>
-    );
-  }
-
-  const { usernameRef, logoutRef, menuItemsRef } = userMenuExtensions[0].properties;
-
-  return (
-    <ToolbarItem>
-      <Dropdown
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        toggle={(toggleRef) => (
-          <MenuToggle
-            ref={toggleRef}
-            aria-label="User menu"
-            variant="plain"
-            onClick={() => setIsOpen((prev) => !prev)}
-            isExpanded={isOpen}
-            icon={<UserIcon />}
-          >
-            <LazyCodeRefComponent component={usernameRef} />
-          </MenuToggle>
-        )}
-        popperProps={{ position: 'right' }}
-      >
-        <DropdownList>
-          {menuItemsRef ? (
-            <DropdownItem key="user-menu-extra">
-              <LazyCodeRefComponent component={menuItemsRef} />
-            </DropdownItem>
-          ) : null}
-          <DropdownItem key="user-menu-logout">
-            <LazyCodeRefComponent component={logoutRef} />
-          </DropdownItem>
-        </DropdownList>
-      </Dropdown>
-    </ToolbarItem>
   );
 };
 
@@ -220,8 +114,6 @@ const ShellHeader: React.FC = () => {
                   />
                 </ToggleGroup>
               </ToolbarItem>
-              <ShellAbout />
-              <ShellUserMenu />
             </ToolbarGroup>
           </ToolbarContent>
         </Toolbar>
