@@ -59,19 +59,27 @@ const initIntercepts = ({
 
   cy.interceptOdh('GET /api/status', mockStatus({ isAllowed: true, isAdmin: false }));
 
-  cy.interceptK8s(
-    'POST',
-    SelfSubjectAccessReviewModel,
-    mockSelfSubjectAccessReview({
+  cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
+    expect(req.body?.spec?.resourceAttributes).to.deep.include({
       group: 'monitoring.coreos.com',
       resource: 'prometheuses',
       subresource: 'api',
       verb: 'get',
       name: 'k8s',
       namespace: 'openshift-monitoring',
-      allowed: hasClusterMetricsAccess,
-    }),
-  );
+    });
+    req.reply(
+      mockSelfSubjectAccessReview({
+        group: 'monitoring.coreos.com',
+        resource: 'prometheuses',
+        subresource: 'api',
+        verb: 'get',
+        name: 'k8s',
+        namespace: 'openshift-monitoring',
+        allowed: hasClusterMetricsAccess,
+      }),
+    );
+  });
 
   cy.interceptOdh('GET /api/dsci/status', mockDsciStatus({ conditions: dsciConditions }));
 
