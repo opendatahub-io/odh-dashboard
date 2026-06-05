@@ -65,7 +65,9 @@ const initIntercepts = ({
     mockSelfSubjectAccessReview({
       group: 'monitoring.coreos.com',
       resource: 'prometheuses',
+      subresource: 'api',
       verb: 'get',
+      name: 'k8s',
       namespace: 'openshift-monitoring',
       allowed: hasClusterMetricsAccess,
     }),
