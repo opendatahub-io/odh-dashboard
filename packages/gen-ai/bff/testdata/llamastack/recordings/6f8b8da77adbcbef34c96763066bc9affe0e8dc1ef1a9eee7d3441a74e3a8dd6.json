@@ -20,7 +20,7 @@
     "endpoint": "/v1/chat/completions",
     "model": "models/gemini-2.5-flash",
     "provider_metadata": {
-      "openai_sdk_version": "2.36.0"
+      "openai_sdk_version": "2.37.0"
     }
   },
   "response": {
@@ -32,7 +32,7 @@
           "choices": [
             {
               "delta": {
-                "content": "Hello there!\n\nAh, MaaS \u2013 Mobility as a Service! That'",
+                "content": "Hello there! Good to hear from the world of Mobility as a Service!\n\nBringing seamless, integrated",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -49,9 +49,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 16,
+            "completion_tokens": 20,
             "prompt_tokens": 5,
-            "total_tokens": 711,
+            "total_tokens": 853,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }
@@ -64,7 +64,7 @@
           "choices": [
             {
               "delta": {
-                "content": "s a fascinating and rapidly growing sector.\n\nWhat's on your mind, or how can I help you today?",
+                "content": " transport solutions to users, I presume? How can I help you explore or discuss MaaS today? Do you have a question, a project you're working on, or just want to chat about the future of transportation?",
                 "function_call": null,
                 "refusal": null,
                 "role": "assistant",
@@ -81,9 +81,9 @@
           "service_tier": null,
           "system_fingerprint": null,
           "usage": {
-            "completion_tokens": 40,
+            "completion_tokens": 65,
             "prompt_tokens": 5,
-            "total_tokens": 735,
+            "total_tokens": 898,
             "completion_tokens_details": null,
             "prompt_tokens_details": null
           }

@@ -5,15 +5,21 @@ import {
   DrawerContent,
   DrawerContentBody,
   DropEvent,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
 } from '@patternfly/react-core';
 import { Chatbot, ChatbotContent, ChatbotDisplayMode } from '@patternfly/chatbot';
 import { useLocation } from 'react-router-dom';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import DashboardModalFooter from '@odh-dashboard/internal/concepts/dashboard/DashboardModalFooter';
 import { useUserContext } from '~/app/context/UserContext';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useFetchBFFConfig from '~/app/hooks/useFetchBFFConfig';
-import { isLlamaModelEnabled } from '~/app/utilities';
+import { uploadVisionFile } from '~/app/services/llamaStackService';
+import { isLlamaModelEnabled, URL_PREFIX } from '~/app/utilities';
 import { getId } from '~/app/utilities/utils';
 import { TokenInfo, ResponseMetrics } from '~/app/types';
 import useFetchMCPServers from '~/app/hooks/useFetchMCPServers';
@@ -27,7 +33,10 @@ import useFileManagement from './hooks/useFileManagement';
 import useDarkMode from './hooks/useDarkMode';
 import { ChatbotSettingsPanel } from './components/ChatbotSettingsPanel';
 import ChatbotPaneHeader from './components/ChatbotPaneHeader';
-import ChatbotMessageInput from './components/ChatbotMessageInput';
+import ChatbotMessageInput, {
+  ImageUploadState,
+  PendingDocChip,
+} from './components/ChatbotMessageInput';
 import SourceUploadErrorAlert from './components/alerts/SourceUploadErrorAlert';
 import SourceUploadSuccessAlert from './components/alerts/SourceUploadSuccessAlert';
 import SourceDeleteSuccessAlert from './components/alerts/SourceDeleteSuccessAlert';
@@ -181,6 +190,33 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     new Map(),
   );
 
+  // Vision image upload state
+  const [imageUploadState, setImageUploadState] = React.useState<ImageUploadState>({
+    uploading: false,
+    progress: 0,
+    fileId: null,
+    previewUrl: null,
+    fileName: null,
+  });
+  const [hasImageInConversation, setHasImageInConversation] = React.useState(false);
+  const [pendingDocChips, setPendingDocChips] = React.useState<PendingDocChip[]>([]);
+  const [showReplaceMediaModal, setShowReplaceMediaModal] = React.useState(false);
+  const pendingReplaceFileRef = React.useRef<File | null>(null);
+  const visionXhrRef = React.useRef<XMLHttpRequest | null>(null);
+  const uploadGenRef = React.useRef(0);
+  const previewUrlRef = React.useRef<string | null>(null);
+  previewUrlRef.current = imageUploadState.previewUrl;
+
+  // Revoke unsent image preview blob URL on unmount
+  React.useEffect(
+    () => () => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+    },
+    [],
+  );
+
   // Callbacks
   const setSelectedModel = React.useCallback(
     (model: string) => {
@@ -234,31 +270,256 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     [],
   );
 
+  const hasReadyImage = !!imageUploadState.fileId && !imageUploadState.uploading;
+  const hasReadyDocs = pendingDocChips.some((c) => c.status === 'uploaded');
+  const hasReadyAttachments = hasReadyImage || hasReadyDocs;
+
   const handleSendMessage = React.useCallback(
     (message: string) => {
+      let effectiveMessage = message;
+      if (!message.trim() && hasReadyAttachments) {
+        if (hasReadyImage && hasReadyDocs) {
+          effectiveMessage = 'Describe the image and summarize the attached documents';
+        } else if (hasReadyImage) {
+          effectiveMessage = 'Describe the image';
+        } else {
+          effectiveMessage = 'Summarize the attached documents';
+        }
+      }
+
       const compareID = isCompareMode ? getId() : '';
-      messageHooksRef.current.forEach((hook) => hook.handleMessageSend(message, compareID));
-      setLastInput(message);
+      const fileId = imageUploadState.fileId || undefined;
+      const imagePreview =
+        imageUploadState.previewUrl && imageUploadState.fileName
+          ? { previewUrl: imageUploadState.previewUrl, fileName: imageUploadState.fileName }
+          : undefined;
+
+      const docAttachments = pendingDocChips
+        .filter((c) => c.status === 'uploaded')
+        .map((c) => c.fileName);
+
+      messageHooksRef.current.forEach((hook) =>
+        hook.handleMessageSend(
+          effectiveMessage,
+          compareID,
+          fileId,
+          imagePreview,
+          docAttachments.length > 0 ? docAttachments : undefined,
+        ),
+      );
+      setLastInput(effectiveMessage);
+
+      if (fileId) {
+        setHasImageInConversation(true);
+        setImageUploadState({
+          uploading: false,
+          progress: 0,
+          fileId: null,
+          previewUrl: null,
+          fileName: null,
+        });
+      }
+
+      setPendingDocChips([]);
     },
-    [setLastInput, isCompareMode],
+    [
+      setLastInput,
+      isCompareMode,
+      imageUploadState.fileId,
+      imageUploadState.previewUrl,
+      imageUploadState.fileName,
+      pendingDocChips,
+      hasReadyAttachments,
+      hasReadyImage,
+      hasReadyDocs,
+    ],
   );
 
   const handleStopStreaming = React.useCallback(() => {
     messageHooksRef.current.forEach((hook) => hook.handleStopStreaming());
   }, []);
 
+  React.useEffect(() => {
+    setPendingDocChips((prev) => {
+      const updated = prev.map((chip) => {
+        const match = sourceManagement.filesWithSettings.find((f) => f.file.name === chip.fileName);
+        if (!match) {
+          return chip;
+        }
+        if (match.status === 'uploaded' && chip.status !== 'uploaded') {
+          return { ...chip, status: 'uploaded' as const };
+        }
+        if (match.status === 'failed' && chip.status !== 'failed') {
+          return { ...chip, status: 'failed' as const };
+        }
+        return chip;
+      });
+      // Remove chips whose files were removed from filesWithSettings (e.g. modal cancelled)
+      const filtered = updated.filter(
+        (chip) =>
+          chip.status === 'uploaded' ||
+          chip.status === 'failed' ||
+          sourceManagement.filesWithSettings.some((f) => f.file.name === chip.fileName),
+      );
+      const hasChanges =
+        filtered.length !== prev.length || filtered.some((chip, i) => chip !== prev[i]);
+      return hasChanges ? filtered : prev;
+    });
+  }, [sourceManagement.filesWithSettings]);
+
   const handleAttach = React.useCallback(
     <T extends File>(acceptedFiles: T[], _fileRejections: unknown, event: DropEvent) => {
+      const newChips: PendingDocChip[] = acceptedFiles.map((file) => ({
+        id: crypto.randomUUID(),
+        fileName: file.name,
+        status: 'uploading' as const,
+      }));
+      setPendingDocChips((prev) => [...prev, ...newChips]);
+
       sourceManagement.handleSourceDrop(event, acceptedFiles).catch((error) => {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         alertManagement.onShowErrorAlert(
           `Failed to process files: ${errorMessage}`,
           'File Upload Error',
         );
+        const failedNames = new Set(acceptedFiles.map((f) => f.name));
+        setPendingDocChips((prev) => prev.filter((c) => !failedNames.has(c.fileName)));
       });
     },
     [sourceManagement, alertManagement],
   );
+
+  const handleRemoveDocChip = React.useCallback(
+    (chipId: string) => {
+      const chip = pendingDocChips.find((c) => c.id === chipId);
+      if (!chip) {
+        return;
+      }
+
+      if (chip.status === 'uploaded') {
+        const matchedFile = fileManagement.files.find((f) => f.filename === chip.fileName);
+        if (matchedFile) {
+          Promise.resolve(fileManagement.deleteFileById(matchedFile.id)).catch(() => {
+            // Best-effort deletion — chip is already removed from UI
+          });
+        }
+      }
+      sourceManagement.removeUploadedSource(chip.fileName);
+
+      setPendingDocChips((prev) => prev.filter((c) => c.id !== chipId));
+    },
+    [pendingDocChips, fileManagement, sourceManagement],
+  );
+
+  const performImageUpload = React.useCallback(
+    (file: File) => {
+      uploadGenRef.current += 1;
+      const gen = uploadGenRef.current;
+
+      const previewUrl = URL.createObjectURL(file);
+      const ext = file.name.lastIndexOf('.');
+      const normalizedName =
+        ext !== -1 ? file.name.slice(0, ext) + file.name.slice(ext).toLowerCase() : file.name;
+      setImageUploadState({
+        uploading: true,
+        progress: 0,
+        fileId: null,
+        previewUrl,
+        fileName: normalizedName,
+      });
+
+      const url = `${URL_PREFIX}/api/v1/lsd/files/vision?namespace=${encodeURIComponent(namespace?.name || '')}`;
+      const { promise, xhr } = uploadVisionFile(url, file, (percent) => {
+        setImageUploadState((prev) => ({ ...prev, progress: percent }));
+      });
+      visionXhrRef.current = xhr;
+
+      promise
+        .then((response) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          setImageUploadState((prev) => ({
+            ...prev,
+            uploading: false,
+            fileId: response.data.id,
+          }));
+        })
+        .catch((error) => {
+          if (uploadGenRef.current !== gen) {
+            return;
+          }
+          URL.revokeObjectURL(previewUrl);
+          setImageUploadState({
+            uploading: false,
+            progress: 0,
+            fileId: null,
+            previewUrl: null,
+            fileName: null,
+          });
+          if (error instanceof Error && error.message !== 'Upload aborted') {
+            alertManagement.onShowErrorAlert(
+              `${file.name} failed to upload. Please try again.`,
+              'Image Upload Error',
+            );
+          }
+        })
+        .finally(() => {
+          if (uploadGenRef.current === gen) {
+            visionXhrRef.current = null;
+          }
+        });
+    },
+    [namespace?.name, alertManagement],
+  );
+
+  const handleImageUpload = React.useCallback(
+    (file: File) => {
+      if (imageUploadState.fileName && !hasImageInConversation) {
+        pendingReplaceFileRef.current = file;
+        setShowReplaceMediaModal(true);
+        return;
+      }
+      performImageUpload(file);
+    },
+    [imageUploadState.fileName, hasImageInConversation, performImageUpload],
+  );
+
+  const handleReplaceMediaConfirm = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setShowReplaceMediaModal(false);
+    const file = pendingReplaceFileRef.current;
+    pendingReplaceFileRef.current = null;
+    if (file) {
+      performImageUpload(file);
+    }
+  }, [imageUploadState.uploading, imageUploadState.previewUrl, performImageUpload]);
+
+  const handleReplaceMediaCancel = React.useCallback(() => {
+    setShowReplaceMediaModal(false);
+    pendingReplaceFileRef.current = null;
+  }, []);
+
+  const handleRemoveImage = React.useCallback(() => {
+    if (imageUploadState.uploading) {
+      visionXhrRef.current?.abort();
+    }
+    if (imageUploadState.previewUrl) {
+      URL.revokeObjectURL(imageUploadState.previewUrl);
+    }
+    setImageUploadState({
+      uploading: false,
+      progress: 0,
+      fileId: null,
+      previewUrl: null,
+      fileName: null,
+    });
+  }, [imageUploadState.uploading, imageUploadState.previewUrl]);
 
   const openSettingsToTab = location.state?.openSettingsToTab;
 
@@ -346,6 +607,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
     if (ref) {
       ref.current = () => {
         messageHooksRef.current.forEach((hook) => hook.clearConversation());
+        setHasImageInConversation(false);
+        handleRemoveImage();
+        setPendingDocChips([]);
       };
     }
     return () => {
@@ -353,7 +617,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         ref.current = null;
       }
     };
-  }, [clearAllMessagesRef]);
+  }, [clearAllMessagesRef, handleRemoveImage]);
 
   // Expose hasConversationMessages to parent (beyond the initial welcome message)
   React.useEffect(() => {
@@ -424,6 +688,7 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           onMessagesHookReady={getHookReadyCallback(configId)}
           configIndex={isCompareMode ? index + 1 : 0}
           isCompareMode={isCompareMode}
+          hasImagesInConversation={hasImageInConversation}
         />
       </ChatbotContent>
     </Chatbot>
@@ -454,6 +719,9 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
         onClose={() => setIsNewChatModalOpen(false)}
         onConfirm={() => {
           messageHooksRef.current.forEach((hook) => hook.clearConversation());
+          setHasImageInConversation(false);
+          handleRemoveImage();
+          setPendingDocChips([]);
           if (isCompareMode) {
             fireMiscTrackingEvent('Playground Compare Chat Cleared', { success: true });
           }
@@ -542,12 +810,21 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 isSendDisabled={
                   !modelsLoaded ||
                   !primarySelectedModel ||
-                  Array.from(disabledStates.values()).some(Boolean)
+                  Array.from(disabledStates.values()).some(Boolean) ||
+                  imageUploadState.uploading ||
+                  pendingDocChips.some((c) => c.status === 'uploading')
                 }
                 showAttachButton={!isCompareMode}
-                onAttach={handleAttach}
-                onShowErrorAlert={alertManagement.onShowErrorAlert}
+                onDocumentAttach={handleAttach}
                 isDarkMode={isDarkMode}
+                onImageUpload={handleImageUpload}
+                imageUploadState={imageUploadState}
+                onRemoveImage={handleRemoveImage}
+                isImageUploadDisabled={hasImageInConversation}
+                isAudioUploadDisabled
+                pendingDocChips={pendingDocChips}
+                onRemoveDocChip={handleRemoveDocChip}
+                alwaysShowSendButton={hasReadyAttachments}
               />
             </div>
           </DrawerContentBody>
@@ -563,6 +840,34 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
           }}
           onCancel={() => setPendingCloseConfigId(null)}
         />
+      )}
+
+      {showReplaceMediaModal && (
+        <Modal
+          isOpen
+          onClose={handleReplaceMediaCancel}
+          variant="small"
+          data-testid="replace-media-modal"
+        >
+          <ModalHeader title="Replace media file?" />
+          <ModalBody>
+            <p>
+              This conversation already has a media file attached. Only one image, audio, or video
+              file is supported per conversation.
+            </p>
+            <p style={{ marginTop: 'var(--pf-t--global--spacer--md)' }}>
+              The new file will replace the existing media attachment. Text file attachments are not
+              affected.
+            </p>
+          </ModalBody>
+          <ModalFooter>
+            <DashboardModalFooter
+              submitLabel="Replace"
+              onSubmit={handleReplaceMediaConfirm}
+              onCancel={handleReplaceMediaCancel}
+            />
+          </ModalFooter>
+        </Modal>
       )}
     </>
   );

@@ -5,12 +5,7 @@ import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import { DeploymentMode, useModularArchContext } from 'mod-arch-core';
 import { evaluationsBaseRoute } from '~/app/routes';
 import MlflowCompareRuns from '~/app/components/MlflowCompareRuns';
-
-const parseIdList = (raw: string): string[] =>
-  raw
-    .split(',')
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0);
+import { parseMlflowArrayParam } from '~/app/utilities/compareEvaluationsUtils';
 
 const CompareEvaluationsPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
@@ -20,18 +15,38 @@ const CompareEvaluationsPage: React.FC = () => {
     config: { deploymentMode },
   } = useModularArchContext();
 
-  const experimentIds = parseIdList(searchParams.get('experimentIds') ?? '');
-  const runUuids = parseIdList(searchParams.get('runUuids') ?? '');
+  const runUuids = React.useMemo(
+    () => parseMlflowArrayParam(searchParams.get('runs')),
+    [searchParams],
+  );
+  const experimentIds = React.useMemo(
+    () => parseMlflowArrayParam(searchParams.get('experiments')),
+    [searchParams],
+  );
+  const evaluationNames = React.useMemo(
+    () => parseMlflowArrayParam(searchParams.get('names')),
+    [searchParams],
+  );
 
-  const hasValidParams = experimentIds.length > 0 && experimentIds.length === runUuids.length;
+  const hasValidParams = experimentIds.length > 1 && experimentIds.length === runUuids.length;
+
   const showCompare = deploymentMode === DeploymentMode.Federated && hasValidParams;
-  const emptyMessage = !hasValidParams
-    ? 'Provide matching experimentIds and runUuids query parameters to compare runs.'
-    : 'Comparison is only available in federated deployment mode.';
+
+  const title = React.useMemo(() => {
+    if (evaluationNames.length < 2) {
+      return 'Compare runs';
+    }
+    if (evaluationNames.length === 2) {
+      return `Comparing ${evaluationNames[0]} and ${evaluationNames[1]}`;
+    }
+    return `Comparing ${evaluationNames[0]}, ${evaluationNames[1]} and ${
+      evaluationNames.length - 2
+    } more`;
+  }, [evaluationNames]);
 
   return (
     <ApplicationsPage
-      title="Compare evaluations"
+      title={title}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem
@@ -41,16 +56,18 @@ const CompareEvaluationsPage: React.FC = () => {
         </Breadcrumb>
       }
       loaded
-      empty={!showCompare}
-      emptyMessage={emptyMessage}
+      empty={!hasValidParams}
+      emptyMessage="Provide at least two runs and experiments to compare."
       provideChildrenPadding
     >
-      <MlflowCompareRuns
-        key={runUuids.join(',')}
-        experimentIds={experimentIds}
-        runUuids={runUuids}
-        workspace={namespace}
-      />
+      {showCompare ? (
+        <MlflowCompareRuns
+          key={runUuids.join(',')}
+          experimentIds={experimentIds}
+          runUuids={runUuids}
+          workspace={namespace}
+        />
+      ) : null}
     </ApplicationsPage>
   );
 };

@@ -384,6 +384,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.POST(constants.FilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackUploadFileHandler))))
 	apiRouter.GET(constants.FilesUploadStatusPath, app.AttachNamespace(app.LlamaStackFileUploadStatusHandler))
 	apiRouter.DELETE(constants.FilesDeletePath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackDeleteFileHandler))))
+	apiRouter.POST(constants.VisionFilesUploadPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackVisionFileUploadHandler))))
 
 	// Vector Store Files (LlamaStack)
 	apiRouter.GET(constants.VectorStoreFilesListPath, app.AttachNamespace(app.RequireAccessToService(app.AttachOGXClient(app.LlamaStackListVectorStoreFilesHandler))))
@@ -462,12 +463,12 @@ func (app *App) Routes() http.Handler {
 	appMux := http.NewServeMux()
 
 	// handler for api calls
-	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", http.StripPrefix(constants.PathPrefix, apiRouter))
+	appMux.Handle(constants.PathPrefix+constants.ApiPathPrefix+"/", app.MaxBodySize(http.StripPrefix(constants.PathPrefix, apiRouter)))
 
 	// file server for the frontend file and SPA routes
 	staticDir := http.Dir(app.config.StaticAssetsDir)
 	fileServer := http.FileServer(staticDir)
-	appMux.Handle(constants.ApiPathPrefix+"/", apiRouter)
+	appMux.Handle(constants.ApiPathPrefix+"/", app.MaxBodySize(apiRouter))
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helper.GetContextLoggerFromReq(r)
 

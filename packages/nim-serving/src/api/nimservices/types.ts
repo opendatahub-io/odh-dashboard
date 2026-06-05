@@ -24,11 +24,26 @@ export type NIMServiceKind = K8sResourceCommon & {
     };
   };
   spec: {
+    inferencePlatform?: string;
+    command?: string[];
+    args?: string[];
     image: {
       repository: string;
       tag?: string;
       pullPolicy?: string;
       pullSecrets?: string[];
+    };
+    model?: {
+      engine?: string;
+      quantization?: string;
+      profiles?: string[];
+      lora?: {
+        enabled?: boolean;
+        models?: Array<{
+          name?: string;
+          source?: string;
+        }>;
+      };
     };
     authSecret?: string;
     replicas?: number;
@@ -43,10 +58,19 @@ export type NIMServiceKind = K8sResourceCommon & {
         size?: string;
         storageClassName?: string;
         subPath?: string;
+        volumeAccessMode?: string;
+        annotations?: Record<string, string>;
       };
       nimCache?: {
         name?: string;
+        profile?: string;
       };
+      emptyDir?: {
+        sizeLimit?: string;
+      };
+      hostPath?: string;
+      readOnly?: boolean;
+      sharedMemorySizeLimit?: string;
     };
     env?: Array<{
       name: string;
@@ -55,9 +79,48 @@ export type NIMServiceKind = K8sResourceCommon & {
     }>;
     expose?: {
       service?: {
+        type?: string;
         port?: number;
         openaiPort?: number;
       };
+      router?: {
+        annotations?: Record<string, string>;
+        eppConfig?: Record<string, unknown>;
+        enabled?: boolean;
+        type?: string;
+      };
+    };
+    scale?: {
+      enabled?: boolean;
+      minReplicas?: number;
+      maxReplicas?: number;
+      metrics?: Array<{
+        type?: string;
+        resource?: {
+          name?: string;
+          target?: {
+            type?: string;
+            averageUtilization?: number;
+            averageValue?: string;
+          };
+        };
+      }>;
+    };
+    metrics?: {
+      enabled?: boolean;
+      port?: number;
+    };
+    livenessProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
+    };
+    readinessProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
+    };
+    startupProbe?: {
+      enabled?: boolean;
+      probe?: Record<string, unknown>;
     };
     annotations?: Record<string, string>;
     labels?: Record<string, string>;
@@ -68,11 +131,38 @@ export type NIMServiceKind = K8sResourceCommon & {
       effect?: string;
     }>;
     nodeSelector?: Record<string, string>;
+    affinity?: Record<string, unknown>;
+    initContainers?: Array<Record<string, unknown>>;
+    sidecarContainers?: Array<Record<string, unknown>>;
+    multiNode?: {
+      backendType?: string;
+      computeDomain?: {
+        create?: boolean;
+        name?: string;
+      };
+      parallelism?: string;
+      mpi?: Record<string, unknown>;
+      ray?: Record<string, unknown>;
+    };
+    proxy?: {
+      httpProxy?: string;
+      httpsProxy?: string;
+      noProxy?: string;
+      certConfigMap?: string;
+    };
+    draResources?: Array<Record<string, unknown>>;
+    runtimeClassName?: string;
+    schedulerName?: string;
+    userID?: number;
+    groupID?: number;
   };
   status?: {
     state?: string;
     conditions?: K8sCondition[];
     availableReplicas?: number;
+    model?: Record<string, unknown>;
+    computeDomainStatus?: Record<string, unknown>;
+    draResourceStatuses?: Array<Record<string, unknown>>;
   };
 };
 

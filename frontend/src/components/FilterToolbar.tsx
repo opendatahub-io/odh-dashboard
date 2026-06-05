@@ -77,6 +77,7 @@ function FilterToolbar<T extends string>({
                   <DropdownItem
                     key={filterKey}
                     id={filterKey}
+                    data-testid={`${testId}-option-${filterKey}`}
                     onClick={() => {
                       setOpen(false);
                       if (onFilterTypeChange) {

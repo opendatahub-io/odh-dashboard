@@ -1,3 +1,13 @@
+import { EventEmitter } from 'events';
+import * as https from 'https';
+
+jest.mock('https', () => {
+  const actual = jest.requireActual<typeof import('https')>('https');
+  return {
+    ...actual,
+    request: jest.fn(),
+  };
+});
 import {
   constructRegistryProxyUrl,
   createFeatureStoreResponse,
@@ -5,9 +15,16 @@ import {
   isRegistryReady,
   getServiceFromCRD,
   listFeastNamespaces,
+  listUserOpenShiftProjects,
+  listFeastIntegrationNotebooks,
   listFeastFeatureStoreCRDs,
   getFeastFeatureStoreCRD,
+  fetchFeastProjectsFromRegistry,
+  getFeastProjectRegistryInfo,
+  extractPermissionLevel,
+  buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
+  type FeastIntegrationNotebook,
 } from '../routes/api/featurestores/featureStoreUtils';
 
 const NAMESPACE = {
@@ -83,6 +100,38 @@ const createMockKubeFastify = (mockApi = createMockApi()) =>
   } as any);
 
 const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
+
+const USER_TOKEN = 'user-registry-token';
+
+const mockHttpsRequest = https.request as jest.Mock;
+
+const mockHttpsJsonResponse = (
+  statusCode: number,
+  body: unknown,
+  options: { requestError?: Error } = {},
+) => {
+  mockHttpsRequest.mockImplementation((_options, callback) => {
+    const req = new EventEmitter() as any;
+    req.end = jest.fn();
+    req.setTimeout = jest.fn();
+    req.destroy = jest.fn();
+
+    if (options.requestError) {
+      process.nextTick(() => req.emit('error', options.requestError));
+      return req;
+    }
+
+    const res = new EventEmitter() as any;
+    res.statusCode = statusCode;
+    process.nextTick(() => {
+      callback?.(res);
+      res.emit('data', JSON.stringify(body));
+      res.emit('end');
+    });
+
+    return req;
+  });
+};
 
 const createFeatureStoreCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCRD => ({
   apiVersion: 'feast.dev/v1',
@@ -442,6 +491,139 @@ describe('featureStoreUtils', () => {
     });
   });
 
+  describe('listUserOpenShiftProjects', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should return all user-accessible project names without a label filter', async () => {
+      mockApi.listClusterCustomObject.mockResolvedValue({
+        body: {
+          items: [{ metadata: { name: 'ds-project' } }, { metadata: { name: 'other-ns' } }],
+        },
+      });
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual(['ds-project', 'other-ns']);
+      expect(mockApi.listClusterCustomObject).toHaveBeenCalledWith(
+        'project.openshift.io',
+        'v1',
+        'projects',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
+    });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue(new Error('network failure'));
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list OpenShift projects for user'),
+      );
+    });
+  });
+
+  describe('listFeastIntegrationNotebooks', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    let mockApi: ReturnType<typeof createMockApi>;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockApi = createMockApi();
+      mockFastify = createMockKubeFastify(mockApi);
+    });
+
+    it('should list notebooks with feast-integration label in namespace', async () => {
+      const notebook = {
+        metadata: {
+          name: 'test-notebook',
+          namespace: NAMESPACE.VIEWER,
+          annotations: { 'opendatahub.io/feast-config': 'banking' },
+        },
+      };
+
+      mockApi.listNamespacedCustomObject.mockResolvedValue({
+        body: { items: [notebook] },
+      });
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([notebook]);
+      expect(mockApi.listNamespacedCustomObject).toHaveBeenCalledWith(
+        'kubeflow.org',
+        'v1',
+        NAMESPACE.VIEWER,
+        'notebooks',
+        undefined,
+        undefined,
+        undefined,
+        'opendatahub.io/feast-integration=true',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { headers: KUBE_HEADERS },
+      );
+    });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue(new Error('network failure'));
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to list feast-integrated notebooks in ${NAMESPACE.VIEWER}`),
+      );
+    });
+  });
+
   describe('listFeastFeatureStoreCRDs', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
@@ -653,6 +835,252 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result.namespace).toBeUndefined();
+    });
+  });
+
+  describe('fetchFeastProjectsFromRegistry', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return projects from registry on success', async () => {
+      const projectsResponse = {
+        projects: [{ spec: { name: PROJECT.BANKING, description: 'Banking project' } }],
+      };
+      mockHttpsJsonResponse(200, projectsResponse);
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual(projectsResponse);
+    });
+
+    it('should return null when registry returns non-2xx status', async () => {
+      mockHttpsJsonResponse(503, { error: 'unavailable' });
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD(),
+        USER_TOKEN,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Projects list for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}: unavailable`,
+        ),
+      );
+    });
+
+    it('should return null and log when registry request fails', async () => {
+      mockHttpsJsonResponse(200, {}, { requestError: new Error('network failure') });
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD(),
+        USER_TOKEN,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Projects list for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}: unavailable`,
+        ),
+      );
+    });
+  });
+
+  describe('getFeastProjectRegistryInfo', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return access and trimmed description when project is listed', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.BANKING, description: '  Banking DS  ' } }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: true, description: 'Banking DS' });
+    });
+
+    it('should use top-level description when spec description is missing', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ name: PROJECT.RETAIL, description: 'Retail project' }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ metadata: { name: PROJECT.RETAIL, namespace: NAMESPACE.VIEWER } }),
+        PROJECT.RETAIL,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: true, description: 'Retail project' });
+    });
+
+    it('should return hasAccess false when project is not in registry list', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.RETAIL } }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: false });
+    });
+
+    it('should return hasAccess false when registry fetch fails', async () => {
+      mockHttpsJsonResponse(500, { error: 'unavailable' });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: false });
+    });
+  });
+
+  describe('extractPermissionLevel', () => {
+    it('should union spec.actions across all permissions', () => {
+      const result = extractPermissionLevel({
+        permissions: [
+          { spec: { actions: ['read', 'describe'] } },
+          { spec: { actions: ['read', 'write'] } },
+        ],
+      });
+
+      expect(result).toEqual(expect.arrayContaining(['read', 'describe', 'write']));
+      expect(result).toHaveLength(3);
+    });
+
+    it('should return empty array when permissions are missing', () => {
+      expect(extractPermissionLevel({})).toEqual([]);
+      expect(extractPermissionLevel({ permissions: [] })).toEqual([]);
+    });
+
+    it('should skip permissions without actions', () => {
+      const result = extractPermissionLevel({
+        permissions: [{ spec: {} }, { spec: { actions: ['read'] } }],
+      });
+
+      expect(result).toEqual(['read']);
+    });
+  });
+
+  describe('buildWorkbenchesByFeastProjectMap', () => {
+    const createNotebook = (
+      overrides: Partial<FeastIntegrationNotebook> & {
+        name: string;
+        namespace: string;
+        feastConfig?: string;
+      },
+    ): FeastIntegrationNotebook => ({
+      metadata: {
+        name: overrides.name,
+        namespace: overrides.namespace,
+        annotations: overrides.feastConfig
+          ? { 'opendatahub.io/feast-config': overrides.feastConfig }
+          : overrides.metadata?.annotations,
+        ...overrides.metadata,
+      },
+    });
+
+    it('should map feast project names to connected workbenches', () => {
+      const notebooks = [
+        createNotebook({
+          name: 'wb-1',
+          namespace: 'ds-project',
+          feastConfig: 'banking, retail',
+        }),
+        createNotebook({
+          name: 'wb-2',
+          namespace: 'other-project',
+          feastConfig: 'banking',
+        }),
+      ];
+
+      const map = buildWorkbenchesByFeastProjectMap(notebooks);
+
+      expect(map.get('banking')).toEqual([
+        {
+          workbenchName: 'wb-1',
+          workbenchNamespace: 'ds-project',
+          projectName: 'ds-project',
+        },
+        {
+          workbenchName: 'wb-2',
+          workbenchNamespace: 'other-project',
+          projectName: 'other-project',
+        },
+      ]);
+      expect(map.get('retail')).toEqual([
+        {
+          workbenchName: 'wb-1',
+          workbenchNamespace: 'ds-project',
+          projectName: 'ds-project',
+        },
+      ]);
+    });
+
+    it('should trim whitespace in feast-config project names', () => {
+      const map = buildWorkbenchesByFeastProjectMap([
+        createNotebook({
+          name: 'wb-1',
+          namespace: 'ds-project',
+          feastConfig: ' banking , retail ',
+        }),
+      ]);
+
+      expect(map.has('banking')).toBe(true);
+      expect(map.has('retail')).toBe(true);
+      expect(map.has(' banking ')).toBe(false);
+    });
+
+    it('should skip notebooks without feast-config annotation', () => {
+      const map = buildWorkbenchesByFeastProjectMap([
+        createNotebook({ name: 'wb-1', namespace: 'ds-project' }),
+      ]);
+
+      expect(map.size).toBe(0);
     });
   });
 });
