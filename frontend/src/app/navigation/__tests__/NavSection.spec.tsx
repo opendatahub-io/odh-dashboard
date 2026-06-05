@@ -23,7 +23,14 @@ jest.mock('#~/utilities/useAccessReviewExtensions', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useLocation: jest.fn(() => ({ pathname: '/test-path', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined })),
+  useLocation: jest.fn(() => ({
+    pathname: '/test-path',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'default',
+    unstable_mask: undefined,
+  })),
   matchPath: jest.fn(),
 }));
 
@@ -1050,7 +1057,14 @@ describe('NavSection', () => {
       const mockUseLocation = useLocation as jest.Mock;
 
       // Start with non-matching route
-      mockUseLocation.mockReturnValue({ pathname: '/other-path', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined });
+      mockUseLocation.mockReturnValue({
+        pathname: '/other-path',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+        unstable_mask: undefined,
+      });
 
       const settingsSection: LoadedExtension<NavSectionExtension> = {
         type: 'app.navigation/section',
@@ -1089,7 +1103,14 @@ describe('NavSection', () => {
       expect(expandButton).toHaveAttribute('aria-expanded', 'false');
 
       // Change route to match child
-      mockUseLocation.mockReturnValue({ pathname: '/hardwareProfiles', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined });
+      mockUseLocation.mockReturnValue({
+        pathname: '/hardwareProfiles',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+        unstable_mask: undefined,
+      });
       mockMatchPath.mockReturnValue({
         pathname: '/hardwareProfiles',
         params: {},
@@ -1116,7 +1137,14 @@ describe('NavSection', () => {
     it('should use href for matching when path is not defined', () => {
       const { useLocation } = require('react-router-dom');
       const mockUseLocation = useLocation as jest.Mock;
-      mockUseLocation.mockReturnValue({ pathname: '/settings/profile', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined });
+      mockUseLocation.mockReturnValue({
+        pathname: '/settings/profile',
+        search: '',
+        hash: '',
+        state: null,
+        key: 'default',
+        unstable_mask: undefined,
+      });
 
       const settingsSection: LoadedExtension<NavSectionExtension> = {
         type: 'app.navigation/section',

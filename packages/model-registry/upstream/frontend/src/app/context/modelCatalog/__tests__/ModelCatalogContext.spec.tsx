@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import '@testing-library/jest-dom';
 import React from 'react';
 import { renderHook, act } from '@testing-library/react';
@@ -31,7 +32,14 @@ jest.mock('mod-arch-core', () => {
 });
 
 jest.mock('react-router-dom', () => ({
-  useLocation: jest.fn(() => ({ pathname: '/model-catalog', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined })),
+  useLocation: jest.fn(() => ({
+    pathname: '/model-catalog',
+    search: '',
+    hash: '',
+    state: null,
+    key: 'default',
+    unstable_mask: undefined,
+  })),
 }));
 
 jest.mock('~/app/hooks/modelCatalog/useCatalogSources', () => ({
