@@ -93,9 +93,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         }
 
         const crdsByNamespace = await Promise.all(
-          feastNamespaces.map(async (ns) => ({
-            crds: await listFeastFeatureStoreCRDs(fastify, ns, kubeHeaders),
-          })),
+          feastNamespaces.map((ns) => listFeastFeatureStoreCRDs(fastify, ns, kubeHeaders)),
         );
 
         const userProjectNamespaces = await listUserOpenShiftProjects(fastify, kubeHeaders);
@@ -107,7 +105,7 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
         const workbenchMap = buildWorkbenchesByFeastProjectMap(notebooksByNamespace.flat());
 
         const projectResults = await Promise.all(
-          crdsByNamespace.map(async ({ crds }) => {
+          crdsByNamespace.map(async (crds) => {
             const availableFeatureStores = crds.filter(isRegistryReady);
 
             const projectRows = await Promise.all(

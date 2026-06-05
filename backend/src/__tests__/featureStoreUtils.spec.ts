@@ -1,3 +1,13 @@
+import { EventEmitter } from 'events';
+import * as https from 'https';
+
+jest.mock('https', () => {
+  const actual = jest.requireActual<typeof import('https')>('https');
+  return {
+    ...actual,
+    request: jest.fn(),
+  };
+});
 import {
   constructRegistryProxyUrl,
   createFeatureStoreResponse,
@@ -9,6 +19,9 @@ import {
   listFeastIntegrationNotebooks,
   listFeastFeatureStoreCRDs,
   getFeastFeatureStoreCRD,
+  fetchFeastProjectsFromRegistry,
+  getFeastProjectRegistryInfo,
+  hasAccessToFeastProject,
   extractPermissionLevel,
   buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
@@ -88,6 +101,38 @@ const createMockKubeFastify = (mockApi = createMockApi()) =>
   } as any);
 
 const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
+
+const USER_TOKEN = 'user-registry-token';
+
+const mockHttpsRequest = https.request as jest.Mock;
+
+const mockHttpsJsonResponse = (
+  statusCode: number,
+  body: unknown,
+  options: { requestError?: Error } = {},
+) => {
+  mockHttpsRequest.mockImplementation((_options, callback) => {
+    const req = new EventEmitter() as any;
+    req.end = jest.fn();
+    req.setTimeout = jest.fn();
+    req.destroy = jest.fn();
+
+    if (options.requestError) {
+      process.nextTick(() => req.emit('error', options.requestError));
+      return req;
+    }
+
+    const res = new EventEmitter() as any;
+    res.statusCode = statusCode;
+    process.nextTick(() => {
+      callback?.(res);
+      res.emit('data', JSON.stringify(body));
+      res.emit('end');
+    });
+
+    return req;
+  });
+};
 
 const createFeatureStoreCRD = (overrides: Partial<FeatureStoreCRD> = {}): FeatureStoreCRD => ({
   apiVersion: 'feast.dev/v1',
@@ -482,6 +527,26 @@ describe('featureStoreUtils', () => {
         { headers: KUBE_HEADERS },
       );
     });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listClusterCustomObject.mockRejectedValue(new Error('network failure'));
+
+      const result = await listUserOpenShiftProjects(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list OpenShift projects for user'),
+      );
+    });
   });
 
   describe('listFeastIntegrationNotebooks', () => {
@@ -528,6 +593,34 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         { headers: KUBE_HEADERS },
+      );
+    });
+
+    it('should return empty array on 403 without throwing', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue({ statusCode: 403 });
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).not.toHaveBeenCalled();
+    });
+
+    it('should return empty array and log on non-403 errors', async () => {
+      mockApi.listNamespacedCustomObject.mockRejectedValue(new Error('network failure'));
+
+      const result = await listFeastIntegrationNotebooks(
+        mockFastify,
+        NAMESPACE.VIEWER,
+        KUBE_HEADERS,
+      );
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to list feast-integrated notebooks in ${NAMESPACE.VIEWER}`),
       );
     });
   });
@@ -743,6 +836,194 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result.namespace).toBeUndefined();
+    });
+  });
+
+  describe('fetchFeastProjectsFromRegistry', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return projects from registry on success', async () => {
+      const projectsResponse = {
+        projects: [{ spec: { name: PROJECT.BANKING, description: 'Banking project' } }],
+      };
+      mockHttpsJsonResponse(200, projectsResponse);
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual(projectsResponse);
+    });
+
+    it('should return null when registry returns non-2xx status', async () => {
+      mockHttpsJsonResponse(503, { error: 'unavailable' });
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD(),
+        USER_TOKEN,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Projects list for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}: unavailable`,
+        ),
+      );
+    });
+
+    it('should return null and log when registry request fails', async () => {
+      mockHttpsJsonResponse(200, {}, { requestError: new Error('network failure') });
+
+      const result = await fetchFeastProjectsFromRegistry(
+        mockFastify,
+        createFeatureStoreCRD(),
+        USER_TOKEN,
+      );
+
+      expect(result).toBeNull();
+      expect(mockFastify.log.info).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `Projects list for ${NAMESPACE.VIEWER}/${PROJECT.BANKING}: unavailable`,
+        ),
+      );
+    });
+  });
+
+  describe('getFeastProjectRegistryInfo', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return access and trimmed description when project is listed', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.BANKING, description: '  Banking DS  ' } }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: true, description: 'Banking DS' });
+    });
+
+    it('should use top-level description when spec description is missing', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ name: PROJECT.RETAIL, description: 'Retail project' }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ metadata: { name: PROJECT.RETAIL, namespace: NAMESPACE.VIEWER } }),
+        PROJECT.RETAIL,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: true, description: 'Retail project' });
+    });
+
+    it('should return hasAccess false when project is not in registry list', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.RETAIL } }],
+      });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: false });
+    });
+
+    it('should return hasAccess false when registry fetch fails', async () => {
+      mockHttpsJsonResponse(500, { error: 'unavailable' });
+
+      const result = await getFeastProjectRegistryInfo(
+        mockFastify,
+        createFeatureStoreCRD(),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toEqual({ hasAccess: false });
+    });
+  });
+
+  describe('hasAccessToFeastProject', () => {
+    let mockFastify: ReturnType<typeof createMockKubeFastify>;
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFastify = createMockKubeFastify();
+      process.env = { ...originalEnv, NODE_ENV: 'development' };
+      delete process.env.KUBERNETES_SERVICE_HOST;
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      mockHttpsRequest.mockReset();
+    });
+
+    it('should return true when project is accessible in registry', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.BANKING } }],
+      });
+
+      const result = await hasAccessToFeastProject(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false when project is not accessible in registry', async () => {
+      mockHttpsJsonResponse(200, {
+        projects: [{ spec: { name: PROJECT.RETAIL } }],
+      });
+
+      const result = await hasAccessToFeastProject(
+        mockFastify,
+        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
+        PROJECT.BANKING,
+        USER_TOKEN,
+      );
+
+      expect(result).toBe(false);
     });
   });
 
