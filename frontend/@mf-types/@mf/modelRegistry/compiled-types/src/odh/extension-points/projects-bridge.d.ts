@@ -1,4 +1,4 @@
-import type { Extension } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate } from '@openshift/dynamic-plugin-sdk';
 import type { ComponentCodeRef } from '@odh-dashboard/plugin-core';
 type ProjectRef = {
     name: string;
@@ -23,5 +23,5 @@ export type ProjectsBridgeProviderProps = {
 export type ProjectsBridgeProviderExtension = Extension<'model-registry.projects/bridge-provider', {
     component: ComponentCodeRef<ProjectsBridgeProviderProps>;
 }>;
-export declare const isProjectsBridgeProviderExtension: (extension: Extension) => extension is ProjectsBridgeProviderExtension;
+export declare const isProjectsBridgeProviderExtension: ExtensionPredicate<ProjectsBridgeProviderExtension>;
 export {};
