@@ -7,6 +7,7 @@ import {
   Menu,
   MenuContainer,
   MenuContent,
+  MenuFooter,
   MenuList,
   MenuSearch,
   MenuSearchInput,
@@ -28,6 +29,8 @@ type SearchSelectorProps = {
    * Resulting children (React.ReactNode) can be anything that can be rendered inside <MenuList />.
    */
   children: ((opts: ManualSearchSelectorOpts) => React.ReactNode) | React.ReactNode;
+  /** Content rendered after MenuContent (outside the scroll area), e.g. a sticky footer button. */
+  footer?: ((opts: ManualSearchSelectorOpts) => React.ReactNode) | React.ReactNode;
   isLoading?: boolean;
   isDisabled?: boolean;
   isFullWidth?: boolean;
@@ -48,6 +51,7 @@ type SearchSelectorProps = {
 
 const SearchSelector: React.FC<SearchSelectorProps> = ({
   children,
+  footer,
   dataTestId,
   isLoading,
   isDisabled,
@@ -116,6 +120,7 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
       }
       menu={
         <Menu
+          className="odh-search-selector__menu"
           data-testid={`${dataTestId}-menu`}
           ref={menuRef}
           isScrollable
@@ -154,6 +159,13 @@ const SearchSelector: React.FC<SearchSelectorProps> = ({
                 : children}
             </MenuList>
           </MenuContent>
+          {footer != null && (
+            <MenuFooter>
+              {typeof footer === 'function'
+                ? footer({ menuClose: () => setIsOpen(false) })
+                : footer}
+            </MenuFooter>
+          )}
         </Menu>
       }
     />

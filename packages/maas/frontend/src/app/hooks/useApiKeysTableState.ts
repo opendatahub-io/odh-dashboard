@@ -7,7 +7,7 @@ import {
   emptyApiKeyFilterData,
   APIKeyListResponse,
 } from '~/app/types/api-key';
-import { ApiKeySortField } from '~/app/pages/api-keys/allKeys/columns';
+import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { useFetchApiKeys } from './useFetchApiKeys';
 
 type SortDirection = 'asc' | 'desc';

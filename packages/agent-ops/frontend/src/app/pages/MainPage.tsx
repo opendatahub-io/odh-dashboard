@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, PageSection, Spinner, Content, ContentVariants } from '@patternfly/react-core';
-import { URL_PREFIX } from '../utilities/const';
+import { URL_PREFIX } from '~/app/utilities/const';
 
 const MainPage: React.FC = () => {
   const [bffStatus, setBffStatus] = React.useState<{

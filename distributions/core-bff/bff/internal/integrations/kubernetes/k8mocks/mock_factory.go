@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 )
 
+// NewMockedKubernetesClientFactory creates a mocked Kubernetes client factory for testing.
 func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *envtest.Environment, cfg config.EnvConfig, logger *slog.Logger) (k8s.KubernetesClientFactory, error) {
 	switch cfg.AuthMethod {
 	case config.AuthMethodDisabled, config.AuthMethodUser:
@@ -29,13 +30,8 @@ func NewMockedKubernetesClientFactory(clientset kubernetes.Interface, testEnv *e
 	}
 }
 
-// ─── MOCKED TOKEN FACTORY (envtest + "USER TOKEN") ──────────────────────────────
-//
 // MockedTokenClientFactory simulates token-based client creation in tests.
-// It maps fake tokens (like "FAKE_USER_A_TOKEN") to a TestUser (username + groups),
-// and creates a Kubernetes client that impersonates that user.
-// This is critical for triggering proper RBAC evaluation (e.g., SelfSubjectAccessReview) inside envtest,
-// which does not perform real token authentication.
+// It maps fake tokens to a TestUser and creates a Kubernetes client that impersonates that user.
 type MockedTokenClientFactory struct {
 	logger     *slog.Logger
 	clientset  kubernetes.Interface
@@ -46,7 +42,7 @@ type MockedTokenClientFactory struct {
 	realK8sFactory k8s.KubernetesClientFactory
 }
 
-// NewTokenClientFactory initializes a factory using a known envtest clientset + config.
+// NewTokenClientFactory creates a mocked token client factory for testing.
 func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Config, logger *slog.Logger, appCfg config.EnvConfig) (k8s.KubernetesClientFactory, error) {
 	realFactory := k8s.NewTokenClientFactory(logger, appCfg)
 
@@ -60,7 +56,15 @@ func NewTokenClientFactory(clientset kubernetes.Interface, restConfig *rest.Conf
 }
 
 func (f *MockedTokenClientFactory) ExtractRequestIdentity(httpHeader http.Header) (*k8s.RequestIdentity, error) {
-	return f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	identity, err := f.realK8sFactory.ExtractRequestIdentity(httpHeader)
+	if err != nil {
+		return nil, err
+	}
+	if user := findTestUserByToken(identity.Token.Raw()); user != nil {
+		identity.UserID = user.UserName
+		identity.Groups = user.Groups
+	}
+	return identity, nil
 }
 
 func (f *MockedTokenClientFactory) ValidateRequestIdentity(identity *k8s.RequestIdentity) error {

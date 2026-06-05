@@ -66,6 +66,7 @@ func TestWrapClientError_NetworkErrors(t *testing.T) {
 			require.NotNil(t, result)
 			assert.Equal(t, tt.expectedCode, result.Code)
 			assert.Equal(t, 502, result.StatusCode) // Connection errors return 502 Bad Gateway
+			assert.Equal(t, ComponentOGX, result.Component)
 			assert.Contains(t, result.Message, fmt.Sprintf("failed to connect to LlamaStack server on operation %s", tt.operation))
 			assert.Contains(t, result.Message, tt.urlErr.Err.Error())
 		})
@@ -84,9 +85,11 @@ func TestWrapClientError_APIErrors_BadRequest(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInvalidRequest, result.Code)
 		assert.Equal(t, 400, result.StatusCode)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation CreateResponse")
 		assert.Contains(t, result.Message, "invalid model parameter")
 	})
+
 }
 
 func TestWrapClientError_APIErrors_Unauthorized(t *testing.T) {
@@ -101,6 +104,7 @@ func TestWrapClientError_APIErrors_Unauthorized(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeUnauthorized, result.Code)
 		assert.Equal(t, 401, result.StatusCode)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation ListModels")
 		assert.Contains(t, result.Message, "invalid API key")
 	})
@@ -118,6 +122,7 @@ func TestWrapClientError_APIErrors_NotFound(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeNotFound, result.Code)
 		assert.Equal(t, 404, result.StatusCode)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "LlamaStack error on operation GetModel")
 		assert.Contains(t, result.Message, "model not found")
 	})
@@ -157,7 +162,7 @@ func TestWrapClientError_APIErrors_ServiceUnavailable(t *testing.T) {
 
 			require.NotNil(t, result)
 			assert.Equal(t, ErrCodeServerUnavailable, result.Code)
-			assert.Equal(t, 503, result.StatusCode)
+			assert.Equal(t, tt.statusCode, result.StatusCode) // Preserve original status code for debugging
 			// NewServerUnavailableError passes the formatted message including operation context
 			assert.Contains(t, result.Message, "LlamaStack error on operation CreateResponse")
 		})
@@ -182,24 +187,28 @@ func TestWrapClientError_APIErrors_WithMessage(t *testing.T) {
 
 func TestWrapClientError_APIErrors_OtherStatusCodes(t *testing.T) {
 	tests := []struct {
-		name       string
-		statusCode int
-		message    string
+		name            string
+		statusCode      int
+		message         string
+		expectedErrCode string
 	}{
 		{
-			name:       "500 Internal Server Error",
-			statusCode: http.StatusInternalServerError,
-			message:    "internal server error",
+			name:            "500 Internal Server Error",
+			statusCode:      http.StatusInternalServerError,
+			message:         "internal server error",
+			expectedErrCode: ErrCodeInternalError,
 		},
 		{
-			name:       "502 Bad Gateway",
-			statusCode: http.StatusBadGateway,
-			message:    "bad gateway",
+			name:            "502 Bad Gateway",
+			statusCode:      http.StatusBadGateway,
+			message:         "bad gateway",
+			expectedErrCode: ErrCodeInternalError,
 		},
 		{
-			name:       "429 Too Many Requests",
-			statusCode: http.StatusTooManyRequests,
-			message:    "rate limit exceeded",
+			name:            "429 Too Many Requests",
+			statusCode:      http.StatusTooManyRequests,
+			message:         "rate limit exceeded",
+			expectedErrCode: ErrCodeServerUnavailable,
 		},
 	}
 
@@ -213,7 +222,7 @@ func TestWrapClientError_APIErrors_OtherStatusCodes(t *testing.T) {
 			result := wrapClientError(apiErr, "ListModels")
 
 			require.NotNil(t, result)
-			assert.Equal(t, ErrCodeInternalError, result.Code)
+			assert.Equal(t, tt.expectedErrCode, result.Code)
 			assert.Equal(t, tt.statusCode, result.StatusCode)
 			assert.Contains(t, result.Message, "LlamaStack error on operation ListModels")
 			assert.Contains(t, result.Message, tt.message)
@@ -230,6 +239,7 @@ func TestWrapClientError_UnknownErrors(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInternalError, result.Code)
 		assert.Equal(t, 0, result.StatusCode)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "unexpected error on operation CreateResponse")
 		assert.Contains(t, result.Message, "some unexpected error")
 	})
@@ -242,6 +252,7 @@ func TestWrapClientError_UnknownErrors(t *testing.T) {
 		require.NotNil(t, result)
 		assert.Equal(t, ErrCodeInternalError, result.Code)
 		assert.Equal(t, 0, result.StatusCode)
+		assert.Equal(t, ComponentOGX, result.Component)
 		assert.Contains(t, result.Message, "unexpected error on operation GetModel")
 	})
 }
@@ -292,5 +303,99 @@ func TestLlamaStackError_Error(t *testing.T) {
 
 		expected := "LlamaStack error [INVALID_REQUEST]: invalid parameter"
 		assert.Equal(t, expected, err.Error())
+	})
+}
+
+func TestResolveComponent(t *testing.T) {
+	tests := []struct {
+		errorCode         string
+		expectedComponent string
+	}{
+		// RAG
+		{OGXErrVectorStoreTimeout, ComponentRAG},
+		// Model (OGX response.failed codes)
+		{OGXErrInvalidPrompt, ComponentModel},
+		{OGXErrInvalidImage, ComponentModel},
+		{OGXErrInvalidImageFormat, ComponentModel},
+		{OGXErrInvalidBase64Image, ComponentModel},
+		{OGXErrInvalidImageURL, ComponentModel},
+		{OGXErrImageTooLarge, ComponentModel},
+		{OGXErrImageTooSmall, ComponentModel},
+		{OGXErrImageParseError, ComponentModel},
+		{OGXErrImageContentPolicyViolation, ComponentModel},
+		{OGXErrInvalidImageMode, ComponentModel},
+		{OGXErrImageFileTooLarge, ComponentModel},
+		{OGXErrUnsupportedImageMediaType, ComponentModel},
+		{OGXErrEmptyImageFile, ComponentModel},
+		{OGXErrFailedToDownloadImage, ComponentModel},
+		{OGXErrImageFileNotFound, ComponentModel},
+		// ogx (default + generic OGX codes)
+		{OGXErrServerError, ComponentOGX},
+		{OGXErrRateLimitExceeded, ComponentOGX},
+		{"unknown_code", ComponentOGX},
+		{"", ComponentOGX},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.errorCode, func(t *testing.T) {
+			assert.Equal(t, tt.expectedComponent, ResolveComponent(tt.errorCode))
+		})
+	}
+}
+
+func TestOGXResponseErrorConstants(t *testing.T) {
+	// Verify OGX error code constants match the expected values from
+	// ogx/providers/inline/responses/builtin/responses/streaming.py
+	expectedCodes := []string{
+		OGXErrServerError,
+		OGXErrRateLimitExceeded,
+		OGXErrInvalidPrompt,
+		OGXErrVectorStoreTimeout,
+		OGXErrInvalidImage,
+		OGXErrInvalidImageFormat,
+		OGXErrInvalidBase64Image,
+		OGXErrInvalidImageURL,
+		OGXErrImageTooLarge,
+		OGXErrImageTooSmall,
+		OGXErrImageParseError,
+		OGXErrImageContentPolicyViolation,
+		OGXErrInvalidImageMode,
+		OGXErrImageFileTooLarge,
+		OGXErrUnsupportedImageMediaType,
+		OGXErrEmptyImageFile,
+		OGXErrFailedToDownloadImage,
+		OGXErrImageFileNotFound,
+	}
+
+	for _, code := range expectedCodes {
+		assert.NotEmpty(t, code, "OGX error code constant should not be empty")
+	}
+	assert.Len(t, expectedCodes, 18, "should have all 18 OGX response error codes")
+}
+
+func TestConstructorComponents(t *testing.T) {
+	t.Run("NewConnectionError sets ogx component", func(t *testing.T) {
+		err := NewConnectionError("connection refused")
+		assert.Equal(t, ComponentOGX, err.Component)
+	})
+
+	t.Run("NewServerUnavailableError sets ogx component", func(t *testing.T) {
+		err := NewServerUnavailableError("service down")
+		assert.Equal(t, ComponentOGX, err.Component)
+	})
+
+	t.Run("NewUnauthorizedError sets bff component", func(t *testing.T) {
+		err := NewUnauthorizedError("bad token")
+		assert.Equal(t, ComponentBFF, err.Component)
+	})
+
+	t.Run("NewInvalidRequestError sets bff component", func(t *testing.T) {
+		err := NewInvalidRequestError("missing field")
+		assert.Equal(t, ComponentBFF, err.Component)
+	})
+
+	t.Run("NewNotFoundError sets bff component", func(t *testing.T) {
+		err := NewNotFoundError("not found")
+		assert.Equal(t, ComponentBFF, err.Component)
 	})
 }

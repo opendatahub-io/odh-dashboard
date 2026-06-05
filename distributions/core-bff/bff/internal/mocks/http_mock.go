@@ -1,3 +1,4 @@
+// Package mocks provides shared test fixtures and mock data.
 package mocks
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// MockHTTPClient is a mock HTTP client for testing.
 type MockHTTPClient struct {
 	mock.Mock
 }
