@@ -994,8 +994,6 @@ describe('AutomlConfigurePage', () => {
 
         expect(screen.getByTestId('task-type-card-binary')).toHaveClass('pf-m-selected');
         expect(screen.getByTestId('task-type-card-multiclass')).not.toHaveClass('pf-m-selected');
-        expect(screen.getByTestId('task-type-card-regression')).not.toHaveClass('pf-m-selected');
-        expect(screen.getByTestId('task-type-card-timeseries')).not.toHaveClass('pf-m-selected');
       });
 
       it('should show the pre-filled top_n value in the configure step', async () => {

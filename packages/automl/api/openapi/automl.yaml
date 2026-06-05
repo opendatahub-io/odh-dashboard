@@ -1116,6 +1116,11 @@ components:
                       Inferred ML task type for this column based on unique value analysis.
                       Default is binary. Rules: regression if >10 unique values and all numerical;
                       multiclass if >2 unique values; binary otherwise (including 2 unique string values).
+                  unique_count:
+                    type: integer
+                    description: >-
+                      Number of distinct non-empty values detected in a sample of the column.
+                      Used by the UI to summarize cardinality for prediction type recommendations.
                   values:
                     type: array
                     description: >-

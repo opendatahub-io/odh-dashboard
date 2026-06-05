@@ -11,7 +11,6 @@ import {
   Card,
   CardBody,
   CardHeader,
-  CardTitle,
   Content,
   Divider,
   Dropdown,
@@ -20,7 +19,6 @@ import {
   EmptyState,
   EmptyStateBody,
   FormHelperText,
-  Gallery,
   Grid,
   GridItem,
   HelperText,
@@ -67,19 +65,8 @@ import {
   TASK_TYPES,
 } from '~/app/schemas/configure.schema';
 import { SecretListItem } from '~/app/types';
-import {
-  TASK_TYPE_BINARY,
-  TASK_TYPE_LABELS,
-  TASK_TYPE_MULTICLASS,
-  TASK_TYPE_REGRESSION,
-  TASK_TYPE_TIMESERIES,
-  REQUIRED_CONNECTION_SECRET_KEYS,
-} from '~/app/utilities/const';
-import {
-  getColumnConstraintTooltip,
-  getTypeAcronym,
-  findTimestampColumn,
-} from '~/app/utilities/columnUtils';
+import { TASK_TYPE_TIMESERIES, REQUIRED_CONNECTION_SECRET_KEYS } from '~/app/utilities/const';
+import { getTypeAcronym, findTimestampColumn } from '~/app/utilities/columnUtils';
 import { automlExperimentsPathname } from '~/app/utilities/routes';
 import { getMissingRequiredKeys } from '~/app/utilities/secretValidation';
 import {
@@ -94,39 +81,10 @@ import {
   TRAINING_DATA_UPLOAD_NATIVE_ACCEPT,
 } from '~/app/utilities/automlTrainingDataFile';
 import LoadingFormField from './LoadingFormField';
+import AutomlPredictionTypeHelperText from './AutomlPredictionTypeHelperText';
+import AutomlPredictionTypeSelector from './AutomlPredictionTypeSelector';
 import ConfigureTimeseriesForm from './ConfigureTimeseriesForm';
 import './AutomlConfigure.scss';
-
-const PREDICTION_TYPES: {
-  value: ConfigureSchema['task_type'];
-  label: string;
-  description: string;
-}[] = [
-  {
-    value: TASK_TYPE_BINARY,
-    label: TASK_TYPE_LABELS[TASK_TYPE_BINARY],
-    description:
-      'Classify data into categories. Choose this if your prediction column contains two distinct categories',
-  },
-  {
-    value: TASK_TYPE_MULTICLASS,
-    label: TASK_TYPE_LABELS[TASK_TYPE_MULTICLASS],
-    description:
-      'Classify data into categories. Choose this if your prediction column contains multiple distinct categories',
-  },
-  {
-    value: TASK_TYPE_REGRESSION,
-    label: TASK_TYPE_LABELS[TASK_TYPE_REGRESSION],
-    description:
-      'Predict values from a continuous set of values. Choose this if your prediction column contains a large number of values',
-  },
-  {
-    value: TASK_TYPE_TIMESERIES,
-    label: TASK_TYPE_LABELS[TASK_TYPE_TIMESERIES],
-    description:
-      'Predict future activity over a specified date/time range. Data must be structured and sequential.',
-  },
-];
 
 type AutomlConfigureProps = {
   initialValues?: Partial<ConfigureSchema>;
@@ -219,7 +177,7 @@ function AutomlConfigure({
       'known_covariates_names',
     ],
   });
-  const isTargetColumnSelected = Boolean(targetColumn);
+  const isTargetColumnSelected = Boolean(targetColumn?.trim());
   const isTaskTypeSelected = TASK_TYPES.includes(taskType);
   const isTimeseries = taskType === TASK_TYPE_TIMESERIES;
 
@@ -251,7 +209,9 @@ function AutomlConfigure({
     if (clearedFields.length > 0 && isTaskTypeSelected && isTimeseries) {
       notification.warning(
         'Timeseries fields updated',
-        `"${targetColumn}" was removed from ${clearedFields.join(', ')} because it is now the target column.`,
+        `"${targetColumn}" was removed from ${clearedFields.join(
+          ', ',
+        )} because it is now the target column.`,
       );
     }
   }, [
@@ -908,75 +868,32 @@ function AutomlConfigure({
                       </ConfigureFormGroup>
                     </StackItem>
 
-                    {isTargetColumnSelected && (
-                      <StackItem>
-                        <ConfigureFormGroup label="Prediction type" isRequired>
+                    <StackItem>
+                      <ConfigureFormGroup label="Prediction type" isRequired>
+                        <AutomlPredictionTypeHelperText
+                          targetColumn={targetColumn}
+                          selectedColumn={selectedColumn}
+                        />
+                        {isTargetColumnSelected && (
                           <Controller
                             control={form.control}
                             name="task_type"
                             render={({ field }) => (
-                              <Gallery hasGutter minWidths={{ default: '200px' }}>
-                                {PREDICTION_TYPES.map((type) => {
-                                  const disabledTooltip = getColumnConstraintTooltip(
-                                    type.value,
-                                    selectedColumn,
-                                  );
-                                  const isDisabledByColumnConstraint = disabledTooltip != null;
-                                  const card = (
-                                    <Card
-                                      key={type.value}
-                                      isSelectable
-                                      isDisabled={
-                                        !canSelectLearningType ||
-                                        formIsSubmitting ||
-                                        isDisabledByColumnConstraint
-                                      }
-                                      isSelected={field.value === type.value}
-                                      data-testid={`task-type-card-${type.value}`}
-                                    >
-                                      <CardHeader
-                                        selectableActions={{
-                                          selectableActionId: `task-type-${type.value}`,
-                                          selectableActionAriaLabelledby: `task-type-label-${type.value}`,
-                                          name: 'task_type',
-                                          variant: 'single',
-                                          isChecked: field.value === type.value,
-                                          onChange: () => {
-                                            field.onChange(type.value);
-                                            // Clear stale timestamp_column so it doesn't force
-                                            // timeseries on the next target column change
-                                            if (type.value !== TASK_TYPE_TIMESERIES) {
-                                              setValue('timestamp_column', '', {
-                                                shouldValidate: true,
-                                              });
-                                            }
-                                          },
-                                          isHidden: true,
-                                        }}
-                                      >
-                                        <CardTitle id={`task-type-label-${type.value}`}>
-                                          {type.label}
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardBody>
-                                        <Content component="small">{type.description}</Content>
-                                      </CardBody>
-                                    </Card>
-                                  );
-                                  return disabledTooltip ? (
-                                    <Tooltip key={type.value} content={disabledTooltip}>
-                                      {card}
-                                    </Tooltip>
-                                  ) : (
-                                    card
-                                  );
-                                })}
-                              </Gallery>
+                              <AutomlPredictionTypeSelector
+                                value={field.value}
+                                onChange={field.onChange}
+                                onClearTimeseriesTimestamp={() =>
+                                  setValue('timestamp_column', '', { shouldValidate: true })
+                                }
+                                selectedColumn={selectedColumn}
+                                columns={columns}
+                                isDisabled={!canSelectLearningType || formIsSubmitting}
+                              />
                             )}
                           />
-                        </ConfigureFormGroup>
-                      </StackItem>
-                    )}
+                        )}
+                      </ConfigureFormGroup>
+                    </StackItem>
 
                     {isTaskTypeSelected && isTimeseries && (
                       <ConfigureTimeseriesForm
