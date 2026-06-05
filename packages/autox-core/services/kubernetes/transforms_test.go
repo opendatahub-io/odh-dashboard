@@ -340,4 +340,3 @@ func TestRedactSecretData(t *testing.T) {
 		}
 	})
 }
-
