@@ -21,7 +21,6 @@ import {
   getFeastFeatureStoreCRD,
   fetchFeastProjectsFromRegistry,
   getFeastProjectRegistryInfo,
-  hasAccessToFeastProject,
   extractPermissionLevel,
   buildWorkbenchesByFeastProjectMap,
   type FeatureStoreCRD,
@@ -977,53 +976,6 @@ describe('featureStoreUtils', () => {
       );
 
       expect(result).toEqual({ hasAccess: false });
-    });
-  });
-
-  describe('hasAccessToFeastProject', () => {
-    let mockFastify: ReturnType<typeof createMockKubeFastify>;
-    const originalEnv = process.env;
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-      mockFastify = createMockKubeFastify();
-      process.env = { ...originalEnv, NODE_ENV: 'development' };
-      delete process.env.KUBERNETES_SERVICE_HOST;
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-      mockHttpsRequest.mockReset();
-    });
-
-    it('should return true when project is accessible in registry', async () => {
-      mockHttpsJsonResponse(200, {
-        projects: [{ spec: { name: PROJECT.BANKING } }],
-      });
-
-      const result = await hasAccessToFeastProject(
-        mockFastify,
-        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
-        PROJECT.BANKING,
-        USER_TOKEN,
-      );
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false when project is not accessible in registry', async () => {
-      mockHttpsJsonResponse(200, {
-        projects: [{ spec: { name: PROJECT.RETAIL } }],
-      });
-
-      const result = await hasAccessToFeastProject(
-        mockFastify,
-        createFeatureStoreCRD({ spec: { feastProject: PROJECT.BANKING } }),
-        PROJECT.BANKING,
-        USER_TOKEN,
-      );
-
-      expect(result).toBe(false);
     });
   });
 
