@@ -95,19 +95,22 @@ jest.mock('@patternfly/react-core', () => ({
     children,
     icon,
     isDisabled,
+    isAriaDisabled,
     onClick,
   }: {
     children: React.ReactNode;
     icon?: React.ReactNode;
     isDisabled?: boolean;
+    isAriaDisabled?: boolean;
     onClick?: () => void;
   }) => {
     const label = typeof children === 'string' ? children : 'unknown';
     return (
       <button
         data-testid={`menu-item-${label.replace(/\s+/g, '-').toLowerCase()}`}
-        onClick={isDisabled ? undefined : onClick}
+        onClick={isDisabled || isAriaDisabled ? undefined : onClick}
         disabled={isDisabled}
+        aria-disabled={isAriaDisabled}
         type="button"
       >
         {icon}
@@ -117,6 +120,23 @@ jest.mock('@patternfly/react-core', () => ({
   },
   MenuList: ({ children }: { children: React.ReactNode }) => (
     <ul data-testid="mock-menu-list">{children}</ul>
+  ),
+  Tooltip: ({
+    children,
+    content,
+    position,
+  }: {
+    children: React.ReactNode;
+    content?: string;
+    position?: string;
+  }) => (
+    <span
+      data-testid="tooltip-wrapper"
+      data-tooltip-content={content}
+      data-tooltip-position={position}
+    >
+      {children}
+    </span>
   ),
 }));
 
@@ -221,14 +241,62 @@ describe('ChatbotMessageInput', () => {
       expect(imageItem).toBeDisabled();
     });
 
-    it('"Upload audio" is always disabled', async () => {
+    it('"Upload audio" is disabled when isAudioUploadDisabled is true', async () => {
       const user = userEvent.setup();
-      render(<ChatbotMessageInput {...defaultProps} />);
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled />);
 
       await user.click(screen.getByTestId('mock-attach-toggle'));
 
       const audioItem = screen.getByTestId('menu-item-upload-audio');
       expect(audioItem).toBeDisabled();
+    });
+
+    it('"Upload audio" uses isAriaDisabled with tooltip when audioDisabledTooltip is provided', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Select a transcription model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const audioItem = screen.getByTestId('menu-item-upload-audio');
+      expect(audioItem).toHaveAttribute('aria-disabled', 'true');
+      expect(audioItem).not.toBeDisabled();
+      const tooltipWrapper = screen.getByTestId('tooltip-wrapper');
+      expect(tooltipWrapper).toHaveAttribute(
+        'data-tooltip-content',
+        'Select a transcription model',
+      );
+    });
+
+    it('tooltip is positioned to the left of the disabled audio menu item', async () => {
+      const user = userEvent.setup();
+      render(
+        <ChatbotMessageInput
+          {...defaultProps}
+          isAudioUploadDisabled
+          audioDisabledTooltip="Select a transcription model"
+        />,
+      );
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const tooltipWrapper = screen.getByTestId('tooltip-wrapper');
+      expect(tooltipWrapper).toHaveAttribute('data-tooltip-position', 'left');
+    });
+
+    it('"Upload audio" is enabled when isAudioUploadDisabled is false', async () => {
+      const user = userEvent.setup();
+      render(<ChatbotMessageInput {...defaultProps} isAudioUploadDisabled={false} />);
+
+      await user.click(screen.getByTestId('mock-attach-toggle'));
+
+      const audioItem = screen.getByTestId('menu-item-upload-audio');
+      expect(audioItem).not.toBeDisabled();
     });
 
     it('clicking "Upload image" triggers the hidden file input', async () => {

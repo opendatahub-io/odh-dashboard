@@ -49,6 +49,8 @@ import CloseChatCompareModal from './components/CloseChatCompareModal';
 import {
   useChatbotConfigStore,
   selectSelectedModel,
+  selectSelectedAsrModel,
+  selectIsAsrModelEnabled,
   selectConfigIds,
   DEFAULT_CONFIG_ID,
   getConfigDisplayLabel,
@@ -147,6 +149,10 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
   const isCompareMode = configIds.length > 1;
   const primaryConfigId = configIds[0] || DEFAULT_CONFIG_ID;
   const primarySelectedModel = useChatbotConfigStore(selectSelectedModel(primaryConfigId));
+  const primarySelectedAsrModel = useChatbotConfigStore(selectSelectedAsrModel(primaryConfigId));
+  const primaryIsAsrEnabled = useChatbotConfigStore(selectIsAsrModelEnabled(primaryConfigId));
+
+  const isAudioUploadDisabled = !primaryIsAsrEnabled || !primarySelectedAsrModel;
 
   // Router state
   const location = useLocation();
@@ -837,7 +843,12 @@ const ChatbotPlayground: React.FC<ChatbotPlaygroundProps> = ({
                 imageUploadState={imageUploadState}
                 onRemoveImage={handleRemoveImage}
                 isImageUploadDisabled={hasImageInConversation}
-                isAudioUploadDisabled
+                isAudioUploadDisabled={isAudioUploadDisabled}
+                audioDisabledTooltip={
+                  isAudioUploadDisabled
+                    ? 'Select a transcription model in settings to enable audio upload'
+                    : undefined
+                }
                 pendingDocChips={pendingDocChips}
                 onRemoveDocChip={handleRemoveDocChip}
                 alwaysShowSendButton={hasReadyAttachments}

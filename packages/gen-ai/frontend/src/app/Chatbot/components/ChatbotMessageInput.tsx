@@ -5,6 +5,7 @@ import {
   DropEvent,
   MenuItem,
   MenuList,
+  Tooltip,
 } from '@patternfly/react-core';
 import { ChatbotFootnote, FileDetailsLabel, MessageBar } from '@patternfly/chatbot';
 import { FileRejection } from 'react-dropzone';
@@ -47,6 +48,7 @@ interface ChatbotMessageInputProps {
   onRemoveImage: () => void;
   isImageUploadDisabled: boolean;
   isAudioUploadDisabled: boolean;
+  audioDisabledTooltip?: string;
   pendingDocChips?: PendingDocChip[];
   onRemoveDocChip?: (chipId: string) => void;
   alwaysShowSendButton?: boolean;
@@ -65,6 +67,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
   onRemoveImage,
   isImageUploadDisabled,
   isAudioUploadDisabled,
+  audioDisabledTooltip,
   pendingDocChips,
   onRemoveDocChip,
   alwaysShowSendButton,
@@ -161,9 +164,21 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         >
           Upload image
         </MenuItem>
-        <MenuItem icon={<VolumeUpIcon />} isDisabled={isAudioUploadDisabled}>
-          Upload audio
-        </MenuItem>
+        {isAudioUploadDisabled && audioDisabledTooltip ? (
+          <Tooltip content={audioDisabledTooltip} position="left">
+            <MenuItem icon={<VolumeUpIcon />} isAriaDisabled data-testid="upload-audio-menu-item">
+              Upload audio
+            </MenuItem>
+          </Tooltip>
+        ) : (
+          <MenuItem
+            icon={<VolumeUpIcon />}
+            isDisabled={isAudioUploadDisabled}
+            data-testid="upload-audio-menu-item"
+          >
+            Upload audio
+          </MenuItem>
+        )}
         <MenuItem
           icon={<OutlinedFileAltIcon />}
           onClick={() => handleMenuSelect('upload-documents')}
@@ -172,7 +187,7 @@ const ChatbotMessageInput: React.FC<ChatbotMessageInputProps> = ({
         </MenuItem>
       </MenuList>
     ),
-    [isImageUploadDisabled, isAudioUploadDisabled, handleMenuSelect],
+    [isImageUploadDisabled, isAudioUploadDisabled, audioDisabledTooltip, handleMenuSelect],
   );
 
   return (
