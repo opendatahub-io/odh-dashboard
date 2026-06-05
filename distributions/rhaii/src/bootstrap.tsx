@@ -2,12 +2,14 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { ExtensibilityContextProvider } from './plugins/ExtensibilityContext';
-import { ThemeProvider } from '../../base/src/ThemeContext';
-import { ErrorBoundary } from '../../base/src/ErrorBoundary';
-import Shell from '../../base/src/Shell';
-import ShellHeader from '../../base/src/ShellHeader';
-import ShellNav from '../../base/src/ShellNav';
-import ShellRoutes from '../../base/src/ShellRoutes';
+import {
+  Shell,
+  ShellHeader,
+  ShellNav,
+  ShellRoutes,
+  ThemeProvider,
+  ErrorBoundary,
+} from '../../base/src/lib';
 
 const router = createBrowserRouter([
   {

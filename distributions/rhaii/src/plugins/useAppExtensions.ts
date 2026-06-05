@@ -56,6 +56,8 @@ const pluginExtensions: Record<string, Extension[]> = {
   scaffold: scaffoldExtensions,
 };
 
+// Sync stub — returns loaded: true immediately. Replace with async fetching
+// (useState/useEffect) when real plugin discovery lands.
 export const useAppExtensions = (): [Record<string, Extension[]>, boolean] => [
   pluginExtensions,
   true,
