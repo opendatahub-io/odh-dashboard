@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useS3ListFilesQuery, fetchS3Json } from '~/app/hooks/queries';
-import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type { PipelineRun } from '~/app/types';
 
 /* eslint-disable camelcase */
@@ -51,7 +51,7 @@ export function useComponentStageMap(
   namespace?: string,
   pipelineRun?: PipelineRun,
 ): UseComponentStageMapReturn {
-  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const { rootDir } = useAutoragOutputDir(pipelineRun);
 
   const taskSucceeded = isTaskSucceeded(pipelineRun);
 
@@ -82,7 +82,7 @@ export function useComponentStageMap(
     isError: isJsonError,
     error: jsonError,
   } = useQuery<ComponentStageMap>({
-    queryKey: ['automl', 'componentStageMap', namespace, stageMapJsonPath],
+    queryKey: ['autorag', 'componentStageMap', namespace, stageMapJsonPath],
     queryFn: async ({ signal }) => {
       if (!namespace || !stageMapJsonPath) {
         throw new Error('namespace and path are required');

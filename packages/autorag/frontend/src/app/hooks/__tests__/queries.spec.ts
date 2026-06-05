@@ -1,4 +1,4 @@
-import { fetchS3File } from '~/app/hooks/queries';
+import { fetchS3File, fetchS3Json } from '~/app/hooks/queries';
 
 global.fetch = jest.fn();
 
@@ -117,6 +117,56 @@ describe('fetchS3File', () => {
 
     await expect(fetchS3File('ns', 'key')).rejects.toThrow(
       'Failed to fetch file: Internal Server Error',
+    );
+  });
+});
+
+describe('fetchS3Json', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const mockBlobResponse = (content: string) =>
+    ({
+      ok: true,
+      blob: () => Promise.resolve({ text: () => Promise.resolve(content) }),
+    }) as unknown as Response;
+
+  it('should parse JSON from the fetched blob', async () => {
+    const data = { componentId: 'test', stages: [] };
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse(JSON.stringify(data)));
+
+    const result = await fetchS3Json('ns', 'path/to/file.json');
+    expect(result).toEqual(data);
+  });
+
+  it('should pass signal through to fetch', async () => {
+    const controller = new AbortController();
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('{}'));
+
+    await fetchS3Json('ns', 'key.json', { signal: controller.signal });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it('should throw on invalid JSON', async () => {
+    jest.mocked(global.fetch).mockResolvedValue(mockBlobResponse('not valid json'));
+
+    await expect(fetchS3Json('ns', 'bad.json')).rejects.toThrow();
+  });
+
+  it('should propagate fetch errors from fetchS3File', async () => {
+    jest.mocked(global.fetch).mockResolvedValue({
+      ok: false,
+      statusText: 'Not Found',
+      json: () => Promise.reject(new Error('no json')),
+    } as unknown as Response);
+
+    await expect(fetchS3Json('ns', 'missing.json')).rejects.toThrow(
+      'Failed to fetch file: Not Found',
     );
   });
 });

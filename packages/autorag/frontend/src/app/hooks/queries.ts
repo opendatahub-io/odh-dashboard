@@ -98,6 +98,20 @@ export async function fetchS3File(
   return response.blob();
 }
 
+export async function fetchS3Json<T>(
+  namespace: string,
+  key: string,
+  options?: {
+    signal?: AbortSignal;
+  },
+): Promise<T> {
+  const { signal } = options ?? {};
+  const blob = await fetchS3File(namespace, key, { signal });
+  const text = await blob.text();
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- caller accepts risk
+  return JSON.parse(text) as T;
+}
+
 export function useS3ListFilesQuery(
   namespace?: string,
   path?: string,

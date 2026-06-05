@@ -26,6 +26,8 @@ import { useAutoragRunActions } from '~/app/hooks/useAutoragRunActions';
 import { useNotification } from '~/app/hooks/useNotification';
 import { usePipelineRunQuery } from '~/app/hooks/queries';
 import { useAutoragResults } from '~/app/hooks/useAutoragResults';
+import { useComponentStageMap } from '~/app/hooks/useComponentStageMap';
+import { useComponentStatuses } from '~/app/hooks/useComponentStatuses';
 import { autoragExperimentsPathname, autoragReconfigurePathname } from '~/app/utilities/routes';
 import { isRunTerminatable, isRunRetryable, parseErrorStatus } from '~/app/utilities/utils';
 
@@ -56,6 +58,7 @@ function AutoragResultsPage(): React.JSX.Element {
     isFetching: pipelineRunFetching,
     isError: pipelineRunError,
     error: pipelineRunLoadError,
+    dataUpdatedAt: pipelineRunUpdatedAt,
   } = usePipelineRunQuery(runId, namespace);
 
   // Two-tier error strategy: polling errors (data already loaded) show a non-blocking
@@ -88,6 +91,15 @@ function AutoragResultsPage(): React.JSX.Element {
     refetch: refetchPatterns,
     ragPatternsBasePath,
   } = useAutoragResults(runId, namespace, pipelineRun);
+
+  const {
+    componentStageMap: rawComponentStageMap,
+    isLoading: componentStageMapLoading,
+    isError: componentStageMapError,
+  } = useComponentStageMap(runId, namespace, pipelineRun);
+
+  const { mergedStageMap: componentStageMap, isLoading: componentStatusesLoading } =
+    useComponentStatuses(runId, namespace, pipelineRun, rawComponentStageMap, pipelineRunUpdatedAt);
 
   const failedPatternsNotifiedKey = React.useRef('');
   React.useEffect(() => {
@@ -147,6 +159,9 @@ function AutoragResultsPage(): React.JSX.Element {
         patternsLoadError,
         onRetryPatterns: refetchPatterns,
         ragPatternsBasePath,
+        componentStageMap,
+        componentStageMapLoading: componentStageMapLoading || componentStatusesLoading,
+        componentStageMapError,
       }),
     [
       pipelineRun,
@@ -158,6 +173,10 @@ function AutoragResultsPage(): React.JSX.Element {
       patternsLoadError,
       refetchPatterns,
       ragPatternsBasePath,
+      componentStageMap,
+      componentStageMapLoading,
+      componentStatusesLoading,
+      componentStageMapError,
     ],
   );
 

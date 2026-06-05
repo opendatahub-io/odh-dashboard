@@ -1,6 +1,6 @@
 import React from 'react';
 import { fetchS3Json } from '~/app/hooks/queries';
-import { useAutomlOutputDir } from '~/app/hooks/useAutomlOutputDir';
+import { useAutoragOutputDir } from '~/app/hooks/useAutoragOutputDir';
 import type {
   ComponentStageMap,
   ComponentStageMapComponent,
@@ -140,7 +140,7 @@ export function useComponentStatuses(
   componentStageMap: ComponentStageMap | undefined,
   dataUpdatedAt: number,
 ): UseComponentStatusesReturn {
-  const { rootDir } = useAutomlOutputDir(pipelineRun);
+  const { rootDir } = useAutoragOutputDir(pipelineRun);
   const completedRef = React.useRef(new Set<string>());
   const statusCacheRef = React.useRef(new Map<string, ComponentStatusFile>());
   const [statusFiles, setStatusFiles] = React.useState(new Map<string, ComponentStatusFile>());
