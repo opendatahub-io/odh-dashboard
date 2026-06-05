@@ -3,28 +3,79 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   Bullseye,
+  Button,
   PageSection,
-  EmptyState,
-  EmptyStateBody,
   Spinner,
+  getUniqueId,
 } from '@patternfly/react-core';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import ApplicationsPage from '#~/pages/ApplicationsPage';
 import { useAccessReview } from '#~/api/useAccessReview';
 import { ProjectDetailsContext } from '#~/pages/projects/ProjectDetailsContext';
-import { getDisplayNameFromK8sResource } from '#~/concepts/k8s/utils';
+import { getDisplayNameFromK8sResource, isValidK8sLabelKeyValue } from '#~/concepts/k8s/utils';
+import { useK8sNameDescriptionFieldData } from '#~/concepts/k8s/K8sNameDescriptionField/K8sNameDescriptionField';
+import { RoleKind } from '#~/k8sTypes';
+import CreateRoleForm from './CreateRoleForm';
+import CreateRoleFooter from './CreateRoleFooter';
+import type { LabelEntry } from './types';
 
-const CreateRolePage: React.FC = () => {
+type CreateRolePageProps = {
+  existingRole?: RoleKind;
+};
+
+const CreateRolePage: React.FC<CreateRolePageProps> = ({ existingRole }) => {
   const { namespace = '' } = useParams<{ namespace: string }>();
   const { currentProject } = React.useContext(ProjectDetailsContext);
   const displayName = getDisplayNameFromK8sResource(currentProject);
+  const isEdit = !!existingRole;
 
-  const [allowCreate, loaded] = useAccessReview({
+  const [allowAccess, loaded] = useAccessReview({
     group: 'rbac.authorization.k8s.io',
     resource: 'roles',
     namespace,
-    verb: 'create',
+    verb: isEdit ? 'update' : 'create',
   });
+
+  const k8sNameDescriptionData = useK8sNameDescriptionFieldData({
+    initialData: existingRole,
+  });
+  const [description, setDescription] = React.useState(
+    () => existingRole?.metadata.annotations?.['openshift.io/description'] ?? '',
+  );
+  const [labels, setLabels] = React.useState<LabelEntry[]>(() => {
+    if (!existingRole?.metadata.labels) {
+      return [];
+    }
+    return Object.entries(existingRole.metadata.labels).map(([key, value]) => ({
+      id: getUniqueId('label'),
+      key,
+      value,
+    }));
+  });
+
+  const handleDescriptionChange = React.useCallback((value: string) => {
+    setDescription(value);
+  }, []);
+
+  const handleLabelsChange = React.useCallback((newLabels: LabelEntry[]) => {
+    setLabels(newLabels);
+  }, []);
+
+  const hasDuplicateLabelKeys = React.useMemo(
+    () => new Set(labels.map((l) => l.key)).size !== labels.length,
+    [labels],
+  );
+
+  const hasInvalidLabels =
+    labels.some(
+      (label) => !label.key || !label.value || !isValidK8sLabelKeyValue(label.key, label.value),
+    ) || hasDuplicateLabelKeys;
+
+  const isSubmitDisabled =
+    !k8sNameDescriptionData.data.k8sName.value ||
+    k8sNameDescriptionData.data.k8sName.state.invalidCharacters ||
+    k8sNameDescriptionData.data.k8sName.state.invalidLength ||
+    hasInvalidLabels;
 
   if (!loaded) {
     return (
@@ -34,29 +85,49 @@ const CreateRolePage: React.FC = () => {
     );
   }
 
-  if (!allowCreate) {
+  if (!allowAccess) {
     return <Navigate to={`/projects/${namespace}?section=roles`} replace />;
   }
 
+  const pageTitle = isEdit ? 'Edit custom role' : 'Create custom role';
+
   return (
     <ApplicationsPage
-      title="Create role"
+      title={pageTitle}
       breadcrumb={
         <Breadcrumb>
           <BreadcrumbItem render={() => <Link to="/projects">Projects</Link>} />
           <BreadcrumbItem
             render={() => <Link to={`/projects/${namespace}?section=roles`}>{displayName}</Link>}
           />
-          <BreadcrumbItem isActive>Create role</BreadcrumbItem>
+          <BreadcrumbItem isActive>{pageTitle}</BreadcrumbItem>
         </Breadcrumb>
+      }
+      description="Create a custom role to control what users can see and do across your cluster resources. Define permissions, navigation access, and resource scopes to implement fine-grained access control."
+      headerAction={
+        // TODO: Enable when template selection modal is implemented (RHOAIENG-63156)
+        <Button variant="secondary" data-testid="select-role-template-button" isDisabled>
+          Select role template
+        </Button>
       }
       loaded
       empty={false}
     >
-      <PageSection hasBodyWrapper={false} data-testid="create-role-page">
-        <EmptyState headingLevel="h2" titleText="Create role">
-          <EmptyStateBody>Role creation form will be implemented here.</EmptyStateBody>
-        </EmptyState>
+      <PageSection hasBodyWrapper={false} isFilled data-testid="create-role-page">
+        <CreateRoleForm
+          nameDescriptionData={k8sNameDescriptionData}
+          description={description}
+          onDescriptionChange={handleDescriptionChange}
+          labels={labels}
+          onLabelsChange={handleLabelsChange}
+        />
+      </PageSection>
+      <PageSection hasBodyWrapper={false} stickyOnBreakpoint={{ default: 'bottom' }}>
+        <CreateRoleFooter
+          namespace={namespace}
+          isSubmitDisabled={isSubmitDisabled}
+          isEdit={isEdit}
+        />
       </PageSection>
     </ApplicationsPage>
   );

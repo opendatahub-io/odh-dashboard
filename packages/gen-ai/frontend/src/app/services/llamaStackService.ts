@@ -9,14 +9,17 @@ import {
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  ApiErrorClass,
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
   ContentAnnotation,
   CreateResponseRequest,
+  ERROR_COMPONENTS,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -231,7 +234,7 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
+  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
     hostPath,
     '/lsd/responses',
     toCreateResponseRecord(request),
@@ -239,10 +242,8 @@ const postCreateResponse = (
     fetchOpts,
   ).then((response) => {
     if (response.error) {
-      const err = Object.assign(new Error(response.error.message), {
-        code: response.error.code,
-      });
-      throw err;
+      // Preserve the full ApiError structure from BFF
+      throw new ApiErrorClass(response.error);
     }
     if (response.data) {
       return transformBackendResponse(response.data);
@@ -270,17 +271,26 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          let errorCode: string | undefined;
+          let errorData: unknown = null;
           try {
             const errorBody = await response.text();
-            const errorData = JSON.parse(errorBody);
-            errorMessage = errorData?.error?.message || errorMessage;
-            errorCode = errorData?.error?.code;
+            errorData = JSON.parse(errorBody);
           } catch {
-            // ignore
+            // JSON parsing failed - will use fallback below
           }
-          throw Object.assign(new Error(errorMessage), { code: errorCode });
+
+          if (isApiError(errorData)) {
+            // Preserve the full ApiError structure from BFF
+            throw new ApiErrorClass(errorData.error);
+          }
+
+          // Fallback: no structured error or parsing failed
+          throw new ApiErrorClass({
+            component: ERROR_COMPONENTS.BFF,
+            code: `http_${response.status}`,
+            message: `HTTP error! status: ${response.status}`,
+            retriable: false,
+          });
         }
 
         const reader = response.body?.getReader();
@@ -314,11 +324,11 @@ const streamCreateResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      const errMsg = data.error.message || 'An error occurred during streaming';
                       if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
-                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                      // Preserve the full ApiError structure from BFF
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
@@ -422,7 +432,14 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
+        // Preserve ApiError instances (class or plain object), wrap everything else
+        if (isApiError(error)) {
+          reject(error);
+        } else {
+          reject(
+            error instanceof Error ? error : new Error('Failed to generate streaming response'),
+          );
+        }
       });
   });
 

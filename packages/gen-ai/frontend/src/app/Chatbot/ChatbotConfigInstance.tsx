@@ -180,7 +180,6 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         messageList={messagesHook.messages}
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
-        isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={PLACEHOLDER_BOT_CONTENT}
         hasImagesInConversation={hasImagesInConversation}
