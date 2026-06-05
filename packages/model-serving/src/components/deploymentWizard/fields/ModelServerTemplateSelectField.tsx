@@ -9,7 +9,7 @@ import {
   Radio,
   Truncate,
 } from '@patternfly/react-core';
-import type { HardwareProfileKind, TemplateKind } from '@odh-dashboard/internal/k8sTypes';
+import type { HardwareProfileKind, TemplateKind } from '@odh-dashboard/k8s-core';
 import { ScopedType } from '@odh-dashboard/internal/pages/modelServing/screens/const';
 import ProjectScopedPopover from '@odh-dashboard/internal/components/ProjectScopedPopover';
 import ProjectScopedIcon from '@odh-dashboard/internal/components/searchSelector/ProjectScopedIcon';

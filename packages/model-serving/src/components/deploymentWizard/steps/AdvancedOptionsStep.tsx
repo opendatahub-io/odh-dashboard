@@ -1,7 +1,7 @@
 import React from 'react';
+import type { K8sDSGResource } from '@odh-dashboard/k8s-core';
 import {
   AccessReviewResourceAttributes,
-  K8sDSGResource,
   ServingContainer,
   ServingRuntimeKind,
 } from '@odh-dashboard/internal/k8sTypes';

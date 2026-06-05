@@ -17,6 +17,7 @@
     "./testing": "./src/testing/utils.ts"
   },
   "dependencies": {
+    "@odh-dashboard/k8s-core": "*",
     "@openshift/dynamic-plugin-sdk": "^5.0.1"
   },
   "devDependencies": {

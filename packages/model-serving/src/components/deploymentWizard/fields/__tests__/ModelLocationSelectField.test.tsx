@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { z } from 'zod';
 import { useWizardContext, useWizardFooter } from '@patternfly/react-core';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
-import { KnownLabels, PersistentVolumeClaimKind } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
+import type { PersistentVolumeClaimKind } from '@odh-dashboard/k8s-core';
 import {
   ConnectionTypeConfigMapObj,
   Connection,

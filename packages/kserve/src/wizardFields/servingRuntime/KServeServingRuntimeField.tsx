@@ -15,7 +15,7 @@ import type {
   HardwareProfileKind,
   SupportedModelFormats,
   TemplateKind,
-} from '@odh-dashboard/internal/k8sTypes';
+} from '@odh-dashboard/k8s-core';
 import type { RecursivePartial } from '@odh-dashboard/internal/typeHelpers';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import { useDashboardNamespace } from '@odh-dashboard/internal/redux/selectors/project';

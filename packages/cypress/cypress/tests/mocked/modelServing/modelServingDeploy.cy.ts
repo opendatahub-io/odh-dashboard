@@ -29,7 +29,7 @@ import {
   ModelLocationSelectOption,
   ModelTypeLabel,
 } from '@odh-dashboard/model-serving/types/form-data';
-import { KnownLabels } from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels } from '@odh-dashboard/k8s-core';
 import {
   initMockConnectionSecretIntercepts,
   initMockModelAuthIntercepts,

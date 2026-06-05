@@ -1,4 +1,4 @@
-import type { SupportedModelFormats } from '@odh-dashboard/internal/k8sTypes';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import type { KServeDeployment } from './deployments';
 
 export const extractKServeModelFormat = (
