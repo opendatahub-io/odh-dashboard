@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import * as https from 'https';
+import * as k8s from '@kubernetes/client-node';
 
 jest.mock('https', () => {
   const actual = jest.requireActual<typeof import('https')>('https');
@@ -96,8 +97,28 @@ const createMockKubeFastify = (mockApi = createMockApi()) =>
     },
     kube: {
       customObjectsApi: mockApi,
+      config: {
+        getCurrentCluster: jest
+          .fn()
+          .mockReturnValue({ name: 'test-cluster', server: 'https://test' }),
+        getCurrentUser: jest.fn().mockReturnValue({ name: 'test-user', token: 'kube-token' }),
+      },
     },
   } as any);
+
+/**
+ * Wire `new k8s.KubeConfig()` → mockApi for describe blocks that test K8s API calls.
+ * Call this in beforeEach after mockApi is assigned so the spy captures the right instance.
+ */
+const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockApi>) => {
+  jest.spyOn(k8s, 'KubeConfig').mockImplementation(
+    () =>
+      ({
+        loadFromClusterAndUser: jest.fn(),
+        makeApiClient: jest.fn().mockReturnValue(getMockApi()),
+      } as any),
+  );
+};
 
 const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
 
@@ -415,6 +436,7 @@ describe('featureStoreUtils', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
+      spyKubeConfigForMockApi(() => mockApi);
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -440,7 +462,7 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         undefined,
-        { headers: KUBE_HEADERS },
+        { headers: {} },
       );
     });
 
@@ -489,6 +511,26 @@ describe('featureStoreUtils', () => {
         expect.stringContaining('Failed to list Feast namespaces for user'),
       );
     });
+
+    it('should return empty array and log when cluster is not configured', async () => {
+      mockFastify.kube.config.getCurrentCluster.mockReturnValue(null);
+
+      const result = await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list Feast namespaces for user'),
+      );
+    });
+
+    it('should return empty array and log when no access token is provided', async () => {
+      const result = await listFeastNamespaces(mockFastify, {});
+
+      expect(result).toEqual([]);
+      expect(mockFastify.log.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to list Feast namespaces for user'),
+      );
+    });
   });
 
   describe('listUserOpenShiftProjects', () => {
@@ -498,6 +540,7 @@ describe('featureStoreUtils', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
+      spyKubeConfigForMockApi(() => mockApi);
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -523,7 +566,7 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         undefined,
-        { headers: KUBE_HEADERS },
+        { headers: {} },
       );
     });
 
@@ -555,6 +598,7 @@ describe('featureStoreUtils', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
+      spyKubeConfigForMockApi(() => mockApi);
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -591,7 +635,7 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         undefined,
-        { headers: KUBE_HEADERS },
+        { headers: {} },
       );
     });
 
@@ -631,6 +675,7 @@ describe('featureStoreUtils', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
+      spyKubeConfigForMockApi(() => mockApi);
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -662,7 +707,7 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         undefined,
-        { headers: KUBE_HEADERS },
+        { headers: {} },
       );
     });
 
@@ -704,6 +749,7 @@ describe('featureStoreUtils', () => {
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
+      spyKubeConfigForMockApi(() => mockApi);
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -725,7 +771,7 @@ describe('featureStoreUtils', () => {
         NAMESPACE.VIEWER,
         'featurestores',
         PROJECT.BANKING,
-        { headers: KUBE_HEADERS },
+        { headers: {} },
       );
     });
 
