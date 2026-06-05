@@ -266,13 +266,27 @@ func TestResolveModuleStatuses(t *testing.T) {
 				"mlflowEmbedded": "DependenciesSatisfied",
 			},
 		},
+		{
+			name: "unknown module override key produces UnknownModule status",
+			spec: v1alpha1.DashboardSpec{
+				Modules: map[string]v1alpha1.ModuleOverride{
+					"modelregistry": {State: v1alpha1.ModuleEnabled},
+				},
+			},
+			wantPhases: map[string]v1alpha1.ModulePhase{
+				"modelregistry": v1alpha1.ModulePhaseNotDeployed,
+			},
+			wantReason: map[string]string{
+				"modelregistry": "UnknownModule",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := resolveModuleStatuses(&tt.spec)
 
-			require.Equal(t, len(moduleRegistry), len(got), "should return status for every registered module")
+			require.GreaterOrEqual(t, len(got), len(moduleRegistry), "should include at least every registered module")
 
 			for name, wantPhase := range tt.wantPhases {
 				status, ok := got[name]

@@ -9,10 +9,10 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 ## CRD Design
 
 **Kind**: `Dashboard`
-**Group**: `dashboard.opendatahub.io`
+**Group**: `components.platform.opendatahub.io`
 **Version**: `v1alpha1`
 **Scope**: Cluster (not namespaced)
-**Singleton**: Enforced via CEL validation (`metadata.name == 'default-dashboard'`)
+**Singleton**: Enforced via CEL validation (`metadata.name == 'default'`)
 
 ### Spec Fields
 

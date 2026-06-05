@@ -213,6 +213,17 @@ func resolveModuleStatuses(spec *v1alpha1.DashboardSpec) map[string]v1alpha1.Mod
 		}
 	}
 
+	for name := range spec.Modules {
+		if _, known := moduleRegistry[name]; !known {
+			result[name] = v1alpha1.ModuleStatus{
+				Phase:              v1alpha1.ModulePhaseNotDeployed,
+				Reason:             "UnknownModule",
+				Message:            fmt.Sprintf("Module %q is not in the controller's registry (possible typo)", name),
+				LastTransitionTime: now,
+			}
+		}
+	}
+
 	return result
 }
 
