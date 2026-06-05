@@ -45,13 +45,6 @@ const scaffoldExtensions: Extension[] = [
   {
     type: 'app.masthead/toolbar-item',
     properties: {
-      id: 'help-placeholder',
-      component: () => import('../components/HelpPlaceholder'),
-    },
-  } satisfies MastheadToolbarItemExtension,
-  {
-    type: 'app.masthead/toolbar-item',
-    properties: {
       id: 'auth-placeholder',
       component: () => import('../components/AuthPlaceholder'),
       position: 'trailing',
