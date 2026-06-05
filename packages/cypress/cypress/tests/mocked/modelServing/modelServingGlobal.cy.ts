@@ -598,7 +598,7 @@ describe('Model Serving Global', () => {
 
       it('root', () => {
         cy.visitWithLogin('/modelServing');
-        cy.findByTestId('app-tab-page-title').contains('Models');
+        cy.findByTestId('app-tab-page-title').contains('Model deployments');
         cy.url().should('include', '/ai-hub/models/deployments');
       });
 
