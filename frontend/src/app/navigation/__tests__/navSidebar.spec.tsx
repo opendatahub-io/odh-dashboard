@@ -22,7 +22,7 @@ jest.mock('#~/utilities/useAccessReviewExtensions', () => ({
 
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useLocation: () => ({ pathname: '/' }),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined }),
   matchPath: jest.fn(),
 }));
 

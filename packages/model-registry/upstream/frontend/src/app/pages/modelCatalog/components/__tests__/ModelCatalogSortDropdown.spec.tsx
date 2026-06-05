@@ -32,7 +32,7 @@ jest.mock('mod-arch-core', () => {
 });
 
 jest.mock('react-router-dom', () => ({
-  useLocation: jest.fn(() => ({ pathname: '/model-catalog' })),
+  useLocation: jest.fn(() => ({ pathname: '/model-catalog', search: '', hash: '', state: null, key: 'default', unstable_mask: undefined })),
 }));
 
 jest.mock('~/app/hooks/modelCatalog/useCatalogSources', () => ({

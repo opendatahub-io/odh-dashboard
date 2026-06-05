@@ -30,6 +30,7 @@ const setupLocationState = (state: Record<string, unknown> | null) => {
     hash: '',
     state,
     key: 'default',
+    unstable_mask: undefined,
   });
 };
 
