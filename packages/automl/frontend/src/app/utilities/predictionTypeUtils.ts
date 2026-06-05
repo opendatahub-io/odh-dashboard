@@ -181,7 +181,7 @@ export const getInferredPredictionType = (
   if (!selectedColumn) {
     return undefined;
   }
-  if (findTimestampColumn(columns) && selectedColumn.type !== 'string') {
+  if (findTimestampColumn(columns) && isNumericColumnType(selectedColumn.type)) {
     return TASK_TYPE_TIMESERIES;
   }
   return selectedColumn.task_type;

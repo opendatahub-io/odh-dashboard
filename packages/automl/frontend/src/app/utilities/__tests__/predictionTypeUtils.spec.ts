@@ -131,6 +131,36 @@ describe('predictionTypeUtils', () => {
         ),
       ).toBe('timeseries');
     });
+
+    it('should not infer timeseries for a boolean target when a timestamp column exists', () => {
+      expect(
+        getInferredPredictionType(
+          {
+            name: 'is_active',
+            type: 'bool',
+            task_type: 'binary',
+            unique_count: 2,
+            values: [0, 1],
+          },
+          columnsWithTimestamp,
+        ),
+      ).toBe('binary');
+    });
+
+    it('should fall back to column task_type for a boolean target when no timestamp exists', () => {
+      expect(
+        getInferredPredictionType(
+          {
+            name: 'is_active',
+            type: 'bool',
+            task_type: 'binary',
+            unique_count: 2,
+            values: [0, 1],
+          },
+          columnsWithoutTimestamp,
+        ),
+      ).toBe('binary');
+    });
   });
 
   describe('orderRecommendedAssessments', () => {

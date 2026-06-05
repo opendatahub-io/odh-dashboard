@@ -190,14 +190,14 @@ const MOCK_COLUMNS = [
   },
   {
     name: 'credit_score',
-    type: 'int64' as const,
+    type: 'integer' as const,
     task_type: 'regression' as const,
     unique_count: 3,
   },
-  { name: 'income', type: 'float64' as const, task_type: 'regression' as const, unique_count: 50 },
+  { name: 'income', type: 'double' as const, task_type: 'regression' as const, unique_count: 50 },
   {
     name: 'loan_amount',
-    type: 'float64' as const,
+    type: 'double' as const,
     task_type: 'regression' as const,
     unique_count: 40,
   },

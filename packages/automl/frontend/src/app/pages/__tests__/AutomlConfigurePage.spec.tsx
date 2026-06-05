@@ -53,8 +53,8 @@ jest.mock('~/app/hooks/queries', () => ({
   useS3GetFileSchemaQuery: jest.fn(() => ({
     data: [
       { name: 'column1', type: 'string', task_type: 'binary', values: ['yes', 'no'] },
-      { name: 'column2', type: 'int64', task_type: 'regression' },
-      { name: 'column3', type: 'float64', task_type: 'regression' },
+      { name: 'column2', type: 'integer', task_type: 'regression' },
+      { name: 'column3', type: 'double', task_type: 'regression' },
     ],
     isLoading: false,
     isFetching: false,
