@@ -282,7 +282,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Symptom**: `npx mod-arch-installer` fails with ENOENT or network error.
 
-**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer@latest` and retry.
+**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer` and retry.
 
 ### Webpack build fails with "shared module not found"
 

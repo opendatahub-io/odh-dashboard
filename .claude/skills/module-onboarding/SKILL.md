@@ -69,7 +69,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 ### Step 1: Run the installer
 
 ```bash
-cd packages && npx --yes mod-arch-installer@latest -n <name>
+cd packages && npx mod-arch-installer -n <name>
 ```
 
 If the installer fails (network error, not found, etc.), fall back to **manual scaffolding**: copy the structure from an existing federated module like `packages/eval-hub/` and replace all name references. See reference.md § Module Federation Config for the package.json template.
