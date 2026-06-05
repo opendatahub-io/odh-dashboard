@@ -30,10 +30,11 @@ type EvalHubServiceHealth struct {
 
 type EvalHubServiceHealthEnvelope Envelope[EvalHubServiceHealth, None]
 
-// EvalHubServiceHealthHandler performs per-request CR discovery in the dashboard namespace
-// using the caller's bearer token and then pings the discovered EvalHub service. It always
-// returns HTTP 200 with one of the three EvalHubHealthStatus values so the frontend always
-// reaches a loaded state.
+// EvalHubServiceHealthHandler performs per-request CR discovery using the caller's bearer
+// token and then pings the discovered EvalHub service. Because this endpoint does not have
+// the AttachNamespace middleware, it only checks app.dashboardNamespace. It always returns
+// HTTP 200 with one of the three EvalHubHealthStatus values so the frontend always reaches
+// a loaded state.
 //
 // Priority:
 //  1. MockEvalHubClient=true — return healthy immediately (dev/test mode, no K8s call).
