@@ -1,4 +1,4 @@
-import type { Extension, CodeRef } from '@openshift/dynamic-plugin-sdk';
+import type { Extension, ExtensionPredicate, CodeRef } from '@openshift/dynamic-plugin-sdk';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 export type DeployPrefillData = {
     modelName: string;
@@ -13,4 +13,4 @@ export type NavigateToDeploymentWizardWithDataExtension = Extension<'model-catal
     useAvailablePlatformIds: CodeRef<() => string[]>;
     useNavigateToDeploymentWizardWithData: CodeRef<(deployPrefillData: DeployPrefillData) => (projectName?: string) => void>;
 }>;
-export declare const isNavigateToDeploymentWizardWithDataExtension: (extension: Extension) => extension is NavigateToDeploymentWizardWithDataExtension;
+export declare const isNavigateToDeploymentWizardWithDataExtension: ExtensionPredicate<NavigateToDeploymentWizardWithDataExtension>;
