@@ -32,6 +32,7 @@ import type {
 } from './src/pages/deploymentWizard/fields/NIMPVCField';
 
 export const NIM_ID = 'nvidia-nim';
+export const NIM_MODEL_TYPE = 'NVIDIA NIM';
 
 const nimImageFieldExtension: WizardFieldExtension<NIMImageFieldType> = {
   type: 'model-serving.deployment/wizard-field',

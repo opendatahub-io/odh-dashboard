@@ -10,6 +10,7 @@ import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components
 import type { ExtractionResult } from '@odh-dashboard/model-serving/extension-points';
 import type { NIMDeployment } from '../../api/nimservices/types';
 import { NIM_SERVICE_HARDWARE_PROFILE_PATHS } from '../../api/nimservices/utils';
+import { NIM_MODEL_TYPE } from '../../../extensions';
 
 export { NIM_SERVICE_HARDWARE_PROFILE_PATHS };
 
@@ -77,7 +78,7 @@ export const extractNIMModelAvailabilityData = (): {
 } | null => null;
 
 export const extractNIMModelType = (): ModelTypeFieldData => ({
-  type: 'NVIDIA NIM',
+  type: NIM_MODEL_TYPE,
   legacyVLLM: false,
 });
 

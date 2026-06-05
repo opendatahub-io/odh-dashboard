@@ -1,6 +1,6 @@
 import { ModelLocationType } from '@odh-dashboard/model-serving/components/deploymentWizard/types';
 import type { NIMDeployment } from '../../../api/nimservices/types';
-import { NIM_ID } from '../../../../extensions';
+import { NIM_ID, NIM_MODEL_TYPE } from '../../../../extensions';
 import {
   extractNIMHardwareProfileConfig,
   extractNIMReplicas,
@@ -169,7 +169,7 @@ describe('extractNIMRuntimeArgs', () => {
 
 describe('extractNIMModelType', () => {
   it('should always return NVIDIA NIM model type', () => {
-    expect(extractNIMModelType()).toEqual({ type: 'NVIDIA NIM', legacyVLLM: false });
+    expect(extractNIMModelType()).toEqual({ type: NIM_MODEL_TYPE, legacyVLLM: false });
   });
 });
 
