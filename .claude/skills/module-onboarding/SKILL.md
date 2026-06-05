@@ -23,7 +23,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 
 3. **Compute all name variants** (see reference.md § Name Transformation Rules):
 
-   ```
+   ```text
    kebab-case:       my-module
    camelCase:        myModule
    UPPER_SNAKE_CASE: MY_MODULE
@@ -32,7 +32,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 
    And derived identifiers:
 
-   ```
+   ```text
    Package:       @odh-dashboard/my-module
    SupportedArea: PLUGIN_MY_MODULE = 'plugin-my-module'
    Feature flag:  myModule
@@ -47,10 +47,10 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 1. **Scan existing frontend ports**:
 
    ```bash
-   grep -r '"port"' packages/*/package.json | grep -E '"local"' -A2 | grep -oP '\d{4,5}' | sort -n
+   jq -r '."module-federation".local.port // empty' packages/*/package.json 2>/dev/null | awk '$1>=9100 && $1<=9399' | sort -n
    ```
 
-   Or more precisely, read every `packages/*/package.json` that has a `module-federation` key and collect `module-federation.local.port` values. Find the next unused integer in the **9100–9399** range.
+   This reads every `packages/*/package.json` that has a `module-federation` key and collects `module-federation.local.port` values. Find the next unused integer in the **9100–9399** range.
 
 2. **Scan existing BFF ports** (if BFF included):
 
@@ -69,7 +69,7 @@ See [reference.md](reference.md) for naming conventions, port ranges, templates,
 ### Step 1: Run the installer
 
 ```bash
-cd packages && npx mod-arch-installer -n <name>
+cd packages && npx --yes mod-arch-installer@latest -n <name>
 ```
 
 If the installer fails (network error, not found, etc.), fall back to **manual scaffolding**: copy the structure from an existing federated module like `packages/eval-hub/` and replace all name references. See reference.md § Module Federation Config for the package.json template.
@@ -85,6 +85,7 @@ After the installer completes, verify the following files exist and are correct.
 - `module-federation.proxy[0].path` is `/<name>/api`
 - `module-federation.service.port` is `8043`
 - If BFF included, add `bffConfig` section:
+
   ```json
   "bffConfig": {
     "enabled": true,
@@ -93,6 +94,7 @@ After the installer completes, verify the following files exist and are correct.
     "startCommand": "make dev-bff-e2e-mock"
   }
   ```
+
 - Dependencies include `@odh-dashboard/plugin-core` and `@odh-dashboard/internal`
 - `exports` includes `"./extensions": "./frontend/src/odh/extensions.ts"`
 

@@ -40,7 +40,7 @@ Given a kebab-case module name (e.g., `my-module`):
 
 ```bash
 # Frontend ports — scan all packages
-grep -r '"port"' packages/*/package.json | grep 'local' | grep -oP '\d{4,5}' | sort -n
+jq -r '."module-federation".local.port // empty' packages/*/package.json 2>/dev/null | awk '$1>=9100 && $1<=9399' | sort -n
 
 # BFF ports — scan Makefiles
 grep -r 'PROXY_PORT=' packages/*/Makefile | grep -oP '\d{4,5}' | sort -n
@@ -282,7 +282,7 @@ This checklist maps to skill phases. Items marked with a phase are handled autom
 
 **Symptom**: `npx mod-arch-installer` fails with ENOENT or network error.
 
-**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer` and retry.
+**Fix**: The skill falls back to manual scaffolding. Alternatively, install it explicitly: `npm install -g mod-arch-installer@latest` and retry.
 
 ### Webpack build fails with "shared module not found"
 
