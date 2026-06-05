@@ -1,4 +1,4 @@
-import { ProjectKind } from '@odh-dashboard/internal/k8sTypes';
+import type { ProjectKind } from '@odh-dashboard/k8s-core';
 
 export const mockProjects: ProjectKind[] = [
   {

@@ -37,7 +37,10 @@
     ]
   },
   "dependencies": {
-    "@odh-dashboard/plugin-core": "*"
+    "@odh-dashboard/app-config": "*",
+    "@odh-dashboard/k8s-core": "*",
+    "@odh-dashboard/plugin-core": "*",
+    "axios": "^1.16.0"
   },
   "devDependencies": {
     "@odh-dashboard/eslint-config": "*"

@@ -1,4 +1,5 @@
-import { ClusterQueueKind, PodKind } from '@odh-dashboard/internal/k8sTypes';
+import type { PodKind } from '@odh-dashboard/k8s-core';
+import type { ClusterQueueKind } from '@odh-dashboard/internal/k8sTypes';
 import { ContainerResourceAttributes } from '@odh-dashboard/internal/types';
 import { mockClusterQueueK8sResource } from '@odh-dashboard/internal/__mocks__/mockClusterQueueK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';

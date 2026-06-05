@@ -1,8 +1,5 @@
-import {
-  KnownLabels,
-  MetadataAnnotation,
-  type SupportedModelFormats,
-} from '@odh-dashboard/internal/k8sTypes';
+import { KnownLabels, MetadataAnnotation } from '@odh-dashboard/k8s-core';
+import type { SupportedModelFormats } from '@odh-dashboard/k8s-core';
 import { ServingRuntimeModelType } from '@odh-dashboard/internal/types';
 import type { ModelTypeFieldData } from '@odh-dashboard/model-serving/components/deploymentWizard/fields/ModelTypeSelectField';
 import {

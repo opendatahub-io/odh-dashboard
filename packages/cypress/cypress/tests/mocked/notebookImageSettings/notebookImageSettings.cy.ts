@@ -12,7 +12,7 @@ import {
   ImageStreamLabel,
   ImageStreamSpecTagAnnotation,
 } from '@odh-dashboard/internal/types';
-import { HardwareProfileFeatureVisibility } from '@odh-dashboard/internal/k8sTypes';
+import { HardwareProfileFeatureVisibility } from '@odh-dashboard/k8s-core';
 import { mockImageStreamK8sResource } from '@odh-dashboard/internal/__mocks__/mockImageStreamK8sResource';
 import { deleteModal } from '../../../pages/components/DeleteModal';
 import {
