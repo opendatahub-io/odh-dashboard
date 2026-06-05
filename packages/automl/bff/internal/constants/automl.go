@@ -38,6 +38,35 @@ var ValidTaskTypes = map[string]bool{
 	TaskTypeRegression: true,
 }
 
+// ValidClassificationEvalMetrics lists valid eval_metric values for binary and multiclass classification.
+var ValidClassificationEvalMetrics = map[string]bool{
+	"accuracy": true, "balanced_accuracy": true, "log_loss": true,
+	"f1": true, "f1_macro": true, "f1_micro": true, "f1_weighted": true,
+	"roc_auc": true, "roc_auc_ovo": true, "roc_auc_ovo_macro": true, "roc_auc_ovo_weighted": true,
+	"roc_auc_ovr": true, "roc_auc_ovr_macro": true, "roc_auc_ovr_micro": true, "roc_auc_ovr_weighted": true,
+	"average_precision": true,
+	"precision":         true, "precision_macro": true, "precision_micro": true, "precision_weighted": true,
+	"recall": true, "recall_macro": true, "recall_micro": true, "recall_weighted": true,
+	"mcc": true, "pac_score": true,
+}
+
+// ValidRegressionEvalMetrics lists valid eval_metric values for regression tasks.
+var ValidRegressionEvalMetrics = map[string]bool{
+	"root_mean_squared_error":                  true,
+	"mean_squared_error":                       true,
+	"mean_absolute_error":                      true,
+	"median_absolute_error":                    true,
+	"mean_absolute_percentage_error":           true,
+	"r2":                                       true,
+	"symmetric_mean_absolute_percentage_error": true,
+}
+
+// ValidTimeseriesEvalMetrics lists valid eval_metric values for timeseries tasks (UPPERCASE).
+var ValidTimeseriesEvalMetrics = map[string]bool{
+	"SQL": true, "WQL": true, "MAE": true, "MAPE": true, "MASE": true,
+	"MSE": true, "RMSE": true, "RMSLE": true, "RMSSE": true, "SMAPE": true, "WAPE": true,
+}
+
 // ValidPipelineTypes lists the valid pipeline type keys for AutoML discovery.
 var ValidPipelineTypes = map[string]bool{
 	PipelineTypeTimeSeries: true,
