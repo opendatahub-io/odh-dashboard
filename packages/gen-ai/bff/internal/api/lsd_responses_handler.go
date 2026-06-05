@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +35,7 @@ var supportedEventTypes = map[string]bool{
 	"response.output_text.delta":    true, // Text delta/chunk for streaming text
 	"response.content_part.done":    true, // Content part completed
 	"response.completed":            true, // Response generation completed
+	"response.failed":               true, // Response generation failed (contains error code/message)
 	"response.refusal.delta":        true, // Refusal text
 	"response.refusal.done":         true, // Refusal text completed
 	"response.reasoning_text.delta": true, // Reasoning/thinking text delta
@@ -486,7 +488,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
 			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)
-			app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+			app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 			return
 		}
 
@@ -516,7 +518,7 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Input moderation check failed", "error", modErr)
-				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
 			if result != nil && result.Flagged {
@@ -605,6 +607,25 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 		event := stream.Current()
 
+		// Intercept OGX error events (type: "error") before convertToStreamingEvent
+		// which would filter them out. These are top-level errors like "model not found".
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			flusher.Flush()
+			return
+		}
+
 		// Convert to clean streaming event
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
@@ -616,6 +637,22 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 			now := time.Now()
 			firstTokenTime = &now
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		// since ResponseData doesn't carry the nested error fields.
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			flusher.Flush()
+			return
 		}
 
 		// Extract usage and process citations from completed event
@@ -646,18 +683,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		flusher.Flush()
 	}
 
-	// Check for stream errors
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err = stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		// Send error event
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
 
 	// Send metrics event after stream completes
@@ -707,7 +737,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
-				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
 			if result != nil && result.Flagged {

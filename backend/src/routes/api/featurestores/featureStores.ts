@@ -180,13 +180,28 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/:namespace/:name/*',
     async (
       req: OauthFastifyRequest<{
-        Params: { namespace: string; name: string; '*': string };
+        Params: { namespace: string; name: string };
       }>,
       reply: FastifyReply,
     ) => {
-      const { namespace, name, '*': wildcardPath } = req.params;
-      const path =
-        wildcardPath && wildcardPath.startsWith('api/v1/') ? wildcardPath : 'api/v1/projects';
+      const { namespace, name } = req.params;
+      const wildcardPath = (req.params as Record<string, string>)['*'] || '';
+
+      if (wildcardPath && (!wildcardPath.startsWith('api/v1/') || wildcardPath.includes('..'))) {
+        throw createCustomError(
+          'Invalid path',
+          'Path must start with api/v1/ and must not contain traversal sequences',
+          400,
+        );
+      }
+
+      const query = req.query as Record<string, string>;
+      const qs = Object.keys(query)
+        .filter((k) => typeof query[k] === 'string')
+        .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(query[k])}`)
+        .join('&');
+      const validatedPath = wildcardPath || 'api/v1/projects';
+      const path = qs ? `${validatedPath}?${qs}` : validatedPath;
 
       const DNS1123_REGEX = /^[a-z0-9]([a-z0-9-]{0,251}[a-z0-9])?$/;
       if (!DNS1123_REGEX.test(namespace) || !DNS1123_REGEX.test(name)) {
