@@ -47,6 +47,9 @@ class RegisteredModelDetails {
         }
       });
     this.findPropertiesToggleButton().should('have.attr', 'aria-expanded', 'true');
+    // Wait for the "Add property" button to be visible after expansion animation completes
+    // This is more reliable than waiting for the table, which is conditionally rendered
+    this.findAddPropertyButton().should('be.visible');
   }
 
   findExpandPropertiesButton() {
@@ -61,7 +64,10 @@ class RegisteredModelDetails {
   }
 
   shouldHaveCustomProperty(key: string, value: string) {
+    // Wait for the expandable section to contain a visible table
+    // The table is conditionally rendered only when properties exist
     this.findPropertiesExpandableSection().within(() => {
+      cy.findByTestId('properties-table', { timeout: 10000 }).should('be.visible');
       cy.contains(key).should('be.visible');
       cy.contains(value).should('be.visible');
     });

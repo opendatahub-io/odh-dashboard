@@ -2,9 +2,11 @@ import { appChrome } from './appChrome';
 
 const MLFLOW_DARK_MODE_KEY = '_mlflow_dark_mode_toggle_enabled';
 
+const GEN_AI_DEV_FLAG = 'devFeatureFlags=genAiStudio=true';
+
 class PromptManagement {
   visit(workspace?: string) {
-    const qs = workspace ? `?workspace=${workspace}` : '';
+    const qs = workspace ? `?workspace=${workspace}&${GEN_AI_DEV_FLAG}` : `?${GEN_AI_DEV_FLAG}`;
     cy.visitWithLogin(`/gen-ai-studio/prompts${qs}`);
     this.wait();
   }
@@ -33,6 +35,14 @@ class PromptManagement {
 
   findMlflowUnavailableState() {
     return cy.findByTestId('mlflow-unavailable-empty-state');
+  }
+
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
   }
 
   findProjectSelector() {
@@ -70,7 +80,7 @@ class PromptManagement {
   }
 
   findPromptTemplateInput() {
-    return cy.get('[data-component-id="mlflow.prompts.create.content"]');
+    return cy.get('#mlflow\\.prompts\\.create\\.content');
   }
 
   findPromptCommitMessageInput() {

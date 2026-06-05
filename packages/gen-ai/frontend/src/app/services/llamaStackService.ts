@@ -9,14 +9,17 @@ import {
 } from 'mod-arch-core';
 import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
+  ApiErrorClass,
   BackendResponseData,
   BFFConfig,
   CodeExportRequest,
   ContentAnnotation,
   CreateResponseRequest,
+  ERROR_COMPONENTS,
   FileCitationAnnotation,
   FileUploadJobResponse,
   FileUploadStatusResponse,
+  isApiError,
   LlamaModel,
   LlamaStackDistributionModel,
   MCPConnectionStatus,
@@ -52,6 +55,7 @@ import {
 } from '~/app/types';
 import { URL_PREFIX, extractMCPToolCallData } from '~/app/utilities';
 import { GUARDRAIL_ERROR_CODES } from '~/app/Chatbot/const';
+import { ThinkTagParser } from './thinkTagParser';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -181,9 +185,19 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
  */
 const transformBackendResponse = (backendResponse: BackendResponseData): SimplifiedResponseData => {
   const toolCallData = extractMCPToolCallData(backendResponse.output);
-  const content = extractContentFromOutput(backendResponse.output);
+  let content = extractContentFromOutput(backendResponse.output);
   const annotations = extractAnnotationsFromOutput(backendResponse.output);
   const sources = buildSourcesFromAnnotations(annotations);
+
+  // Strip <think>...</think> or bare reasoning (content before </think>) from content
+  let reasoningContent: string | undefined;
+  const thinkMatchFull = content.match(/^<think>([\s\S]*?)<\/think>\s*/);
+  const thinkMatchBare = !thinkMatchFull ? content.match(/^([\s\S]*?)<\/think>\s*/) : null;
+  const thinkMatch = thinkMatchFull || thinkMatchBare;
+  if (thinkMatch) {
+    reasoningContent = (thinkMatchFull ? thinkMatch[1] : thinkMatch[1]).trim();
+    content = content.slice(thinkMatch[0].length);
+  }
 
   return {
     id: backendResponse.id,
@@ -195,6 +209,7 @@ const transformBackendResponse = (backendResponse: BackendResponseData): Simplif
     ...(toolCallData && { toolCallData }),
     ...(sources.length > 0 && { sources }),
     ...(backendResponse.metrics && { metrics: backendResponse.metrics }),
+    ...(reasoningContent && { reasoningContent }),
   };
 };
 
@@ -219,7 +234,7 @@ const postCreateResponse = (
   opts?: APIOptions & { abortSignal?: AbortSignal },
 ): Promise<SimplifiedResponseData> => {
   const fetchOpts = opts?.abortSignal ? { ...opts, signal: opts.abortSignal } : opts;
-  return restCREATE<{ data?: BackendResponseData; error?: { code: string; message: string } }>(
+  return restCREATE<{ data?: BackendResponseData; error?: ApiErrorClass['error'] }>(
     hostPath,
     '/lsd/responses',
     toCreateResponseRecord(request),
@@ -227,10 +242,8 @@ const postCreateResponse = (
     fetchOpts,
   ).then((response) => {
     if (response.error) {
-      const err = Object.assign(new Error(response.error.message), {
-        code: response.error.code,
-      });
-      throw err;
+      // Preserve the full ApiError structure from BFF
+      throw new ApiErrorClass(response.error);
     }
     if (response.data) {
       return transformBackendResponse(response.data);
@@ -243,7 +256,7 @@ const postCreateResponse = (
 const streamCreateResponse = (
   url: string,
   request: CreateResponseRequest,
-  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
   abortSignal?: AbortSignal,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
@@ -258,17 +271,26 @@ const streamCreateResponse = (
     })
       .then(async (response) => {
         if (!response.ok) {
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          let errorCode: string | undefined;
+          let errorData: unknown = null;
           try {
             const errorBody = await response.text();
-            const errorData = JSON.parse(errorBody);
-            errorMessage = errorData?.error?.message || errorMessage;
-            errorCode = errorData?.error?.code;
+            errorData = JSON.parse(errorBody);
           } catch {
-            // ignore
+            // JSON parsing failed - will use fallback below
           }
-          throw Object.assign(new Error(errorMessage), { code: errorCode });
+
+          if (isApiError(errorData)) {
+            // Preserve the full ApiError structure from BFF
+            throw new ApiErrorClass(errorData.error);
+          }
+
+          // Fallback: no structured error or parsing failed
+          throw new ApiErrorClass({
+            component: ERROR_COMPONENTS.BFF,
+            code: `http_${response.status}`,
+            message: `HTTP error! status: ${response.status}`,
+            retriable: false,
+          });
         }
 
         const reader = response.body?.getReader();
@@ -277,10 +299,13 @@ const streamCreateResponse = (
         }
 
         let fullContent = '';
+        let reasoningContent = '';
         let completeResponseData: BackendResponseData | null = null;
         let metricsData: ResponseMetrics | null = null;
         let receivedRefusal = false;
         const decoder = new TextDecoder();
+
+        const thinkParser = new ThinkTagParser();
 
         try {
           let done = false;
@@ -299,17 +324,29 @@ const streamCreateResponse = (
 
                     if (data.error) {
                       await reader.cancel('Streaming error');
-                      const errMsg = data.error.message || 'An error occurred during streaming';
                       if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
                         fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
                       }
-                      reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                      // Preserve the full ApiError structure from BFF
+                      reject(new ApiErrorClass(data.error));
                       return;
                     }
 
-                    if (data.delta && data.type === 'response.output_text.delta') {
-                      fullContent += data.delta;
-                      onStreamData(data.delta);
+                    if (data.type === 'response.reasoning_text.delta' && data.delta) {
+                      thinkParser.notifyDedicatedReasoningEvent();
+                      reasoningContent += data.delta;
+                      onStreamData(data.delta, false, true);
+                    } else if (data.delta && data.type === 'response.output_text.delta') {
+                      const { delta } = data;
+                      const parsed = thinkParser.processOutputDelta(delta);
+                      if (parsed.reasoning) {
+                        reasoningContent += parsed.reasoning;
+                        onStreamData(parsed.reasoning, false, true);
+                      }
+                      if (parsed.content) {
+                        fullContent += parsed.content;
+                        onStreamData(parsed.content);
+                      }
                     } else if (data.type === 'response.refusal.delta') {
                       if (data.delta) {
                         const isFirstRefusal = !receivedRefusal;
@@ -327,7 +364,6 @@ const streamCreateResponse = (
                       data.type === 'response.metrics' &&
                       isResponseMetrics(data.metrics)
                     ) {
-                      // Capture metrics from the BFF response.metrics event
                       metricsData = data.metrics;
                     }
                   } catch {
@@ -341,6 +377,17 @@ const streamCreateResponse = (
           reader.releaseLock();
         }
 
+        // Flush any remaining buffered partial tag
+        const flushed = thinkParser.flush();
+        if (flushed.reasoning) {
+          reasoningContent += flushed.reasoning;
+          onStreamData(flushed.reasoning, false, true);
+        }
+        if (flushed.content) {
+          fullContent += flushed.content;
+          onStreamData(flushed.content);
+        }
+
         const toolCallData = completeResponseData?.output
           ? extractMCPToolCallData(completeResponseData.output)
           : undefined;
@@ -350,9 +397,22 @@ const streamCreateResponse = (
           ? extractAnnotationsFromOutput(completeResponseData.output)
           : [];
         const sources = buildSourcesFromAnnotations(annotations);
-        const finalContent = completeResponseData?.output
+        let finalContent = completeResponseData?.output
           ? extractContentFromOutput(completeResponseData.output)
           : fullContent;
+
+        // Strip <think>...</think> or bare reasoning (content before </think>) from final content
+        const thinkMatchFull = finalContent.match(/^<think>([\s\S]*?)<\/think>\s*/);
+        const thinkMatchBare = !thinkMatchFull
+          ? finalContent.match(/^([\s\S]*?)<\/think>\s*/)
+          : null;
+        const thinkMatch = thinkMatchFull || thinkMatchBare;
+        if (thinkMatch) {
+          if (!reasoningContent) {
+            reasoningContent = (thinkMatchFull ? thinkMatch[1] : thinkMatch[1]).trim();
+          }
+          finalContent = finalContent.slice(thinkMatch[0].length);
+        }
 
         resolve({
           id: completeResponseData?.id || 'streaming-response',
@@ -363,6 +423,7 @@ const streamCreateResponse = (
           ...(toolCallData && { toolCallData }),
           ...(sources.length > 0 && { sources }),
           ...(metricsData && { metrics: metricsData }),
+          ...(reasoningContent && { reasoningContent }),
         });
       })
       .catch((error) => {
@@ -371,7 +432,14 @@ const streamCreateResponse = (
           reject(new Error('Response stopped by user'));
           return;
         }
-        reject(error instanceof Error ? error : new Error('Failed to generate streaming response'));
+        // Preserve ApiError instances (class or plain object), wrap everything else
+        if (isApiError(error)) {
+          reject(error);
+        } else {
+          reject(
+            error instanceof Error ? error : new Error('Failed to generate streaming response'),
+          );
+        }
       });
   });
 
@@ -389,7 +457,7 @@ export const createResponse =
   (
     data: CreateResponseRequest,
     opts: APIOptions & {
-      onStreamData?: (chunk: string, clearPrevious?: boolean) => void;
+      onStreamData?: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void;
       abortSignal?: AbortSignal;
     } = {},
   ): Promise<SimplifiedResponseData> => {
@@ -501,6 +569,57 @@ export const uploadSource = (
 export const getFileUploadStatus = modArchRestGET<FileUploadStatusResponse>(
   '/lsd/files/upload/status',
 );
+
+// Vision image upload -- uses XHR for progress tracking
+export const uploadVisionFile = (
+  url: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+): { promise: Promise<{ data: { id: string } }>; xhr: XMLHttpRequest } => {
+  const xhr = new XMLHttpRequest();
+  const promise = new Promise<{ data: { id: string } }>((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    xhr.open('POST', url);
+    xhr.timeout = 60_000;
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const parsed = JSON.parse(xhr.responseText);
+          if (
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            parsed.data &&
+            typeof parsed.data.id === 'string'
+          ) {
+            resolve(parsed);
+          } else {
+            reject(new Error('Invalid response shape: missing data.id'));
+          }
+        } catch {
+          reject(new Error('Invalid response from server'));
+        }
+      } else {
+        reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.ontimeout = () => reject(new Error('Upload timed out'));
+    xhr.onabort = () => reject(new Error('Upload aborted'));
+    xhr.send(formData);
+  });
+  return { promise, xhr };
+};
 
 // LSD Models
 export const getLSDModels = modArchRestGET<LlamaModel[]>('/lsd/models');

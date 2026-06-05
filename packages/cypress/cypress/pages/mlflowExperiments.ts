@@ -60,6 +60,18 @@ class MlflowExperiments {
     return cy.findByTestId('mlflow-unavailable-empty-state');
   }
 
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
+  }
+
+  findNotConfiguredAdminLink() {
+    return cy.findByTestId('mlflow-not-configured-admin-link');
+  }
+
   findErrorEmptyState() {
     return cy.findByTestId('empty-state-title', { timeout: 10000 });
   }
@@ -113,7 +125,10 @@ class MlflowExperiments {
   }
 
   findCreateExperimentButton() {
-    return cy.findByTestId('create-experiment-table-empty-state-button', { timeout: 30000 });
+    return cy.get(
+      '[data-testid="create-experiment-table-empty-state-button"], [data-testid="create-experiment-button"]',
+      { timeout: 30000 },
+    );
   }
 
   findExperimentInTable(name: string) {
@@ -181,7 +196,7 @@ class MlflowExperiments {
   }
 
   findCompareRunsHeading() {
-    return cy.contains('Comparing');
+    return cy.findByTestId('mlflow-breadcrumb-active');
   }
 
   findCompareRunsVisualizations() {

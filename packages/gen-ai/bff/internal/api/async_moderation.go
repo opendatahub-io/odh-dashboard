@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -383,8 +384,9 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		}
 
 		if err := stream.Err(); err != nil {
-			app.logger.Error("Streaming error", "error", err)
-			sendGuardrailError("Streaming error occurred", "500")
+			app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+			message, code, component, retriable := app.extractStreamingError(err)
+			_ = sendEvent(buildStreamingErrorEvent(code, message, component, retriable))
 		}
 
 		latencyMs := time.Since(startTime).Milliseconds()
@@ -438,6 +440,13 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		}
 	}()
 
+	// Ensure the result processor goroutine is cleaned up on all exit paths
+	// (error returns, guardrail violations, normal completion).
+	defer func() {
+		modState.Cancel()
+		<-done
+	}()
+
 	// Current chunk being accumulated
 	var currentChunk *ModerationChunk
 	var wordCount int
@@ -460,10 +469,41 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 
 		event := stream.Current()
 
+		// Intercept OGX error events before convertToStreamingEvent filters them out.
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			_ = sendEvent(buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			return
+		}
+
 		// Convert to clean streaming event
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
 			continue
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			_ = sendEvent(buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			return
 		}
 
 		// Send response.created immediately (not moderated)
@@ -474,12 +514,14 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			continue
 		}
 
-		// Handle output moderation for text delta events
-		if streamingEvent.Type == "response.output_text.delta" && streamingEvent.Delta != "" {
-			if firstTokenTime == nil {
+		// Handle output moderation for text and reasoning delta events
+		if (streamingEvent.Type == "response.output_text.delta" || streamingEvent.Type == "response.reasoning_text.delta") && streamingEvent.Delta != "" {
+			// TTFT tracks first answer token only — reasoning tokens are excluded
+			if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 				now := time.Now()
 				firstTokenTime = &now
 			}
+
 			// Initialize chunk if needed
 			if currentChunk == nil {
 				currentChunk = modState.CreateChunk()
@@ -519,8 +561,8 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			continue
 		}
 
-		// For content_part.done and response.completed, wait for all pending moderation
-		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.completed" {
+		// For content_part.done, reasoning_text.done, and response.completed, wait for all pending moderation
+		if streamingEvent.Type == "response.content_part.done" || streamingEvent.Type == "response.reasoning_text.done" || streamingEvent.Type == "response.completed" {
 			// Wait for all pending chunks to be moderated and sent
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
@@ -561,14 +603,11 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		return
 	}
 
-	// Cancel the result processor and wait for it to finish
-	modState.Cancel()
-	<-done
-
-	// Check for stream errors
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err := stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		sendGuardrailError("Streaming error occurred", "500")
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		_ = sendEvent(buildStreamingErrorEvent(code, message, component, retriable))
 	}
 
 	// Send metrics event after stream completes

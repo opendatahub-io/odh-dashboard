@@ -31,7 +31,7 @@ export const sampleWelcomePrompts: WelcomePrompt[] = [
   },
 ];
 
-// File upload constants
+// File upload constants (RAG / vector store documents)
 export const FILE_UPLOAD_CONFIG = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB in bytes
   MAX_FILES_IN_VECTOR_STORE: 10, // Maximum number of files allowed in vector store
@@ -41,6 +41,14 @@ export const FILE_UPLOAD_CONFIG = {
     'text/plain': ['.txt'],
   },
   ACCEPTED_EXTENSIONS: '.pdf,.csv,.txt',
+} as const;
+
+// Vision image upload constants (separate from RAG documents)
+export const VISION_UPLOAD_ALLOWED_MIME_TYPES: readonly string[] = ['image/jpeg', 'image/png'];
+export const VISION_UPLOAD_CONFIG = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+  ALLOWED_MIME_TYPES: VISION_UPLOAD_ALLOWED_MIME_TYPES,
+  ACCEPTED_EXTENSIONS: '.jpg,.jpeg,.png',
 } as const;
 
 // Job polling constants
@@ -57,6 +65,7 @@ export const ERROR_MESSAGES = {
   FILE_UPLOAD_REJECTED: 'File upload rejected',
   FILE_TOO_LARGE: 'File size exceeds 10MB',
   TOO_MANY_FILES: 'Maximum number of files exceeded',
+  GENERIC_ERROR: 'Sorry, I encountered an error while processing your request. Please try again.',
 } as const;
 
 export const GUARDRAIL_INPUT_PROMPT = `You are a security guardrail analyzer for an enterprise AI system. Your task is to determine if the user input below violates company policy.

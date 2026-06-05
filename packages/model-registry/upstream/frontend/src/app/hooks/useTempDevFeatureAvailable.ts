@@ -4,7 +4,6 @@
  * This hook provides a browser storage-backed feature flag that can be toggled
  * via the browser console using:
  *     window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable(true/false);
- *     window.setTempDevToolCallingConfigurationFeatureAvailable(true/false);
  * The state persists across page reloads using browser storage.
  *
  * Each TempDevFeature and corresponding window.set* here should be removed once that feature is ready.
@@ -20,13 +19,11 @@ import { useOdhDevFeatureFlagOverrides } from '~/odh/extension-points';
 declare global {
   interface Window {
     setTempDevCatalogHuggingFaceApiKeyFeatureAvailable?: (enabled: boolean) => void;
-    setTempDevToolCallingConfigurationFeatureAvailable?: (enabled: boolean) => void;
   }
 }
 
 export enum TempDevFeature {
   CatalogHuggingFaceApiKey = 'tempDevCatalogHuggingFaceApiKeyFeatureAvailable',
-  ToolCallingConfiguration = 'tempDevToolCallingConfigurationFeatureAvailable',
 }
 
 export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => {
@@ -37,14 +34,7 @@ export const useTempDevFeatureAvailable = (feature: TempDevFeature): boolean => 
   const contextOverride = overrides?.[feature];
 
   React.useEffect(() => {
-    switch (feature) {
-      case TempDevFeature.CatalogHuggingFaceApiKey:
-        window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable = setIsAvailable;
-        break;
-      case TempDevFeature.ToolCallingConfiguration:
-        window.setTempDevToolCallingConfigurationFeatureAvailable = setIsAvailable;
-        break;
-    }
+    window.setTempDevCatalogHuggingFaceApiKeyFeatureAvailable = setIsAvailable;
   }, [feature, setIsAvailable]);
 
   // Context override takes precedence, then localStorage
