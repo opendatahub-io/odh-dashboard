@@ -27,7 +27,7 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
 
   return (
     <Link
-      to={`${URL_PREFIX}/keys-and-subs/subscriptions/view/${encodeURIComponent(subscriptionName)}`}
+      to={`${URL_PREFIX}/keys-and-subs/subscriptions/${encodeURIComponent(subscriptionName)}`}
       data-testid="subscription-detail-link"
     >
       {displayLabel}

@@ -33,7 +33,6 @@ type ApiKeysToolbarProps = {
   onStatusToggle: (status: APIKeyStatus) => void;
   onStatusClear: (status: APIKeyStatus) => void;
   subscriptions: SubscriptionOption[];
-  subscriptionsLoaded: boolean;
   onSubscriptionChange: (subscription: string) => void;
   activeApiKeys: APIKey[];
   isMaasAdmin: boolean;
@@ -50,7 +49,6 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
   onStatusToggle,
   onStatusClear,
   subscriptions,
-  subscriptionsLoaded,
   onSubscriptionChange,
   activeApiKeys,
   isMaasAdmin,
@@ -133,54 +131,55 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 </SelectList>
               </Select>
             </ToolbarFilter>
-            <ToolbarFilter
-              labels={selectedSubscriptionLabel ? [selectedSubscriptionLabel] : []}
-              deleteLabel={() => onSubscriptionChange('')}
-              categoryName="Subscription"
-            >
-              <Select
-                aria-label="Filter by subscription"
-                isOpen={isSubscriptionSelectOpen}
-                selected={filterData.subscription || undefined}
-                onSelect={(_event, value) => {
-                  onSubscriptionChange(typeof value === 'string' ? value : '');
-                  setIsSubscriptionSelectOpen(false);
-                }}
-                onOpenChange={setIsSubscriptionSelectOpen}
-                toggle={(toggleRef) => (
-                  <MenuToggle
-                    ref={toggleRef}
-                    data-testid="api-key-subscription-filter-toggle"
-                    onClick={() => setIsSubscriptionSelectOpen((prev) => !prev)}
-                    isExpanded={isSubscriptionSelectOpen}
-                    isDisabled={!subscriptionsLoaded}
-                  >
-                    Subscription
-                  </MenuToggle>
-                )}
-                popperProps={{ appendTo: 'inline' }}
+            {subscriptions.length > 0 && (
+              <ToolbarFilter
+                labels={selectedSubscriptionLabel ? [selectedSubscriptionLabel] : []}
+                deleteLabel={() => onSubscriptionChange('')}
+                categoryName="Subscription"
               >
-                <SelectList>
-                  <SelectOption
-                    value=""
-                    isSelected={!filterData.subscription}
-                    data-testid="subscription-filter-option-all"
-                  >
-                    All subscriptions
-                  </SelectOption>
-                  {subscriptions.map((sub) => (
-                    <SelectOption
-                      key={sub.name}
-                      value={sub.name}
-                      isSelected={filterData.subscription === sub.name}
-                      data-testid={`subscription-filter-option-${sub.name}`}
+                <Select
+                  aria-label="Filter by subscription"
+                  isOpen={isSubscriptionSelectOpen}
+                  selected={filterData.subscription || undefined}
+                  onSelect={(_event, value) => {
+                    onSubscriptionChange(typeof value === 'string' ? value : '');
+                    setIsSubscriptionSelectOpen(false);
+                  }}
+                  onOpenChange={setIsSubscriptionSelectOpen}
+                  toggle={(toggleRef) => (
+                    <MenuToggle
+                      ref={toggleRef}
+                      data-testid="api-key-subscription-filter-toggle"
+                      onClick={() => setIsSubscriptionSelectOpen((prev) => !prev)}
+                      isExpanded={isSubscriptionSelectOpen}
                     >
-                      {sub.displayName}
+                      Subscription
+                    </MenuToggle>
+                  )}
+                  popperProps={{ appendTo: 'inline' }}
+                >
+                  <SelectList>
+                    <SelectOption
+                      value=""
+                      isSelected={!filterData.subscription}
+                      data-testid="subscription-filter-option-all"
+                    >
+                      All subscriptions
                     </SelectOption>
-                  ))}
-                </SelectList>
-              </Select>
-            </ToolbarFilter>
+                    {subscriptions.map((sub) => (
+                      <SelectOption
+                        key={sub.name}
+                        value={sub.name}
+                        isSelected={filterData.subscription === sub.name}
+                        data-testid={`subscription-filter-option-${sub.name}`}
+                      >
+                        {sub.displayName}
+                      </SelectOption>
+                    ))}
+                  </SelectList>
+                </Select>
+              </ToolbarFilter>
+            )}
             {isMaasAdmin && (
               <ToolbarFilter
                 labels={filterData.username ? [filterData.username] : []}

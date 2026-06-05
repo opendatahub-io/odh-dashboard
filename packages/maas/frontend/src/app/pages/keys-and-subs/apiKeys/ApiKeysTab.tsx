@@ -2,7 +2,7 @@ import { Bullseye, PageSection, Spinner } from '@patternfly/react-core';
 import React from 'react';
 import { type UseApiKeysPageLoadReturn } from '~/app/hooks/useApiKeysPageLoad';
 import { APIKey } from '~/app/types/api-key';
-import { useListSubscriptions } from '~/app/hooks/useListSubscriptions';
+import { UserSubscription } from '~/app/types/subscriptions';
 import CreateApiKeyModal from './CreateApiKeyModal';
 import EmptyApiKeysPage from './EmptyApiKeysPage';
 import ApiKeysTable from './allKeys/ApiKeysTable';
@@ -11,9 +11,10 @@ import ApiKeysToolbar from './allKeys/ApiKeysToolbar';
 
 type ApiKeysTabProps = {
   pageState: UseApiKeysPageLoadReturn;
+  subscriptions: UserSubscription[];
 };
 
-const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
+const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState, subscriptions }) => {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [revokeApiKey, setRevokeApiKey] = React.useState<APIKey | undefined>(undefined);
 
@@ -43,14 +44,13 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
     onClearFilters,
   } = pageState;
 
-  const [allSubscriptions, subscriptionsLoaded] = useListSubscriptions();
   const subscriptionOptions = React.useMemo(
     () =>
-      allSubscriptions.map((sub) => ({
-        name: sub.name,
-        displayName: sub.displayName ?? sub.name,
+      subscriptions.map((sub) => ({
+        name: sub.subscription_id_header,
+        displayName: sub.display_name ?? sub.subscription_id_header,
       })),
-    [allSubscriptions],
+    [subscriptions],
   );
 
   const apiKeys = response.data;
@@ -122,7 +122,6 @@ const ApiKeysTab: React.FC<ApiKeysTabProps> = ({ pageState }) => {
               onStatusToggle={onStatusToggle}
               onStatusClear={onStatusClear}
               subscriptions={subscriptionOptions}
-              subscriptionsLoaded={subscriptionsLoaded}
               onSubscriptionChange={onSubscriptionChange}
               activeApiKeys={activeApiKeys}
               refresh={refreshAll}
