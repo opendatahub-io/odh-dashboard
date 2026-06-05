@@ -127,7 +127,6 @@ func (r *DashboardReconciler) reconcile(
 	cm *conditions.Manager,
 ) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	dashboard.Status.URL = ""
 
 	manifests := manifestSets(r.ManifestsBasePath, r.Platform)
 
