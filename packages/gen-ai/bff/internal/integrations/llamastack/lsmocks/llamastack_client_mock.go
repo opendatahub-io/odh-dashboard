@@ -502,7 +502,7 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 // The raw body is ignored in mock mode.
 func (m *MockLlamaStackClient) CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (llamastack.ResponseStreamIterator, error) {
 	return m.CreateResponseStream(ctx, llamastack.CreateResponseParams{
-		Input: "passthrough-mock",
+		Input: llamastack.InputUnion{Text: "passthrough-mock"},
 		Model: "mock-model",
 	})
 }
