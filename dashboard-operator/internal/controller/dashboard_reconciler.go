@@ -182,6 +182,8 @@ func (r *DashboardReconciler) reconcile(
 
 	var requeueAfter time.Duration
 
+	// URL is intentionally not cleared on error — "last known good" semantic.
+	// Conditions (Ready, Degraded) communicate the actual state.
 	switch {
 	case errors.Is(err, ErrDashboardRouteNotReady):
 		cm.MarkFalse(string(common.ConditionTypeDegraded),

@@ -140,7 +140,9 @@ type DashboardStatus struct {
 	common.Status                 `json:",inline"`
 	common.ComponentReleaseStatus `json:",inline"`
 
-	// URL is the externally-reachable dashboard URL.
+	// URL is the externally-reachable dashboard URL (last known good).
+	// This value persists across transient route failures — consumers must
+	// check the Ready condition before relying on this endpoint.
 	// +optional
 	URL string `json:"url,omitempty"`
 
