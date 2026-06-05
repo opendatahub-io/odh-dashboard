@@ -57,7 +57,8 @@ const GenAiCoreLoader: React.FC<GenAiCoreLoaderProps> = ({
       ),
     };
   } else {
-    const redirectNamespace = preferredNamespace ?? namespaces[0];
+    const validPreferred = namespaces.find((n) => n.name === preferredNamespace?.name);
+    const redirectNamespace = validPreferred ?? namespaces[0];
     return <Navigate to={getInvalidRedirectPath(redirectNamespace.name)} replace />;
   }
 
