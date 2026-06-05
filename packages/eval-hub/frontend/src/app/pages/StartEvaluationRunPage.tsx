@@ -277,12 +277,12 @@ const StartEvaluationRunPage: React.FC = () => {
                     </StackItem>
                     <StackItem>
                       <FormGroup
-                        label="API key"
+                        label="API key secret name"
                         fieldId="api-key"
                         labelHelp={
                           <LabelHelpPopover
-                            ariaLabel="More info for API key"
-                            content="If access to the model or agent is restricted or requires authentication, provide the API key for its inference endpoint."
+                            ariaLabel="More info for API key secret name"
+                            content="The name of the Kubernetes Secret that contains your API key. The secret is stored securely in your cluster and referenced by name — the actual key value is never exposed in the evaluation configuration."
                           />
                         }
                       >
