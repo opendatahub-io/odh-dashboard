@@ -6,6 +6,7 @@ import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/internal/conce
 import { ExternalDataLoader, type ExternalDataMap } from './ExternalDataLoader';
 import { useModelDeploymentWizard } from './useDeploymentWizard';
 import { useModelDeploymentWizardValidation } from './useDeploymentWizardValidation';
+import { PreconfigureDeploymentStepContent } from './steps/PreconfigureDeploymentStep';
 import { ModelSourceStepContent } from './steps/ModelSourceStep';
 import { AdvancedSettingsStepContent } from './steps/AdvancedOptionsStep';
 import { ModelDeploymentStepContent } from './steps/ModelDeploymentStep';
@@ -65,9 +66,14 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
     project?.metadata.name,
     externalData,
   );
+  // Whether to show the "Preconfigure deployment" step.
+  // Currently shown when no project was pre-selected.
+  const shouldShowPreconfigureStep = !project;
+
   const validation = useModelDeploymentWizardValidation(
     wizardFormData.state,
     wizardFormData.fields,
+    shouldShowPreconfigureStep,
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 
@@ -182,7 +188,16 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
               lastStepIndex.current = currentStep.index;
             }}
           >
-            <WizardStep name={WizardStepTitle.MODEL_DETAILS} id="source-model-step">
+            {shouldShowPreconfigureStep && (
+              <WizardStep name={WizardStepTitle.PRECONFIGURE} id="preconfigure-step">
+                <PreconfigureDeploymentStepContent wizardState={wizardFormData} />
+              </WizardStep>
+            )}
+            <WizardStep
+              name={WizardStepTitle.MODEL_DETAILS}
+              id="source-model-step"
+              isDisabled={!validation.isPreconfigureStepValid}
+            >
               <ModelSourceStepContent
                 wizardState={wizardFormData}
                 validation={validation.modelSource}
@@ -198,6 +213,7 @@ const ModelDeploymentWizard: React.FC<ModelDeploymentWizardProps> = ({
                 projectName={currentProjectName}
                 wizardState={wizardFormData}
                 externalData={externalData}
+                hideProjectSection={shouldShowPreconfigureStep}
               />
             </WizardStep>
             <WizardStep
