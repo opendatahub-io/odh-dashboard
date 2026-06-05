@@ -53,6 +53,8 @@ type SimpleSelectProps = {
   previewDescription?: boolean;
   isSkeleton?: boolean;
   autoSelectOnlyOption?: boolean;
+  /** Accessible label for the toggle button, announced by screen readers */
+  ariaLabel?: string;
 } & Omit<
   React.ComponentProps<typeof Select>,
   'isOpen' | 'toggle' | 'dropdownItems' | 'onChange' | 'selected'
@@ -74,6 +76,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
   popperProps,
   isSkeleton,
   autoSelectOnlyOption = true,
+  ariaLabel = 'Options menu',
   ...props
 }) => {
   const [open, setOpen] = React.useState(false);
@@ -131,7 +134,7 @@ const SimpleSelect: React.FC<SimpleSelectProps> = ({
           <MenuToggle
             ref={toggleRef}
             data-testid={dataTestId}
-            aria-label="Options menu"
+            aria-label={ariaLabel}
             onClick={() => setOpen(!open)}
             icon={icon}
             isExpanded={open}

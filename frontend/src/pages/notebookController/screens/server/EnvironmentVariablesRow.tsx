@@ -77,7 +77,7 @@ const EnvironmentVariablesRow: React.FC<EnvironmentVariablesRowProps> = ({
           toggleProps={{ style: { width: '70%' } }}
           value={variableRow.variableType}
           placeholder="Select a variable type"
-          aria-labelledby="container-size"
+          ariaLabel="Variable type"
           options={[
             { key: CUSTOM_VARIABLE, label: CUSTOM_VARIABLE },
             ...categories.map(

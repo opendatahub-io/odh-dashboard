@@ -93,6 +93,11 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
   const [focusedItemIndex, setFocusedItemIndex] = React.useState<number | null>(null);
   const [activeItem, setActiveItem] = React.useState<string | null>(null);
   const textInputRef = React.useRef<HTMLInputElement>();
+  const autoId = React.useId();
+  const listboxId = id ? `${id}-listbox` : `${autoId}-listbox`;
+
+  const getOptionId = (optionName: string) =>
+    `${id ?? autoId}-option-${optionName.replace(/\s/g, '-')}`;
 
   const selectGroups = React.useMemo(() => {
     let counter = 0;
@@ -212,7 +217,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
     if (indexToFocus != null) {
       setFocusedItemIndex(indexToFocus);
       const focusedItem = visibleOptions[indexToFocus];
-      setActiveItem(`select-multi-typeahead-${focusedItem.name.replace(' ', '-')}`);
+      setActiveItem(getOptionId(focusedItem.name));
     }
   };
 
@@ -287,7 +292,7 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
           {...(activeItem && { 'aria-activedescendant': activeItem })}
           role="combobox"
           isExpanded={isOpen}
-          aria-controls="select-multi-typeahead-listbox"
+          aria-controls={listboxId}
           placeholder={placeholder}
         >
           <LabelGroup aria-label="Current selections">
@@ -343,13 +348,17 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
       >
         {createOption && isCreateOptionOnTop && groupOptions.length > 0 ? (
           <SelectList isAriaMultiselectable>
-            <SelectOption value={createOption.id} isFocused={focusedItemIndex === 0}>
+            <SelectOption
+              id={getOptionId(createOption.name)}
+              value={createOption.id}
+              isFocused={focusedItemIndex === 0}
+            >
               {createOptionDisplayName}
             </SelectOption>
           </SelectList>
         ) : null}
         {!createOption && visibleOptions.length === 0 && inputValue ? (
-          <SelectList isAriaMultiselectable>
+          <SelectList id={listboxId} isAriaMultiselectable>
             <SelectOption isDisabled>No results found</SelectOption>
           </SelectList>
         ) : null}
@@ -359,9 +368,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
               <SelectList isAriaMultiselectable>
                 {g.values.map((option) => (
                   <SelectOption
+                    id={getOptionId(option.name)}
                     key={option.name}
                     isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                    data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
+                    data-testid={`select-multi-typeahead-${option.name.replace(/\s/g, '-')}`}
                     value={option.id}
                     ref={null}
                     isSelected={option.selected}
@@ -378,15 +388,18 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         ))}
         {selectOptions.length ||
         (createOption && (!isCreateOptionOnTop || groupOptions.length === 0)) ? (
-          <SelectList isAriaMultiselectable data-testid={listTestId}>
+          <SelectList id={listboxId} isAriaMultiselectable data-testid={listTestId}>
             {createOption && isCreateOptionOnTop && groupOptions.length === 0 ? (
-              <SelectOption value={createOption.id}>{createOptionDisplayName}</SelectOption>
+              <SelectOption id={getOptionId(createOption.name)} value={createOption.id}>
+                {createOptionDisplayName}
+              </SelectOption>
             ) : null}
             {selectOptions.map((option) => (
               <SelectOption
+                id={getOptionId(option.name)}
                 key={option.name}
                 isFocused={focusedItemIndex === option.index + (isCreateOptionOnTop ? 1 : 0)}
-                data-testid={`select-multi-typeahead-${option.name.replace(' ', '-')}`}
+                data-testid={`select-multi-typeahead-${option.name.replace(/\s/g, '-')}`}
                 value={option.id}
                 ref={null}
                 isSelected={option.selected}
@@ -398,7 +411,8 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
             ))}
             {createOption && !isCreateOptionOnTop ? (
               <SelectOption
-                data-testid={`select-multi-typeahead-${createOption.name.replace(' ', '-')}`}
+                id={getOptionId(createOption.name)}
+                data-testid={`select-multi-typeahead-${createOption.name.replace(/\s/g, '-')}`}
                 value={createOption.id}
                 isFocused={focusedItemIndex === visibleOptions.length - 1}
               >
