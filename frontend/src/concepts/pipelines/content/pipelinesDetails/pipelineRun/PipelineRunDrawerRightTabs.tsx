@@ -63,7 +63,12 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
 
   return (
     <>
-      <Tabs activeKey={selection} mountOnEnter>
+      <Tabs
+        activeKey={selection}
+        mountOnEnter
+        aria-label="Pipeline task details"
+        onSelect={(_, tabKey) => setSelection(String(tabKey))}
+      >
         {Object.entries(tabs).map(([tabName, { title, isDisabled }]) => (
           <Tab
             data-testid={`right-drawer-tab-${tabName}`}
@@ -72,7 +77,6 @@ const PipelineRunDrawerRightTabs: React.FC<PipelineRunDrawerRightTabsProps> = ({
             eventKey={tabName}
             tabContentId={tabName}
             isDisabled={isDisabled}
-            onClick={() => setSelection(tabName)}
           />
         ))}
       </Tabs>

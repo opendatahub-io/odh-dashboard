@@ -56,7 +56,7 @@ const NodeStatusIcon: React.FC<{ runStatus: RunStatus | string }> = ({ runStatus
 
   return (
     <Tooltip content={label}>
-      <Icon status={status} isInline>
+      <Icon status={status} isInline aria-label={label || undefined}>
         {icon}
       </Icon>
     </Tooltip>
