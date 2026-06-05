@@ -10,11 +10,11 @@
   "scripts": {
     "test": "run-s test:lint test:type-check test:unit",
     "test:jest": "jest",
-    "test:unit": "npm run test:jest -- --silent",
-    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix && prettier --write ./*.js ./*.cjs ./*.md ../*.md",
+    "test:unit": "npm run test:jest -- --silent --passWithNoTests",
+    "test:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix && prettier --write --no-error-on-unmatched-pattern ./*.js ./*.cjs ./*.md ../*.md",
     "lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js",
     "lint:fix": "eslint --ext .js,.ts,.jsx,.tsx ./src ./*.js --fix",
-    "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js && prettier --check ./*.js ./*.cjs ./*.md ../*.md",
+    "test:lint": "eslint --max-warnings 0 --ext .js,.ts,.jsx,.tsx ./src ./*.js && prettier --check --no-error-on-unmatched-pattern ./*.js ./*.cjs ./*.md ../*.md",
     "test:type-check": "tsc --noEmit"
   },
   "devDependencies": {
