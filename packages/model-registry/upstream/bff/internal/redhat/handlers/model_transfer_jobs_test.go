@@ -111,27 +111,6 @@ func transferJobsRequest(namespace, modelRegistryID string) (*http.Request, http
 	return req, ps
 }
 
-func makeJob(name, namespace string) batchv1.Job {
-	return batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels: map[string]string{
-				"modelregistry.kubeflow.org/job-type":            "async-upload",
-				"modelregistry.kubeflow.org/model-registry-name": "test-registry",
-			},
-		},
-		Spec: batchv1.JobSpec{
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers:    []corev1.Container{{Name: "upload", Image: "test-image"}},
-					RestartPolicy: corev1.RestartPolicyNever,
-				},
-			},
-		},
-	}
-}
-
 // --- Tests ---
 
 func TestTransferJobsOverrideFallsBackInMockMode(t *testing.T) {
@@ -194,8 +173,8 @@ func TestTransferJobsOverrideReturnsJobsFromMultipleNamespaces(t *testing.T) {
 
 	jobs := &batchv1.JobList{
 		Items: []batchv1.Job{
-			makeJob("job-1", "ns-a"),
-			makeJob("job-2", "ns-b"),
+			{ObjectMeta: metav1.ObjectMeta{Name: "job-1", Namespace: "ns-a"}},
+			{ObjectMeta: metav1.ObjectMeta{Name: "job-2", Namespace: "ns-b"}},
 		},
 	}
 

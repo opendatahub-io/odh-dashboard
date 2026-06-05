@@ -48,14 +48,14 @@ func (r *ProjectScopedJobsRepository) CreateScopedClient(
 	client k8s.KubernetesClientInterface,
 	bearerToken string,
 ) (k8s.KubernetesClientInterface, error) {
-	namespaces, err := r.listOpenShiftProjects(ctx, client, bearerToken)
-	if err != nil {
-		return nil, err
-	}
-
 	cfg, err := restConfigForClient(client)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get REST config: %w", err)
+	}
+
+	namespaces, err := r.listOpenShiftProjects(ctx, cfg, bearerToken)
+	if err != nil {
+		return nil, err
 	}
 
 	userCfg := rest.AnonymousClientConfig(cfg)
@@ -139,15 +139,10 @@ type projectListResponse struct {
 
 // listOpenShiftProjects uses the OpenShift Projects API (project.openshift.io/v1)
 // to list all projects accessible to the user identified by the bearer token.
-// It derives the cluster endpoint from the provided client's REST config (via
-// restConfigForClient) rather than calling helper.GetKubeconfig() directly,
-// ensuring we use the same base config the K8s integration layer constructed.
-func (r *ProjectScopedJobsRepository) listOpenShiftProjects(ctx context.Context, client k8s.KubernetesClientInterface, bearerToken string) ([]string, error) {
-	baseConfig, err := restConfigForClient(client)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get REST config: %w", err)
-	}
-
+// It uses the provided base REST config (already extracted by the caller via
+// restConfigForClient) to derive the cluster endpoint, ensuring we use the
+// same base config the K8s integration layer constructed.
+func (r *ProjectScopedJobsRepository) listOpenShiftProjects(ctx context.Context, baseConfig *rest.Config, bearerToken string) ([]string, error) {
 	cfg := rest.AnonymousClientConfig(baseConfig)
 	cfg.BearerToken = bearerToken
 	cfg.BearerTokenFile = ""

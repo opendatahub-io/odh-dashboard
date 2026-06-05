@@ -2,14 +2,21 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	k8s "github.com/kubeflow/hub/ui/bff/internal/integrations/kubernetes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	"k8s.io/client-go/rest"
 )
 
 // --- Helpers ---
@@ -189,5 +196,160 @@ func TestFilterSystemNamespacesEmpty(t *testing.T) {
 	result := FilterSystemNamespaces([]string{})
 	if len(result) != 0 {
 		t.Fatalf("expected 0 namespaces, got %d", len(result))
+	}
+}
+
+// --- listOpenShiftProjects error path tests ---
+
+func TestListProjectsHTTPFailureTriggersFallback(t *testing.T) {
+	repo := NewProjectScopedJobsRepository(nil)
+	cfg := &rest.Config{Host: "http://127.0.0.1:1"}
+
+	_, err := repo.listOpenShiftProjects(context.Background(), cfg, "token")
+	if err == nil {
+		t.Fatal("expected error for unreachable host")
+	}
+	if !errors.Is(err, ErrProjectsAPIUnavailable) {
+		t.Fatalf("expected ErrProjectsAPIUnavailable, got: %v", err)
+	}
+}
+
+func TestListProjectsNon200StatusTriggersFallback(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	repo := NewProjectScopedJobsRepository(nil)
+	cfg := &rest.Config{Host: srv.URL}
+
+	_, err := repo.listOpenShiftProjects(context.Background(), cfg, "token")
+	if err == nil {
+		t.Fatal("expected error for non-200 status")
+	}
+	if !errors.Is(err, ErrProjectsAPIUnavailable) {
+		t.Fatalf("expected ErrProjectsAPIUnavailable, got: %v", err)
+	}
+}
+
+func TestListProjectsDecodeFailureReturnsServerError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, "not-json")
+	}))
+	defer srv.Close()
+
+	repo := NewProjectScopedJobsRepository(nil)
+	cfg := &rest.Config{Host: srv.URL}
+
+	_, err := repo.listOpenShiftProjects(context.Background(), cfg, "token")
+	if err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+	if errors.Is(err, ErrProjectsAPIUnavailable) {
+		t.Fatalf("decode failure should NOT carry ErrProjectsAPIUnavailable, got: %v", err)
+	}
+}
+
+func TestListProjectsRequestCreationFailureReturnsServerError(t *testing.T) {
+	repo := NewProjectScopedJobsRepository(nil)
+	cfg := &rest.Config{Host: "://bad-scheme"}
+
+	_, err := repo.listOpenShiftProjects(context.Background(), cfg, "token")
+	if err == nil {
+		t.Fatal("expected error for invalid URL")
+	}
+	if errors.Is(err, ErrProjectsAPIUnavailable) {
+		t.Fatalf("request creation failure should NOT carry ErrProjectsAPIUnavailable, got: %v", err)
+	}
+}
+
+// --- fakeK8sClient for CreateScopedClient tests ---
+
+// fakeK8sClient satisfies KubernetesClientInterface and the restConfigProvider
+// interface so restConfigForClient can extract a REST config without touching
+// the real kubeconfig.
+type fakeK8sClient struct {
+	k8s.KubernetesClientInterface
+	cfg *rest.Config
+}
+
+func (f *fakeK8sClient) RESTConfig() *rest.Config { return f.cfg }
+
+func projectsAPIHandler(projects []string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		resp := projectListResponse{}
+		for _, p := range projects {
+			resp.Items = append(resp.Items, struct {
+				Metadata struct {
+					Name string `json:"name"`
+				} `json:"metadata"`
+			}{Metadata: struct {
+				Name string `json:"name"`
+			}{Name: p}})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+}
+
+// --- CreateScopedClient tests ---
+
+func TestCreateScopedClientHappyPath(t *testing.T) {
+	srv := httptest.NewServer(projectsAPIHandler([]string{"user-ns-a", "user-ns-b", "openshift-monitoring"}))
+	defer srv.Close()
+
+	client := &fakeK8sClient{cfg: &rest.Config{Host: srv.URL}}
+	repo := NewProjectScopedJobsRepository(nil)
+
+	scopedClient, err := repo.CreateScopedClient(context.Background(), client, "test-token")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	sc, ok := scopedClient.(*projectScopedClient)
+	if !ok {
+		t.Fatal("expected *projectScopedClient")
+	}
+
+	expected := []string{"user-ns-a", "user-ns-b"}
+	if len(sc.namespaces) != len(expected) {
+		t.Fatalf("expected %d namespaces, got %d: %v", len(expected), len(sc.namespaces), sc.namespaces)
+	}
+	for i, ns := range expected {
+		if sc.namespaces[i] != ns {
+			t.Fatalf("expected namespace %d to be %q, got %q", i, ns, sc.namespaces[i])
+		}
+	}
+}
+
+func TestCreateScopedClientProjectsAPIUnavailablePropagatesSentinel(t *testing.T) {
+	client := &fakeK8sClient{cfg: &rest.Config{Host: "http://127.0.0.1:1"}}
+	repo := NewProjectScopedJobsRepository(nil)
+
+	_, err := repo.CreateScopedClient(context.Background(), client, "test-token")
+	if err == nil {
+		t.Fatal("expected error when projects API is unreachable")
+	}
+	if !errors.Is(err, ErrProjectsAPIUnavailable) {
+		t.Fatalf("expected ErrProjectsAPIUnavailable, got: %v", err)
+	}
+}
+
+func TestCreateScopedClientPreservesOriginalClient(t *testing.T) {
+	srv := httptest.NewServer(projectsAPIHandler([]string{"ns-a"}))
+	defer srv.Close()
+
+	original := &fakeK8sClient{cfg: &rest.Config{Host: srv.URL}}
+	repo := NewProjectScopedJobsRepository(nil)
+
+	scopedClient, err := repo.CreateScopedClient(context.Background(), original, "test-token")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	sc := scopedClient.(*projectScopedClient)
+	if sc.KubernetesClientInterface != original {
+		t.Fatal("scoped client should embed the original client for upstream enrichment methods")
 	}
 }
