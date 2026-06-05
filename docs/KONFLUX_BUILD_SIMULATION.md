@@ -2,28 +2,9 @@
 
 Generated artifacts for validating odh-dashboard builds in a Konflux-like environment before they reach production.
 
-## Generated Files
+## Overview
 
-### 1. `.github/workflows/pr-build-validation.yml`
-GitHub Actions workflow that runs comprehensive build validation on every PR.
-
-**Installation:**
-```bash
-cp pr-build-validation.yml /path/to/odh-dashboard/.github/workflows/
-git add .github/workflows/pr-build-validation.yml
-git commit -m "Add Konflux build simulation workflow"
-```
-
-### 2. `scripts/validate-build.sh`
-Standalone validation script for local testing.
-
-**Installation:**
-```bash
-cp validate-build.sh /path/to/odh-dashboard/scripts/
-chmod +x /path/to/odh-dashboard/scripts/validate-build.sh
-git add scripts/validate-build.sh
-git commit -m "Add local build validation script"
-```
+This PR adds a `.github/workflows/pr-build-validation.yml` workflow that runs comprehensive build validation on every PR to catch issues before they reach production.
 
 ## What Gets Validated
 
@@ -169,34 +150,7 @@ Runs BEFORE Docker build to catch issues in <1 minute:
 3. Workflow runs automatically on all PRs
 
 **Skip validation on a PR:**
-Add `[skip konflux-sim]` to the PR title.
-
-### Local Testing
-```bash
-# Run all phases
-./scripts/validate-build.sh
-
-# Test specific build mode
-./scripts/validate-build.sh --build-mode RHOAI
-
-# Skip slow phases
-./scripts/validate-build.sh --skip-phase-4 --skip-phase-5
-
-# Run only hermetic checks (fast)
-./scripts/validate-build.sh --skip-phase-1 --skip-phase-2 --skip-phase-3 --skip-phase-4 --skip-phase-5
-```
-
-**Environment variables:**
-```bash
-# Run specific phases
-RUN_PHASE_0=true \
-RUN_PHASE_1=false \
-RUN_PHASE_2=false \
-RUN_PHASE_3=false \
-RUN_PHASE_4=false \
-RUN_PHASE_5=false \
-./scripts/validate-build.sh
-```
+Add `[skip konflux-sim]` to the PR title or add the `skip-konflux-sim` label.
 
 ## Benefits
 
@@ -406,20 +360,6 @@ Add `[skip konflux-sim]` to PR title:
 feat: Add new feature [skip konflux-sim]
 ```
 
-### Skip specific phases locally
-```bash
-# Skip slow operator integration
-./scripts/validate-build.sh --skip-phase-4
-
-# Run only hermetic checks
-./scripts/validate-build.sh \
-  --skip-phase-1 \
-  --skip-phase-2 \
-  --skip-phase-3 \
-  --skip-phase-4 \
-  --skip-phase-5
-```
-
 ## CI Integration Tips
 
 ### Run validation on every PR
@@ -457,22 +397,8 @@ When updating Node.js version in the project:
    ARG BASE_IMAGE="registry.access.redhat.com/ubi9/nodejs-22:latest"  # Update this
    ```
 
-3. Update in validation script:
-   ```bash
-   docker run --rm \
-     --network=none \
-     -v "$(pwd)":/workspace \
-     -w /workspace \
-     node:22 \  # Update this
-     npm ci --ignore-scripts
-   ```
-
 ### Add new validation checks
-Add to the appropriate phase in both:
-- `.github/workflows/pr-build-validation.yml`
-- `scripts/validate-build.sh`
-
-Maintain consistency between CI and local testing.
+Add to the appropriate phase in `.github/workflows/pr-build-validation.yml`.
 
 ## Related Issues
 

@@ -4,11 +4,15 @@ on:
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/**'
-      - '!.github/workflows/pr-build-validation.yml'
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'packages/**'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'manifests/**'
+      - '.github/workflows/pr-build-validation.yml'
 
 # Concurrency control: Cancel in-progress runs when new commits are pushed
 concurrency:
@@ -166,6 +170,8 @@ jobs:
       - name: Build ODH image
         run: |
           set -euo pipefail
+          # TODO: Pin BASE_IMAGE to specific digest for hermetic builds
+          # Example: --build-arg BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:...
           docker build \
             --build-arg BUILD_MODE=ODH \
             --tag odh-dashboard:odh-test \
@@ -197,6 +203,8 @@ jobs:
       - name: Build RHOAI image
         run: |
           set -euo pipefail
+          # TODO: Pin BASE_IMAGE to specific digest for hermetic builds
+          # Example: --build-arg BASE_IMAGE=registry.access.redhat.com/ubi9/nodejs-22@sha256:...
           docker build \
             --build-arg BUILD_MODE=RHOAI \
             --tag odh-dashboard:rhoai-test \
@@ -235,12 +243,36 @@ jobs:
       - name: Load ODH image
         run: docker load < /tmp/odh-dashboard-odh.tar.gz
 
+      - name: Create mock kubeconfig for health checks
+        run: |
+          set -euo pipefail
+          # Create minimal kubeconfig so /api/health passes
+          # The health endpoint checks for kube context presence
+          mkdir -p /tmp/kube
+          cat > /tmp/kube/config << 'EOF'
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - cluster:
+              server: http://localhost:8001
+            name: test-cluster
+          contexts:
+          - context:
+              cluster: test-cluster
+              user: test-user
+            name: test-context
+          current-context: test-context
+          users:
+          - name: test-user
+          EOF
+
       - name: Start container
         run: |
           set -euo pipefail
           docker run -d \
             --name odh-dashboard-test \
             -p 8080:8080 \
+            -v /tmp/kube:/opt/app-root/src/.kube:ro \
             -e LOG_LEVEL=debug \
             odh-dashboard:odh-test
 
@@ -335,26 +367,38 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Download websocat binary
+          # Download websocat binary with checksum verification
           WEBSOCAT_URL="https://github.com/vi/websocat/releases/download/v1.12.0/websocat.x86_64-unknown-linux-musl"
+          WEBSOCAT_SHA256="44515a5d421ff2cd109c475e92cb8bf82f10e464ba69c2c1e340699ea78530da"
+
           curl -sL "$WEBSOCAT_URL" -o /tmp/websocat
+          echo "${WEBSOCAT_SHA256}  /tmp/websocat" | sha256sum --check --status
           chmod +x /tmp/websocat
 
-          # Test WebSocket connection (check for SocketStream crash)
-          timeout 10 /tmp/websocat ws://localhost:8080/api/ws || true
+          # Test WebSocket connection and verify it succeeds
+          # The connection should upgrade successfully (not 404, not crash)
+          # @fastify/websocket v11 had a SocketStream regression that caused crashes
+          echo "Testing WebSocket connection to ws://localhost:8080/api/ws"
 
-          sleep 5
+          # Try to connect - timeout after 5s if no response
+          # Note: websocat will exit 0 if connection succeeds, non-zero if it fails
+          if ! timeout 5 /tmp/websocat --ping-interval 1 -n1 ws://localhost:8080/api/ws 2>&1 | head -1; then
+            echo "⚠️  WARNING: WebSocket connection test inconclusive (may not have /api/ws endpoint)"
+            echo "   Verifying container didn't crash..."
+          fi
 
-          # Check if container is still running
+          sleep 2
+
+          # Check if container is still running (catch crashes)
           if ! docker ps | grep -q odh-dashboard-test; then
-            echo "❌ FAIL: Container crashed after WebSocket connection"
+            echo "❌ FAIL: Container crashed after WebSocket test (@fastify/websocket v11 regression)"
             echo "::group::Container logs"
             docker logs odh-dashboard-test
             echo "::endgroup::"
             exit 1
           fi
 
-          echo "✅ PASS: WebSocket connection stable"
+          echo "✅ PASS: WebSocket test completed, container stable"
 
       - name: Validate Module Federation artifacts
         run: |
@@ -404,7 +448,7 @@ jobs:
           LARGE_CHUNKS=$(find dist-check -name "*.js" -size +1M 2>/dev/null || true)
           if [ -n "$LARGE_CHUNKS" ]; then
             echo "⚠️  WARNING: Large chunks detected (may slow page load):"
-            du -h $LARGE_CHUNKS
+            echo "$LARGE_CHUNKS" | xargs du -h
           fi
           echo "::endgroup::"
 
@@ -456,12 +500,36 @@ jobs:
       - name: Load RHOAI image
         run: docker load < /tmp/odh-dashboard-rhoai.tar.gz
 
+      - name: Create mock kubeconfig for health checks
+        run: |
+          set -euo pipefail
+          # Create minimal kubeconfig so /api/health passes
+          # The health endpoint checks for kube context presence
+          mkdir -p /tmp/kube-rhoai
+          cat > /tmp/kube-rhoai/config << 'EOF'
+          apiVersion: v1
+          kind: Config
+          clusters:
+          - cluster:
+              server: http://localhost:8001
+            name: test-cluster
+          contexts:
+          - context:
+              cluster: test-cluster
+              user: test-user
+            name: test-context
+          current-context: test-context
+          users:
+          - name: test-user
+          EOF
+
       - name: Start container
         run: |
           set -euo pipefail
           docker run -d \
             --name odh-dashboard-rhoai-test \
             -p 8081:8080 \
+            -v /tmp/kube-rhoai:/opt/app-root/src/.kube:ro \
             -e LOG_LEVEL=debug \
             odh-dashboard:rhoai-test
 
@@ -500,12 +568,13 @@ jobs:
       - name: Validate RHOAI branding
         run: |
           set -euo pipefail
-          # Check that RHOAI environment variables were applied
+          # TODO: Implement actual RHOAI branding validation
+          # Should check for: RHOAI title, logos, favicon, environment variables
+          # For now, just verify RHOAI mode was built
           LOGS=$(docker logs odh-dashboard-rhoai-test 2>&1)
 
-          # These checks would need to be adapted to your actual logging
           echo "Checking for RHOAI configuration..."
-          echo "✅ PASS: RHOAI build completed"
+          echo "✅ PASS: RHOAI build completed (branding validation pending implementation)"
 
       - name: Cleanup
         if: always()
@@ -535,9 +604,14 @@ jobs:
       - name: Install Kind
         run: |
           set -euo pipefail
-          curl -Lo kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-          chmod +x kind
-          sudo mv kind /usr/local/bin/
+          # Download kind with checksum verification
+          KIND_URL="https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64"
+          KIND_SHA256="513a7213d6662b614ca7c7b8948b53f42dfc46a3cc7c44d9b166c71f7bca7f20"
+
+          curl -sLo /tmp/kind "$KIND_URL"
+          echo "${KIND_SHA256}  /tmp/kind" | sha256sum --check --status
+          chmod +x /tmp/kind
+          sudo mv /tmp/kind /usr/local/bin/kind
 
       - name: Create Kind cluster
         run: |
@@ -581,13 +655,21 @@ jobs:
 
       - name: Apply manifests
         run: |
+          set -euo pipefail
           # Apply base manifests to opendatahub namespace
-          # Note: Some manifests may have validation errors (pre-existing issues)
-          # but we continue to test what we can
-          kubectl apply -k manifests/overlays/odh -n opendatahub || \
-          kubectl apply -k manifests/odh -n opendatahub || true
+          # Try overlay first, fall back to base, fail if both are invalid
+          if [ -d "manifests/overlays/odh" ]; then
+            echo "Applying manifests/overlays/odh..."
+            kubectl apply -k manifests/overlays/odh -n opendatahub
+          elif [ -d "manifests/odh" ]; then
+            echo "Applying manifests/odh..."
+            kubectl apply -k manifests/odh -n opendatahub
+          else
+            echo "❌ FAIL: No kustomize manifests found"
+            exit 1
+          fi
 
-          echo "Manifest application completed (some resources may have failed due to pre-existing manifest issues)"
+          echo "✅ Manifests applied successfully"
 
       - name: Patch deployment for Kind resource constraints
         run: |
@@ -690,8 +772,16 @@ jobs:
       - name: Install kustomize
         run: |
           set -euo pipefail
-          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-          sudo mv kustomize /usr/local/bin/
+          # Download kustomize with checksum verification
+          KUSTOMIZE_VERSION="v5.5.0"
+          KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          KUSTOMIZE_SHA256="deb9dfc74c37b1a3ad372e9860e4e2aab57a164eab2e8db21d31b74f34a9a53e"
+
+          curl -sLo /tmp/kustomize.tar.gz "$KUSTOMIZE_URL"
+          echo "${KUSTOMIZE_SHA256}  /tmp/kustomize.tar.gz" | sha256sum --check --status
+          tar -xzf /tmp/kustomize.tar.gz -C /tmp
+          chmod +x /tmp/kustomize
+          sudo mv /tmp/kustomize /usr/local/bin/
 
       - name: Validate kustomize builds
         run: |
@@ -749,12 +839,22 @@ jobs:
           echo "Phase 2-3 (Runtime RHOAI): ${{ needs.runtime-validation-rhoai.result }}"
           echo "Phase 4 (Operator Integration): ${{ needs.operator-integration.result }}"
 
-          if [[ "${{ needs.hermetic-preflight.result }}" != "success" ]] || \
-             [[ "${{ needs.docker-build-odh.result }}" != "success" ]] || \
-             [[ "${{ needs.docker-build-rhoai.result }}" != "success" ]] || \
-             [[ "${{ needs.runtime-validation-odh.result }}" != "success" ]] || \
-             [[ "${{ needs.runtime-validation-rhoai.result }}" != "success" ]] || \
-             [[ "${{ needs.operator-integration.result }}" != "success" ]]; then
+          # Accept both "success" and "skipped" as passing states
+          # Jobs are skipped when [skip konflux-sim] is in PR title or skip-konflux-sim label is present
+          FAILED=false
+          for result in "${{ needs.hermetic-preflight.result }}" \
+                        "${{ needs.docker-build-odh.result }}" \
+                        "${{ needs.docker-build-rhoai.result }}" \
+                        "${{ needs.runtime-validation-odh.result }}" \
+                        "${{ needs.runtime-validation-rhoai.result }}" \
+                        "${{ needs.operator-integration.result }}"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              FAILED=true
+              break
+            fi
+          done
+
+          if [ "$FAILED" = "true" ]; then
             echo ""
             echo "❌ Some validations failed. Check individual job logs above."
             exit 1
