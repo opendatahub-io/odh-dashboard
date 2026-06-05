@@ -24,8 +24,6 @@ import { useThemeContext } from './ThemeContext';
 import logoLight from './images/red-hat-ai-light.svg';
 import logoDark from './images/red-hat-ai-dark.svg';
 
-const DEFAULT_GROUP = '5_default';
-
 const ShellBrand: React.FC = () => {
   const brandExtensions = useExtensions(isMastheadBrandExtension);
   const { theme } = useThemeContext();
@@ -56,29 +54,30 @@ const ShellBrand: React.FC = () => {
   );
 };
 
-const ShellToolbarItems: React.FC = () => {
+const useToolbarExtensions = () => {
   const toolbarExtensions = useExtensions(isMastheadToolbarItemExtension);
-  const sorted = React.useMemo(
-    () =>
-      [...toolbarExtensions].toSorted((a, b) =>
-        (a.properties.group || DEFAULT_GROUP).localeCompare(b.properties.group || DEFAULT_GROUP),
-      ),
-    [toolbarExtensions],
-  );
-
-  return (
-    <>
-      {sorted.map((ext) => (
-        <ToolbarItem key={ext.uid}>
-          <LazyCodeRefComponent component={ext.properties.component} />
-        </ToolbarItem>
-      ))}
-    </>
-  );
+  return React.useMemo(() => {
+    const leading = toolbarExtensions.filter((ext) => ext.properties.position !== 'trailing');
+    const trailing = toolbarExtensions.filter((ext) => ext.properties.position === 'trailing');
+    return { leading, trailing };
+  }, [toolbarExtensions]);
 };
+
+const ToolbarItems: React.FC<{
+  extensions: ReturnType<typeof useToolbarExtensions>['leading'];
+}> = ({ extensions }) => (
+  <>
+    {extensions.map((ext) => (
+      <ToolbarItem key={ext.uid}>
+        <LazyCodeRefComponent component={ext.properties.component} />
+      </ToolbarItem>
+    ))}
+  </>
+);
 
 const ShellHeader: React.FC = () => {
   const { theme, setTheme } = useThemeContext();
+  const { leading, trailing } = useToolbarExtensions();
 
   return (
     <Masthead role="banner" aria-label="page masthead">
@@ -97,6 +96,7 @@ const ShellHeader: React.FC = () => {
         <Toolbar isFullHeight>
           <ToolbarContent>
             <ToolbarGroup variant="action-group-plain" align={{ default: 'alignEnd' }}>
+              <ToolbarItems extensions={leading} />
               <ToolbarItem>
                 <ToggleGroup aria-label="Theme toggle">
                   <ToggleGroupItem
@@ -113,7 +113,7 @@ const ShellHeader: React.FC = () => {
                   />
                 </ToggleGroup>
               </ToolbarItem>
-              <ShellToolbarItems />
+              <ToolbarItems extensions={trailing} />
             </ToolbarGroup>
           </ToolbarContent>
         </Toolbar>
