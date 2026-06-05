@@ -336,44 +336,158 @@ func TestGenerateLlamaStackConfig_RBACFlag(t *testing.T) {
 	})
 }
 
-// TestLLMInferenceServiceURLConstruction tests that the URL format for LLMInferenceService
-// remains consistent and doesn't accidentally change
-func TestLLMInferenceServiceURLConstruction(t *testing.T) {
-	tests := []struct {
-		name        string
-		scheme      string
-		serviceName string
-		namespace   string
-		port        int32
-		expected    string
-	}{
-		{
-			name:        "http URL without auth",
-			scheme:      "http",
-			serviceName: "test-service",
-			namespace:   "test-namespace",
-			port:        8080,
-			expected:    "http://test-service.test-namespace.svc.cluster.local:8080/v1",
-		},
-		{
-			name:        "https URL with auth",
-			scheme:      "https",
-			serviceName: "secure-service",
-			namespace:   "prod-namespace",
-			port:        8443,
-			expected:    "https://secure-service.prod-namespace.svc.cluster.local:8443/v1",
-		},
+// TestExtractEndpointFromLLMInferenceService tests that extractEndpointFromLLMInferenceService
+// reads the internal URL from status.addresses instead of constructing it manually.
+func TestExtractEndpointFromLLMInferenceService(t *testing.T) {
+	client := &TokenKubernetesClient{
+		Logger: slog.Default(),
 	}
+	ctx := context.Background()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Call the actual function used in extractEndpointFromLLMInferenceService
-			actual := ConstructLLMInferenceServiceURL(tt.scheme, tt.serviceName, tt.namespace, tt.port)
+	t.Run("status.addresses with internal URL appends /v1", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://tinyllama-kserve-workload-svc.kserve-test.svc.cluster.local/v1", endpoint)
+	})
 
-			assert.Equal(t, tt.expected, actual,
-				"LLMInferenceService URL format must remain: {scheme}://{service}.{namespace}.svc.cluster.local:{port}/v1")
-		})
-	}
+	t.Run("status.addresses with internal URL already having /v1 returns as-is", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local/v1")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("status.addresses empty falls back to status.address singular", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: mustParseURL("https://fallback-svc.ns.svc.cluster.local")},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://fallback-svc.ns.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("both addresses and address empty returns error", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{}
+		llmSvc.Name = "empty-model"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("multiple addresses picks internal over external", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local/v1", endpoint,
+			"should pick the internal (svc.cluster.local) address, not the external one")
+	})
+
+	t.Run("addresses with nil URL entries are skipped", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: nil},
+						{URL: mustParseURL("https://valid-svc.ns.svc.cluster.local")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://valid-svc.ns.svc.cluster.local/v1", endpoint)
+	})
+
+	t.Run("internal URL with explicit port preserves port and appends /v1", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://my-model.namespace.svc.cluster.local:8443")},
+					},
+				},
+			},
+		}
+		endpoint, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.NoError(t, err)
+		assert.Equal(t, "https://my-model.namespace.svc.cluster.local:8443/v1", endpoint)
+	})
+
+	t.Run("singular fallback with external URL returns error", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Address: &duckv1.Addressable{URL: mustParseURL("https://my-model.apps.example.com/v1")},
+				},
+			},
+		}
+		llmSvc.Name = "external-only"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("URL with svc.cluster.local in path but not hostname is rejected", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://evil.com/.svc.cluster.local/proxy")},
+					},
+				},
+			},
+		}
+		llmSvc.Name = "spoofed-url"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
+
+	t.Run("IPv6 loopback address is rejected as non-cluster-local", func(t *testing.T) {
+		llmSvc := &kservev1alpha1.LLMInferenceService{
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://[::1]:8080/v1")},
+					},
+				},
+			},
+		}
+		llmSvc.Name = "ipv6-loopback"
+		_, err := client.extractEndpointFromLLMInferenceService(ctx, llmSvc)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "has no internal URL")
+	})
 }
 
 // TestInferenceServiceURLSuffixConstruction tests that InferenceService URLs
@@ -1535,7 +1649,8 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 	)
 	llmUID := types.UID("llm-uid-123")
 
-	// newLLMService creates an LLMInferenceService with an optional Spec.Model.Name.
+	// newLLMService creates an LLMInferenceService with an optional Spec.Model.Name
+	// and status.addresses populated (required by extractEndpointFromLLMInferenceService).
 	newLLMService := func(modelNamePtr *string) *kservev1alpha1.LLMInferenceService {
 		svc := &kservev1alpha1.LLMInferenceService{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1543,34 +1658,18 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 				Namespace: namespace,
 				UID:       llmUID,
 			},
+			Status: kservev1alpha1.LLMInferenceServiceStatus{
+				AddressStatus: duckv1.AddressStatus{
+					Addresses: []duckv1.Addressable{
+						{URL: mustParseURL("https://" + serviceName + "-workload." + namespace + ".svc.cluster.local")},
+					},
+				},
+			},
 		}
 		if modelNamePtr != nil {
 			svc.Spec.Model.Name = modelNamePtr
 		}
 		return svc
-	}
-
-	// workloadService returns a corev1.Service that extractEndpointFromLLMInferenceService
-	// will discover via label selector + owner-reference match.
-	workloadService := func() *corev1.Service {
-		return &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceName + "-workload",
-				Namespace: namespace,
-				Labels: map[string]string{
-					LLMInferenceServiceName:      serviceName,
-					LLMInferenceServiceComponent: LLMInferenceServiceWorkloadComponent,
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					{UID: llmUID},
-				},
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{
-					{Port: 8080},
-				},
-			},
-		}
 	}
 
 	modelName := "explicit-model-name"
@@ -1606,7 +1705,7 @@ func TestGetModelDetailsFromServingRuntimeNilName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(newLLMService(tt.modelNamePtr), workloadService()).
+				WithObjects(newLLMService(tt.modelNamePtr)).
 				Build()
 
 			kc := &TokenKubernetesClient{
