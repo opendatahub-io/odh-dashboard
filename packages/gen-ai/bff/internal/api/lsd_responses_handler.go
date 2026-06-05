@@ -648,7 +648,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 				statusCode = 0
 			}
 			retriable := app.isRetriable(event.Code, statusCode)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable)); writeErr != nil {
+				app.logger.Debug("Failed to write OGX error event to client", "error", writeErr)
+				return
+			}
 			flusher.Flush()
 			return
 		}
@@ -677,7 +680,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
 			component := llamastack.ResolveComponent(errorCode)
 			retriable := app.isRetriable(errorCode, 0)
-			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable)); writeErr != nil {
+				app.logger.Debug("Failed to write response.failed event to client", "error", writeErr)
+				return
+			}
 			flusher.Flush()
 			return
 		}
