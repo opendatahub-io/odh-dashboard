@@ -78,7 +78,17 @@ describe('Verify a contributor can deploy a model from a PVC', () => {
   });
   it(
     'Admin creates PVC with model, Contributor deploys from PVC and verifies deployment',
-    { tags: ['@Smoke', '@SmokeSet3', '@Dashboard', '@ModelServing', '@ODS-2552'] },
+    {
+      tags: [
+        '@Smoke',
+        '@SmokeSet3',
+        '@Dashboard',
+        '@ModelServing',
+        '@ODS-2552',
+        '@ModelServingCI',
+        '@KServeCI',
+      ],
+    },
     () => {
       cy.step('Log into the application as admin');
       cy.visitWithLogin('/', HTPASSWD_CLUSTER_ADMIN_USER);
