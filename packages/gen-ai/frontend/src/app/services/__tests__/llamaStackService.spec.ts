@@ -1411,7 +1411,6 @@ describe('llamaStackService', () => {
     });
   });
 
-<<<<<<< HEAD
   describe('createPassthroughResponse', () => {
     const mockBody = {
       model: 'test-model',
