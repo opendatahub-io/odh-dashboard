@@ -321,27 +321,19 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		return nil
 	}
 
-	sendGuardrailError := func(message string, code string) {
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": message,
-				"code":    code,
-			},
-		}
-		if eventData, err := json.Marshal(errorData); err == nil {
-			_ = sendEvent(eventData) // Best effort - client may have disconnected
-		}
+	sendGuardrailError := func(message string, code string, retriable bool) {
+		_ = sendEvent(buildStreamingErrorEvent(code, message, "guardrails", retriable))
 	}
 
 	// Run input moderation after heartbeat is active (prevents HAProxy timeout)
 	if len(inputMessages) > 0 {
 		flagged, _, modErr := app.checkInputModeration(ctx, inputMessages, params.GuardrailOpts)
 		if modErr != nil {
-			sendGuardrailError("guardrail service unavailable", constants.GuardrailServiceUnavailableCode)
+			sendGuardrailError("guardrail service unavailable", constants.GuardrailServiceUnavailableCode, true)
 			return
 		}
 		if flagged {
-			sendGuardrailError("input blocked by safety guardrails", constants.GuardrailInputViolationCode)
+			sendGuardrailError("input blocked by safety guardrails", constants.GuardrailInputViolationCode, false)
 			return
 		}
 	}
@@ -461,7 +453,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 		case violation := <-violationChan:
 			app.logger.Info("Output blocked by guardrails (async)",
 				"reason", violation)
-			sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
+			sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
 			return
 		default:
 			// Continue processing
@@ -567,7 +559,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 			if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 				app.logger.Info("Output blocked by guardrails (final check)",
 					"reason", violation)
-				sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
+				sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
 				return
 			}
 
@@ -599,7 +591,7 @@ func (app *App) handleStreamingResponseWithModeration(w http.ResponseWriter, r *
 	if violation := modState.WaitForAllPending(sendEvents); violation != "" {
 		app.logger.Info("Output blocked by guardrails (stream end)",
 			"reason", violation)
-		sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode)
+		sendGuardrailError("output blocked by safety guardrails", constants.GuardrailOutputViolationCode, false)
 		return
 	}
 
