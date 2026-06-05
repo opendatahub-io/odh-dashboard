@@ -28,6 +28,7 @@ export type APIKeyListResponse = {
 export type APIKeySearchRequest = {
   filters?: {
     username?: string;
+    subscription?: string;
     status?: APIKeyStatus[];
   };
   sort?: {
@@ -70,7 +71,7 @@ export type ApiKeyFilterDataType = {
 
 export const initialApiKeyFilterData: ApiKeyFilterDataType = {
   username: '',
-  statuses: ['active'],
+  statuses: ['active', 'expired'],
 };
 
 export const emptyApiKeyFilterData: ApiKeyFilterDataType = {

@@ -564,3 +564,10 @@ func (app *App) AttachNemoClient(next func(http.ResponseWriter, *http.Request, h
 		next(w, r, ps)
 	}
 }
+
+// MaxBodySize wraps all API routes with a global body size safety net.
+// Individual handlers may apply tighter limits via http.MaxBytesReader.
+// The effective limit is min(global, handler).
+func (app *App) MaxBodySize(next http.Handler) http.Handler {
+	return http.MaxBytesHandler(next, constants.DefaultMaxBodySize)
+}

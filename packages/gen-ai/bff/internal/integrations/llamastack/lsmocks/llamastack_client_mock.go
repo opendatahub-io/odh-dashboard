@@ -25,6 +25,7 @@ type MockLlamaStackClient struct {
 	// Add fields here if you need to store state for testing
 	getResponseResults map[string]*MockResponse
 	getResponseErrors  map[string]error
+	UploadFileError    error
 }
 
 // NewMockLlamaStackClient creates a new mock client
@@ -60,37 +61,37 @@ func (m *MockLlamaStackClient) ListModels(ctx context.Context) ([]openai.Model, 
 			ID:      "ollama/llama3.2:3b",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "ollama/all-minilm:l6-v2",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "mistral-7b-instruct",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "llama-3.1-8b-instruct",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "maas-mock-provider-1/llama-2-7b-chat",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 		{
 			ID:      "maas-mock-provider-1/llama-2-13b-chat",
 			Object:  "model",
 			Created: 1755721063,
-			OwnedBy: "llama_stack",
+			OwnedBy: "ogx",
 		},
 	}, nil
 }
@@ -172,6 +173,9 @@ func (m *MockLlamaStackClient) CreateVectorStore(ctx context.Context, params lla
 
 // UploadFile uploads a file with optional parameters and optionally adds to vector store
 func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack.UploadFileParams) (*llamastack.FileUploadResult, error) {
+	if m.UploadFileError != nil {
+		return nil, m.UploadFileError
+	}
 	mockFileID := "file-mock123abc456def"
 	result := &llamastack.FileUploadResult{
 		FileID: mockFileID,
@@ -206,8 +210,15 @@ func (m *MockLlamaStackClient) UploadFile(ctx context.Context, params llamastack
 
 // CreateResponse returns a mock response with comprehensive parameter support
 func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamastack.CreateResponseParams) (*responses.Response, error) {
+	// Check for MOCK: prefix in input to trigger mock errors
+	input := params.Input.TextContent()
+	if strings.HasPrefix(input, "MOCK:") {
+		errorScenario := strings.TrimPrefix(input, "MOCK:")
+		return nil, m.mockError(errorScenario)
+	}
+
 	// Create base response text
-	responseText := "This is a mock response to your query: " + params.Input
+	responseText := "This is a mock response to your query: " + input
 
 	// If previous response ID is provided, acknowledge it in the response
 	if params.PreviousResponseID != "" {
@@ -252,14 +263,14 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 			Type:    "file_search_call",
 			Role:    "assistant",
 			Status:  "completed",
-			Queries: []string{params.Input},
+			Queries: []string{params.Input.TextContent()},
 		})
 
 		lastItem := &outputItems[len(outputItems)-1]
 		results := []map[string]interface{}{
 			{
 				"score":    0.8542,
-				"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+				"text":     "This is mock retrieved content that relates to your query: " + params.Input.TextContent() + ". This content comes from the vector store and provides context for the AI response.",
 				"file_id":  "e6053358-ab61-48cb-a600-2d04dfcbb51b",
 				"filename": "e6053358-ab61-48cb-a600-2d04dfcbb51b",
 				"attributes": map[string]interface{}{
@@ -284,7 +295,7 @@ func (m *MockLlamaStackClient) CreateResponse(ctx context.Context, params llamas
 
 		// Include a citation marker matching the file_id above so that
 		// processResponseCitations exercises the full strip+annotate path.
-		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input
+		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input.TextContent()
 	}
 
 	// Add message content
@@ -336,12 +347,19 @@ const ModerationChunkSize = 30
 
 // CreateResponseStream builds mock streaming events and returns a MockStreamIterator.
 func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params llamastack.CreateResponseParams) (llamastack.ResponseStreamIterator, error) {
+	// Check for MOCK: prefix in input to trigger mock errors
+	input := params.Input.TextContent()
+	if strings.HasPrefix(input, "MOCK:") {
+		errorScenario := strings.TrimPrefix(input, "MOCK:")
+		return nil, m.mockError(errorScenario)
+	}
+
 	responseID := "resp_mock_stream123"
 	itemID := "msg_mock_stream123"
 
-	responseText := "This is a mock response to your query: " + params.Input
+	responseText := "This is a mock response to your query: " + input
 	if len(params.VectorStoreIDs) > 0 {
-		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input
+		responseText = "Based on retrieved documents <|e6053358-ab61-48cb-a600-2d04dfcbb51b|>, this is a mock response to your query: " + params.Input.TextContent()
 	}
 	if params.PreviousResponseID != "" {
 		responseText = "Continuing from previous response " + params.PreviousResponseID + ". " + responseText
@@ -441,13 +459,13 @@ func (m *MockLlamaStackClient) CreateResponseStream(ctx context.Context, params 
 		outputItems = append(outputItems, map[string]interface{}{
 			"id": "call_mock123", "type": "file_search_call", "role": "assistant",
 			"status":  "completed",
-			"queries": []string{params.Input},
+			"queries": []string{params.Input.TextContent()},
 			"results": []map[string]interface{}{
 				{
 					"file_id":  "e6053358-ab61-48cb-a600-2d04dfcbb51b",
 					"filename": "e6053358-ab61-48cb-a600-2d04dfcbb51b",
 					"score":    0.8542,
-					"text":     "This is mock retrieved content that relates to your query: " + params.Input + ". This content comes from the vector store and provides context for the AI response.",
+					"text":     "This is mock retrieved content that relates to your query: " + params.Input.TextContent() + ". This content comes from the vector store and provides context for the AI response.",
 					"attributes": map[string]interface{}{
 						"filename": "mock_document.txt",
 					},
@@ -730,4 +748,61 @@ func (m *MockLlamaStackClient) DeleteVectorStoreFile(ctx context.Context, vector
 	}
 	// Mock deletion always succeeds
 	return nil
+}
+
+// mockError returns a LlamaStackError for the given error scenario.
+// Supported scenarios match the error codes the BFF and OGX actually produce.
+// Usage: Type "MOCK:timeout" in the UI to trigger a timeout error.
+func (m *MockLlamaStackClient) mockError(scenario string) error {
+	switch strings.ToLower(scenario) {
+	// BFF error codes
+	case "timeout":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeTimeout,
+			"Request timed out",
+			"timeout_error",
+			"timeout",
+			"",
+			llamastack.ComponentOGX,
+			504,
+		)
+	case "connection_failed":
+		return llamastack.NewConnectionError("Failed to connect to LlamaStack server")
+	case "server_unavailable":
+		return llamastack.NewServerUnavailableError("LlamaStack server is unavailable")
+	case "unauthorized":
+		return llamastack.NewUnauthorizedError("Invalid authentication token")
+	case "invalid_request":
+		return llamastack.NewInvalidRequestError("Invalid request parameters")
+
+	// OGX error codes (from OGXErr* constants)
+	case "server_error":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeInternalError,
+			"Server encountered an internal error",
+			"server_error",
+			llamastack.OGXErrServerError,
+			"",
+			llamastack.ComponentOGX,
+			500,
+		)
+	case "rate_limit_exceeded":
+		return llamastack.NewLlamaStackErrorWithDetails(
+			llamastack.ErrCodeInternalError,
+			"Rate limit exceeded: 60 requests per minute",
+			"rate_limit_error",
+			llamastack.OGXErrRateLimitExceeded,
+			"",
+			llamastack.ComponentOGX,
+			429,
+		)
+
+	// Default: generic internal error
+	default:
+		return llamastack.NewLlamaStackError(
+			llamastack.ErrCodeInternalError,
+			fmt.Sprintf("Mock error scenario '%s' not recognized. Supported: timeout, connection_failed, server_unavailable, unauthorized, invalid_request, server_error, rate_limit_exceeded", scenario),
+			500,
+		)
+	}
 }

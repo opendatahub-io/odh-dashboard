@@ -47,7 +47,7 @@ describe('useMLflowStatus', () => {
   it('should return configured:false and loaded:true when shouldFetch is false', () => {
     const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
     const renderResult = testHook(useMLflowStatus)(false);
-    expect(renderResult).hookToStrictEqual({ configured: false, loaded: true });
+    expect(renderResult).hookToStrictEqual({ configured: false, loaded: true, error: false });
     expect(mockAxiosGet).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,7 @@ describe('useMLflowStatus', () => {
     const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
     mockAxiosGet.mockReturnValue(new Promise(jest.fn()));
     const renderResult = testHook(useMLflowStatus)(true);
-    expect(renderResult).hookToStrictEqual({ configured: false, loaded: false });
+    expect(renderResult).hookToStrictEqual({ configured: false, loaded: false, error: false });
   });
 
   it('should return configured:true and loaded:true when API reports configured', async () => {
@@ -64,7 +64,11 @@ describe('useMLflowStatus', () => {
     const renderResult = testHook(useMLflowStatus)(true);
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
 
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
@@ -76,20 +80,27 @@ describe('useMLflowStatus', () => {
     const renderResult = testHook(useMLflowStatus)(true);
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: false,
+        loaded: true,
+        error: false,
+      });
     });
   });
 
-  it('should preserve previous value when API call fails', async () => {
+  it('should mark loaded with error when the first API call fails', async () => {
     const { useMLflowStatus, mockAxiosGet } = loadFreshModule();
     mockAxiosGet.mockRejectedValue(new Error('Network error'));
     const renderResult = testHook(useMLflowStatus)(true);
 
-    // First fetch fails — stays at initialValue (no state change, so no extra render)
     await waitFor(() => {
-      expect(mockAxiosGet).toHaveBeenCalledTimes(1);
+      expect(renderResult.result.current).toStrictEqual({
+        configured: false,
+        loaded: true,
+        error: true,
+      });
     });
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
+    expect(mockAxiosGet).toHaveBeenCalledTimes(1);
   });
 
   it('should keep last successful value on transient error', async () => {
@@ -98,7 +109,11 @@ describe('useMLflowStatus', () => {
 
     const renderResult = testHook(useMLflowStatus)(true);
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
 
     // Next poll fails — should retain previous successful value
@@ -107,7 +122,11 @@ describe('useMLflowStatus', () => {
     await waitFor(() => {
       expect(mockAxiosGet).toHaveBeenCalledTimes(2);
     });
-    expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+    expect(renderResult.result.current).toStrictEqual({
+      configured: true,
+      loaded: true,
+      error: false,
+    });
   });
 
   it('should call the correct status endpoint', async () => {
@@ -128,8 +147,16 @@ describe('useMLflowStatus', () => {
     const secondRenderResult = testHook(useMLflowStatus)(true);
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
-      expect(secondRenderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
+      expect(secondRenderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
 
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
@@ -141,13 +168,21 @@ describe('useMLflowStatus', () => {
 
     const first = testHook(useMLflowStatus)(true);
     await waitFor(() => {
-      expect(first.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(first.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
     // A second subscriber mounting later gets the cached value immediately
     const second = testHook(useMLflowStatus)(true);
-    expect(second.result.current).toStrictEqual({ configured: true, loaded: true });
+    expect(second.result.current).toStrictEqual({
+      configured: true,
+      loaded: true,
+      error: false,
+    });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
   });
 
@@ -157,7 +192,11 @@ describe('useMLflowStatus', () => {
 
     const renderResult = testHook(useMLflowStatus)(true);
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
@@ -166,12 +205,20 @@ describe('useMLflowStatus', () => {
 
     // Re-subscribe within grace period — cached value, no new fetch
     renderResult.rerender(true);
-    expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+    expect(renderResult.result.current).toStrictEqual({
+      configured: true,
+      loaded: true,
+      error: false,
+    });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
     // Advance past grace period — teardown timer should have been cancelled
     jest.advanceTimersByTime(TEARDOWN_GRACE_MS);
-    expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+    expect(renderResult.result.current).toStrictEqual({
+      configured: true,
+      loaded: true,
+      error: false,
+    });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
   });
 
@@ -181,13 +228,21 @@ describe('useMLflowStatus', () => {
 
     const renderResult = testHook(useMLflowStatus)(true);
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
     // Unsubscribe — grace period starts
     renderResult.rerender(false);
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
+    expect(renderResult.result.current).toStrictEqual({
+      configured: false,
+      loaded: true,
+      error: false,
+    });
 
     // Let grace period expire
     jest.advanceTimersByTime(TEARDOWN_GRACE_MS);
@@ -195,10 +250,18 @@ describe('useMLflowStatus', () => {
     // Re-subscribe after grace expired — fresh fetch
     mockAxiosGet.mockResolvedValue({ data: { configured: false } });
     renderResult.rerender(true);
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
+    expect(renderResult.result.current).toStrictEqual({
+      configured: false,
+      loaded: false,
+      error: false,
+    });
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: false,
+        loaded: true,
+        error: false,
+      });
     });
     expect(mockAxiosGet).toHaveBeenCalledTimes(2);
   });
@@ -208,13 +271,17 @@ describe('useMLflowStatus', () => {
     mockAxiosGet.mockResolvedValue({ data: { configured: true } });
 
     const renderResult = testHook(useMLflowStatus)(false);
-    expect(renderResult).hookToStrictEqual({ configured: false, loaded: true });
+    expect(renderResult).hookToStrictEqual({ configured: false, loaded: true, error: false });
     expect(mockAxiosGet).not.toHaveBeenCalled();
 
     renderResult.rerender(true);
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
 
     expect(mockAxiosGet).toHaveBeenCalledTimes(1);
@@ -226,17 +293,25 @@ describe('useMLflowStatus', () => {
 
     const renderResult = testHook(useMLflowStatus)(true);
 
-    // First poll fails — stays at initialValue
+    // First poll fails — loaded and error are set so UI can show unreachable state
     await waitFor(() => {
-      expect(mockAxiosGet).toHaveBeenCalledTimes(1);
+      expect(renderResult.result.current).toStrictEqual({
+        configured: false,
+        loaded: true,
+        error: true,
+      });
     });
-    expect(renderResult.result.current).toStrictEqual({ configured: false, loaded: false });
+    expect(mockAxiosGet).toHaveBeenCalledTimes(1);
 
     mockAxiosGet.mockResolvedValueOnce({ data: { configured: true } });
     jest.advanceTimersByTime(POLL_INTERVAL);
 
     await waitFor(() => {
-      expect(renderResult.result.current).toStrictEqual({ configured: true, loaded: true });
+      expect(renderResult.result.current).toStrictEqual({
+        configured: true,
+        loaded: true,
+        error: false,
+      });
     });
 
     expect(mockAxiosGet).toHaveBeenCalledTimes(2);

@@ -1,0 +1,19 @@
+# Minimal MLflow instance for RHOAI 3.4 EA2+ (Technical Preview).
+# See product "MLflow on RHOAI Preview Integration Guide" — SQLite + PVC artifacts, operator supplies image.
+# Cluster-scoped CR (no metadata.namespace); convention is metadata.name: mlflow.
+apiVersion: mlflow.opendatahub.io/v1
+kind: MLflow
+metadata:
+  name: mlflow
+spec:
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  backendStoreUri: 'sqlite:////mlflow/mlflow.db'
+  artifactsDestination: 'file:///mlflow/artifacts'
+  serveArtifacts: true
+  image:
+    imagePullPolicy: Always

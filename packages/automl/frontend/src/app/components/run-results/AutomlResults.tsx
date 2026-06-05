@@ -13,7 +13,7 @@ import { useParams } from 'react-router';
 import { useAutomlResultsContext } from '~/app/context/AutomlResultsContext';
 import { fetchS3File } from '~/app/hooks/queries';
 import PipelineTopology from '~/app/topology/PipelineTopology';
-import { useAutoMLTaskTopology } from '~/app/topology/useAutoMLTaskTopology';
+import { useAutomlTaskTopology } from '~/app/topology/useAutomlTaskTopology';
 import { RuntimeStateKF } from '~/app/types/pipeline';
 import type { RunDetailsKF } from '~/app/types/pipeline';
 import { downloadBlob } from '~/app/utilities/utils';
@@ -41,7 +41,7 @@ function AutomlResults(): React.JSX.Element {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   const runDetails = pipelineRun?.run_details as RunDetailsKF | undefined;
 
-  const nodes = useAutoMLTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
+  const nodes = useAutomlTaskTopology(pipelineRun?.pipeline_spec, runDetails, pipelineRun?.state);
   const [modalState, setModalState] = React.useState<ModalState | null>(null);
   const [registerModelName, setRegisterModelName] = React.useState<string | null>(null);
   const [downloadError, setDownloadError] = React.useState<NotebookDownloadError | null>(null);

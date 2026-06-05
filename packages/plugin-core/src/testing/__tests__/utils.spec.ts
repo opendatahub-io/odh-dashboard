@@ -40,6 +40,19 @@ describe('validateExtensions', () => {
     ]);
   });
 
+  it('should allow customCondition as a plain function', () => {
+    expectExtensionsToBeValid([
+      {
+        type: 'app.area',
+        properties: {
+          id: 'test-area',
+          featureFlags: ['testFlag'],
+          customCondition: ({ dsciStatus }: { dsciStatus: unknown }) => dsciStatus != null,
+        },
+      },
+    ]);
+  });
+
   it('should validate an invalid code ref', () => {
     expect(() =>
       expectExtensionsToBeValid([

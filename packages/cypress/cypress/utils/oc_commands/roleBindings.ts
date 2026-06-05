@@ -2,6 +2,40 @@ import type { CommandLineResult } from '../../types';
 import { maskSensitiveInfo } from '../maskSensitiveInfo';
 
 /**
+ * Check if a user or group has a specific role binding in a namespace
+ * @param namespace Namespace to check
+ * @param subjectName User or group name to check for
+ * @param roleName Optional role name to filter by (e.g., 'edit', 'admin', 'view')
+ * @returns A Cypress chainable that resolves to true if role binding exists for the subject
+ */
+export const checkProjectRoleBinding = (
+  namespace: string,
+  subjectName: string,
+  roleName?: string,
+): Cypress.Chainable<boolean> => {
+  let jqFilter = `.items[] | select(.subjects[]?.name == "${subjectName}")`;
+  if (roleName) {
+    jqFilter += ` | select(.roleRef.name == "${roleName}")`;
+  }
+  jqFilter += ' | .metadata.name';
+
+  const ocCommand = `oc get rolebinding -n ${namespace} -o json | jq -r '${jqFilter}'`;
+
+  cy.log(`Checking role binding for user '***' in namespace '${namespace}'`);
+
+  return cy.exec(ocCommand, { failOnNonZeroExit: false }).then((result: CommandLineResult) => {
+    if (result.exitCode === 0 && result.stdout.trim().length > 0) {
+      cy.log(
+        `✅ Role binding found for user '***' in namespace '${namespace}': ${result.stdout.trim()}`,
+      );
+    } else {
+      cy.log(`❌ No role binding found for user '***' in namespace '${namespace}'`);
+    }
+    return cy.wrap(result.exitCode === 0 && result.stdout.trim().length > 0);
+  });
+};
+
+/**
  * Check if a role binding exists for a specific subject in a model registry
  * @param registryName Name of the model registry
  * @param namespace Namespace to check

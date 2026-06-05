@@ -9,6 +9,7 @@ export type AssignRoleViaProjectRbacOptions = {
 /**
  * Assigns a role to a user or group via the project RBAC "Manage permissions" flow.
  * Assumes the Permissions tab is already open and the Assign roles button is available.
+ * Waits for the assignment to complete and the modal to close before returning.
  */
 export function assignRoleViaProjectRbac(
   projectRbac: typeof projectRbacPermissions,
@@ -34,4 +35,9 @@ export function assignRoleViaProjectRbac(
       projectRbac.getRoleAssignmentChangesModal().findSaveButton().click();
     }
   });
+
+  // Wait for the modal to close and the page to return to the permissions tab
+  projectRbac.findAssignRolesPage().should('not.exist');
+  // Wait for the assign roles button to reappear, indicating the page has fully updated
+  projectRbac.waitForAssignRolesButton();
 }

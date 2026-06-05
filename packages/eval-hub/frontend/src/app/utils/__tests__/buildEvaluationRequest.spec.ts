@@ -436,6 +436,79 @@ describe('buildEvaluationRequest', () => {
     });
   });
 
+  describe('passCriteriaOverride and primaryScoreOverride', () => {
+    it('should use passCriteriaOverride instead of benchmark defaults for single benchmark', () => {
+      const bm = makeBenchmark({ pass_criteria: { threshold: 0.5 } });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        passCriteriaOverride: { threshold: 0.85 },
+      });
+
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.85 });
+    });
+
+    it('should use primaryScoreOverride instead of benchmark defaults for single benchmark', () => {
+      const bm = makeBenchmark({
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+      });
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        primaryScoreOverride: { metric: 'perplexity', lower_is_better: true },
+      });
+
+      expect(result.benchmarks![0].primary_score).toEqual({
+        metric: 'perplexity',
+        lower_is_better: true,
+      });
+    });
+
+    it('should fall back to benchmark defaults when overrides are not provided', () => {
+      const bm = makeBenchmark({
+        pass_criteria: { threshold: 0.5 },
+        primary_score: { metric: 'accuracy', lower_is_better: false },
+      });
+      const result = buildEvaluationRequest({ ...baseParams, benchmark: bm });
+
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.5 });
+      expect(result.benchmarks![0].primary_score).toEqual({
+        metric: 'accuracy',
+        lower_is_better: false,
+      });
+    });
+
+    it('should add top-level pass_criteria for collection flow when override is provided', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        collection: col,
+        passCriteriaOverride: { threshold: 0.7 },
+      });
+
+      expect(result.pass_criteria).toEqual({ threshold: 0.7 });
+    });
+
+    it('should omit top-level pass_criteria for collection flow when override is not provided', () => {
+      const col = makeCollection();
+      const result = buildEvaluationRequest({ ...baseParams, collection: col });
+
+      expect(result).not.toHaveProperty('pass_criteria');
+    });
+
+    it('should not add top-level pass_criteria for single benchmark flow', () => {
+      const bm = makeBenchmark();
+      const result = buildEvaluationRequest({
+        ...baseParams,
+        benchmark: bm,
+        passCriteriaOverride: { threshold: 0.9 },
+      });
+
+      expect(result).not.toHaveProperty('pass_criteria');
+      expect(result.benchmarks![0].pass_criteria).toEqual({ threshold: 0.9 });
+    });
+  });
+
   describe('edge cases', () => {
     it('should return empty benchmarks when neither benchmark nor collection is provided', () => {
       const result = buildEvaluationRequest(baseParams);

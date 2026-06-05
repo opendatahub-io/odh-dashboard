@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Card,
   CardBody,
   CardFooter,
@@ -13,18 +12,17 @@ import {
   StackItem,
   Flex,
   FlexItem,
-  Spinner,
+  Skeleton,
   Tooltip,
 } from '@patternfly/react-core';
 import { CheckCircleIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports -- reusing existing DeleteModal pattern
 import DeleteModal from '@odh-dashboard/internal/pages/projects/components/DeleteModal';
-import { useAccessReview } from '@odh-dashboard/internal/api';
+import { useNIMSettingsAccessAllowed } from './useNIMSettingsAccessAllowed';
 import NIMAccountStatusAlerts from './NIMAccountStatusAlerts';
 import NIMApiKeyModal from './NIMApiKeyModal';
 import useNIMAccountStatus, { NIMAccountStatus } from '../../api/accounts/hooks';
-import { deleteNIMResources } from '../../api/accounts/utils';
-import { NIMAccountModel } from '../../api/accounts/k8s';
+import { deleteNIMResources } from '../../api/accounts/api';
 
 const NIM_DESCRIPTION =
   'NVIDIA NIM, part of NVIDIA AI Enterprise, is a set of easy-to-use microservices designed ' +
@@ -33,6 +31,11 @@ const NIM_DESCRIPTION =
   'community and NVIDIA AI Foundation models, it ensures seamless, scalable AI inferencing, ' +
   'on-premises or in the cloud, leveraging industry standard APIs.';
 
+const NO_PERMISSION_ADD_TOOLTIP =
+  "You don't have permission to add a personal API key in this project. To request access, contact your project administrator.";
+const NO_PERMISSION_REMOVE_TOOLTIP =
+  "You don't have permission to remove a personal API key in this project. To request access, contact your project administrator.";
+
 type NIMSettingsCardProps = {
   namespace: string;
 };
@@ -40,12 +43,7 @@ type NIMSettingsCardProps = {
 const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   const { status, errorMessages, refresh, startRevalidation } = useNIMAccountStatus(namespace);
 
-  const [canCreateAccount, accessReviewLoaded] = useAccessReview({
-    group: NIMAccountModel.apiGroup,
-    resource: NIMAccountModel.plural,
-    namespace,
-    verb: 'create',
-  });
+  const { loaded: accessReviewLoaded, allowed } = useNIMSettingsAccessAllowed(namespace);
 
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
@@ -97,78 +95,84 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
   }, [namespace, refresh, stopPollingDeleteStatus]);
 
   const renderFooterContent = () => {
-    if (!accessReviewLoaded) {
-      return <Spinner size="md" />;
+    if (!accessReviewLoaded || status === NIMAccountStatus.LOADING) {
+      return <Skeleton data-testid="nim-permissions-loading" height="35px" width="250px" />;
     }
-    if (!canCreateAccount) {
-      return (
-        <Alert
-          variant="warning"
-          isInline
-          isPlain
-          title="You do not have permission to configure NVIDIA NIM in this project. Contact a project administrator."
-          data-testid="nim-no-permission-alert"
-        />
-      );
-    }
+
+    const enableButton = (
+      <Button
+        variant="tertiary"
+        isAriaDisabled={!allowed}
+        onClick={() => setIsApiKeyModalOpen(true)}
+        data-testid="nim-enable-button"
+      >
+        Add personal API key
+      </Button>
+    );
+
+    const managementButtons = (
+      <Flex>
+        <FlexItem>
+          <Tooltip
+            content={
+              !allowed
+                ? NO_PERMISSION_REMOVE_TOOLTIP
+                : 'Remove the NVIDIA NIM account and API key from this project'
+            }
+          >
+            <Button
+              variant="tertiary"
+              isAriaDisabled={!allowed}
+              onClick={() => setIsDeleteModalOpen(true)}
+              data-testid="nim-remove-button"
+            >
+              Remove
+            </Button>
+          </Tooltip>
+        </FlexItem>
+        <FlexItem>
+          <Tooltip
+            content={
+              !allowed
+                ? NO_PERMISSION_ADD_TOOLTIP
+                : 'Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it'
+            }
+          >
+            <Button
+              variant="link"
+              isAriaDisabled={!allowed}
+              onClick={() => setIsApiKeyModalOpen(true)}
+              data-testid="nim-replace-key-button"
+            >
+              Replace key
+            </Button>
+          </Tooltip>
+        </FlexItem>
+      </Flex>
+    );
 
     switch (status) {
       case NIMAccountStatus.NOT_FOUND:
+        return !allowed ? (
+          <Tooltip content={NO_PERMISSION_ADD_TOOLTIP}>{enableButton}</Tooltip>
+        ) : (
+          enableButton
+        );
+      case NIMAccountStatus.READY:
         return (
-          <Button
-            variant="tertiary"
-            onClick={() => setIsApiKeyModalOpen(true)}
-            data-testid="nim-enable-button"
-          >
-            Add personal API key
-          </Button>
+          <Stack hasGutter>
+            <StackItem>
+              <HelperText>
+                <HelperTextItem icon={<CheckCircleIcon />} variant="success">
+                  Your personal API key has been saved.
+                </HelperTextItem>
+              </HelperText>
+            </StackItem>
+            <StackItem>{managementButtons}</StackItem>
+          </Stack>
         );
       case NIMAccountStatus.PENDING:
       case NIMAccountStatus.ERROR:
-      case NIMAccountStatus.READY: {
-        const actionButtons = (status === NIMAccountStatus.ERROR ||
-          status === NIMAccountStatus.READY) && (
-          <Flex>
-            <FlexItem>
-              <Tooltip content="Remove the NVIDIA NIM account and API key from this project">
-                <Button
-                  variant="tertiary"
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  data-testid="nim-remove-button"
-                >
-                  Remove
-                </Button>
-              </Tooltip>
-            </FlexItem>
-            <FlexItem>
-              <Tooltip content="Enter a new NVIDIA personal API key and reconfigure the NIM account in this project to use it">
-                <Button
-                  variant="link"
-                  onClick={() => setIsApiKeyModalOpen(true)}
-                  data-testid="nim-replace-key-button"
-                >
-                  Replace key
-                </Button>
-              </Tooltip>
-            </FlexItem>
-          </Flex>
-        );
-
-        if (status === NIMAccountStatus.READY) {
-          return (
-            <Stack hasGutter>
-              <StackItem>
-                <HelperText>
-                  <HelperTextItem icon={<CheckCircleIcon />} variant="success">
-                    Your personal API key has been saved.
-                  </HelperTextItem>
-                </HelperText>
-              </StackItem>
-              <StackItem>{actionButtons}</StackItem>
-            </Stack>
-          );
-        }
-
         return (
           <Stack hasGutter>
             {!(isApiKeyModalOpen && status === NIMAccountStatus.PENDING) && (
@@ -176,10 +180,9 @@ const NIMSettingsCard: React.FC<NIMSettingsCardProps> = ({ namespace }) => {
                 <NIMAccountStatusAlerts status={status} errorMessages={errorMessages} />
               </StackItem>
             )}
-            {actionButtons && <StackItem>{actionButtons}</StackItem>}
+            <StackItem>{managementButtons}</StackItem>
           </Stack>
         );
-      }
       default:
         return null;
     }
