@@ -6,10 +6,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -2738,4 +2744,194 @@ func TestLlamaStackCreateResponseHandler_PayloadTooLarge(t *testing.T) {
 	assert.True(t, ok, "response should contain 'error' object")
 	assert.Equal(t, "413", errorObj["code"])
 	assert.Contains(t, errorObj["message"], "20MB")
+}
+
+// failingResponseWriter simulates a client that disconnected mid-stream.
+type failingResponseWriter struct {
+	header     http.Header
+	statusCode int
+}
+
+func (f *failingResponseWriter) Header() http.Header {
+	if f.header == nil {
+		f.header = make(http.Header)
+	}
+	return f.header
+}
+
+func (f *failingResponseWriter) Write(_ []byte) (int, error) {
+	return 0, errors.New("connection reset by peer")
+}
+
+func (f *failingResponseWriter) WriteHeader(statusCode int) {
+	f.statusCode = statusCode
+}
+
+func (f *failingResponseWriter) Flush() {}
+
+// TestPostLoopWriteError_IsSilentWithoutFix is a behavior demonstration. It shows that fmt.Fprintf 
+// returns an error when writing to a disconnected client, confirming the failure mode that the production 
+// fix addresses. The actual regression guard is TestDetect_UncheckedFprintfCalls which uses AST analysis 
+// to ensure all write sites check their error return.
+func TestPostLoopWriteError_IsSilentWithoutFix(t *testing.T) {
+	w := &failingResponseWriter{}
+
+	errorData := map[string]interface{}{
+		"error": map[string]interface{}{
+			"message": "Streaming error occurred",
+			"code":    "500",
+		},
+	}
+	errorJSON, _ := json.Marshal(errorData)
+
+	_, writeErr := fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+	if writeErr == nil {
+		t.Fatal("Expected a write error from a disconnected client, got nil")
+	}
+
+	t.Logf("Write to disconnected client fails with: %v", writeErr)
+}
+
+// TestPostLoopMetricsWrite_SkippedAfterFailedErrorWrite is a behavior demonstration showing
+// that the early-return pattern (check error → return before next write) prevents unnecessary
+// writes to a dead connection. The regression guard is TestDetect_UncheckedFprintfCalls.
+func TestPostLoopMetricsWrite_SkippedAfterFailedErrorWrite(t *testing.T) {
+	writeAttempts := 0
+	w := &countingFailWriter{attempts: &writeAttempts}
+
+	errorData := map[string]interface{}{
+		"error": map[string]interface{}{
+			"message": "Streaming error occurred",
+			"code":    "500",
+		},
+	}
+	errorJSON, _ := json.Marshal(errorData)
+
+	if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", errorJSON); writeErr != nil {
+		// Early return: skip metrics write (mirrors production code)
+		if writeAttempts != 1 {
+			t.Fatalf("Expected exactly 1 write attempt before early return, got %d", writeAttempts)
+		}
+		return
+	}
+
+	t.Fatal("Expected write to fail on disconnected client")
+}
+
+type countingFailWriter struct {
+	attempts *int
+}
+
+func (c *countingFailWriter) Header() http.Header { return http.Header{} }
+func (c *countingFailWriter) WriteHeader(int)     {}
+func (c *countingFailWriter) Write(_ []byte) (int, error) {
+	*c.attempts++
+	return 0, errors.New("connection reset by peer")
+}
+
+func TestDetect_UncheckedFprintfCalls(t *testing.T) {
+	_, thisFile, _, _ := runtime.Caller(0)
+	pkgDir := filepath.Dir(thisFile)
+
+	targets := []string{
+		"lsd_responses_handler.go",
+		"async_moderation.go",
+	}
+
+	total := 0
+	for _, filename := range targets {
+		fp := filepath.Join(pkgDir, filename)
+		unchecked := findUncheckedFprintf(t, fp)
+		total += len(unchecked)
+
+		if len(unchecked) > 0 {
+			t.Errorf("%s has %d unchecked fmt.Fprintf(w, ...) calls:", filename, len(unchecked))
+			for _, loc := range unchecked {
+				t.Errorf("  Line %d: error return discarded — missing error check, log, and flush", loc.line)
+			}
+		}
+	}
+
+	if total == 0 {
+		t.Logf("All fmt.Fprintf calls to ResponseWriter properly check their error return.")
+	}
+}
+
+type uncheckedCall struct {
+	line int
+}
+
+func findUncheckedFprintf(t *testing.T, filename string) []uncheckedCall {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filename, nil, parser.AllErrors)
+	if err != nil {
+		t.Fatalf("Failed to parse %s: %v", filename, err)
+	}
+
+	var unchecked []uncheckedCall
+
+	ast.Inspect(file, func(n ast.Node) bool {
+		switch stmt := n.(type) {
+		case *ast.ExprStmt:
+			if call, ok := stmt.X.(*ast.CallExpr); ok && isFprintfToWriter(call) {
+				pos := fset.Position(call.Pos())
+				unchecked = append(unchecked, uncheckedCall{line: pos.Line})
+			}
+		case *ast.AssignStmt:
+			if len(stmt.Rhs) == 1 {
+				if call, ok := stmt.Rhs[0].(*ast.CallExpr); ok && isFprintfToWriter(call) {
+					if allBlankIdents(stmt.Lhs) || (len(stmt.Lhs) == 2 && isBlankIdent(stmt.Lhs[1])) {
+						pos := fset.Position(call.Pos())
+						unchecked = append(unchecked, uncheckedCall{line: pos.Line})
+					}
+				}
+			}
+		}
+		return true
+	})
+
+	return unchecked
+}
+
+func isBlankIdent(expr ast.Expr) bool {
+	ident, ok := expr.(*ast.Ident)
+	return ok && ident.Name == "_"
+}
+
+func allBlankIdents(exprs []ast.Expr) bool {
+	for _, expr := range exprs {
+		if !isBlankIdent(expr) {
+			return false
+		}
+	}
+	return true
+}
+
+func isFprintfToWriter(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+
+	pkg, ok := sel.X.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	if pkg.Name != "fmt" || sel.Sel.Name != "Fprintf" {
+		return false
+	}
+
+	if len(call.Args) < 1 {
+		return false
+	}
+
+	firstArg, ok := call.Args[0].(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	return strings.EqualFold(firstArg.Name, "w")
 }

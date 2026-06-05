@@ -717,7 +717,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	if err = stream.Err(); err != nil {
 		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
 		message, code, component, retriable := app.extractStreamingError(err)
-		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
+		if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable)); writeErr != nil {
+			app.logger.Debug("Failed to write final error event to client", "error", writeErr)
+			return
+		}
+		flusher.Flush()
 	}
 
 	// Send metrics event after stream completes
@@ -736,7 +740,11 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	writeMu.Lock()
-	fmt.Fprintf(w, "data: %s\n\n", eventData)
+	if _, writeErr := fmt.Fprintf(w, "data: %s\n\n", eventData); writeErr != nil {
+		writeMu.Unlock()
+		app.logger.Debug("Failed to write metrics event to client", "error", writeErr)
+		return
+	}
 	flusher.Flush()
 	writeMu.Unlock()
 }
