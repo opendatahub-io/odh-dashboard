@@ -2769,9 +2769,9 @@ func (f *failingResponseWriter) WriteHeader(statusCode int) {
 
 func (f *failingResponseWriter) Flush() {}
 
-// TestPostLoopWriteError_IsSilentWithoutFix is a behavior demonstration. It shows that fmt.Fprintf 
-// returns an error when writing to a disconnected client, confirming the failure mode that the production 
-// fix addresses. The actual regression guard is TestDetect_UncheckedFprintfCalls which uses AST analysis 
+// TestPostLoopWriteError_IsSilentWithoutFix is a behavior demonstration. It shows that fmt.Fprintf
+// returns an error when writing to a disconnected client, confirming the failure mode that the production
+// fix addresses. The actual regression guard is TestDetect_UncheckedFprintfCalls which uses AST analysis
 // to ensure all write sites check their error return.
 func TestPostLoopWriteError_IsSilentWithoutFix(t *testing.T) {
 	w := &failingResponseWriter{}
