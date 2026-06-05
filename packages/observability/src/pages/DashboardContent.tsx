@@ -8,8 +8,9 @@ import { DASHBOARD_PAGE_TITLE, DASHBOARD_PAGE_DESCRIPTION } from './const';
 import HeaderTimeRangeControls from './HeaderTimeRangeControls';
 import ClusterDetailsVariablesProvider from './ClusterDetailsVariablesProvider';
 import NamespaceUrlSync from './NamespaceUrlSync';
-import PersesWrapper from '../perses/PersesWrapper';
-import PersesBoard from '../perses/PersesBoard';
+import PersesProvider from '../perses/embeddable/PersesProvider';
+import PersesDashboard from '../perses/embeddable/PersesDashboard';
+import PersesVariables from '../perses/embeddable/PersesVariables';
 import useRelativeLinkHandler from '../hooks/useRelativeLinkHandler';
 import {
   buildDashboardUrl,
@@ -77,12 +78,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     return index >= 0 ? index : 0;
   }, [transformedDashboards, dashboardNameFromUrl]);
 
-  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
-  const activeDashboardName = activeDashboard.metadata.name;
-
-  // Check if the active dashboard needs cluster details variables
-  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
-
   // Handle tab selection - use React Router for normal clicks, allow browser default for cmd/ctrl+click
   const handleTabSelect = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, eventKey: string | number) => {
@@ -97,14 +92,17 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
     [navigate, searchParams],
   );
 
-  // Guard against empty dashboards array
   if (transformedDashboards.length === 0) {
     return null;
   }
 
+  const activeDashboard = transformedDashboards[activeDashboardIndex] || transformedDashboards[0];
+  const activeDashboardName = activeDashboard.metadata.name;
+  const needsClusterDetails = hasClusterDetailsVariables(activeDashboard);
+
   return (
     <div ref={setRelativeLinkHandlerRef}>
-      <PersesWrapper key={activeDashboardName} dashboardResource={activeDashboard}>
+      <PersesProvider key={activeDashboardName} dashboardResource={activeDashboard} syncToUrl>
         {needsClusterDetails && <ClusterDetailsVariablesProvider />}
         <NamespaceUrlSync />
         <ApplicationsPage
@@ -130,13 +128,14 @@ const DashboardContent: React.FC<DashboardContentProps> = ({ dashboards }) => {
                 href={buildDashboardUrl(dashboard.metadata.name, searchParams.toString())}
               >
                 <PageSection hasBodyWrapper={false} isFilled>
-                  <PersesBoard />
+                  <PersesVariables />
+                  <PersesDashboard />
                 </PageSection>
               </Tab>
             ))}
           </Tabs>
         </ApplicationsPage>
-      </PersesWrapper>
+      </PersesProvider>
     </div>
   );
 };

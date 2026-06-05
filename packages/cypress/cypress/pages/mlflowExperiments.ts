@@ -60,6 +60,18 @@ class MlflowExperiments {
     return cy.findByTestId('mlflow-unavailable-empty-state');
   }
 
+  findNotConfiguredEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-empty-state');
+  }
+
+  findNotConfiguredAdminEmptyState() {
+    return cy.findByTestId('mlflow-not-configured-admin-empty-state');
+  }
+
+  findNotConfiguredAdminLink() {
+    return cy.findByTestId('mlflow-not-configured-admin-link');
+  }
+
   findErrorEmptyState() {
     return cy.findByTestId('empty-state-title', { timeout: 10000 });
   }

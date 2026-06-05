@@ -18,7 +18,7 @@ metadata:
     appstudio.openshift.io/application: opendatahub-builds
     appstudio.openshift.io/component: odh-mod-arch-agent-ops-ci
     pipelines.appstudio.openshift.io/type: build
-  name: odh-mod-arch-agent-ops-on-pull-request
+  name: odh-mod-arch-agent-ops-ci-on-pull-request
   namespace: open-data-hub-tenant
 spec:
   params:

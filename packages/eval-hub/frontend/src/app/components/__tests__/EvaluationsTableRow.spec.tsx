@@ -15,6 +15,7 @@ const mockCancelEvaluationJob = jest.mocked(cancelEvaluationJob);
 const mockDeleteEvaluationJob = jest.mocked(deleteEvaluationJob);
 
 const mockOnActionComplete = jest.fn();
+const mockOnSelectionChange = jest.fn();
 
 const renderRow = (jobOverrides = {}, rowIndex = 0) => {
   const job = mockEvaluationJob(jobOverrides);
@@ -28,6 +29,8 @@ const renderRow = (jobOverrides = {}, rowIndex = 0) => {
             namespace="test-ns"
             collectionNameMap={{}}
             onActionComplete={mockOnActionComplete}
+            isSelected={false}
+            onSelectionChange={mockOnSelectionChange}
           />
         </Tbody>
       </Table>
@@ -39,6 +42,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCancelEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
   mockDeleteEvaluationJob.mockReturnValue(() => Promise.resolve(undefined));
+  mockOnSelectionChange.mockReset();
 });
 
 describe('EvaluationsTableRow', () => {
@@ -60,6 +64,16 @@ describe('EvaluationsTableRow', () => {
   it('should render status label', () => {
     renderRow({ state: 'running' });
     expect(screen.getByTestId('status-label-running')).toBeInTheDocument();
+  });
+
+  it('should disable the compare checkbox when evaluation is not completed', () => {
+    renderRow({ state: 'running' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeDisabled();
+  });
+
+  it('should enable the compare checkbox when evaluation is completed', () => {
+    renderRow({ state: 'completed' });
+    expect(screen.getByTestId('evaluation-select-checkbox-0')).toBeEnabled();
   });
 
   it('should show error popover when clicking a failed status with a message', () => {
@@ -99,6 +113,8 @@ describe('EvaluationsTableRow', () => {
               namespace="test-ns"
               collectionNameMap={{}}
               onActionComplete={mockOnActionComplete}
+              isSelected={false}
+              onSelectionChange={mockOnSelectionChange}
             />
           </Tbody>
         </Table>

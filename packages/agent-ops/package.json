@@ -3,9 +3,6 @@
   "name": "@odh-dashboard/agent-ops",
   "description": "Agent Ops plugin.",
   "version": "0.0.0",
-  "exports": {
-    "./extensions": "./frontend/src/odh/extensions.ts"
-  },
   "module-federation": {
     "name": "agentOps",
     "remoteEntry": "/remoteEntry.js",
@@ -27,7 +24,7 @@
     },
     "service": {
       "name": "odh-dashboard",
-      "port": 8043
+      "port": 8843
     }
   },
   "e2eCiTags": ["@AgentOpsCI"],

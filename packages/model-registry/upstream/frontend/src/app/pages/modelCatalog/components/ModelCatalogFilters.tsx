@@ -12,7 +12,7 @@ import {
   MODEL_CATALOG_MIDDLE_EASTERN_AND_OTHER_LANGUAGES_DETAILS,
   ModelCatalogTensorType,
 } from '~/concepts/modelCatalog/const';
-import { TempDevFeature, useTempDevFeatureAvailable } from '~/app/hooks/useTempDevFeatureAvailable';
+import useModelRegistryDashboardConfig from '~/app/hooks/useModelRegistryDashboardConfig';
 import {
   CatalogFilterPanel,
   useCatalogFilterConfigs,
@@ -47,9 +47,7 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 const ModelCatalogFilters: React.FC = () => {
   const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filterData, setFilterData } =
     React.useContext(ModelCatalogContext);
-  const toolCallingFeatureAvailable = useTempDevFeatureAvailable(
-    TempDevFeature.ToolCallingConfiguration,
-  );
+  const { toolCalling: toolCallingFeatureAvailable } = useModelRegistryDashboardConfig();
 
   React.useEffect(() => {
     if (

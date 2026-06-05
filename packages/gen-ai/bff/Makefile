@@ -1,3 +1,7 @@
+# Pin all Go commands to the version in go.mod so local dev matches CI exactly.
+# Override with GOTOOLCHAIN=local to use your system Go (e.g. forward-compat testing).
+export GOTOOLCHAIN := go$(shell sed -n 's/^go //p' go.mod)
+
 PORT ?= 8080
 #frontend static assets root directory
 STATIC_ASSETS_DIR ?= ./static

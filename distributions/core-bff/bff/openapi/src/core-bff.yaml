@@ -86,6 +86,128 @@ paths:
       operationId: getNamespaces
       summary: List accessible namespaces
 
+  /api/k8s/{path}:
+    summary: Kubernetes API proxy
+    description: >-
+      Proxies requests to the Kubernetes API server. Strips the /api/k8s prefix
+      and forwards the remaining path, query parameters, and body to the upstream API.
+      The Authorization header is injected from the authenticated user's bearer token
+      (RequestIdentity); it is not forwarded from the original request.
+      Proxy-level errors (403 SSRF, 502) are returned as plain text, not JSON.
+      Authentication errors (401) are returned as JSON by the auth middleware.
+      Upstream K8s API responses (including K8s 403/404) are passed through unchanged.
+      Note: /wss/k8s/* WebSocket proxy is not documented here (OpenAPI 3.0.3 has no native WebSocket support).
+    parameters:
+      - name: path
+        in: path
+        required: true
+        schema:
+          type: string
+        description: >-
+          Multi-segment Kubernetes API path forwarded to the upstream API server
+          (e.g., api/v1/namespaces, apis/apps/v1/namespaces/test/deployments).
+          OpenAPI 3.0.3 does not support multi-segment path parameters natively;
+          the actual implementation matches the full remaining path after /api/k8s/.
+    get:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyGet
+      summary: Proxy GET to Kubernetes API
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    post:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPost
+      summary: Proxy POST to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '201':
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    put:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPut
+      summary: Proxy PUT to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    patch:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyPatch
+      summary: Proxy PATCH to Kubernetes API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+    delete:
+      tags:
+        - Kubernetes Proxy
+      operationId: k8sProxyDelete
+      summary: Proxy DELETE to Kubernetes API
+      responses:
+        '200':
+          $ref: '#/components/responses/K8sProxySuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
 components:
   schemas:
     HealthCheckResponse:
@@ -228,18 +350,50 @@ components:
           example:
             error:
               code: 'UNAUTHORIZED'
-              message: 'Authentication credentials are missing or invalid'
+              message: 'Access unauthorized'
 
     NotFound:
-      description: Resource not found
+      description: Resource not found (JSON from upstream K8s API passthrough)
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            type: object
           example:
-            error:
-              code: 'NOT_FOUND'
-              message: 'The requested resource was not found'
+            kind: 'Status'
+            code: 404
+            message: 'the requested resource was not found'
+
+    Forbidden:
+      description: >-
+        Access denied. May be plain text from SSRF protection (redirect to private IP blocked)
+        or JSON from upstream K8s API (RBAC denied).
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: 'Forbidden'
+        application/json:
+          schema:
+            type: object
+          example:
+            kind: 'Status'
+            code: 403
+            message: 'pods is forbidden'
+
+    K8sProxySuccess:
+      description: Successful response from Kubernetes API (passthrough)
+      content:
+        application/json:
+          schema:
+            type: object
+
+    BadGateway:
+      description: Upstream service error (plain text from proxy error handler)
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: 'Bad Gateway'
 
     InternalServerError:
       description: Internal server error
