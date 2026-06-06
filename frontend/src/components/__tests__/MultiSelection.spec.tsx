@@ -142,6 +142,37 @@ describe('MultiSelection', () => {
     expect(combobox.getAttribute('aria-activedescendant')).toBeNull();
   });
 
+  it('should have listbox id matching aria-controls when using grouped options only', () => {
+    const groupedOptions = [
+      {
+        id: 'group-1',
+        name: 'Group One',
+        values: [
+          { id: 'opt-1', name: 'Option One', selected: false },
+          { id: 'opt-2', name: 'Option Two', selected: false },
+        ],
+      },
+    ];
+
+    render(
+      <MultiSelection
+        id="test-grouped"
+        ariaLabel="Test grouped select"
+        groupedValues={groupedOptions}
+        setValue={mockSetValue}
+      />,
+    );
+
+    const combobox = screen.getByRole('combobox');
+    fireEvent.click(combobox);
+
+    const ariaControls = combobox.getAttribute('aria-controls');
+    expect(ariaControls).toBeTruthy();
+
+    const listbox = document.getElementById(ariaControls as string);
+    expect(listbox).toBeInTheDocument();
+  });
+
   it('should have listbox id matching aria-controls when dropdown is open', () => {
     render(
       <MultiSelection

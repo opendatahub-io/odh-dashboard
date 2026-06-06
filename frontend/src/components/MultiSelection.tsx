@@ -180,6 +180,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
 
   const selected = React.useMemo(() => allOptions.filter((v) => v.selected), [allOptions]);
 
+  const hasFlatSelectList =
+    selectOptions.length > 0 ||
+    (createOption != null && (!isCreateOptionOnTop || groupOptions.length === 0));
+
   React.useEffect(() => {
     if (inputValue) {
       setOpen(true);
@@ -365,7 +369,10 @@ export const MultiSelection: React.FC<MultiSelectionProps> = ({
         {selectGroups.map((g, index) => (
           <React.Fragment key={g.id}>
             <SelectGroup label={g.name} key={g.id}>
-              <SelectList isAriaMultiselectable>
+              <SelectList
+                id={index === 0 && !hasFlatSelectList ? listboxId : undefined}
+                isAriaMultiselectable
+              >
                 {g.values.map((option) => (
                   <SelectOption
                     id={getOptionId(option.name)}
