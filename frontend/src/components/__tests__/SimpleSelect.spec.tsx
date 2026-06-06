@@ -25,11 +25,7 @@ describe('SimpleSelect', () => {
 
   it('should render with custom aria-label', () => {
     render(
-      <SimpleSelect
-        options={defaultOptions}
-        onChange={mockOnChange}
-        ariaLabel="Variable type"
-      />,
+      <SimpleSelect options={defaultOptions} onChange={mockOnChange} ariaLabel="Variable type" />,
     );
 
     const toggle = screen.getByRole('button', { name: 'Variable type' });

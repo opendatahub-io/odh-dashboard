@@ -18,11 +18,7 @@ describe('MultiSelection', () => {
 
   it('should render with the provided aria-label', () => {
     render(
-      <MultiSelection
-        ariaLabel="Notebook select"
-        value={defaultOptions}
-        setValue={mockSetValue}
-      />,
+      <MultiSelection ariaLabel="Notebook select" value={defaultOptions} setValue={mockSetValue} />,
     );
 
     expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -162,7 +158,8 @@ describe('MultiSelection', () => {
     fireEvent.click(combobox);
 
     const ariaControls = combobox.getAttribute('aria-controls');
-    const listbox = document.getElementById(ariaControls!);
+    expect(ariaControls).toBeTruthy();
+    const listbox = document.getElementById(ariaControls as string);
     expect(listbox).toBeInTheDocument();
   });
 });
