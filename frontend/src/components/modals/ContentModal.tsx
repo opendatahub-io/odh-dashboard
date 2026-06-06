@@ -77,6 +77,7 @@ const ContentModal: React.FC<ContentModalProps> = ({
   return (
     <Modal
       data-testid={dataTestId}
+      className="odh-content-modal"
       isOpen
       variant={variant}
       onClose={onClose}

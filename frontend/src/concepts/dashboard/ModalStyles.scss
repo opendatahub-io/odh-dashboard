@@ -11,3 +11,10 @@
     overflow-y: hidden;
   }
 }
+
+.odh-content-modal {
+  .pf-v6-c-modal-box__title-text {
+    text-overflow: initial;
+    white-space: break-spaces;
+  }
+}
