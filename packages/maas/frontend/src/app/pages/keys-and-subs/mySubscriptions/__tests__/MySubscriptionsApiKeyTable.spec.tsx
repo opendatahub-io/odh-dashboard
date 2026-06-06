@@ -113,7 +113,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const createdHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Created'));
+      .find((h) => h.textContent.includes('Created'));
     expect(createdHeader).toBeDefined();
 
     const sortButton = within(createdHeader!).getByRole('button');
@@ -126,7 +126,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Name'));
+      .find((h) => h.textContent.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     const sortButton = within(nameHeader!).getByRole('button');
@@ -147,7 +147,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     ];
 
     for (const col of sortableColumns) {
-      const header = headers.find((h) => h.textContent?.includes(col.label));
+      const header = headers.find((h) => h.textContent.includes(col.label));
       expect(header).toBeDefined();
       const sortButton = within(header!).getByRole('button');
       fireEvent.click(sortButton);
@@ -162,7 +162,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const statusHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Status'));
+      .find((h) => h.textContent.includes('Status'));
     expect(statusHeader).toBeDefined();
 
     expect(within(statusHeader!).queryByRole('button')).toBeNull();
@@ -214,7 +214,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Name'));
+      .find((h) => h.textContent.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     expect(within(nameHeader!).getByRole('button')).toBeInTheDocument();
