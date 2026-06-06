@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { APIKey, APIKeyListResponse } from '~/app/types/api-key';
 import { UserSubscription } from '~/app/types/subscriptions';
@@ -113,27 +113,46 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const createdHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Created'));
+      .find((h) => h.textContent?.includes('Created'));
     expect(createdHeader).toBeDefined();
 
-    const sortButton = createdHeader ? within(createdHeader).queryByRole('button') : null;
+    const sortButton = within(createdHeader!).getByRole('button');
     expect(sortButton).toBeInTheDocument();
   });
 
-  it('should call onSort when a sortable column header is clicked', () => {
+  it('should call onSort with the correct field when a sortable column header is clicked', () => {
     render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
 
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+      .find((h) => h.textContent?.includes('Name'));
     expect(nameHeader).toBeDefined();
 
-    const sortButton = nameHeader ? within(nameHeader).queryByRole('button') : null;
-    expect(sortButton).toBeInTheDocument();
-    if (sortButton) {
-      sortButton.click();
-      expect(mockOnSort).toHaveBeenCalled();
+    const sortButton = within(nameHeader!).getByRole('button');
+    fireEvent.click(sortButton);
+    expect(mockOnSort).toHaveBeenCalledWith('name', expect.any(String));
+  });
+
+  it('should call onSort with the correct field for each sortable column', () => {
+    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
+
+    const table = screen.getByTestId('subscription-api-keys-table');
+    const headers = within(table).getAllByRole('columnheader');
+
+    const sortableColumns = [
+      { label: 'Created', field: 'created_at' },
+      { label: 'Expires', field: 'expires_at' },
+      { label: 'Last used', field: 'last_used_at' },
+    ];
+
+    for (const col of sortableColumns) {
+      const header = headers.find((h) => h.textContent?.includes(col.label));
+      expect(header).toBeDefined();
+      const sortButton = within(header!).getByRole('button');
+      fireEvent.click(sortButton);
+      expect(mockOnSort).toHaveBeenCalledWith(col.field, expect.any(String));
+      mockOnSort.mockClear();
     }
   });
 
@@ -143,11 +162,10 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const statusHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Status'));
+      .find((h) => h.textContent?.includes('Status'));
     expect(statusHeader).toBeDefined();
 
-    const sortButton = statusHeader ? within(statusHeader).queryByRole('button') : null;
-    expect(sortButton).toBeNull();
+    expect(within(statusHeader!).queryByRole('button')).toBeNull();
   });
 
   it('should render API key rows when data is loaded', () => {
@@ -196,10 +214,9 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+      .find((h) => h.textContent?.includes('Name'));
     expect(nameHeader).toBeDefined();
 
-    const sortButton = nameHeader ? within(nameHeader).queryByRole('button') : null;
-    expect(sortButton).toBeInTheDocument();
+    expect(within(nameHeader!).getByRole('button')).toBeInTheDocument();
   });
 });

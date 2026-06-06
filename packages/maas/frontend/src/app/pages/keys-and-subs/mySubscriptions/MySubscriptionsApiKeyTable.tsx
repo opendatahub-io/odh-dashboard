@@ -167,31 +167,32 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
       <Table data-testid="subscription-api-keys-table" aria-label="Subscription API keys table">
         <Thead noWrap>
           <Tr>
-            {subscriptionApiKeyColumns.map((col, i) => (
-              <Th
-                key={col.field}
-                width={col.width}
-                sort={
-                  col.serverSortField
-                    ? {
-                        sortBy: {
-                          index: activeSortIndex,
-                          direction: sortDirection,
-                          defaultDirection: 'asc',
-                        },
-                        onSort: (_e, _index, direction) => {
-                          if (col.serverSortField) {
-                            onSort(col.serverSortField, direction);
-                          }
-                        },
-                        columnIndex: i,
-                      }
-                    : undefined
-                }
-              >
-                {col.label}
-              </Th>
-            ))}
+            {subscriptionApiKeyColumns.map((col, i) => {
+              const { serverSortField } = col;
+              return (
+                <Th
+                  key={col.field}
+                  width={col.width}
+                  sort={
+                    serverSortField
+                      ? {
+                          sortBy: {
+                            index: activeSortIndex,
+                            direction: sortDirection,
+                            defaultDirection: 'asc',
+                          },
+                          onSort: (_e, _index, direction) => {
+                            onSort(serverSortField, direction);
+                          },
+                          columnIndex: i,
+                        }
+                      : undefined
+                  }
+                >
+                  {col.label}
+                </Th>
+              );
+            })}
             <Th screenReaderText="Actions" />
           </Tr>
         </Thead>
