@@ -113,7 +113,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const createdHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Created'));
+      .find((h) => h.textContent.includes('Created'));
     expect(createdHeader).toBeDefined();
 
     const sortButton = createdHeader ? within(createdHeader).queryByRole('button') : null;
@@ -126,7 +126,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Name'));
+      .find((h) => h.textContent.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     const sortButton = nameHeader ? within(nameHeader).queryByRole('button') : null;
@@ -143,7 +143,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const statusHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Status'));
+      .find((h) => h.textContent.includes('Status'));
     expect(statusHeader).toBeDefined();
 
     const sortButton = statusHeader ? within(statusHeader).queryByRole('button') : null;
@@ -196,7 +196,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent?.includes('Name'));
+      .find((h) => h.textContent.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     const sortButton = nameHeader ? within(nameHeader).queryByRole('button') : null;
