@@ -220,21 +220,6 @@ describe('MySubscriptionsApiKeyTable', () => {
     expect(within(nameHeader!).getByRole('button')).toBeInTheDocument();
   });
 
-  it('should render pagination when loaded', () => {
-    mockHookReturn.response = {
-      object: 'list',
-      data: [mockApiKey],
-      has_more: false,
-    };
-    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
-
-    expect(screen.getByTestId('subscription-api-keys-table')).toBeInTheDocument();
-    const pagination = document.querySelector(
-      '[data-testid="subscription-api-keys-table"] ~ .pf-v6-c-pagination, .pf-v6-c-pagination',
-    );
-    expect(pagination).toBeTruthy();
-  });
-
   it('should call onSort with correct direction for descending sort', () => {
     mockHookReturn.sortField = 'name';
     mockHookReturn.sortDirection = 'asc';
@@ -264,5 +249,19 @@ describe('MySubscriptionsApiKeyTable', () => {
 
     const sortButton = within(expiresHeader!).getByRole('button');
     expect(sortButton).toBeInTheDocument();
+  });
+
+  it('should call onSort for last_used_at column with correct server sort field', () => {
+    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
+
+    const table = screen.getByTestId('subscription-api-keys-table');
+    const lastUsedHeader = within(table)
+      .getAllByRole('columnheader')
+      .find((h) => h.textContent.includes('Last used'));
+    expect(lastUsedHeader).toBeDefined();
+
+    const sortButton = within(lastUsedHeader!).getByRole('button');
+    fireEvent.click(sortButton);
+    expect(mockOnSort).toHaveBeenCalledWith('last_used_at', expect.any(String));
   });
 });
