@@ -187,4 +187,40 @@ describe('useSubscriptionApiKeysTableState', () => {
     });
     expect(renderResult.result.current.page).toBe(1);
   });
+
+  it('should expose the refresh function from useFetchApiKeys', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+    renderResult.result.current.refresh();
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('should update search request with descending sort direction', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSort('expires_at', 'desc');
+    });
+
+    expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sort: { by: 'expires_at', order: 'desc' },
+        pagination: { limit: 5, offset: 0 },
+      }),
+    );
+  });
+
+  it('should include correct pagination offset after changing page and sorting', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSort('name', 'asc');
+    });
+
+    expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sort: { by: 'name', order: 'asc' },
+        pagination: { limit: 5, offset: 0 },
+      }),
+    );
+  });
 });
