@@ -105,9 +105,7 @@ const MySubscriptionsApiKeyTable: React.FC<MySubscriptionsApiKeyTableProps> = ({
 
   const apiKeys = response.data;
   const showTableLoading = !loaded || isFetching;
-  const activeSortIndex = subscriptionApiKeyColumns.findIndex(
-    (c) => c.serverSortField === sortField,
-  );
+  const activeSortIndex = subscriptionApiKeyColumns.findIndex((c) => c.serverSortField === sortField);
 
   return (
     <>

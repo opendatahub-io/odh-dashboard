@@ -105,19 +105,20 @@ describe('MySubscriptionsApiKeyTable', () => {
     expect(headerLabels).toContain('Last used');
   });
 
-  it('should mark the active sort column with the correct direction', () => {
+  it('should mark the active sort column with the correct aria-sort attribute', () => {
     mockHookReturn.sortField = 'created_at';
     mockHookReturn.sortDirection = 'desc';
     render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
 
     const table = screen.getByTestId('subscription-api-keys-table');
-    const createdHeader = within(table)
-      .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Created'));
+    const headers = within(table).getAllByRole('columnheader');
+    const createdHeader = headers.find((h) => h.textContent.includes('Created'));
     expect(createdHeader).toBeDefined();
+    expect(createdHeader).toHaveAttribute('aria-sort', 'descending');
 
-    const sortButton = within(createdHeader!).getByRole('button');
-    expect(sortButton).toBeInTheDocument();
+    const nameHeader = headers.find((h) => h.textContent.includes('Name'));
+    expect(nameHeader).toBeDefined();
+    expect(nameHeader).not.toHaveAttribute('aria-sort', 'descending');
   });
 
   it('should call onSort with the correct field when a sortable column header is clicked', () => {
@@ -212,12 +213,14 @@ describe('MySubscriptionsApiKeyTable', () => {
     render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
 
     const table = screen.getByTestId('subscription-api-keys-table');
-    const nameHeader = within(table)
-      .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+    const headers = within(table).getAllByRole('columnheader');
+    const nameHeader = headers.find((h) => h.textContent.includes('Name'));
     expect(nameHeader).toBeDefined();
+    expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
 
-    expect(within(nameHeader!).getByRole('button')).toBeInTheDocument();
+    const createdHeader = headers.find((h) => h.textContent.includes('Created'));
+    expect(createdHeader).toBeDefined();
+    expect(createdHeader).not.toHaveAttribute('aria-sort', 'ascending');
   });
 
   it('should call onSort with correct direction for descending sort', () => {

@@ -274,4 +274,30 @@ describe('useSubscriptionApiKeysTableState', () => {
       }),
     );
   });
+
+  it('should maintain stable onSort callback reference across re-renders', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+    const firstOnSort = renderResult.result.current.onSort;
+
+    renderResult.rerender('sub-1');
+    expect(renderResult.result.current.onSort).toBe(firstOnSort);
+  });
+
+  it('should set all sort state atomically when onSort is called', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    expect(renderResult.result.current.sortField).toBe('created_at');
+    expect(renderResult.result.current.sortDirection).toBe('desc');
+    expect(renderResult.result.current.isFetching).toBe(false);
+
+    act(() => {
+      renderResult.result.current.onSort('last_used_at', 'desc');
+    });
+
+    const result = renderResult.result.current;
+    expect(result.sortField).toBe('last_used_at');
+    expect(result.sortDirection).toBe('desc');
+    expect(result.page).toBe(1);
+    expect(result.isFetching).toBe(true);
+  });
 });
