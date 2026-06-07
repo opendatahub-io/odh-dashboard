@@ -260,4 +260,39 @@ describe('MySubscriptionsApiKeyTable', () => {
       expect(within(header!).queryByRole('button')).toBeNull();
     }
   });
+
+  it('should pass serverSortField and direction through the Th onSort handler', () => {
+    mockHookReturn.sortField = 'expires_at';
+    mockHookReturn.sortDirection = 'asc';
+    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
+
+    const table = screen.getByTestId('subscription-api-keys-table');
+    const headers = within(table).getAllByRole('columnheader');
+
+    const expiresHeader = headers.find((h) => h.textContent.includes('Expires'));
+    expect(expiresHeader).toBeDefined();
+    expect(expiresHeader).toHaveAttribute('aria-sort', 'ascending');
+
+    const sortButton = within(expiresHeader!).getByRole('button');
+    fireEvent.click(sortButton);
+    expect(mockOnSort).toHaveBeenCalledTimes(1);
+    expect(mockOnSort).toHaveBeenCalledWith('expires_at', expect.any(String));
+  });
+
+  it('should compute activeSortIndex correctly for last_used_at', () => {
+    mockHookReturn.sortField = 'last_used_at';
+    mockHookReturn.sortDirection = 'desc';
+    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
+
+    const table = screen.getByTestId('subscription-api-keys-table');
+    const headers = within(table).getAllByRole('columnheader');
+
+    const lastUsedHeader = headers.find((h) => h.textContent.includes('Last used'));
+    expect(lastUsedHeader).toBeDefined();
+    expect(lastUsedHeader).toHaveAttribute('aria-sort', 'descending');
+
+    const nameHeader = headers.find((h) => h.textContent.includes('Name'));
+    expect(nameHeader).not.toHaveAttribute('aria-sort', 'descending');
+    expect(nameHeader).not.toHaveAttribute('aria-sort', 'ascending');
+  });
 });

@@ -300,4 +300,59 @@ describe('useSubscriptionApiKeysTableState', () => {
     expect(result.page).toBe(1);
     expect(result.isFetching).toBe(true);
   });
+
+  it('should sort by each supported field', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    const fields: Array<{ field: string; direction: 'asc' | 'desc' }> = [
+      { field: 'name', direction: 'asc' },
+      { field: 'created_at', direction: 'desc' },
+      { field: 'expires_at', direction: 'asc' },
+      { field: 'last_used_at', direction: 'desc' },
+    ];
+
+    for (const { field, direction } of fields) {
+      act(() => {
+        renderResult.result.current.onSort(field as 'name', direction);
+      });
+
+      expect(renderResult.result.current.sortField).toBe(field);
+      expect(renderResult.result.current.sortDirection).toBe(direction);
+      expect(renderResult.result.current.page).toBe(1);
+      expect(renderResult.result.current.isFetching).toBe(true);
+
+      expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          sort: { by: field, order: direction },
+        }),
+      );
+    }
+  });
+
+  it('should set isFetching true and reset page inside onSort callback', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSetPage(5);
+    });
+    expect(renderResult.result.current.page).toBe(5);
+    expect(renderResult.result.current.isFetching).toBe(true);
+
+    const newResponse: APIKeyListResponse = {
+      object: 'list',
+      data: [],
+      has_more: false,
+    };
+    mockUseFetchApiKeys.mockReturnValue([newResponse, true, undefined, mockRefresh]);
+    renderResult.rerender('sub-1');
+    expect(renderResult.result.current.isFetching).toBe(false);
+
+    act(() => {
+      renderResult.result.current.onSort('name', 'asc');
+    });
+    expect(renderResult.result.current.page).toBe(1);
+    expect(renderResult.result.current.isFetching).toBe(true);
+    expect(renderResult.result.current.sortField).toBe('name');
+    expect(renderResult.result.current.sortDirection).toBe('asc');
+  });
 });
