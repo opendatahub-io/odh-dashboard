@@ -39,6 +39,8 @@ const (
 	ProvidersPath            = ApiPathPrefix + "/evaluations/providers"
 	EvalHubCRStatusPath      = ApiPathPrefix + "/evalhub/status"
 	EvalHubServiceHealthPath = ApiPathPrefix + "/evalhub/health"
+	InferenceServicesPath    = ApiPathPrefix + "/inferenceservices"
+	VerifyConnectionPath     = ApiPathPrefix + "/evaluations/verify-connection"
 )
 
 type App struct {
@@ -187,6 +189,12 @@ func (app *App) Routes() http.Handler {
 	apiRouter.DELETE(EvaluationJobByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CancelEvaluationJobHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.GET(ProvidersPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ProvidersHandler))))
+
+	// InferenceService listing (user-token dynamic client, no EvalHub REST client needed)
+	apiRouter.GET(InferenceServicesPath, app.AttachNamespace(app.RequireAccessToService(app.InferenceServicesHandler)))
+
+	// Connection verification (probes external endpoints, no EvalHub REST client needed)
+	apiRouter.POST(VerifyConnectionPath, app.AttachNamespace(app.RequireAccessToService(app.VerifyConnectionHandler)))
 
 	// EvalHub CR status endpoint (reads CR directly, does not need the EvalHub REST client)
 	apiRouter.GET(EvalHubCRStatusPath, app.AttachNamespace(app.EvalHubCRStatusHandler))

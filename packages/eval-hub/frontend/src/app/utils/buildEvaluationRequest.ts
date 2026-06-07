@@ -4,11 +4,12 @@ import {
   FlatBenchmark,
   JobPassCriteria,
   JobPrimaryScore,
+  SourceMode,
 } from '~/app/types';
 
 type BuildEvaluationRequestParams = {
   evaluationName: string;
-  inputMode: 'inference' | 'prerecorded';
+  sourceMode: SourceMode;
   benchmark: FlatBenchmark | undefined;
   collection: Collection | undefined;
   modelName: string;
@@ -28,7 +29,7 @@ const TOP_LEVEL_KEYS = new Set(['experiment', 'tags', 'custom', 'exports', 'pass
 
 const buildEvaluationRequest = ({
   evaluationName,
-  inputMode,
+  sourceMode,
   benchmark,
   collection,
   modelName,
@@ -57,14 +58,14 @@ const buildEvaluationRequest = ({
   const hasParams = Object.keys(benchmarkParams).length > 0;
 
   const prerecordedDataRef =
-    inputMode === 'prerecorded' && datasetUrl.trim()
+    sourceMode === 'prerecorded' && datasetUrl.trim()
       ? {
           // eslint-disable-next-line camelcase
           test_data_ref: {
             s3: {
-              key: datasetUrl.trim(),
+              key: datasetUrl,
               // eslint-disable-next-line camelcase
-              ...(accessToken.trim() ? { secret_ref: accessToken.trim() } : {}),
+              ...(accessToken ? { secret_ref: accessToken } : {}),
             },
           },
         }
@@ -86,9 +87,9 @@ const buildEvaluationRequest = ({
     });
   }
 
-  const resolvedModelName = inputMode === 'inference' ? modelName.trim() : sourceName.trim();
-  const resolvedUrl = inputMode === 'inference' ? endpointUrl.trim() : '';
-  const resolvedAuth = inputMode === 'inference' ? apiKeySecretRef.trim() : '';
+  const resolvedModelName = sourceMode === 'prerecorded' ? sourceName : modelName;
+  const resolvedUrl = sourceMode === 'prerecorded' ? '' : endpointUrl;
+  const resolvedAuth = sourceMode === 'prerecorded' ? '' : apiKeySecretRef;
 
   const rawExperiment = topLevelOverrides.experiment;
   const experimentOverride: Record<string, unknown> | undefined =
