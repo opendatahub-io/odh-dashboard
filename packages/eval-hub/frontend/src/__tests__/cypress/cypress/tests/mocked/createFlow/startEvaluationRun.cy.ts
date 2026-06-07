@@ -638,7 +638,7 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });
 
-  it('should show error message and keep submit disabled on connection failure', () => {
+  it('should show error and keep submit disabled when connection verification fails', () => {
     cy.interceptApi(
       'POST /api/:apiVersion/evaluations/verify-connection',
       { path: API_VERSION },
@@ -656,13 +656,11 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().click();
     cy.wait('@verifyConnectionFail');
 
-    cy.findByText('Could not reach endpoint. Check the URL and network connectivity.').should(
-      'be.visible',
-    );
+    cy.findByText('Connection verification failed.').should('be.visible');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
-  it('should show auth error message on 401 response', () => {
+  it('should show error and keep submit disabled on auth failure', () => {
     cy.interceptApi(
       'POST /api/:apiVersion/evaluations/verify-connection',
       { path: API_VERSION },
@@ -681,7 +679,7 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().click();
     cy.wait('@verifyConnectionUnauth');
 
-    cy.findByText(/Authentication failed/).should('be.visible');
+    cy.findByText('Connection verification failed.').should('be.visible');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
   });
 
@@ -703,7 +701,7 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().click();
     cy.wait('@verifyConnectionTimeout');
 
-    cy.findByText('Connection timed out. The endpoint is not responding.').should('be.visible');
+    cy.findByText('Connection verification failed.').should('be.visible');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
 
     mockVerifyConnectionSuccess();
