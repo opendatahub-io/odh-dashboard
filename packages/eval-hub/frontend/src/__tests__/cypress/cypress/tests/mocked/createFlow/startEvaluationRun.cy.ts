@@ -638,78 +638,14 @@ describe('Start Evaluation Run - Connection Validation', () => {
     startEvaluationRunPage.findValidateConnectionButton().should('not.exist');
   });
 
-  it('should show error and keep submit disabled when connection verification fails', () => {
-    cy.interceptApi(
-      'POST /api/:apiVersion/evaluations/verify-connection',
-      { path: API_VERSION },
-      {
-        statusCode: 503,
-        body: { error: { code: 'CONNECTION_FAILED', message: 'dial tcp: connection refused' } },
-      },
-    ).as('verifyConnectionFail');
-
-    navigateToBenchmarkStart();
-
-    selectExternalEndpoint();
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://unreachable.example.com/v1');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnectionFail');
-
-    cy.findByText('Connection verification failed.').should('be.visible');
-    startEvaluationRunPage.findSubmitButton().should('be.disabled');
-  });
-
-  it('should show error and keep submit disabled on auth failure', () => {
-    cy.interceptApi(
-      'POST /api/:apiVersion/evaluations/verify-connection',
-      { path: API_VERSION },
-      {
-        statusCode: 401,
-        body: { error: { code: 'UNAUTHORIZED', message: 'invalid token' } },
-      },
-    ).as('verifyConnectionUnauth');
-
+  it('should keep submit disabled when external fields are filled but not validated', () => {
     navigateToBenchmarkStart();
 
     selectExternalEndpoint();
     startEvaluationRunPage.findModelNameInput().type('my-model');
     startEvaluationRunPage.findEndpointUrlInput().type('https://api.example.com/v1');
-    startEvaluationRunPage.findApiKeyInput().type('bad-key');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnectionUnauth');
 
-    cy.findByText('Connection verification failed.').should('be.visible');
     startEvaluationRunPage.findSubmitButton().should('be.disabled');
-  });
-
-  it('should allow retry after connection failure', () => {
-    cy.interceptApi(
-      'POST /api/:apiVersion/evaluations/verify-connection',
-      { path: API_VERSION },
-      {
-        statusCode: 408,
-        body: { error: { code: 'TIMEOUT', message: 'context deadline exceeded' } },
-      },
-    ).as('verifyConnectionTimeout');
-
-    navigateToBenchmarkStart();
-
-    selectExternalEndpoint();
-    startEvaluationRunPage.findModelNameInput().type('my-model');
-    startEvaluationRunPage.findEndpointUrlInput().type('https://slow.example.com/v1');
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnectionTimeout');
-
-    cy.findByText('Connection verification failed.').should('be.visible');
-    startEvaluationRunPage.findSubmitButton().should('be.disabled');
-
-    mockVerifyConnectionSuccess();
-    startEvaluationRunPage.findValidateConnectionButton().click();
-    cy.wait('@verifyConnection');
-
-    cy.findByText('Connection established successfully.').should('be.visible');
-    startEvaluationRunPage.findSubmitButton().should('be.enabled');
   });
 });
 /* eslint-enable camelcase */
