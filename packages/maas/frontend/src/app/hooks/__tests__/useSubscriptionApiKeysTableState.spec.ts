@@ -2,6 +2,7 @@
 import { act } from '@testing-library/react';
 import { testHook } from '~/__tests__/unit/testUtils/hooks';
 import { APIKeyListResponse } from '~/app/types/api-key';
+import { ApiKeySortField } from '~/app/pages/keys-and-subs/apiKeys/allKeys/columns';
 import { useSubscriptionApiKeysTableState } from '~/app/hooks/useSubscriptionApiKeysTableState';
 import { useFetchApiKeys } from '~/app/hooks/useFetchApiKeys';
 
@@ -304,7 +305,7 @@ describe('useSubscriptionApiKeysTableState', () => {
   it('should sort by each supported field', () => {
     const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
 
-    const fields: Array<{ field: string; direction: 'asc' | 'desc' }> = [
+    const fields: Array<{ field: ApiKeySortField; direction: 'asc' | 'desc' }> = [
       { field: 'name', direction: 'asc' },
       { field: 'created_at', direction: 'desc' },
       { field: 'expires_at', direction: 'asc' },
@@ -313,7 +314,7 @@ describe('useSubscriptionApiKeysTableState', () => {
 
     for (const { field, direction } of fields) {
       act(() => {
-        renderResult.result.current.onSort(field as 'name', direction);
+        renderResult.result.current.onSort(field, direction);
       });
 
       expect(renderResult.result.current.sortField).toBe(field);
