@@ -209,8 +209,59 @@ describe('useSubscriptionApiKeysTableState', () => {
     );
   });
 
-  it('should include correct pagination offset after changing page and sorting', () => {
+  it('should toggle sort direction on the same field', () => {
     const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSort('name', 'asc');
+    });
+    expect(renderResult.result.current.sortField).toBe('name');
+    expect(renderResult.result.current.sortDirection).toBe('asc');
+
+    act(() => {
+      renderResult.result.current.onSort('name', 'desc');
+    });
+    expect(renderResult.result.current.sortField).toBe('name');
+    expect(renderResult.result.current.sortDirection).toBe('desc');
+
+    expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sort: { by: 'name', order: 'desc' },
+      }),
+    );
+  });
+
+  it('should include sort params in search request after perPage change', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSort('expires_at', 'asc');
+    });
+
+    act(() => {
+      renderResult.result.current.onPerPageSelect(10, 1);
+    });
+
+    expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sort: { by: 'expires_at', order: 'asc' },
+        pagination: { limit: 10, offset: 0 },
+      }),
+    );
+  });
+
+  it('should reset pagination offset to 0 after changing page and then sorting', () => {
+    const renderResult = testHook(useSubscriptionApiKeysTableState)('sub-1');
+
+    act(() => {
+      renderResult.result.current.onSetPage(3);
+    });
+
+    expect(mockUseFetchApiKeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pagination: { limit: 5, offset: 10 },
+      }),
+    );
 
     act(() => {
       renderResult.result.current.onSort('name', 'asc');

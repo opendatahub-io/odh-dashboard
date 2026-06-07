@@ -113,7 +113,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const createdHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Created'));
+      .find((h) => h.textContent?.includes('Created'));
     expect(createdHeader).toBeDefined();
 
     const sortButton = within(createdHeader!).getByRole('button');
@@ -126,7 +126,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+      .find((h) => h.textContent?.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     const sortButton = within(nameHeader!).getByRole('button');
@@ -147,7 +147,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     ];
 
     for (const col of sortableColumns) {
-      const header = headers.find((h) => h.textContent.includes(col.label));
+      const header = headers.find((h) => h.textContent?.includes(col.label));
       expect(header).toBeDefined();
       const sortButton = within(header!).getByRole('button');
       fireEvent.click(sortButton);
@@ -162,7 +162,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const statusHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Status'));
+      .find((h) => h.textContent?.includes('Status'));
     expect(statusHeader).toBeDefined();
 
     expect(within(statusHeader!).queryByRole('button')).toBeNull();
@@ -214,7 +214,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+      .find((h) => h.textContent?.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     expect(within(nameHeader!).getByRole('button')).toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('MySubscriptionsApiKeyTable', () => {
     const table = screen.getByTestId('subscription-api-keys-table');
     const nameHeader = within(table)
       .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Name'));
+      .find((h) => h.textContent?.includes('Name'));
     expect(nameHeader).toBeDefined();
 
     const sortButton = within(nameHeader!).getByRole('button');
@@ -236,32 +236,25 @@ describe('MySubscriptionsApiKeyTable', () => {
     expect(mockOnSort).toHaveBeenCalledWith('name', expect.any(String));
   });
 
-  it('should compute activeSortIndex based on sortField matching serverSortField', () => {
-    mockHookReturn.sortField = 'expires_at';
-    mockHookReturn.sortDirection = 'asc';
+  it('should render sort controls for all sortable columns and not for non-sortable ones', () => {
     render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
 
     const table = screen.getByTestId('subscription-api-keys-table');
-    const expiresHeader = within(table)
-      .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Expires'));
-    expect(expiresHeader).toBeDefined();
+    const headers = within(table).getAllByRole('columnheader');
 
-    const sortButton = within(expiresHeader!).getByRole('button');
-    expect(sortButton).toBeInTheDocument();
-  });
+    const sortableLabels = ['Name', 'Created', 'Expires', 'Last used'];
+    const nonSortableLabels = ['Status'];
 
-  it('should call onSort for last_used_at column with correct server sort field', () => {
-    render(<MySubscriptionsApiKeyTable subscription={mockSubscription} />);
+    for (const label of sortableLabels) {
+      const header = headers.find((h) => h.textContent?.includes(label));
+      expect(header).toBeDefined();
+      expect(within(header!).queryByRole('button')).toBeInTheDocument();
+    }
 
-    const table = screen.getByTestId('subscription-api-keys-table');
-    const lastUsedHeader = within(table)
-      .getAllByRole('columnheader')
-      .find((h) => h.textContent.includes('Last used'));
-    expect(lastUsedHeader).toBeDefined();
-
-    const sortButton = within(lastUsedHeader!).getByRole('button');
-    fireEvent.click(sortButton);
-    expect(mockOnSort).toHaveBeenCalledWith('last_used_at', expect.any(String));
+    for (const label of nonSortableLabels) {
+      const header = headers.find((h) => h.textContent?.includes(label));
+      expect(header).toBeDefined();
+      expect(within(header!).queryByRole('button')).toBeNull();
+    }
   });
 });
