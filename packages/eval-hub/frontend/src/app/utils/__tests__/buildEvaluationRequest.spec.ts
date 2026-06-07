@@ -190,6 +190,32 @@ describe('buildEvaluationRequest', () => {
       });
       expect(result.benchmarks![0]).not.toHaveProperty('test_data_ref');
     });
+
+    it('should trim whitespace from datasetUrl and accessToken', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        datasetUrl: '  s3://bucket/data.jsonl  ',
+        accessToken: '  tok-123  ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: {
+          key: 's3://bucket/data.jsonl',
+          secret_ref: 'tok-123',
+        },
+      });
+    });
+
+    it('should omit secret_ref when accessToken is only whitespace', () => {
+      const result = buildEvaluationRequest({
+        ...prerecordedBase,
+        accessToken: '   ',
+        benchmark: makeBenchmark(),
+      });
+      expect(result.benchmarks![0].test_data_ref).toEqual({
+        s3: { key: 's3://bucket/data.jsonl' },
+      });
+    });
   });
 
   describe('single benchmark flow', () => {

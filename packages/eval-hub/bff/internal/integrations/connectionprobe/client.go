@@ -227,13 +227,17 @@ func (c *ConnectionProbeClient) probeModelEndpoint(ctx context.Context, req mode
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to marshal request: %v", err))
 	}
 
-	fullURL := strings.TrimSuffix(c.baseURL, "/") + "/chat/completions"
+	trimmed := strings.TrimSuffix(c.baseURL, "/")
+	fullURL := trimmed + "/chat/completions"
+	if strings.HasSuffix(trimmed, "/chat/completions") {
+		fullURL = trimmed
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(requestBody))
 	if err != nil {
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	if c.secretValue != "" && httpReq.URL.Scheme == "https" {
+	if c.secretValue != "" && (httpReq.URL.Scheme == "https" || isInternalHost(fullURL)) {
 		httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.secretValue))
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -248,7 +252,7 @@ func (c *ConnectionProbeClient) probePrerecordedEndpoint(ctx context.Context, _ 
 		return nil, NewConnectionError(c.baseURL, fmt.Sprintf("Failed to create request: %v", err))
 	}
 
-	if c.secretValue != "" && httpReq.URL.Scheme == "https" {
+	if c.secretValue != "" && (httpReq.URL.Scheme == "https" || isInternalHost(fullURL)) {
 		httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.secretValue))
 	}
 

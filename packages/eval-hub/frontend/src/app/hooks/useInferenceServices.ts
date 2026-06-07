@@ -36,7 +36,7 @@ export const useInferenceServices = (namespace: string): UseInferenceServicesRes
   );
 
   React.useEffect(() => {
-    if (loaded && response.warning) {
+    if (loaded) {
       setWarning(response.warning);
     }
   }, [loaded, response.warning]);

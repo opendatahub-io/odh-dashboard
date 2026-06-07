@@ -191,6 +191,7 @@ paths:
       security:
         - Bearer: []
       parameters:
+        - $ref: '#/components/parameters/namespace'
         - name: limit
           in: query
           schema:
@@ -206,11 +207,6 @@ paths:
             default: 0
             minimum: 0
           description: Offset for pagination
-        - name: search
-          in: query
-          schema:
-            type: string
-          description: Filter benchmarks by name (case-insensitive substring match)
       responses:
         '200':
           $ref: '#/components/responses/ProvidersResponse'
@@ -355,6 +351,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InferenceServicesResponse'
+              example:
+                items:
+                  - name: 'llama-32-1b-instruct'
+                    url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
+                  - name: 'mistral-7b'
+                    url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+                    ready: true
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -399,7 +403,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/VerifyConnectionResponse'
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VerifyConnectionResponse'
+              example:
+                data:
+                  success: true
+                  message: 'Connection successful'
+                  response_time_ms: 120
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -862,6 +876,14 @@ components:
             Warning message when the listing degrades gracefully (e.g. CRD
             not installed, user lacks access). Present only when the BFF
             could not list resources but did not hard-fail.
+      example:
+        items:
+          - name: 'llama-32-1b-instruct'
+            url: 'http://llama-32-1b-instruct-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
+          - name: 'mistral-7b'
+            url: 'http://mistral-7b-predictor.default.svc.cluster.local:8080/v1'
+            ready: true
 
     # -------------------------------------------------------------------------
     # Connection verification schemas

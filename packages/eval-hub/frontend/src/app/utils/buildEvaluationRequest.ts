@@ -57,15 +57,17 @@ const buildEvaluationRequest = ({
 
   const hasParams = Object.keys(benchmarkParams).length > 0;
 
+  const trimmedDatasetUrl = datasetUrl.trim();
+  const trimmedAccessToken = accessToken.trim();
   const prerecordedDataRef =
-    sourceMode === 'prerecorded' && datasetUrl.trim()
+    sourceMode === 'prerecorded' && trimmedDatasetUrl
       ? {
           // eslint-disable-next-line camelcase
           test_data_ref: {
             s3: {
-              key: datasetUrl,
+              key: trimmedDatasetUrl,
               // eslint-disable-next-line camelcase
-              ...(accessToken ? { secret_ref: accessToken } : {}),
+              ...(trimmedAccessToken ? { secret_ref: trimmedAccessToken } : {}),
             },
           },
         }
@@ -87,9 +89,9 @@ const buildEvaluationRequest = ({
     });
   }
 
-  const resolvedModelName = sourceMode === 'prerecorded' ? sourceName : modelName;
-  const resolvedUrl = sourceMode === 'prerecorded' ? '' : endpointUrl;
-  const resolvedAuth = sourceMode === 'prerecorded' ? '' : apiKeySecretRef;
+  const resolvedModelName = (sourceMode === 'prerecorded' ? sourceName : modelName).trim();
+  const resolvedUrl = (sourceMode === 'prerecorded' ? '' : endpointUrl).trim();
+  const resolvedAuth = (sourceMode === 'prerecorded' ? '' : apiKeySecretRef).trim();
 
   const rawExperiment = topLevelOverrides.experiment;
   const experimentOverride: Record<string, unknown> | undefined =

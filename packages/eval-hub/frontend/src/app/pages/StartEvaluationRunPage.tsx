@@ -77,7 +77,12 @@ const StartEvaluationRunPage: React.FC = () => {
     filter: EXPERIMENT_FILTER,
   });
 
-  const { inferenceServices, loaded: isLoaded } = useInferenceServices(namespace ?? '');
+  const {
+    inferenceServices,
+    loaded: isLoaded,
+    loadError: isLoadError,
+    warning: isWarning,
+  } = useInferenceServices(namespace ?? '');
 
   const form = useStartEvaluationRunForm({
     namespace,
@@ -386,6 +391,22 @@ const StartEvaluationRunPage: React.FC = () => {
                   </SelectOption>
                 </SelectList>
               </Select>
+              {isLoadError ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">
+                      Could not load cluster models. You can still use an external endpoint.
+                    </HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
+              {!isLoadError && isWarning ? (
+                <FormHelperText>
+                  <HelperText>
+                    <HelperTextItem variant="warning">{isWarning}</HelperTextItem>
+                  </HelperText>
+                </FormHelperText>
+              ) : null}
             </FormGroup>
           )}
 
