@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { verifyConnection } from '~/app/api/k8s';
 import { getUserFriendlyConnectionError } from '~/app/utils/validationUtils';
-import type { ConnectionValidationState, SourceMode } from '~/app/types';
+import type { ConnectionValidationState, SourceMode, VerifyConnectionRequest } from '~/app/types';
 
 type UseConnectionValidationParams = {
   namespace: string | undefined;
@@ -57,21 +57,12 @@ export const useConnectionValidation = ({
 
     try {
       /* eslint-disable camelcase */
-      const request: {
-        source_type: string;
-        base_url: string;
-        secret_value?: string;
-        model_id?: string;
-      } = {
+      const request: VerifyConnectionRequest = {
         source_type: sourceMode,
         base_url: baseUrl,
+        ...(secretValue ? { secret_value: secretValue } : {}),
+        ...(modelId ? { model_id: modelId } : {}),
       };
-      if (secretValue) {
-        request.secret_value = secretValue;
-      }
-      if (modelId) {
-        request.model_id = modelId;
-      }
       /* eslint-enable camelcase */
       await verifyConnection('', namespace, request)({ signal: controller.signal });
 
