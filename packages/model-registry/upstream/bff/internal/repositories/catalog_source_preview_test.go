@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -210,14 +211,11 @@ func TestCreateCatalogSourcePreview_WithEnabledField(t *testing.T) {
 			mockClient.On("POSTWithContentType",
 				mock.Anything,
 				mock.MatchedBy(func(body io.Reader) bool {
-					// Read the multipart body and verify the enabled field is present in the config
-					data, err := io.ReadAll(body)
-					if err != nil {
+					buf, ok := body.(*bytes.Buffer)
+					if !ok {
 						return false
 					}
-					bodyStr := string(data)
-					// The multipart body should contain the enabled field in the config JSON
-					return assert.Contains(t, bodyStr, fmt.Sprintf(`"enabled":%v`, *tt.enabled))
+					return assert.Contains(t, buf.String(), fmt.Sprintf(`"enabled":%v`, *tt.enabled))
 				}),
 				mock.Anything,
 			).Return([]byte(responseJSON), nil)
