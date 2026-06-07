@@ -4,11 +4,24 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/connectionprobe"
 	"github.com/opendatahub-io/eval-hub/bff/internal/models"
 )
+
+// sanitizeURL strips userinfo and query parameters from a URL for safe logging.
+func sanitizeURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "<invalid-url>"
+	}
+	u.User = nil
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String()
+}
 
 type VerifyConnectionEnvelope = Envelope[models.VerifyConnectionResponse, None]
 
@@ -47,7 +60,7 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 
 	app.logger.Info("verify-connection: probing endpoint",
 		slog.String("source_type", req.SourceType),
-		slog.String("base_url", req.BaseURL),
+		slog.String("base_url", sanitizeURL(req.BaseURL)),
 		slog.Bool("has_secret", req.SecretValue != ""),
 		slog.String("model_id", req.ModelID),
 	)
@@ -87,7 +100,7 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 		if probeErr, ok := err.(*connectionprobe.ConnectionProbeError); ok {
 			app.logger.Warn("verify-connection: probe failed",
 				slog.String("code", probeErr.Code),
-				slog.String("base_url", req.BaseURL),
+				slog.String("base_url", sanitizeURL(req.BaseURL)),
 			)
 			httpError := &HTTPError{
 				StatusCode: probeErr.StatusCode,
@@ -102,7 +115,7 @@ func (app *App) VerifyConnectionHandler(w http.ResponseWriter, r *http.Request, 
 	}
 
 	app.logger.Info("verify-connection: probe succeeded",
-		slog.String("base_url", req.BaseURL),
+		slog.String("base_url", sanitizeURL(req.BaseURL)),
 		slog.Int("response_time_ms", response.ResponseTime),
 	)
 
