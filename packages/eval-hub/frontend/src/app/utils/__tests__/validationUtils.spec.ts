@@ -2,7 +2,7 @@ import {
   isValidUrl,
   getUrlValidationError,
   getUserFriendlyConnectionError,
-} from '../validationUtils';
+} from '~/app/utils/validationUtils';
 
 describe('isValidUrl', () => {
   it('should accept http URLs', () => {
