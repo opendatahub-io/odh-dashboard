@@ -6,7 +6,6 @@ import type {
 // eslint-disable-next-line no-restricted-syntax -- customCondition is a runtime function, not a CodeRef
 import { isMonitoringStackAvailable } from './src/utils/monitoringStackStatus';
 
-const ADMIN_USER = 'ADMIN_USER';
 const PLUGIN_OBSERVABILITY = 'plugin-observability';
 
 const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
@@ -21,7 +20,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
   {
     type: 'app.navigation/href',
     flags: {
-      required: [PLUGIN_OBSERVABILITY, ADMIN_USER],
+      required: [PLUGIN_OBSERVABILITY],
     },
     properties: {
       id: 'observability-dashboard',
@@ -40,7 +39,7 @@ const extensions: (AreaExtension | HrefNavItemExtension | RouteExtension)[] = [
       component: () => import('./src/pages/DashboardPage'),
     },
     flags: {
-      required: [PLUGIN_OBSERVABILITY, ADMIN_USER],
+      required: [PLUGIN_OBSERVABILITY],
     },
   },
 ];
