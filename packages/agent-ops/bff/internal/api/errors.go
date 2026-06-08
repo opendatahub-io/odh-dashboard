@@ -30,6 +30,13 @@ func (app *App) badRequestResponse(w http.ResponseWriter, r *http.Request, err e
 	app.errorResponse(w, r, httpError)
 }
 
+func (app *App) forbiddenResponse(w http.ResponseWriter, r *http.Request, message string) {
+	app.logger.Warn("Access forbidden", "message", message, "method", r.Method, "uri", r.URL.RequestURI())
+
+	httpError := &HTTPError{StatusCode: http.StatusForbidden, Error: ErrorPayload{Code: strconv.Itoa(http.StatusForbidden), Message: "Access forbidden"}}
+	app.errorResponse(w, r, httpError)
+}
+
 func (app *App) errorResponse(w http.ResponseWriter, r *http.Request, httpErr *HTTPError) {
 	err := app.WriteJSON(w, httpErr.StatusCode, httpErr, nil)
 	if err != nil {

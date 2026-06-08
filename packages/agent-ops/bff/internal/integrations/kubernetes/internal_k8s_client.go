@@ -213,3 +213,34 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	// On internal client, we can use the identity from request directly
 	return identity.UserID, nil
 }
+
+func (kc *InternalKubernetesClient) CanListServicesInNamespace(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	for _, verb := range []string{"get", "list"} {
+		sar := &authv1.SubjectAccessReview{
+			Spec: authv1.SubjectAccessReviewSpec{
+				User:   identity.UserID,
+				Groups: identity.Groups,
+				ResourceAttributes: &authv1.ResourceAttributes{
+					Verb:      verb,
+					Resource:  "services",
+					Namespace: namespace,
+				},
+			},
+		}
+
+		response, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+		if err != nil {
+			return false, fmt.Errorf("SAR failed: %w", err)
+		}
+
+		if !response.Status.Allowed {
+			kc.Logger.Warn("access denied", "user", identity.UserID, "verb", verb, "resource", "services", "namespace", namespace)
+			return false, nil
+		}
+	}
+
+	return true, nil
+}

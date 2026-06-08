@@ -217,9 +217,15 @@ func (app *App) Routes() http.Handler {
 
 	// Agent endpoints - only register when agent backend is available
 	if app.agentBackendAvailable {
+		// List endpoint is cluster-scoped today. When it accepts ?namespace=, wrap with:
+		// app.AttachNamespace(app.RequireAccessToService(app.ListAgentRuntimesHandler))
 		apiRouter.GET(AgentRuntimesPath, app.ListAgentRuntimesHandler)
-		apiRouter.GET(AgentRuntimeDetailPath, app.GetAgentRuntimeDetailHandler)
-		apiRouter.GET(AgentCardPath, app.GetAgentCardHandler)
+		apiRouter.GET(AgentRuntimeDetailPath,
+			app.AttachNamespaceFromParam("ns",
+				app.RequireAccessToService(app.GetAgentRuntimeDetailHandler)))
+		apiRouter.GET(AgentCardPath,
+			app.AttachNamespaceFromParam("ns",
+				app.RequireAccessToService(app.GetAgentCardHandler)))
 	}
 
 	// Inter-BFF Communication routes — wire your target BFF endpoints here.

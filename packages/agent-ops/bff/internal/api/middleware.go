@@ -12,6 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/mod-arch-library/bff/internal/constants"
 	helper "github.com/opendatahub-io/mod-arch-library/bff/internal/helpers"
+	k8s "github.com/opendatahub-io/mod-arch-library/bff/internal/integrations/kubernetes"
 	"github.com/rs/cors"
 )
 
@@ -90,9 +91,83 @@ func (app *App) AttachNamespace(next func(http.ResponseWriter, *http.Request, ht
 			app.badRequestResponse(w, r, fmt.Errorf("missing required query parameter: %s", constants.NamespaceHeaderParameterKey))
 			return
 		}
+		if !isValidDNS1123Label(namespace) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace %q", namespace))
+			return
+		}
 
 		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
 		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// AttachNamespaceFromParam reads a namespace from an httprouter path parameter and injects it
+// into the request context under NamespaceHeaderParameterKey.
+// This middleware must be placed before RequireAccessToService for path-scoped routes.
+func (app *App) AttachNamespaceFromParam(paramName string, next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		namespace := ps.ByName(paramName)
+		if namespace == "" {
+			app.badRequestResponse(w, r, fmt.Errorf("missing required path parameter: %s", paramName))
+			return
+		}
+		if !isValidDNS1123Label(namespace) {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid namespace %q", namespace))
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), constants.NamespaceHeaderParameterKey, namespace)
+		r = r.WithContext(ctx)
+
+		next(w, r, ps)
+	}
+}
+
+// RequireAccessToService validates identity and checks whether the user can list services in the
+// namespace injected by AttachNamespace or AttachNamespaceFromParam.
+// This middleware must be placed after InjectRequestIdentity and a namespace-attachment middleware.
+func (app *App) RequireAccessToService(next func(http.ResponseWriter, *http.Request, httprouter.Params)) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		ctx := r.Context()
+
+		identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+		if !ok || identity == nil {
+			app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+			return
+		}
+
+		if err := app.kubernetesClientFactory.ValidateRequestIdentity(identity); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+
+		namespace, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+		if !ok || namespace == "" {
+			next(w, r, ps)
+			return
+		}
+
+		k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+			return
+		}
+
+		allowed, err := k8sClient.CanListServicesInNamespace(ctx, identity, namespace)
+		if err != nil {
+			app.serverErrorResponse(w, r, fmt.Errorf("failed to check namespace access: %w", err))
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, "user does not have permission to access services in this namespace")
+			return
+		}
+
+		logger := helper.GetContextLoggerFromReq(r)
+		logger.Debug("User authorized to access services in namespace", "namespace", namespace)
 
 		next(w, r, ps)
 	}
