@@ -86,7 +86,7 @@ describe('OptimizationMetricModal', () => {
 
     it('should pre-select the current eval_metric from the form', () => {
       renderComponent({}, { task_type: 'binary', eval_metric: 'f1' });
-      expect(screen.getByRole('radio', { name: /F₁/i })).toBeChecked();
+      expect(screen.getByRole('radio', { name: /^F₁$/i })).toBeChecked();
     });
 
     it('should allow selecting a different metric', () => {

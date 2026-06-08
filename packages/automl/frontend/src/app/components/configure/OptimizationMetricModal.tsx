@@ -16,8 +16,8 @@ import {
   DEFAULT_EVAL_METRIC_BY_TASK,
   EVAL_METRIC_DESCRIPTIONS,
   EVAL_METRICS_BY_TASK_TYPE,
+  type EvalMetric,
 } from '~/app/utilities/const';
-import type { EvalMetric } from '~/app/utilities/const';
 import { formatMetricName } from '~/app/utilities/utils';
 import './AutomlConfigure.scss';
 
