@@ -6,7 +6,7 @@
  * Adapted from the old MLFlowExperimentsPage.tsx (iframe version).
  */
 import React, { useMemo } from 'react';
-import { Bullseye, Flex, FlexItem, Spinner } from '@patternfly/react-core';
+import { Bullseye, Flex, FlexItem, PageSection, Spinner } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
@@ -18,6 +18,8 @@ import PipelineCoreProjectSelector from '@odh-dashboard/internal/pages/pipelines
 import { fireLinkTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { MlflowTrackingEvents } from '@odh-dashboard/internal/concepts/mlflow/const';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import TitleWithIcon from '@odh-dashboard/internal/concepts/design/TitleWithIcon';
 import { ProjectObjectType } from '@odh-dashboard/internal/concepts/design/utils';
 import {
@@ -27,6 +29,7 @@ import {
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import { EXPERIMENTS_PAGE_TITLE } from '../shared/const';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 
@@ -34,6 +37,11 @@ const MlflowExperimentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
+  const {
+    available: mlflowAvailable,
+    loaded: mlflowLoaded,
+    error: mlflowStatusError,
+  } = useIsMlflowCRAvailable();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -47,8 +55,13 @@ const MlflowExperimentsPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      loaded
-      empty={false}
+      loaded={mlflowLoaded}
+      empty={mlflowLoaded && !mlflowAvailable}
+      emptyStatePage={
+        <PageSection hasBodyWrapper={false} isFilled>
+          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+        </PageSection>
+      }
       noHeader={!isTopLevel}
       title={
         isTopLevel ? (
@@ -94,9 +107,6 @@ const MlflowExperimentsPage: React.FC = () => {
       }
       keepBodyWrapper={false}
     >
-      {/* key={workspace} forces remount when the project changes. The remote's
-          v6 BrowserRouter doesn't detect the host's v7 pushState navigation,
-          so remounting is the cleanest way to reset with the new workspace. */}
       <LazyCodeRefComponent
         key={workspace}
         component={loadWrapper}
