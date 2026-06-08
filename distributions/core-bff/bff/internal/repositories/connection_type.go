@@ -101,7 +101,10 @@ func (r *ConnectionTypeRepository) Patch(ctx context.Context, namespace, name st
 		return err, nil
 	}
 
-	existing, _ := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	existing, getErr := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if getErr != nil {
+		return &models.MutationResponse{Success: false, Error: fmt.Sprintf("failed to fetch baseline for revert: %v", getErr)}, nil
+	}
 
 	patched, patchErr := r.saClientset.CoreV1().ConfigMaps(namespace).Patch(ctx, name, types.JSONPatchType, patchData, metav1.PatchOptions{})
 	if patchErr != nil {
@@ -110,11 +113,9 @@ func (r *ConnectionTypeRepository) Patch(ctx context.Context, namespace, name st
 
 	if !isConnectionTypeConfigMap(patched) {
 		errMsg := "patch would remove required connection-type labels"
-		if existing != nil {
-			existing.ResourceVersion = patched.ResourceVersion
-			if _, revertErr := r.saClientset.CoreV1().ConfigMaps(namespace).Update(ctx, existing, metav1.UpdateOptions{}); revertErr != nil {
-				errMsg = fmt.Sprintf("%s (revert failed: %v)", errMsg, revertErr)
-			}
+		existing.ResourceVersion = patched.ResourceVersion
+		if _, revertErr := r.saClientset.CoreV1().ConfigMaps(namespace).Update(ctx, existing, metav1.UpdateOptions{}); revertErr != nil {
+			errMsg = fmt.Sprintf("%s (revert failed: %v)", errMsg, revertErr)
 		}
 		return &models.MutationResponse{
 			Success: false,

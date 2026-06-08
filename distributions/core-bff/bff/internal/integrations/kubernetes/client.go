@@ -17,7 +17,7 @@ type KubernetesClientInterface interface {
 	IsClusterAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
 	GetUser(ctx context.Context, identity *RequestIdentity) (string, error)
 
-	// Fastify-compatible admin/allowed checks via SSAR on auths/default-auth
+	// admin/allowed checks via SSAR on auths/default-auth
 	IsUserAdmin(ctx context.Context, identity *RequestIdentity) (bool, error)
 	IsUserAllowed(ctx context.Context, identity *RequestIdentity) (bool, error)
 

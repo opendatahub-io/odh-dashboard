@@ -64,6 +64,13 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) ([]byte, error) {
+	if settings == nil {
+		return nil, fmt.Errorf("settings must not be nil")
+	}
+	if currentConfig == nil {
+		return nil, fmt.Errorf("currentConfig must not be nil")
+	}
+
 	patch := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"dashboardConfig": map[string]interface{}{

@@ -32,7 +32,7 @@ type AuthConfig struct {
 // so callers fall through to SSAR rather than granting access.
 func (r *AuthRepository) GetAuth(ctx context.Context) (*AuthConfig, error) {
 	if r.saDynClient == nil {
-		return nil, nil
+		return nil, fmt.Errorf("auth dynamic client unavailable")
 	}
 
 	result, err := r.saDynClient.Resource(models.AuthGVR).Get(ctx, "auth", metav1.GetOptions{})

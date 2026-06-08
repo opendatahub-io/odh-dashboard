@@ -30,7 +30,7 @@ const (
 	UserPath      = APIPathPrefix + APIVersion + "/user"
 	NamespacePath = APIPathPrefix + APIVersion + "/namespaces"
 
-	// Config endpoints (Fastify-compatible, /api/ prefix)
+	// Config endpoints, /api/ prefix
 	ConfigPath               = APIPathPrefix + "/config"
 	ComponentsPath           = APIPathPrefix + "/components"
 	StatusPath               = APIPathPrefix + "/status"
@@ -79,7 +79,8 @@ func (app *App) Routes() http.Handler {
 	fileServer := http.FileServer(staticDir)
 	appMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		ctxLogger := helpers.GetContextLoggerFromReq(r)
-		if _, err := staticDir.Open(r.URL.Path); err == nil {
+		if f, err := staticDir.Open(r.URL.Path); err == nil {
+			f.Close()
 			ctxLogger.Debug("Serving static file", slog.String("path", r.URL.Path))
 			fileServer.ServeHTTP(w, r)
 			return

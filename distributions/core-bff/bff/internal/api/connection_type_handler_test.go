@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -479,6 +480,29 @@ func TestPatchConnectionType_NonConnectionType_Rejected(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, result.Success)
 	assert.Contains(t, result.Error, "not a connection type")
+}
+
+func TestPatchConnectionType_OversizedPayload_Rejected(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.Namespace = "dash-ns"
+	})
+	admin := k8mocks.DefaultTestUsers[0]
+
+	largePayload := "[" + strings.Repeat("x", 1_048_576) + "]"
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/connection-types/any", bytes.NewReader([]byte(largePayload)))
+	req.Header.Set("Content-Type", "application/json")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{
+		UserID: admin.UserName,
+		Groups: admin.Groups,
+		Token:  k8s.NewBearerToken(admin.Token),
+	})
+
+	ps := httprouter.Params{{Key: "name", Value: "any"}}
+	app.PatchConnectionTypeHandler(rr, req, ps)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
 }
 
 // cleanupTestCM deletes a ConfigMap if it exists, ensuring clean state for re-runs.

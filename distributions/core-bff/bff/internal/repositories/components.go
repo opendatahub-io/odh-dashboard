@@ -57,6 +57,9 @@ func (r *ComponentsRepository) RemoveComponent(ctx context.Context, namespace, a
 	if enabledAppsCM == "" {
 		return &models.MutationResponse{Success: false, Error: "enabled apps ConfigMap not configured"}, nil
 	}
+	if r.saClientset == nil {
+		return &models.MutationResponse{Success: false, Error: "service account clientset not configured"}, nil
+	}
 
 	cm, err := r.saClientset.CoreV1().ConfigMaps(namespace).Get(ctx, enabledAppsCM, metav1.GetOptions{})
 	if err != nil {

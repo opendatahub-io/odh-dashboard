@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"fmt"
+
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func newFakeDynClientWithDashboardConfig(disableProjects bool) *dynamicfake.FakeDynamicClient {
@@ -70,6 +73,9 @@ func TestGetDashboardConfig_CRDAbsent_FallsBackToDefaults(t *testing.T) {
 			models.DashboardConfigGVR: "OdhDashboardConfigList",
 		},
 	)
+	emptyDyn.PrependReactor("get", "odhdashboardconfigs", func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("the server could not find the requested resource")
+	})
 	repo := NewDashboardConfigRepository(false, emptyDyn)
 
 	config, err := repo.GetDashboardConfig(context.Background(), "test-ns", "odh-dashboard-config", nil)
@@ -107,7 +113,7 @@ func TestGetDashboardConfig_AutoCreatesWhenInstanceMissing(t *testing.T) {
 	require.NoError(t, getErr)
 	require.NotNil(t, persisted)
 
-	// Persisted CR is deliberately sparse (no spec.dashboardConfig) - matches Fastify.
+	// Persisted CR is deliberately sparse (no spec.dashboardConfig).
 	// Defaults are applied at read time via deepMerge, not persisted.
 	spec, ok := persisted.Object["spec"].(map[string]interface{})
 	require.True(t, ok, "persisted CR should have spec")

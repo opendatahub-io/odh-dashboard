@@ -116,8 +116,8 @@ func TestGetDashboardConfigByName_WorkbenchNamespace_Allowed(t *testing.T) {
 	}
 	app.GetDashboardConfigByNameHandler(rr, req, ps)
 
-	// Workbench namespace is allowed - should not get 403
-	assert.NotEqual(t, http.StatusForbidden, rr.Code)
+	// Workbench namespace is allowed (not 403); resource absent in wb-ns yields 404.
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 }
 
 func TestGetDashboardConfigByName_WrongNamespace_Returns403(t *testing.T) {

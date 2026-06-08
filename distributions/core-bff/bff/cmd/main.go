@@ -36,7 +36,10 @@ func main() {
 	flag.IntVar(&cfg.DevModeClientPort, "dev-mode-client-port", getEnvAsInt("DEV_MODE_CLIENT_PORT", 8080), "Use port when in development mode for client")
 
 	if v := getEnvAsString("DEPLOYMENT_MODE", "standalone"); v != "" {
-		_ = cfg.DeploymentMode.Set(v)
+		if err := cfg.DeploymentMode.Set(v); err != nil {
+			fmt.Fprintf(os.Stderr, "invalid DEPLOYMENT_MODE %q: %v\n", v, err)
+			os.Exit(1)
+		}
 	}
 	flag.Var(&cfg.DeploymentMode, "deployment-mode", "Deployment mode (federated or standalone)")
 
@@ -59,7 +62,10 @@ func main() {
 
 	// ─── Core BFF ─────────────────────────────────────────────
 	if v := getEnvAsString("ODH_PLATFORM_TYPE", ""); v != "" {
-		_ = cfg.PlatformType.Set(v)
+		if err := cfg.PlatformType.Set(v); err != nil {
+			fmt.Fprintf(os.Stderr, "invalid ODH_PLATFORM_TYPE %q: %v\n", v, err)
+			os.Exit(1)
+		}
 	}
 	flag.Var(&cfg.PlatformType, "platform-type", "Platform type: OpenShift, XKS, or empty (auto-detect)")
 	flag.StringVar(&cfg.Namespace, "namespace",

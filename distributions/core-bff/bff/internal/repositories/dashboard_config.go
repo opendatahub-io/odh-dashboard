@@ -132,7 +132,6 @@ func (r *DashboardConfigRepository) autoCreateDashboardCR(
 	namespace, name string,
 ) (map[string]interface{}, error) {
 	// Deliberately sparse: omit spec.dashboardConfig so code-level defaults apply at read time.
-	// Matches Fastify's _.omit(blankDashboardCR, 'spec.dashboardConfig').
 	defaultCR := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "opendatahub.io/v1alpha",

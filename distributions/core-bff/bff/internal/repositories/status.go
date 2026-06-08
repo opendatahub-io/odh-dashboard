@@ -45,9 +45,8 @@ func (r *StatusRepository) GetStatus(
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Uses Fastify-compatible SSAR: patch on auths/default-auth.
-	// Errors degrade to false (matching Fastify's .catch(() => false)) so that
-	// transient SAR failures don't break dashboard bootstrap with a 500.
+	// Uses SSAR: patch on auths/default-auth.
+	// Errors degrade to false so that transient SAR failures don't break dashboard bootstrap with a 500.
 	isAdmin, err := client.IsUserAdmin(ctx, identity)
 	if err != nil {
 		slog.Warn("admin SAR check failed, defaulting to non-admin", slog.Any("error", err))
@@ -84,7 +83,7 @@ const systemAuthenticated = "system:authenticated"
 
 // resolveIsAllowed determines if a non-admin user is allowed to access the dashboard.
 // 1. If Auth CRD is absent (discovery error): all users allowed (no group restrictions).
-// 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed (Fastify escape hatch).
+// 2. If Auth CR has system:authenticated in allowedGroups: all authenticated users allowed.
 // 3. If Auth CR instance missing or error reading it (e.g. 403): fall through to SSAR check.
 // 4. Otherwise: SSAR for get on auths/default-auth.
 func resolveIsAllowed(

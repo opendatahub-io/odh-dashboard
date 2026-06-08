@@ -46,9 +46,15 @@ func (app *App) GetConfigHandler(w http.ResponseWriter, r *http.Request, _ httpr
 func (app *App) PatchConfigHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
+		return
+	}
+
+	if !json.Valid(body) {
+		app.badRequestResponse(w, r, fmt.Errorf("body contains badly-formed JSON"))
 		return
 	}
 

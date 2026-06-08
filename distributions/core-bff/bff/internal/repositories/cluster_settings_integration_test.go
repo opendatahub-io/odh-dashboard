@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -111,7 +112,7 @@ func TestUpdateCullerConfig_DisablesCulling(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = cs.CoreV1().ConfigMaps(testNS).Get(ctx, cullerConfigName, metav1.GetOptions{})
-	assert.True(t, err != nil, "culler CM should be deleted")
+	assert.True(t, k8serrors.IsNotFound(err), "culler CM should be deleted")
 }
 
 func TestUpdateCullerConfig_UpdatesExisting(t *testing.T) {

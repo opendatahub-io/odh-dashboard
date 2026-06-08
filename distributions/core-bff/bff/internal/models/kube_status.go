@@ -3,7 +3,7 @@ package models
 // KubeUser represents the current kubeconfig user entry.
 type KubeUser struct {
 	Name  string `json:"name"`
-	Token string `json:"token,omitempty"`
+	Token string `json:"-"`
 }
 
 // KubeStatus holds user session status and cluster metadata.

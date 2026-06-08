@@ -101,6 +101,7 @@ func (app *App) UpdateConnectionTypeHandler(w http.ResponseWriter, r *http.Reque
 func (app *App) PatchConnectionTypeHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	name := ps.ByName("name")
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))

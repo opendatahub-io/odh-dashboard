@@ -719,8 +719,6 @@ components:
           properties:
             name:
               type: string
-            token:
-              type: string
         namespace:
           type: string
         userName:

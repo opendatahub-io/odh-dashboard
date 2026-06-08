@@ -69,7 +69,7 @@ func (app *App) InjectRequestIdentity(next http.Handler) http.Handler {
 }
 
 // requireAdmin wraps a handler and rejects non-admin users with 401.
-// Uses the Fastify-specific SSAR check: patch on auths/default-auth.
+// Uses the SSAR check: patch on auths/default-auth.
 // TODO(task3): replace with secureAdminRoute once the full auth chain is implemented.
 func (app *App) requireAdmin(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

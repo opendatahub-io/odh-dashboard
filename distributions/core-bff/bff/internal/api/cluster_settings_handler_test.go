@@ -53,6 +53,13 @@ func TestValidateClusterSettings_NegativeTimeout(t *testing.T) {
 	assert.Contains(t, err.Error(), "cullerTimeout")
 }
 
+func TestValidateClusterSettings_NonMultipleOf60Timeout(t *testing.T) {
+	s := &models.ClusterSettings{PVCSize: 20, CullerTimeout: 90}
+	err := validateClusterSettings(s)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "multiple of 60")
+}
+
 func TestValidateClusterSettings_InvalidStrategy(t *testing.T) {
 	s := &models.ClusterSettings{
 		PVCSize:                   20,
@@ -101,17 +108,19 @@ func TestGetClusterSettingsHandler_Success(t *testing.T) {
 }
 
 func TestUpdateClusterSettingsHandler_ValidInput_Returns200(t *testing.T) {
+	ns := "cs-update-valid"
+	createTestNamespace(t, ns)
 	fakeDyn := newFakeDynWithDashboardCR()
 	app := newTestApp(func(a *App) {
-		a.config.Namespace = "dash-ns"
+		a.config.Namespace = ns
 		a.config.DashboardConfigName = "odh-dashboard-config"
 		a.repositories = repositories.NewRepositories(false, fakeDyn, testSAClientset, "")
 	})
 	admin := k8mocks.DefaultTestUsers[0]
 
 	body, _ := json.Marshal(models.ClusterSettings{
-		PVCSize:                   30,
-		CullerTimeout:             600,
+		PVCSize:                   20,
+		CullerTimeout:             31536000,
 		DefaultDeploymentStrategy: "rolling",
 	})
 
@@ -126,12 +135,14 @@ func TestUpdateClusterSettingsHandler_ValidInput_Returns200(t *testing.T) {
 
 	app.UpdateClusterSettingsHandler(rr, req, nil)
 
-	// Always returns 200 with MutationResponse (Fastify-compatible)
+	// Always returns 200 with MutationResponse.
 	assert.Equal(t, http.StatusOK, rr.Code)
 
 	var result models.MutationResponse
 	err := json.Unmarshal(rr.Body.Bytes(), &result)
 	require.NoError(t, err)
+	assert.True(t, result.Success)
+	assert.Empty(t, result.Error)
 }
 
 func TestUpdateClusterSettingsHandler_MalformedBody_Returns400(t *testing.T) {

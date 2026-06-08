@@ -8,10 +8,12 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 func fakeNotebook(name, namespace, username, userType, lastActivity string) *unstructured.Unstructured {
@@ -81,6 +83,9 @@ func TestGetAllowedUsers_CRDAbsent_ReturnsEmpty(t *testing.T) {
 			models.NotebookGVR: "NotebookList",
 		},
 	)
+	emptyDyn.PrependReactor("list", models.NotebookGVR.Resource, func(action k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewNotFound(models.NotebookGVR.GroupResource(), models.NotebookGVR.Resource)
+	})
 	repo := NewAllowedUsersRepository(emptyDyn)
 
 	users, err := repo.GetAllowedUsers(context.Background(), "test-ns")

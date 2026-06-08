@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -57,9 +58,15 @@ func (app *App) PatchDashboardConfigByNameHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		app.badRequestResponse(w, r, fmt.Errorf("failed to read request body: %w", err))
+		return
+	}
+
+	if !json.Valid(body) {
+		app.badRequestResponse(w, r, fmt.Errorf("body contains badly-formed JSON"))
 		return
 	}
 

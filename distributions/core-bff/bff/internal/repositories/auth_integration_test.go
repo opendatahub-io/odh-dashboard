@@ -121,12 +121,13 @@ func TestGetAuth_InstanceAbsent_ReturnsError(t *testing.T) {
 	assert.Contains(t, err.Error(), "auth instance not found")
 }
 
-func TestGetAuth_NilClient_ReturnsNil(t *testing.T) {
+func TestGetAuth_NilClient_ReturnsError(t *testing.T) {
 	repo := NewAuthRepository(nil)
 
 	auth, err := repo.GetAuth(context.Background())
-	require.NoError(t, err)
 	assert.Nil(t, auth)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "auth dynamic client unavailable")
 }
 
 func TestResolveIsAllowed_AuthPresent_SystemAuthenticated_ReturnsTrue(t *testing.T) {

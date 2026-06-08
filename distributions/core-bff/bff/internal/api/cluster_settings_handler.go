@@ -100,6 +100,9 @@ func validateClusterSettings(s *models.ClusterSettings) error {
 	if s.CullerTimeout < 0 {
 		return errors.New("cullerTimeout must not be negative")
 	}
+	if s.CullerTimeout > 0 && s.CullerTimeout%60 != 0 {
+		return errors.New("cullerTimeout must be a multiple of 60 seconds")
+	}
 	if !validDeploymentStrategies[s.DefaultDeploymentStrategy] {
 		return fmt.Errorf("invalid defaultDeploymentStrategy: %q", s.DefaultDeploymentStrategy)
 	}
