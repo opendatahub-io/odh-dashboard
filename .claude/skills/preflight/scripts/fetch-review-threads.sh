@@ -33,11 +33,13 @@ while :; do
               endCursor
             }
             nodes {
+              id
               isResolved
               isOutdated
               comments(first:10) {
                 nodes {
                   databaseId
+                  createdAt
                   body
                   path
                   line
@@ -67,9 +69,12 @@ while :; do
     .data.repository.pullRequest.reviewThreads.nodes[]
     | select(.isResolved == false and .isOutdated == false)
     | {
+        thread_id: .id,
         author: (.comments.nodes[0].author.login // "ghost"),
         path: .comments.nodes[0].path,
         line: .comments.nodes[0].line,
+        created_at: .comments.nodes[0].createdAt,
+        database_id: .comments.nodes[0].databaseId,
         is_coderabbit: ((.comments.nodes[0].author.login // "") | test("^coderabbit(ai)?(\\[bot\\])?$")),
         comment_count: (.comments.nodes | length),
         first_comment: .comments.nodes[0].body,
