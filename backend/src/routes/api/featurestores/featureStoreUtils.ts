@@ -112,7 +112,7 @@ function getUserScopedCustomObjectsApi(
 
   return {
     api: userKc.makeApiClient(k8s.CustomObjectsApi),
-    opts: { headers: {} as Record<string, string> },
+    opts: { headers: {} },
   };
 }
 

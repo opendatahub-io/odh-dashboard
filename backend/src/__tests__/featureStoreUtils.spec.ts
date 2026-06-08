@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import * as https from 'https';
 import * as k8s from '@kubernetes/client-node';
+import * as constants from '../utils/constants';
+import * as devFlags from '../devFlags';
 
 jest.mock('https', () => {
   const actual = jest.requireActual<typeof import('https')>('https');
@@ -111,13 +113,15 @@ const createMockKubeFastify = (mockApi = createMockApi()) =>
  * Call this in beforeEach after mockApi is assigned so the spy captures the right instance.
  */
 const spyKubeConfigForMockApi = (getMockApi: () => ReturnType<typeof createMockApi>) => {
+  const loadFromClusterAndUser = jest.fn();
   jest.spyOn(k8s, 'KubeConfig').mockImplementation(
     () =>
       ({
-        loadFromClusterAndUser: jest.fn(),
+        loadFromClusterAndUser,
         makeApiClient: jest.fn().mockReturnValue(getMockApi()),
       } as any),
   );
+  return { loadFromClusterAndUser };
 };
 
 const KUBE_HEADERS = { Authorization: 'Bearer test-token' } as Record<string, string>;
@@ -433,10 +437,12 @@ describe('featureStoreUtils', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
 
+    let loadFromClusterAndUser: jest.Mock;
+
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
-      spyKubeConfigForMockApi(() => mockApi);
+      ({ loadFromClusterAndUser } = spyKubeConfigForMockApi(() => mockApi));
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -463,6 +469,10 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         { headers: {} },
+      );
+      expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+        { name: 'test-cluster', server: 'https://test' },
+        { name: 'current-user', token: 'test-token' },
       );
     });
 
@@ -521,6 +531,7 @@ describe('featureStoreUtils', () => {
       expect(mockFastify.log.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to list Feast namespaces for user'),
       );
+      expect(loadFromClusterAndUser).not.toHaveBeenCalled();
     });
 
     it('should return empty array and log when no access token is provided', async () => {
@@ -530,6 +541,40 @@ describe('featureStoreUtils', () => {
       expect(mockFastify.log.error).toHaveBeenCalledWith(
         expect.stringContaining('Failed to list Feast namespaces for user'),
       );
+      expect(loadFromClusterAndUser).not.toHaveBeenCalled();
+    });
+
+    describe('DEV_MODE token selection', () => {
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      it('should use impersonation token in DEV_MODE when impersonating', async () => {
+        jest.replaceProperty(constants, 'DEV_MODE', true);
+        jest.spyOn(devFlags, 'isImpersonating').mockReturnValue(true);
+        jest.spyOn(devFlags, 'getImpersonateAccessToken').mockReturnValue('impersonate-token');
+        mockApi.listClusterCustomObject.mockResolvedValue({ body: { items: [] } });
+
+        await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+        expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+          { name: 'test-cluster', server: 'https://test' },
+          { name: 'current-user', token: 'impersonate-token' },
+        );
+      });
+
+      it('should use kube config user token in DEV_MODE when not impersonating', async () => {
+        jest.replaceProperty(constants, 'DEV_MODE', true);
+        jest.spyOn(devFlags, 'isImpersonating').mockReturnValue(false);
+        mockApi.listClusterCustomObject.mockResolvedValue({ body: { items: [] } });
+
+        await listFeastNamespaces(mockFastify, KUBE_HEADERS);
+
+        expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+          { name: 'test-cluster', server: 'https://test' },
+          { name: 'current-user', token: 'kube-token' },
+        );
+      });
     });
   });
 
@@ -537,10 +582,12 @@ describe('featureStoreUtils', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
 
+    let loadFromClusterAndUser: jest.Mock;
+
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
-      spyKubeConfigForMockApi(() => mockApi);
+      ({ loadFromClusterAndUser } = spyKubeConfigForMockApi(() => mockApi));
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -567,6 +614,10 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         { headers: {} },
+      );
+      expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+        { name: 'test-cluster', server: 'https://test' },
+        { name: 'current-user', token: 'test-token' },
       );
     });
 
@@ -595,10 +646,12 @@ describe('featureStoreUtils', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
 
+    let loadFromClusterAndUser: jest.Mock;
+
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
-      spyKubeConfigForMockApi(() => mockApi);
+      ({ loadFromClusterAndUser } = spyKubeConfigForMockApi(() => mockApi));
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -637,6 +690,10 @@ describe('featureStoreUtils', () => {
         undefined,
         { headers: {} },
       );
+      expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+        { name: 'test-cluster', server: 'https://test' },
+        { name: 'current-user', token: 'test-token' },
+      );
     });
 
     it('should return empty array on 403 without throwing', async () => {
@@ -672,10 +729,12 @@ describe('featureStoreUtils', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
 
+    let loadFromClusterAndUser: jest.Mock;
+
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
-      spyKubeConfigForMockApi(() => mockApi);
+      ({ loadFromClusterAndUser } = spyKubeConfigForMockApi(() => mockApi));
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -708,6 +767,10 @@ describe('featureStoreUtils', () => {
         undefined,
         undefined,
         { headers: {} },
+      );
+      expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+        { name: 'test-cluster', server: 'https://test' },
+        { name: 'current-user', token: 'test-token' },
       );
     });
 
@@ -746,10 +809,12 @@ describe('featureStoreUtils', () => {
     let mockFastify: ReturnType<typeof createMockKubeFastify>;
     let mockApi: ReturnType<typeof createMockApi>;
 
+    let loadFromClusterAndUser: jest.Mock;
+
     beforeEach(() => {
       jest.clearAllMocks();
       mockApi = createMockApi();
-      spyKubeConfigForMockApi(() => mockApi);
+      ({ loadFromClusterAndUser } = spyKubeConfigForMockApi(() => mockApi));
       mockFastify = createMockKubeFastify(mockApi);
     });
 
@@ -772,6 +837,10 @@ describe('featureStoreUtils', () => {
         'featurestores',
         PROJECT.BANKING,
         { headers: {} },
+      );
+      expect(loadFromClusterAndUser).toHaveBeenCalledWith(
+        { name: 'test-cluster', server: 'https://test' },
+        { name: 'current-user', token: 'test-token' },
       );
     });
 
