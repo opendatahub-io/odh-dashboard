@@ -201,7 +201,11 @@ const ProjectDetails: React.FC = () => {
                         Dev preview
                       </Label>
                     ),
-                    component: <ProjectRoles />,
+                    component: (
+                      <PermissionsContextProvider namespace={currentProject.metadata.name}>
+                        <ProjectRoles />
+                      </PermissionsContextProvider>
+                    ),
                   },
                 ]
               : []),
