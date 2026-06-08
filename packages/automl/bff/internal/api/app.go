@@ -170,8 +170,8 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		s3Client = &fake.S3Client{}
 	} else {
 		s3ClientCfg := s3.ClientConfig{
-			RootCAs:                 rootCAs,
-			InsecureSkipVerify:      cfg.InsecureSkipVerify && cfg.DevMode,
+			RootCAs:                   rootCAs,
+			InsecureSkipVerify:        cfg.InsecureSkipVerify && cfg.DevMode,
 			AllowUnresolvableEndpoint: cfg.DevMode && allowUnresolvedS3,
 		}
 		if pfManager != nil {
