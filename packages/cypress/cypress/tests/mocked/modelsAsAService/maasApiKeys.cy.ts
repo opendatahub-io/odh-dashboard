@@ -52,6 +52,7 @@ describe('API Keys Page', () => {
       'GET /api/config',
       mockDashboardConfig({
         modelAsService: true,
+        mySubscriptions: true,
       }),
     );
 
@@ -88,6 +89,8 @@ describe('API Keys Page', () => {
   });
 
   it('should not show the subscriptions tab when mySubscriptions flag is disabled', () => {
+    // When mySubscriptions is disabled, the /maas/tokens route is used (no tabbed layout).
+    apiKeysPage.visit();
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage.findSubscriptionsTab().should('not.exist');
     apiKeysPage.findApiKeysTab().should('not.exist');
