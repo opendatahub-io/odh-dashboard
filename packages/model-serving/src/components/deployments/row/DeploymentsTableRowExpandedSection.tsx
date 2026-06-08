@@ -92,12 +92,20 @@ const ModelSizeItem = ({ resources }: { resources?: ContainerResources }) => {
 };
 
 const TokenAuthenticationItem = ({ deployment }: { deployment: Deployment }) => {
-  const [authExtension] = useResolvedDeploymentExtension(isModelServingAuthExtension, deployment);
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
   const isAuthenticated = isDeploymentAuthEnabled(
     deployment,
     authExtension?.properties.usePlatformAuthEnabled,
   );
-  const { data: deploymentSecrets, loaded, error } = useDeploymentAuthTokens(deployment);
+  const {
+    data: deploymentSecrets,
+    loaded: secretsLoaded,
+    error,
+  } = useDeploymentAuthTokens(deployment);
+  const loaded = authExtensionLoaded && secretsLoaded;
 
   return (
     <DescriptionList

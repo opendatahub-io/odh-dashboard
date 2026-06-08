@@ -66,7 +66,10 @@ export const useExtractFormDataFromDeployment = (
     useResolvedDeploymentExtension(isModelServingDeploymentFormDataExtension, deployment);
 
   // Resolve platform-specific auth check
-  const [authExtension] = useResolvedDeploymentExtension(isModelServingAuthExtension, deployment);
+  const [authExtension, authExtensionLoaded] = useResolvedDeploymentExtension(
+    isModelServingAuthExtension,
+    deployment,
+  );
   const platformAuthCheck = authExtension?.properties.usePlatformAuthEnabled;
 
   // Fetch deployment authentication tokens/secrets
@@ -81,7 +84,8 @@ export const useExtractFormDataFromDeployment = (
     useWizardFieldExtractors(deployment);
 
   const loaded =
-    !deployment || (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded);
+    !deployment ||
+    (formDataExtensionLoaded && deploymentSecretsLoaded && extractorsLoaded && authExtensionLoaded);
 
   // Memoize error computation to prevent unnecessary recalculations
   const loadingError = React.useMemo((): Error | undefined => {

@@ -10,6 +10,7 @@ import {
   extractNIMRuntimeArgs,
   extractNIMModelAvailabilityData,
   extractNIMModelServerTemplate,
+  isNIMAuthEnabled,
 } from '../extractNIMFormData';
 
 jest.mock('@odh-dashboard/internal/concepts/hardwareProfiles/utils', () => ({
@@ -170,6 +171,31 @@ describe('extractNIMRuntimeArgs', () => {
 describe('extractNIMModelType', () => {
   it('should always return NVIDIA NIM model type', () => {
     expect(extractNIMModelType()).toEqual({ type: NIM_MODEL_TYPE, legacyVLLM: false });
+  });
+});
+
+describe('isNIMAuthEnabled', () => {
+  it('should return true when auth annotation is true', () => {
+    const deployment = makeDeployment({
+      annotations: { 'security.opendatahub.io/enable-auth': 'true' },
+    });
+    expect(isNIMAuthEnabled(deployment)).toBe(true);
+  });
+
+  it('should return false when auth annotation is false', () => {
+    const deployment = makeDeployment({
+      annotations: { 'security.opendatahub.io/enable-auth': 'false' },
+    });
+    expect(isNIMAuthEnabled(deployment)).toBe(false);
+  });
+
+  it('should return false when no auth annotation', () => {
+    const deployment = makeDeployment();
+    expect(isNIMAuthEnabled(deployment)).toBe(false);
+  });
+
+  it('should return false when deployment is undefined', () => {
+    expect(isNIMAuthEnabled(undefined)).toBe(false);
   });
 });
 
