@@ -9,7 +9,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/kubeflow/model-registry/pkg/openapi"
 	"github.com/opendatahub-io/automl-library/bff/internal/constants"
-	helper "github.com/opendatahub-io/automl-library/bff/internal/helpers"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations"
 	"github.com/opendatahub-io/automl-library/bff/internal/integrations/modelregistry"
 	"github.com/opendatahub-io/automl-library/bff/internal/models"
@@ -33,7 +32,6 @@ type RegisterModelEnvelope Envelope[*RegisterModelResponseData, None]
 // RegisterModelHandler handles POST /api/v1/model-registries/:registryId/models
 func (app *App) RegisterModelHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
-	_ = helper.GetContextLoggerFromReq(r)
 
 	registryId := strings.TrimSpace(ps.ByName("registryId"))
 	if registryId == "" {
