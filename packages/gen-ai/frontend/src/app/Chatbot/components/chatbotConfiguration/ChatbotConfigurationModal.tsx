@@ -579,8 +579,11 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
         ) : (
           <>
             {currentStep.component}
-            {tracingEnabled && isLastStep && (
-              <FormGroup fieldId="enable-tracing" style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}>
+            {tracingEnabled && isFirstStep && (
+              <FormGroup
+                fieldId="enable-tracing"
+                style={{ marginTop: 'var(--pf-t--global--spacer--lg)' }}
+              >
                 <Switch
                   id="enable-tracing-switch"
                   label="Enable tracing"
