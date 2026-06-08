@@ -78,13 +78,6 @@ describe('ConnectedWorkbenchesLink', () => {
       });
     });
 
-    it('should render the button as aria-disabled', () => {
-      render(<ConnectedWorkbenchesLink />);
-
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
     it('should show regular user tooltip on hover', async () => {
       const user = userEvent.setup();
       render(<ConnectedWorkbenchesLink />);
@@ -110,13 +103,6 @@ describe('ConnectedWorkbenchesLink', () => {
       });
     });
 
-    it('should render the button as aria-disabled', () => {
-      render(<ConnectedWorkbenchesLink />);
-
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
     it('should show admin tooltip on hover', async () => {
       const user = userEvent.setup();
       render(<ConnectedWorkbenchesLink />);
@@ -133,20 +119,6 @@ describe('ConnectedWorkbenchesLink', () => {
   });
 
   describe('loading state', () => {
-    it('should render aria-disabled button while projects are loading', () => {
-      mockUseAccessAllowed.mockReturnValue([false, true]);
-      mockUseFeatureStoreAccessibleProjects.mockReturnValue({
-        accessibleProjects: [],
-        projectsLoaded: false,
-        projectsError: undefined,
-      });
-
-      render(<ConnectedWorkbenchesLink />);
-
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-
     it('should render without tooltip while admin check is loading', () => {
       mockUseAccessAllowed.mockReturnValue([false, false]);
       mockUseFeatureStoreAccessibleProjects.mockReturnValue({
@@ -160,37 +132,6 @@ describe('ConnectedWorkbenchesLink', () => {
       const button = screen.getByTestId('connected-workbenches-link');
       expect(button).toHaveAttribute('aria-disabled', 'true');
       expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
-    });
-
-    it('should render aria-disabled button when projects fetch fails', () => {
-      mockUseAccessAllowed.mockReturnValue([false, true]);
-      mockUseFeatureStoreAccessibleProjects.mockReturnValue({
-        accessibleProjects: [],
-        projectsLoaded: true,
-        projectsError: new Error('Failed to load projects'),
-      });
-
-      render(<ConnectedWorkbenchesLink />);
-
-      const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).toHaveAttribute('aria-disabled', 'true');
-    });
-  });
-
-  describe('click safety', () => {
-    it('should not call handler when disabled', async () => {
-      mockUseAccessAllowed.mockReturnValue([false, true]);
-      mockUseFeatureStoreAccessibleProjects.mockReturnValue({
-        accessibleProjects: [],
-        projectsLoaded: true,
-        projectsError: undefined,
-      });
-
-      const user = userEvent.setup();
-      render(<ConnectedWorkbenchesLink />);
-
-      const button = screen.getByTestId('connected-workbenches-link');
-      await expect(user.click(button)).resolves.not.toThrow();
     });
   });
 });

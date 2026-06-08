@@ -26,6 +26,7 @@ const ConnectedWorkbenchesLink: React.FC = () => {
       iconPosition="start"
       isAriaDisabled
       onClick={undefined}
+      style={{ fontWeight: 'bold' }}
       data-testid="connected-workbenches-link"
     >
       View connected workbenches
