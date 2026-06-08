@@ -160,6 +160,8 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         guardrail,
         guardrailUserInputEnabled,
         guardrailModelOutputEnabled,
+        selectedAsrModel,
+        isAsrModelEnabled,
       } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
@@ -261,6 +263,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
                 ...(guardrailModelOutputEnabled && { output_prompt: GUARDRAIL_OUTPUT_PROMPT }),
               },
             }),
+          ...(isAsrModelEnabled && selectedAsrModel && { asr_model: selectedAsrModel }),
         };
         /* eslint-enable camelcase */
 

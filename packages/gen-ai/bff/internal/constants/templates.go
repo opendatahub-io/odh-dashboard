@@ -9,7 +9,9 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 # Required Packages:
 #    - Install the required dependencies using pip:
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
-#      pip install llama-stack-client requests
+#      pip install llama-stack-client requests{{if .ASRModel}} openai{{end}}
+{{- else if .ASRModel }}
+#      pip install llama-stack-client openai
 {{- else }}
 #      pip install llama-stack-client
 {{- end }}
@@ -33,6 +35,12 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #    - Set GUARDRAIL_MODEL_ENDPOINT to your guardrail model's inference endpoint URL
 #    - Set GUARDRAIL_API_KEY if your guardrail model endpoint requires authentication
 {{- end }}
+{{- if .ASRModel }}
+#
+# Audio Transcription (ASR):
+#    - Set ASR_MODEL_URL to the URL of your ASR model
+#    - The model "{{.ASRModel}}" will be used for transcription
+{{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 #
 # External Vector Store:
@@ -55,6 +63,11 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 
 # Configuration adjust as needed:
 LLAMA_STACK_URL = ""
+{{- if .ASRModel }}
+ASR_MODEL_URL = ""
+ASR_MODEL_NAME = "{{.ASRModel}}"
+AUDIO_FILE_PATH = ""  # Path to your audio file (.wav or .mp3)
+{{- end }}
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 NEMO_GUARDRAILS_URL = "{{if .NemoGuardrailsURL}}{{.NemoGuardrailsURL}}{{end}}"
 NEMO_GUARDRAILS_OC_TOKEN = ""  # Set to your OpenShift user token (oc whoami -t)
@@ -100,10 +113,25 @@ import os
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 import requests
 {{- end }}
+{{- if .ASRModel }}
+from openai import OpenAI
+{{- end }}
 
 from llama_stack_client import LlamaStackClient
 
 client = LlamaStackClient(base_url=LLAMA_STACK_URL)
+{{- if .ASRModel }}
+
+# --- Audio Transcription ---
+asr_client = OpenAI(base_url=f"{ASR_MODEL_URL}/v1", api_key="unused")
+with open(AUDIO_FILE_PATH, "rb") as audio_file:
+    transcription = asr_client.audio.transcriptions.create(
+        model=ASR_MODEL_NAME,
+        file=audio_file,
+    )
+input_text = transcription.text
+# ---
+{{- end }}
 {{- if .Prompt }}
 
 import mlflow

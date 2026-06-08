@@ -323,6 +323,7 @@ export type CodeExportRequest = {
   };
   prompt_variable_values?: Record<string, string>;
   guardrail_config?: CodeExportGuardrailConfig;
+  asr_model?: string;
 };
 
 export type CodeExportData = {

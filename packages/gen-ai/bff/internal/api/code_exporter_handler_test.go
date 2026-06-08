@@ -866,4 +866,77 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Contains(t, code, "NEMO_GUARDRAILS_URL = \"\"")
 	})
+
+	t.Run("should generate Python code with ASR transcription section when ASRModel is set", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL = \"\"")
+		assert.Contains(t, code, `ASR_MODEL_NAME = "whisper-large-v3-turbo"`)
+		assert.Contains(t, code, "AUDIO_FILE_PATH = \"\"")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "asr_client = OpenAI(")
+		assert.Contains(t, code, "audio.transcriptions.create")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "pip install llama-stack-client openai")
+		assert.Contains(t, code, "Audio Transcription (ASR)")
+		assert.Contains(t, code, `The model "whisper-large-v3-turbo" will be used for transcription`)
+	})
+
+	t.Run("should not include ASR section when ASRModel is empty", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "ASR_MODEL_URL")
+		assert.NotContains(t, code, "ASR_MODEL_NAME")
+		assert.NotContains(t, code, "AUDIO_FILE_PATH")
+		assert.NotContains(t, code, "from openai import OpenAI")
+		assert.NotContains(t, code, "asr_client")
+		assert.NotContains(t, code, "audio.transcriptions.create")
+		assert.NotContains(t, code, "Audio Transcription (ASR)")
+	})
+
+	t.Run("should include openai in pip install when both ASR and guardrails are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:    "Hello, world!",
+			Model:    "llama3.2:3b",
+			ASRModel: "whisper-large-v3-turbo",
+			GuardrailConfig: &models.CodeExportGuardrailConfig{
+				GuardrailModel: "mistral-7b",
+				InputPrompt:    "Check this: {{ user_input }}",
+			},
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "pip install llama-stack-client requests openai")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "import requests")
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
+	})
 }

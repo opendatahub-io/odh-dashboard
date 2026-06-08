@@ -66,6 +66,7 @@ type CodeExportRequest struct {
 	Prompt               *PromptConfig              `json:"prompt,omitempty"`
 	PromptVariableValues map[string]string          `json:"prompt_variable_values,omitempty"`
 	GuardrailConfig      *CodeExportGuardrailConfig `json:"guardrail_config,omitempty"`
+	ASRModel             string                     `json:"asr_model,omitempty"`
 }
 
 type CodeExportResponse struct {
