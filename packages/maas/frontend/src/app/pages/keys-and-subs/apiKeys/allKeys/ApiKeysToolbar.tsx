@@ -24,6 +24,11 @@ import {
   SubscriptionOption,
 } from '~/app/types/api-key';
 
+const STATUS_SET: ReadonlySet<string> = new Set(STATUS_OPTIONS);
+
+const isAPIKeyStatus = (value: unknown): value is APIKeyStatus =>
+  typeof value === 'string' && STATUS_SET.has(value);
+
 type ApiKeysToolbarProps = {
   setIsModalOpen: (isOpen: boolean) => void;
   filterData: ApiKeyFilterDataType;
@@ -89,7 +94,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
               }))}
               deleteLabel={(_category, label) => {
                 const key = typeof label === 'string' ? label : label.key;
-                if (key === 'active' || key === 'expired' || key === 'revoked') {
+                if (isAPIKeyStatus(key)) {
                   onStatusClear(key);
                 }
               }}
@@ -100,7 +105,7 @@ const ApiKeysToolbar: React.FC<ApiKeysToolbarProps> = ({
                 isOpen={isStatusSelectOpen}
                 selected={filterData.statuses}
                 onSelect={(_event, value) => {
-                  if (value === 'active' || value === 'expired' || value === 'revoked') {
+                  if (isAPIKeyStatus(value)) {
                     onStatusToggle(value);
                   }
                 }}

@@ -11,6 +11,7 @@ import {
   adminBulkRevokeAPIKeyModal,
   apiKeysPage,
   bulkRevokeAPIKeyModal,
+  inactiveStatusPopover,
   revokeAPIKeyModal,
   copyApiKeyModal,
   createApiKeyModal,
@@ -202,6 +203,43 @@ describe('API Keys Page', () => {
         'contain.text',
         'Internal Server Error - here is a bunch of info to help you debug it: /maas/api/v1/api-keys/search',
       );
+  });
+
+  it('should show Inactive status with popover for keys whose subscription was deleted', () => {
+    const deletedSubscriptionKey: APIKey = {
+      id: 'key-deleted-subscription-001',
+      name: 'deleted-subscription-key',
+      description: 'Key with a deleted subscription',
+      creationDate: '2026-01-10T10:00:00Z',
+      status: 'active',
+      username: 'alice',
+      subscription: 'deleted-sub',
+    };
+
+    const allActiveKeys = [
+      deletedSubscriptionKey,
+      ...mockAPIKeys().filter((k) => k.status === 'active'),
+    ];
+    const searchResponseWithOrphaned = mockSearchResponse(allActiveKeys, mockSubscriptionDetails);
+
+    cy.interceptOdh('POST /maas/api/v1/api-keys/search', searchResponseWithOrphaned).as(
+      'searchWithOrphaned',
+    );
+
+    apiKeysPage.visit();
+    cy.wait('@searchWithOrphaned');
+
+    apiKeysPage.findTable().should('not.contain.text', 'deleted-subscription-key');
+
+    apiKeysPage.findStatusFilterToggle().click();
+    apiKeysPage.findStatusFilterOption('Inactive').click();
+    apiKeysPage.findStatusFilterToggle().click();
+
+    apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
+
+    const orphanedRow = apiKeysPage.getRow('deleted-subscription-key');
+    orphanedRow.findStatus().should('contain.text', 'Inactive').click();
+    inactiveStatusPopover.shouldBeVisible();
   });
 
   it('should display all API keys when the status filter is cleared', () => {
