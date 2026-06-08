@@ -1,3 +1,29 @@
+import { TableRow } from './components/table';
+
+class RolesTableRow extends TableRow {
+  findNameLink() {
+    return this.find().findByTestId('role-name-link');
+  }
+
+  findDescription() {
+    return this.find().find('[data-label="Description"]');
+  }
+
+  findType() {
+    return this.find().find('[data-label="Type"]');
+  }
+
+  shouldHaveName(name: string) {
+    this.findNameLink().should('have.text', name);
+    return this;
+  }
+
+  findKebabAction(name: string, verify = true): Cypress.Chainable<JQuery<HTMLElement>> {
+    const kebabAction = this.find().findKebabAction(name);
+    return verify ? kebabAction.should('exist').and('be.visible') : kebabAction;
+  }
+}
+
 class ProjectRolesTab {
   visit(namespace: string) {
     cy.visitWithLogin(`/projects/${namespace}?section=roles`);
@@ -20,6 +46,10 @@ class ProjectRolesTab {
 
   findRolesTab() {
     return cy.findByTestId('roles-tab');
+  }
+
+  findRolesTable() {
+    return cy.findByTestId('roles-table');
   }
 
   findCreateRoleButton() {
@@ -80,6 +110,36 @@ class ProjectRolesTab {
 
   findCancelButton() {
     return cy.findByTestId('create-role-cancel');
+  }
+
+  findSearchInput() {
+    return cy.findByTestId('roles-table-search').find('input');
+  }
+
+  findEmptyState() {
+    return cy.findByTestId('no-roles-empty-state');
+  }
+
+  findEmptyFilterState() {
+    return cy.findByTestId('dashboard-empty-table-state');
+  }
+
+  findPreviewYAMLModal() {
+    return cy.findByTestId('preview-yaml-modal');
+  }
+
+  findPreviewYAMLCloseButton() {
+    return cy.findByTestId('preview-yaml-close-button');
+  }
+
+  getRow(name: string) {
+    return new RolesTableRow(() =>
+      this.findRolesTable().findAllByTestId('role-name-link').contains(name).parents('tr'),
+    );
+  }
+
+  findTableHeaderButton(name: string | RegExp) {
+    return this.findRolesTable().find('thead').findByRole('button', { name });
   }
 }
 

@@ -4,13 +4,13 @@ import { hasFiltersApplied } from '~/app/pages/modelCatalog/utils/modelCatalogUt
 import { BASIC_FILTER_KEYS } from '~/concepts/modelCatalog/const';
 
 export const useHasVisibleFiltersApplied = (): boolean => {
-  const { filterData, performanceViewEnabled } = React.useContext(ModelCatalogContext);
+  const { filters, performanceViewEnabled } = React.useContext(ModelCatalogContext);
 
   return React.useMemo(
     () =>
       performanceViewEnabled
-        ? hasFiltersApplied(filterData)
-        : hasFiltersApplied(filterData, BASIC_FILTER_KEYS),
-    [filterData, performanceViewEnabled],
+        ? hasFiltersApplied(filters)
+        : hasFiltersApplied(filters, BASIC_FILTER_KEYS),
+    [filters, performanceViewEnabled],
   );
 };

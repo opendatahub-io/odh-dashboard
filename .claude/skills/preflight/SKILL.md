@@ -145,6 +145,20 @@ ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number
 ```
 Report what's there — CodeRabbit threads with severity, human threads, review decision.
 
+### Prior review deduplication
+
+When the PR has prior preflight review threads, classify them to avoid re-posting dismissed suggestions on subsequent runs. Extract the PR author from the metadata gathered in Step 1 and run:
+
+```bash
+${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number" \
+  | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
+```
+
+Use the classified threads throughout the rest of the run — see [references/reviews.md](references/reviews.md) § Prior Review Deduplication for how to interpret each `disposition` value. Key rules:
+- **Do not re-post** any finding that matches a prior preflight thread (the original comment is still visible).
+- **Exclude dismissed findings** (author replied with disagreement) from the active findings count.
+- **Net-new findings** (no prior match) are posted and counted normally.
+
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 
 If `--review` flag was passed, use those reviewers directly. If `--skip-review` flag was passed, run all reviewers except the listed ones (no interactive prompt). Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:

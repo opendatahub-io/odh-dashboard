@@ -91,5 +91,10 @@ export const selectDirtyPrompt =
   (state: ChatbotConfigStore): MLflowPromptVersion | null =>
     state.configurations[configId]?.dirtyPrompt ?? null;
 
+export const selectVariableValues =
+  (configId: string) =>
+  (state: ChatbotConfigStore): Record<string, string> =>
+    state.configurations[configId]?.variableValues ?? {};
+
 // Configuration management selectors
 export const selectConfigIds = (state: ChatbotConfigStore): string[] => state.configIds;
