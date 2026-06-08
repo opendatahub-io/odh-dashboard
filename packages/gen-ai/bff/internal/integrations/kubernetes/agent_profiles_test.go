@@ -227,6 +227,68 @@ func TestCreateAgentProfile(t *testing.T) {
 			wantErrCode: 400,
 			wantErrMsg:  "invalid_request",
 		},
+		{
+			name: "displayName too long",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "bb0e8400-e29b-41d4-a716-446655440006",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "This is a very long display name that exceeds the maximum allowed length of 100 characters for agent profiles",
+					Model: models.ModelReference{
+						ID:  "llama-3-8b",
+						URI: "https://api.example.com/v1/models",
+					},
+				},
+			},
+			wantErr:     true,
+			wantErrCode: 400,
+			wantErrMsg:  "invalid_request",
+		},
+		{
+			name: "maxOutputTokens too high",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "cc0e8400-e29b-41d4-a716-446655440007",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Token Limit Agent",
+					Model: models.ModelReference{
+						ID:  "llama-3-8b",
+						URI: "https://api.example.com/v1/models",
+					},
+					MaxOutputTokens: func() *int { v := 50000; return &v }(),
+				},
+			},
+			wantErr:     true,
+			wantErrCode: 400,
+			wantErrMsg:  "invalid_request",
+		},
+		{
+			name: "maxOutputTokens too low",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "dd0e8400-e29b-41d4-a716-446655440008",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Zero Token Agent",
+					Model: models.ModelReference{
+						ID:  "llama-3-8b",
+						URI: "https://api.example.com/v1/models",
+					},
+					MaxOutputTokens: func() *int { v := 0; return &v }(),
+				},
+			},
+			wantErr:     true,
+			wantErrCode: 400,
+			wantErrMsg:  "invalid_request",
+		},
 	}
 
 	for _, tt := range tests {
@@ -518,6 +580,56 @@ func TestValidateAgentProfile(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "temperature must be between 0.0 and 2.0",
+		},
+		{
+			name: "displayName too long",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "111e8400-e29b-41d4-a716-446655440014",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "This is a very long display name that exceeds the maximum allowed length of 100 characters for agent profiles",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+				},
+			},
+			wantErr: true,
+			errMsg:  "displayName must be 100 characters or less",
+		},
+		{
+			name: "maxOutputTokens too high",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "222e8400-e29b-41d4-a716-446655440015",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName:     "Test",
+					Model:           models.ModelReference{ID: "m", URI: "u"},
+					MaxOutputTokens: func() *int { v := 50000; return &v }(),
+				},
+			},
+			wantErr: true,
+			errMsg:  "maxOutputTokens must be between 1 and 32000",
+		},
+		{
+			name: "maxOutputTokens zero",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "333e8400-e29b-41d4-a716-446655440016",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName:     "Test",
+					Model:           models.ModelReference{ID: "m", URI: "u"},
+					MaxOutputTokens: func() *int { v := 0; return &v }(),
+				},
+			},
+			wantErr: true,
+			errMsg:  "maxOutputTokens must be between 1 and 32000",
 		},
 		{
 			name: "vector store - both storeRef and id set",

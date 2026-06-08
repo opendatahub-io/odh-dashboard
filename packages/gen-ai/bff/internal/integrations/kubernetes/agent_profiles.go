@@ -218,6 +218,9 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 	if profile.Spec.DisplayName == "" {
 		return fmt.Errorf("spec.displayName is required")
 	}
+	if len(profile.Spec.DisplayName) > 100 {
+		return fmt.Errorf("spec.displayName must be 100 characters or less, got %d", len(profile.Spec.DisplayName))
+	}
 
 	// Validate model reference
 	if profile.Spec.Model.ID == "" {
@@ -232,6 +235,14 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 		temp := *profile.Spec.Temperature
 		if temp < 0.0 || temp > 2.0 {
 			return fmt.Errorf("spec.temperature must be between 0.0 and 2.0, got %f", temp)
+		}
+	}
+
+	// Validate maxOutputTokens range if provided
+	if profile.Spec.MaxOutputTokens != nil {
+		tokens := *profile.Spec.MaxOutputTokens
+		if tokens < 1 || tokens > 32000 {
+			return fmt.Errorf("spec.maxOutputTokens must be between 1 and 32000, got %d", tokens)
 		}
 	}
 
