@@ -66,7 +66,14 @@ describe('Verify that admin users can edit model registry database configuration
   it(
     'Edits database configuration fields and verifies backend persistence',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Sanity', '@SanitySet4', '@DatabaseConfig'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@ModelRegistryCI',
+        '@Sanity',
+        '@SanitySet4',
+        '@DatabaseConfig',
+      ],
     },
     () => {
       cy.step('Login as an Admin');

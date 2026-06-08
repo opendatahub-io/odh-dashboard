@@ -110,7 +110,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.objectStorageModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -152,7 +152,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.uriModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.version1Name);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -175,7 +175,7 @@ describe('Verify models can be registered in a model registry', () => {
       cy.contains(testData.uriModelName, { timeout: 10000 }).should('be.visible');
 
       cy.step('Navigate back to model registry to verify both models');
-      cy.visitWithLogin(`/ai-hub/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
+      cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`, HTPASSWD_CLUSTER_ADMIN_USER);
 
       cy.step('Verify both models are visible in the registry');
       cy.contains(objectStorageModelName, { timeout: 10000 }).should('be.visible');
@@ -186,7 +186,7 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers a new version via versions view',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@Smoke', '@SmokeSet4'],
+      tags: ['@Dashboard', '@ModelRegistry', '@ModelRegistryCI', '@Smoke', '@SmokeSet4'],
     },
     () => {
       cy.step('Log into the application');
@@ -239,7 +239,14 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers and stores a model to an OCI destination',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@ModelRegistryCI',
+        '@NonConcurrent',
+        '@Smoke',
+        '@SmokeSet4',
+      ],
     },
     () => {
       cy.step('Log into the application');
@@ -282,7 +289,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)
@@ -356,7 +363,14 @@ describe('Verify models can be registered in a model registry', () => {
   it(
     'Registers and stores a model to an OCI destination using URI origin',
     {
-      tags: ['@Dashboard', '@ModelRegistry', '@NonConcurrent', '@Smoke', '@SmokeSet4'],
+      tags: [
+        '@Dashboard',
+        '@ModelRegistry',
+        '@ModelRegistryCI',
+        '@NonConcurrent',
+        '@Smoke',
+        '@SmokeSet4',
+      ],
     },
     () => {
       cy.step('Log into the application');
@@ -398,7 +412,7 @@ describe('Verify models can be registered in a model registry', () => {
       registerModelPage
         .findFormField(FormFieldSelector.MODEL_DESCRIPTION)
         .type(testData.ociModelDescription);
-      registerModelPage.selectModelType();
+      registerModelPage.selectModelType('Predictive Model', 30000);
       registerModelPage.findFormField(FormFieldSelector.VERSION_NAME).type(testData.ociVersionName);
       registerModelPage
         .findFormField(FormFieldSelector.VERSION_DESCRIPTION)

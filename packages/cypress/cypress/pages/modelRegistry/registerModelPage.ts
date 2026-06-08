@@ -54,14 +54,15 @@ class RegisterModelPage {
     return cy.get(selector);
   }
 
-  findModelTypeSelect() {
-    return cy.findByTestId('register-model-type-select');
+  findModelTypeSelect(timeout?: number) {
+    return cy.findByTestId('register-model-type-select', { timeout });
   }
 
   selectModelType(
     optionName: 'Predictive Model' | 'Generative AI model (Example, LLM)' = 'Predictive Model',
+    timeout?: number,
   ) {
-    this.findModelTypeSelect().findSelectOption(optionName).click();
+    this.findModelTypeSelect(timeout).findSelectOption(optionName).click();
   }
 
   findObjectStorageAutofillButton() {

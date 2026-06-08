@@ -59,7 +59,7 @@ class ModelRegistry {
   }
 
   visit(registryName = 'modelregistry-sample') {
-    cy.visitWithLogin(`/ai-hub/registry/${registryName}`);
+    cy.visitWithLogin(`/ai-hub/models/registry/${registryName}`);
     cy.findByTestId('app-page-title', { timeout: 60000 }).should('exist');
   }
 
