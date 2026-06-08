@@ -7,6 +7,7 @@ import { createNode } from './utils';
 import { parseRuntimeInfoFromRunDetails, translateStatusForNode } from './parseUtils';
 
 const TASK_DISPLAY_NAMES: Record<string, string> = {
+  'publish-component-stage-map': 'Pipeline preparation',
   'test-data-loader': 'Test Data Loader',
   'documents-sampling': 'Documents Sampling', // may have been replaced by documents-discovery node, need to verify post 3.4
   'documents-discovery': 'Documents Discovery',

@@ -5,6 +5,7 @@ import { PageSection, Tab, Tabs, TabTitleText } from '@patternfly/react-core';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApiKeysPageLoad } from '~/app/hooks/useApiKeysPageLoad';
+import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeysTab from './apiKeys/ApiKeysTab';
 import SubscriptionsTab from './mySubscriptions/SubscriptionsTab';
@@ -18,9 +19,21 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const apiKeysPageState = useApiKeysPageLoad();
   const { loadError: apiKeysLoadError } = apiKeysPageState;
+  const [subscriptions, subscriptionsLoaded, subscriptionsLoadError] = useUserSubscriptions();
 
   const activeTab = tab && VALID_TABS.includes(tab) ? tab : API_KEYS_TAB;
-  const showApiKeysLoadError = activeTab === API_KEYS_TAB && !!apiKeysLoadError;
+
+  // API keys tab needs both fetches to resolve before the page is considered loaded.
+  // Subscriptions tab only needs the subscriptions fetch.
+  const apiKeysTabReady =
+    (apiKeysPageState.loaded || !!apiKeysLoadError) &&
+    (subscriptionsLoaded || !!subscriptionsLoadError);
+  const subscriptionsTabReady = subscriptionsLoaded || !!subscriptionsLoadError;
+  const isPageLoaded = activeTab === SUBSCRIPTIONS_TAB ? subscriptionsTabReady : apiKeysTabReady;
+
+  const apiKeysTabError = apiKeysLoadError ?? subscriptionsLoadError;
+  const showApiKeysLoadError = activeTab === API_KEYS_TAB && !!apiKeysTabError;
+  const pageLoadError = activeTab === API_KEYS_TAB ? apiKeysTabError : subscriptionsLoadError;
 
   const onSelectTab = React.useCallback(
     (_event: React.MouseEvent, tabKey: string | number) => {
@@ -35,10 +48,12 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
         <TitleWithIcon title="API keys and subscriptions" objectType={ProjectObjectType.apiKeys} />
       }
       description="Manage your API keys and view your subscription access."
-      loaded={activeTab === SUBSCRIPTIONS_TAB || apiKeysPageState.loaded || !!apiKeysLoadError}
+      loaded={isPageLoaded}
       empty={false}
-      loadError={showApiKeysLoadError ? apiKeysLoadError : undefined}
-      errorMessage="Error loading API keys"
+      loadError={pageLoadError}
+      errorMessage={
+        activeTab === SUBSCRIPTIONS_TAB ? 'Error loading subscriptions' : 'Error loading API keys'
+      }
     >
       <Tabs
         activeKey={activeTab}
@@ -53,7 +68,9 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           data-testid="api-keys-tab"
         >
           <PageSection isFilled>
-            {!showApiKeysLoadError && <ApiKeysTab pageState={apiKeysPageState} />}
+            {!showApiKeysLoadError && (
+              <ApiKeysTab pageState={apiKeysPageState} subscriptions={subscriptions} />
+            )}
           </PageSection>
         </Tab>
         <Tab
@@ -62,7 +79,7 @@ const ApiKeysAndSubscriptionsPage: React.FC = () => {
           aria-label="Subscriptions tab"
           data-testid="subscriptions-tab"
         >
-          <SubscriptionsTab />
+          <SubscriptionsTab subscriptions={subscriptions} />
         </Tab>
       </Tabs>
     </ApplicationsPage>

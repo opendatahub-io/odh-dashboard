@@ -1,17 +1,15 @@
-import { K8sVerb, SelfSubjectAccessReviewKind } from '#~/k8sTypes';
+import { AccessReviewResourceAttributes, SelfSubjectAccessReviewKind } from '#~/k8sTypes';
 
-type MockResourceConfigType = {
-  verb?: K8sVerb;
-  group?: string;
-  resource?: string;
+type MockResourceConfigType = Partial<AccessReviewResourceAttributes> & {
   allowed?: boolean;
-  namespace?: string;
 };
 
 export const mockSelfSubjectAccessReview = ({
   verb = 'list',
   group = 'serving.kserve.io',
   resource = 'servingruntimes',
+  subresource,
+  name,
   namespace = 'opendatahub',
   allowed = false,
 }: MockResourceConfigType): SelfSubjectAccessReviewKind => ({
@@ -21,7 +19,9 @@ export const mockSelfSubjectAccessReview = ({
     resourceAttributes: {
       group,
       resource,
+      subresource,
       verb,
+      name,
       namespace,
     },
   },

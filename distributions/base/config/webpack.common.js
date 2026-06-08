@@ -104,10 +104,9 @@ module.exports = ({
       ],
     },
     output: {
-      filename: '[name].bundle.js',
+      filename: '[name].js',
       path: resolvedOutputDir,
       publicPath: '/',
-      chunkFilename: '[name]-[chunkhash].js',
     },
     plugins: [
       new HtmlWebpackPlugin({

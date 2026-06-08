@@ -1,6 +1,5 @@
-import { Bullseye, Content, ContentVariants, PageSection, Spinner } from '@patternfly/react-core';
+import { Content, ContentVariants, PageSection } from '@patternfly/react-core';
 import React from 'react';
-import { useUserSubscriptions } from '~/app/hooks/useUserSubscriptions';
 import { UserSubscription } from '~/app/types/subscriptions';
 import SubscriptionsToolbar from './SubscriptionsToolbar';
 import SubscriptionsViewTable, { ModelGroupEntry } from './SubscriptionsViewTable';
@@ -38,7 +37,11 @@ export const deriveModelGroups = (subscriptions: UserSubscription[]): ModelGroup
 
 export type SubscriptionSortField = 'subscription' | 'model';
 
-const SubscriptionsTab: React.FC = () => {
+type SubscriptionsTabProps = {
+  subscriptions: UserSubscription[];
+};
+
+const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({ subscriptions }) => {
   const [subSourceFilters, setSubSourceFilters] = React.useState<string[]>([]);
   const [modelSourceFilters, setModelSourceFilters] = React.useState<string[]>([]);
   const [searchValue, setSearchValue] = React.useState('');
@@ -49,8 +52,6 @@ const SubscriptionsTab: React.FC = () => {
   const [subSortDirection, setSubSortDirection] = React.useState<'asc' | 'desc' | undefined>(
     undefined,
   );
-
-  const [subscriptions, loaded] = useUserSubscriptions();
 
   const modelGroups = React.useMemo(() => deriveModelGroups(subscriptions), [subscriptions]);
 
@@ -115,16 +116,6 @@ const SubscriptionsTab: React.FC = () => {
       return modelSortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
     });
   }, [modelGroups, modelSourceFilters, searchValue, modelSortDirection]);
-
-  if (!loaded) {
-    return (
-      <PageSection isFilled>
-        <Bullseye>
-          <Spinner />
-        </Bullseye>
-      </PageSection>
-    );
-  }
 
   return (
     <PageSection isFilled>
