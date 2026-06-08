@@ -86,7 +86,7 @@ const FeatureServiceDetails = (): React.ReactElement => {
       loadErrorPage={featureServiceLoadError ? loadErrorState : undefined}
       loaded={featureServiceLoaded}
       provideChildrenPadding
-      headerContent={<ConnectedWorkbenchesLink />}
+      headerContent={featureServiceLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

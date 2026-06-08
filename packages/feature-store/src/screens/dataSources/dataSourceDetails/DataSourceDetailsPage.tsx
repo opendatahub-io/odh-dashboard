@@ -100,7 +100,7 @@ const DataSourceDetailsPage = (): React.ReactElement => {
       loadErrorPage={dataSourceLoadError ? loadErrorState : undefined}
       loaded={dataSourceLoaded}
       provideChildrenPadding
-      headerContent={<ConnectedWorkbenchesLink />}
+      headerContent={dataSourceLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Tooltip } from '@patternfly/react-core';
-import { ExternalLinkAltIcon } from '@patternfly/react-icons';
+import { WrenchIcon } from '@patternfly/react-icons';
 import { FeatureStoreModel } from '@odh-dashboard/internal/api/models/odh';
 import { useAccessAllowed } from '@odh-dashboard/internal/concepts/userSSAR/useAccessAllowed';
 import { verbModelAccess } from '@odh-dashboard/internal/concepts/userSSAR/utils';
@@ -19,17 +19,13 @@ const ConnectedWorkbenchesLink: React.FC = () => {
   const hasProjects = accessibleProjects.length > 0;
   const isDisabled = projectsLoaded && !projectsError && !hasProjects;
 
-  const handleClick = () => {
-    // TODO(RHOAIENG-62434): Open ConnectedWorkbenchesModal
-  };
-
   const button = (
     <Button
       variant="link"
-      icon={<ExternalLinkAltIcon />}
+      icon={<WrenchIcon />}
       iconPosition="start"
-      isAriaDisabled={isDisabled}
-      onClick={isDisabled ? undefined : handleClick}
+      isAriaDisabled
+      onClick={undefined}
       data-testid="connected-workbenches-link"
     >
       View connected workbenches

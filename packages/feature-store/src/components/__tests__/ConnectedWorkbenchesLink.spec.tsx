@@ -44,13 +44,13 @@ describe('ConnectedWorkbenchesLink', () => {
       });
     });
 
-    it('should render the button as enabled', () => {
+    it('should render the button as aria-disabled', () => {
       render(<ConnectedWorkbenchesLink />);
 
       const button = screen.getByTestId('connected-workbenches-link');
       expect(button).toBeInTheDocument();
       expect(button).toHaveTextContent('View connected workbenches');
-      expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should not throw on click', async () => {
@@ -133,7 +133,7 @@ describe('ConnectedWorkbenchesLink', () => {
   });
 
   describe('loading state', () => {
-    it('should render enabled button while projects are loading', () => {
+    it('should render aria-disabled button while projects are loading', () => {
       mockUseAccessAllowed.mockReturnValue([false, true]);
       mockUseFeatureStoreAccessibleProjects.mockReturnValue({
         accessibleProjects: [],
@@ -144,7 +144,7 @@ describe('ConnectedWorkbenchesLink', () => {
       render(<ConnectedWorkbenchesLink />);
 
       const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('should render without tooltip while admin check is loading', () => {
@@ -162,7 +162,7 @@ describe('ConnectedWorkbenchesLink', () => {
       expect(screen.queryByText(/To create and connect workbenches/)).not.toBeInTheDocument();
     });
 
-    it('should render enabled button when projects fetch fails', () => {
+    it('should render aria-disabled button when projects fetch fails', () => {
       mockUseAccessAllowed.mockReturnValue([false, true]);
       mockUseFeatureStoreAccessibleProjects.mockReturnValue({
         accessibleProjects: [],
@@ -173,7 +173,7 @@ describe('ConnectedWorkbenchesLink', () => {
       render(<ConnectedWorkbenchesLink />);
 
       const button = screen.getByTestId('connected-workbenches-link');
-      expect(button).not.toHaveAttribute('aria-disabled', 'true');
+      expect(button).toHaveAttribute('aria-disabled', 'true');
     });
   });
 

@@ -94,7 +94,7 @@ const DataSetDetails = (): React.ReactElement => {
       loadErrorPage={dataSetLoadError ? loadErrorState : undefined}
       loaded={dataSetLoaded}
       provideChildrenPadding
-      headerContent={<ConnectedWorkbenchesLink />}
+      headerContent={dataSetLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

@@ -82,7 +82,7 @@ const EntitiesDetailsPage = (): React.ReactElement => {
       loadErrorPage={entityLoadError ? loadErrorState : undefined}
       loaded={entityLoaded}
       provideChildrenPadding
-      headerContent={<ConnectedWorkbenchesLink />}
+      headerContent={entityLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage

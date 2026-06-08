@@ -100,7 +100,7 @@ const FeatureViewDetails = (): React.ReactElement => {
       loadErrorPage={featureViewError ? loadErrorState : undefined}
       loaded={featureViewLoaded}
       provideChildrenPadding
-      headerContent={<ConnectedWorkbenchesLink />}
+      headerContent={featureViewLoaded ? <ConnectedWorkbenchesLink /> : undefined}
       breadcrumb={
         <FeatureStorePageTitle
           isDetailsPage
