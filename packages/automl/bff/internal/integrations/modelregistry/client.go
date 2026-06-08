@@ -178,14 +178,14 @@ func (c *ModelRegistryClient) postJSON(ctx context.Context, baseURL, path string
 }
 
 // validateModelRegistryURL ensures the registry URL is safe to use.
-// Always requires HTTPS (except localhost) — registry URLs are always constructed
+// Requires HTTPS unconditionally — registry URLs are always constructed
 // with https:// by buildRegistryURLs, and HTTP is unsafe in all auth modes.
 func validateModelRegistryURL(serverURL string) error {
 	u, err := neturl.Parse(serverURL)
 	if err != nil || u.Scheme == "" || u.Host == "" {
 		return fmt.Errorf("invalid model registry URL: %q", serverURL)
 	}
-	if u.Scheme != "https" && u.Hostname() != "localhost" && u.Hostname() != "127.0.0.1" {
+	if u.Scheme != "https" {
 		return fmt.Errorf("model registry URL must use HTTPS (got %q)", serverURL)
 	}
 	if !strings.Contains(u.Path, "/api/model_registry/") {
