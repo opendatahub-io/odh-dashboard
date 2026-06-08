@@ -26,6 +26,7 @@ type AgentCard struct {
 	Namespace            string            `json:"namespace"`
 	Description          string            `json:"description"`
 	Version              string            `json:"version"`
+	URL                  string            `json:"url,omitempty"`
 	Skills               []AgentSkill      `json:"skills"`
 	Capabilities         AgentCapabilities `json:"capabilities"`
 	Provider             AgentProvider     `json:"provider"`

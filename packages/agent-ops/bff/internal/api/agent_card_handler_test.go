@@ -38,6 +38,7 @@ func TestGetAgentCardHandler(t *testing.T) {
 	assert.Equal(t, "sample-support-agent", card.Name)
 	assert.Equal(t, "agent-ops-demo", card.Namespace)
 	assert.Equal(t, "1.2.0", card.Version)
+	assert.Equal(t, "http://sample-support-agent.agent-ops-demo.svc.cluster.local:8080", card.URL)
 	require.Len(t, card.Skills, 2)
 	assert.True(t, card.Capabilities.Streaming)
 	assert.False(t, card.Capabilities.PushNotifications)
