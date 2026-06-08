@@ -74,7 +74,7 @@ describe('usePipelineRuns', () => {
     expect(getPipelineRunsFromBFFMock).toHaveBeenCalledWith('', {
       namespace: 'my-namespace',
       pageSize: 20,
-      nextPageToken: undefined,
+      page: 1,
     });
   });
 
@@ -120,7 +120,7 @@ describe('usePipelineRuns', () => {
       expect(getPipelineRunsFromBFFMock).toHaveBeenLastCalledWith('', {
         namespace: 'ns-2',
         pageSize: 20,
-        nextPageToken: undefined,
+        page: 1,
       });
     });
 
