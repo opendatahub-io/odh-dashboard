@@ -521,7 +521,6 @@ func (e *httpError) Error() string {
 func readhttpError(resp *http.Response) error {
 	limitedReader := io.LimitReader(resp.Body, maxPipelineErrorBodySize)
 	body, _ := io.ReadAll(limitedReader)
-	_, _ = io.Copy(io.Discard, resp.Body)
 
 	errorMsg := string(body)
 	if len(body) == maxPipelineErrorBodySize {
