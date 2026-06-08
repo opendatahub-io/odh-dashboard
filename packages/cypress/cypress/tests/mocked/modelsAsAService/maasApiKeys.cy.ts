@@ -237,9 +237,12 @@ describe('API Keys Page', () => {
 
     apiKeysPage.findTable().should('contain.text', 'deleted-subscription-key');
 
-    const orphanedRow = apiKeysPage.getRow('deleted-subscription-key');
-    orphanedRow.findStatus().should('contain.text', 'Inactive').click();
+    const deletedSubscriptionRow = apiKeysPage.getRow('deleted-subscription-key');
+    deletedSubscriptionRow.findStatus().should('contain.text', 'Inactive').click();
     inactiveStatusPopover.shouldBeVisible();
+
+    deletedSubscriptionRow.findSubscription().should('contain.text', 'deleted-sub');
+    deletedSubscriptionRow.findSubscriptionDetailLink().should('not.exist');
   });
 
   it('should display all API keys when the status filter is cleared', () => {
@@ -280,21 +283,6 @@ describe('API Keys Page', () => {
       .findSubscriptionDetailLink()
       .should('have.attr', 'href')
       .and('include', '/maas/keys-and-subs/subscriptions/premium-team-sub');
-  });
-
-  it('should show plain text (no link) for a subscription that no longer exists', () => {
-    const keyWithDeletedSub = mockAPIKeys().filter((k) => k.status === 'active');
-    cy.interceptOdh(
-      'POST /maas/api/v1/api-keys/search',
-      // Return keys with a subscription name but no subscriptionDetails entry for it
-      mockSearchResponse(keyWithDeletedSub, {}),
-    ).as('deletedSubSearch');
-    apiKeysPage.visit();
-    cy.wait('@deletedSubSearch');
-
-    const prodRow = apiKeysPage.getRow('production-backend');
-    prodRow.findSubscription().should('contain.text', 'premium-team-sub');
-    prodRow.findSubscriptionDetailLink().should('not.exist');
   });
 
   it('should filter api keys by subscription and clear the filter', () => {
