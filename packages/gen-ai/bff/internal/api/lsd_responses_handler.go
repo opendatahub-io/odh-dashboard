@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -31,11 +33,14 @@ var supportedEventTypes = map[string]bool{
 	// streaming. These are ephemeral display-only tokens; the final cleaned
 	// text and annotations are sent via the response.completed event, which
 	// the frontend uses for the definitive render.
-	"response.output_text.delta": true, // Text delta/chunk for streaming text
-	"response.content_part.done": true, // Content part completed
-	"response.completed":         true, // Response generation completed
-	"response.refusal.delta":     true, // Refusal text
-	"response.refusal.done":      true, // Refusal text completed
+	"response.output_text.delta":    true, // Text delta/chunk for streaming text
+	"response.content_part.done":    true, // Content part completed
+	"response.completed":            true, // Response generation completed
+	"response.failed":               true, // Response generation failed (contains error code/message)
+	"response.refusal.delta":        true, // Refusal text
+	"response.refusal.done":         true, // Refusal text completed
+	"response.reasoning_text.delta": true, // Reasoning/thinking text delta
+	"response.reasoning_text.done":  true, // Reasoning/thinking text completed
 }
 
 // isEventTypeSupported checks if the given event type should be processed
@@ -45,13 +50,14 @@ func isEventTypeSupported(eventType string) bool {
 
 // ChatContextMessage represents a message in chat context history
 type ChatContextMessage struct {
-	Role    string `json:"role"`    // "user" or "assistant"
-	Content string `json:"content"` // Message content
+	Role    string                  `json:"role"`    // "user" or "assistant"
+	Content llamastack.ContentUnion `json:"content"` // String or multimodal content parts
 }
 
 // StreamingEvent represents a streaming event
 type StreamingEvent struct {
 	Delta          string        `json:"delta,omitempty"`
+	Text           string        `json:"text,omitempty"`    // For reasoning_text.done and content_part.done events
 	Refusal        string        `json:"refusal,omitempty"` // For response.refusal.done events (OpenAI standard)
 	SequenceNumber int64         `json:"sequence_number"`
 	Type           string        `json:"type"`
@@ -145,8 +151,8 @@ type MCPServer struct {
 
 // CreateResponseRequest represents the request body for creating a response
 type CreateResponseRequest struct {
-	Input string `json:"input"`
-	Model string `json:"model"`
+	Input llamastack.InputUnion `json:"input"`
+	Model string                `json:"model"`
 
 	VectorStoreIDs     []string                      `json:"vector_store_ids,omitempty"`     // Enables RAG
 	ChatContext        []ChatContextMessage          `json:"chat_context,omitempty"`         // Conversation history
@@ -358,20 +364,44 @@ func calculateTTFT(startTime time.Time, firstTokenTime *time.Time) *int64 {
 func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
+	r.Body = http.MaxBytesReader(w, r.Body, constants.ResponsesMaxBodySize)
+
 	// Parse the request body
 	var createRequest CreateResponseRequest
 	if err := json.NewDecoder(r.Body).Decode(&createRequest); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			app.payloadTooLargeResponse(w, r, maxBytesErr.Limit)
+			return
+		}
 		app.badRequestResponse(w, r, err)
 		return
 	}
 
 	// Validate required fields
-	if createRequest.Input == "" {
+	if createRequest.Input.IsMultimodal() {
+		if err := llamastack.ValidateInputParts(createRequest.Input.Parts); err != nil {
+			app.badRequestResponse(w, r, err)
+			return
+		}
+	} else if createRequest.Input.Text == "" {
 		app.badRequestResponse(w, r, errors.New("input is required"))
 		return
 	}
 	if createRequest.Model == "" {
 		app.badRequestResponse(w, r, errors.New("model is required"))
+		return
+	}
+
+	// Enforce one-image-per-conversation limit across input and chat history
+	if llamastack.CountImageParts(createRequest.Input, func() []llamastack.ChatContextMessage {
+		result := make([]llamastack.ChatContextMessage, len(createRequest.ChatContext))
+		for i, msg := range createRequest.ChatContext {
+			result[i] = llamastack.ChatContextMessage{Role: msg.Role, Content: msg.Content}
+		}
+		return result
+	}()) > 1 {
+		app.badRequestResponse(w, r, errors.New("only one image per conversation is allowed; remove the existing image before adding a new one"))
 		return
 	}
 
@@ -452,14 +482,23 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		}
 	}
 
+	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
+	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
+	if err != nil {
+		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
+		return
+	}
+
 	// Build inline guardrail options when the request includes a guardrail config.
 	// The BFF resolves the model endpoint URL and API key so the frontend never handles credentials.
 	var guardrailOpts nemo.GuardrailsOptions
+	var inputMessages []nemo.Message
 	if createRequest.GuardrailConfig != nil && createRequest.GuardrailConfig.GuardrailModel != "" {
 		baseURL, apiKey, err := app.getGuardrailModelEndpointAndKey(ctx, createRequest.GuardrailConfig.GuardrailModel, createRequest.GuardrailConfig.GuardrailModelSourceType, createRequest.GuardrailConfig.ResolveSubscription(createRequest.Subscription))
 		if err != nil {
 			app.logger.Error("Failed to resolve guardrail model endpoint", "model", createRequest.GuardrailConfig.GuardrailModel, "error", err)
-			app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+			app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 			return
 		}
 
@@ -478,34 +517,28 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 		)
 
 		if createRequest.GuardrailConfig.InputPrompt != "" {
-			inputMessages := make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
+			inputMessages = make([]nemo.Message, 0, len(createRequest.ChatContext)+1)
 			for _, msg := range createRequest.ChatContext {
 				if msg.Role == "user" {
-					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content})
+					inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: msg.Content.TextContent()})
 				}
 			}
-			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input})
+			inputMessages = append(inputMessages, nemo.Message{Role: nemo.RoleUser, Content: createRequest.Input.TextContent()})
+		}
 
-			result, modErr := app.checkModeration(ctx, inputMessages, guardrailOpts)
+		// For non-streaming requests, run input moderation now (HTTP error responses)
+		if !createRequest.Stream && len(inputMessages) > 0 {
+			flagged, _, modErr := app.checkInputModeration(ctx, inputMessages, guardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Input moderation check failed", "error", modErr)
-				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
-			if result != nil && result.Flagged {
-				app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+			if flagged {
 				app.guardrailViolationResponse(w, r, constants.GuardrailInputViolationCode, "input blocked by safety guardrails")
 				return
 			}
 		}
-	}
-
-	// Retrieve and inject provider data for custom headers (MaaS, custom endpoint, or LLMInferenceService)
-	providerData, err := app.getProviderData(ctx, createRequest.Model, createRequest.ModelSourceType, createRequest.Subscription, createRequest.VectorStoreIDs)
-	if err != nil {
-		app.logger.Error("Failed to resolve provider credentials", "model", createRequest.Model, "error", err)
-		app.serverErrorResponse(w, r, fmt.Errorf("failed to resolve provider credentials: %w", err))
-		return
 	}
 
 	params := llamastack.CreateResponseParams{
@@ -525,15 +558,31 @@ func (app *App) LlamaStackCreateResponseHandler(w http.ResponseWriter, r *http.R
 
 	// Handle streaming vs non-streaming responses
 	if createRequest.Stream {
-		// Use async moderation path when output moderation is configured
-		if hasOutputModeration(guardrailOpts) {
-			app.handleStreamingResponseAsync(w, r, ctx, params)
+		// Use moderation-aware path when any guardrails are configured (input, output, or both).
+		// Input moderation is deferred to after SSE heartbeat starts to prevent HAProxy timeouts.
+		if hasOutputModeration(guardrailOpts) || len(inputMessages) > 0 {
+			app.handleStreamingResponseWithModeration(w, r, ctx, params, inputMessages)
 		} else {
 			app.handleStreamingResponse(w, r, ctx, params)
 		}
 	} else {
 		app.handleNonStreamingResponse(w, r, ctx, params)
 	}
+}
+
+// checkInputModeration runs input moderation and returns the result.
+// The caller decides how to report errors (HTTP response vs SSE event).
+func (app *App) checkInputModeration(ctx context.Context, messages []nemo.Message, opts nemo.GuardrailsOptions) (flagged bool, violationReason string, err error) {
+	result, modErr := app.checkModeration(ctx, messages, opts)
+	if modErr != nil {
+		app.logger.Error("Input moderation check failed", "error", modErr)
+		return false, "", modErr
+	}
+	if result != nil && result.Flagged {
+		app.logger.Info("Input moderation flagged content", "reason", result.ViolationReason)
+		return true, result.ViolationReason, nil
+	}
+	return false, "", nil
 }
 
 // handleStreamingResponse handles streaming response creation
@@ -564,6 +613,13 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
+	// Heartbeat keeps the connection alive through proxies (e.g., OpenShift HAProxy
+	// 30s idle timeout) during slow inference, tool calls, or vector DB retrieval.
+	var writeMu sync.Mutex
+	hb := newSSEHeartbeat(w, flusher, &writeMu, app.logger)
+	go hb.start(ctx)
+	defer hb.stop()
+
 	// Stream events to client
 	for stream.Next() {
 		// Check if client disconnected
@@ -578,6 +634,25 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 
 		event := stream.Current()
 
+		// Intercept OGX error events (type: "error") before convertToStreamingEvent
+		// which would filter them out. These are top-level errors like "model not found".
+		// event.Code may be an HTTP status string (e.g. "404", "500") or a named error
+		// code (e.g. "timeout", "server_error"). Parse it so isRetriable can apply the
+		// 429/5xx fallback for HTTP statuses.
+		if event.Type == "error" {
+			app.logger.Error("OGX error event received", "code", event.Code, "message", event.Message)
+			component := llamastack.ResolveComponent(event.Code)
+			statusCode, err := strconv.Atoi(event.Code)
+			if err != nil {
+				// event.Code is not an HTTP status - isRetriable will match via code switch
+				statusCode = 0
+			}
+			retriable := app.isRetriable(event.Code, statusCode)
+			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(event.Code, event.Message, component, retriable))
+			flusher.Flush()
+			return
+		}
+
 		// Convert to clean streaming event
 		streamingEvent := convertToStreamingEvent(event)
 		if streamingEvent == nil {
@@ -585,10 +660,26 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 			continue
 		}
 
-		// Track TTFT on first text delta event
+		// Track TTFT on first answer token only — reasoning tokens are excluded
 		if streamingEvent.Type == "response.output_text.delta" && firstTokenTime == nil {
 			now := time.Now()
 			firstTokenTime = &now
+		}
+
+		// Intercept response.failed — extract error details from the raw SDK event
+		// since ResponseData doesn't carry the nested error fields.
+		if streamingEvent.Type == "response.failed" {
+			errorCode := string(event.Response.Error.Code)
+			errorMessage := event.Response.Error.Message
+			if errorMessage == "" {
+				errorMessage = "Response generation failed"
+			}
+			app.logger.Error("Response failed event received", "code", errorCode, "message", errorMessage)
+			component := llamastack.ResolveComponent(errorCode)
+			retriable := app.isRetriable(errorCode, 0)
+			fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(errorCode, errorMessage, component, retriable))
+			flusher.Flush()
+			return
 		}
 
 		// Extract usage and process citations from completed event
@@ -611,26 +702,22 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		}
 
 		// Write SSE format
+		writeMu.Lock()
 		_, err = fmt.Fprintf(w, "data: %s\n\n", eventData)
 		if err != nil {
+			writeMu.Unlock()
 			app.logger.Error("Failed to write streaming event", "error", err)
 			return
 		}
 		flusher.Flush()
+		writeMu.Unlock()
 	}
 
-	// Check for stream errors
+	// Check for stream errors (transport-level: connection drops, malformed SSE)
 	if err = stream.Err(); err != nil {
-		app.logger.Error("Streaming error", "error", err)
-		// Send error event
-		errorData := map[string]interface{}{
-			"error": map[string]interface{}{
-				"message": "Streaming error occurred",
-				"code":    "500",
-			},
-		}
-		errorJSON, _ := json.Marshal(errorData)
-		fmt.Fprintf(w, "data: %s\n\n", errorJSON)
+		app.logger.Error("Streaming error", "error", err, "error_type", fmt.Sprintf("%T", err))
+		message, code, component, retriable := app.extractStreamingError(err)
+		fmt.Fprintf(w, "data: %s\n\n", buildStreamingErrorEvent(code, message, component, retriable))
 	}
 
 	// Send metrics event after stream completes
@@ -648,8 +735,10 @@ func (app *App) handleStreamingResponse(w http.ResponseWriter, r *http.Request, 
 		app.logger.Error("failed to marshal metrics event", "error", err)
 		return
 	}
+	writeMu.Lock()
 	fmt.Fprintf(w, "data: %s\n\n", eventData)
 	flusher.Flush()
+	writeMu.Unlock()
 }
 
 // handleNonStreamingResponse handles regular (non-streaming) response creation
@@ -680,7 +769,7 @@ func (app *App) handleNonStreamingResponse(w http.ResponseWriter, r *http.Reques
 			result, modErr := app.checkModeration(ctx, outputMessages, params.GuardrailOpts)
 			if modErr != nil {
 				app.logger.Error("Output moderation check failed", "error", modErr)
-				app.serviceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
+				app.guardrailServiceUnavailableResponse(w, r, errors.New(constants.GuardrailServiceUnavailableMessage))
 				return
 			}
 			if result != nil && result.Flagged {

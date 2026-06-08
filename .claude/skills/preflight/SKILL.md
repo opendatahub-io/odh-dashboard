@@ -29,7 +29,7 @@ Flags:
   --fix                 Fix failing checks after reporting
   --local               Ignore PR even if one exists, run everything locally
   --review X,Y          Run specific reviewers without asking
-                        Options: coderabbit, claude, style, rbac
+                        Options: coderabbit, claude, style, rbac, jira-eval
   --skip-review X,Y     Run all reviewers EXCEPT these (no interactive prompt)
   --ci                  Non-interactive CI mode: skip all prompts, post results
                         as a PR review when done
@@ -42,6 +42,8 @@ Examples:
   /preflight --review coderabbit,style,rbac    Run specific reviewers
   /preflight --skip-review coderabbit         Run all reviewers except CodeRabbit
   /preflight 1234 --review claude --fix       Check PR, run Claude review, fix issues
+  /preflight --review jira-eval,style         Run Jira eval and style reviewers
+  /preflight --skip-review jira-eval          Run all reviewers except Jira eval
 
 How it works:
   1. Gather    Detect PR, sync status, affected packages, Jira key
@@ -55,7 +57,7 @@ How it works:
 Parse these from `$ARGUMENTS` before processing:
 - `--fix` — after reporting, fix failing checks without asking
 - `--local` — ignore PR even if one exists, run everything locally
-- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`)
+- `--review X,Y` — run specific reviewers without asking (options: `coderabbit`, `claude`, `style`, `rbac`, `jira-eval`)
 - `--skip-review X,Y` — run all reviewers EXCEPT the listed ones, without asking. Mutually exclusive with `--review`.
 - `--ci` — non-interactive CI mode. Skips all interactive prompts (no `AskUserQuestion`). Posts the results as a PR review using the template in [references/ci-comment-template.md](references/ci-comment-template.md).
 - `--help` — print usage and stop
@@ -143,6 +145,20 @@ ${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number
 ```
 Report what's there — CodeRabbit threads with severity, human threads, review decision.
 
+### Prior review deduplication
+
+When the PR has prior preflight review threads, classify them to avoid re-posting dismissed suggestions on subsequent runs. Extract the PR author from the metadata gathered in Step 1 and run:
+
+```bash
+${CLAUDE_SKILL_DIR}/scripts/fetch-review-threads.sh "$owner" "$repo" "$pr_number" \
+  | ${CLAUDE_SKILL_DIR}/scripts/classify-prior-threads.sh --pr-author "$pr_author"
+```
+
+Use the classified threads throughout the rest of the run — see [references/reviews.md](references/reviews.md) § Prior Review Deduplication for how to interpret each `disposition` value. Key rules:
+- **Do not re-post** any finding that matches a prior preflight thread (the original comment is still visible).
+- **Exclude dismissed findings** (author replied with disagreement) from the active findings count.
+- **Net-new findings** (no prior match) are posted and counted normally.
+
 If no PR exists, or PR exists but is not synced, or `--local`: no reviews have been done on this code yet. Ask the user what reviewer to run:
 
 If `--review` flag was passed, use those reviewers directly. If `--skip-review` flag was passed, run all reviewers except the listed ones (no interactive prompt). Otherwise use AskUserQuestion with `multiSelect: true` so the user can pick any combination:
@@ -150,6 +166,7 @@ If `--review` flag was passed, use those reviewers directly. If `--skip-review` 
 - "Claude review" — invoke `/review` built-in skill
 - "Style review" — invoke `/style-review` for code style and pattern checks
 - "RBAC review" — invoke `/rbac-review` for Kubernetes RBAC permission enforcement checks
+- "Jira Eval review" — invoke `/jira-eval-review` to evaluate code changes against Jira acceptance criteria (requires Jira MCP; reports ➖ if no Jira key found, MCP unavailable, or no acceptance criteria)
 - "Skip review" — no review
 
 Run whichever the user picks. If a reviewer fails (e.g. CR CLI not installed or errors), report the failure clearly — don't silently fall back to something else.

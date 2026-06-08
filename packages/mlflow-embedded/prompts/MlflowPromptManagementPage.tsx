@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
-import { Bullseye, Content, Flex, FlexItem, Spinner } from '@patternfly/react-core';
+import { Bullseye, Content, Flex, FlexItem, PageSection, Spinner } from '@patternfly/react-core';
 import { useSearchParams } from 'react-router-dom';
 import { loadRemote } from '@module-federation/runtime';
 import { LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
+import useIsMlflowCRAvailable from '@odh-dashboard/internal/concepts/mlflow/hooks/useIsMlflowCRAvailable';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
 import { IconSize } from '@odh-dashboard/internal/types';
 import ProjectSelectorNavigator from '@odh-dashboard/internal/concepts/projects/ProjectSelectorNavigator';
@@ -16,6 +18,7 @@ import {
   WORKSPACE_QUERY_PARAM,
 } from '@odh-dashboard/internal/routes/pipelines/mlflow';
 import MLflowUnavailable from '../shared/MLflowUnavailable';
+import MLflowNotConfigured from '../shared/MLflowNotConfigured';
 import MlflowBreadcrumbs, { type BreadcrumbEntry } from '../shared/MlflowBreadcrumbs';
 import LaunchMlflowButton from '../shared/LaunchMlflowButton';
 import { PROMPT_MANAGEMENT_PAGE_TITLE } from '../shared/const';
@@ -24,6 +27,11 @@ const MlflowPromptManagementPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const workspace = searchParams.get(WORKSPACE_QUERY_PARAM) ?? '';
   const [breadcrumbs, setBreadcrumbs] = React.useState<BreadcrumbEntry[]>([]);
+  const {
+    available: mlflowAvailable,
+    loaded: mlflowLoaded,
+    error: mlflowStatusError,
+  } = useIsMlflowCRAvailable();
 
   const loadWrapper = useMemo(
     () => () =>
@@ -37,8 +45,13 @@ const MlflowPromptManagementPage: React.FC = () => {
 
   return (
     <ApplicationsPage
-      loaded
-      empty={false}
+      loaded={mlflowLoaded}
+      empty={mlflowLoaded && !mlflowAvailable}
+      emptyStatePage={
+        <PageSection hasBodyWrapper={false} isFilled>
+          {mlflowStatusError ? <MLflowUnavailable /> : <MLflowNotConfigured />}
+        </PageSection>
+      }
       noHeader={!isTopLevel}
       title={
         isTopLevel ? (

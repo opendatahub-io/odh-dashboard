@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/opendatahub-io/mlflow-go/mlflow"
+	"github.com/opendatahub-io/mlflow-go/mlflow/promptregistry"
 	"github.com/opendatahub-io/mlflow-go/mlflow/tracking"
 )
 
@@ -72,6 +73,77 @@ func SeedExperimentsAndRuns(trackingURI string, logger *slog.Logger) error {
 	logger.Info("Seeded MLflow with sample experiments and runs",
 		slog.Int("experiments", len(experiments)),
 	)
+
+	if err := seedPrompts(ctx, client, logger); err != nil {
+		logger.Warn("Failed to seed prompts (non-fatal)", slog.Any("error", err))
+	}
+
+	return nil
+}
+
+func seedPrompts(ctx context.Context, client *mlflow.Client, logger *slog.Logger) error {
+	reg := client.PromptRegistry()
+
+	prompts := []struct {
+		name     string
+		messages []promptregistry.ChatMessage
+		commit   string
+		tags     map[string]string
+	}{
+		{
+			name: "vet-appointment-dora",
+			messages: []promptregistry.ChatMessage{
+				{Role: "system", Content: "You are a veterinary clinic assistant."},
+				{Role: "user", Content: "Schedule an appointment for Dora on {{date}}."},
+			},
+			commit: "initial version",
+			tags:   map[string]string{"pet": "dora", "category": "health"},
+		},
+		{
+			name: "pet-health-bella",
+			messages: []promptregistry.ChatMessage{
+				{Role: "system", Content: "You are a pet health advisor."},
+				{Role: "user", Content: "How is Bella's health? Weight: {{weight}}"},
+			},
+			commit: "initial version",
+			tags:   map[string]string{"pet": "bella"},
+		},
+		{
+			name: "medication-reminder-ellie",
+			messages: []promptregistry.ChatMessage{
+				{Role: "system", Content: "You are a pet medication reminder assistant."},
+				{Role: "user", Content: "Remind me about Ellie's medication: {{medication}}"},
+			},
+			commit: "initial version",
+			tags:   map[string]string{"pet": "ellie"},
+		},
+		{
+			name: "pet-adoption-letter",
+			messages: []promptregistry.ChatMessage{
+				{Role: "system", Content: "You write heartfelt pet adoption letters."},
+				{Role: "user", Content: "Write an adoption letter for {{pet_name}}."},
+			},
+			commit: "initial version",
+			tags:   map[string]string{"category": "adoption"},
+		},
+	}
+
+	for _, p := range prompts {
+		if _, err := reg.LoadPrompt(ctx, p.name); err == nil {
+			logger.Debug("Prompt already exists, skipping seed", slog.String("name", p.name))
+			continue
+		}
+		opts := []promptregistry.RegisterOption{
+			promptregistry.WithCommitMessage(p.commit),
+			promptregistry.WithTags(p.tags),
+		}
+		if _, err := reg.RegisterChatPrompt(ctx, p.name, p.messages, opts...); err != nil {
+			return fmt.Errorf("failed to seed prompt %s: %w", p.name, err)
+		}
+		logger.Debug("Seeded prompt", slog.String("name", p.name))
+	}
+
+	logger.Info("Seeded MLflow with sample prompts", slog.Int("prompts", len(prompts)))
 	return nil
 }
 

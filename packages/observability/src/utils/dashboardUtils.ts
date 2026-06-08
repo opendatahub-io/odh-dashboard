@@ -55,6 +55,7 @@ export const filterDashboardsByThanosNonTenancyAccess = (
  * Filters and sorts dashboards according to user admin status.
  * - Only includes dashboards with names starting with PERSES_DASHBOARD_PREFIX
  * - Non-admin users are excluded from dashboards ending with PERSES_DASHBOARD_ADMIN_SUFFIX
+ * - Admin users see the `-admin` variant when both `X` and `X-admin` exist
  * - Results are sorted lexicographically by metadata.name
  * @param dashboards - List of dashboard resources
  * @param isAdminUser - Boolean flag indicating if the user is an admin
@@ -64,15 +65,24 @@ export function filterDashboards(
   dashboards: DashboardResource[],
   isAdminUser: boolean,
 ): DashboardResource[] {
-  return dashboards
+  const prefixed = dashboards.filter(({ metadata: { name } }) =>
+    name.startsWith(PERSES_DASHBOARD_PREFIX),
+  );
+
+  if (!isAdminUser) {
+    return prefixed
+      .filter(({ metadata: { name } }) => !name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX))
+      .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
+  }
+
+  const names = new Set(prefixed.map(({ metadata: { name } }) => name));
+
+  return prefixed
     .filter(({ metadata: { name } }) => {
-      if (!name.startsWith(PERSES_DASHBOARD_PREFIX)) {
-        return false;
+      if (name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX)) {
+        return true;
       }
-      if (!isAdminUser && name.endsWith(PERSES_DASHBOARD_ADMIN_SUFFIX)) {
-        return false;
-      }
-      return true;
+      return !names.has(`${name}${PERSES_DASHBOARD_ADMIN_SUFFIX}`);
     })
     .toSorted(({ metadata: { name: a } }, { metadata: { name: b } }) => a.localeCompare(b));
 }

@@ -31,7 +31,7 @@ describe('useIsMlflowCRAvailable', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockAreaAvailable(true);
-    mockUseMLflowStatus.mockReturnValue({ configured: true, loaded: true });
+    mockUseMLflowStatus.mockReturnValue({ configured: true, loaded: true, error: false });
   });
 
   it('should use SupportedArea.MLFLOW', () => {
@@ -45,7 +45,7 @@ describe('useIsMlflowCRAvailable', () => {
 
     jest.clearAllMocks();
     mockAreaAvailable(false);
-    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true });
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true, error: false });
 
     testHook(useIsMlflowCRAvailable)();
     expect(mockUseMLflowStatus).toHaveBeenCalledWith(false);
@@ -53,36 +53,43 @@ describe('useIsMlflowCRAvailable', () => {
 
   it('should return available=false when area is not available', () => {
     mockAreaAvailable(false);
-    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true });
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true, error: false });
 
     const { result } = testHook(useIsMlflowCRAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
   });
 
   it('should return available=true when BFF reports configured', () => {
     const { result } = testHook(useIsMlflowCRAvailable)();
-    expect(result.current).toStrictEqual({ available: true, loaded: true });
+    expect(result.current).toStrictEqual({ available: true, loaded: true, error: false });
   });
 
   it('should return available=false and loaded=false when BFF is not loaded yet', () => {
-    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: false });
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: false, error: false });
 
     const { result } = testHook(useIsMlflowCRAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: false });
+    expect(result.current).toStrictEqual({ available: false, loaded: false, error: false });
   });
 
   it('should return available=false when MLflow is not configured', () => {
-    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true });
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true, error: false });
 
     const { result } = testHook(useIsMlflowCRAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
+  });
+
+  it('should return error=true when BFF status check failed', () => {
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: true, error: true });
+
+    const { result } = testHook(useIsMlflowCRAvailable)();
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: true });
   });
 
   it('should return loaded=true when area is disabled (no BFF poll needed)', () => {
     mockAreaAvailable(false);
-    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: false });
+    mockUseMLflowStatus.mockReturnValue({ configured: false, loaded: false, error: false });
 
     const { result } = testHook(useIsMlflowCRAvailable)();
-    expect(result.current).toStrictEqual({ available: false, loaded: true });
+    expect(result.current).toStrictEqual({ available: false, loaded: true, error: false });
   });
 });

@@ -4,7 +4,7 @@ import { TimeRangeControls, useTimeZoneParams } from '@perses-dev/plugin-system'
 
 /**
  * Time range controls for the header
- * Must be inside PersesWrapper to access TimeRangeProvider context
+ * Must be inside PersesProvider to access TimeRangeProvider context
  */
 const HeaderTimeRangeControls: React.FC = () => {
   const { timeZone, setTimeZone } = useTimeZoneParams('local');

@@ -27,7 +27,7 @@ import {
   FlexItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
 import {
   MlflowExperimentSelector,
@@ -53,7 +53,6 @@ import './StartEvaluationRunPage.css';
 
 const StartEvaluationRunPage: React.FC = () => {
   const { namespace } = useParams<{ namespace: string }>();
-  const navigate = useNavigate();
 
   const { benchmark, collection, isCollectionFlow, dataLoaded, loadError } =
     useEvaluationSelection(namespace);
@@ -95,7 +94,10 @@ const StartEvaluationRunPage: React.FC = () => {
           <EmptyStateBody>{loadError.message}</EmptyStateBody>
           <EmptyStateFooter>
             <EmptyStateActions>
-              <Button variant="primary" onClick={() => navigate(evaluationsBaseRoute(namespace))}>
+              <Button
+                variant="primary"
+                component={(props) => <Link {...props} to={evaluationsBaseRoute(namespace)} />}
+              >
                 Return to evaluations
               </Button>
             </EmptyStateActions>
@@ -275,12 +277,12 @@ const StartEvaluationRunPage: React.FC = () => {
                     </StackItem>
                     <StackItem>
                       <FormGroup
-                        label="API key"
+                        label="API key secret name"
                         fieldId="api-key"
                         labelHelp={
                           <LabelHelpPopover
-                            ariaLabel="More info for API key"
-                            content="If access to the model or agent is restricted or requires authentication, provide the API key for its inference endpoint."
+                            ariaLabel="More info for API key secret name"
+                            content="The name of the Kubernetes Secret that contains your API key. The secret is stored securely in your cluster and referenced by name — the actual key value is never exposed in the evaluation configuration."
                           />
                         }
                       >
