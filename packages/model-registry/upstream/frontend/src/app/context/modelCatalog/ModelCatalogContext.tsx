@@ -2,6 +2,12 @@ import { useQueryParamNamespaces } from 'mod-arch-core';
 import useGenericObjectState from 'mod-arch-core/dist/utilities/useGenericObjectState';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
+import {
+  createCatalogContext,
+  CatalogContextValue,
+  CatalogProviderState,
+  CatalogCommonData,
+} from '~/app/context/catalogContext/createCatalogContext';
 import { useCatalogFilterOptionList } from '~/app/hooks/modelCatalog/useCatalogFilterOptionList';
 import { useCatalogLabels } from '~/app/hooks/modelCatalog/useCatalogLabels';
 import { useCatalogSources } from '~/app/hooks/modelCatalog/useCatalogSources';
@@ -10,9 +16,7 @@ import useModelCatalogAPIState, {
 } from '~/app/hooks/modelCatalog/useModelCatalogAPIState';
 import {
   CatalogFilterOptionsList,
-  CatalogLabelList,
   CatalogSource,
-  CatalogSourceList,
   CategoryName,
   ModelCatalogFilterStates,
   NamedQuery,
@@ -34,34 +38,39 @@ import {
 import { getEffectiveSortBy } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 
-export type ModelCatalogContextType = {
-  catalogSourcesLoaded: boolean;
-  catalogSourcesLoadError?: Error;
-  catalogSources: CatalogSourceList | null;
-  catalogLabels: CatalogLabelList | null;
-  catalogLabelsLoaded: boolean;
-  catalogLabelsLoadError?: Error;
+const MODEL_CATALOG_HOST_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
+
+const INITIAL_FILTERS: ModelCatalogFilterStates = {
+  [ModelCatalogStringFilterKey.TASK]: [],
+  [ModelCatalogStringFilterKey.PROVIDER]: [],
+  [ModelCatalogStringFilterKey.LICENSE]: [],
+  [ModelCatalogStringFilterKey.LANGUAGE]: [],
+  [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
+  [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
+  [ModelCatalogStringFilterKey.USE_CASE]: [],
+  [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
+  [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
+  [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
+  [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
+};
+
+type ModelCatalogExtension = {
   selectedSource: CatalogSource | undefined;
   updateSelectedSource: (source: CatalogSource | undefined) => void;
-  selectedSourceLabel: string | undefined;
-  updateSelectedSourceLabel: (sourceLabel: string | undefined) => void;
   apiState: ModelCatalogAPIState;
   refreshAPIState: () => void;
-  filterData: ModelCatalogFilterStates;
-  setFilterData: <K extends keyof ModelCatalogFilterStates>(
-    key: K,
-    value: ModelCatalogFilterStates[K],
+  filters: ModelCatalogFilterStates;
+  setFilters: (
+    updater:
+      | ModelCatalogFilterStates
+      | ((prev: ModelCatalogFilterStates) => ModelCatalogFilterStates),
   ) => void;
-  filterOptions: CatalogFilterOptionsList | null;
-  filterOptionsLoaded: boolean;
-  filterOptionsLoadError?: Error;
   performanceViewEnabled: boolean;
   setPerformanceViewEnabled: (enabled: boolean) => void;
   performanceFiltersChangedOnDetailsPage: boolean;
   setPerformanceFiltersChangedOnDetailsPage: (changed: boolean) => void;
   lastViewedModelName: string | null;
   setLastViewedModelName: (modelName: string | null) => void;
-  clearAllFilters: () => void;
   resetPerformanceFiltersToDefaults: () => void;
   resetSinglePerformanceFilterToDefault: (filterKey: keyof ModelCatalogFilterStates) => void;
   getPerformanceFilterDefaultValue: (
@@ -71,84 +80,23 @@ export type ModelCatalogContextType = {
   setSortBy: (sortBy: ModelCatalogSortOption | null) => void;
 };
 
-type ModelCatalogContextProviderProps = {
-  children: React.ReactNode;
-};
+export type ModelCatalogContextType = CatalogContextValue<CatalogFilterOptionsList> &
+  ModelCatalogExtension;
 
-export const ModelCatalogContext = React.createContext<ModelCatalogContextType>({
-  catalogSourcesLoaded: false,
-  catalogSourcesLoadError: undefined,
-  catalogSources: null,
-  catalogLabels: null,
-  catalogLabelsLoaded: false,
-  catalogLabelsLoadError: undefined,
-  selectedSource: undefined,
-  filterData: {
-    [ModelCatalogStringFilterKey.TASK]: [],
-    [ModelCatalogStringFilterKey.PROVIDER]: [],
-    [ModelCatalogStringFilterKey.LICENSE]: [],
-    [ModelCatalogStringFilterKey.LANGUAGE]: [],
-    [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
-    [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
-    [ModelCatalogStringFilterKey.USE_CASE]: [],
-    [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
-    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
-    [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
-    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
-  },
-  updateSelectedSource: () => undefined,
-  selectedSourceLabel: undefined,
-  updateSelectedSourceLabel: () => undefined,
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-  apiState: { apiAvailable: false, api: null as unknown as ModelCatalogAPIState['api'] },
-  refreshAPIState: () => undefined,
-  setFilterData: () => undefined,
-  filterOptions: null,
-  filterOptionsLoaded: false,
-  filterOptionsLoadError: undefined,
-  performanceViewEnabled: false,
-  setPerformanceViewEnabled: () => undefined,
-  performanceFiltersChangedOnDetailsPage: false,
-  setPerformanceFiltersChangedOnDetailsPage: () => undefined,
-  lastViewedModelName: null,
-  setLastViewedModelName: () => undefined,
-  clearAllFilters: () => undefined,
-  resetPerformanceFiltersToDefaults: () => undefined,
-  resetSinglePerformanceFilterToDefault: () => undefined,
-  getPerformanceFilterDefaultValue: () => undefined,
-  sortBy: null,
-  setSortBy: () => undefined,
-});
-
-export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderProps> = ({
-  children,
-}) => {
-  const hostPath = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function useModelCatalogSetup(providerState: CatalogProviderState) {
   const queryParams = useQueryParamNamespaces();
-  const [apiState, refreshAPIState] = useModelCatalogAPIState(hostPath, queryParams);
+  const [apiState, refreshAPIState] = useModelCatalogAPIState(MODEL_CATALOG_HOST_PATH, queryParams);
+
   const [catalogSources, catalogSourcesLoaded, catalogSourcesLoadError] =
     useCatalogSources(apiState);
   const [catalogLabels, catalogLabelsLoaded, catalogLabelsLoadError] = useCatalogLabels(apiState);
-  const [selectedSource, setSelectedSource] =
-    React.useState<ModelCatalogContextType['selectedSource']>(undefined);
-  const [filterData, baseSetFilterData] = useGenericObjectState<ModelCatalogFilterStates>({
-    [ModelCatalogStringFilterKey.TASK]: [],
-    [ModelCatalogStringFilterKey.PROVIDER]: [],
-    [ModelCatalogStringFilterKey.LICENSE]: [],
-    [ModelCatalogStringFilterKey.LANGUAGE]: [],
-    [ModelCatalogStringFilterKey.HARDWARE_TYPE]: [],
-    [ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION]: [],
-    [ModelCatalogStringFilterKey.USE_CASE]: [],
-    [ModelCatalogNumberFilterKey.MAX_RPS]: undefined,
-    [ModelCatalogNumberFilterKey.COLD_START_LATENCY]: undefined,
-    [ModelCatalogStringFilterKey.TENSOR_TYPE]: [],
-    [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
-  });
   const [filterOptions, filterOptionsLoaded, filterOptionsLoadError] =
     useCatalogFilterOptionList(apiState);
-  const [selectedSourceLabel, setSelectedSourceLabel] = React.useState<
-    ModelCatalogContextType['selectedSourceLabel']
-  >(CategoryName.allModels);
+
+  const [selectedSource, setSelectedSource] = React.useState<CatalogSource | undefined>(undefined);
+  const [filterState, baseSetFilterData, , replaceFilterState] =
+    useGenericObjectState<ModelCatalogFilterStates>(INITIAL_FILTERS);
   const [basePerformanceViewEnabled, setBasePerformanceViewEnabled] = React.useState(false);
   const [performanceFiltersChangedOnDetailsPage, setPerformanceFiltersChangedOnDetailsPage] =
     React.useState(false);
@@ -287,7 +235,6 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
   const getDefaultValueForPerformanceFilter = React.useCallback(
     (filterKey: keyof ModelCatalogFilterStates): string | number | string[] | undefined => {
       const { value } = getSingleFilterDefault(filterOptions, filterKey);
-      // Return value - the type is already compatible
       if (Array.isArray(value) || typeof value === 'string' || typeof value === 'number') {
         return value;
       }
@@ -296,60 +243,79 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
     [filterOptions],
   );
 
-  const setFilterData = React.useCallback(
-    <K extends keyof ModelCatalogFilterStates>(key: K, value: ModelCatalogFilterStates[K]) => {
-      baseSetFilterData(key, value);
+  const setFilters = React.useCallback(
+    (
+      updater:
+        | ModelCatalogFilterStates
+        | ((prev: ModelCatalogFilterStates) => ModelCatalogFilterStates),
+    ) => {
+      const newValue = typeof updater === 'function' ? updater(filterState) : updater;
+      replaceFilterState(newValue);
+
       if (isOnDetailsPage) {
         setPerformanceFiltersChangedOnDetailsPage(true);
       } else {
         setPerformanceFiltersChangedOnDetailsPage(false);
       }
     },
-    [baseSetFilterData, isOnDetailsPage],
+    [replaceFilterState, filterState, isOnDetailsPage],
   );
 
-  // Apply default performance filters on initial load if none are set
   React.useEffect(() => {
     if (
       filterOptionsLoaded &&
       filterOptions?.namedQueries?.[DEFAULT_PERFORMANCE_FILTERS_QUERY_NAME] &&
-      filterData[ModelCatalogStringFilterKey.USE_CASE].length === 0
+      filterState[ModelCatalogStringFilterKey.USE_CASE].length === 0
     ) {
       resetPerformanceFiltersToDefaults();
     }
   }, [
     filterOptionsLoaded,
     filterOptions?.namedQueries,
-    filterData,
+    filterState,
     resetPerformanceFiltersToDefaults,
   ]);
 
-  const contextValue = React.useMemo(
+  const catalogData = React.useMemo<CatalogCommonData<CatalogFilterOptionsList>>(
     () => ({
+      catalogSources,
       catalogSourcesLoaded,
       catalogSourcesLoadError,
-      catalogSources,
       catalogLabels,
       catalogLabelsLoaded,
       catalogLabelsLoadError,
-      selectedSource: selectedSource ?? undefined,
-      updateSelectedSource: setSelectedSource,
-      selectedSourceLabel: selectedSourceLabel ?? undefined,
-      updateSelectedSourceLabel: setSelectedSourceLabel,
-      apiState,
-      refreshAPIState,
-      filterData,
-      setFilterData,
       filterOptions,
       filterOptionsLoaded,
       filterOptionsLoadError,
+    }),
+    [
+      catalogSources,
+      catalogSourcesLoaded,
+      catalogSourcesLoadError,
+      catalogLabels,
+      catalogLabelsLoaded,
+      catalogLabelsLoadError,
+      filterOptions,
+      filterOptionsLoaded,
+      filterOptionsLoadError,
+    ],
+  );
+
+  const extension = React.useMemo(
+    () => ({
+      selectedSource: selectedSource ?? undefined,
+      updateSelectedSource: setSelectedSource,
+      apiState,
+      refreshAPIState,
+      filters: filterState,
+      setFilters,
+      clearAllFilters,
       performanceViewEnabled: basePerformanceViewEnabled,
       setPerformanceViewEnabled,
       performanceFiltersChangedOnDetailsPage,
       setPerformanceFiltersChangedOnDetailsPage,
       lastViewedModelName,
       setLastViewedModelName,
-      clearAllFilters,
       resetPerformanceFiltersToDefaults,
       resetSinglePerformanceFilterToDefault,
       getPerformanceFilterDefaultValue: getDefaultValueForPerformanceFilter,
@@ -357,37 +323,34 @@ export const ModelCatalogContextProvider: React.FC<ModelCatalogContextProviderPr
       setSortBy,
     }),
     [
-      catalogSourcesLoaded,
-      catalogSourcesLoadError,
-      catalogSources,
-      catalogLabels,
-      catalogLabelsLoaded,
-      catalogLabelsLoadError,
       selectedSource,
       apiState,
       refreshAPIState,
-      filterData,
-      setFilterData,
-      filterOptions,
-      filterOptionsLoaded,
-      filterOptionsLoadError,
-      selectedSourceLabel,
+      filterState,
+      setFilters,
+      clearAllFilters,
       basePerformanceViewEnabled,
       setPerformanceViewEnabled,
       performanceFiltersChangedOnDetailsPage,
-      setPerformanceFiltersChangedOnDetailsPage,
       lastViewedModelName,
-      setLastViewedModelName,
-      clearAllFilters,
       resetPerformanceFiltersToDefaults,
       resetSinglePerformanceFilterToDefault,
       getDefaultValueForPerformanceFilter,
       sortBy,
-      setSortBy,
     ],
   );
 
-  return (
-    <ModelCatalogContext.Provider value={contextValue}>{children}</ModelCatalogContext.Provider>
-  );
-};
+  return { catalogData, extension };
+}
+
+const {
+  Context: ModelCatalogContext,
+  Provider: ModelCatalogContextProvider,
+  useContext: useModelCatalogContext,
+} = createCatalogContext<CatalogFilterOptionsList, ModelCatalogExtension>({
+  displayName: 'ModelCatalogContextProvider',
+  initialSelectedSourceLabel: CategoryName.allModels,
+  useSetup: useModelCatalogSetup,
+});
+
+export { ModelCatalogContext, ModelCatalogContextProvider, useModelCatalogContext };
