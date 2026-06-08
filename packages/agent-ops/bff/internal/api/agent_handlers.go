@@ -33,5 +33,9 @@ func (app *App) handleAgentRepositoryError(w http.ResponseWriter, r *http.Reques
 		app.notFoundResponse(w, r)
 		return
 	}
+	if errors.Is(err, bfferrors.ErrUpstreamUnavailable) {
+		app.serviceUnavailableResponse(w, r, err)
+		return
+	}
 	app.serverErrorResponse(w, r, err)
 }

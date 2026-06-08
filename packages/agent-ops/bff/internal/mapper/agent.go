@@ -106,6 +106,7 @@ func AgentCardToModel(namespace string, card *agents.AgentCard) *models.AgentCar
 		Namespace:   namespace,
 		Description: description,
 		Version:     card.Version,
+		URL:         card.URL,
 		Skills:      skills,
 		Capabilities: models.AgentCapabilities{
 			Streaming: card.Streaming,
