@@ -1,6 +1,7 @@
-import { SupportedArea } from '@odh-dashboard/internal/concepts/areas/types';
 import { agentDeploymentsPath, globAgentOpsAll } from '~/app/utilities/routes';
 import extensions from '~/odh/extensions';
+
+const AGENT_OPS = 'agent-ops';
 
 describe('agent-ops extensions', () => {
   it('should register area, navigation, and route extensions', () => {
@@ -17,7 +18,7 @@ describe('agent-ops extensions', () => {
     expect(area).toMatchObject({
       type: 'app.area',
       properties: {
-        id: SupportedArea.AGENT_OPS,
+        id: AGENT_OPS,
         featureFlags: ['agentOps'],
       },
     });
@@ -28,7 +29,7 @@ describe('agent-ops extensions', () => {
     expect(nav).toMatchObject({
       type: 'app.navigation/href',
       flags: {
-        required: [SupportedArea.AGENT_OPS],
+        required: [AGENT_OPS],
       },
       properties: {
         id: 'agent-ops-deployments',
@@ -46,7 +47,7 @@ describe('agent-ops extensions', () => {
     expect(route).toMatchObject({
       type: 'app.route',
       flags: {
-        required: [SupportedArea.AGENT_OPS],
+        required: [AGENT_OPS],
       },
       properties: {
         path: globAgentOpsAll,
