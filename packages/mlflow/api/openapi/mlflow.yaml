@@ -108,6 +108,248 @@ paths:
       operationId: getStatus
       summary: Get MLflow status
       description: Returns whether MLflow is configured and available.
+  /api/v1/prompts:
+    summary: List or register MLflow prompts.
+    description: >-
+      List all registered prompts from the MLflow Prompt Registry, or register a new prompt.
+    get:
+      tags:
+        - PromptOperation
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+        - name: filter_name
+          in: query
+          required: false
+          schema:
+            type: string
+            example: pet
+          description: Filter prompts by name prefix.
+      responses:
+        "200":
+          $ref: "#/components/responses/PromptsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: listPrompts
+      summary: List All Prompts
+      description: >-
+        Returns all prompts from the user's workspace and any configured global
+        namespaces. Each prompt is annotated with a scope object indicating
+        whether it is project-scoped or global. Pagination is not yet supported
+        on this endpoint, all prompts are returned in a single response.
+    post:
+      tags:
+        - PromptOperation
+      parameters:
+        - $ref: "#/components/parameters/workspace"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MLflowRegisterPromptRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/PromptVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: registerPrompt
+      summary: Register or Update Prompt
+      description: >-
+        Creates a new prompt or adds a new version to an existing prompt.
+        Either messages (for chat prompts) or template (for text prompts) must be provided, but not both.
+
+  /api/v1/prompts/{name}:
+    summary: Load or delete a specific prompt.
+    description: >-
+      Load the full content of a specific prompt version or delete an entire prompt.
+    get:
+      tags:
+        - PromptOperation
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: vet-appointment-dora
+        - $ref: "#/components/parameters/workspace"
+        - name: version
+          in: query
+          description: Specific version number to load (defaults to latest)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          $ref: "#/components/responses/PromptVersionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: loadPrompt
+      summary: Load Prompt
+      description: Loads a specific prompt version with full template or message content.
+    delete:
+      tags:
+        - PromptOperation
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name to delete
+          required: true
+          schema:
+            type: string
+            example: my-prompt
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deletePrompt
+      summary: Delete Prompt
+      description: Deletes an entire prompt and all its versions.
+
+  /api/v1/prompts/{name}/versions:
+    summary: List versions of a prompt.
+    description: >-
+      Lists all versions of a specific prompt with metadata.
+    get:
+      tags:
+        - PromptOperation
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: vet-appointment-dora
+        - $ref: "#/components/parameters/workspace"
+        - name: page_token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token for fetching the next page of results.
+        - name: max_results
+          in: query
+          required: false
+          schema:
+            type: integer
+            example: 10
+          description: Maximum number of versions to return per page.
+      responses:
+        "200":
+          $ref: "#/components/responses/PromptVersionsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: listPromptVersions
+      summary: List Prompt Versions
+      description: Gets a list of all versions for a specific prompt.
+
+  /api/v1/prompts/{name}/versions/{version}:
+    summary: Delete a specific version of a prompt.
+    delete:
+      tags:
+        - PromptOperation
+      parameters:
+        - name: name
+          in: path
+          description: Prompt name
+          required: true
+          schema:
+            type: string
+            example: my-prompt
+        - name: version
+          in: path
+          description: Version number to delete
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+        - $ref: "#/components/parameters/workspace"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+        "502":
+          $ref: "#/components/responses/BadGateway"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+      operationId: deletePromptVersion
+      summary: Delete Prompt Version
+      description: Deletes a specific version of a prompt.
+
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
     description: >-
@@ -269,6 +511,214 @@ components:
         nextPageToken:
           type: string
           description: Token for retrieving the next page of results.
+    PromptScopeType:
+      description: Classifies a prompt's scope within the platform.
+      type: string
+      enum:
+        - project
+        - global
+      example: project
+    PromptScope:
+      description: Identifies where a prompt lives and how it is scoped.
+      type: object
+      required:
+        - type
+        - namespace
+      properties:
+        type:
+          $ref: "#/components/schemas/PromptScopeType"
+        namespace:
+          type: string
+          description: The Kubernetes namespace where the prompt resides.
+          example: my-project
+    MLflowPrompt:
+      description: A prompt from the MLflow Prompt Registry.
+      type: object
+      required:
+        - name
+        - latest_version
+        - creation_timestamp
+        - scope
+      properties:
+        name:
+          type: string
+          description: Unique name identifying the prompt.
+          example: vet-appointment-dora
+        description:
+          type: string
+          description: Human-readable description of the prompt.
+          example: Schedule a veterinary appointment for Dora
+        latest_version:
+          type: integer
+          description: Latest version number of the prompt.
+          example: 2
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: User-defined metadata tags.
+          example:
+            pet: dora
+            category: health
+        creation_timestamp:
+          type: string
+          format: date-time
+          description: When the prompt was first created.
+        scope:
+          $ref: "#/components/schemas/PromptScope"
+    MLflowPromptsResponse:
+      description: List of MLflow prompts from project and global namespaces.
+      type: object
+      required:
+        - prompts
+      properties:
+        prompts:
+          type: array
+          items:
+            $ref: "#/components/schemas/MLflowPrompt"
+        failed_namespaces:
+          type: array
+          items:
+            type: string
+          description: Global namespace names that could not be queried (e.g., RBAC denied, timeout). Empty when all sources succeeded.
+    MLflowMessage:
+      description: A single message in a chat prompt.
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          description: "Message role (system, user, assistant)."
+          example: user
+        content:
+          type: string
+          description: "Message content, may contain {{variable}} placeholders."
+          example: "Hello {{name}}"
+    MLflowRegisterPromptRequest:
+      description: Request body for creating or updating a prompt.
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: "Prompt name (creates new or adds version to existing)."
+          example: my-prompt
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MLflowMessage"
+          description: "Chat messages (for chat prompts, mutually exclusive with template)."
+        template:
+          type: string
+          description: "Text template (for text prompts, mutually exclusive with messages)."
+          example: "Hello {{name}}, welcome to {{place}}!"
+        commit_message:
+          type: string
+          description: Version commit message.
+          example: initial version
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags.
+        create_only:
+          type: boolean
+          description: "If true, fails with 409 if a prompt with this name already exists."
+    MLflowPromptVersion:
+      description: A full prompt version with content.
+      type: object
+      required:
+        - name
+        - version
+        - created_at
+        - updated_at
+      properties:
+        name:
+          type: string
+          description: Prompt name.
+          example: vet-appointment-dora
+        version:
+          type: integer
+          description: Version number.
+          example: 2
+        template:
+          type: string
+          description: Text template content (for text prompts).
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/MLflowMessage"
+          description: Chat messages (for chat prompts).
+        commit_message:
+          type: string
+          description: Version commit message.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: Aliases pointing to this version.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags.
+        created_at:
+          type: string
+          format: date-time
+          description: When this version was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: When this version was last updated.
+    MLflowPromptVersionMeta:
+      description: Version metadata without full content.
+      type: object
+      required:
+        - version
+        - created_at
+        - updated_at
+      properties:
+        version:
+          type: integer
+          description: Version number.
+          example: 1
+        commit_message:
+          type: string
+          description: Version commit message.
+        aliases:
+          type: array
+          items:
+            type: string
+          description: Aliases pointing to this version.
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+          description: Metadata tags.
+        created_at:
+          type: string
+          format: date-time
+          description: When this version was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: When this version was last updated.
+    MLflowPromptVersionsResponse:
+      description: Paginated list of prompt versions.
+      type: object
+      required:
+        - versions
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/MLflowPromptVersionMeta"
+        next_page_token:
+          type: string
+          description: Token for fetching the next page of results.
     Error:
       type: object
       required:
@@ -382,6 +832,44 @@ components:
             required:
               - data
       description: A response containing a paginated list of MLflow experiments.
+    PromptsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/MLflowPromptsResponse"
+            required:
+              - data
+      description: A response containing the list of prompts.
+    PromptVersionResponse:
+      headers:
+        Location:
+          schema:
+            type: string
+          description: URI of the created prompt version (present on 201 responses).
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/MLflowPromptVersion"
+            required:
+              - data
+      description: A response containing a single prompt version.
+    PromptVersionsResponse:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: "#/components/schemas/MLflowPromptVersionsResponse"
+            required:
+              - data
+      description: A response containing a paginated list of prompt versions.
     Forbidden:
       content:
         application/json:
@@ -412,6 +900,8 @@ components:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
       description: Service unavailable - MLflow server is not configured or reachable
+    NoContent:
+      description: Operation completed successfully with no response body.
 
   parameters:
     id:
@@ -520,3 +1010,5 @@ tags:
     description: Operation performed in Kubernetes
   - name: MLflowOperation
     description: Operations performed against the MLflow tracking server
+  - name: PromptOperation
+    description: Operations on the MLflow Prompt Registry

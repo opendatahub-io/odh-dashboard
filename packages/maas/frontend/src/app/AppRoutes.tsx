@@ -5,13 +5,14 @@ import AllSubscriptionsPage from '~/app/pages/subscriptions/AllSubscriptionsPage
 import ViewSubscriptionPage from '~/app/pages/subscriptions/ViewSubscriptionPage';
 import EditSubscriptionPage from '~/app/pages/subscriptions/EditSubscriptionPage';
 import CreateSubscriptionPage from '~/app/pages/subscriptions/CreateSubscriptionPage';
-import AllApiKeysPage from '~/app/pages/api-keys/AllApiKeysPage';
-import ApiKeysAndSubscriptionsPage from '~/app/pages/api-keys/ApiKeysAndSubscriptionsPage';
+import AllApiKeysPage from '~/app/pages/keys-and-subs/apiKeys/AllApiKeysPage';
+import ApiKeysAndSubscriptionsPage from '~/app/pages/keys-and-subs/ApiKeysAndSubscriptionsPage';
 import { URL_PREFIX } from '~/app/utilities/const';
 import AllAuthPoliciesPage from '~/app/pages/auth-policies/AllAuthPoliciesPage';
 import CreateAuthPolicyPage from '~/app/pages/auth-policies/CreateAuthPolicyPage';
 import EditAuthPolicyPage from '~/app/pages/auth-policies/EditAuthPolicyPage';
 import ViewAuthPoliciesPage from '~/app/pages/auth-policies/ViewAuthPoliciesPage';
+import ViewMySubscriptionPage from './pages/keys-and-subs/mySubscriptions/ViewMySubscriptionPage';
 
 const AppRoutes: React.FC = () => {
   const { pathname } = useLocation();
@@ -46,6 +47,7 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<ApiKeysAndSubscriptionsPage />} />
         <Route path="/:tab" element={<ApiKeysAndSubscriptionsPage />} />
+        <Route path="/subscriptions/:subscriptionName" element={<ViewMySubscriptionPage />} />
         <Route path="*" element={<Navigate to={`${URL_PREFIX}/keys-and-subs`} replace />} />
       </Routes>
     );
