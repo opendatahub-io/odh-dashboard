@@ -4677,17 +4677,25 @@ components:
           description: Maximum number of results per query
 
     VectorStoreRef:
-      type: object
       description: >-
         Reference to a vector store. Exactly one of storeRef or id must be set.
         storeRef points to a ConfigMap key, id is a direct vector store ID.
-      properties:
-        storeRef:
-          $ref: '#/components/schemas/ConfigMapRef'
-        id:
-          type: string
-          example: 'vs_001'
-          description: Direct vector store ID
+      oneOf:
+        - type: object
+          required:
+            - storeRef
+          properties:
+            storeRef:
+              $ref: '#/components/schemas/ConfigMapRef'
+          description: Vector store reference via ConfigMap
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              example: 'vs_001'
+              description: Direct vector store ID
 
     ConfigMapRef:
       type: object
