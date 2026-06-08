@@ -1,5 +1,5 @@
 import React from 'react';
-import { EmptyStateBody, EmptyStateVariant, EmptyState } from '@patternfly/react-core';
+import { EmptyStateBody, EmptyStateVariant, EmptyState, Flex } from '@patternfly/react-core';
 import { SearchIcon } from '@patternfly/react-icons';
 // eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import ApplicationsPage from '@odh-dashboard/internal/pages/ApplicationsPage';
@@ -13,6 +13,7 @@ import FeatureStoreObjectIcon from '../../components/FeatureStoreObjectIcon';
 import FeatureStoreAccessDenied from '../../components/FeatureStoreAccessDenied';
 import { getFeatureStoreObjectDescription } from '../../utils';
 import { FeatureStoreObject } from '../../const';
+import ConnectedWorkbenchesLink from '../../components/ConnectedWorkbenchesLink';
 
 const title = 'Datasets';
 
@@ -62,11 +63,14 @@ const FeatureStoreDataSets = (): React.ReactElement => {
       loadError={dataSetsLoadError}
       loaded={dataSetsLoaded}
       headerContent={
-        <FeatureStoreProjectSelectorNavigator
-          getRedirectPath={(featureStoreObject, featureStoreProject) =>
-            featureStoreRoute(featureStoreObject, featureStoreProject)
-          }
-        />
+        <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+          <FeatureStoreProjectSelectorNavigator
+            getRedirectPath={(featureStoreObject, featureStoreProject) =>
+              featureStoreRoute(featureStoreObject, featureStoreProject)
+            }
+          />
+          <ConnectedWorkbenchesLink />
+        </Flex>
       }
       provideChildrenPadding
     >

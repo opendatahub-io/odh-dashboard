@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
+// HTTPError represents an HTTP error response with status code and error details.
 type HTTPError struct {
 	StatusCode int          `json:"-"`
 	Error      ErrorPayload `json:"error"`
 }
 
+// ErrorPayload holds error code and message details.
 type ErrorPayload struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

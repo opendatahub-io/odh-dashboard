@@ -20,7 +20,9 @@ import {
   selectKnowledgeMode,
   selectSelectedVectorStoreId,
   selectActivePrompt,
+  selectVariableValues,
 } from './store';
+import { substituteTemplateVariables } from './promptTemplateUtils';
 import { ChatbotMessages } from './ChatbotMessagesList';
 import { sampleWelcomePrompts, PLACEHOLDER_BOT_CONTENT } from './const';
 
@@ -38,6 +40,7 @@ interface ChatbotConfigInstanceProps {
   onMessagesHookReady?: (hook: UseChatbotMessagesReturn) => void;
   configIndex?: number;
   isCompareMode?: boolean;
+  hasImagesInConversation?: boolean;
 }
 
 export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
@@ -54,8 +57,14 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   onMessagesHookReady,
   configIndex,
   isCompareMode,
+  hasImagesInConversation,
 }) => {
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
+  const variableValues = useChatbotConfigStore(selectVariableValues(configId));
+  const resolvedInstruction = React.useMemo(
+    () => substituteTemplateVariables(systemInstruction, variableValues),
+    [systemInstruction, variableValues],
+  );
   const temperature = useChatbotConfigStore(selectTemperature(configId));
   const isStreamingEnabled = useChatbotConfigStore(selectStreamingEnabled(configId));
   const selectedModel = useChatbotConfigStore(selectSelectedModel(configId));
@@ -117,7 +126,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   const messagesHook = useChatbotMessages({
     configId,
     modelId: selectedModel,
-    systemInstruction,
+    systemInstruction: resolvedInstruction,
     isRagEnabled,
     username,
     isStreamingEnabled,
@@ -178,9 +187,9 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
         messageList={messagesHook.messages}
         scrollRef={messagesHook.scrollToBottomRef}
         isLoading={messagesHook.isLoading}
-        isStreamingWithoutContent={messagesHook.isStreamingWithoutContent}
         modelDisplayName={messagesHook.modelDisplayName}
         placeholderContent={PLACEHOLDER_BOT_CONTENT}
+        hasImagesInConversation={hasImagesInConversation}
       />
     </MessageBox>
   );

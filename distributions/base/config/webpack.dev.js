@@ -8,7 +8,7 @@ const DIST_DIR = path.resolve(RELATIVE_DIRNAME, 'public');
 const PORT = process.env.SHELL_PORT || 4010;
 const BFF_PORT = process.env.BFF_PORT || 4000;
 
-module.exports = merge(webpackCommon('development'), {
+module.exports = merge(webpackCommon(), {
   mode: 'development',
   devtool: 'eval-source-map',
   optimization: {
@@ -25,6 +25,11 @@ module.exports = merge(webpackCommon('development'), {
       {
         context: ['/api'],
         target: `http://localhost:${BFF_PORT}`,
+      },
+      {
+        context: ['/wss'],
+        target: `ws://localhost:${BFF_PORT}`,
+        ws: true,
       },
     ],
     client: {

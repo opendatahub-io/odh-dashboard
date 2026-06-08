@@ -47,6 +47,9 @@ class RegisteredModelDetails {
         }
       });
     this.findPropertiesToggleButton().should('have.attr', 'aria-expanded', 'true');
+    // Wait for the "Add property" button to be visible after expansion animation completes
+    // This is more reliable than waiting for the table, which is conditionally rendered
+    this.findAddPropertyButton().should('be.visible');
   }
 
   findExpandPropertiesButton() {
@@ -61,10 +64,16 @@ class RegisteredModelDetails {
   }
 
   shouldHaveCustomProperty(key: string, value: string) {
-    this.findPropertiesExpandableSection().within(() => {
-      cy.contains(key).should('be.visible');
-      cy.contains(value).should('be.visible');
-    });
+    this.ensurePropertiesExpanded();
+    // Avoid .within() — the table can remount after save/navigation causing a stale
+    // DOM reference. Chaining from the expandable section lets Cypress retry against
+    // the live DOM until the property text appears.
+    this.findPropertiesExpandableSection()
+      .contains('td', key, { timeout: 15000 })
+      .should('be.visible');
+    this.findPropertiesExpandableSection()
+      .contains('td', value, { timeout: 15000 })
+      .should('be.visible');
     return this;
   }
 

@@ -6,8 +6,8 @@ import {
   NotificationContextProvider,
   BrowserStorageContextProvider,
 } from 'mod-arch-core';
-import { URL_PREFIX } from '../app/utilities/const';
-import MainPage from '../app/pages/MainPage';
+import { URL_PREFIX } from '~/app/utilities/const';
+import AppRoutes from '~/app/AppRoutes';
 
 const modularArchConfig: ModularArchConfig = {
   deploymentMode: DeploymentMode.Federated,
@@ -15,14 +15,14 @@ const modularArchConfig: ModularArchConfig = {
   BFF_API_VERSION: 'v1',
 };
 
-const ModArchWrapper: React.FC = () => (
+const AgentOpsWrapper: React.FC = () => (
   <ModularArchContextProvider config={modularArchConfig}>
     <BrowserStorageContextProvider>
       <NotificationContextProvider>
-        <MainPage />
+        <AppRoutes />
       </NotificationContextProvider>
     </BrowserStorageContextProvider>
   </ModularArchContextProvider>
 );
 
-export default ModArchWrapper;
+export default AgentOpsWrapper;

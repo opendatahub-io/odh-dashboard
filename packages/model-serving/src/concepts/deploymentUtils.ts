@@ -1,9 +1,19 @@
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import { Deployment } from '../../extension-points';
+import { Deployment, ModelServingMetricsExtension } from '../../extension-points';
 
 const isDeploymentInactive = (deployment: Deployment): boolean =>
   deployment.model.metadata.annotations?.['serving.kserve.io/deploymentMode'] === 'Stopped';
+
+export const shouldShowDeploymentMetricsLink = (
+  deployment: Deployment,
+  metricsExtension: ModelServingMetricsExtension | null,
+): boolean =>
+  !!metricsExtension &&
+  !!deployment.model.metadata.namespace &&
+  deployment.status?.state !== ModelDeploymentState.FAILED_TO_LOAD &&
+  !!(deployment.status?.stoppedStates?.isRunning || deployment.status?.stoppedStates?.isStopped);
 
 export const deploymentNameSort = (a: Deployment, b: Deployment): number =>
   getDisplayNameFromK8sResource(a.model).localeCompare(getDisplayNameFromK8sResource(b.model));

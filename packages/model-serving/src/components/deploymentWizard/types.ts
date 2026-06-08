@@ -318,6 +318,7 @@ export const resolveFieldValue = (
 
 export type ModelTypeFieldOverride = DeploymentWizardFieldBase<'modelType'> & {
   extraOption: SimpleSelectOption;
+  forced?: boolean;
 };
 export type ModelServerTemplateFieldOverride = DeploymentWizardFieldBase<'modelServerTemplate'> & {
   extraOptions?: ModelServerOption[];

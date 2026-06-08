@@ -28,11 +28,11 @@ func TestNamespacesHandler_ReturnsNamespaces(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	data, ok := body["data"].([]interface{})
+	data, ok := body["data"].([]any)
 	require.True(t, ok)
 	assert.NotEmpty(t, data, "admin user should see at least one namespace")
 }
@@ -65,11 +65,11 @@ func TestNamespacesHandler_MissingIdentity(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
 
-	var body map[string]interface{}
+	var body map[string]any
 	err := json.Unmarshal(rr.Body.Bytes(), &body)
 	require.NoError(t, err)
 
-	errObj, ok := body["error"].(map[string]interface{})
+	errObj, ok := body["error"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "BAD_REQUEST", errObj["code"])
 }

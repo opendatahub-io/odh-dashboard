@@ -75,9 +75,11 @@ describe('Verify custom properties and labels are retained during Model Registry
   });
 
   retryableBeforeEach(() => {
-    // TODO: RHOAIENG-65075 - 'Cannot read properties of null (reading postMessage)' error is suppressed globally in e2e.ts
     cy.clearCookies();
     cy.clearLocalStorage();
+    if (modelName && databaseName) {
+      cleanupRegisteredModelsFromDatabase([modelName], databaseName);
+    }
   });
 
   it(
@@ -171,6 +173,7 @@ describe('Verify custom properties and labels are retained during Model Registry
         .findModelVersionName()
         .find('a')
         .click();
+      modelVersionDetails.ensurePropertiesExpanded();
 
       cy.step('Add custom properties to the model version');
       testData.versionCustomProperties.forEach((prop) => {
@@ -178,7 +181,7 @@ describe('Verify custom properties and labels are retained during Model Registry
         modelVersionDetails.findPropertyKeyInput().type(prop.key);
         modelVersionDetails.findPropertyValueInput().type(prop.value);
         modelVersionDetails.findSavePropertyButton().click();
-        modelVersionDetails.findPropertiesExpandableSection().should('be.visible');
+        modelVersionDetails.findPropertyKeyInput().should('not.exist');
       });
 
       cy.step('Verify version custom properties are visible in UI');
@@ -222,6 +225,7 @@ describe('Verify custom properties and labels are retained during Model Registry
         .find('a')
         .click();
       cy.url().should('include', '/details');
+      modelVersionDetails.ensurePropertiesExpanded();
 
       allVersionProperties.forEach((prop) => {
         modelVersionDetails.shouldHaveCustomProperty(prop.key, prop.value);

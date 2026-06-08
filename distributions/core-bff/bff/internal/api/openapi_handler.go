@@ -11,12 +11,14 @@ import (
 	openapispec "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/openapi"
 )
 
+// OpenAPIHandler serves the OpenAPI specification and Swagger UI.
 type OpenAPIHandler struct {
 	logger   *slog.Logger
 	spec     *openapi3.T
 	specYAML []byte
 }
 
+// NewOpenAPIHandler creates a new OpenAPI handler instance.
 func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
 	specData := openapispec.SpecYAML
 

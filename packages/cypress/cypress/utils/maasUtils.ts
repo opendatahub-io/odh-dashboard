@@ -55,6 +55,7 @@ export const mockAPIKeys = (): APIKey[] => [
     expirationDate: '2026-01-13T11:54:34.521671447-05:00',
     status: 'expired',
     username: 'dave',
+    subscription: 'premium-team-sub',
   },
 ];
 

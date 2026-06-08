@@ -1,16 +1,4 @@
-import {
-  Alert,
-  Bullseye,
-  Button,
-  Content,
-  EmptyState,
-  EmptyStateVariant,
-  Flex,
-  Grid,
-  GridItem,
-  Spinner,
-  Title,
-} from '@patternfly/react-core';
+import { Button, EmptyStateVariant } from '@patternfly/react-core';
 import { ChartBarIcon, SearchIcon } from '@patternfly/react-icons';
 import React from 'react';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
@@ -29,8 +17,7 @@ import {
   isValueDifferentFromDefault,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import ModelCatalogSortDropdown from '~/app/pages/modelCatalog/components/ModelCatalogSortDropdown';
-import EmptyModelCatalogState from '~/app/pages/modelCatalog/EmptyModelCatalogState';
-import ScrollViewOnMount from '~/app/shared/components/ScrollViewOnMount';
+import { CatalogGalleryLayout, EmptyCatalogState } from '~/app/shared/components/catalog';
 import {
   ModelCatalogNumberFilterKey,
   ModelCatalogStringFilterKey,
@@ -54,7 +41,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 }) => {
   const {
     selectedSourceLabel,
-    filterData,
+    filters,
     filterOptions,
     filterOptionsLoaded,
     filterOptionsLoadError,
@@ -63,7 +50,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     catalogLabelsLoaded,
     catalogLabelsLoadError,
     setPerformanceViewEnabled,
-    updateSelectedSourceLabel,
+    setSelectedSourceLabel,
     performanceViewEnabled,
     sortBy,
     getPerformanceFilterDefaultValue,
@@ -72,16 +59,13 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   // When performance view is disabled, exclude performance filters from API queries
   // Memoize to prevent infinite re-fetching
   const effectiveFilterData = React.useMemo(
-    () => (performanceViewEnabled ? filterData : getBasicFiltersOnly(filterData)),
-    [performanceViewEnabled, filterData],
+    () => (performanceViewEnabled ? filters : getBasicFiltersOnly(filters)),
+    [performanceViewEnabled, filters],
   );
 
   // Optimize: Only track the active latency field instead of entire filterData
   // This prevents unnecessary recalculations when non-latency filters change
-  const activeLatencyField = React.useMemo(
-    () => getActiveLatencyFieldName(filterData),
-    [filterData],
-  );
+  const activeLatencyField = React.useMemo(() => getActiveLatencyFieldName(filters), [filters]);
 
   const sortParams = React.useMemo(
     () => getSortParams(sortBy, performanceViewEnabled, activeLatencyField),
@@ -94,7 +78,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       return undefined;
     }
 
-    const targetRPS = filterData[ModelCatalogNumberFilterKey.MAX_RPS];
+    const targetRPS = filters[ModelCatalogNumberFilterKey.MAX_RPS];
     const latencyProperty = activeLatencyField
       ? parseLatencyFilterKey(activeLatencyField).propertyKey
       : undefined;
@@ -104,7 +88,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       latencyProperty,
       recommendations: true,
     };
-  }, [performanceViewEnabled, filterData, activeLatencyField]);
+  }, [performanceViewEnabled, filters, activeLatencyField]);
 
   const { catalogModels, catalogModelsLoaded, catalogModelsLoadError } = useCatalogModelsBySources(
     '',
@@ -126,15 +110,15 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 
   // Check if basic filters are applied
   const hasBasicFiltersApplied = React.useMemo(
-    () => hasFiltersApplied(filterData, BASIC_FILTER_KEYS),
-    [filterData],
+    () => hasFiltersApplied(filters, BASIC_FILTER_KEYS),
+    [filters],
   );
 
   // Check if Hardware Configuration filter is applied
   const hasHardwareConfigurationApplied = React.useMemo(() => {
-    const hardwareConfig = filterData[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION];
+    const hardwareConfig = filters[ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION];
     return Array.isArray(hardwareConfig) && hardwareConfig.length > 0;
-  }, [filterData]);
+  }, [filters]);
 
   // When performance view is enabled, performance filters have default values.
   const hasPerformanceFiltersChanged = React.useMemo(() => {
@@ -142,7 +126,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
       return false;
     }
     return PERFORMANCE_FILTER_KEYS.some((filterKey) => {
-      const filterValue = filterData[filterKey];
+      const filterValue = filters[filterKey];
       const defaultValue = getPerformanceFilterDefaultValue(filterKey);
 
       if (filterValue === undefined) {
@@ -155,7 +139,7 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
 
       return isValueDifferentFromDefault(filterValue, defaultValue);
     });
-  }, [performanceViewEnabled, filterData, getPerformanceFilterDefaultValue]);
+  }, [performanceViewEnabled, filters, getPerformanceFilterDefaultValue]);
 
   const noUserFiltersOrSearch = React.useMemo(
     () =>
@@ -195,99 +179,8 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
   };
 
   const handleSelectAllModels = () => {
-    updateSelectedSourceLabel(CategoryName.allModels);
+    setSelectedSourceLabel(CategoryName.allModels);
   };
-
-  if (loadError) {
-    return (
-      <Alert variant="danger" title="Failed to load model catalog" isInline>
-        {loadError.message}
-      </Alert>
-    );
-  }
-
-  if (!loaded) {
-    return (
-      <EmptyState>
-        <Spinner />
-        <Title headingLevel="h4" size="lg">
-          Loading model catalog...
-        </Title>
-      </EmptyState>
-    );
-  }
-
-  if (shouldShowPerformanceEmptyState) {
-    return (
-      <EmptyModelCatalogState
-        testid="performance-empty-state"
-        title={
-          isSingleCategory
-            ? 'No performance data available'
-            : 'No performance data available in selected category'
-        }
-        headerIcon={ChartBarIcon}
-        variant={EmptyStateVariant.lg}
-        description={
-          isSingleCategory ? (
-            'No models have performance data available. Turn off model performance view to see all models.'
-          ) : (
-            <>
-              No models in the{' '}
-              <strong>
-                {selectedSourceLabel === 'null'
-                  ? CategoryName.otherModels
-                  : generateCategoryName(selectedSourceLabel || '')}
-              </strong>{' '}
-              category have performance data. Select another model category, or turn off model
-              performance view to see models in the selected category.
-            </>
-          )
-        }
-        primaryAction={
-          isSingleCategory ? undefined : (
-            <Button variant="primary" onClick={handleSelectAllModels}>
-              View all models with performance data
-            </Button>
-          )
-        }
-        secondaryAction={
-          <Button variant="link" onClick={handleDisablePerformanceView}>
-            Turn off model performance view
-          </Button>
-        }
-      />
-    );
-  }
-
-  if (catalogModels.items.length === 0 && noUserFiltersOrSearch) {
-    return (
-      <EmptyModelCatalogState
-        testid="empty-model-catalog-state"
-        title="No models available"
-        headerIcon={SearchIcon}
-        description="No models are available in this category"
-      />
-    );
-  }
-
-  if (catalogModels.items.length === 0 && !noUserFiltersOrSearch) {
-    return (
-      <EmptyModelCatalogState
-        testid="empty-model-catalog-state"
-        title="No results found"
-        headerIcon={SearchIcon}
-        description="Adjust your filters and try again."
-        primaryAction={
-          <Button variant="link" onClick={handleFilterReset}>
-            {performanceViewEnabled && hasPerformanceFiltersChanged
-              ? 'Reset all defaults'
-              : 'Reset all filters'}
-          </Button>
-        }
-      />
-    );
-  }
 
   const effectiveCategoryLabel = singleCategoryLabel || selectedSourceLabel || '';
   const categoryTitle = isSingleCategory
@@ -298,59 +191,104 @@ const ModelCatalogGalleryView: React.FC<ModelCatalogPageProps> = ({
     : undefined;
 
   return (
-    <>
-      <ScrollViewOnMount shouldScroll scrollToTop />
-      {isSingleCategory && categoryTitle && (
-        <div className="pf-v6-u-mb-lg" data-testid="single-category-header">
-          <Flex
-            justifyContent={{ default: 'justifyContentSpaceBetween' }}
-            alignItems={{ default: 'alignItemsCenter' }}
-          >
-            <Title headingLevel="h3" size="lg">
-              {categoryTitle}
-            </Title>
-            {performanceViewEnabled && (
-              <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
-            )}
-          </Flex>
-          {categoryDescription && (
-            <Content component="p" className="pf-v6-u-color-200 pf-v6-u-mt-sm">
-              {categoryDescription}
-            </Content>
-          )}
-        </div>
+    <CatalogGalleryLayout
+      items={catalogModels.items}
+      loaded={loaded}
+      loadError={loadError}
+      renderCard={(model: CatalogModel) => (
+        <ModelCatalogCard
+          model={model}
+          source={getSourceFromSourceId(model.source_id || '', catalogSources)}
+        />
       )}
-      <Grid hasGutter>
-        {catalogModels.items.map((model: CatalogModel) => (
-          <GridItem key={`${model.name}/${model.source_id}`} sm={6} md={6} lg={6} xl={6} xl2={3}>
-            <ModelCatalogCard
-              model={model}
-              source={getSourceFromSourceId(model.source_id || '', catalogSources)}
+      getItemKey={(model: CatalogModel) => `${model.name}/${model.source_id}`}
+      hasMore={catalogModels.hasMore}
+      isLoadingMore={catalogModels.isLoadingMore}
+      onLoadMore={catalogModels.loadMore}
+      loadMoreLabel="Load more models"
+      loadingMoreLabel="Loading more catalog models..."
+      loadingLabel="Loading model catalog..."
+      errorTitle="Failed to load model catalog"
+      categoryTitle={categoryTitle}
+      categoryDescription={categoryDescription}
+      headerExtra={
+        isSingleCategory && performanceViewEnabled ? (
+          <ModelCatalogSortDropdown performanceViewEnabled={performanceViewEnabled} />
+        ) : undefined
+      }
+      renderExtraEmptyStates={() => {
+        if (shouldShowPerformanceEmptyState) {
+          return (
+            <EmptyCatalogState
+              testid="performance-empty-state"
+              title={
+                isSingleCategory
+                  ? 'No performance data available'
+                  : 'No performance data available in selected category'
+              }
+              headerIcon={ChartBarIcon}
+              variant={EmptyStateVariant.lg}
+              description={
+                isSingleCategory ? (
+                  'No models have performance data available. Turn off model performance view to see all models.'
+                ) : (
+                  <>
+                    No models in the{' '}
+                    <strong>
+                      {selectedSourceLabel === 'null'
+                        ? CategoryName.otherModels
+                        : generateCategoryName(selectedSourceLabel || '')}
+                    </strong>{' '}
+                    category have performance data. Select another model category, or turn off model
+                    performance view to see models in the selected category.
+                  </>
+                )
+              }
+              primaryAction={
+                isSingleCategory ? undefined : (
+                  <Button variant="primary" onClick={handleSelectAllModels}>
+                    View all models with performance data
+                  </Button>
+                )
+              }
+              secondaryAction={
+                <Button variant="link" onClick={handleDisablePerformanceView}>
+                  Turn off model performance view
+                </Button>
+              }
             />
-          </GridItem>
-        ))}
-      </Grid>
-      {catalogModels.hasMore && (
-        <Bullseye className="pf-v6-u-mt-lg">
-          {catalogModels.isLoadingMore ? (
-            <Flex
-              direction={{ default: 'column' }}
-              alignItems={{ default: 'alignItemsCenter' }}
-              gap={{ default: 'gapMd' }}
-            >
-              <Spinner size="lg" />
-              <Title size="lg" headingLevel="h5">
-                Loading more catalog models...
-              </Title>
-            </Flex>
-          ) : (
-            <Button variant="tertiary" onClick={catalogModels.loadMore} size="lg">
-              Load more models
+          );
+        }
+
+        if (catalogModels.items.length === 0 && noUserFiltersOrSearch) {
+          return (
+            <EmptyCatalogState
+              testid="empty-model-catalog-state"
+              title="No models available"
+              headerIcon={SearchIcon}
+              description="No models are available in this category"
+            />
+          );
+        }
+
+        return null;
+      }}
+      renderEmptyState={() => (
+        <EmptyCatalogState
+          testid="empty-model-catalog-state"
+          title="No results found"
+          headerIcon={SearchIcon}
+          description="Adjust your filters and try again."
+          primaryAction={
+            <Button variant="link" onClick={handleFilterReset}>
+              {performanceViewEnabled && hasPerformanceFiltersChanged
+                ? 'Reset all defaults'
+                : 'Reset all filters'}
             </Button>
-          )}
-        </Bullseye>
+          }
+        />
       )}
-    </>
+    />
   );
 };
 
