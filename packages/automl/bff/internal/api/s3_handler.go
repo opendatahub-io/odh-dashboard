@@ -275,7 +275,7 @@ func (app *App) PostS3FileHandler(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	limitedFile := http.MaxBytesReader(nil, filePart, app.effectiveFilePartMaxBytes())
+	limitedFile := http.MaxBytesReader(w, filePart, app.effectiveFilePartMaxBytes())
 	defer limitedFile.Close()
 
 	resolvedKey, err := app.repositories.S3.UploadCSVFile(
