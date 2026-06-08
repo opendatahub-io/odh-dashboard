@@ -55,19 +55,19 @@ describe('Eval Hub E2E', () => {
     });
 
     cy.then(() => {
-      cy.step('Ensure EvalHub CR is Ready');
-      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
+      cy.step('Ensure MLflow CR is Available (must be ready before EvalHub)');
+      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
         if (created) {
-          Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
+          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
         }
       });
     });
 
     cy.then(() => {
-      cy.step('Ensure MLflow CR is Available');
-      return ensureMlflowCrReady(mlflowInstanceYamlPath).then((created) => {
+      cy.step('Ensure EvalHub CR is Ready');
+      return ensureEvalHubCrReady(evalHubCrName, evalHubInstanceYamlPath).then((created) => {
         if (created) {
-          Cypress.env('MLFLOW_CR_CREATED_BY_TEST', true);
+          Cypress.env('EVAL_HUB_CR_CREATED_BY_TEST', true);
         }
       });
     });
