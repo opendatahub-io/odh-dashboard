@@ -109,7 +109,6 @@ const renderComponent = (
 
   useHardwareProfileConfigMock.mockReturnValue({
     formData: hardwareProfileConfig,
-    useExistingSettings: hardwareProfileConfig.useExistingSettings,
     setFormData: () => null,
     resetFormData: () => null,
     isFormDataValid: true,
