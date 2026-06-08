@@ -41,6 +41,12 @@ const PythonCodeTemplate = `# Llama Stack Quickstart Script
 #    - Set ASR_MODEL_URL to the URL of your ASR model
 #    - The model "{{.ASRModel}}" will be used for transcription
 {{- end }}
+{{- if .VisionImage }}
+#
+# Vision (Image Input):
+#    - Set IMAGE_FILE_PATH to the path of your local image file (.jpg or .png)
+#    - The image will be uploaded to the OGX Files API and passed to the model
+{{- end }}
 {{- if and .VectorStore .VectorStore.ID }}
 #
 # External Vector Store:
@@ -67,6 +73,9 @@ LLAMA_STACK_URL = ""
 ASR_MODEL_URL = ""
 ASR_MODEL_NAME = "{{.ASRModel}}"
 AUDIO_FILE_PATH = ""  # Path to your audio file (.wav or .mp3)
+{{- end }}
+{{- if .VisionImage }}
+IMAGE_FILE_PATH = ""  # Path to your image file (.jpg or .png)
 {{- end }}
 {{- if and .GuardrailConfig (or .GuardrailConfig.InputPrompt .GuardrailConfig.OutputPrompt) }}
 NEMO_GUARDRAILS_URL = "{{if .NemoGuardrailsURL}}{{.NemoGuardrailsURL}}{{end}}"
@@ -130,6 +139,13 @@ with open(AUDIO_FILE_PATH, "rb") as audio_file:
         file=audio_file,
     )
 input_text = transcription.text
+# ---
+{{- end }}
+{{- if .VisionImage }}
+
+# --- Vision Image Upload ---
+with open(IMAGE_FILE_PATH, "rb") as image_file:
+    vision_file = client.files.create(file=image_file, purpose="vision")
 # ---
 {{- end }}
 {{- if .Prompt }}
@@ -232,7 +248,14 @@ for file_info in files_to_upload:
 {{- end }}
 
 config = {
+{{- if .VisionImage }}
+    "input": [
+        {"type": "input_text", "text": input_text},
+        {"type": "input_image", "file_id": vision_file.id},
+    ],
+{{- else }}
     "input": input_text,
+{{- end }}
     "model": model_name{{- if .Temperature }},
     "temperature": temperature{{- end }}{{- if or .Instructions .Prompt }},
     "instructions": system_instructions{{- end }}{{- if .Stream }},

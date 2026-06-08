@@ -162,6 +162,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
         guardrailModelOutputEnabled,
         selectedAsrModel,
         isAsrModelEnabled,
+        hasVisionImage,
       } = config;
       const mcpServersToUse = mcpServers.filter((server) =>
         selectedMcpServerIds.includes(server.url),
@@ -264,6 +265,7 @@ const ViewCodeModal: React.FunctionComponent<ViewCodeModalProps> = ({
               },
             }),
           ...(isAsrModelEnabled && selectedAsrModel && { asr_model: selectedAsrModel }),
+          ...(hasVisionImage && { vision_image: true }),
         };
         /* eslint-enable camelcase */
 

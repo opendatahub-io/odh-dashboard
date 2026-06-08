@@ -939,4 +939,73 @@ func TestGeneratePythonCode(t *testing.T) {
 		assert.Contains(t, code, "ASR_MODEL_URL")
 		assert.Contains(t, code, "NEMO_GUARDRAILS_URL")
 	})
+
+	t.Run("should generate Python code with vision image upload section when VisionImage is true", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, `IMAGE_FILE_PATH = ""`)
+		assert.Contains(t, code, "Vision (Image Input)")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.NotContains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should not include vision section when VisionImage is false", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input: "Hello, world!",
+			Model: "llama3.2:3b",
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.NotContains(t, code, "IMAGE_FILE_PATH")
+		assert.NotContains(t, code, "Vision (Image Input)")
+		assert.NotContains(t, code, "client.files.create(file=image_file")
+		assert.NotContains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, `"input": input_text,`)
+	})
+
+	t.Run("should compose vision and ASR correctly when both are active", func(t *testing.T) {
+		config := models.CodeExportRequest{
+			Input:       "Describe the image",
+			Model:       "llama3.2:3b",
+			ASRModel:    "whisper-large-v3-turbo",
+			VisionImage: true,
+		}
+
+		code, err := app.generatePythonCode(config, "", app.repositories.Template)
+
+		if err != nil {
+			t.Skipf("Template system not available in test environment: %v", err)
+		}
+
+		assert.NoError(t, err)
+		assert.Contains(t, code, "ASR_MODEL_URL")
+		assert.Contains(t, code, "input_text = transcription.text")
+		assert.Contains(t, code, "IMAGE_FILE_PATH")
+		assert.Contains(t, code, "client.files.create(file=image_file, purpose=\"vision\")")
+		assert.Contains(t, code, `"type": "input_text"`)
+		assert.Contains(t, code, `"type": "input_image"`)
+		assert.Contains(t, code, "vision_file.id")
+		assert.Contains(t, code, "from openai import OpenAI")
+		assert.Contains(t, code, "pip install llama-stack-client openai")
+	})
 }

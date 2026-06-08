@@ -645,4 +645,39 @@ describe('ViewCodeModal', () => {
     const callArg = mockExportCode.mock.calls[0][0];
     expect(callArg.asr_model).toBeUndefined();
   });
+
+  it('includes vision_image in request when hasVisionImage is true', async () => {
+    setupMockStore({ hasVisionImage: true });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          vision_image: true,
+        }),
+      );
+    });
+  });
+
+  it('does not include vision_image when hasVisionImage is false', async () => {
+    setupMockStore({ hasVisionImage: false });
+
+    render(
+      <TestWrapper>
+        <ViewCodeModal {...defaultProps} />
+      </TestWrapper>,
+    );
+
+    await waitFor(() => {
+      expect(mockExportCode).toHaveBeenCalled();
+    });
+
+    const callArg = mockExportCode.mock.calls[0][0];
+    expect(callArg.vision_image).toBeUndefined();
+  });
 });
