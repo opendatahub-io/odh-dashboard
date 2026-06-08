@@ -35,9 +35,9 @@ const ModelCatalog: React.FC = () => {
     const validatedParam = searchParams.get('validated');
     if (validatedParam === 'true') {
       setSearchParams({});
-      updateSelectedSourceLabel('Red Hat AI validated');
+      setSelectedSourceLabel('Red Hat AI validated');
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, setSelectedSourceLabel]);
 
   const handleSearch = React.useCallback((term: string) => {
     setSearchTerm(term);
