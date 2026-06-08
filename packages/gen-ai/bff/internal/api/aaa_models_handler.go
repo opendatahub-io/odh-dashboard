@@ -51,13 +51,13 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	if requestedSources[models.ModelSourceTypeNamespace] || requestedSources[models.ModelSourceTypeCustomEndpoint] {
 		client, err := app.kubernetesClientFactory.GetClient(ctx)
 		if err != nil {
-			app.badRequestResponse(w, r, err)
+			app.serverErrorResponse(w, r, err)
 			return
 		}
 
 		k8sModels, err := app.repositories.AAModels.GetAAModels(client, ctx, identity, namespace)
 		if err != nil {
-			app.badRequestResponse(w, r, err)
+			app.serverErrorResponse(w, r, err)
 			return
 		}
 
@@ -73,7 +73,13 @@ func (app *App) ModelsAAHandler(w http.ResponseWriter, r *http.Request, _ httpro
 	if requestedSources[models.ModelSourceTypeMaaS] {
 		maasModels, err := app.fetchMaaSModels(ctx, namespace)
 		if err != nil {
-			// Log error but don't fail the entire request
+			// If only MaaS was requested, return the error
+			isMaasOnly := len(requestedSources) == 1
+			if isMaasOnly {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+			// For mixed-source requests, log error but don't fail the entire request
 			app.logger.Error("failed to fetch MaaS models", "error", err)
 		} else {
 			aaModels = append(aaModels, maasModels...)

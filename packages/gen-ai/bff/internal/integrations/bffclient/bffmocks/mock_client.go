@@ -71,7 +71,7 @@ func (m *MockBFFClient) handleMaaSCall(ctx context.Context, method, path string,
 		}
 		return marshalToResponse(keyResp, response)
 
-	case (path == "/models" || strings.HasPrefix(path, "/api/v1/models")) && method == "GET":
+	case (path == "/models" || path == "/api/v1/models" || strings.HasPrefix(path, "/api/v1/models?")) && method == "GET":
 		// Mock models list
 		// MaaS BFF wraps models response in {"data": {"object": "list", "data": [...]}} envelope
 		modelsResp := map[string]interface{}{
