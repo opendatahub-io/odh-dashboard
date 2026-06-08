@@ -1,4 +1,4 @@
-name: Sync Main to ODH Release
+name: Sync Main to ODH Release and RHOAI Release
 
 on:
   workflow_dispatch:
@@ -21,6 +21,8 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.sync.outputs.has_changes }}
 
     steps:
       - name: Checkout
@@ -228,3 +230,36 @@ jobs:
 
           ---
           *This PR was automatically created by the release-auto-merge workflow.*"
+
+  sync-rhoai:
+    needs: sync
+    if: ${{ needs.sync.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout rhoai-release
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: rhoai-release
+          fetch-depth: 0
+
+      - name: Fast-forward rhoai-release to odh-release
+        run: |
+          git fetch origin odh-release
+
+          if [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/odh-release)" ]]; then
+            echo "No changes — rhoai-release is already up to date with odh-release"
+            exit 0
+          fi
+
+          if ! git merge-base --is-ancestor HEAD origin/odh-release; then
+            echo "ERROR: Cannot fast-forward. rhoai-release has diverged from odh-release."
+            echo "rhoai-release HEAD: $(git rev-parse HEAD)"
+            echo "odh-release HEAD:   $(git rev-parse origin/odh-release)"
+            echo "Manual intervention required."
+            exit 1
+          fi
+
+          git merge --ff-only origin/odh-release
+          git push origin rhoai-release
+          echo "Fast-forwarded rhoai-release to odh-release"
