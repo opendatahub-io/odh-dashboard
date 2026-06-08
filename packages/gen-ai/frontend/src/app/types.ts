@@ -479,6 +479,7 @@ export type MLflowPrompt = {
 export type MLflowPromptsResponse = {
   prompts: MLflowPrompt[];
   next_page_token?: string;
+  total_count: number;
 };
 
 export type MLflowMessage = {

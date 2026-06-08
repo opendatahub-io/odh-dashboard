@@ -130,7 +130,25 @@ var _ = Describe("MLflow Prompts Handler", func() {
 
 			Expect(len(envelope.Data.Prompts)).To(BeNumerically(">=", 2))
 			for _, p := range envelope.Data.Prompts {
-				Expect(p.Name).To(HavePrefix("pet"), "all returned prompts should start with 'pet'")
+				Expect(p.Name).To(ContainSubstring("pet"), "all returned prompts should contain 'pet'")
+			}
+		})
+
+		It("should filter prompts by name substring using filter_name", func() {
+			resp := MakeRequest(TestRequest{
+				Method: http.MethodGet,
+				Path:   "/gen-ai/api/v1/mlflow/prompts?namespace=default&filter_name=reminder",
+			})
+			defer resp.Body.Close()
+
+			Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+			var envelope MLflowPromptsEnvelope
+			ReadJSONResponse(resp, &envelope)
+
+			Expect(len(envelope.Data.Prompts)).To(BeNumerically(">=", 1))
+			for _, p := range envelope.Data.Prompts {
+				Expect(p.Name).To(ContainSubstring("reminder"), "all returned prompts should contain 'reminder'")
 			}
 		})
 	})

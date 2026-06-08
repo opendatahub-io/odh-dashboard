@@ -972,7 +972,7 @@ paths:
             example: 10
         - name: filter_name
           in: query
-          description: Filter prompts by name prefix (e.g. "pet" matches "pet-health-bella", "pet-adoption-letter")
+          description: Filter prompts by name substring (e.g. "reminder" matches "medication-reminder-patient")
           required: false
           schema:
             type: string
@@ -995,8 +995,12 @@ paths:
                       next_page_token:
                         type: string
                         description: Token for fetching the next page of results
+                      total_count:
+                        type: integer
+                        description: Total number of prompts matching the filter criteria (up to 1000)
                     required:
                       - prompts
+                      - total_count
                   metadata:
                     type: object
                     nullable: true
