@@ -96,11 +96,17 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setIsFetching(true);
   }, []);
 
-  const onSubscriptionChange = React.useCallback((subscription: string) => {
-    setFilterData((prev) => ({ ...prev, subscription }));
-    setPage(1);
-    setIsFetching(true);
-  }, []);
+  const onSubscriptionChange = React.useCallback(
+    (subscription: string) => {
+      if (filterData.subscription === subscription) {
+        return;
+      }
+      setFilterData((prev) => ({ ...prev, subscription }));
+      setPage(1);
+      setIsFetching(true);
+    },
+    [filterData.subscription],
+  );
 
   const onSort = React.useCallback((field: ApiKeySortField, direction: SortDirection) => {
     setSortField(field);
