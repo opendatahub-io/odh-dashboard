@@ -11,10 +11,11 @@
     "type-check": "tsc --noEmit"
   },
   "exports": {
-    "./extensions": "./extensions.ts"
+    "./extensions": "./extensions.ts",
+    "./embeddable": "./src/perses/embeddable/api.ts"
   },
   "module-federation": {
-    "name": "perses",
+    "name": "observability",
     "proxyService": [
       {
         "authorize": true,

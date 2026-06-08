@@ -78,6 +78,7 @@ export enum ProjectObjectType {
   promptManagement = 'prompt-management',
   mcpCatalog = 'mcp-catalog',
   taskAssistant = 'task-assistant',
+  apiKeys = 'api-keys',
 }
 
 export const typedIconColor = (objectType: ProjectObjectType): string => {
@@ -141,6 +142,8 @@ export const typedIconColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-set-up--IconColor)';
     case ProjectObjectType.taskAssistant:
       return 'var(--ai-general--IconColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--IconColor)';
     default:
       return '';
   }
@@ -208,6 +211,8 @@ export const typedBackgroundColor = (objectType: ProjectObjectType): string => {
       return 'var(--ai-set-up--BackgroundColor)';
     case ProjectObjectType.taskAssistant:
       return 'var(--ai-general--BackgroundColor)';
+    case ProjectObjectType.apiKeys:
+      return 'var(--ai-organize--BackgroundColor)';
     default:
       return '';
   }

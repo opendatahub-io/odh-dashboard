@@ -100,6 +100,68 @@ describe('dashboardUtils', () => {
         ]);
       });
 
+      it('should prefer admin variant when both X and X-admin exist for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should keep non-admin dashboard when no admin variant exists', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
+        ]);
+      });
+
+      it('should deduplicate multiple pairs for admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+          createMockDashboard('dashboard-model-admin'),
+          createMockDashboard('dashboard-overview'),
+        ];
+
+        const result = filterDashboards(dashboards, true);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster-admin',
+          'dashboard-model-admin',
+          'dashboard-overview',
+        ]);
+      });
+
+      it('should not deduplicate for non-admin users', () => {
+        const dashboards = [
+          createMockDashboard('dashboard-cluster'),
+          createMockDashboard('dashboard-cluster-admin'),
+          createMockDashboard('dashboard-model'),
+        ];
+
+        const result = filterDashboards(dashboards, false);
+
+        expect(result.map((d) => d.metadata.name)).toEqual([
+          'dashboard-cluster',
+          'dashboard-model',
+        ]);
+      });
+
       it('should only match exact "-admin" suffix', () => {
         const dashboards = [
           createMockDashboard('dashboard-admin-panel'), // has "admin" but not as suffix

@@ -33,6 +33,11 @@ jobs:
   router:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      checks: read
     outputs:
       matrix: ${{ steps.comment.outputs.matrix || steps.cron.outputs.matrix || '[]' }}
 
@@ -47,6 +52,7 @@ jobs:
           ACTOR: ${{ github.triggering_actor }}
           IS_PR: ${{ github.event.issue.pull_request.url }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENT_ID: ${{ github.event.comment.id }}
           REPO: ${{ github.repository }}
         run: |
           if [[ "$ACTOR" == *"[bot]"* ]]; then
@@ -69,6 +75,8 @@ jobs:
           if [ -z "$MODE" ]; then
             echo "Skipping: no @odh-dashboard-agent command found"; exit 0
           fi
+
+          gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
 
           PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
@@ -165,12 +173,7 @@ jobs:
       HEAD_REPO: ${{ matrix.head_repo }}
       ANTHROPIC_VERTEX_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CLOUD_ML_REGION: us-east5
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
-      MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
-      MLFLOW_WORKSPACE: ${{ secrets.MLFLOW_WORKSPACE }}
-      MLFLOW_ENABLE_WORKSPACES: "true"
-      MLFLOW_CLAUDE_TRACING_ENABLED: "true"
+      CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS: "30000"
 
     steps:
       - name: Generate GitHub App token (managed)
@@ -231,41 +234,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install MLflow
-        run: pip install "mlflow[genai]>=3.5"
+        run: pip install "mlflow==3.12.0"
 
-      - name: Verify MLflow connection
-        continue-on-error: true
-        run: |
-          CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Bearer $MLFLOW_TRACKING_TOKEN" \
-            -H "Content-Type: application/json" \
-            -H "X-Mlflow-Workspace: $MLFLOW_WORKSPACE" \
-            -d '{"max_results": 1}' \
-            "$MLFLOW_TRACKING_URI/api/2.0/mlflow/experiments/search")
-          echo "MLflow API: HTTP $CODE"
-          if [ "$CODE" != "200" ]; then
-            echo "::warning::MLflow returned $CODE — tracing may not work"
-          fi
-
-      - name: Configure MLflow tracing
-        run: |
-          mkdir -p ~/.claude
-          cat > ~/.claude/settings.local.json << 'SETTINGS'
-          {
-            "env": { "MLFLOW_CLAUDE_TRACING_ENABLED": "true" },
-            "hooks": {
-              "Stop": [{
-                "matcher": "",
-                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
-              }],
-              "StopFailure": [{
-                "matcher": "",
-                "hooks": [{ "type": "command", "command": "which mlflow >/dev/null 2>&1 && mlflow autolog claude stop-hook || true" }]
-              }]
-            }
-          }
-          SETTINGS
+      - name: Install uv
+        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
 
       # ── Check (read-only) ──
       - name: Preflight check
@@ -274,6 +246,20 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
+              },
+              "hooks": {
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+              }
+            }
           claude_args: >-
             --max-turns 120
             --model "claude-sonnet-4-6[1m]"
@@ -283,6 +269,8 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
+            --allowedTools "mcp__jira__*"
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
 
       # ── Fix (iterative) ──
@@ -292,6 +280,20 @@ jobs:
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           use_vertex: "true"
+          settings: |
+            {
+              "env": {
+                "MLFLOW_CLAUDE_TRACING_ENABLED": "true",
+                "MLFLOW_TRACKING_URI": "${{ secrets.MLFLOW_TRACKING_URI }}",
+                "MLFLOW_TRACKING_TOKEN": "${{ secrets.MLFLOW_TRACKING_TOKEN }}",
+                "MLFLOW_EXPERIMENT_NAME": "${{ secrets.MLFLOW_EXPERIMENT_NAME }}",
+                "MLFLOW_WORKSPACE": "${{ secrets.MLFLOW_WORKSPACE }}"
+              },
+              "hooks": {
+                "Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}],
+                "StopFailure": [{"matcher": "", "hooks": [{"type": "command", "command": "mlflow autolog claude stop-hook"}]}]
+              }
+            }
           claude_args: >-
             --max-turns 200
             --model "claude-sonnet-4-6[1m]"
@@ -301,6 +303,8 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
+            --allowedTools "mcp__jira__*"
+            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
 
       # ── Report ──

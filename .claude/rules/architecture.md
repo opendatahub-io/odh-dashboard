@@ -1,11 +1,12 @@
 ---
-description: ODH Dashboard monorepo architecture, package boundaries, and BFF structure
-globs: "packages/**,frontend/**,backend/**"
+description: ODH Dashboard monorepo architecture, package boundaries, BFF structure, and operator controller
+globs: "packages/**,frontend/**,backend/**,dashboard-operator/**"
 alwaysApply: false
 paths:
   - "packages/**"
   - "frontend/**"
   - "backend/**"
+  - "dashboard-operator/**"
 ---
 
 # ODH Dashboard Architecture
@@ -73,6 +74,18 @@ These packages export extensions but have **no** `module-federation` config. The
 - Feature packages MUST NOT import directly from other feature packages' internal modules.
 - Feature packages MUST use exported APIs from `plugin-core` or `app-config` for shared functionality.
 - Changes to infrastructure packages (`eslint-config`, `jest-config`, `tsconfig`) affect ALL packages — review with extra care.
+
+## Dashboard Module Controller (`dashboard-operator/`)
+
+A standalone Kubernetes operator that manages the full lifecycle of the Dashboard application. Co-located in the monorepo (not a separate repository) because the controller is tightly coupled to Dashboard frontend/backend versions and manifest layouts.
+
+- **Language**: Go 1.25+ with controller-runtime v0.23
+- **CRD**: `Dashboard` (cluster-scoped, singleton `default-dashboard`) in group `dashboard.opendatahub.io`
+- **Key dependencies**: `odh-platform-utilities` (Tier 1 packages for manifest rendering, SSA deployment, platform detection, status conditions)
+- **CI**: `.github/workflows/dashboard-operator-tests.yml` — lint, build, test on `dashboard-operator/**` changes
+- **Container**: `quay.io/opendatahub/dashboard-operator:latest` built from `dashboard-operator/Dockerfile`
+
+The controller is **not** part of the npm workspace or Turbo pipeline. It has its own `go.mod`, `Makefile`, and CI workflow. See `dashboard-operator/AGENTS.md` and `.claude/rules/operator-controller.md` for detailed conventions.
 
 ## BFF (Backend-for-Frontend) Architecture
 

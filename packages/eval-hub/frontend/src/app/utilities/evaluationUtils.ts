@@ -165,3 +165,7 @@ export const formatDate = (dateStr?: string): string => {
     return dateStr;
   }
 };
+
+/** Only completed runs can be selected for compare. */
+export const isEvaluationJobComparable = (job: EvaluationJob): boolean =>
+  job.status.state === 'completed';

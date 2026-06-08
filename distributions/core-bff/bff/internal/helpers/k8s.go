@@ -1,4 +1,5 @@
-package helper
+// Package helpers provides shared utility functions for logging, kubeconfig, and scheme setup.
+package helpers
 
 import (
 	"fmt"
@@ -9,15 +10,32 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// GetKubeconfig returns the current KUBECONFIG configuration based on the default loading rules.
+// GetKubeconfig returns the Kubernetes client configuration.
+// It tries kubeconfig file resolution first (KUBECONFIG env, ~/.kube/config),
+// then falls back to in-cluster service account credentials.
 func GetKubeconfig() (*clientRest.Config, error) {
+	return getKubeconfig(clientRest.InClusterConfig)
+}
+
+func getKubeconfig(inClusterFn func() (*clientRest.Config, error)) (*clientRest.Config, error) {
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 	configOverrides := &clientcmd.ConfigOverrides{}
 	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-	return kubeConfig.ClientConfig()
+	cfg, err := kubeConfig.ClientConfig()
+	if err == nil {
+		return cfg, nil
+	}
+	if !clientcmd.IsEmptyConfig(err) {
+		return nil, fmt.Errorf("kubeconfig found but invalid: %w", err)
+	}
+	inCluster, inErr := inClusterFn()
+	if inErr != nil {
+		return nil, fmt.Errorf("no kubeconfig found (%v) and not running in-cluster (%v)", err, inErr)
+	}
+	return inCluster, nil
 }
 
-// BuildScheme builds a new runtime scheme with all the necessary types registered.
+// BuildScheme creates a runtime scheme with Kubernetes types registered.
 func BuildScheme() (*runtime.Scheme, error) {
 	scheme := runtime.NewScheme()
 	if err := clientgoscheme.AddToScheme(scheme); err != nil {

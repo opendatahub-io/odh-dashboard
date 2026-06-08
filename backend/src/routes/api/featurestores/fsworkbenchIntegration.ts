@@ -2,72 +2,66 @@ import { FastifyReply } from 'fastify';
 import { KubeFastifyInstance, OauthFastifyRequest } from '../../../types';
 import { getAccessToken, getDirectCallOptions } from '../../../utils/directCallUtils';
 import { secureRoute } from '../../../utils/route-security';
-import { getNamespaces } from '../../../utils/notebookUtils';
 import {
-  parseNamespacesData,
-  getClientConfigs,
-  fetchFromRegistry,
-  fetchConfigMap,
-  type ClientConfigInfo,
+  listFeastNamespaces,
+  listFeastFeatureStoreCRDs,
+  constructRegistryProxyUrl,
+  makeAuthenticatedHttpRequest,
   handleError,
+  isRegistryReady,
+  getServiceFromCRD,
+  type FeatureStoreCRD,
+  type FeastProjectsResponse,
 } from './featureStoreUtils';
+
+interface WorkbenchFeatureStoreConfig {
+  configName: string;
+  projectName: string;
+  hasAccessToFeatureStore: boolean;
+}
 
 interface WorkbenchResponse {
   namespaces: Array<{
     namespace: string;
-    clientConfigs: Array<{
-      configName: string;
-      projectName: string;
-      hasAccessToFeatureStore: boolean;
-    }>;
+    clientConfigs: WorkbenchFeatureStoreConfig[];
   }>;
 }
 
-async function checkFeatureStoreAccess(
+async function hasAccessToProject(
   fastify: KubeFastifyInstance,
-  registryUrl: string,
-  projectName: string,
-  userToken?: string,
+  crd: FeatureStoreCRD,
+  token: string,
 ): Promise<boolean> {
   try {
-    const projects = await fetchFromRegistry(fastify, registryUrl, userToken);
-    if (!projects || projects.length === 0) {
-      return false;
+    const { serviceName, namespace, protocol, port } = getServiceFromCRD(crd);
+    const registryUrl = constructRegistryProxyUrl(
+      serviceName,
+      namespace,
+      'api/v1/projects',
+      true,
+      protocol,
+      port,
+    );
+    const { data, statusCode } = await makeAuthenticatedHttpRequest<FeastProjectsResponse>(
+      fastify,
+      registryUrl,
+      token,
+      {},
+    );
+    if (statusCode < 200 || statusCode >= 300) {
+      throw new Error(`Registry returned ${statusCode}`);
     }
-    const hasAccess = projects.some((p) => p.name === projectName || p.project === projectName);
-    return hasAccess;
+    const projectName = crd.spec?.feastProject ?? crd.metadata.name;
+    const projects = data.projects || [];
+    return projects.some((p) => (p.spec?.name || p.name) === projectName);
   } catch (error) {
     fastify.log.info(
-      `Access check for ${projectName}: DENIED (registry not accessible) - ${error.message}`,
+      `Access check for ${crd.metadata.namespace}/${crd.metadata.name}: DENIED ${
+        error instanceof Error ? error.message : String(error)
+      }`,
     );
     return false;
   }
-}
-
-async function checkMultipleFeatureStoreAccess(
-  fastify: KubeFastifyInstance,
-  configs: ClientConfigInfo[],
-  userToken?: string,
-): Promise<Map<string, boolean>> {
-  const accessResults = new Map<string, boolean>();
-
-  const accessPromises = configs.map(async (config) => {
-    const hasAccess = await checkFeatureStoreAccess(
-      fastify,
-      config.registryUrl,
-      config.projectName,
-      userToken,
-    );
-    return { name: config.projectName, hasAccess };
-  });
-
-  const results = await Promise.all(accessPromises);
-
-  results.forEach(({ name, hasAccess }) => {
-    accessResults.set(name, hasAccess);
-  });
-
-  return accessResults;
 }
 
 export default async (fastify: KubeFastifyInstance): Promise<void> => {
@@ -75,58 +69,52 @@ export default async (fastify: KubeFastifyInstance): Promise<void> => {
     '/workbench-integration',
     secureRoute(fastify)(async (req: OauthFastifyRequest, reply: FastifyReply) => {
       try {
-        const { dashboardNamespace } = getNamespaces(fastify);
-        const feastConfig = await fetchConfigMap(
-          fastify,
-          dashboardNamespace,
-          'feast-configs-registry',
-        );
+        const kubeHeaders = (await getDirectCallOptions(fastify, req, '')).headers as Record<
+          string,
+          string
+        >;
+        const token = getAccessToken({ headers: kubeHeaders });
 
-        if (!feastConfig || !feastConfig.data?.namespaces) {
-          return reply.send({
-            namespaces: [],
-          });
+        if (!token) {
+          return reply.code(401).send({ error: 'User authentication required' });
         }
 
-        const parsedData = parseNamespacesData(feastConfig.data.namespaces);
-        const namespaces = Object.entries(parsedData.namespaces || {}).map(
-          ([ns, clientConfigs]) => ({
-            namespace: ns,
-            clientConfigs: clientConfigs as string[],
+        const namespaces = await listFeastNamespaces(fastify, kubeHeaders);
+
+        if (namespaces.length === 0) {
+          return reply.send({ namespaces: [] });
+        }
+
+        // Collect all enabled FeatureStore CRDs across user-accessible namespaces
+        const crdsByNamespace = await Promise.all(
+          namespaces.map(async (ns) => ({
+            ns,
+            crds: await listFeastFeatureStoreCRDs(fastify, ns, kubeHeaders),
+          })),
+        );
+
+        const namespaceResults = await Promise.all(
+          crdsByNamespace.map(async ({ ns, crds }) => {
+            const availableFeatureStores = crds.filter(isRegistryReady);
+
+            const configResults = await Promise.all(
+              availableFeatureStores.map(async (crd) => {
+                const projectName = crd.spec?.feastProject ?? crd.metadata.name;
+                const hasAccess = await hasAccessToProject(fastify, crd, token);
+                return {
+                  configName: crd.metadata.name,
+                  projectName,
+                  hasAccessToFeatureStore: hasAccess,
+                };
+              }),
+            );
+
+            return {
+              namespace: ns,
+              clientConfigs: configResults.filter((c) => c.hasAccessToFeatureStore),
+            };
           }),
         );
-
-        const token = await getAccessToken(await getDirectCallOptions(fastify, req, ''));
-
-        const allClientConfigsData = await getClientConfigs(
-          fastify,
-          Object.fromEntries(
-            namespaces.map(({ namespace, clientConfigs }) => [namespace, clientConfigs]),
-          ),
-        );
-
-        const accessResults = await checkMultipleFeatureStoreAccess(
-          fastify,
-          allClientConfigsData,
-          token,
-        );
-
-        const namespaceResults = namespaces.map(({ namespace }) => {
-          const namespaceConfigs = allClientConfigsData.filter(
-            (config) => config.namespace === namespace,
-          );
-          const accessibleConfigs = namespaceConfigs
-            .filter((config) => accessResults.get(config.projectName))
-            .map((config) => ({
-              configName: config.configName,
-              projectName: config.projectName,
-              hasAccessToFeatureStore: accessResults.get(config.projectName) ?? false,
-            }));
-          return {
-            namespace,
-            clientConfigs: accessibleConfigs,
-          };
-        });
 
         const response: WorkbenchResponse = {
           namespaces: namespaceResults.filter((ns) => ns.clientConfigs.length > 0),
