@@ -126,12 +126,16 @@ func (app *App) evalHubServiceURL(ctx context.Context) (serviceURL, authToken st
 	}
 
 	// Try the user-selected namespace first (set by AttachNamespace middleware on API routes).
+	// Permission errors (e.g. user cannot list evalhubs CRD in the tenant namespace) are
+	// non-fatal — fall through to the dashboard namespace where the CR typically lives.
 	if userNS, ok := ctx.Value(constants.NamespaceHeaderParameterKey).(string); ok && userNS != "" {
 		crStatus, err := k8sClient.GetEvalHubCRStatus(ctx, identity, userNS)
 		if err != nil {
-			return "", "", false, fmt.Errorf("EvalHub CR lookup failed in namespace %q: %w", userNS, err)
-		}
-		if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
+			if logger := helper.GetContextLogger(ctx); logger != nil {
+				logger.Debug("EvalHub CR lookup failed in user namespace, falling through to dashboard namespace",
+					"namespace", userNS, "error", err)
+			}
+		} else if crStatus != nil && strings.TrimSpace(crStatus.URL) != "" {
 			return crStatus.URL, authToken, false, nil
 		}
 	}

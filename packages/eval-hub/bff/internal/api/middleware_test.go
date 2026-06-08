@@ -127,10 +127,16 @@ func TestEvalHubServiceURL_NoUserNamespaceInContext(t *testing.T) {
 	assert.Equal(t, "http://evalhub.odh.svc:8080", serviceURL)
 }
 
-func TestEvalHubServiceURL_UserNamespaceLookupError(t *testing.T) {
+func TestEvalHubServiceURL_UserNamespaceLookupError_FallsThroughToDashboard(t *testing.T) {
 	client := &namespaceAwareCRClient{
 		errByNS: map[string]error{
 			"user-project": fmt.Errorf("forbidden"),
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{
+			"redhat-ods-applications": {
+				Name: "evalhub", Namespace: "redhat-ods-applications", Phase: "Ready",
+				URL: "http://evalhub.platform.svc:8080",
+			},
 		},
 	}
 
@@ -138,10 +144,30 @@ func TestEvalHubServiceURL_UserNamespaceLookupError(t *testing.T) {
 	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
 	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "user-project")
 
-	_, _, _, err := app.evalHubServiceURL(ctx)
+	serviceURL, _, crNotFound, err := app.evalHubServiceURL(ctx)
 
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "user-project")
+	require.NoError(t, err)
+	assert.False(t, crNotFound)
+	assert.Equal(t, "http://evalhub.platform.svc:8080", serviceURL)
+}
+
+func TestEvalHubServiceURL_UserNamespaceLookupError_NoCRAnywhere(t *testing.T) {
+	client := &namespaceAwareCRClient{
+		errByNS: map[string]error{
+			"user-project": fmt.Errorf("forbidden"),
+		},
+		crByNamespace: map[string]*models.EvalHubCRStatus{},
+	}
+
+	app := newTestApp(client, "redhat-ods-applications")
+	ctx := context.WithValue(context.Background(), constants.RequestIdentityKey, &kubernetes.RequestIdentity{UserID: "user@test.com", Token: "tok"})
+	ctx = context.WithValue(ctx, constants.NamespaceHeaderParameterKey, "user-project")
+
+	serviceURL, _, crNotFound, err := app.evalHubServiceURL(ctx)
+
+	require.NoError(t, err)
+	assert.True(t, crNotFound)
+	assert.Empty(t, serviceURL)
 }
 
 func TestEvalHubServiceURL_EnvOverrideBypassesCRDiscovery(t *testing.T) {
