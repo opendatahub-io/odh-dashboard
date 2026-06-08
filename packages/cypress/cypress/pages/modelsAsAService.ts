@@ -91,6 +91,18 @@ class APIKeysPage {
     return cy.findByRole('menuitem', { name: new RegExp(status, 'i') });
   }
 
+  findSubscriptionFilterToggle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('api-key-subscription-filter-toggle');
+  }
+
+  findSubscriptionFilterOption(name: string): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId(`subscription-filter-option-${name}`);
+  }
+
+  findAllSubscriptionsOption(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-filter-option-all');
+  }
+
   findStatusFilterOptionCheckbox(status: string): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findStatusFilterOption(status).findByRole('checkbox');
   }
@@ -124,6 +136,45 @@ class APIKeysPage {
   }
 }
 
+class MySubscriptionsPage {
+  visit(subName: string): void {
+    cy.visitWithLogin(`/maas/keys-and-subs/subscriptions/${subName}`);
+    this.wait();
+  }
+
+  findTitle(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('app-page-title');
+  }
+
+  private wait(): void {
+    cy.findByTestId('app-page-title').should('exist');
+    cy.findByTestId('my-subscription-details-section').should('exist');
+    cy.testA11y();
+  }
+
+  findDetailsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('my-subscription-details-section');
+  }
+
+  findModelsSection(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-models-section');
+  }
+
+  findApiKeysTable(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('subscription-api-keys-table');
+  }
+
+  getRow(name: string): APIKeyTableRow {
+    return new APIKeyTableRow(() =>
+      this.findApiKeysTable().find('tbody tr').contains('td', name).parents('tr'),
+    );
+  }
+
+  findCreateApiKeyButton(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return cy.findByTestId('create-api-key-button');
+  }
+}
+
 class APIKeyTableRow extends TableRow {
   findName(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().find('[data-label="Name"]');
@@ -141,8 +192,8 @@ class APIKeyTableRow extends TableRow {
     return this.find().find('[data-label="Subscription"]');
   }
 
-  findSubscriptionPopoverButton(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findSubscription().findByTestId('subscription-popover-button');
+  findSubscriptionDetailLink(): Cypress.Chainable<JQuery<HTMLElement>> {
+    return this.findSubscription().findByTestId('subscription-detail-link');
   }
 
   findCreationDate(): Cypress.Chainable<JQuery<HTMLElement>> {
@@ -1088,3 +1139,4 @@ export const policyPage = new PolicyPage();
 export const authPoliciesPage = new AuthPoliciesPage();
 export const deleteAuthPolicyModal = new DeleteAuthPolicyModal();
 export const viewAuthPolicyPage = new ViewAuthPolicyPage();
+export const mySubscriptionsPage = new MySubscriptionsPage();

@@ -5,6 +5,7 @@ import {
   getRoleLabelTypeForRoleRef,
   getRoleRefKey,
   hasRoleRef,
+  isDashboardRole,
 } from '#~/concepts/permissions/utils';
 import { RBAC_SUBJECT_KIND_GROUP, RBAC_SUBJECT_KIND_USER } from '#~/concepts/permissions/const';
 import { RoleLabelType } from '#~/concepts/permissions/types';
@@ -35,8 +36,7 @@ export const getReversibleRoleRefs = (
 export const isDefaultRoleRef = (roleRef: RoleRef): boolean =>
   getRoleLabelTypeForRoleRef(roleRef) === RoleLabelType.OpenshiftDefault;
 
-export const isDashboardRole = (role?: RoleKind | ClusterRoleKind): boolean =>
-  role ? getRoleLabelTypeForRole(role) === RoleLabelType.Dashboard : false;
+export { isDashboardRole };
 
 export const isAiRole = (roleRef: RoleRef, role?: RoleKind | ClusterRoleKind): boolean =>
   isDefaultRoleRef(roleRef) || isDashboardRole(role);
