@@ -100,10 +100,7 @@ describe('API Keys Page', () => {
     apiKeysPage.findTitle().should('contain.text', 'API keys');
     apiKeysPage
       .findDescription()
-      .should(
-        'contain.text',
-        'Manage API keys that can be used to authenticate with model endpoints.',
-      );
+      .should('contain.text', 'Manage your API keys and view your subscription access.');
 
     apiKeysPage.findTable().should('exist');
     apiKeysPage.findRows().should('have.length', 3);
