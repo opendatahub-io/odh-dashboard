@@ -9,10 +9,9 @@ import {
   Alert,
   AlertActionCloseButton,
 } from '@patternfly/react-core';
-import { UpdateObjectAtPropAndValue } from 'mod-arch-shared';
+import { UpdateObjectAtPropAndValue, ThemeAwareFormGroupWrapper } from 'mod-arch-shared';
 import PasswordInput from '~/app/shared/components/PasswordInput';
 import FormSection from '~/app/pages/modelRegistry/components/pf-overrides/FormSection';
-import ThemeAwareFormGroupWrapper from '~/app/pages/settings/components/ThemeAwareFormGroupWrapper';
 import { ManageSourceFormData } from '~/app/pages/modelCatalogSettings/useManageSourceData';
 import { validateOrganization } from '~/app/pages/modelCatalogSettings/utils/validation';
 import {
@@ -93,6 +92,7 @@ const CredentialsSection: React.FC<CredentialsSectionProps> = ({
         label={FORM_LABELS.ORGANIZATION}
         fieldId="organization"
         isRequired
+        hasError={!!organizationHelperTxtNode}
         descriptionTextNode={organizationDescriptionTxtNode}
         helperTextNode={organizationHelperTxtNode}
       >
