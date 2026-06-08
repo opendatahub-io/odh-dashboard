@@ -157,18 +157,8 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
       if (existingFieldData) {
         return existingFieldData;
       }
-      // if llmd is default
       const options = getOptions(externalData, dependencies?.hardwareProfile);
 
-      if (externalData?.isLlmdSuggested) {
-        return {
-          data: {
-            selection: LLMD_OPTION,
-            autoSelect: true,
-            suggestion: LLMD_OPTION,
-          },
-        };
-      }
       // if there is only one matching hardware profile, select it
       const matchingHardwareProfileOption = options.filter(
         (option) => option.compatibleWithHardwareProfile,
@@ -179,6 +169,16 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
             selection: matchingHardwareProfileOption[0],
             autoSelect: true,
             suggestion: matchingHardwareProfileOption[0],
+          },
+        };
+      }
+      // if llmd is default and no specific hardware match was found
+      if (externalData?.isLlmdSuggested) {
+        return {
+          data: {
+            selection: LLMD_OPTION,
+            autoSelect: true,
+            suggestion: LLMD_OPTION,
           },
         };
       }
