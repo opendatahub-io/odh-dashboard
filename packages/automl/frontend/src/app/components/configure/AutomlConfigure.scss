@@ -11,6 +11,10 @@
   margin-right: var(--pf-t--global--spacer--sm);
 }
 
+.automl-optimization-metric-modal {
+  height: 50vh;
+}
+
 .automl-configure__toggle-group-full-width {
   .pf-v6-c-toggle-group__item {
     flex: 1 0 0;

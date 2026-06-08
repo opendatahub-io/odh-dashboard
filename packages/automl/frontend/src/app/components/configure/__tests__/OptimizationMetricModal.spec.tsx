@@ -81,21 +81,18 @@ describe('OptimizationMetricModal', () => {
   describe('Selection', () => {
     it('should pre-select the default metric for the task type when no metric is set', () => {
       renderComponent({}, { task_type: 'binary' });
-      const radio = screen.getByTestId('eval-metric-radio-accuracy').querySelector('input');
-      expect(radio).toBeChecked();
+      expect(screen.getByRole('radio', { name: /^Accuracy$/i })).toBeChecked();
     });
 
     it('should pre-select the current eval_metric from the form', () => {
       renderComponent({}, { task_type: 'binary', eval_metric: 'f1' });
-      const radio = screen.getByTestId('eval-metric-radio-f1').querySelector('input');
-      expect(radio).toBeChecked();
+      expect(screen.getByRole('radio', { name: /F₁/i })).toBeChecked();
     });
 
     it('should allow selecting a different metric', () => {
       renderComponent({}, { task_type: 'binary' });
       fireEvent.click(screen.getByTestId('eval-metric-radio-roc_auc'));
-      const radio = screen.getByTestId('eval-metric-radio-roc_auc').querySelector('input');
-      expect(radio).toBeChecked();
+      expect(screen.getByRole('radio', { name: /^ROC AUC$/i })).toBeChecked();
     });
   });
 

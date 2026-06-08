@@ -19,6 +19,7 @@ import {
 } from '~/app/utilities/const';
 import type { EvalMetric } from '~/app/utilities/const';
 import { formatMetricName } from '~/app/utilities/utils';
+import './AutomlConfigure.scss';
 
 type OptimizationMetricModalProps = {
   isOpen: boolean;
@@ -51,13 +52,14 @@ const OptimizationMetricModal: React.FC<OptimizationMetricModalProps> = ({
       variant={ModalVariant.small}
       isOpen={isOpen}
       onClose={onCancel}
+      className="automl-optimization-metric-modal"
       data-testid="optimization-metric-modal"
     >
       <ModalHeader title="Select optimization metric" />
       <ModalBody>
         <Content component="p" className="pf-v6-u-mb-md">
-          Choose the metric to optimize when comparing pipelines. AutoML will rank pipelines based
-          on this metric.
+          Choose the metric to optimize when comparing models. AutoML will rank models based on this
+          metric.
         </Content>
         <Flex direction={{ default: 'column' }}>
           {metrics.map((metric) => (
