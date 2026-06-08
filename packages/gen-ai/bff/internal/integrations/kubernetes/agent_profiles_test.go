@@ -632,6 +632,25 @@ func TestValidateAgentProfile(t *testing.T) {
 			errMsg:  "maxOutputTokens must be between 1 and 32000",
 		},
 		{
+			name: "vector store - empty stores array",
+			profile: &models.AgentProfile{
+				APIVersion: "genai.redhat.com/v1alpha1",
+				Kind:       "AgentProfile",
+				Metadata: models.AgentProfileMetadata{
+					Name: "100e8400-e29b-41d4-a716-446655440011",
+				},
+				Spec: models.AgentProfileSpec{
+					DisplayName: "Test",
+					Model:       models.ModelReference{ID: "m", URI: "u"},
+					VectorStores: &models.VectorStoresConfig{
+						Stores: []models.VectorStoreRef{},
+					},
+				},
+			},
+			wantErr: true,
+			errMsg:  "must contain at least one item",
+		},
+		{
 			name: "vector store - both storeRef and id set",
 			profile: &models.AgentProfile{
 				APIVersion: "genai.redhat.com/v1alpha1",

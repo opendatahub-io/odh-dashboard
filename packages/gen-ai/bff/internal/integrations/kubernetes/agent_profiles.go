@@ -248,6 +248,9 @@ func validateAgentProfile(profile *models.AgentProfile) error {
 
 	// Validate vector stores if provided
 	if profile.Spec.VectorStores != nil {
+		if len(profile.Spec.VectorStores.Stores) == 0 {
+			return fmt.Errorf("spec.vectorStores.stores: must contain at least one item")
+		}
 		for i, store := range profile.Spec.VectorStores.Stores {
 			// Exactly one of storeRef or id must be set
 			if (store.StoreRef == nil && store.ID == "") || (store.StoreRef != nil && store.ID != "") {
