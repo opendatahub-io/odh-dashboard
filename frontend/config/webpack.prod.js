@@ -41,6 +41,7 @@ module.exports = merge(
     devtool: 'source-map',
     output: {
       filename: '[name].[contenthash].bundle.js',
+      chunkFilename: '[name]-[contenthash].js',
     },
     optimization: {
       minimize: true,

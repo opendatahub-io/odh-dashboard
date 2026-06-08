@@ -221,7 +221,7 @@ module.exports = (env) => ({
     filename: '[name].bundle.js',
     path: DIST_DIR,
     publicPath: PUBLIC_PATH,
-    chunkFilename: '[name]-[chunkhash].js',
+    chunkFilename: '[name].js',
   },
   optimization: {
     splitChunks: {
