@@ -33,9 +33,19 @@ export const getTokenNames = (
 
 const AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getSpecAnnotation = (resource: any, key: string): string | undefined => {
-  const value = resource?.spec?.annotations?.[key];
+const getSpecAnnotationValue = (model: Deployment['model'], key: string): string | undefined => {
+  if (!('spec' in model) || model.spec == null || typeof model.spec !== 'object') {
+    return undefined;
+  }
+  const { spec } = model;
+  if (
+    !('annotations' in spec) ||
+    spec.annotations == null ||
+    typeof spec.annotations !== 'object'
+  ) {
+    return undefined;
+  }
+  const value = Object.entries(spec.annotations).find(([k]) => k === key)?.[1];
   return typeof value === 'string' ? value : undefined;
 };
 
@@ -44,7 +54,7 @@ export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
   if (modelAnno !== undefined) {
     return modelAnno !== 'false';
   }
-  const specAnno = getSpecAnnotation(deployment.model, AUTH_ANNOTATION);
+  const specAnno = getSpecAnnotationValue(deployment.model, AUTH_ANNOTATION);
   if (specAnno !== undefined) {
     return specAnno !== 'false';
   }
@@ -52,7 +62,7 @@ export const isDeploymentAuthEnabled = (deployment: Deployment): boolean => {
   if (serverAnno !== undefined) {
     return serverAnno !== 'false';
   }
-  return false;
+  return true;
 };
 
 const useDeploymentSecrets = (
