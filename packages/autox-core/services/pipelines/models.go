@@ -143,7 +143,7 @@ type DiscoveredPipeline struct {
 // PipelineDefinition describes a managed pipeline for discovery and auto-creation.
 type PipelineDefinition struct {
 	Name        string // Exact pipeline display name
-	Version     string // Release version suffix (e.g. "3.4.0")
+	Version     string // Release version suffix (e.g. "3.5.0-ea.2")
 	FileContent []byte // YAML content for auto-creation (required for EnsurePipeline)
 }
 

@@ -152,6 +152,26 @@ const buildSourcesFromAnnotations = (annotations: FileCitationAnnotation[]): Sou
   }));
 };
 
+export const RAW_TOOL_CALL_WARNING =
+  '⚠️ The model returned a raw tool call instead of generating a response. ' +
+  'This usually indicates that the inference server is not configured to handle tool calling. ' +
+  'Please contact your administrator.\n\nModel response:\n';
+
+export const looksLikeRawToolCall = (text: string): boolean => {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
+    return false;
+  }
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return (
+      typeof parsed === 'object' && parsed !== null && 'name' in parsed && 'parameters' in parsed
+    );
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Extracts text content from the backend response output array
  * @param output - Array of output items from backend response
@@ -173,6 +193,10 @@ const extractContentFromOutput = (output?: OutputItem[]): string => {
         }
       }
     }
+  }
+
+  if (looksLikeRawToolCall(content)) {
+    return `${RAW_TOOL_CALL_WARNING}${content}`;
   }
 
   return content;
@@ -309,15 +333,17 @@ const streamCreateResponse = (
 
         try {
           let done = false;
+          let partialLine = '';
           while (!done) {
             const result = await reader.read();
             done = result.done;
 
             if (!done && result.value) {
               const chunk = decoder.decode(result.value, { stream: true });
-              const lines = chunk.split('\n');
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
 
-              for (const line of lines) {
+              for (const line of parts) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6));
@@ -369,6 +395,49 @@ const streamCreateResponse = (
                   } catch {
                     // ignore malformed lines
                   }
+                }
+              }
+            }
+          }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    const errMsg = data.error.message || 'An error occurred during streaming';
+                    if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+                      fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                    }
+                    reject(Object.assign(new Error(errMsg), { code: data.error.code }));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta') {
+                    if (data.delta) {
+                      const isFirstRefusal = !receivedRefusal;
+                      if (isFirstRefusal) {
+                        receivedRefusal = true;
+                        fullContent = '';
+                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      }
+                      fullContent += data.delta;
+                      onStreamData(data.delta, isFirstRefusal);
+                    }
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
                 }
               }
             }
@@ -467,6 +536,187 @@ export const createResponse =
     }
     return postCreateResponse(hostPath, baseQueryParams, data, opts);
   };
+
+/**
+ * Passthrough request for embedded chatbot mode.
+ * Sends a raw Responses API body directly to the BFF, bypassing the
+ * normal OGX (Open GenAI Stack) flow. The BFF proxies to the OGX instance using
+ * the specified connection secret.
+ *
+ * Always uses streaming (BFF forces stream: true).
+ */
+export const createPassthroughResponse = (
+  bffBasePath: string,
+  namespace: string,
+  secretName: string,
+  body: Record<string, unknown>,
+  onStreamData: (chunk: string, clearPrevious?: boolean) => void,
+  abortSignal?: AbortSignal,
+): Promise<SimplifiedResponseData> => {
+  const trimmed = bffBasePath.replace(/\/+$/, '');
+  const base = trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+  const url = `${base}/lsd/responses/passthrough?namespace=${encodeURIComponent(namespace)}&secretName=${encodeURIComponent(secretName)}`;
+
+  // TODO P2: Display retrieval context (file_search_call.results) alongside responses — see Phase 6.1
+
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(body),
+      signal: abortSignal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorBody = await response.text();
+            const errorData = JSON.parse(errorBody);
+            errorMessage = errorData?.error?.message || errorMessage;
+          } catch {
+            // ignore
+          }
+
+          // Differentiated error messages for embedded mode
+          if (response.status === 502 || response.status === 503) {
+            throw new Error(
+              'The OGX instance is not responding. Check that the instance is running and reachable.',
+            );
+          }
+          if (response.status === 404) {
+            throw new Error(
+              `The connection secret '${secretName}' was not found in namespace '${namespace}'.`,
+            );
+          }
+          if (response.status === 403) {
+            throw new Error(
+              'You do not have permission to access this resource. Contact your administrator.',
+            );
+          }
+          throw new Error(errorMessage);
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Unable to read stream');
+        }
+
+        let fullContent = '';
+        let completeResponseData: BackendResponseData | null = null;
+        let metricsData: ResponseMetrics | null = null;
+        const decoder = new TextDecoder();
+
+        try {
+          let done = false;
+          let partialLine = '';
+          while (!done) {
+            const result = await reader.read();
+            done = result.done;
+
+            if (!done && result.value) {
+              const chunk = decoder.decode(result.value, { stream: true });
+              const parts = (partialLine + chunk).split('\n');
+              partialLine = chunk.endsWith('\n') ? '' : parts.pop()!;
+
+              for (const line of parts) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6));
+
+                    if (data.error) {
+                      await reader.cancel('Streaming error');
+                      reject(new Error(data.error.message || 'An error occurred during streaming'));
+                      return;
+                    }
+
+                    if (data.delta && data.type === 'response.output_text.delta') {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.refusal.delta' && data.delta) {
+                      fullContent += data.delta;
+                      onStreamData(data.delta);
+                    } else if (data.type === 'response.completed' && data.response) {
+                      completeResponseData = data.response;
+                    } else if (
+                      data.type === 'response.metrics' &&
+                      isResponseMetrics(data.metrics)
+                    ) {
+                      metricsData = data.metrics;
+                    }
+                  } catch {
+                    // ignore malformed lines
+                  }
+                }
+              }
+            }
+          }
+
+          // Flush any trailing SSE data left in the buffer after the stream ends
+          partialLine += decoder.decode();
+          if (partialLine) {
+            for (const line of partialLine.split('\n')) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.error) {
+                    reject(new Error(data.error.message || 'An error occurred during streaming'));
+                    return;
+                  }
+
+                  if (data.delta && data.type === 'response.output_text.delta') {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.refusal.delta' && data.delta) {
+                    fullContent += data.delta;
+                    onStreamData(data.delta);
+                  } else if (data.type === 'response.completed' && data.response) {
+                    completeResponseData = data.response;
+                  } else if (data.type === 'response.metrics' && isResponseMetrics(data.metrics)) {
+                    metricsData = data.metrics;
+                  }
+                } catch {
+                  // ignore malformed lines
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
+        }
+
+        const annotations = completeResponseData?.output
+          ? extractAnnotationsFromOutput(completeResponseData.output)
+          : [];
+        const sources = buildSourcesFromAnnotations(annotations);
+        const finalContent = completeResponseData?.output
+          ? extractContentFromOutput(completeResponseData.output)
+          : fullContent;
+
+        resolve({
+          id: completeResponseData?.id || 'passthrough-response',
+          model: completeResponseData?.model || 'unknown',
+          status: completeResponseData?.status || 'completed',
+          created_at: completeResponseData?.created_at || Date.now(),
+          content: finalContent,
+          ...(sources.length > 0 && { sources }),
+          ...(metricsData && { metrics: metricsData }),
+        });
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === 'AbortError') {
+          reject(new Error('Response stopped by user'));
+          return;
+        }
+        reject(
+          error instanceof Error ? error : new Error('Failed to generate passthrough response'),
+        );
+      });
+  });
+};
 
 const modArchRestGET =
   <T>(path: string) =>

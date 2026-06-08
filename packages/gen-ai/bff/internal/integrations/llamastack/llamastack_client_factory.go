@@ -23,6 +23,7 @@ type LlamaStackClientInterface interface {
 	DeleteVectorStoreFile(ctx context.Context, vectorStoreID, fileID string) error
 	CreateResponse(ctx context.Context, params CreateResponseParams) (*responses.Response, error)
 	CreateResponseStream(ctx context.Context, params CreateResponseParams) (ResponseStreamIterator, error)
+	CreateResponseStreamRaw(ctx context.Context, body map[string]interface{}) (ResponseStreamIterator, error)
 	GetResponse(ctx context.Context, responseID string) (*responses.Response, error)
 }
 
