@@ -54,7 +54,10 @@ const ModelCatalogFilters: React.FC = () => {
       !toolCallingFeatureAvailable &&
       filters[ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION].length > 0
     ) {
-      setFilters((prev) => ({ ...prev, [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [] }));
+      setFilters((prev) => ({
+        ...prev,
+        [ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION]: [],
+      }));
     }
     // Only react to flag changes — including filters would cause an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
