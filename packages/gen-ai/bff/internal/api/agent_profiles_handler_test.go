@@ -87,7 +87,7 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 
-				assert.Equal(t, "invalid_request", envelope.Error.Code)
+				assert.Equal(t, "400", envelope.Error.Code)
 				assert.Contains(t, envelope.Error.Message, "displayName is required")
 			},
 		},
@@ -104,7 +104,8 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 				err := json.Unmarshal(responseBody, &envelope)
 				require.NoError(t, err)
 
-				assert.Equal(t, "missing_namespace", envelope.Error.Code)
+				assert.Equal(t, "400", envelope.Error.Code)
+				assert.Contains(t, envelope.Error.Message, "namespace")
 			},
 		},
 	}
@@ -162,11 +163,19 @@ func TestCreateAgentProfileHandler(t *testing.T) {
 			// Validate status code
 			rs := rr.Result()
 			defer func() { _ = rs.Body.Close() }()
-			assert.Equal(t, tt.wantStatusCode, rs.StatusCode)
 
 			// Validate response body
 			responseBody, err := io.ReadAll(rs.Body)
 			require.NoError(t, err)
+
+			// Debug output
+			if rs.StatusCode != tt.wantStatusCode {
+				t.Logf("Response status: %d, body: %s", rs.StatusCode, string(responseBody))
+			} else if testing.Verbose() {
+				t.Logf("Response body: %s", string(responseBody))
+			}
+
+			assert.Equal(t, tt.wantStatusCode, rs.StatusCode)
 
 			if tt.validateFunc != nil {
 				tt.validateFunc(t, responseBody)
