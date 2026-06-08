@@ -297,6 +297,12 @@ func catalogCustomPropertiesWithVariant(variantGroupId string, tensorType string
 				MetadataType: "MetadataStringValue",
 			},
 		},
+		"hardware_tag": {
+			MetadataStringValue: &openapi.MetadataStringValue{
+				StringValue:  "GPU",
+				MetadataType: "MetadataStringValue",
+			},
+		},
 	}
 
 	// Add variant_group_id if provided

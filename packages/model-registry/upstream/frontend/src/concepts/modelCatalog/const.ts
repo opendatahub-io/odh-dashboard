@@ -273,7 +273,13 @@ export enum CatalogModelCustomPropertyKey {
   MODEL_SIZE = 'model_size',
   MINIMUM_VRAM = 'min_vram_gb',
   HARDWARE_CONFIGURATIONS = 'cold_start_matrix',
+  HARDWARE_TAG = 'hardware_tag',
 }
+
+// Custom property keys whose values (not keys) should be displayed as card labels.
+export const CATALOG_VALUE_LABEL_KEYS: CatalogModelCustomPropertyKey[] = [
+  CatalogModelCustomPropertyKey.HARDWARE_TAG,
+];
 
 export enum ModelType {
   GENERATIVE = 'generative',
