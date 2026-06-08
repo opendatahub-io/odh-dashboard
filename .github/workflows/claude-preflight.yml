@@ -33,11 +33,6 @@ jobs:
   router:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-      issues: write
-      checks: read
     outputs:
       matrix: ${{ steps.comment.outputs.matrix || steps.cron.outputs.matrix || '[]' }}
 
@@ -52,7 +47,6 @@ jobs:
           ACTOR: ${{ github.triggering_actor }}
           IS_PR: ${{ github.event.issue.pull_request.url }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
-          COMMENT_ID: ${{ github.event.comment.id }}
           REPO: ${{ github.repository }}
         run: |
           if [[ "$ACTOR" == *"[bot]"* ]]; then
@@ -75,8 +69,6 @@ jobs:
           if [ -z "$MODE" ]; then
             echo "Skipping: no @odh-dashboard-agent command found"; exit 0
           fi
-
-          gh api "repos/$REPO/issues/comments/$COMMENT_ID/reactions" -f content="+1" --silent || true
 
           PR_DATA=$(gh pr view "$ISSUE_NUMBER" --repo "$REPO" --json headRefOid,headRefName,headRepository)
           SHA=$(echo "$PR_DATA" | jq -r '.headRefOid')
@@ -236,9 +228,6 @@ jobs:
       - name: Install MLflow
         run: pip install "mlflow==3.12.0"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@38f3f104447c67c051c4a08e39b64a148898af3a # v4
-
       # ── Check (read-only) ──
       - name: Preflight check
         if: matrix.mode == 'check-only'
@@ -269,8 +258,6 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
-            --allowedTools "mcp__jira__*"
-            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --skip-review coderabbit --ci"
 
       # ── Fix (iterative) ──
@@ -303,9 +290,60 @@ jobs:
             --allowedTools "Bash(npm *)"
             --allowedTools "Bash(npx *)"
             --allowedTools "Bash(bash *)"
-            --allowedTools "mcp__jira__*"
-            --mcp-config '{"mcpServers":{"jira":{"command":"uvx","args":["mcp-atlassian"],"env":{"JIRA_URL":"${{ secrets.JIRA_URL }}","JIRA_USERNAME":"${{ secrets.JIRA_USERNAME }}","JIRA_API_TOKEN":"${{ secrets.JIRA_API_TOKEN }}","READ_ONLY_MODE":"true"}}}}'
           prompt: "/preflight ${{ env.PR_NUMBER }} --fix --skip-review coderabbit --ci"
+
+      # ── Tag trace with PR context ──
+      - name: Tag preflight trace
+        if: always() && env.HEAD_REPO == github.repository
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+          TRIGGER_ACTOR: ${{ github.event.comment.user.login || github.actor }}
+          TRIGGER_COMMENT_URL: ${{ github.event.comment.html_url }}
+          TRIGGER_COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          python3 -c "
+          import mlflow, os, warnings
+          warnings.filterwarnings('ignore')
+
+          commit = '${{ env.HEAD_SHA }}'
+          traces = mlflow.search_traces(experiment_ids=['1'], return_type='list')
+          match = [t for t in traces if (t.info.request_metadata or {}).get('mlflow.source.git.commit', '').startswith(commit)]
+
+          if not match:
+              print(f'[WARN] No trace found for commit {commit[:12]}')
+              exit(0)
+
+          trace_id = match[0].info.request_id
+          print(f'[TAG] Tagging trace {trace_id[:16]} for PR #${{ env.PR_NUMBER }}')
+
+          mlflow.set_trace_tag(trace_id, 'pr_number', '${{ env.PR_NUMBER }}')
+          mlflow.set_trace_tag(trace_id, 'pr_url', 'https://github.com/${{ github.repository }}/pull/${{ env.PR_NUMBER }}')
+          mlflow.set_trace_tag(trace_id, 'triggered_by', os.environ.get('TRIGGER_ACTOR', ''))
+          comment_url = os.environ.get('TRIGGER_COMMENT_URL', '')
+          if comment_url:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_url', comment_url)
+          comment_id = os.environ.get('TRIGGER_COMMENT_ID', '')
+          if comment_id:
+              mlflow.set_trace_tag(trace_id, 'trigger_comment_id', comment_id)
+          "
+
+      # ── Evaluate trace ──
+      - name: Evaluate preflight trace
+        if: always() && env.HEAD_REPO == github.repository
+        continue-on-error: true
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_TOKEN: ${{ secrets.MLFLOW_TRACKING_TOKEN }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          MLFLOW_WORKSPACE: "odh-dashboard-tracing"
+        run: |
+          python3 .claude/skills/preflight/tests/test_skill.py \
+            .claude/skills/preflight/tests/configs/preflight_check.yaml \
+            --commit ${{ env.HEAD_SHA }}
 
       # ── Report ──
       - name: Update check run (success)
