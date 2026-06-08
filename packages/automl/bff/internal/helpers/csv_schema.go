@@ -136,40 +136,28 @@ func inferColumnType(rows [][]string, colIndex int) string {
 
 		switch currentType {
 		case "bool":
-			if !isBoolean(value) {
-				currentType = "timestamp"
-				if !allValuesMatchType(rows, colIndex, isTimestamp) {
-					currentType = "integer"
-					if !allValuesMatchType(rows, colIndex, isInteger) {
-						currentType = "double"
-						if !allValuesMatchType(rows, colIndex, isNumber) {
-							currentType = "string"
-						}
-					}
-				}
+			if looksLikeBoolean(value) {
+				continue
 			}
+			currentType = "timestamp"
+			fallthrough
 		case "timestamp":
-			if !isTimestamp(value) {
-				currentType = "integer"
-				if !allValuesMatchType(rows, colIndex, isInteger) {
-					currentType = "double"
-					if !allValuesMatchType(rows, colIndex, isNumber) {
-						currentType = "string"
-					}
-				}
+			if looksLikeTimestamp(value) {
+				continue
 			}
+			currentType = "integer"
+			fallthrough
 		case "integer":
-			if !isInteger(value) {
-				if isNumber(value) {
-					currentType = "double"
-				} else {
-					currentType = "string"
-				}
+			if looksLikeInteger(value) {
+				continue
 			}
+			currentType = "double"
+			fallthrough
 		case "double":
-			if !isNumber(value) {
-				currentType = "string"
+			if looksLikeDouble(value) {
+				continue
 			}
+			currentType = "string"
 		}
 
 		if currentType == "string" {
@@ -178,18 +166,6 @@ func inferColumnType(rows [][]string, colIndex int) string {
 	}
 
 	return currentType
-}
-
-func allValuesMatchType(rows [][]string, colIndex int, checker func(string) bool) bool {
-	for _, row := range rows {
-		if colIndex >= len(row) || strings.TrimSpace(row[colIndex]) == "" {
-			continue
-		}
-		if !checker(strings.TrimSpace(row[colIndex])) {
-			return false
-		}
-	}
-	return true
 }
 
 func parseFiniteFloat(s string) (float64, error) {
@@ -203,12 +179,12 @@ func parseFiniteFloat(s string) (float64, error) {
 	return v, nil
 }
 
-func isNumber(s string) bool {
+func looksLikeDouble(s string) bool {
 	_, err := parseFiniteFloat(s)
 	return err == nil
 }
 
-func isInteger(s string) bool {
+func looksLikeInteger(s string) bool {
 	f, err := parseFiniteFloat(s)
 	if err != nil {
 		return false
@@ -216,7 +192,7 @@ func isInteger(s string) bool {
 	return f == float64(int64(f)) && !strings.Contains(s, ".")
 }
 
-func isTimestamp(s string) bool {
+func looksLikeTimestamp(s string) bool {
 	formats := []string{
 		time.RFC3339,
 		"2006-01-02T15:04:05",
@@ -250,7 +226,7 @@ func isTimestamp(s string) bool {
 	return false
 }
 
-func isBoolean(s string) bool {
+func looksLikeBoolean(s string) bool {
 	lower := strings.ToLower(s)
 	for _, bv := range []string{"true", "false", "t", "f", "yes", "no", "y", "n", "1", "0"} {
 		if lower == bv {
