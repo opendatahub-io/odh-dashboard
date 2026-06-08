@@ -9,14 +9,14 @@ type ModelCatalogAllModelsViewProps = {
 };
 
 const ModelCatalogAllModelsView: React.FC<ModelCatalogAllModelsViewProps> = ({ searchTerm }) => {
-  const { catalogSources, catalogLabels, updateSelectedSourceLabel } =
+  const { catalogSources, catalogLabels, setSelectedSourceLabel } =
     React.useContext(ModelCatalogContext);
 
   const handleShowMoreCategory = React.useCallback(
     (categoryLabel: string) => {
-      updateSelectedSourceLabel(categoryLabel);
+      setSelectedSourceLabel(categoryLabel);
     },
-    [updateSelectedSourceLabel],
+    [setSelectedSourceLabel],
   );
 
   return (
