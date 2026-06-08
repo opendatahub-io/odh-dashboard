@@ -180,6 +180,8 @@ module.exports = {
                 requiredVersion: deps['@openshift/dynamic-plugin-sdk-utils'],
                 eager: true,
               },
+              'use-query-params': { singleton: true, requiredVersion: '^2.2.1' },
+              '@tanstack/react-query': { singleton: true, requiredVersion: '^4.36.1' },
               ...odhDashboardShared,
             },
             exposes: {},

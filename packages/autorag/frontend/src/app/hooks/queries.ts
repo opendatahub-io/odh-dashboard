@@ -13,7 +13,7 @@ import {
 } from '~/app/types';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { normalizePipelineRun } from '~/app/utilities/pipelineRunUtils';
-import { parseErrorStatus } from '~/app/utilities/utils';
+import { isRunInTerminalState, parseErrorStatus } from '~/app/utilities/utils';
 
 export function useOgxModelsQuery(
   namespace: string,
@@ -167,8 +167,6 @@ export function useOgxVectorStoreProvidersQuery(
   });
 }
 
-const TERMINAL_STATES = new Set(['SUCCEEDED', 'FAILED', 'CANCELED', 'SKIPPED', 'CACHED']);
-export const isTerminalState = (state: string): boolean => TERMINAL_STATES.has(state);
 const POLL_INTERVAL_MS = 10000;
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRY_ATTEMPTS = 5;
@@ -204,7 +202,7 @@ export function usePipelineRunQuery(
         return false;
       }
       const state = query.state.data?.state;
-      if (!state || isTerminalState(state)) {
+      if (!state || isRunInTerminalState(state)) {
         return false;
       }
       return POLL_INTERVAL_MS;

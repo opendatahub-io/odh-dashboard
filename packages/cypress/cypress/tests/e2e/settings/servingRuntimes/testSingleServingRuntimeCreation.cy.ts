@@ -10,17 +10,6 @@ let modelServingSingleName: string;
 let metadataSingleDisplayName: string;
 
 retryableBefore(() => {
-  // TODO: Investigate and resolve 'window is not defined' error during page transition seen in ODH related to application performance
-  // Temporary workaround: Catching and ignoring this specific error to prevent test failure
-  Cypress.on('uncaught:exception', (err) => {
-    // Check if the error is about 'window is not defined'
-    if (err.message.includes('window is not defined')) {
-      // Prevent the error from failing the test
-      return false;
-    }
-    // For other errors, let them fail the test
-    return true;
-  });
   cy.wrap(null)
     .then(() => getSingleModelServingRuntimeInfo())
     .then((info) => {
@@ -34,6 +23,12 @@ retryableBefore(() => {
       return cleanupTemplates(metadataSingleDisplayName);
     });
 });
+after(() => {
+  if (metadataSingleDisplayName) {
+    cleanupTemplates(metadataSingleDisplayName);
+  }
+});
+
 describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runtime Template By Uploading A YAML file', () => {
   it(
     'Admin should access serving runtimes, import a yaml file and then delete',
@@ -72,10 +67,7 @@ describe('Verify Admins Can Import and Delete a Custom Single-Model Serving Runt
         .should('be.enabled')
         .click()
         .then(() => {
-          // Wait for URL to change, indicating page transition
-          cy.url().should('include', '/settings/model-resources-operations/serving-runtimes', {
-            timeout: 30000,
-          });
+          cy.url().should('match', /\/serving-runtimes$/, { timeout: 30000 });
         });
 
       // Edit the created model serving platform and delete

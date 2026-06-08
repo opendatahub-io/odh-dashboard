@@ -11,6 +11,9 @@ import ChooseBenchmarkCollectionPage from './pages/ChooseBenchmarkCollectionPage
 import ChooseStandardisedBenchmarksPage from './pages/ChooseStandardisedBenchmarksPage';
 import StartEvaluationRunPage from './pages/StartEvaluationRunPage';
 import EvaluationResultsPage from './pages/EvaluationResultsPage';
+import CompareEvaluationsPage from './pages/CompareEvaluationsPage';
+import ChooseCompareBenchmarksPage from './pages/ChooseCompareBenchmarksPage';
+import { evaluationComparePathSegment } from './routes';
 
 export const useNavData = (): NavDataItem[] => [
   {
@@ -30,6 +33,14 @@ const AppRoutes: React.FC = () => (
       >
         <Route path=":namespace" element={<EvaluationsPage />} />
         <Route path=":namespace/results/:jobId" element={<EvaluationResultsPage />} />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}/benchmarks`}
+          element={<ChooseCompareBenchmarksPage />}
+        />
+        <Route
+          path={`:namespace/${evaluationComparePathSegment}`}
+          element={<CompareEvaluationsPage />}
+        />
         <Route path=":namespace/create" element={<NewEvaluationRunPage />} />
         <Route path=":namespace/create/collections" element={<ChooseBenchmarkCollectionPage />} />
         <Route path=":namespace/create/benchmarks" element={<ChooseStandardisedBenchmarksPage />} />

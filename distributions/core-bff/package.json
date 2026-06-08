@@ -40,7 +40,7 @@
     "cypress:server": "cd frontend && serve ./public-cypress -p 9112 -s -L",
     "cypress:server:dev": "cd frontend && cross-env DEPLOYMENT_MODE=federated PORT=9112 PROXY_PORT=4020 npm run start:dev",
     "cypress:server:wait": "npx wait-on -i 1000 http://localhost:9112",
-    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=disabled' odh-ct-bff-consumer --bff-dir bff",
+    "test:contract": "cross-env BFF_MOCK_FLAGS='--mock-k8s-client --auth-method=user_token' odh-ct-bff-consumer --bff-dir bff",
     "lint": "cd frontend && npm run lint",
     "lint:fix": "cd frontend && npm run lint:fix"
   },

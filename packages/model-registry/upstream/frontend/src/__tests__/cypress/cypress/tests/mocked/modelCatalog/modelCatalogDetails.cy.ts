@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { mockModArchResponse } from 'mod-arch-core';
 import { modelCatalog } from '~/__tests__/cypress/cypress/pages/modelCatalog';
 import { mockModelRegistry } from '~/__mocks__/mockModelRegistry';
 import {
@@ -8,9 +9,12 @@ import {
   interceptPerformanceArtifactsList,
 } from '~/__tests__/cypress/cypress/support/interceptHelpers/modelCatalog';
 import { mockCatalogModelArtifact, mockCatalogModel } from '~/__mocks__';
+import { mockRegisteredModelList } from '~/__mocks__/mockRegisteredModelsList';
 import { ModelRegistryMetadataType } from '~/app/types';
-import { MODEL_CATALOG_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import { TempDevFeature } from '~/app/hooks/useTempDevFeatureAvailable';
+import {
+  MODEL_CATALOG_API_VERSION,
+  MODEL_REGISTRY_API_VERSION,
+} from '~/__tests__/cypress/cypress/support/commands/api';
 import { ModelCatalogTask } from '~/concepts/modelCatalog/const';
 
 describe('Model Catalog Details Page', () => {
@@ -322,9 +326,8 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
     ]).as('getModelRegistries');
   });
 
-  describe('with feature flag enabled', () => {
+  describe('with validated model', () => {
     beforeEach(() => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupValidatedModelIntercepts({});
       interceptArtifactsList();
       modelCatalog.visit();
@@ -335,11 +338,9 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
 
     it('should display the validated configurations card with tool calling content', () => {
       modelCatalog.findValidatedConfigurationsCard().should('be.visible');
-      modelCatalog
-        .findValidatedConfigurationsCard()
-        .should('contain.text', 'Validated configurations');
+      modelCatalog.findValidatedConfigurationsCard().should('contain.text', 'Validated arguments');
       modelCatalog.findToolCallingCard().should('be.visible');
-      modelCatalog.findToolCallingCard().should('contain.text', 'Tool Calling');
+      modelCatalog.findToolCallingCard().should('contain.text', 'Tool calling');
     });
 
     it('should show CLI args inside the tool calling card when expanded', () => {
@@ -347,24 +348,19 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
       modelCatalog.findToolCallingCard().should('contain.text', '--enable-auto-tool-choice');
       modelCatalog.findToolCallingCard().should('contain.text', '--tool-call-parser granite');
     });
-  });
 
-  describe('with feature flag disabled', () => {
-    it('should not display the validated configurations card', () => {
-      window.localStorage.removeItem(TempDevFeature.ToolCallingConfiguration);
-      setupValidatedModelIntercepts({});
-      interceptArtifactsList();
-      modelCatalog.visit();
-      modelCatalog.findLoadingState().should('not.exist');
-      modelCatalog.findModelCatalogDetailLink().first().click();
-      modelCatalog.findBreadcrumb().should('exist');
-      modelCatalog.findValidatedConfigurationsCard().should('not.exist');
+    it('should display validated deployment resources label when expanded', () => {
+      modelCatalog.findToolCallingToggle().click();
+      modelCatalog.findValidatedDeploymentResourceLabels().should('have.length', 1);
+      modelCatalog
+        .findValidatedDeploymentResourceLabels()
+        .first()
+        .should('contain.text', 'vLLM v0.8.5 - CUDA');
     });
   });
 
   describe('for a non-validated model', () => {
     it('should not display the validated configurations card', () => {
-      window.localStorage.setItem(TempDevFeature.ToolCallingConfiguration, 'true');
       setupModelCatalogIntercepts({
         customNonValidatedModel: mockCatalogModel({
           name: 'non-validated-model',
@@ -377,5 +373,120 @@ describe('Model Catalog Details Page - Validated Configurations Card', () => {
       modelCatalog.findBreadcrumb().should('exist');
       modelCatalog.findValidatedConfigurationsCard().should('not.exist');
     });
+  });
+});
+
+describe('Model Catalog Registration - Model Type Field', () => {
+  const modelArtifacts = {
+    items: [mockCatalogModelArtifact({ uri: 'oci://quay.io/test-org/test-model:latest' })],
+    size: 1,
+    pageSize: 10,
+    nextPageToken: '',
+  };
+
+  const interceptRegisteredModels = () => {
+    cy.intercept(
+      {
+        method: 'GET',
+        url: new RegExp(
+          `/model-registry/api/${MODEL_REGISTRY_API_VERSION}/model_registry/modelregistry-sample/registered_models`,
+        ),
+      },
+      mockModArchResponse(mockRegisteredModelList({ items: [], size: 0 })),
+    ).as('getRegisteredModels');
+  };
+
+  const navigateToRegisterPage = () => {
+    modelCatalog.visit();
+    modelCatalog.findLoadingState().should('not.exist');
+    modelCatalog.findModelCatalogDetailLink().first().click();
+    modelCatalog.findBreadcrumb().should('exist');
+    modelCatalog.findRegisterModelButton().click();
+    cy.findByTestId('app-page-title').should('contain.text', 'Register');
+  };
+
+  const interceptModelRegistries = () => {
+    cy.interceptApi(
+      'GET /api/:apiVersion/model_registry',
+      { path: { apiVersion: MODEL_REGISTRY_API_VERSION } },
+      [mockModelRegistry({ name: 'modelregistry-sample' })],
+    ).as('getModelRegistries');
+  };
+
+  it('should show "Unknown" and be disabled when model has model_type "unknown"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'unknown-type-model',
+        customProperties: {
+          model_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'unknown',
+          },
+        },
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Unknown');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should default to "Unknown" and be disabled when model has no model_type', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'no-type-model',
+        customProperties: {},
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Unknown');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should show "Generative AI model" and be disabled when model has model_type "generative"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({});
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Generative AI model (Example, LLM)');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
+  });
+
+  it('should show "Predictive Model" and be disabled when model has model_type "predictive"', () => {
+    interceptModelRegistries();
+
+    setupModelCatalogIntercepts({
+      customNonValidatedModel: mockCatalogModel({
+        name: 'predictive-model',
+        customProperties: {
+          model_type: {
+            metadataType: ModelRegistryMetadataType.STRING,
+            string_value: 'predictive',
+          },
+        },
+      }),
+    });
+    interceptArtifactsList(modelArtifacts);
+    interceptRegisteredModels();
+
+    navigateToRegisterPage();
+
+    modelCatalog.findModelTypeSelect().should('contain.text', 'Predictive Model');
+    modelCatalog.findModelTypeSelect().should('be.disabled');
   });
 });

@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// SharedClientLogic holds shared Kubernetes client logic and configuration.
 type SharedClientLogic struct {
 	Client kubernetes.Interface
 	Logger *slog.Logger

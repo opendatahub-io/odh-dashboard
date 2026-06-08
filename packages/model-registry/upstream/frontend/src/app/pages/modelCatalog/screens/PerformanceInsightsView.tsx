@@ -29,6 +29,7 @@ import {
 import {
   decodeParams,
   getActiveLatencyFieldName,
+  getHardwareConfigurationsFromCustomProperties,
 } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import {
   applyFilterValue,
@@ -127,6 +128,11 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
     model.name,
   ]);
 
+  const hardwareConfigurations = React.useMemo(
+    () => getHardwareConfigurationsFromCustomProperties(model.customProperties),
+    [model.customProperties],
+  );
+
   if (performanceArtifactsError) {
     return (
       <PageSection padding={{ default: 'noPadding' }}>
@@ -161,6 +167,7 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
               <FlexItem>
                 <HardwareConfigurationTable
                   performanceArtifacts={performanceArtifacts.items}
+                  hardwareConfigurations={hardwareConfigurations}
                   isLoading={!performanceArtifactsLoaded && performanceArtifacts.items.length === 0}
                   onSortChange={setTableSort}
                 />

@@ -4,19 +4,24 @@
   "description": "Base app shell distribution framework",
   "license": "Apache-2.0",
   "private": true,
+  "main": "./src/lib.ts",
+  "exports": {
+    ".": "./src/lib.ts"
+  },
   "engines": {
     "node": ">=22.0.0"
   },
   "scripts": {
     "dev": "npm run start:dev",
-    "start:dev": "concurrently -k -n bff,shell \"node server/stub.js\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
+    "start:dev": "concurrently -k -n bff,shell \"make -C ../core-bff dev-bff\" \"webpack serve --hot --color --config ./config/webpack.dev.js\"",
     "build": "webpack --config ./config/webpack.prod.js",
-    "start": "node server/stub.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@odh-dashboard/plugin-core": "*",
+    "@openshift/dynamic-plugin-sdk": "^5.0.1",
     "@patternfly/patternfly": "^6.4.0",
     "@patternfly/react-core": "^6.4.1",
     "@patternfly/react-icons": "^6.4.0",
