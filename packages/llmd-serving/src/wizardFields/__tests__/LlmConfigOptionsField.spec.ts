@@ -326,6 +326,20 @@ describe('getInitialFieldData', () => {
     expect(result.data?.autoSelect).toBe(false);
   });
 
+  it('should not auto-select LLMD when isLlmdSuggested with multiple hardware matches', () => {
+    const amdConfig2 = mockLLMInferenceServiceConfigK8sResource({
+      name: 'llm-template-amd-rocm-v2',
+      displayName: 'AMD ROCm Config v2',
+      recommendedAccelerators: '["amd.com/gpu"]',
+    });
+    const result = getInitialFieldData(
+      undefined,
+      { configs: [amdConfig, amdConfig2, nvidiaConfig], isLlmdSuggested: true },
+      { hardwareProfile: amdHardwareProfile },
+    );
+    expect(result.data?.autoSelect).toBe(false);
+  });
+
   it('should select the only option when there is just one', () => {
     const result = getInitialFieldData(undefined, {
       configs: [],

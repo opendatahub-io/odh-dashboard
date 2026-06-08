@@ -172,8 +172,8 @@ export const LLMConfigOptionsFieldWizardField: LLMConfigOptionsFieldType = {
           },
         };
       }
-      // if llmd is default and no specific hardware match was found
-      if (externalData?.isLlmdSuggested) {
+      // if llmd is default and no hardware match was found
+      if (externalData?.isLlmdSuggested && matchingHardwareProfileOption.length === 0) {
         return {
           data: {
             selection: LLMD_OPTION,
