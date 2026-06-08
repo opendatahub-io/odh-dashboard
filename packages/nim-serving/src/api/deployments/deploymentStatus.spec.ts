@@ -1,12 +1,10 @@
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/internal/__mocks__/mockInferenceServiceK8sResource';
 import { mockPodK8sResource } from '@odh-dashboard/internal/__mocks__/mockPodK8sResource';
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
-import type { NIMServiceKind } from '../nimservices/types';
 import { getNIMDeploymentStatus } from './status';
+import type { NIMServiceKind } from '../nimservices/types';
 
-const mockNIMService = (
-  overrides: Partial<NIMServiceKind> = {},
-): NIMServiceKind => ({
+const mockNIMService = (overrides: Partial<NIMServiceKind> = {}): NIMServiceKind => ({
   apiVersion: 'apps.nvidia.com/v1alpha1',
   kind: 'NIMService',
   metadata: {

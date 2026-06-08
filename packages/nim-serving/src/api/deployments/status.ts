@@ -9,12 +9,8 @@ import type { DeploymentStatus } from '@odh-dashboard/model-serving/extension-po
 import { getModelDeploymentStoppedStates } from '@odh-dashboard/model-serving/utils';
 import type { NIMServiceKind } from '../nimservices/types';
 
-const getNIMServiceErrorCondition = (
-  nimService: NIMServiceKind,
-): K8sCondition | undefined =>
-  nimService.status?.conditions?.find(
-    (c: K8sCondition) => c.status === 'False' && c.message,
-  );
+const getNIMServiceErrorCondition = (nimService: NIMServiceKind): K8sCondition | undefined =>
+  nimService.status?.conditions?.find((c: K8sCondition) => c.status === 'False' && c.message);
 
 export const getNIMDeploymentStatus = (
   inferenceService: InferenceServiceKind | undefined,
@@ -23,9 +19,7 @@ export const getNIMDeploymentStatus = (
   nimService?: NIMServiceKind,
 ): DeploymentStatus => {
   if (!inferenceService) {
-    const errorCondition = nimService
-      ? getNIMServiceErrorCondition(nimService)
-      : undefined;
+    const errorCondition = nimService ? getNIMServiceErrorCondition(nimService) : undefined;
     if (errorCondition) {
       return {
         state: ModelDeploymentState.FAILED_TO_LOAD,
