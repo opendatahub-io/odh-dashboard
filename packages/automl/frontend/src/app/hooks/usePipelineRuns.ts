@@ -68,9 +68,12 @@ export function usePipelineRuns(namespace: string): PipelineRunsResult {
   }, []);
 
   const refreshWrapped = React.useCallback(async () => {
-    setPage(1);
-    await refresh();
-  }, [refresh]);
+    if (page === 1) {
+      await refresh();
+    } else {
+      setPage(1);
+    }
+  }, [page, refresh]);
 
   return {
     runs: data.runs,
