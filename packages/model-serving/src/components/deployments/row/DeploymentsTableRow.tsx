@@ -4,6 +4,7 @@ import { Td, Tbody } from '@patternfly/react-table';
 import ResourceActionsColumn from '@odh-dashboard/internal/components/ResourceActionsColumn';
 import ResourceTr from '@odh-dashboard/internal/components/ResourceTr';
 import { ModelStatusIcon } from '@odh-dashboard/internal/concepts/modelServing/ModelStatusIcon';
+// eslint-disable-next-line @odh-dashboard/no-restricted-imports
 import { ModelDeploymentState } from '@odh-dashboard/internal/pages/modelServing/screens/types';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/internal/concepts/k8s/utils';
 import ResourceNameTooltip from '@odh-dashboard/internal/components/ResourceNameTooltip';
@@ -27,6 +28,7 @@ import {
 import { isModelServingDeploymentFormDataExtension } from '../../../../extension-points/deployment-wizard';
 import { useModelDeploymentNotification } from '../../../concepts/useModelDeploymentNotification';
 import { DeploymentMetricsLink } from '../../metrics/DeploymentMetricsLink';
+import { shouldShowDeploymentMetricsLink } from '../../../concepts/deploymentUtils';
 import useStopModalPreference from '../../../concepts/useStopModalPreference';
 import { ExtensionDataEntry } from '../../../concepts/extensionHelpers/usePlatformExtensionDataMap';
 
@@ -114,10 +116,7 @@ export const DeploymentRow: React.FC<{
           ))}
         <Td dataLabel="Name">
           <ResourceNameTooltip resource={deployment.model}>
-            {metricsExtension &&
-            deployment.model.metadata.namespace &&
-            (deployment.status?.stoppedStates?.isRunning ||
-              deployment.status?.stoppedStates?.isStopped) ? (
+            {shouldShowDeploymentMetricsLink(deployment, metricsExtension) ? (
               <DeploymentMetricsLink deployment={deployment} />
             ) : (
               <span data-testid="deployed-model-name">
