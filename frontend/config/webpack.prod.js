@@ -40,8 +40,7 @@ module.exports = merge(
     mode: 'production',
     devtool: 'source-map',
     output: {
-      filename: '[name].[contenthash].bundle.js',
-      chunkFilename: '[name]-[contenthash].js',
+      filename: '[name].[contenthash].js',
     },
     optimization: {
       minimize: true,
@@ -50,7 +49,6 @@ module.exports = merge(
     plugins: [
       new MiniCssExtractPlugin({
         filename: '[name].[contenthash].css',
-        chunkFilename: '[name].[contenthash].bundle.css',
         ignoreOrder: true,
       }),
     ],

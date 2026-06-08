@@ -42,7 +42,6 @@ module.exports = merge(
     plugins: [
       new MiniCssExtractPlugin({
         filename: '[name].css',
-        chunkFilename: '[name].bundle.css',
         ignoreOrder: true,
       }),
     ],
